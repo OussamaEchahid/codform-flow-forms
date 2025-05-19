@@ -25,12 +25,13 @@ interface FormPreviewPanelProps {
   hideFloatingButtonPreview?: boolean;
 }
 
-// Deep clone function to preserve all field properties exactly
+// Improved deep clone function to preserve ALL field properties exactly
 const deepCloneFields = (fields: FormField[]): FormField[] => {
   if (!fields) return [];
   
   return fields.map(field => {
-    const newField = { ...field };
+    // Start with a complete copy of all first-level properties
+    const newField = { ...field, id: field.id };
     
     // Deep clone style object if it exists
     if (field.style) {
@@ -40,6 +41,19 @@ const deepCloneFields = (fields: FormField[]): FormField[] => {
     // Deep clone options array if it exists
     if (field.options && Array.isArray(field.options)) {
       newField.options = field.options.map(option => ({ ...option }));
+    }
+    
+    // Special handling for form-title fields to ensure styles are preserved
+    if (field.type === 'form-title' || field.type === 'title') {
+      if (!newField.style) newField.style = {};
+      
+      // Ensure critical style properties are preserved
+      newField.style.backgroundColor = field.style?.backgroundColor || '#9b87f5';
+      newField.style.color = field.style?.color || '#ffffff';
+      newField.style.textAlign = field.style?.textAlign || 'left';
+      newField.style.fontSize = field.style?.fontSize || '24px';
+      newField.style.descriptionColor = field.style?.descriptionColor || 'rgba(255, 255, 255, 0.9)';
+      newField.style.descriptionFontSize = field.style?.descriptionFontSize || '14px';
     }
     
     return newField;
@@ -64,7 +78,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   // Use a stable internalRefreshKey that doesn't update with every props change
   const [internalRefreshKey, setInternalRefreshKey] = useState(0);
   
-  // Only update the internal refresh key when refreshKey increases
+  // Only update the internal refresh key when refreshKey increases to prevent render loops
   useEffect(() => {
     if (refreshKey > internalRefreshKey) {
       setInternalRefreshKey(refreshKey);
@@ -72,7 +86,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     // We intentionally omit refreshKey from dependencies to prevent infinite loops
   }, [refreshKey]);
   
-  // Use useMemo with stable dependencies to prevent unnecessary recalculations
+  // Use useMemo with proper dependencies to prevent unnecessary recalculations
   const processedFields = useMemo(() => {
     // Make a deep copy of fields to prevent unintended mutations
     const clonedFields = deepCloneFields(fields);
@@ -88,7 +102,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
         return field;
       }
       
-      // Preserve the original field ID - critical for drag and drop stability
+      // Important: Preserve the EXACT original field ID - critical for drag and drop stability
       const originalId = field.id;
       const updatedField = { ...field, id: originalId };
       
@@ -109,18 +123,18 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           : true;
       }
       
-      // Special handling for title fields
+      // Special handling for title fields - preserve ALL style properties
       if (updatedField.type === 'form-title' || updatedField.type === 'title') {
         if (!updatedField.style) {
           updatedField.style = {};
         }
         
-        // Ensure text alignment is set
+        // Ensure all style properties are preserved exactly as they were
+        // Only set defaults if the property doesn't exist at all
         if (!updatedField.style.textAlign) {
           updatedField.style.textAlign = language === 'ar' ? 'right' : 'left';
         }
         
-        // Ensure background color and text color - preserve original values if available
         if (!updatedField.style.backgroundColor) {
           updatedField.style.backgroundColor = '#9b87f5';
         }
@@ -129,7 +143,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           updatedField.style.color = '#ffffff';
         }
         
-        // Preserve font sizes if already set
+        // Handle font sizes with careful preservation of existing values
         if (!updatedField.style.fontSize) {
           updatedField.style.fontSize = updatedField.type === 'form-title' ? '24px' : '20px';
         } else if (!updatedField.style.fontSize.includes('px')) {

@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { memo } from 'react';
 import { FormField as FormFieldType } from '@/lib/form-utils';
 import TextInput from './fields/TextInput';
 import TextArea from './fields/TextArea';
@@ -87,15 +87,27 @@ const getFieldKey = (field: FormFieldType) => {
   return `field-${field.id}`;
 };
 
-// Deep clone function to preserve all field properties
+// Improved deep clone function to preserve all field properties exactly
 const deepCloneField = (field: FormFieldType): FormFieldType => {
   if (!field) return field;
   
+  // Start with a complete copy of all properties
   const clonedField = { ...field };
+  
+  // Preserve the exact ID - critical for stability
+  clonedField.id = field.id;
   
   // Deep clone style object if it exists
   if (field.style) {
     clonedField.style = { ...field.style };
+    
+    // Special handling for title fields
+    if ((field.type === 'form-title' || field.type === 'title') && field.style) {
+      clonedField.style.backgroundColor = field.style.backgroundColor || '#9b87f5';
+      clonedField.style.color = field.style.color || '#ffffff';
+      clonedField.style.textAlign = field.style.textAlign;
+      clonedField.style.fontSize = field.style.fontSize;
+    }
   }
   
   // Deep clone options array if it exists
@@ -106,8 +118,8 @@ const deepCloneField = (field: FormFieldType): FormFieldType => {
   return clonedField;
 };
 
-// Use React.memo to prevent unnecessary re-renders
-const FormField = React.memo(({ field, formStyle }: FormFieldProps) => {
+// Improved FormField component with better stability during drag and drop
+const FormField = memo(({ field, formStyle }: FormFieldProps) => {
   // Validate field data
   if (!field || !field.type || !field.id) {
     console.warn('Invalid field:', field);
@@ -118,32 +130,34 @@ const FormField = React.memo(({ field, formStyle }: FormFieldProps) => {
   const clonedField = deepCloneField(field);
   
   // Normalize field properties - ensure icon settings are applied correctly
-  const normalizedField = {
-    ...clonedField,
-    // Preserve the original field ID
-    id: field.id,
-    // Convert empty icon to 'none'
-    icon: field.icon === '' ? 'none' : field.icon,
-    style: {
-      ...clonedField.style,
-      // Set default showIcon to true if icon exists and isn't 'none'
-      showIcon: field.style?.showIcon !== undefined ? 
-        field.style.showIcon : 
-        (field.icon && field.icon !== 'none'),
-      // Set default values for label color and font size if not specified
-      labelColor: field.style?.labelColor || '#333',
-      labelFontSize: field.style?.labelFontSize || formStyle.fontSize || '16px',
-      labelFontWeight: field.style?.labelFontWeight || '600',
-      // Ensure backgroundColor is passed for submit button
-      backgroundColor: field.style?.backgroundColor || (field.type === 'submit' ? formStyle.primaryColor : undefined),
-      // For title fields, ensure proper style values
-      ...(field.type === 'form-title' || field.type === 'title' ? {
-        textAlign: field.style?.textAlign,
-        color: field.style?.color,
-        fontWeight: field.style?.fontWeight
-      } : {})
-    }
-  };
+  const normalizedField = React.useMemo(() => {
+    return {
+      ...clonedField,
+      // Preserve the original field ID
+      id: field.id,
+      // Convert empty icon to 'none'
+      icon: field.icon === '' ? 'none' : field.icon,
+      style: {
+        ...clonedField.style,
+        // Set default showIcon to true if icon exists and isn't 'none'
+        showIcon: field.style?.showIcon !== undefined ? 
+          field.style.showIcon : 
+          (field.icon && field.icon !== 'none'),
+        // Set default values for label color and font size if not specified
+        labelColor: field.style?.labelColor || '#333',
+        labelFontSize: field.style?.labelFontSize || formStyle.fontSize || '16px',
+        labelFontWeight: field.style?.labelFontWeight || '600',
+        // Ensure backgroundColor is passed for submit button
+        backgroundColor: field.style?.backgroundColor || (field.type === 'submit' ? formStyle.primaryColor : undefined),
+        // For title fields, ensure proper style values
+        ...(field.type === 'form-title' || field.type === 'title' ? {
+          textAlign: field.style?.textAlign,
+          color: field.style?.color,
+          fontWeight: field.style?.fontWeight
+        } : {})
+      }
+    };
+  }, [field, formStyle]);
 
   // Special handling for email and phone field types
   let fieldType = normalizedField.type;
@@ -227,6 +241,42 @@ const FormField = React.memo(({ field, formStyle }: FormFieldProps) => {
       <Component field={normalizedField} formStyle={formStyle} />
     </div>
   );
+}, 
+// Deep comparison function for React.memo to prevent unnecessary re-renders
+(prevProps, nextProps) => {
+  // Quick reference check
+  if (prevProps === nextProps) return true;
+  
+  // Compare field IDs - most important for stability
+  if (prevProps.field.id !== nextProps.field.id) return false;
+  
+  // Compare important field properties that would affect rendering
+  if (prevProps.field.type !== nextProps.field.type) return false;
+  if (prevProps.field.label !== nextProps.field.label) return false;
+  if (prevProps.field.helpText !== nextProps.field.helpText) return false;
+  if (prevProps.field.required !== nextProps.field.required) return false;
+  if (prevProps.field.icon !== nextProps.field.icon) return false;
+  
+  // Compare form styles that would affect rendering
+  if (prevProps.formStyle?.primaryColor !== nextProps.formStyle?.primaryColor) return false;
+  if (prevProps.formStyle?.borderRadius !== nextProps.formStyle?.borderRadius) return false;
+  if (prevProps.formStyle?.fontSize !== nextProps.formStyle?.fontSize) return false;
+  
+  // Deep compare styles - the most likely source of unnecessary renders
+  const prevStyle = prevProps.field.style || {};
+  const nextStyle = nextProps.field.style || {};
+  
+  const styleKeys = [
+    'textAlign', 'color', 'backgroundColor', 'fontSize', 'fontWeight', 
+    'descriptionColor', 'descriptionFontSize', 'showIcon'
+  ];
+  
+  for (const key of styleKeys) {
+    if (prevStyle[key] !== nextStyle[key]) return false;
+  }
+  
+  // If we made it this far, consider them equal
+  return true;
 });
 
 FormField.displayName = 'FormField';

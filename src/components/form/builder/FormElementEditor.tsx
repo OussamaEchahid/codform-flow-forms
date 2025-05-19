@@ -18,6 +18,40 @@ interface FormElementEditorProps {
   onUpdateElement?: (index: number, updatedElement: FormField) => void;
 }
 
+// Improved deep copy function to ensure all nested properties are preserved exactly
+const deepCopyElement = (element: FormField): FormField => {
+  if (!element) return element;
+  
+  // Create a complete copy of all properties
+  const copy = { ...element };
+  
+  // Preserve the ID exactly as it was - critical for drag and drop stability
+  copy.id = element.id;
+  
+  // Deep copy the style object to prevent reference issues
+  if (element.style) {
+    copy.style = { ...element.style };
+    
+    // Special handling for form-title and title fields
+    if (element.type === 'form-title' || element.type === 'title') {
+      // Ensure critical style properties are preserved exactly
+      copy.style.backgroundColor = element.style.backgroundColor || '#9b87f5';
+      copy.style.color = element.style.color || '#ffffff';
+      copy.style.textAlign = element.style.textAlign;
+      copy.style.fontSize = element.style.fontSize;
+      copy.style.descriptionColor = element.style.descriptionColor;
+      copy.style.descriptionFontSize = element.style.descriptionFontSize;
+    }
+  }
+  
+  // Special handling for options array (used in select, radio, checkbox)
+  if (element.options && Array.isArray(element.options)) {
+    copy.options = element.options.map(option => ({ ...option }));
+  }
+  
+  return copy;
+};
+
 const FormElementEditor: React.FC<FormElementEditorProps> = ({
   elements,
   selectedIndex,
@@ -38,26 +72,6 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
     coordinateGetter: sortableKeyboardCoordinates
   }));
   
-  // Improved deep copy function to ensure all nested properties are preserved exactly
-  const deepCopyElement = useCallback((element: FormField): FormField => {
-    if (!element) return element;
-    // Create a new object with all properties from the original
-    const copy = { ...element };
-    
-    // Special handling for style object - make sure it's properly deep copied
-    if (element.style) {
-      copy.style = { ...element.style };
-    }
-    
-    // Special handling for options array (used in select, radio, checkbox)
-    if (element.options && Array.isArray(element.options)) {
-      copy.options = element.options.map(option => ({ ...option }));
-    }
-    
-    // Ensure all other properties are copied
-    return copy;
-  }, []);
-  
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
     
@@ -69,18 +83,29 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
     const newIndex = elements.findIndex(item => item.id === over.id);
     
     if (onReorderElements && oldIndex !== -1 && newIndex !== -1) {
-      // Create exact copies of each element to preserve all properties
+      // Create exact deep copies of each element to preserve all properties
       const newElementsArray = elements.map(element => deepCopyElement(element));
       
       // Use arrayMove to reorder elements but maintain their exact properties
       const reorderedElements = arrayMove(newElementsArray, oldIndex, newIndex);
       
-      // Preserve critical properties for special fields
+      // Special handling for form-title fields to ensure their properties are preserved
       reorderedElements.forEach((element, idx) => {
+        // Find the original element by ID to preserve critical properties
         const originalElement = elements.find(e => e.id === element.id);
-        if (originalElement && originalElement.type === 'form-title') {
-          // Ensure form-title fields maintain their complete style properties
+        
+        if (originalElement && (originalElement.type === 'form-title' || originalElement.type === 'title')) {
+          // Ensure all style properties are preserved exactly
+          if (!element.style) element.style = {};
+          
+          // Copy all style properties from the original element
           element.style = { ...originalElement.style };
+          
+          // Ensure these critical properties exist
+          element.style.backgroundColor = originalElement.style?.backgroundColor || '#9b87f5';
+          element.style.color = originalElement.style?.color || '#ffffff';
+          
+          // Preserve the label and helpText exactly
           element.label = originalElement.label;
           element.helpText = originalElement.helpText;
         }
@@ -88,7 +113,7 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
       
       onReorderElements(reorderedElements);
     }
-  }, [elements, onReorderElements, deepCopyElement]);
+  }, [elements, onReorderElements]);
   
   // Handle element updates when they are edited directly from the SortableField
   const handleElementUpdate = useCallback((index: number, field: FormField) => {
@@ -140,7 +165,7 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
     if (onUpdateElement) {
       onUpdateElement(index, updatedField);
     }
-  }, [elements, onUpdateElement, deepCopyElement, language]);
+  }, [elements, onUpdateElement, language]);
   
   // Property to determine if there are elements to display
   const hasElements = elements.length > 0;
