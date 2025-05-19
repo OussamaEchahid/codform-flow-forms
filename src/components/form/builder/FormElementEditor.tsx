@@ -42,6 +42,7 @@ const SortableElement = ({
   onDuplicate: () => void;
 }) => {
   const { language } = useI18n();
+  const fieldId = field.id; // Store field ID to avoid reference issues
   
   const { 
     attributes, 
@@ -51,7 +52,7 @@ const SortableElement = ({
     transition,
     isDragging
   } = useSortable({ 
-    id: field.id,
+    id: fieldId,
     data: {
       // Deep clone the field data to preserve all properties during drag and drop
       field: deepCloneField(field)
@@ -117,8 +118,9 @@ const SortableElement = ({
       }} 
       className={`rounded-md p-3 mb-2 cursor-pointer hover:bg-gray-50 transition-colors group`}
       onClick={onSelect}
-      data-field-id={field.id}
+      data-field-id={fieldId}
       data-field-type={field.type}
+      data-field-index={index}
     >
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-2">

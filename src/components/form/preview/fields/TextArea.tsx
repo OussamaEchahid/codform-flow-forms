@@ -16,6 +16,7 @@ interface TextAreaProps {
 const TextArea: React.FC<TextAreaProps> = ({ field, formStyle, direction }) => {
   const { language } = useI18n();
   const fieldStyle = field.style || {};
+  const fieldId = field.id; // Store field id for consistency
   
   // Determine the effective direction - ALWAYS prefer passed direction from form
   // Only fallback to language-based direction if no direction is provided
@@ -36,15 +37,19 @@ const TextArea: React.FC<TextAreaProps> = ({ field, formStyle, direction }) => {
   // Determine if RTL based on effective direction
   const isRTL = effectiveDirection === 'rtl';
   
+  // Create a unique identifier to ensure the input is tied to this specific instance
+  const uniqueId = `${fieldId}-${Date.now()}`;
+  
   return (
     <div 
       className="mb-4" 
       dir={effectiveDirection}
       data-field-type="textarea"
+      data-field-id={fieldId}
       data-respects-form-direction="true"
     >
       <label 
-        htmlFor={field.id} 
+        htmlFor={uniqueId} 
         className={`block mb-2 ${field.required ? 'relative' : ''}`}
         style={{ 
           color: labelColor,
@@ -70,7 +75,7 @@ const TextArea: React.FC<TextAreaProps> = ({ field, formStyle, direction }) => {
       </label>
       
       <textarea
-        id={field.id}
+        id={uniqueId}
         rows={rows}
         placeholder={field.placeholder || ''}
         className="w-full py-2 px-3 bg-white border outline-none focus:ring-2 focus:ring-opacity-50 transition-all"
