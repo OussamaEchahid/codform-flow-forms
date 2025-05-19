@@ -37,7 +37,6 @@ interface FormPreviewProps {
   floatingButton?: FloatingButtonConfig;
   hideFloatingButtonPreview?: boolean;
   titleFieldInfo?: TitleFieldInfo;
-  customTitleConfig?: TitleFieldInfo;
 }
 
 const FormPreview: React.FC<FormPreviewProps> = ({
@@ -56,18 +55,14 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   hideHeader = false,
   floatingButton,
   hideFloatingButtonPreview = false,
-  titleFieldInfo,
-  customTitleConfig
+  titleFieldInfo
 }) => {
   const { language } = useI18n();
   
   // Improve field processing and setup correctly
   const sanitizedFields = useMemo(() => {
-    // Filter out any form-title fields - they'll be handled separately now
-    const regularFields = fields.filter(field => field.type !== 'form-title');
-    
     // Ensure cart items and cart summary fields have empty labels by default
-    const updatedFields = regularFields.map(field => {
+    const updatedFields = fields.map(field => {
       // Copy the field to avoid direct modification issues
       const updatedField = { ...field };
       
@@ -156,14 +151,14 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   // Create unique ID for this form to ensure correct updates
   const formId = useMemo(() => `form-preview-stable`, []);
   
-  // Determine which title config to use (customTitleConfig has priority)
-  const titleInfo = customTitleConfig || titleFieldInfo || {
+  // Get title field information
+  const titleInfo = titleFieldInfo || {
     title: formTitle,
     description: formDescription,
     backgroundColor: formStyle.primaryColor,
     textColor: '#ffffff',
     descriptionColor: 'rgba(255, 255, 255, 0.9)',
-    textAlign: language === 'ar' ? 'right' : 'left' as 'left' | 'right',
+    textAlign: language === 'ar' ? 'right' : 'left',
     fontSize: '24px',
     descriptionFontSize: '14px'
   };
@@ -242,7 +237,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
           fontSize={titleInfo.fontSize}
           descriptionFontSize={titleInfo.descriptionFontSize}
           borderRadius={formStyle.borderRadius}
-          id="stable-form-title-fixed"
+          id={titleInfo.id}
         />
         
         {sanitizedFields.length > 0 ? (

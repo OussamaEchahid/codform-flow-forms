@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useI18n } from '@/lib/i18n';
 import { FloatingButtonConfig } from '@/lib/form-utils';

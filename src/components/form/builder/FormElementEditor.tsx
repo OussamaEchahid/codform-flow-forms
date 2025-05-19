@@ -1,4 +1,3 @@
-
 import React, { useCallback } from 'react';
 import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -119,11 +118,8 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
     }
   }, [elements, onUpdateElement, language]);
   
-  // Filter out form-title fields from the elements array
-  const filteredElements = elements.filter(element => element.type !== 'form-title');
-  
   // Property to determine if there are elements to display
-  const hasElements = filteredElements.length > 0;
+  const hasElements = elements.length > 0;
 
   return (
     <div className="space-y-4">
@@ -138,8 +134,8 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
       )}
       
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={filteredElements.map(element => element.id)} strategy={verticalListSortingStrategy}>
-          {filteredElements.map((element, index) => (
+        <SortableContext items={elements.map(element => element.id)} strategy={verticalListSortingStrategy}>
+          {elements.map((element, index) => (
             <SortableField 
               key={element.id} 
               field={element} 
@@ -147,6 +143,7 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
               onDuplicate={() => onDuplicateElement(index)} 
               onDelete={() => onDeleteElement(index)}
               onFieldUpdate={(updatedField) => handleElementUpdate(index, updatedField)}
+              disabled={element.type === 'form-title'} 
             />
           ))}
         </SortableContext>

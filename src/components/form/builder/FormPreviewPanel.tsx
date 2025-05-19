@@ -23,16 +23,6 @@ interface FormPreviewPanelProps {
   refreshKey: number;
   floatingButton?: FloatingButtonConfig;
   hideFloatingButtonPreview?: boolean;
-  customTitleConfig?: {
-    title: string;
-    description?: string;
-    backgroundColor?: string;
-    textColor?: string;
-    descriptionColor?: string;
-    textAlign?: 'left' | 'center' | 'right';
-    fontSize?: string;
-    descriptionFontSize?: string;
-  };
 }
 
 // Improved deep clone function that preserves IDs and doesn't use Date.now()
@@ -71,8 +61,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   onNextStep,
   refreshKey,
   floatingButton,
-  hideFloatingButtonPreview = false,
-  customTitleConfig
+  hideFloatingButtonPreview = false
 }) => {
   const { language } = useI18n();
   
@@ -87,7 +76,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     // We intentionally omit refreshKey from dependencies to prevent infinite loops
   }, [refreshKey]);
   
-  // Filter out form-title from fields - we'll handle it via customTitleConfig now
+  // Filter out form-title from fields - we'll handle it separately
   const processedFields = useMemo(() => {
     // Make a deep copy of fields to prevent unintended mutations
     let clonedFields = deepCloneFields(fields);
@@ -101,17 +90,13 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     return clonedFields.filter(field => field.type !== 'form-title');
   }, [fields, internalRefreshKey]);
 
-  // Extract title field information if no customTitleConfig is provided
+  // Extract title field information
   const titleFieldInfo = useMemo(() => {
-    if (customTitleConfig) {
-      return customTitleConfig;
-    }
-
     const titleField = fields.find(f => f.type === 'form-title');
     
     if (titleField) {
       // Make sure textAlign is properly typed
-      const textAlignment = titleField.style?.textAlign as 'left' | 'center' | 'right' | undefined;
+      const textAlignment = titleField.style?.textAlign as 'left' | 'center' | 'right' | 'justify' | undefined;
       
       return {
         title: titleField.label || formTitle,
@@ -119,9 +104,10 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
         backgroundColor: titleField.style?.backgroundColor || formStyle.primaryColor,
         textColor: titleField.style?.color || '#ffffff',
         descriptionColor: titleField.style?.descriptionColor || 'rgba(255, 255, 255, 0.9)',
-        textAlign: textAlignment || (language === 'ar' ? 'right' : 'left'),
+        textAlign: textAlignment,
         fontSize: titleField.style?.fontSize || '24px',
-        descriptionFontSize: titleField.style?.descriptionFontSize || '14px'
+        descriptionFontSize: titleField.style?.descriptionFontSize || '14px',
+        id: titleField.id
       };
     }
     
@@ -135,7 +121,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
       fontSize: '24px',
       descriptionFontSize: '14px'
     };
-  }, [fields, formTitle, formDescription, formStyle.primaryColor, language, customTitleConfig]);
+  }, [fields, formTitle, formDescription, formStyle.primaryColor, language]);
 
   // Create a stable ID for this preview panel instance
   const previewPanelId = useMemo(() => `preview-panel-stable`, []);
@@ -158,7 +144,6 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           floatingButton={floatingButton}
           hideFloatingButtonPreview={hideFloatingButtonPreview}
           titleFieldInfo={titleFieldInfo}
-          customTitleConfig={customTitleConfig}
         >
           <div></div>
         </FormPreview>
