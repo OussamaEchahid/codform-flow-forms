@@ -46,8 +46,14 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   const [formDirection, setFormDirection] = useState<'ltr' | 'rtl'>(language === 'ar' ? 'rtl' : 'ltr');
   const previousFieldsRef = useRef<string>('');
   
+  // Log field information for debugging
+  useEffect(() => {
+    console.log('FormPreviewPanel fields:', fields.map(f => ({ id: f.id, type: f.type, label: f.label })));
+  }, [fields]);
+  
   // Update internal refresh key when props change to ensure preview updates
   useEffect(() => {
+    console.log('FormPreviewPanel: Refreshing with key:', refreshKey);
     setInternalRefreshKey(Date.now());
   }, [fields, formStyle, formTitle, formDescription, refreshKey, JSON.stringify(fields)]);
   
@@ -61,15 +67,14 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     }
     
     previousFieldsRef.current = currentFieldsJson;
+    console.log('FormPreviewPanel: Processing fields for direction and alignment');
     
     return fields.map(field => {
       // Create a new field object to avoid direct mutations
       const updatedField = { ...field };
       
-      // Initialize style if it doesn't exist
-      if (!updatedField.style) {
-        updatedField.style = {};
-      }
+      // Deep clone the style to avoid mutations
+      updatedField.style = { ...(field.style || {}) };
       
       // Handle empty icon strings
       if (updatedField.icon === '') {
@@ -83,13 +88,8 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           : true;
       }
       
-      // CRITICAL: Title fields maintain their own alignment independent of form direction
+      // Handle title fields specifically to maintain their own alignment
       if (updatedField.type === 'form-title' || updatedField.type === 'title') {
-        // Ensure title style exists
-        if (!updatedField.style) {
-          updatedField.style = {};
-        }
-        
         // Set default text alignment if not already specified
         if (updatedField.style.textAlign === undefined) {
           updatedField.style.textAlign = language === 'ar' ? 'right' : 'left';
@@ -101,15 +101,6 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
         // Set background and text colors with defaults
         updatedField.style.backgroundColor = updatedField.style.backgroundColor || '#9b87f5';
         updatedField.style.color = updatedField.style.color || '#ffffff';
-        
-        // Ensure font sizes use pixel units
-        if (updatedField.style.fontSize && !updatedField.style.fontSize.includes('px')) {
-          updatedField.style.fontSize = `${updatedField.style.fontSize}px`;
-        }
-        
-        if (updatedField.style.descriptionFontSize && !updatedField.style.descriptionFontSize.includes('px')) {
-          updatedField.style.descriptionFontSize = `${updatedField.style.descriptionFontSize}px`;
-        }
       }
       
       // Ensure font size uses px units for consistency

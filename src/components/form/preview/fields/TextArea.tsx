@@ -30,6 +30,10 @@ const TextArea: React.FC<TextAreaProps> = ({ field, formStyle, direction }) => {
   // Set default values for border styling
   const inputBorderRadius = fieldStyle.borderRadius || formStyle.borderRadius || '0.5rem';
   const inputBorderWidth = fieldStyle.borderWidth || '1px';
+  const inputBorderColor = fieldStyle.borderColor || '#d1d5db';
+  const textColor = fieldStyle.color || '#1f2937';
+  const textSize = fieldStyle.fontSize || formStyle.fontSize || '16px';
+  const fontWeight = fieldStyle.fontWeight || '400';
   
   // Set default rows
   const rows = field.rows || 4;
@@ -39,6 +43,9 @@ const TextArea: React.FC<TextAreaProps> = ({ field, formStyle, direction }) => {
   
   // Create a unique identifier to ensure the input is tied to this specific instance
   const uniqueId = `${fieldId}-${Date.now()}`;
+
+  // Debug logging
+  console.log(`TextArea rendering for fieldId: ${fieldId}, direction: ${effectiveDirection}, fieldStyle:`, fieldStyle);
   
   return (
     <div 
@@ -57,7 +64,10 @@ const TextArea: React.FC<TextAreaProps> = ({ field, formStyle, direction }) => {
           fontWeight: labelFontWeight,
           fontFamily: fieldStyle.fontFamily || 'inherit',
           marginBottom: '8px',
-          display: 'flex'
+          display: 'flex',
+          textAlign: isRTL ? 'right' : 'left',
+          width: '100%',
+          direction: isRTL ? 'rtl' : 'ltr'
         }}
       >
         {field.label || (language === 'ar' ? 'ملاحظات إضافية' : 'Additional notes')}
@@ -80,11 +90,11 @@ const TextArea: React.FC<TextAreaProps> = ({ field, formStyle, direction }) => {
         placeholder={field.placeholder || ''}
         className="w-full py-2 px-3 bg-white border outline-none focus:ring-2 focus:ring-opacity-50 transition-all"
         style={{
-          color: fieldStyle.color || '#1f2937',
-          fontSize: fieldStyle.fontSize || formStyle.fontSize || '16px',
-          fontWeight: fieldStyle.fontWeight || '400',
+          color: textColor,
+          fontSize: textSize,
+          fontWeight: fontWeight,
           fontFamily: fieldStyle.fontFamily || 'inherit',
-          borderColor: fieldStyle.borderColor || '#d1d5db',
+          borderColor: inputBorderColor,
           borderRadius: inputBorderRadius,
           borderWidth: inputBorderWidth,
           borderStyle: 'solid',
@@ -96,7 +106,8 @@ const TextArea: React.FC<TextAreaProps> = ({ field, formStyle, direction }) => {
           width: '100%',
           minHeight: '100px',
           lineHeight: 1.5,
-          textAlign: isRTL ? 'right' : 'left'
+          textAlign: isRTL ? 'right' : 'left',
+          direction: isRTL ? 'rtl' : 'ltr'
         }}
         required={field.required}
         dir={effectiveDirection}
@@ -108,7 +119,8 @@ const TextArea: React.FC<TextAreaProps> = ({ field, formStyle, direction }) => {
           style={{
             marginTop: '4px',
             fontSize: '14px',
-            color: '#6b7280'
+            color: '#6b7280',
+            textAlign: isRTL ? 'right' : 'left'
           }}
         >
           {field.helpText}

@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
 import { useSortable } from '@dnd-kit/sortable';
@@ -42,7 +42,8 @@ const SortableElement = ({
   onDuplicate: () => void;
 }) => {
   const { language } = useI18n();
-  const fieldId = field.id; // Store field ID to avoid reference issues
+  // Generate a stable ID for the sortable element
+  const fieldId = field.id; 
   
   const { 
     attributes, 
@@ -55,7 +56,9 @@ const SortableElement = ({
     id: fieldId,
     data: {
       // Deep clone the field data to preserve all properties during drag and drop
-      field: deepCloneField(field)
+      field: deepCloneField(field),
+      type: field.type,
+      index: index
     }
   });
 
@@ -140,13 +143,13 @@ const SortableElement = ({
         </div>
         
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); onEdit(); }}>
+          <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); onEdit(); }} data-field-edit-id={fieldId}>
             <Edit size={16} />
           </Button>
-          <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); onDuplicate(); }}>
+          <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); onDuplicate(); }} data-field-duplicate-id={fieldId}>
             <Copy size={16} />
           </Button>
-          <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); onDelete(); }}>
+          <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); onDelete(); }} data-field-delete-id={fieldId}>
             <Trash size={16} />
           </Button>
         </div>
@@ -165,6 +168,20 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
 }) => {
   const { language } = useI18n();
   
+  // Debug log to help track elements and their IDs
+  const logElementsInfo = useCallback(() => {
+    console.log("Form elements:", elements.map(e => ({ 
+      id: e.id, 
+      type: e.type, 
+      label: e.label 
+    })));
+  }, [elements]);
+  
+  // For debugging purposes
+  React.useEffect(() => {
+    logElementsInfo();
+  }, [elements, logElementsInfo]);
+  
   if (elements.length === 0) {
     return (
       <div className="text-center py-8 border rounded-lg">
@@ -182,7 +199,7 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
     <div className="space-y-1">
       {elements.map((element, index) => (
         <SortableElement
-          key={element.id}
+          key={`${element.id}-${index}`}
           field={element}
           index={index}
           isSelected={selectedIndex === index}

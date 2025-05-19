@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { FormField } from '@/lib/form-utils';
@@ -46,6 +46,11 @@ const SortableField: React.FC<SortableFieldProps> = ({
     transition: {
       duration: 150,
       easing: 'cubic-bezier(0.25, 1, 0.5, 1)',
+    },
+    data: {
+      type: field.type,
+      id: field.id,
+      originalField: field
     }
   });
 
@@ -63,11 +68,13 @@ const SortableField: React.FC<SortableFieldProps> = ({
   // When component mounts or field changes, sync the edited field state
   useEffect(() => {
     // Deep clone to avoid reference issues
-    setEditedField(JSON.parse(JSON.stringify(field)));
-  }, [field]);
+    const clonedField = JSON.parse(JSON.stringify(field));
+    console.log(`SortableField updated with field ID: ${fieldId}, type: ${field.type}, label: ${field.label}`);
+    setEditedField(clonedField);
+  }, [field, fieldId]);
 
-  const handleFieldChange = (property: string, value: any) => {
-    console.log(`Updating field ${fieldId} property: ${property} with value:`, value);
+  const handleFieldChange = useCallback((property: string, value: any) => {
+    console.log(`Updating field ${fieldId} (${field.type}) property: ${property} with value:`, value);
     
     // Create a new field object with the updated property
     const updatedField = {
@@ -81,21 +88,28 @@ const SortableField: React.FC<SortableFieldProps> = ({
     // Apply changes immediately by creating a new copy to update the original field
     // This ensures we don't modify the field reference directly
     if (onFieldUpdate) {
-      onFieldUpdate({...updatedField, id: fieldId});
+      const fieldToUpdate = {...updatedField, id: fieldId};
+      console.log(`Applying field update for field ID: ${fieldId}, property: ${property}`);
+      onFieldUpdate(fieldToUpdate);
     }
     
     // Show toast notification
     toast.success(language === 'ar' ? 'تم تطبيق التغييرات' : 'Changes applied');
-  };
+  }, [editedField, fieldId, field.type, language, onFieldUpdate]);
 
-  const handleStyleChange = (property: string, value: any) => {
-    console.log(`Updating field ${fieldId} style property: ${property} with value:`, value);
+  const handleStyleChange = useCallback((property: string, value: any) => {
+    console.log(`Updating field ${fieldId} (${field.type}) style property: ${property} with value:`, value);
     
     // Create a new style object with the updated property
     const updatedStyle = {
       ...editedField.style || {},
       [property]: value
     };
+    
+    // If this is a title field and we're changing text alignment, make sure ignoreFormDirection is set
+    if ((field.type === 'form-title' || field.type === 'title') && property === 'textAlign') {
+      updatedStyle.ignoreFormDirection = true;
+    }
     
     // Create a new field object with the updated style
     const updatedField = {
@@ -108,12 +122,14 @@ const SortableField: React.FC<SortableFieldProps> = ({
     
     // Apply changes immediately to the original field
     if (onFieldUpdate) {
-      onFieldUpdate({...updatedField, id: fieldId});
+      const fieldToUpdate = {...updatedField, id: fieldId};
+      console.log(`Applying style update for field ID: ${fieldId}, style property: ${property}`);
+      onFieldUpdate(fieldToUpdate);
     }
     
     // Show toast notification
     toast.success(language === 'ar' ? 'تم تطبيق التغييرات' : 'Changes applied');
-  };
+  }, [editedField, fieldId, field.type, language, onFieldUpdate]);
 
   // Font family options
   const fontFamilies = [
@@ -179,6 +195,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
         isDragging ? "shadow-lg" : ""
       )}
       data-field-id={fieldId}
+      data-field-type={field.type}
     >
       <Accordion type="single" collapsible className="w-full">
         <AccordionItem value={field.id} className="border-0">
@@ -331,6 +348,47 @@ const SortableField: React.FC<SortableFieldProps> = ({
                       />
                     </div>
                   </div>
+
+                  {/* Animation - only for submit button */}
+                  {shouldShowSubmitSpecificSettings && (
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <Label>{language === 'ar' ? 'تحريك الزر' : 'Button animation'}</Label>
+                      </div>
+                      <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                        <Switch 
+                          id={`field-animation-${fieldId}`}
+                          checked={editedField.style?.animation !== false}
+                          onCheckedChange={(checked) => handleStyleChange('animation', checked)}
+                        />
+                        <Label 
+                          htmlFor={`field-animation-${fieldId}`}
+                        >
+                          {language === 'ar' ? 'تفعيل التحريك' : 'Enable animation'}
+                        </Label>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Animation type - only for submit button with animation */}
+                  {shouldShowSubmitSpecificSettings && editedField.style?.animation !== false && (
+                    <div className="space-y-1">
+                      <Label>{language === 'ar' ? 'نوع التحريك' : 'Animation type'}</Label>
+                      <Select
+                        value={editedField.style?.animationType || 'pulse'}
+                        onValueChange={(value) => handleStyleChange('animationType', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={language === 'ar' ? 'اختر نوع التحريك' : 'Select animation type'} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {animationTypes.map(animation => (
+                            <SelectItem key={animation.value} value={animation.value}>{animation.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                 </div>
                 
                 {/* Right column */}
@@ -410,23 +468,21 @@ const SortableField: React.FC<SortableFieldProps> = ({
                     </div>
                   </div>
                   
-                  {/* Border radius - only for submit button */}
-                  {shouldShowSubmitSpecificSettings && (
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <Label>{language === 'ar' ? 'استدارة الحدود' : 'Border radius'}</Label>
-                        <span className="text-sm">{editedField.style?.borderRadius || '8'}px</span>
-                      </div>
-                      <Input
-                        type="number"
-                        min="0"
-                        max="50"
-                        value={parseInt(editedField.style?.borderRadius || '8')}
-                        onChange={(e) => handleStyleChange('borderRadius', `${e.target.value}px`)}
-                        className="w-full"
-                      />
+                  {/* Border radius */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <Label>{language === 'ar' ? 'استدارة الحدود' : 'Border radius'}</Label>
+                      <span className="text-sm">{editedField.style?.borderRadius || '8'}px</span>
                     </div>
-                  )}
+                    <Input
+                      type="number"
+                      min="0"
+                      max="50"
+                      value={parseInt(editedField.style?.borderRadius || '8')}
+                      onChange={(e) => handleStyleChange('borderRadius', `${e.target.value}px`)}
+                      className="w-full"
+                    />
+                  </div>
                   
                   {/* Show icon in Live Preview */}
                   <div className="flex items-center space-x-2 rtl:space-x-reverse">
@@ -469,6 +525,26 @@ const SortableField: React.FC<SortableFieldProps> = ({
                       </SelectContent>
                     </Select>
                   </div>
+                  
+                  {/* Text alignment for titles */}
+                  {(field.type === 'form-title' || field.type === 'title') && (
+                    <div className="space-y-1">
+                      <Label>{language === 'ar' ? 'محاذاة النص' : 'Text alignment'}</Label>
+                      <Select
+                        value={editedField.style?.textAlign || (language === 'ar' ? 'right' : 'left')}
+                        onValueChange={(value) => handleStyleChange('textAlign', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={language === 'ar' ? 'اختر محاذاة النص' : 'Select text alignment'} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="left">{language === 'ar' ? 'يسار' : 'Left'}</SelectItem>
+                          <SelectItem value="center">{language === 'ar' ? 'وسط' : 'Center'}</SelectItem>
+                          <SelectItem value="right">{language === 'ar' ? 'يمين' : 'Right'}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                 </div>
               </div>
               
