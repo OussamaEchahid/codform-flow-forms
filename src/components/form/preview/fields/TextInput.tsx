@@ -30,7 +30,8 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, direction }) =>
   const { language } = useI18n();
   const fieldStyle = field.style || {};
   
-  // Determine the effective direction - prefer passed direction, fallback to language-based
+  // IMPORTANT: Always prioritize passed direction from form
+  // Only fall back to language-based direction if no direction is provided
   const effectiveDirection = direction || (language === 'ar' ? 'rtl' : 'ltr');
   
   // Default styling values
@@ -130,7 +131,8 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, direction }) =>
       data-font-size={fontSize}
       data-border-radius={borderRadius}
       data-input-id={inputId}
-      dir={effectiveDirection} // Use the effective direction
+      data-respects-form-direction="true"
+      dir={effectiveDirection} // IMPORTANT: Always use effectiveDirection from form
     >
       {showLabel && (
         <label 
@@ -209,10 +211,12 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, direction }) =>
             width: '100%',
             height: 'auto',
             lineHeight: 1.5,
-            minHeight: '44px'
+            minHeight: '44px',
+            textAlign: isRTL ? 'right' : 'left'
           }}
           data-has-icon={hasIcon && showIcon ? 'true' : 'false'}
           required={field.required}
+          dir={effectiveDirection}
         />
       </div>
       

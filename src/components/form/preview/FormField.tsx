@@ -84,6 +84,17 @@ const getFieldKey = (field: FormFieldType) => {
   return `field-${field.id}-${field.label || ''}-${field.placeholder || ''}-${field.type}-${field.icon || 'none'}-${JSON.stringify(field.style || {})}-${Date.now()}`;
 };
 
+// IMPORTANT: This function determines which field types should ignore form direction
+const shouldIgnoreFormDirection = (fieldType: string, ignoreTypes: string[]): boolean => {
+  // Always ignore direction for form-title and title fields - they use their own text alignment
+  if (fieldType === 'form-title' || fieldType === 'title') {
+    return true;
+  }
+  
+  // Check if field type is in the ignore list
+  return ignoreTypes.includes(fieldType);
+};
+
 const FormField: React.FC<FormFieldProps> = ({ 
   field, 
   formStyle, 
@@ -97,7 +108,7 @@ const FormField: React.FC<FormFieldProps> = ({
 
   // Check if this field type should ignore the form direction
   // Very important: This ensures titles and submit buttons maintain their own settings
-  const shouldIgnoreDirection = ignoreDirectionForTypes.includes(field.type);
+  const ignoreDirection = shouldIgnoreFormDirection(field.type, ignoreDirectionForTypes);
 
   // Normalize field properties - ensure icon settings are applied correctly
   const normalizedField = {
@@ -194,8 +205,8 @@ const FormField: React.FC<FormFieldProps> = ({
     'data-background-color': normalizedField.style?.backgroundColor || (fieldType === 'submit' ? formStyle.primaryColor : undefined),
     'data-border-color': normalizedField.style?.borderColor,
     'data-border-width': normalizedField.style?.borderWidth,
-    'data-ignores-direction': shouldIgnoreDirection ? 'true' : 'false',
-    'data-direction': shouldIgnoreDirection ? undefined : direction,
+    'data-ignores-direction': ignoreDirection ? 'true' : 'false',
+    'data-direction': ignoreDirection ? undefined : direction,
   };
 
   if (!isSupported && fieldType !== 'form-title') {
@@ -204,7 +215,7 @@ const FormField: React.FC<FormFieldProps> = ({
         <Component 
           field={normalizedField} 
           formStyle={formStyle} 
-          direction={shouldIgnoreDirection ? undefined : direction} 
+          direction={ignoreDirection ? undefined : direction} 
         />
         <div className="mt-2 text-xs text-yellow-600 bg-yellow-100 p-2 rounded">
           {normalizedField.label ? `حقل "${normalizedField.label}"` : 'هذا الحقل'} غير مدعوم بشكل كامل في واجهة المتجر
@@ -219,7 +230,8 @@ const FormField: React.FC<FormFieldProps> = ({
       <Component 
         field={normalizedField} 
         formStyle={formStyle} 
-        direction={shouldIgnoreDirection ? undefined : direction} 
+        // IMPORTANT: Only pass direction prop to components that should respect form direction
+        direction={ignoreDirection ? undefined : direction} 
       />
     </div>
   );
