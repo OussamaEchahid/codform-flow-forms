@@ -12,56 +12,64 @@ interface TitleFieldProps {
   };
 }
 
-// Define valid text alignment options
+// تحديد خيارات محاذاة النص الصالحة
 type TextAlign = 'left' | 'center' | 'right' | 'justify';
-// Define valid box-sizing values
+// تحديد قيم box-sizing الصالحة
 type BoxSizing = 'border-box' | 'content-box' | 'initial' | 'inherit';
 
-// Helper function to convert rem to px units
+// دالة مساعدة لتحويل وحدات rem إلى وحدات px
 const convertRemToPx = (remValue: string): string => {
   if (remValue.endsWith('rem')) {
-    // Extract the numeric value from rem
+    // استخراج القيمة الرقمية من rem
     const numValue = parseFloat(remValue.replace('rem', ''));
-    // Convert rem to px (1rem = 16px typically)
+    // تحويل rem إلى px (1rem = 16px عادةً)
     return `${Math.round(numValue * 16)}px`;
   }
   return remValue;
 };
 
-// Helper function to ensure value ends with px
+// دالة مساعدة للتأكد من أن القيمة تنتهي بوحدة px
 const ensurePixelUnit = (value: string): string => {
   if (!value) return '';
   
-  // If just a number, add "px"
+  // إذا كان مجرد رقم، أضف "px"
   if (!isNaN(Number(value))) {
     return `${value}px`;
   }
   
-  // If ends with rem, convert to px
+  // إذا كانت تنتهي بـ rem، قم بتحويلها إلى px
   if (value.endsWith('rem')) {
     return convertRemToPx(value);
   }
   
-  // If already ends with px, return as is
+  // إذا كانت تنتهي بالفعل بـ px، أعدها كما هي
   if (value.endsWith('px')) {
     return value;
   }
   
-  // In other cases, add px
+  // في الحالات الأخرى، أضف px
   return `${value}px`;
 };
 
 const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   const { language } = useI18n();
+  
+  // تأكد من وجود خصائص الحقل ولو كانت فارغة
+  if (!field || !field.id) {
+    console.error("Missing field properties in TitleField:", field);
+    return null;
+  }
+  
+  // استخدام نمط الحقل المتوفر أو إنشاء كائن فارغ
   const fieldStyle = field.style || {};
   
-  // Extract description from the field itself
+  // استخراج الوصف من الحقل نفسه
   const description = field.helpText || '';
   
-  // Get alignment from field style or default based on language
+  // الحصول على المحاذاة من نمط الحقل أو الافتراضي بناءً على اللغة
   const defaultAlignment: TextAlign = language === 'ar' ? 'right' : 'left';
   
-  // Convert string alignment to TextAlign type with validation
+  // تحويل سلسلة المحاذاة إلى نوع TextAlign مع التحقق
   const getValidAlignment = (align?: string): TextAlign => {
     if (align === 'left' || align === 'center' || align === 'right' || align === 'justify') {
       return align as TextAlign;
@@ -71,37 +79,37 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   
   const alignment = getValidAlignment(fieldStyle.textAlign);
   
-  // Use precise pixel values instead of rem for consistent sizing across environments
+  // استخدام قيم بكسل دقيقة بدلاً من rem للحجم المتسق عبر البيئات
   const isFormTitle = field.type === 'form-title';
   
-  // Prepare font size with px units
-  let titleFontSize = isFormTitle ? '24px' : '20px'; // Default value
+  // تحضير حجم الخط مع وحدات px
+  let titleFontSize = isFormTitle ? '24px' : '20px'; // القيمة الافتراضية
   if (fieldStyle.fontSize) {
-    // Make sure to convert rem units to px and preserve px units
+    // التأكد من تحويل وحدات rem إلى px والحفاظ على وحدات px
     titleFontSize = ensurePixelUnit(fieldStyle.fontSize);
   }
   
-  // Prepare description font size with px units
-  let descriptionFontSize = '14px'; // Default value
+  // تحضير حجم خط الوصف مع وحدات px
+  let descriptionFontSize = '14px'; // القيمة الافتراضية
   if (fieldStyle.descriptionFontSize) {
     descriptionFontSize = ensurePixelUnit(fieldStyle.descriptionFontSize);
   }
   
-  // Get background color with default
+  // الحصول على لون الخلفية مع الافتراضي
   const backgroundColor = fieldStyle.backgroundColor || formStyle.primaryColor || '#9b87f5';
   
-  // Background style with precise pixel values for padding
+  // نمط الخلفية مع قيم بكسل دقيقة للتباعد
   const backgroundStyle = {
     backgroundColor: backgroundColor,
-    padding: '16px', // Precise values for consistency between preview and store
+    padding: '16px', // قيم دقيقة للاتساق بين المعاينة والمتجر
     borderRadius: formStyle.borderRadius || '8px',
     width: '100%',
     boxSizing: 'border-box' as BoxSizing,
-    marginBottom: '16px', // Precise values for consistency between preview and store
+    marginBottom: '16px', // قيم دقيقة للاتساق بين المعاينة والمتجر
     textAlign: alignment as React.CSSProperties['textAlign'],
   };
 
-  // Title styles
+  // أنماط العنوان
   const titleStyle = {
     color: fieldStyle.color || '#ffffff',
     fontSize: titleFontSize,
@@ -110,24 +118,24 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
     fontFamily: fieldStyle.fontFamily || 'inherit',
     margin: '0',
     padding: '0',
-    lineHeight: '1.3', // Consistent value
+    lineHeight: '1.3', // قيمة متسقة
     display: 'block',
   };
 
-  // Description styles
+  // أنماط الوصف
   const descriptionStyle = {
     color: fieldStyle.descriptionColor || 'rgba(255, 255, 255, 0.9)',
     fontSize: descriptionFontSize,
-    margin: '6px 0 0 0', // Precise value for consistency
+    margin: '6px 0 0 0', // قيمة دقيقة للاتساق
     padding: '0',
     textAlign: alignment as React.CSSProperties['textAlign'],
     fontFamily: fieldStyle.fontFamily || 'inherit',
     fontWeight: 'normal',
-    lineHeight: '1.5', // Consistent value
+    lineHeight: '1.5', // قيمة متسقة
     opacity: '0.9',
   };
 
-  // Use the field's stable ID directly - crucial for drag & drop operations
+  // استخدم معرف الحقل المستقر مباشرة - ضروري لعمليات السحب والإفلات
   const titleFieldId = `title-field-${field.id}`;
 
   return (

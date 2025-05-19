@@ -39,62 +39,75 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   hideFloatingButtonPreview = false
 }) => {
   const { language } = useI18n();
+  
+  // استخدام قيمة ثابتة لمفتاح التحديث الداخلي لتجنب التحديثات المتكررة
   const [internalRefreshKey, setInternalRefreshKey] = useState(0);
   
-  // Use the refresh key passed from parent but don't trigger cascading updates
+  // منع التحديث المتكرر - فقط تحديث عند التغييرات الهامة
   useEffect(() => {
-    // Only update on significant changes
-    setInternalRefreshKey(prevKey => prevKey + 1);
-  }, [refreshKey]);
+    // تثبيت القيمة من خلال استخدام الدالة التالية للتأكد من عدم تحديث القيمة بشكل متكرر
+    setInternalRefreshKey(prevKey => Math.max(refreshKey, prevKey));
+    // إزالة refreshKey من التبعيات لمنع التحديثات المتكررة
+  }, []);
   
-  // Process fields with proper ID preservation using useMemo to prevent recreation
+  // استخدام useMemo لتجنب إعادة معالجة الحقول في كل تحديث
   const processedFields = useMemo(() => {
+    // فحص إذا كانت الحقول فارغة أو غير معرفة
+    if (!fields || fields.length === 0) {
+      return [];
+    }
+    
     return fields.map(field => {
-      // Create a new field object to avoid direct mutation issues
+      if (!field || !field.id) {
+        console.warn("Encountered invalid field:", field);
+        return field;
+      }
+      
+      // إنشاء نسخة جديدة من الحقل لتجنب مشاكل التعديل المباشر
       const updatedField = { ...field };
       
-      // Preserve the original ID - extremely important for drag and drop stability
+      // الحفاظ على معرف الحقل الأصلي - مهم جداً لاستقرار السحب والإفلات
       updatedField.id = field.id;
       
-      // Convert empty icon strings to 'none'
+      // تحويل الأيقونات الفارغة إلى 'none'
       if (updatedField.icon === '') {
         updatedField.icon = 'none';
       }
       
-      // Ensure icon handling is processed correctly
+      // معالجة الأيقونات بطريقة صحيحة
       if (updatedField.icon && updatedField.icon !== 'none') {
         if (!updatedField.style) {
           updatedField.style = {};
         }
         
-        // Set showIcon to true by default unless explicitly set to false
+        // تعيين showIcon إلى true بشكل افتراضي ما لم يتم تعيينه بشكل صريح إلى false
         updatedField.style.showIcon = updatedField.style?.showIcon !== undefined 
           ? updatedField.style.showIcon 
           : true;
       }
       
-      // Special processing for title fields
+      // معالجة خاصة لحقول العنوان
       if (updatedField.type === 'form-title' || updatedField.type === 'title') {
         if (!updatedField.style) {
           updatedField.style = {};
         }
         
-        // Ensure text alignment is set
+        // ضمان تعيين محاذاة النص
         if (!updatedField.style.textAlign) {
           updatedField.style.textAlign = language === 'ar' ? 'right' : 'left';
         }
         
-        // Ensure background and text color
+        // ضمان لون الخلفية والنص
         updatedField.style.backgroundColor = updatedField.style.backgroundColor || '#9b87f5';
         updatedField.style.color = updatedField.style.color || '#ffffff';
         
-        // Ensure font sizes have px units
+        // ضمان أن أحجام الخطوط لها وحدات بيكسل
         if (updatedField.style.fontSize && !updatedField.style.fontSize.includes('px')) {
           if (updatedField.style.fontSize.includes('rem')) {
             const remValue = parseFloat(updatedField.style.fontSize);
             updatedField.style.fontSize = `${remValue * 16}px`;
           } else if (!isNaN(parseFloat(updatedField.style.fontSize))) {
-            // If it's a number without unit, assume pixels
+            // إذا كان رقماً بدون وحدة، نفترض البيكسل
             updatedField.style.fontSize = `${updatedField.style.fontSize}px`;
           }
         }
@@ -113,10 +126,10 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
       
       return updatedField;
     });
-  }, [fields, language]); // Remove internalRefreshKey dependency to avoid unnecessary recalculation
+  }, [fields, language]);
 
-  // Create a stable ID for this preview panel component
-  const previewPanelId = `preview-panel-${refreshKey}`;
+  // إنشاء معرف ثابت لمكون لوحة المعاينة هذا
+  const previewPanelId = useMemo(() => `preview-panel-${Math.floor(Math.random() * 1000)}`, []);
 
   return (
     <div id={previewPanelId}>

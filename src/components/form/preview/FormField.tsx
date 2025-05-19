@@ -25,7 +25,7 @@ interface FormFieldProps {
   };
 }
 
-// Define animation styles to ensure consistency
+// تحديد أنماط الرسوم المتحركة لضمان الاتساق
 const animationStyles = `
   @keyframes pulse-animation {
     0% { transform: scale(1); }
@@ -76,52 +76,53 @@ const animationStyles = `
   }
 `;
 
-// Create a unique key for the form field based on field ID only
+// إنشاء مفتاح فريد للحقل بناءً على معرف الحقل فقط
 const getFieldKey = (field: FormFieldType) => {
   if (!field || !field.id) {
-    console.warn('Field missing ID:', field);
-    return `field-unknown-${Math.random()}`;
+    console.warn('حقل بدون معرف:', field);
+    return `field-unknown-${Math.floor(Math.random() * 10000)}`;
   }
   
-  // Use ONLY the field ID to ensure consistent identity across renders
+  // استخدام معرف الحقل فقط لضمان هوية متسقة عبر عمليات العرض
   return `field-${field.id}`;
 };
 
 const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
-  if (!field || !field.type) {
-    console.warn('Invalid field:', field);
+  // تحقق من صحة بيانات الحقل
+  if (!field || !field.type || !field.id) {
+    console.warn('حقل غير صالح:', field);
     return null;
   }
 
-  // Normalize field properties - ensure icon settings are applied correctly
+  // تطبيع خصائص الحقل - التأكد من تطبيق إعدادات الأيقونة بشكل صحيح
   const normalizedField = {
     ...field,
-    // Convert empty icon to 'none'
+    // تحويل الأيقونة الفارغة إلى 'none'
     icon: field.icon === '' ? 'none' : field.icon,
     style: {
       ...field.style,
-      // Set showIcon default to true if icon exists and is not 'none'
+      // تعيين showIcon الافتراضي إلى true إذا كانت الأيقونة موجودة وليست 'none'
       showIcon: field.style?.showIcon !== undefined ? 
         field.style.showIcon : 
         (field.icon && field.icon !== 'none'),
-      // Set default values for label color and font size if not specified
+      // تعيين القيم الافتراضية للون التسمية وحجم الخط إذا لم يتم تحديدها
       labelColor: field.style?.labelColor || '#333',
       labelFontSize: field.style?.labelFontSize || formStyle.fontSize || '16px',
       labelFontWeight: field.style?.labelFontWeight || '600',
-      // Ensure backgroundColor is passed for submit button
+      // التأكد من تمرير backgroundColor لزر الإرسال
       backgroundColor: field.style?.backgroundColor || (field.type === 'submit' ? formStyle.primaryColor : undefined),
     }
   };
 
-  // Special handling for email and phone field types
+  // معالجة خاصة لأنواع حقول البريد الإلكتروني والهاتف
   let fieldType = normalizedField.type;
   
-  // Map email and phone to text inputs
+  // تعيين البريد الإلكتروني والهاتف إلى حقول نصية
   if (fieldType === 'email' || fieldType === 'phone') {
     fieldType = 'text';
   }
 
-  // Check if this field type is supported in the store preview
+  // التحقق مما إذا كان نوع الحقل هذا مدعومًا في معاينة المتجر
   const supportedStoreFieldTypes = [
     'text', 'textarea', 'radio', 'checkbox', 'title', 'text/html',
     'submit', 'image', 'whatsapp', 'form-title', 'cart-items', 'cart-summary',
@@ -130,7 +131,7 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
   
   const isSupported = supportedStoreFieldTypes.includes(fieldType) || supportedStoreFieldTypes.includes(normalizedField.type);
 
-  // Log animation data if this is a submit button
+  // تسجيل بيانات الرسوم المتحركة إذا كان هذا زر إرسال
   if (fieldType === 'submit' && normalizedField.style) {
     const animationType = normalizedField.style.animationType || 'none';
     const hasAnimation = !!normalizedField.style.animation;
@@ -139,7 +140,7 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
       console.log(`Submit button using animation: ${animationType}`);
     }
     
-    // Also log button color for debugging
+    // تسجيل لون الزر أيضًا للتصحيح
     console.log(`Submit button color: ${normalizedField.style.backgroundColor || formStyle.primaryColor || '#9b87f5'}`);
   }
 
@@ -164,17 +165,17 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
 
   const Component = components[fieldType] || components[normalizedField.type];
   if (!Component) {
-    console.warn(`Unknown field type: ${field.type}, available types:`, Object.keys(components));
+    console.warn(`نوع حقل غير معروف: ${field.type}، الأنواع المتاحة:`, Object.keys(components));
     return null;
   }
 
-  // Create a stable key for this field instance based only on ID
+  // إنشاء مفتاح ثابت لمثيل هذا الحقل بناءً على المعرف فقط
   const fieldKey = getFieldKey(field);
   
-  // Set margins: use optimized margins based on field type
+  // تعيين الهوامش: استخدام الهوامش المحسّنة بناءً على نوع الحقل
   const marginClass = fieldType === 'submit' ? 'mt-0' : 'mb-4';
 
-  // Add data attributes to help ensure display consistency between preview and store
+  // إضافة سمات البيانات للمساعدة في ضمان اتساق العرض بين المعاينة والمتجر
   const dataAttributes = {
     'data-field-type': normalizedField.type,
     'data-field-id': normalizedField.id,
@@ -190,6 +191,7 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
     'data-border-width': normalizedField.style?.borderWidth,
   };
 
+  // عرض تحذير إذا لم يكن النوع مدعومًا
   if (!isSupported && fieldType !== 'form-title') {
     return (
       <div className={`${marginClass} p-3 border border-yellow-300 bg-yellow-50 rounded-md`} key={fieldKey} {...dataAttributes}>
@@ -209,4 +211,4 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
   );
 };
 
-export default FormField;
+export default React.memo(FormField);
