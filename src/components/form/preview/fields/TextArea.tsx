@@ -10,11 +10,15 @@ interface TextAreaProps {
     borderRadius?: string;
     fontSize?: string;
   };
+  direction?: 'ltr' | 'rtl'; // Add direction prop
 }
 
-const TextArea: React.FC<TextAreaProps> = ({ field, formStyle }) => {
+const TextArea: React.FC<TextAreaProps> = ({ field, formStyle, direction }) => {
   const { language } = useI18n();
   const fieldStyle = field.style || {};
+  
+  // Determine the effective direction - prefer passed direction, fallback to language-based
+  const effectiveDirection = direction || (language === 'ar' ? 'rtl' : 'ltr');
   
   // Set default values for styling
   const labelColor = fieldStyle.labelColor || '#334155';
@@ -28,8 +32,11 @@ const TextArea: React.FC<TextAreaProps> = ({ field, formStyle }) => {
   // Set default rows
   const rows = field.rows || 4;
   
+  // Determine if RTL
+  const isRTL = effectiveDirection === 'rtl';
+  
   return (
-    <div className="mb-4">
+    <div className="mb-4" dir={effectiveDirection}>
       <label 
         htmlFor={field.id} 
         className={`block mb-2 ${field.required ? 'relative' : ''}`}
@@ -47,8 +54,8 @@ const TextArea: React.FC<TextAreaProps> = ({ field, formStyle }) => {
           <span 
             className="text-red-500" 
             style={{
-              marginRight: language === 'ar' ? '0' : '4px',
-              marginLeft: language === 'ar' ? '4px' : '0',
+              marginRight: isRTL ? '0' : '4px',
+              marginLeft: isRTL ? '4px' : '0',
             }}
           >
             *
@@ -77,9 +84,11 @@ const TextArea: React.FC<TextAreaProps> = ({ field, formStyle }) => {
           boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
           width: '100%',
           minHeight: '100px',
-          lineHeight: 1.5
+          lineHeight: 1.5,
+          textAlign: isRTL ? 'right' : 'left'
         }}
         required={field.required}
+        dir={effectiveDirection}
       />
       
       {field.helpText && (

@@ -3,7 +3,7 @@ import React from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
 
-// استيراد الأيقونات مباشرة لتجنب مشاكل التحميل الديناميكي
+// Import icons directly to avoid dynamic loading issues
 import {
   User,
   Phone,
@@ -23,13 +23,17 @@ interface TextInputProps {
     borderRadius?: string;
     fontSize?: string;
   };
+  direction?: 'ltr' | 'rtl'; // Direction prop to honor form's direction
 }
 
-const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
+const TextInput: React.FC<TextInputProps> = ({ field, formStyle, direction }) => {
   const { language } = useI18n();
   const fieldStyle = field.style || {};
   
-  // القيم الافتراضية للتنسيق
+  // Determine the effective direction - prefer passed direction, fallback to language-based
+  const effectiveDirection = direction || (language === 'ar' ? 'rtl' : 'ltr');
+  
+  // Default styling values
   const showLabel = fieldStyle.showLabel !== false;
   const labelColor = fieldStyle.labelColor || '#334155';
   const labelFontSize = fieldStyle.labelFontSize || formStyle.fontSize || '16px';
@@ -46,18 +50,18 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   const borderRadius = fieldStyle.borderRadius || formStyle.borderRadius || '8px';
   const paddingY = fieldStyle.paddingY ? `${fieldStyle.paddingY}px` : '10px';
   
-  // تحديد إذا كان هناك أيقونة وإذا كان يجب إظهارها
+  // Determine if there's an icon and if it should be shown
   const hasIcon = field.icon && field.icon !== 'none' && field.icon !== '';
   const showIcon = fieldStyle.showIcon !== undefined ? fieldStyle.showIcon : hasIcon;
   
-  // تحسين وظيفة عرض الأيقونات مع التشخيص الإضافي
+  // Enhanced icon rendering function with additional diagnostics
   const renderIcon = () => {
     if (!hasIcon || !showIcon) return null;
     
-    // تسجيل معلومات عن أي أيقونة يتم عرضها للمساعدة في التشخيص
+    // Log information about which icon is being displayed to help with diagnostics
     console.log(`Rendering icon: ${field.icon} for field ${field.id}`);
     
-    // إضافة سمات إضافية للتشخيص
+    // Add additional attributes for diagnostics
     const iconProps = { 
       size: 18,
       className: "text-gray-500 codform-icon",
@@ -73,7 +77,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
       "data-icon-name": field.icon
     };
     
-    // استخدام switch للمطابقة الدقيقة وإرجاع عنصر React المناسب
+    // Use switch for exact matching and return the appropriate React element
     switch(field.icon) {
       case 'user': return <User {...iconProps} />;
       case 'phone': return <Phone {...iconProps} />;
@@ -90,13 +94,13 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
     }
   };
   
-  // الحصول على نص التسمية الفعلي للعرض
+  // Get the actual label text to display
   const labelText = field.label || (language === 'ar' ? 'حقل نصي' : 'Text field');
   
-  // الحصول على نص العنصر البديل الفعلي للعرض
+  // Get the actual placeholder text to display
   const placeholderText = field.placeholder || '';
 
-  // تحديد نوع الإدخال الصحيح بناءً على نوع الحقل
+  // Determine the correct input type based on the field type
   const getInputType = () => {
     const originalType = field.type;
     if (originalType === 'email') return 'email';
@@ -104,8 +108,11 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
     return 'text';
   };
   
-  // إضافة معرف فريد للمساعدة في ضمان تطابق العرض والتحديثات
+  // Add unique id to help ensure display matching and updates
   const inputId = `${field.id}-input`;
+  
+  // Determine position of icon based on direction
+  const isRTL = effectiveDirection === 'rtl';
   
   return (
     <div 
@@ -123,7 +130,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
       data-font-size={fontSize}
       data-border-radius={borderRadius}
       data-input-id={inputId}
-      dir={language === 'ar' ? 'rtl' : 'ltr'}
+      dir={effectiveDirection} // Use the effective direction
     >
       {showLabel && (
         <label 
@@ -144,8 +151,8 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
             <span 
               className="text-red-500" 
               style={{
-                marginRight: language === 'ar' ? '0' : '4px',
-                marginLeft: language === 'ar' ? '4px' : '0',
+                marginRight: isRTL ? '0' : '4px',
+                marginLeft: isRTL ? '4px' : '0',
               }}
             >
               *
@@ -158,11 +165,11 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
         {/* Render the icon if it should be shown */}
         {showIcon && hasIcon && (
           <div 
-            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 codform-field-icon" 
+            className="absolute codform-field-icon" 
             style={{
               position: 'absolute',
-              left: language === 'ar' ? 'auto' : '12px',
-              right: language === 'ar' ? '12px' : 'auto',
+              left: isRTL ? 'auto' : '12px',
+              right: isRTL ? '12px' : 'auto',
               top: '50%',
               transform: 'translateY(-50%)',
               display: 'flex',
@@ -196,8 +203,8 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
             borderStyle: 'solid',
             paddingTop: paddingY,
             paddingBottom: paddingY,
-            paddingLeft: (showIcon && hasIcon && language !== 'ar') ? '36px' : '12px',
-            paddingRight: (showIcon && hasIcon && language === 'ar') ? '36px' : '12px',
+            paddingLeft: (showIcon && hasIcon && !isRTL) ? '36px' : '12px',
+            paddingRight: (showIcon && hasIcon && isRTL) ? '36px' : '12px',
             boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
             width: '100%',
             height: 'auto',
