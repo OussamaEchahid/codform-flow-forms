@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
@@ -56,8 +55,8 @@ const ensurePixelUnit = (value: string): string => {
 const ensureStyleDefaults = (field: FormField): FormField => {
   const style = field.style || {};
   
-  // IMPORTANT: Use the text alignment directly from the field style
-  // This is the key point: title field maintains its own alignment regardless of form direction
+  // IMPORTANT: Always use the text alignment directly from field style
+  // This ensures title alignment is independent of form direction
   const textAlignment = style.textAlign || 'left';
   
   // Create new field with ensured style properties
@@ -71,7 +70,7 @@ const ensureStyleDefaults = (field: FormField): FormField => {
       fontSize: style.fontSize || '24px',
       descriptionFontSize: style.descriptionFontSize || '14px',
       fontWeight: style.fontWeight || 'bold',
-      textAlign: textAlignment // Use field's own textAlign property
+      textAlign: textAlignment // Always use field's own textAlign property
     }
   };
 };
@@ -80,14 +79,15 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   const { language } = useI18n();
   
   // Apply default settings to ensure consistency
-  // IMPORTANT: We completely ignore the direction parameter here!
+  // CRITICAL: We COMPLETELY IGNORE the direction parameter
   const safeField = ensureStyleDefaults(field);
   const fieldStyle = safeField.style || {};
   
   // Extract description from the field
   const description = field.helpText || '';
   
-  // Get text alignment directly from the field style, not based on form direction
+  // Get text alignment directly from the field style, NEVER from form direction
+  // This is critical to fix the alignment issue
   const alignment: TextAlign = (fieldStyle.textAlign as TextAlign) || 'left';
   
   // Use precise pixel values instead of rem for consistent sizing across environments
@@ -108,6 +108,12 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   
   // Get background color with default
   const backgroundColor = fieldStyle.backgroundColor || formStyle.primaryColor || '#9b87f5';
+  
+  // Determine direction based on the alignment NOT on the form direction
+  // This ensures title keeps its own alignment regardless of form direction
+  const titleDirection = alignment === 'right' ? 'rtl' : 
+                        alignment === 'left' ? 'ltr' : 
+                        alignment === 'center' ? 'ltr' : 'ltr';
   
   // Background style with precise pixel values for consistency
   const backgroundStyle = {
@@ -149,15 +155,11 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
   // Create unique id for this field
   const titleFieldId = `title-field-${field.id}-${Date.now()}`;
 
-  // IMPORTANT: Set the dir attribute for title field based on alignment value
-  // instead of original form direction
-  const titleDirection = alignment === 'right' ? 'rtl' : 'ltr';
-
   return (
     <div 
       id={titleFieldId}
       className={`mb-4 ${isFormTitle ? 'codform-title' : ''}`}
-      dir={titleDirection} // Use title's own direction based on its alignment
+      dir={titleDirection} // Use title's own direction based on alignment, NOT form direction
       data-testid="title-field"
       data-title-align={alignment}
       data-has-bg="true"
@@ -170,7 +172,8 @@ const TitleField: React.FC<TitleFieldProps> = ({ field, formStyle }) => {
       data-desc-font-size={descriptionFontSize}
       data-desc-color={fieldStyle.descriptionColor || 'rgba(255, 255, 255, 0.9)'}
       data-desc-font-weight='normal'
-      data-ignore-form-direction="true" // Add explicit data attribute to indicate this field ignores form direction
+      data-ignore-form-direction="true" // Always ignore form direction
+      data-title-direction={titleDirection} // Add this to track what direction we're using
     >
       <div className="codform-title-container" style={backgroundStyle}>
         <h3 

@@ -106,15 +106,15 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         updatedField.style.labelFontSize = '16px';
       }
       
-      // IMPORTANT: Title fields should preserve their own textAlign settings
-      // Do NOT override based on form direction
+      // CRITICAL: Title fields should NEVER have their textAlign overridden
+      // This ensures title alignment is completely independent of form direction
       if (updatedField.type === 'form-title' || updatedField.type === 'title') {
-        // Only set a default if no textAlign exists
-        if (!updatedField.style.textAlign) {
+        // Only set a default textAlign if none exists, but NEVER override an existing one
+        if (updatedField.style.textAlign === undefined) {
           updatedField.style.textAlign = language === 'ar' ? 'right' : 'left';
         }
-        // For title fields, don't modify the textAlign based on form direction
-        // This is crucial - title alignment is independent of form direction
+        // Never modify existing textAlign based on form direction
+        // This is the critical fix to ensure title alignment stays independent
       }
       
       return updatedField;
