@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { FormField, FloatingButtonConfig } from '@/lib/form-utils';
 import FormPreview from '@/components/form/FormPreview';
 import { useI18n } from '@/lib/i18n';
@@ -41,60 +41,60 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   const { language } = useI18n();
   const [internalRefreshKey, setInternalRefreshKey] = useState(0);
   
-  // فرض التحديث عند تغيير أي خاصية لضمان تحديث المعاينة المباشرة فورًا
+  // Use the refresh key passed from parent but don't trigger cascading updates
   useEffect(() => {
-    // Use a number for consistent rendering instead of Date.now()
+    // Only update on significant changes
     setInternalRefreshKey(prevKey => prevKey + 1);
-  }, [fields, formStyle, formTitle, formDescription, refreshKey]);
+  }, [refreshKey]);
   
-  // معالجة الحقول لتطبيع قيم الأيقونة - ضروري لعرض المعاينة
-  const processedFields = React.useMemo(() => {
+  // Process fields with proper ID preservation using useMemo to prevent recreation
+  const processedFields = useMemo(() => {
     return fields.map(field => {
-      // إنشاء كائن حقل جديد لتجنب مشاكل التغيير المباشر
+      // Create a new field object to avoid direct mutation issues
       const updatedField = { ...field };
       
-      // Preserve the original ID
+      // Preserve the original ID - extremely important for drag and drop stability
       updatedField.id = field.id;
       
-      // تحويل سلاسل الأيقونات الفارغة إلى 'none'
+      // Convert empty icon strings to 'none'
       if (updatedField.icon === '') {
         updatedField.icon = 'none';
       }
       
-      // ضمان معالجة showIcon بشكل صحيح
+      // Ensure icon handling is processed correctly
       if (updatedField.icon && updatedField.icon !== 'none') {
         if (!updatedField.style) {
           updatedField.style = {};
         }
         
-        // تعيين showIcon افتراضيًا إلى true ما لم يتم تعيينه صراحة إلى false
+        // Set showIcon to true by default unless explicitly set to false
         updatedField.style.showIcon = updatedField.style?.showIcon !== undefined 
           ? updatedField.style.showIcon 
           : true;
       }
       
-      // معالجة خاصة لحقول العنوان
+      // Special processing for title fields
       if (updatedField.type === 'form-title' || updatedField.type === 'title') {
         if (!updatedField.style) {
           updatedField.style = {};
         }
         
-        // ضمان تعيين محاذاة النص
+        // Ensure text alignment is set
         if (!updatedField.style.textAlign) {
           updatedField.style.textAlign = language === 'ar' ? 'right' : 'left';
         }
         
-        // ضمان تعيين لون الخلفية ولون النص
+        // Ensure background and text color
         updatedField.style.backgroundColor = updatedField.style.backgroundColor || '#9b87f5';
         updatedField.style.color = updatedField.style.color || '#ffffff';
         
-        // ضمان تحديد أحجام الخط بوحدات بكسل
+        // Ensure font sizes have px units
         if (updatedField.style.fontSize && !updatedField.style.fontSize.includes('px')) {
           if (updatedField.style.fontSize.includes('rem')) {
             const remValue = parseFloat(updatedField.style.fontSize);
             updatedField.style.fontSize = `${remValue * 16}px`;
           } else if (!isNaN(parseFloat(updatedField.style.fontSize))) {
-            // إذا كان رقمًا بدون وحدة، نفترض أنه بكسل
+            // If it's a number without unit, assume pixels
             updatedField.style.fontSize = `${updatedField.style.fontSize}px`;
           }
         }
@@ -113,10 +113,10 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
       
       return updatedField;
     });
-  }, [fields, language, internalRefreshKey]); // إضافة internalRefreshKey إلى التبعيات لضمان إعادة العرض
+  }, [fields, language]); // Remove internalRefreshKey dependency to avoid unnecessary recalculation
 
-  // إنشاء معرف فريد لمكون المعاينة هذا - Using a stable ID instead of Date.now()
-  const previewPanelId = `preview-panel-${internalRefreshKey}`;
+  // Create a stable ID for this preview panel component
+  const previewPanelId = `preview-panel-${refreshKey}`;
 
   return (
     <div id={previewPanelId}>
@@ -140,7 +140,6 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
         </FormPreview>
       </div>
       
-      {/* إضافة تعليق صغير للتنبيه حول ضرورة توافق المعاينة مع العرض في المتجر */}
       <div className="mt-2 text-xs text-gray-500 p-2 rounded text-center">
         {language === 'ar' 
           ? 'المعاينة تعكس بدقة كيف سيظهر النموذج في متجر Shopify'

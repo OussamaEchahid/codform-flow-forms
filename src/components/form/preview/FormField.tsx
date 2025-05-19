@@ -76,16 +76,15 @@ const animationStyles = `
   }
 `;
 
-// Create a unique key for the form field based on field ID and core properties,
-// NOT using Date.now() which was causing regeneration on each render
+// Create a unique key for the form field based on field ID only
 const getFieldKey = (field: FormFieldType) => {
   if (!field || !field.id) {
     console.warn('Field missing ID:', field);
     return `field-unknown-${Math.random()}`;
   }
   
-  // Use only stable properties that don't change during normal field interactions
-  return `field-${field.id}-${field.type}`;
+  // Use ONLY the field ID to ensure consistent identity across renders
+  return `field-${field.id}`;
 };
 
 const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
@@ -169,7 +168,7 @@ const FormField: React.FC<FormFieldProps> = ({ field, formStyle }) => {
     return null;
   }
 
-  // Create a stable key for this field instance based only on ID and type
+  // Create a stable key for this field instance based only on ID
   const fieldKey = getFieldKey(field);
   
   // Set margins: use optimized margins based on field type
