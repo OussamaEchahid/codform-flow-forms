@@ -386,42 +386,11 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         return;
       }
       
-      // Find the title field and ensure it's properly saved
-      const titleField = formElements.find(
-        field => field.type === 'form-title' && 
-        (field.id === 'form-title-static' || field.label === formTitle)
-      );
-      
-      // Create a specialized deep copy of form elements to ensure style preservation
-      const elementsForSaving = formElements.map(element => {
-        // Deep clone the element
-        const clonedElement = { ...element };
-        
-        // For title field, ensure all style properties are preserved
-        if (element.type === 'form-title') {
-          // Ensure we have a complete style object
-          clonedElement.style = {
-            ...(element.style || {}),
-            // Add defaults for critical properties if missing
-            backgroundColor: element.style?.backgroundColor || formStyle.primaryColor,
-            borderRadius: element.style?.borderRadius || formStyle.borderRadius || '8px',
-            paddingY: element.style?.paddingY || '16px',
-            showTitle: typeof element.style?.showTitle === 'boolean' ? element.style.showTitle : true,
-            showDescription: typeof element.style?.showDescription === 'boolean' ? element.style.showDescription : true
-          };
-        } else {
-          // For non-title fields, normal deep clone
-          clonedElement.style = element.style ? { ...element.style } : undefined;
-        }
-        
-        return clonedElement;
-      });
-      
       // Create form step from elements
       const formStep: FormStep = {
         id: '1',
         title: 'Main Step',
-        fields: elementsForSaving
+        fields: formElements
       };
       
       const shopId = getActiveShopId();
@@ -439,7 +408,6 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         style: formStyle
       };
       
-      console.log("Saving form with title field:", titleField);
       console.log("Saving form with data:", formData);
       
       // Update existing form
@@ -721,31 +689,12 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
 
   // Handle form title updates from the title editor
   const handleFormTitleUpdate = (title: string, description: string, titleStyle: any) => {
-    console.log("Title update with style:", titleStyle);
-    
     // Update form title and description state
     setFormTitle(title);
     setFormDescription(description);
     
     // Check if we have an existing form-title field
     const titleFieldIndex = formElements.findIndex(field => field.type === 'form-title');
-    
-    // Ensure we have a complete style object with all required properties
-    const completeStyle = {
-      backgroundColor: titleStyle.backgroundColor || formStyle.primaryColor,
-      color: titleStyle.color || '#ffffff',
-      textAlign: titleStyle.textAlign || (language === 'ar' ? 'right' : 'center'),
-      fontSize: titleStyle.fontSize || '24px',
-      fontWeight: titleStyle.fontWeight || 'bold',
-      descriptionColor: titleStyle.descriptionColor || 'rgba(255, 255, 255, 0.9)',
-      descriptionFontSize: titleStyle.descriptionFontSize || '14px',
-      borderRadius: titleStyle.borderRadius || formStyle.borderRadius || '8px',
-      paddingY: titleStyle.paddingY || '16px',
-      showTitle: typeof titleStyle.showTitle === 'boolean' ? titleStyle.showTitle : true,
-      showDescription: typeof titleStyle.showDescription === 'boolean' ? titleStyle.showDescription : true
-    };
-    
-    console.log("Complete title style for saving:", completeStyle);
     
     if (titleFieldIndex !== -1) {
       // Update existing title field
@@ -754,18 +703,20 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         ...updatedElements[titleFieldIndex],
         label: title,
         helpText: description,
-        style: completeStyle,
-        id: updatedElements[titleFieldIndex].id || 'form-title-static' // Ensure consistent ID
+        style: {
+          ...updatedElements[titleFieldIndex].style,
+          ...titleStyle
+        }
       };
       setFormElements(updatedElements);
     } else {
       // Create new title field
       const titleField: FormField = {
         type: 'form-title',
-        id: 'form-title-static',
+        id: `form-title-${Date.now()}`,
         label: title,
         helpText: description,
-        style: completeStyle,
+        style: titleStyle,
       };
       
       // Add to beginning of elements array
@@ -776,14 +727,11 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     // Refresh the preview
     setRefreshKey(prev => prev + 1);
     
-    // Auto-save after title update to persist changes
-    setTimeout(() => handleSave(), 500);
-    
     toast.success(language === 'ar' 
       ? 'تم تحديث عنوان النموذج بنجاح' 
       : 'Form title updated successfully');
   };
-  
+
   // Add the missing handleElementUpdate function
   const handleElementUpdate = (index: number, updatedElement: FormField) => {
     const updatedElements = [...formElements];

@@ -1,5 +1,5 @@
 
-import React, { useCallback, useState, useRef } from 'react';
+import React, { useCallback, useState } from 'react';
 import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { FormField } from '@/lib/form-utils';
@@ -42,18 +42,9 @@ const deepCopyElement = (element: FormField): FormField => {
   // Preserve the ID exactly as it was
   copy.id = element.id;
   
-  // Deep copy the style object - ensure ALL properties are preserved
+  // Deep copy the style object
   if (element.style) {
     copy.style = { ...element.style };
-    
-    // Make sure boolean properties are properly preserved
-    if (typeof element.style.showTitle === 'boolean') {
-      copy.style.showTitle = element.style.showTitle;
-    }
-    
-    if (typeof element.style.showDescription === 'boolean') {
-      copy.style.showDescription = element.style.showDescription;
-    }
   }
   
   // Deep clone options array if it exists
@@ -90,7 +81,6 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
 }) => {
   const { language } = useI18n();
   const [isTitleEditorOpen, setIsTitleEditorOpen] = useState(false);
-  const editorInstanceId = useRef(`editor-${Math.random().toString(36).substr(2, 9)}`);
   
   // Find the form title field with its exact ID to ensure consistency
   const titleField = elements.find(el => el.type === 'form-title' && (el.id === FORM_TITLE_ID));
@@ -104,8 +94,6 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
     fontWeight: 'bold',
     descriptionColor: 'rgba(255, 255, 255, 0.9)',
     descriptionFontSize: '14px',
-    borderRadius: formStyle.borderRadius || '8px',
-    paddingY: '16px',
     showTitle: true,
     showDescription: true
   };
@@ -186,27 +174,14 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
   };
   
   const handleTitleSave = (title: string, description: string, style: any) => {
-    console.log("Saving title with style:", style);
-    
     // Use onTitleUpdate to handle title updates - this ensures consistency
     if (onTitleUpdate) {
-      // Create a complete style object with all required properties
-      const completeStyle = {
-        ...titleFieldStyle,  // Start with existing style to preserve any properties
-        ...style,            // Override with new style properties
-        // Ensure critical properties are always present
-        backgroundColor: style.backgroundColor || titleFieldStyle.backgroundColor || formStyle.primaryColor,
-        borderRadius: style.borderRadius || titleFieldStyle.borderRadius || formStyle.borderRadius,
-        paddingY: style.paddingY || titleFieldStyle.paddingY || '16px',
-        // Ensure boolean values are properly preserved
-        showTitle: typeof style.showTitle === 'boolean' ? style.showTitle : 
-                   typeof titleFieldStyle.showTitle === 'boolean' ? titleFieldStyle.showTitle : true,
-        showDescription: typeof style.showDescription === 'boolean' ? style.showDescription : 
-                        typeof titleFieldStyle.showDescription === 'boolean' ? titleFieldStyle.showDescription : true
+      // Preserve the original ID if it exists
+      const updatedStyle = {
+        ...titleFieldStyle,
+        ...style
       };
-      
-      // Call the parent's title update function with complete style
-      onTitleUpdate(title, description, completeStyle);
+      onTitleUpdate(title, description, updatedStyle);
     }
     
     setIsTitleEditorOpen(false);
@@ -242,11 +217,8 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
             style={{
               backgroundColor: titleFieldStyle.backgroundColor || formStyle.primaryColor,
               textAlign: (titleFieldStyle.textAlign as any) || (language === 'ar' ? 'right' : 'center'),
-              borderRadius: titleFieldStyle.borderRadius || formStyle.borderRadius,
-              padding: `${titleFieldStyle.paddingY || '16px'} 16px`
+              borderRadius: formStyle.borderRadius
             }}
-            data-show-title={titleFieldStyle.showTitle !== false ? 'true' : 'false'}
-            data-show-description={titleFieldStyle.showDescription !== false ? 'true' : 'false'}
           >
             {(titleFieldStyle.showTitle !== false) && (
               <h3 style={{ 
@@ -300,7 +272,6 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
       
       {/* Form Title Editor Modal */}
       <FormTitleEditor
-        key={`title-editor-${editorInstanceId.current}`}
         isOpen={isTitleEditorOpen}
         onClose={handleTitleEditorClose}
         title={formTitle}

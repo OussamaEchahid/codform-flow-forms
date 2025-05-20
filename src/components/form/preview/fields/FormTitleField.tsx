@@ -32,7 +32,7 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
     descriptionFontSize = '14px',
     borderRadius = formStyle.borderRadius || '8px',
     paddingY = '16px',
-    // Default showTitle and showDescription to true if not explicitly false
+    // Default showTitle and showDescription to true if not specified
     showTitle = true,
     showDescription = true,
     borderColor,
@@ -41,41 +41,14 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
 
   // If both title and description are hidden, don't render anything
   if (showTitle === false && showDescription === false) {
-    // Return a hidden placeholder instead of null to maintain DOM structure
-    return (
-      <div 
-        className="form-title-container hidden" 
-        style={{ 
-          height: 0, 
-          overflow: 'hidden', 
-          margin: 0, 
-          padding: 0 
-        }}
-        data-field-type="form-title"
-        data-field-id={field.id}
-        data-show-title="false"
-        data-show-description="false"
-        data-title-hidden="true"
-      />
-    );
+    return null;
   }
   
-  // Store styling properties in data attributes for debugging and consistency
+  // Store the background color in a data attribute for debugging
   const dataAttributes = {
     'data-field-type': 'form-title',
     'data-field-id': field.id,
     'data-bg-color': backgroundColor,
-    'data-border-radius': borderRadius,
-    'data-padding-y': paddingY,
-    'data-show-title': showTitle ? 'true' : 'false',
-    'data-show-description': showDescription ? 'true' : 'false',
-    'data-has-border': (borderWidth && borderColor) ? 'true' : 'false',
-    'data-vertical-padding': paddingY || '16px',
-    'data-style-properties': JSON.stringify({
-      backgroundColor, color, textAlign, fontSize, fontWeight,
-      descriptionColor, descriptionFontSize, borderRadius, paddingY,
-      showTitle, showDescription
-    })
   };
 
   return (
@@ -91,7 +64,7 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
       }}
       {...dataAttributes}
     >
-      {showTitle !== false && (
+      {showTitle && (
         <h1 
           style={{
             color,
@@ -105,12 +78,12 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
         </h1>
       )}
       
-      {showDescription !== false && field.helpText && (
+      {showDescription && field.helpText && (
         <p 
           style={{
             color: descriptionColor,
             fontSize: descriptionFontSize,
-            margin: (showTitle !== false ? '8px 0 0 0' : '0'),
+            margin: (showTitle ? '8px 0 0 0' : '0'),
             padding: '0'
           }}
         >
@@ -122,4 +95,23 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
 };
 
 // Use React.memo with custom comparison to prevent unnecessary re-renders
-export default React.memo(FormTitleField);
+export default React.memo(FormTitleField, (prevProps, nextProps) => {
+  // Only re-render if critical properties have changed
+  const prevField = prevProps.field;
+  const nextField = nextProps.field;
+  const prevStyle = prevProps.formStyle;
+  const nextStyle = nextProps.formStyle;
+  
+  // Deep compare the style objects
+  const prevFieldStyle = JSON.stringify(prevField.style);
+  const nextFieldStyle = JSON.stringify(nextField.style);
+  
+  return (
+    prevField.id === nextField.id &&
+    prevField.label === nextField.label &&
+    prevField.helpText === nextField.helpText &&
+    prevFieldStyle === nextFieldStyle &&
+    prevStyle.primaryColor === nextStyle.primaryColor &&
+    prevStyle.borderRadius === nextStyle.borderRadius
+  );
+});

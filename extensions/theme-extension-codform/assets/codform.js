@@ -1,3 +1,4 @@
+
 document.addEventListener('DOMContentLoaded', function() {
   // Configuration
   const API_URL_BASE = 'https://mtyfuwdsshlzqwjujavp.functions.supabase.co';
@@ -853,65 +854,35 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Create title field
   function createTitleField(field, style, container) {
-    console.log('Creating title field with styles:', JSON.stringify(field.style || {}));
-    
     const titleContainer = document.createElement('div');
     titleContainer.className = field.type === 'form-title' ? 'codform-title-container' : 'codform-subtitle-container';
     
-    // Default values for visibility settings
-    const showTitle = field.style && typeof field.style.showTitle === 'boolean' ? field.style.showTitle : true;
-    const showDescription = field.style && typeof field.style.showDescription === 'boolean' ? field.style.showDescription : true;
-    
-    // Add data attributes for debugging
-    titleContainer.setAttribute('data-show-title', showTitle.toString());
-    titleContainer.setAttribute('data-show-description', showDescription.toString());
-    
     // Apply styling attributes to container
     const hasBackground = !!(field.style && field.style.backgroundColor);
-    const borderRadius = field.style && field.style.borderRadius ? field.style.borderRadius : (style.borderRadius || '8px');
-    const paddingY = field.style && field.style.paddingY ? field.style.paddingY : '16px';
-    const borderColor = field.style && field.style.borderColor;
-    const borderWidth = field.style && field.style.borderWidth;
     
-    // Apply container styles
     if (hasBackground) {
       titleContainer.style.backgroundColor = field.style.backgroundColor;
+      titleContainer.style.padding = '16px';
+      titleContainer.style.borderRadius = style.borderRadius || '8px';
     }
     
-    // Always apply these styles regardless of background
-    titleContainer.style.padding = `${paddingY} 16px`;
-    titleContainer.style.borderRadius = borderRadius;
+    // Create title element
+    const title = document.createElement(field.type === 'title' ? 'h3' : 'h2');
+    title.innerText = field.label || field.text || '';
     
-    // Apply border if specified
-    if (borderColor && borderWidth) {
-      titleContainer.style.border = `${borderWidth} solid ${borderColor}`;
+    // Apply all styling from field.style
+    if (field.style) {
+      if (field.style.color) title.style.color = field.style.color;
+      if (field.style.fontSize) title.style.fontSize = field.style.fontSize;
+      if (field.style.fontWeight) title.style.fontWeight = field.style.fontWeight;
+      if (field.style.textAlign) title.style.textAlign = field.style.textAlign;
+      if (field.style.fontFamily) title.style.fontFamily = field.style.fontFamily;
     }
     
-    // Add debug attributes
-    titleContainer.setAttribute('data-border-radius', borderRadius);
-    titleContainer.setAttribute('data-padding-y', paddingY);
-    titleContainer.setAttribute('data-has-border', borderColor && borderWidth ? 'true' : 'false');
+    titleContainer.appendChild(title);
     
-    // Only create and append title if showTitle is true
-    if (showTitle) {
-      // Create title element
-      const title = document.createElement(field.type === 'title' ? 'h3' : 'h2');
-      title.innerText = field.label || field.text || '';
-      
-      // Apply all styling from field.style
-      if (field.style) {
-        if (field.style.color) title.style.color = field.style.color;
-        if (field.style.fontSize) title.style.fontSize = field.style.fontSize;
-        if (field.style.fontWeight) title.style.fontWeight = field.style.fontWeight;
-        if (field.style.textAlign) title.style.textAlign = field.style.textAlign;
-        if (field.style.fontFamily) title.style.fontFamily = field.style.fontFamily;
-      }
-      
-      titleContainer.appendChild(title);
-    }
-    
-    // Add description if provided AND showDescription is true
-    if (showDescription && field.helpText) {
+    // Add description if provided
+    if (field.helpText) {
       const description = document.createElement('p');
       description.innerText = field.helpText;
       description.className = 'codform-field-description';
@@ -926,16 +897,6 @@ document.addEventListener('DOMContentLoaded', function() {
       }
       
       titleContainer.appendChild(description);
-    }
-    
-    // If both title and description are hidden, add a debugging element to show this was intentional
-    if (!showTitle && !showDescription) {
-      titleContainer.style.padding = '0';
-      titleContainer.style.margin = '0';
-      titleContainer.style.height = '0';
-      titleContainer.style.overflow = 'hidden';
-      titleContainer.setAttribute('data-title-hidden', 'true');
-      // We still want to preserve the container in DOM for debugging purposes
     }
     
     container.appendChild(titleContainer);
@@ -967,7 +928,7 @@ document.addEventListener('DOMContentLoaded', function() {
     imgWrapper.className = 'codform-image-container';
     
     // Apply border radius to the wrapper
-    const borderRadius = style.borderRadius || '0.5rem';
+    const borderRadius = (field.style && field.style.borderRadius) || style.borderRadius || '0.5rem';
     imgWrapper.style.borderRadius = borderRadius;
     
     const image = document.createElement('img');
