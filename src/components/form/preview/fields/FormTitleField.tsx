@@ -32,12 +32,13 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
     descriptionFontSize = '14px',
     borderRadius = formStyle.borderRadius || '8px',
     paddingY = '16px',
-    // Default showTitle and showDescription to true if not explicitly false
-    showTitle = true,
-    showDescription = true,
     borderColor,
     borderWidth
   } = styles;
+
+  // Explicitly handle boolean values with default true if undefined
+  const showTitle = styles.showTitle !== false;
+  const showDescription = styles.showDescription !== false;
 
   // If both title and description are hidden, don't render anything
   if (showTitle === false && showDescription === false) {
@@ -91,7 +92,7 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
       }}
       {...dataAttributes}
     >
-      {showTitle !== false && (
+      {showTitle && (
         <h1 
           style={{
             color,
@@ -105,12 +106,12 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
         </h1>
       )}
       
-      {showDescription !== false && field.helpText && (
+      {showDescription && field.helpText && (
         <p 
           style={{
             color: descriptionColor,
             fontSize: descriptionFontSize,
-            margin: (showTitle !== false ? '8px 0 0 0' : '0'),
+            margin: (showTitle ? '8px 0 0 0' : '0'),
             padding: '0'
           }}
         >

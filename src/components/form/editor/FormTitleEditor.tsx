@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
@@ -90,9 +89,9 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
       descriptionFontSize: initialStyle?.descriptionFontSize || "14px",
       borderRadius: initialStyle?.borderRadius || borderRadius || '8px',
       paddingY: initialStyle?.paddingY || "16px",
-      // Carefully preserve boolean values
-      showTitle: typeof initialStyle?.showTitle === 'boolean' ? initialStyle.showTitle : true,
-      showDescription: typeof initialStyle?.showDescription === 'boolean' ? initialStyle.showDescription : true,
+      // Explicitly preserve boolean values
+      showTitle: initialStyle?.showTitle !== false, // true unless explicitly false
+      showDescription: initialStyle?.showDescription !== false, // true unless explicitly false
     };
     
     // Log for debugging
@@ -402,6 +401,8 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
               textAlign: style.textAlign as any,
               padding: `${style.paddingY} 16px`,
             }}
+            data-preview-showTitle={style.showTitle ? 'true' : 'false'}
+            data-preview-showDescription={style.showDescription ? 'true' : 'false'}
           >
             {style.showTitle && (
               <h3 style={{ color: style.color, fontSize: style.fontSize, fontWeight: style.fontWeight as any, margin: 0 }}>

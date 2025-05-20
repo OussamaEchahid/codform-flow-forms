@@ -46,12 +46,12 @@ const deepCopyElement = (element: FormField): FormField => {
   if (element.style) {
     copy.style = { ...element.style };
     
-    // Make sure boolean properties are properly preserved
-    if (typeof element.style.showTitle === 'boolean') {
+    // Make sure boolean properties are properly preserved as actual boolean values
+    if ('showTitle' in element.style) {
       copy.style.showTitle = element.style.showTitle;
     }
     
-    if (typeof element.style.showDescription === 'boolean') {
+    if ('showDescription' in element.style) {
       copy.style.showDescription = element.style.showDescription;
     }
   }
@@ -194,16 +194,21 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
       const completeStyle = {
         ...titleFieldStyle,  // Start with existing style to preserve any properties
         ...style,            // Override with new style properties
+        
         // Ensure critical properties are always present
         backgroundColor: style.backgroundColor || titleFieldStyle.backgroundColor || formStyle.primaryColor,
         borderRadius: style.borderRadius || titleFieldStyle.borderRadius || formStyle.borderRadius,
         paddingY: style.paddingY || titleFieldStyle.paddingY || '16px',
-        // Ensure boolean values are properly preserved
+        
+        // Explicitly preserve boolean values
         showTitle: typeof style.showTitle === 'boolean' ? style.showTitle : 
-                   typeof titleFieldStyle.showTitle === 'boolean' ? titleFieldStyle.showTitle : true,
+                  (titleFieldStyle.showTitle !== false),
+                  
         showDescription: typeof style.showDescription === 'boolean' ? style.showDescription : 
-                        typeof titleFieldStyle.showDescription === 'boolean' ? titleFieldStyle.showDescription : true
+                        (titleFieldStyle.showDescription !== false)
       };
+      
+      console.log("Final complete style being saved:", completeStyle);
       
       // Call the parent's title update function with complete style
       onTitleUpdate(title, description, completeStyle);
@@ -247,6 +252,12 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
             }}
             data-show-title={titleFieldStyle.showTitle !== false ? 'true' : 'false'}
             data-show-description={titleFieldStyle.showDescription !== false ? 'true' : 'false'}
+            data-title-debug={JSON.stringify({
+              showTitle: titleFieldStyle.showTitle,
+              showDescription: titleFieldStyle.showDescription,
+              borderRadius: titleFieldStyle.borderRadius,
+              paddingY: titleFieldStyle.paddingY
+            })}
           >
             {(titleFieldStyle.showTitle !== false) && (
               <h3 style={{ 
