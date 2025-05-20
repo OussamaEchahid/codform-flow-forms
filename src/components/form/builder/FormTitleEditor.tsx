@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useI18n } from '@/lib/i18n';
 import { Label } from '@/components/ui/label';
@@ -11,7 +10,6 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { v4 as uuidv4 } from 'uuid';
-
 interface FormTitleEditorProps {
   field?: FormField;
   onUpdateField?: (field: FormField) => void;
@@ -25,7 +23,6 @@ interface FormTitleEditorProps {
   onAddTitleField?: () => void;
   onUpdateTitleField?: (updatedField: FormField) => void;
 }
-
 const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
   field,
   onUpdateField,
@@ -174,110 +171,46 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
   const isConvertMode = !normalizedField;
 
   // Return the JSX for the component
-  return (
-    <div 
-      ref={setNodeRef} 
-      style={style} 
-      className={`relative mb-4 ${isDragging ? 'z-50' : ''}`}
-      {...attributes}
-    >
-      <Collapsible 
-        open={isOpen} 
-        onOpenChange={setIsOpen}
-        className="border rounded-md bg-white overflow-hidden"
-      >
-        <div className="flex justify-between items-center p-3 bg-slate-50 border-b">
-          <div className="flex items-center">
-            {isDraggable && normalizedField && (
-              <div 
-                {...listeners} 
-                className="cursor-grab hover:bg-slate-200 p-1 rounded mr-2"
-              >
-                <GripVertical size={18} className="text-slate-500" />
-              </div>
-            )}
-            <span className="font-medium">
-              {language === 'ar' ? 'عنوان النموذج' : 'Form Title'}
-            </span>
-          </div>
-
-          <div className="flex items-center">
-            <CollapsibleTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                {isOpen ? (
-                  <ChevronUp size={16} />
-                ) : (
-                  <ChevronDown size={16} />
-                )}
-              </Button>
-            </CollapsibleTrigger>
-          </div>
-        </div>
+  return <div ref={setNodeRef} style={style} className={`relative mb-4 ${isDragging ? 'z-50' : ''}`} {...attributes}>
+      <Collapsible open={isOpen} onOpenChange={setIsOpen} className="border rounded-md bg-white overflow-hidden">
+        
 
         <CollapsibleContent>
           <div className="p-4 space-y-4">
-            {isConvertMode ? (
-              // Convert mode - just show title/description inputs with a convert button
-              <>
+            {isConvertMode ?
+          // Convert mode - just show title/description inputs with a convert button
+          <>
                 <div className="space-y-2">
                   <Label htmlFor="form-title">
                     {language === 'ar' ? 'عنوان النموذج' : 'Form Title'}
                   </Label>
-                  <Input 
-                    id="form-title"
-                    value={formTitle || ''}
-                    onChange={(e) => onFormTitleChange && onFormTitleChange(e.target.value)}
-                    placeholder={language === 'ar' ? 'أدخل عنوان النموذج' : 'Enter form title'} 
-                  />
+                  <Input id="form-title" value={formTitle || ''} onChange={e => onFormTitleChange && onFormTitleChange(e.target.value)} placeholder={language === 'ar' ? 'أدخل عنوان النموذج' : 'Enter form title'} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="form-description">
                     {language === 'ar' ? 'وصف النموذج' : 'Form Description'}
                   </Label>
-                  <Textarea 
-                    id="form-description"
-                    value={formDescription || ''}
-                    onChange={(e) => onFormDescriptionChange && onFormDescriptionChange(e.target.value)}
-                    placeholder={language === 'ar' ? 'أدخل وصف النموذج' : 'Enter form description'}
-                    rows={3} 
-                  />
+                  <Textarea id="form-description" value={formDescription || ''} onChange={e => onFormDescriptionChange && onFormDescriptionChange(e.target.value)} placeholder={language === 'ar' ? 'أدخل وصف النموذج' : 'Enter form description'} rows={3} />
                 </div>
-                <Button 
-                  onClick={handleAddTitleField}
-                  variant="outline"
-                  size="sm"
-                  className="w-full mt-2"
-                >
+                <Button onClick={handleAddTitleField} variant="outline" size="sm" className="w-full mt-2">
                   <Edit className="mr-2 h-4 w-4" />
                   {language === 'ar' ? 'تحويل إلى عنوان قابل للتحرير' : 'Convert to Editable Title'}
                 </Button>
-              </>
-            ) : (
-              // Edit mode - show all styling options
-              <>
+              </> :
+          // Edit mode - show all styling options
+          <>
                 <div className="space-y-2">
                   <Label htmlFor="title-text">
                     {language === 'ar' ? 'نص العنوان' : 'Title Text'}
                   </Label>
-                  <Input 
-                    id="title-text"
-                    value={normalizedField?.label || ''}
-                    onChange={(e) => handleUpdateLabel(e.target.value)}
-                    placeholder={language === 'ar' ? 'أدخل عنوان النموذج' : 'Enter form title'} 
-                  />
+                  <Input id="title-text" value={normalizedField?.label || ''} onChange={e => handleUpdateLabel(e.target.value)} placeholder={language === 'ar' ? 'أدخل عنوان النموذج' : 'Enter form title'} />
                 </div>
                 
                 <div className="space-y-2">
                   <Label htmlFor="description-text">
                     {language === 'ar' ? 'نص الوصف' : 'Description Text'}
                   </Label>
-                  <Textarea 
-                    id="description-text"
-                    value={normalizedField?.helpText || ''}
-                    onChange={(e) => handleUpdateDescription(e.target.value)}
-                    placeholder={language === 'ar' ? 'أدخل وصف النموذج' : 'Enter form description'}
-                    rows={3} 
-                  />
+                  <Textarea id="description-text" value={normalizedField?.helpText || ''} onChange={e => handleUpdateDescription(e.target.value)} placeholder={language === 'ar' ? 'أدخل وصف النموذج' : 'Enter form description'} rows={3} />
                 </div>
                 
                 <div className="space-y-2">
@@ -285,31 +218,13 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
                     {language === 'ar' ? 'محاذاة النص' : 'Text Alignment'}
                   </Label>
                   <div className="flex space-x-2">
-                    <Button 
-                      type="button"
-                      size="sm"
-                      variant={titleAlignment === 'left' ? 'default' : 'outline'}
-                      onClick={() => handleUpdateStyle('textAlign', 'left')}
-                      className="flex-1"
-                    >
+                    <Button type="button" size="sm" variant={titleAlignment === 'left' ? 'default' : 'outline'} onClick={() => handleUpdateStyle('textAlign', 'left')} className="flex-1">
                       <AlignLeft size={16} />
                     </Button>
-                    <Button 
-                      type="button"
-                      size="sm"
-                      variant={titleAlignment === 'center' ? 'default' : 'outline'}
-                      onClick={() => handleUpdateStyle('textAlign', 'center')}
-                      className="flex-1"
-                    >
+                    <Button type="button" size="sm" variant={titleAlignment === 'center' ? 'default' : 'outline'} onClick={() => handleUpdateStyle('textAlign', 'center')} className="flex-1">
                       <AlignCenter size={16} />
                     </Button>
-                    <Button 
-                      type="button"
-                      size="sm"
-                      variant={titleAlignment === 'right' ? 'default' : 'outline'}
-                      onClick={() => handleUpdateStyle('textAlign', 'right')}
-                      className="flex-1"
-                    >
+                    <Button type="button" size="sm" variant={titleAlignment === 'right' ? 'default' : 'outline'} onClick={() => handleUpdateStyle('textAlign', 'right')} className="flex-1">
                       <AlignRight size={16} />
                     </Button>
                   </div>
@@ -321,18 +236,8 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
                       {language === 'ar' ? 'لون العنوان' : 'Title Color'}
                     </Label>
                     <div className="flex">
-                      <Input 
-                        id="title-color"
-                        type="color"
-                        value={titleColor}
-                        onChange={(e) => handleUpdateStyle('color', e.target.value)}
-                        className="w-10 h-10 p-1 border rounded"
-                      />
-                      <Input 
-                        value={titleColor}
-                        onChange={(e) => handleUpdateStyle('color', e.target.value)}
-                        className="flex-1 ml-2"
-                      />
+                      <Input id="title-color" type="color" value={titleColor} onChange={e => handleUpdateStyle('color', e.target.value)} className="w-10 h-10 p-1 border rounded" />
+                      <Input value={titleColor} onChange={e => handleUpdateStyle('color', e.target.value)} className="flex-1 ml-2" />
                     </div>
                   </div>
                   
@@ -341,15 +246,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
                       {language === 'ar' ? 'حجم العنوان' : 'Title Size'}
                     </Label>
                     <div className="flex items-center">
-                      <Input 
-                        id="title-size"
-                        type="number"
-                        min="12"
-                        max="72"
-                        value={titleSize.replace('px', '')}
-                        onChange={(e) => handleUpdateStyle('fontSize', `${e.target.value}px`)}
-                        className="flex-1"
-                      />
+                      <Input id="title-size" type="number" min="12" max="72" value={titleSize.replace('px', '')} onChange={e => handleUpdateStyle('fontSize', `${e.target.value}px`)} className="flex-1" />
                       <span className="ml-2">px</span>
                     </div>
                   </div>
@@ -359,18 +256,8 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
                       {language === 'ar' ? 'لون الوصف' : 'Description Color'}
                     </Label>
                     <div className="flex">
-                      <Input 
-                        id="desc-color"
-                        type="color"
-                        value={descColor}
-                        onChange={(e) => handleUpdateStyle('descriptionColor', e.target.value)}
-                        className="w-10 h-10 p-1 border rounded"
-                      />
-                      <Input 
-                        value={descColor}
-                        onChange={(e) => handleUpdateStyle('descriptionColor', e.target.value)}
-                        className="flex-1 ml-2"
-                      />
+                      <Input id="desc-color" type="color" value={descColor} onChange={e => handleUpdateStyle('descriptionColor', e.target.value)} className="w-10 h-10 p-1 border rounded" />
+                      <Input value={descColor} onChange={e => handleUpdateStyle('descriptionColor', e.target.value)} className="flex-1 ml-2" />
                     </div>
                   </div>
                   
@@ -379,15 +266,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
                       {language === 'ar' ? 'حجم الوصف' : 'Description Size'}
                     </Label>
                     <div className="flex items-center">
-                      <Input 
-                        id="desc-size"
-                        type="number"
-                        min="10"
-                        max="36"
-                        value={descSize.replace('px', '')}
-                        onChange={(e) => handleUpdateStyle('descriptionFontSize', `${e.target.value}px`)}
-                        className="flex-1"
-                      />
+                      <Input id="desc-size" type="number" min="10" max="36" value={descSize.replace('px', '')} onChange={e => handleUpdateStyle('descriptionFontSize', `${e.target.value}px`)} className="flex-1" />
                       <span className="ml-2">px</span>
                     </div>
                   </div>
@@ -398,18 +277,8 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
                     {language === 'ar' ? 'لون الخلفية' : 'Background Color'}
                   </Label>
                   <div className="flex">
-                    <Input 
-                      id="background-color"
-                      type="color"
-                      value={backgroundColor}
-                      onChange={(e) => handleUpdateStyle('backgroundColor', e.target.value)}
-                      className="w-10 h-10 p-1 border rounded"
-                    />
-                    <Input 
-                      value={backgroundColor}
-                      onChange={(e) => handleUpdateStyle('backgroundColor', e.target.value)}
-                      className="flex-1 ml-2"
-                    />
+                    <Input id="background-color" type="color" value={backgroundColor} onChange={e => handleUpdateStyle('backgroundColor', e.target.value)} className="w-10 h-10 p-1 border rounded" />
+                    <Input value={backgroundColor} onChange={e => handleUpdateStyle('backgroundColor', e.target.value)} className="flex-1 ml-2" />
                   </div>
                 </div>
                 
@@ -417,24 +286,16 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
                   <Label htmlFor="font-weight">
                     {language === 'ar' ? 'وزن الخط' : 'Font Weight'}
                   </Label>
-                  <select
-                    id="font-weight"
-                    value={titleWeight}
-                    onChange={(e) => handleUpdateStyle('fontWeight', e.target.value)}
-                    className="w-full border rounded p-2"
-                  >
+                  <select id="font-weight" value={titleWeight} onChange={e => handleUpdateStyle('fontWeight', e.target.value)} className="w-full border rounded p-2">
                     <option value="normal">{language === 'ar' ? 'عادي' : 'Normal'}</option>
                     <option value="bold">{language === 'ar' ? 'غامق' : 'Bold'}</option>
                     <option value="lighter">{language === 'ar' ? 'خفيف' : 'Lighter'}</option>
                   </select>
                 </div>
-              </>
-            )}
+              </>}
           </div>
         </CollapsibleContent>
       </Collapsible>
-    </div>
-  );
+    </div>;
 };
-
 export default FormTitleEditor;
