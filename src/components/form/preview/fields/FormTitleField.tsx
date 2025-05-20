@@ -41,10 +41,26 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
 
   // If both title and description are hidden, don't render anything
   if (showTitle === false && showDescription === false) {
-    return null;
+    // Return a hidden placeholder instead of null to maintain DOM structure
+    return (
+      <div 
+        className="form-title-container hidden" 
+        style={{ 
+          height: 0, 
+          overflow: 'hidden', 
+          margin: 0, 
+          padding: 0 
+        }}
+        data-field-type="form-title"
+        data-field-id={field.id}
+        data-show-title="false"
+        data-show-description="false"
+        data-title-hidden="true"
+      />
+    );
   }
   
-  // Store the background color in a data attribute for debugging
+  // Store styling properties in data attributes for debugging and consistency
   const dataAttributes = {
     'data-field-type': 'form-title',
     'data-field-id': field.id,
@@ -52,7 +68,8 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
     'data-border-radius': borderRadius,
     'data-padding-y': paddingY,
     'data-show-title': showTitle ? 'true' : 'false',
-    'data-show-description': showDescription ? 'true' : 'false'
+    'data-show-description': showDescription ? 'true' : 'false',
+    'data-has-border': (borderWidth && borderColor) ? 'true' : 'false'
   };
 
   return (
