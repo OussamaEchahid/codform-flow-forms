@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
@@ -27,6 +26,31 @@ interface FormPreviewProps {
 // Constant ID for form title to prevent regeneration - must match FormPreviewPanel
 const FORM_TITLE_ID = 'form-title-static';
 
+// Deep clone function to ensure field IDs and all properties are preserved exactly
+const deepCloneFields = (fields: FormField[]): FormField[] => {
+  if (!fields) return [];
+  
+  return fields.map(field => {
+    // Create a complete copy of all properties
+    const newField = { ...field };
+    
+    // Always preserve the exact ID
+    newField.id = field.id;
+    
+    // Deep clone style object if it exists
+    if (field.style) {
+      newField.style = { ...field.style };
+    }
+    
+    // Deep clone options array if it exists
+    if (field.options && Array.isArray(field.options)) {
+      newField.options = field.options.map(option => ({ ...option }));
+    }
+    
+    return newField;
+  });
+};
+
 const FormPreview: React.FC<FormPreviewProps> = ({
   formTitle,
   formDescription,
@@ -46,47 +70,68 @@ const FormPreview: React.FC<FormPreviewProps> = ({
 }) => {
   const { language } = useI18n();
   
-  // We don't process fields here anymore - we trust that FormPreviewPanel has already handled this
-  // Just ensure we're not re-processing anything
+  // Process fields while preserving IDs and ensuring there's no duplication
   const sanitizedFields = useMemo(() => {
-    // If fields array is empty, create default title and submit fields
-    if (fields.length === 0) {
-      const titleField: FormField = {
-        type: 'form-title',
-        id: FORM_TITLE_ID,
-        label: formTitle,
-        helpText: formDescription,
-        style: {
-          backgroundColor: formStyle.primaryColor || '#9b87f5',
-          color: '#ffffff',
-          textAlign: language === 'ar' ? 'right' : 'center',
-          fontSize: '24px',
-          fontWeight: 'bold',
-          descriptionColor: 'rgba(255, 255, 255, 0.9)',
-          descriptionFontSize: '14px',
-          showTitle: true,
-          showDescription: true
-        },
-      };
+    // Deep clone to prevent mutations
+    const clonedFields = deepCloneFields(fields);
+    
+    // Check if we already have a form-title field with the correct ID
+    const hasTitleField = clonedFields.some(field => field.id === FORM_TITLE_ID);
+    
+    // If fields array is empty or doesn't have a title field, create default title and submit fields
+    if (clonedFields.length === 0 || !hasTitleField) {
+      const fieldsToCreate = [];
       
-      const submitButton: FormField = {
-        type: 'submit',
-        id: `submit-stable`,
-        label: language === 'ar' ? 'إرسال الطلب' : 'Submit Order',
-        style: {
-          backgroundColor: formStyle.primaryColor || '#9b87f5',
-          color: '#ffffff',
-          fontSize: '18px',
-          animation: true,
-          animationType: 'pulse',
-        },
-      };
+      // Only create a title field if we don't have one
+      if (!hasTitleField) {
+        const titleField: FormField = {
+          type: 'form-title',
+          id: FORM_TITLE_ID,
+          label: formTitle,
+          helpText: formDescription,
+          style: {
+            backgroundColor: formStyle.primaryColor || '#9b87f5',
+            color: '#ffffff',
+            textAlign: language === 'ar' ? 'right' : 'center',
+            fontSize: '24px',
+            fontWeight: 'bold',
+            descriptionColor: 'rgba(255, 255, 255, 0.9)',
+            descriptionFontSize: '14px',
+            showTitle: true,
+            showDescription: true
+          },
+        };
+        fieldsToCreate.push(titleField);
+      }
       
-      return [titleField, submitButton];
+      // Add the submit button if needed
+      if (clonedFields.length === 0) {
+        const submitButton: FormField = {
+          type: 'submit',
+          id: `submit-stable`,
+          label: language === 'ar' ? 'إرسال الطلب' : 'Submit Order',
+          style: {
+            backgroundColor: formStyle.primaryColor || '#9b87f5',
+            color: '#ffffff',
+            fontSize: '18px',
+            animation: true,
+            animationType: 'pulse',
+          },
+        };
+        fieldsToCreate.push(submitButton);
+      }
+      
+      // If we had fields but just needed to add a title, combine them
+      if (clonedFields.length > 0) {
+        return [...fieldsToCreate, ...clonedFields];
+      }
+      
+      // Otherwise return just the new fields
+      return fieldsToCreate;
     }
     
-    // If we have fields, just make sure we preserve the form-title ID
-    return fields.map(field => {
+    // If we have fields and a title field, just ensure the title field has the correct ID
+    return clonedFields.map(field => {
       if (field.type === 'form-title' && field.id !== FORM_TITLE_ID) {
         return { ...field, id: FORM_TITLE_ID };
       }

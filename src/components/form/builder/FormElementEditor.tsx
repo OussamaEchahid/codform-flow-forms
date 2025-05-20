@@ -73,7 +73,7 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
   const [isTitleEditorOpen, setIsTitleEditorOpen] = useState(false);
   
   // Find the form title field with its exact ID to ensure consistency
-  const titleField = elements.find(el => el.type === 'form-title' && (el.id === FORM_TITLE_ID || el.id === 'form-title-static'));
+  const titleField = elements.find(el => el.type === 'form-title' && (el.id === FORM_TITLE_ID));
   
   // Get the form title style from existing form-title field or default
   const titleFieldStyle = titleField?.style || {
@@ -97,7 +97,7 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
     coordinateGetter: sortableKeyboardCoordinates
   }));
   
-  // Handle drag end events
+  // Handle drag end events for field reordering
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
     
@@ -105,14 +105,15 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
       return;
     }
     
-    const oldIndex = elements.findIndex(item => item.id === active.id);
-    const newIndex = elements.findIndex(item => item.id === over.id);
+    // Filter out the form-title field before handling the reordering
+    const elementsWithoutTitle = elements.filter(element => element.type !== 'form-title');
+    
+    const oldIndex = elementsWithoutTitle.findIndex(item => item.id === active.id);
+    const newIndex = elementsWithoutTitle.findIndex(item => item.id === over.id);
     
     if (onReorderElements && oldIndex !== -1 && newIndex !== -1) {
       // Create exact deep copies of each element to prevent mutations
-      const newElementsArray = elements
-        .filter(element => element.type !== 'form-title') // Filter out title field
-        .map(element => deepCopyElement(element));
+      const newElementsArray = elementsWithoutTitle.map(element => deepCopyElement(element));
       
       // Use arrayMove to reorder elements
       const reorderedElements = arrayMove(newElementsArray, oldIndex, newIndex);
@@ -223,7 +224,7 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
       </div>
       
       {/* Form Fields */}
-      {elements.length === 0 && (
+      {sortableElements.length === 0 && (
         <div className="text-center p-8 border-2 border-dashed border-gray-300 rounded-lg">
           <p className="text-gray-500">
             {language === 'ar' 

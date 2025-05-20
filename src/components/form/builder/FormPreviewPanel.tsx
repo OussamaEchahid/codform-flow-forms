@@ -95,48 +95,64 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     
     // Filter out all form-title fields to avoid duplicates
     let filteredFields = clonedFields.filter(field => {
-      // Keep the title field with FORM_TITLE_ID
-      if (field.id === FORM_TITLE_ID) return false;
+      // Keep non-title fields
+      if (field.type !== 'form-title') return true;
+      
+      // Keep the title field if it has the standard ID  
+      if (field.id === FORM_TITLE_ID) return true;
       
       // Remove all other form-title fields
-      return field.type !== 'form-title';
+      return false;
     });
     
-    // Prepare the title field - either use existing or create new
-    const updatedTitleField: FormField = titleField 
-      ? {
-          ...titleField,
-          id: FORM_TITLE_ID, // Ensure consistent ID
-          type: 'form-title',
-          label: formTitle || titleField.label,
-          helpText: formDescription || titleField.helpText,
-          style: {
-            ...(titleField.style || {}),
-            backgroundColor: titleField.style?.backgroundColor || formStyle.primaryColor,
-            showTitle: titleField.style?.showTitle !== undefined ? titleField.style.showTitle : true,
-            showDescription: titleField.style?.showDescription !== undefined ? titleField.style.showDescription : true
+    // If we don't have a title field with the standard ID, create or update one
+    if (!filteredFields.some(field => field.id === FORM_TITLE_ID)) {
+      // Prepare the title field - either use existing or create new
+      const updatedTitleField: FormField = titleField 
+        ? {
+            ...titleField,
+            id: FORM_TITLE_ID, // Ensure consistent ID
+            type: 'form-title',
+            label: formTitle || titleField.label,
+            helpText: formDescription || titleField.helpText,
+            style: {
+              ...(titleField.style || {}),
+              backgroundColor: titleField.style?.backgroundColor || formStyle.primaryColor,
+              showTitle: titleField.style?.showTitle !== undefined ? titleField.style.showTitle : true,
+              showDescription: titleField.style?.showDescription !== undefined ? titleField.style.showDescription : true
+            }
           }
-        }
-      : {
-          type: 'form-title',
-          id: FORM_TITLE_ID,
-          label: formTitle,
-          helpText: formDescription,
-          style: {
-            backgroundColor: formStyle.primaryColor || '#9b87f5',
-            color: '#ffffff',
-            textAlign: language === 'ar' ? 'right' : 'center',
-            fontSize: '24px',
-            fontWeight: 'bold',
-            descriptionColor: 'rgba(255, 255, 255, 0.9)',
-            descriptionFontSize: '14px',
-            showTitle: true,
-            showDescription: true
-          }
+        : {
+            type: 'form-title',
+            id: FORM_TITLE_ID,
+            label: formTitle,
+            helpText: formDescription,
+            style: {
+              backgroundColor: formStyle.primaryColor || '#9b87f5',
+              color: '#ffffff',
+              textAlign: language === 'ar' ? 'right' : 'center',
+              fontSize: '24px',
+              fontWeight: 'bold',
+              descriptionColor: 'rgba(255, 255, 255, 0.9)',
+              descriptionFontSize: '14px',
+              showTitle: true,
+              showDescription: true
+            }
+          };
+      
+      // Add the title field at the beginning
+      filteredFields = [updatedTitleField, ...filteredFields];
+    } else if (titleFieldById) {
+      // If we have a title field with the standard ID, update its content but preserve styling
+      const titleIndex = filteredFields.findIndex(field => field.id === FORM_TITLE_ID);
+      if (titleIndex !== -1) {
+        filteredFields[titleIndex] = {
+          ...filteredFields[titleIndex],
+          label: formTitle || filteredFields[titleIndex].label,
+          helpText: formDescription || filteredFields[titleIndex].helpText,
         };
-    
-    // Add the title field at the beginning
-    filteredFields = [updatedTitleField, ...filteredFields];
+      }
+    }
     
     // Add default submit button if needed
     const hasSubmitButton = filteredFields.some(field => field.type === 'submit');
