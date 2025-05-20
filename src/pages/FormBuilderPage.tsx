@@ -30,6 +30,8 @@ const FormBuilderPage = () => {
   
   // Add a ref to track if we've already checked for the default form
   const defaultFormChecked = useRef(false);
+  // Stop excessive API requests by tracking mount status
+  const isMounted = useRef(false);
   
   // Allow access if either authenticated with user or connected with Shopify
   const hasAccess = !!user || shopifyConnected;
@@ -53,6 +55,10 @@ const FormBuilderPage = () => {
   
   // Check for default form - Modified to prevent infinite loops
   useEffect(() => {
+    // Only run on first mount
+    if (isMounted.current) return;
+    isMounted.current = true;
+
     async function checkForDefaultForm() {
       // Only check once per component lifecycle and when not already checking
       if (!shop || isCheckingDefaultForm || defaultFormChecked.current) return;
@@ -78,13 +84,13 @@ const FormBuilderPage = () => {
     }
     
     // Only run this once when the component mounts
-    if (!defaultFormChecked.current) {
-      checkForDefaultForm();
-    }
+    checkForDefaultForm();
   }, [shop, getDefaultForm, isCheckingDefaultForm]);
 
   // Fetch associated products for current form
   useEffect(() => {
+    let isCancelled = false;
+    
     async function fetchAssociatedProducts() {
       if (!formId || formId === 'new' || !shop) return;
       
@@ -95,7 +101,7 @@ const FormBuilderPage = () => {
           .select('*')
           .eq('form_id', formId);
           
-        if (error) {
+        if (error || isCancelled) {
           console.error('Error fetching product settings:', error);
           return;
         }
@@ -115,7 +121,7 @@ const FormBuilderPage = () => {
           .eq('shop', shop)
           .single();
           
-        if (cachedProducts?.products) {
+        if (cachedProducts?.products && !isCancelled) {
           const shopifyProducts = cachedProducts.products;
           const matchedProducts = shopifyProducts
             .filter((product: any) => productIds.includes(product.id))
@@ -132,6 +138,10 @@ const FormBuilderPage = () => {
     }
     
     fetchAssociatedProducts();
+    
+    return () => {
+      isCancelled = true;
+    };
   }, [formId, shop]);
   
   useEffect(() => {

@@ -22,6 +22,11 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
   // IMPORTANT: First check field's specific backgroundColor, THEN fall back to primaryColor
   const backgroundColor = styles.backgroundColor || formStyle.primaryColor || '#9b87f5';
   
+  // Ensure valid hex color format for backgroundColor
+  const validatedBackgroundColor = backgroundColor && backgroundColor.startsWith('rgb') 
+    ? '#9b87f5' // Fallback to a safe default if RGB format is detected
+    : backgroundColor;
+  
   // Extract all style properties with fallbacks
   const {
     color = '#ffffff',
@@ -48,18 +53,24 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
   const dataAttributes = {
     'data-field-type': 'form-title',
     'data-field-id': field.id,
-    'data-bg-color': backgroundColor,
+    'data-bg-color': validatedBackgroundColor,
     'data-show-title': showTitle ? 'true' : 'false',
     'data-show-desc': showDescription ? 'true' : 'false',
     'data-border-radius': borderRadius,
     'data-padding-y': paddingY
   };
 
+  // Ensure hex colors are properly formatted
+  const safeColor = typeof color === 'string' && color.startsWith('rgb') ? '#ffffff' : color;
+  const safeDescColor = typeof descriptionColor === 'string' && descriptionColor.startsWith('rgb') 
+    ? 'rgba(255, 255, 255, 0.9)' 
+    : descriptionColor;
+
   return (
     <div 
       className="form-title-container mb-6" 
       style={{
-        backgroundColor,
+        backgroundColor: validatedBackgroundColor,
         borderRadius,
         padding: `${paddingY} 16px`,
         marginTop: '0',
@@ -71,7 +82,7 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
       {showTitle && (
         <h1 
           style={{
-            color,
+            color: safeColor,
             fontSize,
             fontWeight,
             margin: '0',
@@ -85,7 +96,7 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
       {showDescription && field.helpText && (
         <p 
           style={{
-            color: descriptionColor,
+            color: safeDescColor,
             fontSize: descriptionFontSize,
             margin: (showTitle ? '8px 0 0 0' : '0'),
             padding: '0'
@@ -107,8 +118,8 @@ export default React.memo(FormTitleField, (prevProps, nextProps) => {
   const nextStyle = nextProps.formStyle;
   
   // Deep compare the style objects
-  const prevFieldStyle = JSON.stringify(prevField.style);
-  const nextFieldStyle = JSON.stringify(nextField.style);
+  const prevFieldStyle = JSON.stringify(prevField.style || {});
+  const nextFieldStyle = JSON.stringify(nextField.style || {});
   
   return (
     prevField.id === nextField.id &&

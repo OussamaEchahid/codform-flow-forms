@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { ShopifyProduct, ShopifyUser } from '@/lib/shopify/types';
 import { shopifyStores, shopifySupabase } from '@/lib/shopify/supabase-client';
@@ -36,6 +37,11 @@ export const useShopify = () => {
   const [failSafeMode, setFailSafeMode] = useState(() => {
     return localStorage.getItem('shopify_failsafe') === 'true';
   });
+
+  // Add a ref to track if we've already checked for the default form
+  const defaultFormChecked = useRef(false);
+  // Use a ref to prevent redundant calls in the same session
+  const requestInProgress = useRef(false);
 
   // Set the user from auth context
   useEffect(() => {
@@ -303,14 +309,23 @@ export const useShopify = () => {
       return null;
     }
 
-    // Check if we have a cached result that's less than 30 seconds old
+    // Prevent concurrent requests - important to stop request flooding
+    if (requestInProgress.current) {
+      console.log('Request already in progress, using cached result if available');
+      return defaultFormCache.current[targetShop]?.data || null;
+    }
+
+    // Check if we have a cached result that's less than 60 seconds old
     const cachedResult = defaultFormCache.current[targetShop];
-    if (cachedResult && (Date.now() - cachedResult.timestamp) < 30000) {
+    if (cachedResult && (Date.now() - cachedResult.timestamp) < 60000) {
       console.log('Using cached default form result for', targetShop);
       return cachedResult.data;
     }
 
     try {
+      // Mark that we're starting a request
+      requestInProgress.current = true;
+      
       // Get the most recently updated form for this shop
       const { data, error } = await shopifySupabase
         .from('forms')
@@ -333,11 +348,19 @@ export const useShopify = () => {
         timestamp: Date.now()
       };
       
+      // Mark that we've checked for the default form in this component lifecycle
+      defaultFormChecked.current = true;
+      
       console.log('Default form found:', result?.id || 'none');
       return result;
     } catch (error) {
       console.error('Exception in getDefaultForm:', error);
       return null;
+    } finally {
+      // Reset the request flag after a short delay to prevent immediate retries
+      setTimeout(() => {
+        requestInProgress.current = false;
+      }, 1000);
     }
   }, [shop]);
 
@@ -442,5 +465,3 @@ export const useShopify = () => {
     getDefaultForm,
   };
 };
-
-// Removed the duplicate export at the end that was causing conflicts
