@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import FormStylingEditor from './FormStylingEditor';
 
 interface FormStyleEditorProps {
   formStyle: FormStyle;
@@ -38,17 +39,25 @@ const FormStyleEditor: React.FC<FormStyleEditorProps> = ({
     onStyleChange(newStyle);
   };
   
+  // Handler for updating multiple style properties at once
+  const handleMultiStyleChange = (styleUpdates: Partial<FormStyle>) => {
+    onStyleChange({
+      ...formStyle,
+      ...styleUpdates
+    });
+  };
+  
   return (
     <Tabs defaultValue="general">
       <TabsList className="grid w-full grid-cols-3">
         <TabsTrigger value="general">
           {language === 'ar' ? 'عام' : 'General'}
         </TabsTrigger>
+        <TabsTrigger value="styling">
+          {language === 'ar' ? 'التصميم' : 'Styling'}
+        </TabsTrigger>
         <TabsTrigger value="buttons">
           {language === 'ar' ? 'الأزرار' : 'Buttons'}
-        </TabsTrigger>
-        <TabsTrigger value="advanced">
-          {language === 'ar' ? 'متقدم' : 'Advanced'}
         </TabsTrigger>
       </TabsList>
       
@@ -139,6 +148,13 @@ const FormStyleEditor: React.FC<FormStyleEditorProps> = ({
         </div>
       </TabsContent>
       
+      <TabsContent value="styling" className="py-4">
+        <FormStylingEditor 
+          formStyle={formStyle}
+          onStyleChange={handleMultiStyleChange}
+        />
+      </TabsContent>
+      
       <TabsContent value="buttons" className="space-y-4 py-4">
         <div className="space-y-4">
           <div className="grid gap-2">
@@ -206,30 +222,11 @@ const FormStyleEditor: React.FC<FormStyleEditorProps> = ({
         )}
       </TabsContent>
       
-      <TabsContent value="advanced" className="space-y-4 py-4">
-        <div className="space-y-4">
-          <div className="grid gap-2">
-            <Label htmlFor="custom-css">
-              {language === 'ar' ? 'CSS مخصص' : 'Custom CSS'}
-            </Label>
-            <textarea
-              id="custom-css"
-              rows={10}
-              className="w-full p-2 border rounded-md"
-              placeholder={language === 'ar' ? 'أدخل CSS المخصص هنا...' : 'Enter custom CSS here...'}
-            ></textarea>
-            <p className="text-sm text-gray-500">
-              {language === 'ar' 
-                ? 'استخدم CSS المخصص لتخصيص مظهر النموذج بشكل أكبر.' 
-                : 'Use custom CSS to further customize the appearance of your form.'}
-            </p>
-          </div>
-          
-          <Button onClick={onSave} className="w-full">
-            {language === 'ar' ? 'حفظ التغييرات' : 'Save Changes'}
-          </Button>
-        </div>
-      </TabsContent>
+      <div className="mt-6">
+        <Button onClick={onSave} className="w-full">
+          {language === 'ar' ? 'حفظ التغييرات' : 'Save Changes'}
+        </Button>
+      </div>
     </Tabs>
   );
 };

@@ -10,6 +10,17 @@ interface FormTitleFieldProps {
     borderRadius?: string;
     fontSize?: string;
     buttonStyle?: string;
+    // Add new style properties
+    borderColor?: string;
+    borderWidth?: string;
+    backgroundColor?: string;
+    paddingTop?: string;
+    paddingBottom?: string;
+    paddingLeft?: string;
+    paddingRight?: string;
+    formGap?: string;
+    formDirection?: 'ltr' | 'rtl';
+    floatingLabels?: boolean;
   };
 }
 
@@ -38,6 +49,18 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
       return color;
     }
     
+    // Handle RGB format
+    const rgbPattern = /^rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/i;
+    const rgbMatch = color.match(rgbPattern);
+    if (rgbMatch) {
+      const r = parseInt(rgbMatch[1], 10);
+      const g = parseInt(rgbMatch[2], 10);
+      const b = parseInt(rgbMatch[3], 10);
+      
+      // Convert to hex
+      return `#${(r << 16 | g << 8 | b).toString(16).padStart(6, '0')}`;
+    }
+    
     // If RGB format is detected or otherwise invalid, return the primaryColor or default
     return formStyle.primaryColor || '#9b87f5';
   };
@@ -57,13 +80,20 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
     descriptionFontSize = '14px',
     borderRadius = styles.borderRadius || formStyle.borderRadius || '8px',
     paddingY = styles.paddingY || '16px',
-    borderColor,
-    borderWidth
+    borderColor = styles.borderColor || formStyle.borderColor || '#e2e8f0',
+    borderWidth = styles.borderWidth || formStyle.borderWidth || '1px'
   } = styles;
 
   // Ensure hex colors are properly formatted
   const safeColor = validateColorFormat(color as string) || '#ffffff';
   const safeDescColor = validateColorFormat(descriptionColor as string) || 'rgba(255, 255, 255, 0.9)';
+
+  // Determine text alignment based on formStyle.formDirection, field style, and language
+  const effectiveTextAlign = 
+    styles.textAlign || 
+    (formStyle.formDirection === 'rtl' ? 'right' : 
+     formStyle.formDirection === 'ltr' ? 'left' : 
+     language === 'ar' ? 'right' : 'center');
 
   // Store styling properties in data attributes for debugging
   const dataAttributes = {
@@ -73,7 +103,9 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
     'data-show-title': showTitle ? 'true' : 'false',
     'data-show-desc': showDescription ? 'true' : 'false',
     'data-border-radius': borderRadius,
-    'data-padding-y': paddingY
+    'data-padding-y': paddingY,
+    'data-border-color': borderColor,
+    'data-border-width': borderWidth
   };
 
   return (
@@ -84,8 +116,8 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
         borderRadius,
         padding: `${paddingY} 16px`,
         marginTop: '0',
-        textAlign: textAlign as any,
-        border: borderWidth ? `${borderWidth} solid ${borderColor || 'transparent'}` : undefined,
+        textAlign: effectiveTextAlign as any,
+        border: `${borderWidth} solid ${borderColor}`,
       }}
       {...dataAttributes}
     >
@@ -131,12 +163,16 @@ export default React.memo(FormTitleField, (prevProps, nextProps) => {
   const prevFieldStyle = JSON.stringify(prevField.style || {});
   const nextFieldStyle = JSON.stringify(nextField.style || {});
   
+  // Also compare the new formStyle properties that could affect rendering
   return (
     prevField.id === nextField.id &&
     prevField.label === nextField.label &&
     prevField.helpText === nextField.helpText &&
     prevFieldStyle === nextFieldStyle &&
     prevStyle.primaryColor === nextStyle.primaryColor &&
-    prevStyle.borderRadius === nextStyle.borderRadius
+    prevStyle.borderRadius === nextStyle.borderRadius &&
+    prevStyle.borderColor === nextStyle.borderColor &&
+    prevStyle.borderWidth === nextStyle.borderWidth &&
+    prevStyle.formDirection === nextStyle.formDirection
   );
 });

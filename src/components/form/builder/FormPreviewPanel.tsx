@@ -9,6 +9,17 @@ interface FormStyle {
   borderRadius: string;
   fontSize: string;
   buttonStyle: string;
+  // Add new style properties
+  borderColor?: string;
+  borderWidth?: string;
+  backgroundColor?: string;
+  paddingTop?: string;
+  paddingBottom?: string;
+  paddingLeft?: string;
+  paddingRight?: string;
+  formGap?: string;
+  formDirection?: 'ltr' | 'rtl';
+  floatingLabels?: boolean;
 }
 
 interface FormPreviewPanelProps {

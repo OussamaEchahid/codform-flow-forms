@@ -17,6 +17,17 @@ interface FormPreviewProps {
     borderRadius?: string;
     fontSize?: string;
     buttonStyle?: string;
+    // Add new style properties 
+    borderColor?: string;
+    borderWidth?: string;
+    backgroundColor?: string;
+    paddingTop?: string;
+    paddingBottom?: string;
+    paddingLeft?: string;
+    paddingRight?: string;
+    formGap?: string;
+    formDirection?: 'ltr' | 'rtl';
+    floatingLabels?: boolean;
   };
   fields?: FormField[];
   hideHeader?: boolean;
@@ -73,6 +84,17 @@ const FormPreview: React.FC<FormPreviewProps> = ({
     borderRadius: '0.5rem',
     fontSize: '16px',
     buttonStyle: 'rounded',
+    // Default values for new style properties
+    borderColor: '#e2e8f0',
+    borderWidth: '1px',
+    backgroundColor: '#ffffff',
+    paddingTop: '20px',
+    paddingBottom: '20px',
+    paddingLeft: '20px',
+    paddingRight: '20px',
+    formGap: '16px',
+    formDirection: 'ltr',
+    floatingLabels: false
   },
   fields = [],
   hideHeader = false,
@@ -181,21 +203,30 @@ const FormPreview: React.FC<FormPreviewProps> = ({
     });
   }, [fields, language, formStyle.primaryColor, formTitle, formDescription]);
   
+  // Determine the form direction, prioritizing formStyle.formDirection, then language
+  const formDirection = formStyle.formDirection || (language === 'ar' ? 'rtl' : 'ltr');
+  
   return (
     <div 
-      className="rounded-lg border shadow-sm overflow-hidden bg-white codform-form"
+      className="rounded-lg border shadow-sm overflow-hidden codform-form"
       style={{
         fontSize: formStyle.fontSize,
         '--form-primary-color': formStyle.primaryColor,
         borderRadius: formStyle.borderRadius,
-        backgroundColor: '#f5f5f5',
-        padding: '20px',
+        backgroundColor: formStyle.backgroundColor || '#ffffff',
+        border: `${formStyle.borderWidth || '1px'} solid ${formStyle.borderColor || '#e2e8f0'}`,
+        padding: '0',
       } as React.CSSProperties}
       data-form-preview-id="form-preview-stable"
       data-primary-color={formStyle.primaryColor}
       data-border-radius={formStyle.borderRadius}
       data-font-size={formStyle.fontSize}
       data-button-style={formStyle.buttonStyle}
+      data-border-color={formStyle.borderColor}
+      data-border-width={formStyle.borderWidth}
+      data-background-color={formStyle.backgroundColor}
+      data-form-direction={formStyle.formDirection}
+      data-floating-labels={formStyle.floatingLabels ? 'true' : 'false'}
     >
       {totalSteps > 1 && (
         <div className="px-4 py-2 bg-gray-50">
@@ -239,13 +270,14 @@ const FormPreview: React.FC<FormPreviewProps> = ({
       <div 
         className="codform-form-content" 
         style={{
-          direction: language === 'ar' ? 'rtl' : 'ltr',
-          padding: '0',
+          direction: formDirection,
+          padding: `${formStyle.paddingTop || '20px'} ${formStyle.paddingRight || '20px'} ${formStyle.paddingBottom || '20px'} ${formStyle.paddingLeft || '20px'}`,
+          gap: formStyle.formGap || '16px',
         }}
-        data-direction={language === 'ar' ? 'rtl' : 'ltr'}
+        data-direction={formDirection}
       >
         {sanitizedFields.length > 0 ? (
-          <div className="space-y-4">
+          <div className="space-y-4" style={{ gap: formStyle.formGap || '16px' }}>
             {sanitizedFields.map(field => (
               <FormFieldComponent 
                 key={field.id} 

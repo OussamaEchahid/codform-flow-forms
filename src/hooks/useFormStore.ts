@@ -6,6 +6,17 @@ export interface FormStyle {
   borderRadius: string;
   fontSize: string;
   buttonStyle: string;
+  // New styling properties
+  borderColor: string;
+  borderWidth: string;
+  backgroundColor: string;
+  paddingTop: string;
+  paddingBottom: string;
+  paddingLeft: string;
+  paddingRight: string;
+  formGap: string;
+  formDirection: 'ltr' | 'rtl';
+  floatingLabels: boolean;
 }
 
 export interface FormState {
@@ -60,9 +71,20 @@ const defaultFormState: FormState = {
   shop_id: undefined,
   style: {
     primaryColor: '#9b87f5',
-    borderRadius: '0.5rem',
+    borderRadius: '8px',
     fontSize: '1rem',
     buttonStyle: 'rounded',
+    // Default values for new styling properties
+    borderColor: '#e2e8f0',
+    borderWidth: '1px',
+    backgroundColor: '#ffffff',
+    paddingTop: '20px',
+    paddingBottom: '20px',
+    paddingLeft: '20px',
+    paddingRight: '20px',
+    formGap: '16px',
+    formDirection: 'ltr',
+    floatingLabels: false
   }
 };
 
