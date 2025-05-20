@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useFormTemplates } from '@/lib/hooks/useFormTemplates';
@@ -16,7 +17,7 @@ import {
   TableRow 
 } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Plus, Trash2, Edit, Copy, FileCheck, Eye, ShoppingCart, Package } from 'lucide-react';
+import { Plus, Trash2, Edit, Copy, FileCheck, Eye, ShoppingCart, Package, RefreshCw, CloudOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
@@ -26,11 +27,17 @@ import NewFormProductDialog from './NewFormProductDialog';
 interface FormBuilderDashboardProps {
   initialForms?: any[];
   forceRefresh?: boolean;
+  offlineMode?: boolean;
+  onRetryConnection?: () => void;
+  retryCount?: number;
 }
 
 const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({ 
   initialForms = [],
-  forceRefresh = false
+  forceRefresh = false,
+  offlineMode = false,
+  onRetryConnection,
+  retryCount = 0
 }) => {
   const navigate = useNavigate();
   const { forms, fetchForms, deleteForm } = useFormTemplates();
@@ -66,7 +73,7 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
 
   // Fetch product counts for each form - with useCallback to prevent unnecessary rerenders
   const fetchProductCounts = useCallback(async () => {
-    if (formList.length === 0) return;
+    if (formList.length === 0 || offlineMode) return;
     
     const formIds = formList.map(form => form.id);
     
@@ -97,7 +104,7 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
     } catch (error) {
       console.error('Error in fetchProductCounts:', error);
     }
-  }, [formList]);
+  }, [formList, offlineMode]);
   
   useEffect(() => {
     fetchProductCounts();
@@ -155,6 +162,13 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
     }
   };
   
+  const handleRetryConnection = () => {
+    if (onRetryConnection) {
+      onRetryConnection();
+      toast.info(language === 'ar' ? 'جاري محاولة الاتصال بالخادم...' : 'Attempting to connect to server...');
+    }
+  };
+  
   if (isLoading) {
     return (
       <div className="p-8 flex items-center justify-center">
@@ -165,6 +179,33 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
 
   return (
     <div className="container mx-auto py-8">
+      {/* Offline Mode Banner */}
+      {offlineMode && (
+        <div className="mb-6">
+          <div className="flex items-center justify-between p-4 bg-amber-50 border border-amber-300 rounded-md">
+            <div className="flex items-center gap-2">
+              <CloudOff className="h-5 w-5 text-amber-600" />
+              <span className="text-amber-800">
+                {language === 'ar' 
+                  ? 'وضع عدم الاتصال - يتم استخدام البيانات المخزنة محليًا' 
+                  : 'Offline Mode - Using locally stored data'}
+              </span>
+            </div>
+            <Button onClick={handleRetryConnection} variant="outline" size="sm" className="bg-white hover:bg-amber-100">
+              <RefreshCw className="mr-2 h-4 w-4" />
+              {language === 'ar' ? 'إعادة الاتصال' : 'Reconnect'}
+            </Button>
+          </div>
+          {retryCount > 0 && (
+            <div className="text-center text-sm text-amber-600 mt-2">
+              {language === 'ar' 
+                ? `تمت محاولة الاتصال ${retryCount} مرة` 
+                : `Connection attempted ${retryCount} ${retryCount === 1 ? 'time' : 'times'}`}
+            </div>
+          )}
+        </div>
+      )}
+      
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className={language === 'ar' ? 'text-right' : ''}>
