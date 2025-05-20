@@ -12,8 +12,8 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
 interface FormTitleEditorProps {
-  field: FormField;
-  onUpdateField: (field: FormField) => void;
+  field?: FormField;
+  onUpdateField?: (field: FormField) => void;
   isDraggable?: boolean;
   // Add the missing props that are being passed from FormBuilderEditor
   formTitle?: string;
@@ -41,16 +41,33 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
   const { language } = useI18n();
   const [isOpen, setIsOpen] = useState(true);
   
-  // Initialize local state from field props with safe defaults
-  const [titleColor, setTitleColor] = useState(field?.style?.color || '#ffffff');
+  // Determine the active field to use (formTitleField, field, or create a default)
+  const activeField = formTitleField || field || {
+    id: 'title-editor',
+    type: 'form-title',
+    label: formTitle || '',
+    helpText: formDescription || '',
+    style: {
+      color: '#ffffff',
+      textAlign: language === 'ar' ? 'right' : 'left',
+      fontSize: '24px',
+      fontWeight: 'bold',
+      descriptionColor: '#ffffff',
+      descriptionFontSize: '14px',
+      backgroundColor: '#9b87f5'
+    }
+  };
+  
+  // Initialize local state from activeField props with safe defaults
+  const [titleColor, setTitleColor] = useState(activeField?.style?.color || '#ffffff');
   const [titleAlignment, setTitleAlignment] = useState(
-    field?.style?.textAlign || (language === 'ar' ? 'right' : 'left')
+    activeField?.style?.textAlign || (language === 'ar' ? 'right' : 'left')
   );
-  const [titleSize, setTitleSize] = useState(field?.style?.fontSize || '24px');
-  const [titleWeight, setTitleWeight] = useState(field?.style?.fontWeight || 'bold');
-  const [descColor, setDescColor] = useState(field?.style?.descriptionColor || '#ffffff');
-  const [descSize, setDescSize] = useState(field?.style?.descriptionFontSize || '14px');
-  const [backgroundColor, setBackgroundColor] = useState(field?.style?.backgroundColor || '#9b87f5');
+  const [titleSize, setTitleSize] = useState(activeField?.style?.fontSize || '24px');
+  const [titleWeight, setTitleWeight] = useState(activeField?.style?.fontWeight || 'bold');
+  const [descColor, setDescColor] = useState(activeField?.style?.descriptionColor || '#ffffff');
+  const [descSize, setDescSize] = useState(activeField?.style?.descriptionFontSize || '14px');
+  const [backgroundColor, setBackgroundColor] = useState(activeField?.style?.backgroundColor || '#9b87f5');
 
   // Set up sortable functionality
   const {
@@ -61,7 +78,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
     transition,
     isDragging
   } = useSortable({ 
-    id: field?.id || 'title-editor',
+    id: activeField?.id || 'title-editor',
     disabled: !isDraggable,
     transition: {
       duration: 150,
@@ -76,43 +93,44 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
     zIndex: isDragging ? 999 : 1,
   } : {};
 
-  // Update local state when field changes
+  // Update local state when activeField changes
   useEffect(() => {
-    if (field && field.style) {
-      setTitleColor(field.style.color || '#ffffff');
-      setTitleAlignment(field.style.textAlign || (language === 'ar' ? 'right' : 'left'));
+    if (activeField && activeField.style) {
+      setTitleColor(activeField.style.color || '#ffffff');
+      setTitleAlignment(activeField.style.textAlign || (language === 'ar' ? 'right' : 'left'));
       
       // Ensure consistent pixel units
-      const fontSize = field.style.fontSize || '24px';
+      const fontSize = activeField.style.fontSize || '24px';
       setTitleSize(fontSize.endsWith('rem') ? 
         `${Math.round(parseFloat(fontSize.replace('rem', '')) * 16)}px` : 
         fontSize);
       
-      setTitleWeight(field.style.fontWeight || 'bold');
-      setDescColor(field.style.descriptionColor || '#ffffff');
+      setTitleWeight(activeField.style.fontWeight || 'bold');
+      setDescColor(activeField.style.descriptionColor || '#ffffff');
       
       // Ensure consistent pixel units for descriptions
-      const descFontSize = field.style.descriptionFontSize || '14px';
+      const descFontSize = activeField.style.descriptionFontSize || '14px';
       setDescSize(descFontSize.endsWith('rem') ?
         `${Math.round(parseFloat(descFontSize.replace('rem', '')) * 16)}px` :
         descFontSize);
       
-      setBackgroundColor(field.style.backgroundColor || '#9b87f5');
+      setBackgroundColor(activeField.style.backgroundColor || '#9b87f5');
     }
-  }, [field, language]);
+  }, [activeField, language]);
 
-  // Handle updating style properties
+  // Unified handler for updating style properties
   const handleUpdateStyle = (property: string, value: string) => {
-    if (!field) return;
+    if (!activeField) return;
     
     const updatedField = {
-      ...field,
+      ...activeField,
       style: {
-        ...field.style,
+        ...activeField.style,
         [property]: value
       }
     };
     
+    // Update local state
     if (property === 'color') setTitleColor(value);
     if (property === 'textAlign') setTitleAlignment(value);
     if (property === 'fontSize') setTitleSize(value);
@@ -121,56 +139,58 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
     if (property === 'descriptionFontSize') setDescSize(value);
     if (property === 'backgroundColor') setBackgroundColor(value);
     
-    if (onUpdateTitleField && formTitleField) {
+    // Use appropriate update handler based on what's available
+    if (onUpdateTitleField) {
       onUpdateTitleField(updatedField);
-    } else {
+    } else if (onUpdateField) {
       onUpdateField(updatedField);
     }
   };
 
-  // Handle updating title label
+  // Unified handler for updating title label
   const handleUpdateLabel = (value: string) => {
-    if (!field) return;
+    if (!activeField) return;
     
     const updatedField = {
-      ...field,
+      ...activeField,
       label: value
     };
     
-    if (onUpdateTitleField && formTitleField) {
+    // Use appropriate update handler
+    if (onUpdateTitleField) {
       onUpdateTitleField(updatedField);
     } else if (onFormTitleChange) {
       onFormTitleChange(value);
-    } else {
+    } else if (onUpdateField) {
       onUpdateField(updatedField);
     }
   };
 
-  // Handle updating description
+  // Unified handler for updating description
   const handleUpdateDescription = (value: string) => {
-    if (!field) return;
+    if (!activeField) return;
     
     const updatedField = {
-      ...field,
+      ...activeField,
       helpText: value
     };
     
-    if (onUpdateTitleField && formTitleField) {
+    // Use appropriate update handler
+    if (onUpdateTitleField) {
       onUpdateTitleField(updatedField);
     } else if (onFormDescriptionChange) {
       onFormDescriptionChange(value);
-    } else {
+    } else if (onUpdateField) {
       onUpdateField(updatedField);
     }
   };
 
-  // Use the appropriate field source
-  const activeField = formTitleField || field;
+  // Get the correct title and description values
   const titleValue = activeField?.label || formTitle || '';
   const descriptionValue = activeField?.helpText || formDescription || '';
 
-  // If there's no field and no formTitleField, show an "Add Title Element" button
-  if (!activeField && !formTitleField && onAddTitleField) {
+  // If there's no field and no formTitleField, but onAddTitleField exists, show an "Add Title Element" button
+  if (!field && !formTitleField && onAddTitleField) {
     return (
       <div className="mb-4 border p-3 rounded-md bg-white">
         <div className="flex items-center justify-between">
@@ -202,6 +222,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
     );
   }
 
+  // If there's no activeField, return null
   if (!activeField) {
     return null;
   }
@@ -443,4 +464,3 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
 };
 
 export default FormTitleEditor;
-
