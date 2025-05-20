@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useMemo } from 'react';
+
+import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { FormField, FloatingButtonConfig, deepCloneField } from '@/lib/form-utils';
 import FormPreview from '@/components/form/FormPreview';
 import { useI18n } from '@/lib/i18n';
@@ -51,7 +52,8 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   
   // Use internal refresh key to prevent rendering loops
   const [internalRefreshKey, setInternalRefreshKey] = useState(0);
-  const [processingFields, setProcessingFields] = useState(false);
+  const processingRef = useRef(false);
+  const [processedFields, setProcessedFields] = useState<FormField[]>([]);
   
   // Update internal key only when refresh key increases
   useEffect(() => {
@@ -61,17 +63,21 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   }, [refreshKey, internalRefreshKey]);
   
   // Process all fields with deep cloning to prevent mutations - critical for form stability
-  const processedFields = useMemo(() => {
-    // Prevent processing if we're already processing to avoid infinite loops
-    if (processingFields) return fields;
+  // Using useCallback to avoid recreating this function on every render
+  const processFields = useCallback((inputFields: FormField[]) => {
+    // Guard against recursive processing
+    if (processingRef.current) {
+      console.log("Preventing recursive field processing");
+      return inputFields;
+    }
     
-    setProcessingFields(true);
+    processingRef.current = true;
     
     try {
-      console.log("Processing fields for preview, original count:", fields?.length || 0);
+      console.log("Processing fields for preview, original count:", inputFields?.length || 0);
       
       // Create deep copy of all fields to prevent mutations
-      const clonedFields = deepCloneFields(fields);
+      const clonedFields = deepCloneFields(inputFields);
       
       // Find existing title fields
       const titleFieldById = clonedFields.find(field => field.id === FORM_TITLE_ID);
@@ -82,8 +88,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
       
       // Log the title field being used
       if (titleField) {
-        console.log("Title field found:", titleField.id, "Type:", titleField.type, 
-                    "Style:", titleField.style?.backgroundColor);
+        console.log("Title field found:", titleField.id, "Type:", titleField.type);
       } else {
         console.log("No title field found, will create one");
       }
@@ -140,8 +145,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           helpText: formDescription || titleField.helpText || '',
         };
         
-        console.log("Standardizing title field, preserving styles:", 
-                  standardizedTitle.style?.backgroundColor);
+        console.log("Standardizing title field");
         
         // Replace the existing title field with the standardized one
         filteredFields = filteredFields.filter(field => field.id !== titleField.id);
@@ -152,30 +156,26 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
       else if (titleFieldById) {
         const titleIndex = filteredFields.findIndex(field => field.id === FORM_TITLE_ID);
         if (titleIndex !== -1) {
-          // Make a deep copy of the style to prevent mutations
-          const existingStyles = filteredFields[titleIndex].style || {};
-          const preservedStyle = JSON.parse(JSON.stringify(existingStyles));
-          
-          console.log("Updating existing title field, preserving style:", 
-                    preservedStyle.backgroundColor || "not set",
-                    "formStyle:", formStyle.primaryColor);
-                    
-          filteredFields[titleIndex] = {
-            ...filteredFields[titleIndex],
+          // Create a fresh object with complete deep copy
+          const updatedTitleField: FormField = {
+            ...deepCloneField(filteredFields[titleIndex]),
             label: formTitle || filteredFields[titleIndex].label || '',
             helpText: formDescription || filteredFields[titleIndex].helpText || '',
-            // Critical: Preserve all existing style properties and don't override them unnecessarily
-            style: {
-              ...preservedStyle,
-              // Only apply formStyle.primaryColor if no backgroundColor is set in the field's style
-              backgroundColor: preservedStyle.backgroundColor || formStyle.primaryColor || '#9b87f5',
-              // Ensure required properties have defaults if missing
-              showTitle: typeof preservedStyle.showTitle === 'boolean' ? preservedStyle.showTitle : true,
-              showDescription: typeof preservedStyle.showDescription === 'boolean' ? preservedStyle.showDescription : true,
-              borderRadius: preservedStyle.borderRadius || formStyle.borderRadius || '8px',
-              paddingY: preservedStyle.paddingY || '16px'
-            }
           };
+          
+          // Ensure all style properties are preserved
+          updatedTitleField.style = {
+            ...updatedTitleField.style,
+            // Apply defaults only if properties are missing
+            backgroundColor: updatedTitleField.style?.backgroundColor || formStyle.primaryColor || '#9b87f5',
+            borderRadius: updatedTitleField.style?.borderRadius || formStyle.borderRadius || '8px',
+            paddingY: updatedTitleField.style?.paddingY || '16px',
+            showTitle: typeof updatedTitleField.style?.showTitle === 'boolean' ? updatedTitleField.style.showTitle : true,
+            showDescription: typeof updatedTitleField.style?.showDescription === 'boolean' ? updatedTitleField.style.showDescription : true
+          };
+          
+          // Replace the title field
+          filteredFields[titleIndex] = updatedTitleField;
         }
       }
       
@@ -201,9 +201,15 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
       console.log("Final processed fields count:", filteredFields.length);
       return filteredFields;
     } finally {
-      setProcessingFields(false);
+      processingRef.current = false;
     }
-  }, [fields, language, formStyle.primaryColor, formStyle.borderRadius, formTitle, formDescription]);
+  }, [formTitle, formDescription, formStyle, language]);
+  
+  // Use a stable useEffect to process fields only when dependencies change
+  useEffect(() => {
+    const result = processFields(fields);
+    setProcessedFields(result);
+  }, [fields, formTitle, formDescription, formStyle, language, processFields, internalRefreshKey]);
 
   return (
     <div>

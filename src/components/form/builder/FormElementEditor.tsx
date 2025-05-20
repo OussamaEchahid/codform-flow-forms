@@ -1,5 +1,5 @@
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useRef } from 'react';
 import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { FormField } from '@/lib/form-utils';
@@ -81,6 +81,7 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
 }) => {
   const { language } = useI18n();
   const [isTitleEditorOpen, setIsTitleEditorOpen] = useState(false);
+  const editorInstanceId = useRef(`editor-${Math.random().toString(36).substr(2, 9)}`);
   
   // Find the form title field with its exact ID to ensure consistency
   const titleField = elements.find(el => el.type === 'form-title' && (el.id === FORM_TITLE_ID));
@@ -192,9 +193,6 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
         showDescription: typeof style.showDescription === 'boolean' ? style.showDescription : true
       };
       
-      // Log the complete style object for debugging
-      console.log("Complete style being saved:", completeStyle);
-      
       // Call the parent's title update function with complete style
       onTitleUpdate(title, description, completeStyle);
     }
@@ -287,6 +285,7 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
       
       {/* Form Title Editor Modal */}
       <FormTitleEditor
+        key={`title-editor-${editorInstanceId.current}`}
         isOpen={isTitleEditorOpen}
         onClose={handleTitleEditorClose}
         title={formTitle}

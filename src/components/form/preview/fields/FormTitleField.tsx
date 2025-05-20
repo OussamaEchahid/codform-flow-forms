@@ -49,6 +49,10 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
     'data-field-type': 'form-title',
     'data-field-id': field.id,
     'data-bg-color': backgroundColor,
+    'data-border-radius': borderRadius,
+    'data-padding-y': paddingY,
+    'data-show-title': showTitle ? 'true' : 'false',
+    'data-show-description': showDescription ? 'true' : 'false'
   };
 
   return (
@@ -95,23 +99,4 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
 };
 
 // Use React.memo with custom comparison to prevent unnecessary re-renders
-export default React.memo(FormTitleField, (prevProps, nextProps) => {
-  // Only re-render if critical properties have changed
-  const prevField = prevProps.field;
-  const nextField = nextProps.field;
-  const prevStyle = prevProps.formStyle;
-  const nextStyle = nextProps.formStyle;
-  
-  // Deep compare the style objects
-  const prevFieldStyle = JSON.stringify(prevField.style);
-  const nextFieldStyle = JSON.stringify(nextField.style);
-  
-  return (
-    prevField.id === nextField.id &&
-    prevField.label === nextField.label &&
-    prevField.helpText === nextField.helpText &&
-    prevFieldStyle === nextFieldStyle &&
-    prevStyle.primaryColor === nextStyle.primaryColor &&
-    prevStyle.borderRadius === nextStyle.borderRadius
-  );
-});
+export default React.memo(FormTitleField);

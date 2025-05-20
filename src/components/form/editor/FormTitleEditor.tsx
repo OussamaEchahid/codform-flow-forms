@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
 import { X, Save, AlignLeft, AlignCenter, AlignRight, Type, Palette } from 'lucide-react';
@@ -41,40 +41,64 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
   const { language } = useI18n();
   const [currentTitle, setCurrentTitle] = useState(title);
   const [currentDescription, setCurrentDescription] = useState(description);
-  const [style, setStyle] = useState({
-    backgroundColor: initialStyle?.backgroundColor || primaryColor,
-    color: initialStyle?.color || "#ffffff",
-    textAlign: initialStyle?.textAlign || (language === 'ar' ? 'right' : 'center'),
-    fontSize: initialStyle?.fontSize || "24px",
-    fontWeight: initialStyle?.fontWeight || "bold",
-    descriptionColor: initialStyle?.descriptionColor || "rgba(255, 255, 255, 0.9)",
-    descriptionFontSize: initialStyle?.descriptionFontSize || "14px",
-    borderRadius: initialStyle?.borderRadius || borderRadius,
-    paddingY: initialStyle?.paddingY || "16px",
-    showTitle: initialStyle?.showTitle !== false, // Default to true if not explicitly set to false
-    showDescription: initialStyle?.showDescription !== false, // Default to true if not explicitly set to false
+  const didInitialize = useRef(false);
+  const [style, setStyle] = useState(() => {
+    // Initialize with stable defaults
+    return {
+      backgroundColor: '#9b87f5',
+      color: "#ffffff",
+      textAlign: language === 'ar' ? 'right' : 'center',
+      fontSize: "24px",
+      fontWeight: "bold",
+      descriptionColor: "rgba(255, 255, 255, 0.9)",
+      descriptionFontSize: "14px",
+      borderRadius: '8px',
+      paddingY: "16px",
+      showTitle: true,
+      showDescription: true,
+    };
   });
 
-  // Update state when initialStyle changes (important for proper refreshing)
+  // Update state when dialog opens and initialStyle changes
   useEffect(() => {
-    if (isOpen) {
-      console.log("FormTitleEditor opened with initialStyle:", initialStyle);
-      setCurrentTitle(title);
-      setCurrentDescription(description);
-      setStyle({
-        backgroundColor: initialStyle?.backgroundColor || primaryColor,
-        color: initialStyle?.color || "#ffffff",
-        textAlign: initialStyle?.textAlign || (language === 'ar' ? 'right' : 'center'),
-        fontSize: initialStyle?.fontSize || "24px",
-        fontWeight: initialStyle?.fontWeight || "bold",
-        descriptionColor: initialStyle?.descriptionColor || "rgba(255, 255, 255, 0.9)",
-        descriptionFontSize: initialStyle?.descriptionFontSize || "14px",
-        borderRadius: initialStyle?.borderRadius || borderRadius,
-        paddingY: initialStyle?.paddingY || "16px",
-        showTitle: initialStyle?.showTitle !== false,
-        showDescription: initialStyle?.showDescription !== false,
-      });
-    }
+    if (!isOpen) return;
+
+    // Prevent multiple initializations during the same dialog session
+    if (didInitialize.current) return;
+    
+    console.log("FormTitleEditor opened with initialStyle:", initialStyle);
+    
+    // Reset initialization flag when dialog closes
+    const resetOnClose = () => {
+      if (!isOpen) {
+        didInitialize.current = false;
+      }
+    };
+
+    // Apply values from props, with fallbacks for missing properties
+    setCurrentTitle(title);
+    setCurrentDescription(description);
+    
+    // Create a new style object with defaults for any missing properties
+    const completeStyle = {
+      backgroundColor: initialStyle?.backgroundColor || primaryColor || '#9b87f5',
+      color: initialStyle?.color || "#ffffff",
+      textAlign: initialStyle?.textAlign || (language === 'ar' ? 'right' : 'center'),
+      fontSize: initialStyle?.fontSize || "24px",
+      fontWeight: initialStyle?.fontWeight || "bold",
+      descriptionColor: initialStyle?.descriptionColor || "rgba(255, 255, 255, 0.9)",
+      descriptionFontSize: initialStyle?.descriptionFontSize || "14px",
+      borderRadius: initialStyle?.borderRadius || borderRadius || '8px',
+      paddingY: initialStyle?.paddingY || "16px",
+      showTitle: typeof initialStyle?.showTitle === 'boolean' ? initialStyle.showTitle : true,
+      showDescription: typeof initialStyle?.showDescription === 'boolean' ? initialStyle.showDescription : true,
+    };
+    
+    setStyle(completeStyle);
+    didInitialize.current = true;
+    
+    // Clean up on close
+    return resetOnClose;
   }, [isOpen, initialStyle, title, description, primaryColor, borderRadius, language]);
 
   const handleStyleChange = (property: string, value: string | boolean) => {
@@ -93,19 +117,25 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
       // Ensure critical properties are explicitly defined
       showTitle: typeof style.showTitle === 'boolean' ? style.showTitle : true,
       showDescription: typeof style.showDescription === 'boolean' ? style.showDescription : true,
-      backgroundColor: style.backgroundColor || primaryColor,
-      borderRadius: style.borderRadius || borderRadius,
+      backgroundColor: style.backgroundColor || primaryColor || '#9b87f5',
+      borderRadius: style.borderRadius || borderRadius || '8px',
       paddingY: style.paddingY || "16px"
     };
     
     onSave(currentTitle, currentDescription, completeStyle);
+    didInitialize.current = false; // Reset for next opening
   };
 
   // Common color presets
   const colorPresets = ['#9b87f5', '#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#000000'];
   
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      if (!open) {
+        didInitialize.current = false; // Reset on close
+        onClose();
+      }
+    }}>
       <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className={language === 'ar' ? 'text-right' : 'text-left'}>
