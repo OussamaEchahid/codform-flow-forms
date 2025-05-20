@@ -1,6 +1,5 @@
-
 import React, { useEffect, useState, useMemo } from 'react';
-import { FormField, FloatingButtonConfig } from '@/lib/form-utils';
+import { FormField, FloatingButtonConfig, deepCloneField } from '@/lib/form-utils';
 import FormPreview from '@/components/form/FormPreview';
 import { useI18n } from '@/lib/i18n';
 
@@ -32,35 +31,7 @@ const FORM_TITLE_ID = 'form-title-static';
 const deepCloneFields = (fields: FormField[]): FormField[] => {
   if (!fields) return [];
   
-  return fields.map(field => {
-    // Create a complete copy of all properties
-    const newField: FormField = { ...field };
-    
-    // Always preserve the exact ID to maintain field identity
-    newField.id = field.id;
-    
-    // Deep clone style object if it exists
-    if (field.style) {
-      newField.style = { ...field.style };
-    }
-    
-    // Deep clone options array if it exists
-    if (field.options && Array.isArray(field.options)) {
-      newField.options = field.options.map(option => ({ ...option }));
-    }
-    
-    // Deep clone validation rules if they exist
-    if (field.validationRules) {
-      newField.validationRules = { ...field.validationRules };
-    }
-    
-    // Deep clone any other nested objects that might exist
-    if (field.settings) {
-      newField.settings = { ...field.settings };
-    }
-    
-    return newField;
-  });
+  return fields.map(field => deepCloneField(field));
 };
 
 const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
@@ -90,6 +61,8 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   
   // Process all fields with deep cloning to prevent mutations - critical for form stability
   const processedFields = useMemo(() => {
+    console.log("Processing fields for preview, original count:", fields?.length || 0);
+    
     // Create deep copy of all fields to prevent mutations
     const clonedFields = deepCloneFields(fields);
     
@@ -99,6 +72,10 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     
     // Determine which title field to use (prioritize by ID, then by type)
     const titleField = titleFieldById || titleFieldByType;
+    
+    // Log the title field being used
+    console.log("Title field found:", titleField?.id, "Type:", titleField?.type, 
+                "Style:", titleField?.style?.backgroundColor);
     
     // Filter out all form-title fields to avoid duplicates
     let filteredFields = clonedFields.filter(field => {
@@ -117,6 +94,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     
     // If we don't have any title field, create one with preserved styles
     if (!titleField) {
+      console.log("Creating new title field with default styles");
       const newTitleField: FormField = {
         type: 'form-title',
         id: FORM_TITLE_ID,
@@ -149,6 +127,9 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
         helpText: formDescription || titleField.helpText || '',
       };
       
+      console.log("Standardizing title field, preserving styles:", 
+                  standardizedTitle.style?.backgroundColor);
+      
       // Replace the existing title field with the standardized one
       filteredFields = filteredFields.filter(field => field.id !== titleField.id);
       filteredFields = [standardizedTitle, ...filteredFields];
@@ -158,15 +139,21 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     else if (titleFieldById) {
       const titleIndex = filteredFields.findIndex(field => field.id === FORM_TITLE_ID);
       if (titleIndex !== -1) {
+        // Make a deep copy of the style to prevent mutations
+        const preservedStyle = JSON.parse(JSON.stringify(filteredFields[titleIndex].style || {}));
+        
+        console.log("Updating existing title field, preserving style:", 
+                    preservedStyle.backgroundColor);
+                    
         filteredFields[titleIndex] = {
           ...filteredFields[titleIndex],
           label: formTitle || filteredFields[titleIndex].label || '',
           helpText: formDescription || filteredFields[titleIndex].helpText || '',
-          // Critical: Preserve all existing style properties and only update if undefined
+          // Critical: Preserve all existing style properties
           style: {
-            ...filteredFields[titleIndex].style,
+            ...preservedStyle,
             // Only apply formStyle.primaryColor if no backgroundColor is set in the field's style
-            backgroundColor: filteredFields[titleIndex].style?.backgroundColor || formStyle.primaryColor || '#9b87f5',
+            backgroundColor: preservedStyle.backgroundColor || formStyle.primaryColor || '#9b87f5',
           }
         };
       }
@@ -191,6 +178,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
       filteredFields.push(submitButton);
     }
     
+    console.log("Final processed fields count:", filteredFields.length);
     return filteredFields;
   }, [fields, language, formStyle.primaryColor, formTitle, formDescription]);
 

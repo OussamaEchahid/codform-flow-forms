@@ -1,3 +1,4 @@
+
 import { ReactNode } from 'react';
 
 // Define FormFieldType as a string type
@@ -110,34 +111,40 @@ export interface FloatingButtonConfig {
 export const deepCloneField = (field: FormField): FormField => {
   if (!field) return field;
   
-  const newField: FormField = { ...field };
+  // Create a completely new field object
+  const newField: FormField = JSON.parse(JSON.stringify(field));
   
   // Always preserve the ID
   newField.id = field.id;
   
-  // Deep clone style
+  // Deep clone style - ensure textAlign is typed correctly
   if (field.style) {
-    newField.style = { ...field.style };
+    // First create a deep copy
+    newField.style = JSON.parse(JSON.stringify(field.style));
     
     // Ensure textAlign is one of the allowed values
-    if (field.style.textAlign && !['left', 'center', 'right'].includes(field.style.textAlign as string)) {
-      newField.style.textAlign = 'left'; // Default to left if invalid
+    if (field.style.textAlign) {
+      const align = field.style.textAlign as string;
+      newField.style.textAlign = 
+        (align === 'left' || align === 'center' || align === 'right') 
+          ? align as 'left' | 'center' | 'right'
+          : (align === 'justify' ? 'left' : 'center') as 'left' | 'center' | 'right';
     }
-  }
-  
-  // Deep clone options
-  if (field.options) {
-    newField.options = field.options.map(opt => ({ ...opt }));
-  }
-  
-  // Deep clone validation rules
-  if (field.validationRules) {
-    newField.validationRules = { ...field.validationRules };
-  }
-  
-  // Deep clone settings
-  if (field.settings) {
-    newField.settings = { ...field.settings };
+    
+    // Make sure backgroundColor is preserved
+    if (field.style.backgroundColor) {
+      newField.style.backgroundColor = field.style.backgroundColor;
+    }
+    
+    // Ensure animation type is valid
+    if (field.style.animationType) {
+      const animType = field.style.animationType as string;
+      const validTypes = ['pulse', 'bounce', 'shake', 'wiggle', 'flash'];
+      newField.style.animationType = 
+        validTypes.includes(animType) 
+          ? animType as 'pulse' | 'bounce' | 'shake' | 'wiggle' | 'flash'
+          : 'pulse';
+    }
   }
   
   return newField;
@@ -173,7 +180,7 @@ export const createEmptyField = (type: string): FormField => {
       field.style = {
         backgroundColor: '#9b87f5',
         color: '#ffffff',
-        textAlign: 'center',
+        textAlign: 'center' as 'center',
         showTitle: true,
         showDescription: true
       };
@@ -184,7 +191,7 @@ export const createEmptyField = (type: string): FormField => {
         backgroundColor: '#9b87f5',
         color: '#ffffff',
         animation: true,
-        animationType: 'pulse'
+        animationType: 'pulse' as 'pulse'
       };
       break;
     case 'text/html':
@@ -263,7 +270,7 @@ export const formTemplates = [
               backgroundColor: '#9b87f5',
               color: '#ffffff',
               animation: true,
-              animationType: 'pulse'
+              animationType: 'pulse' as 'pulse'
             }
           }
         ]
@@ -337,7 +344,7 @@ export const formTemplates = [
               backgroundColor: '#9b87f5',
               color: '#ffffff',
               animation: true,
-              animationType: 'pulse'
+              animationType: 'pulse' as 'pulse'
             }
           }
         ]

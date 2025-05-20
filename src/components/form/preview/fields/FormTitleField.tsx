@@ -18,9 +18,12 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
   
   // Extract style properties or use defaults, prioritizing field-specific styles
   const styles = field.style || {};
+  
+  // IMPORTANT: First check field's specific backgroundColor, THEN fall back to primaryColor
+  const backgroundColor = styles.backgroundColor || formStyle.primaryColor || '#9b87f5';
+  
+  // Extract all other style properties with fallbacks
   const {
-    // Important: Use field's backgroundColor first, then fall back to formStyle
-    backgroundColor = styles.backgroundColor || formStyle.primaryColor || '#9b87f5',
     color = '#ffffff',
     textAlign = language === 'ar' ? 'right' : 'center',
     fontSize = '24px',
@@ -31,7 +34,9 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
     paddingY = '16px',
     // Default showTitle and showDescription to true if not specified
     showTitle = true,
-    showDescription = true
+    showDescription = true,
+    borderColor,
+    borderWidth
   } = styles;
 
   // If both title and description are hidden, don't render anything
@@ -40,9 +45,14 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
   }
   
   // Log actual background color being used for debugging
-  console.debug('FormTitleField rendered with backgroundColor:', backgroundColor, 
-    'Field style:', field.style?.backgroundColor, 
-    'Form style:', formStyle.primaryColor);
+  console.debug('FormTitleField rendered with:', { 
+    backgroundColor, 
+    fieldStyleBgColor: field.style?.backgroundColor, 
+    formStylePrimaryColor: formStyle.primaryColor,
+    fieldId: field.id,
+    showTitle,
+    showDescription
+  });
 
   return (
     <div 
@@ -52,7 +62,8 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
         borderRadius,
         padding: `${paddingY} 16px`,
         marginTop: '0',
-        textAlign: textAlign as any
+        textAlign: textAlign as any,
+        border: borderWidth ? `${borderWidth} solid ${borderColor || 'transparent'}` : undefined,
       }}
       data-field-type="form-title"
       data-field-id={field.id}
@@ -88,4 +99,24 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
   );
 };
 
-export default React.memo(FormTitleField);
+// Use React.memo with custom comparison to prevent unnecessary re-renders
+export default React.memo(FormTitleField, (prevProps, nextProps) => {
+  // Only re-render if critical properties have changed
+  const prevField = prevProps.field;
+  const nextField = nextProps.field;
+  const prevStyle = prevProps.formStyle;
+  const nextStyle = nextProps.formStyle;
+  
+  // Deep compare the style objects
+  const prevFieldStyle = JSON.stringify(prevField.style);
+  const nextFieldStyle = JSON.stringify(nextField.style);
+  
+  return (
+    prevField.id === nextField.id &&
+    prevField.label === nextField.label &&
+    prevField.helpText === nextField.helpText &&
+    prevFieldStyle === nextFieldStyle &&
+    prevStyle.primaryColor === nextStyle.primaryColor &&
+    prevStyle.borderRadius === nextStyle.borderRadius
+  );
+});
