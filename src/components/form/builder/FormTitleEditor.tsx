@@ -15,26 +15,42 @@ interface FormTitleEditorProps {
   field: FormField;
   onUpdateField: (field: FormField) => void;
   isDraggable?: boolean;
+  // Add the missing props that are being passed from FormBuilderEditor
+  formTitle?: string;
+  formDescription?: string;
+  onFormTitleChange?: (title: string) => void;
+  onFormDescriptionChange?: (desc: string) => void;
+  formTitleField?: FormField;
+  onAddTitleField?: () => void;
+  onUpdateTitleField?: (updatedField: FormField) => void;
 }
 
 const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
   field,
   onUpdateField,
-  isDraggable = true
+  isDraggable = true,
+  // Add the new props with defaults
+  formTitle,
+  formDescription,
+  onFormTitleChange,
+  onFormDescriptionChange,
+  formTitleField,
+  onAddTitleField,
+  onUpdateTitleField
 }) => {
   const { language } = useI18n();
   const [isOpen, setIsOpen] = useState(true);
   
   // Initialize local state from field props with safe defaults
-  const [titleColor, setTitleColor] = useState(field.style?.color || '#ffffff');
+  const [titleColor, setTitleColor] = useState(field?.style?.color || '#ffffff');
   const [titleAlignment, setTitleAlignment] = useState(
-    field.style?.textAlign || (language === 'ar' ? 'right' : 'left')
+    field?.style?.textAlign || (language === 'ar' ? 'right' : 'left')
   );
-  const [titleSize, setTitleSize] = useState(field.style?.fontSize || '24px');
-  const [titleWeight, setTitleWeight] = useState(field.style?.fontWeight || 'bold');
-  const [descColor, setDescColor] = useState(field.style?.descriptionColor || '#ffffff');
-  const [descSize, setDescSize] = useState(field.style?.descriptionFontSize || '14px');
-  const [backgroundColor, setBackgroundColor] = useState(field.style?.backgroundColor || '#9b87f5');
+  const [titleSize, setTitleSize] = useState(field?.style?.fontSize || '24px');
+  const [titleWeight, setTitleWeight] = useState(field?.style?.fontWeight || 'bold');
+  const [descColor, setDescColor] = useState(field?.style?.descriptionColor || '#ffffff');
+  const [descSize, setDescSize] = useState(field?.style?.descriptionFontSize || '14px');
+  const [backgroundColor, setBackgroundColor] = useState(field?.style?.backgroundColor || '#9b87f5');
 
   // Set up sortable functionality
   const {
@@ -45,7 +61,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
     transition,
     isDragging
   } = useSortable({ 
-    id: field.id,
+    id: field?.id || 'title-editor',
     disabled: !isDraggable,
     transition: {
       duration: 150,
@@ -87,6 +103,8 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
 
   // Handle updating style properties
   const handleUpdateStyle = (property: string, value: string) => {
+    if (!field) return;
+    
     const updatedField = {
       ...field,
       style: {
@@ -103,28 +121,90 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
     if (property === 'descriptionFontSize') setDescSize(value);
     if (property === 'backgroundColor') setBackgroundColor(value);
     
-    onUpdateField(updatedField);
+    if (onUpdateTitleField && formTitleField) {
+      onUpdateTitleField(updatedField);
+    } else {
+      onUpdateField(updatedField);
+    }
   };
 
   // Handle updating title label
   const handleUpdateLabel = (value: string) => {
+    if (!field) return;
+    
     const updatedField = {
       ...field,
       label: value
     };
     
-    onUpdateField(updatedField);
+    if (onUpdateTitleField && formTitleField) {
+      onUpdateTitleField(updatedField);
+    } else if (onFormTitleChange) {
+      onFormTitleChange(value);
+    } else {
+      onUpdateField(updatedField);
+    }
   };
 
   // Handle updating description
   const handleUpdateDescription = (value: string) => {
+    if (!field) return;
+    
     const updatedField = {
       ...field,
       helpText: value
     };
     
-    onUpdateField(updatedField);
+    if (onUpdateTitleField && formTitleField) {
+      onUpdateTitleField(updatedField);
+    } else if (onFormDescriptionChange) {
+      onFormDescriptionChange(value);
+    } else {
+      onUpdateField(updatedField);
+    }
   };
+
+  // Use the appropriate field source
+  const activeField = formTitleField || field;
+  const titleValue = activeField?.label || formTitle || '';
+  const descriptionValue = activeField?.helpText || formDescription || '';
+
+  // If there's no field and no formTitleField, show an "Add Title Element" button
+  if (!activeField && !formTitleField && onAddTitleField) {
+    return (
+      <div className="mb-4 border p-3 rounded-md bg-white">
+        <div className="flex items-center justify-between">
+          <h3 className={`text-lg font-medium flex-1 ${language === 'ar' ? 'text-right' : ''}`}>
+            {language === 'ar' ? 'عنوان النموذج' : 'Form Title'}
+          </h3>
+          <Button 
+            onClick={onAddTitleField}
+            variant="outline" 
+          >
+            {language === 'ar' ? 'إضافة عنصر عنوان' : 'Add Title Element'}
+          </Button>
+        </div>
+        <div className="mt-2">
+          <Input
+            value={formTitle || ''}
+            onChange={(e) => onFormTitleChange && onFormTitleChange(e.target.value)}
+            placeholder={language === 'ar' ? 'أدخل عنوان النموذج' : 'Enter form title'}
+            className={language === 'ar' ? 'text-right' : ''}
+          />
+          <Textarea
+            value={formDescription || ''}
+            onChange={(e) => onFormDescriptionChange && onFormDescriptionChange(e.target.value)}
+            placeholder={language === 'ar' ? 'أدخل وصف النموذج' : 'Enter form description'}
+            className={`mt-2 ${language === 'ar' ? 'text-right' : ''} h-20`}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  if (!activeField) {
+    return null;
+  }
 
   return (
     <div 
@@ -175,7 +255,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
                 </Label>
                 <Input
                   id="form-title"
-                  value={field.label || ''}
+                  value={titleValue}
                   onChange={(e) => handleUpdateLabel(e.target.value)}
                   placeholder={language === 'ar' ? 'أدخل عنوان النموذج' : 'Enter form title'}
                   className={language === 'ar' ? 'text-right' : ''}
@@ -188,7 +268,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
                 </Label>
                 <Textarea
                   id="form-desc"
-                  value={field.helpText || ''}
+                  value={descriptionValue}
                   onChange={(e) => handleUpdateDescription(e.target.value)}
                   placeholder={language === 'ar' ? 'أدخل وصف النموذج' : 'Enter form description'}
                   className={`${language === 'ar' ? 'text-right' : ''} h-20`}
@@ -363,3 +443,4 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
 };
 
 export default FormTitleEditor;
+
