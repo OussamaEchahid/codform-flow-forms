@@ -107,6 +107,16 @@ const deepCloneField = (field: FormFieldType): FormFieldType => {
     clonedField.options = field.options.map(option => ({ ...option }));
   }
   
+  // Deep clone validation rules if they exist
+  if (field.validationRules) {
+    clonedField.validationRules = { ...field.validationRules };
+  }
+  
+  // Deep clone any other nested objects that might exist
+  if (field.settings) {
+    clonedField.settings = { ...field.settings };
+  }
+  
   return clonedField;
 };
 
@@ -230,7 +240,7 @@ const FormField = memo(({ field, formStyle }: FormFieldProps) => {
     </div>
   );
 }, 
-// Deep comparison function for React.memo to prevent unnecessary re-renders
+// Improved deep comparison function for React.memo to prevent unnecessary re-renders
 (prevProps, nextProps) => {
   // Quick reference check
   if (prevProps === nextProps) return true;
@@ -244,6 +254,7 @@ const FormField = memo(({ field, formStyle }: FormFieldProps) => {
   if (prevProps.field.helpText !== nextProps.field.helpText) return false;
   if (prevProps.field.required !== nextProps.field.required) return false;
   if (prevProps.field.icon !== nextProps.field.icon) return false;
+  if (prevProps.field.placeholder !== nextProps.field.placeholder) return false;
   
   // Compare form styles that would affect rendering
   if (prevProps.formStyle?.primaryColor !== nextProps.formStyle?.primaryColor) return false;
@@ -256,7 +267,8 @@ const FormField = memo(({ field, formStyle }: FormFieldProps) => {
   
   const styleKeys = [
     'textAlign', 'color', 'backgroundColor', 'fontSize', 'fontWeight', 'showIcon',
-    'showTitle', 'showDescription'
+    'showTitle', 'showDescription', 'borderColor', 'borderWidth', 'borderRadius', 
+    'paddingY', 'paddingX', 'animation', 'animationType', 'labelColor', 'labelFontSize'
   ];
   
   for (const key of styleKeys) {

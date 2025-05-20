@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useMemo } from 'react';
 import { FormField, FloatingButtonConfig } from '@/lib/form-utils';
 import FormPreview from '@/components/form/FormPreview';
@@ -27,7 +28,7 @@ interface FormPreviewPanelProps {
 // Constant ID for form title - must match FormPreview
 const FORM_TITLE_ID = 'form-title-static';
 
-// Deep clone function that ensures field IDs are preserved
+// Improved deep clone function that ensures ALL field IDs are preserved exactly as they are
 const deepCloneFields = (fields: FormField[]): FormField[] => {
   if (!fields) return [];
   
@@ -35,7 +36,7 @@ const deepCloneFields = (fields: FormField[]): FormField[] => {
     // Create a complete copy of all properties
     const newField = { ...field };
     
-    // Always preserve the exact ID
+    // Always preserve the exact ID to maintain field identity
     newField.id = field.id;
     
     // Deep clone style object if it exists
@@ -46,6 +47,16 @@ const deepCloneFields = (fields: FormField[]): FormField[] => {
     // Deep clone options array if it exists
     if (field.options && Array.isArray(field.options)) {
       newField.options = field.options.map(option => ({ ...option }));
+    }
+    
+    // Deep clone validation rules if they exist
+    if (field.validationRules) {
+      newField.validationRules = { ...field.validationRules };
+    }
+    
+    // Deep clone any other nested objects that might exist
+    if (field.settings) {
+      newField.settings = { ...field.settings };
     }
     
     return newField;
@@ -77,7 +88,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     }
   }, [refreshKey, internalRefreshKey]);
   
-  // Process all fields with deep cloning to prevent mutations
+  // Process all fields with deep cloning to prevent mutations - critical for form stability
   const processedFields = useMemo(() => {
     // Create deep copy of all fields to prevent mutations
     const clonedFields = deepCloneFields(fields);

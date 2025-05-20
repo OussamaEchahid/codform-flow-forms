@@ -32,7 +32,7 @@ interface FormElementEditorProps {
   onTitleUpdate: (title: string, description: string, style: any) => void;
 }
 
-// Deep copy function that preserves all field properties and IDs
+// Improved deep copy function that preserves all field properties and IDs
 const deepCopyElement = (element: FormField): FormField => {
   if (!element) return element;
   
@@ -50,6 +50,16 @@ const deepCopyElement = (element: FormField): FormField => {
   // Deep clone options array if it exists
   if (element.options && Array.isArray(element.options)) {
     copy.options = element.options.map(option => ({ ...option }));
+  }
+  
+  // Deep clone validation rules if they exist
+  if (element.validationRules) {
+    copy.validationRules = { ...element.validationRules };
+  }
+  
+  // Deep clone any other nested objects that might exist
+  if (element.settings) {
+    copy.settings = { ...element.settings };
   }
   
   return copy;

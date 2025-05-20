@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
@@ -26,7 +27,7 @@ interface FormPreviewProps {
 // Constant ID for form title to prevent regeneration - must match FormPreviewPanel
 const FORM_TITLE_ID = 'form-title-static';
 
-// Deep clone function to ensure field IDs and all properties are preserved exactly
+// Improved deep clone function to ensure ALL field properties and IDs are preserved exactly
 const deepCloneFields = (fields: FormField[]): FormField[] => {
   if (!fields) return [];
   
@@ -34,7 +35,7 @@ const deepCloneFields = (fields: FormField[]): FormField[] => {
     // Create a complete copy of all properties
     const newField = { ...field };
     
-    // Always preserve the exact ID
+    // Always preserve the exact ID to maintain field identity
     newField.id = field.id;
     
     // Deep clone style object if it exists
@@ -45,6 +46,16 @@ const deepCloneFields = (fields: FormField[]): FormField[] => {
     // Deep clone options array if it exists
     if (field.options && Array.isArray(field.options)) {
       newField.options = field.options.map(option => ({ ...option }));
+    }
+    
+    // Deep clone validation rules if they exist
+    if (field.validationRules) {
+      newField.validationRules = { ...field.validationRules };
+    }
+    
+    // Deep clone any other nested objects that might exist
+    if (field.settings) {
+      newField.settings = { ...field.settings };
     }
     
     return newField;
@@ -72,7 +83,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   
   // Process fields while preserving IDs and ensuring there's no duplication
   const sanitizedFields = useMemo(() => {
-    // Deep clone to prevent mutations
+    // Deep clone to prevent mutations - critical for stability
     const clonedFields = deepCloneFields(fields);
     
     // Check if we already have a form-title field with the correct ID
@@ -130,11 +141,13 @@ const FormPreview: React.FC<FormPreviewProps> = ({
       return fieldsToCreate;
     }
     
-    // If we have fields and a title field, just ensure the title field has the correct ID
+    // If we have fields and a title field, ensure all fields preserve their exact IDs
     return clonedFields.map(field => {
+      // Special handling only for form-title to ensure it has the correct ID
       if (field.type === 'form-title' && field.id !== FORM_TITLE_ID) {
         return { ...field, id: FORM_TITLE_ID };
       }
+      // For all other fields, preserve them exactly as they are
       return field;
     });
   }, [fields, language, formStyle.primaryColor, formTitle, formDescription]);
