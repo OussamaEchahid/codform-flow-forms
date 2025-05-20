@@ -32,7 +32,7 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
     descriptionFontSize = '14px',
     borderRadius = formStyle.borderRadius || '8px',
     paddingY = '16px',
-    // Default showTitle and showDescription to true if not specified
+    // Default showTitle and showDescription to true if not explicitly false
     showTitle = true,
     showDescription = true,
     borderColor,
@@ -69,7 +69,13 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
     'data-padding-y': paddingY,
     'data-show-title': showTitle ? 'true' : 'false',
     'data-show-description': showDescription ? 'true' : 'false',
-    'data-has-border': (borderWidth && borderColor) ? 'true' : 'false'
+    'data-has-border': (borderWidth && borderColor) ? 'true' : 'false',
+    'data-vertical-padding': paddingY || '16px',
+    'data-style-properties': JSON.stringify({
+      backgroundColor, color, textAlign, fontSize, fontWeight,
+      descriptionColor, descriptionFontSize, borderRadius, paddingY,
+      showTitle, showDescription
+    })
   };
 
   return (
@@ -85,7 +91,7 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
       }}
       {...dataAttributes}
     >
-      {showTitle && (
+      {showTitle !== false && (
         <h1 
           style={{
             color,
@@ -99,12 +105,12 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
         </h1>
       )}
       
-      {showDescription && field.helpText && (
+      {showDescription !== false && field.helpText && (
         <p 
           style={{
             color: descriptionColor,
             fontSize: descriptionFontSize,
-            margin: (showTitle ? '8px 0 0 0' : '0'),
+            margin: (showTitle !== false ? '8px 0 0 0' : '0'),
             padding: '0'
           }}
         >

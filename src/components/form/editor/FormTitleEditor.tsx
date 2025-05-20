@@ -90,9 +90,14 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
       descriptionFontSize: initialStyle?.descriptionFontSize || "14px",
       borderRadius: initialStyle?.borderRadius || borderRadius || '8px',
       paddingY: initialStyle?.paddingY || "16px",
+      // Carefully preserve boolean values
       showTitle: typeof initialStyle?.showTitle === 'boolean' ? initialStyle.showTitle : true,
       showDescription: typeof initialStyle?.showDescription === 'boolean' ? initialStyle.showDescription : true,
     };
+    
+    // Log for debugging
+    console.log("Setting completeStyle:", completeStyle);
+    console.log("showTitle:", completeStyle.showTitle, "showDescription:", completeStyle.showDescription);
     
     setStyle(completeStyle);
     didInitialize.current = true;
@@ -102,6 +107,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
   }, [isOpen, initialStyle, title, description, primaryColor, borderRadius, language]);
 
   const handleStyleChange = (property: string, value: string | boolean) => {
+    console.log(`Changing style property: ${property} to:`, value);
     setStyle(prev => ({
       ...prev,
       [property]: value
@@ -121,6 +127,10 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
       borderRadius: style.borderRadius || borderRadius || '8px',
       paddingY: style.paddingY || "16px"
     };
+    
+    // Log for debugging
+    console.log("Saving completeStyle:", completeStyle);
+    console.log("showTitle:", completeStyle.showTitle, "showDescription:", completeStyle.showDescription);
     
     onSave(currentTitle, currentDescription, completeStyle);
     didInitialize.current = false; // Reset for next opening

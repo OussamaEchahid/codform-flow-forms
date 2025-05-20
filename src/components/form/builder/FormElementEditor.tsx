@@ -42,9 +42,18 @@ const deepCopyElement = (element: FormField): FormField => {
   // Preserve the ID exactly as it was
   copy.id = element.id;
   
-  // Deep copy the style object
+  // Deep copy the style object - ensure ALL properties are preserved
   if (element.style) {
     copy.style = { ...element.style };
+    
+    // Make sure boolean properties are properly preserved
+    if (typeof element.style.showTitle === 'boolean') {
+      copy.style.showTitle = element.style.showTitle;
+    }
+    
+    if (typeof element.style.showDescription === 'boolean') {
+      copy.style.showDescription = element.style.showDescription;
+    }
   }
   
   // Deep clone options array if it exists
@@ -189,8 +198,11 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
         backgroundColor: style.backgroundColor || titleFieldStyle.backgroundColor || formStyle.primaryColor,
         borderRadius: style.borderRadius || titleFieldStyle.borderRadius || formStyle.borderRadius,
         paddingY: style.paddingY || titleFieldStyle.paddingY || '16px',
-        showTitle: typeof style.showTitle === 'boolean' ? style.showTitle : true,
-        showDescription: typeof style.showDescription === 'boolean' ? style.showDescription : true
+        // Ensure boolean values are properly preserved
+        showTitle: typeof style.showTitle === 'boolean' ? style.showTitle : 
+                   typeof titleFieldStyle.showTitle === 'boolean' ? titleFieldStyle.showTitle : true,
+        showDescription: typeof style.showDescription === 'boolean' ? style.showDescription : 
+                        typeof titleFieldStyle.showDescription === 'boolean' ? titleFieldStyle.showDescription : true
       };
       
       // Call the parent's title update function with complete style
@@ -230,8 +242,11 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
             style={{
               backgroundColor: titleFieldStyle.backgroundColor || formStyle.primaryColor,
               textAlign: (titleFieldStyle.textAlign as any) || (language === 'ar' ? 'right' : 'center'),
-              borderRadius: titleFieldStyle.borderRadius || formStyle.borderRadius
+              borderRadius: titleFieldStyle.borderRadius || formStyle.borderRadius,
+              padding: `${titleFieldStyle.paddingY || '16px'} 16px`
             }}
+            data-show-title={titleFieldStyle.showTitle !== false ? 'true' : 'false'}
+            data-show-description={titleFieldStyle.showDescription !== false ? 'true' : 'false'}
           >
             {(titleFieldStyle.showTitle !== false) && (
               <h3 style={{ 
