@@ -732,6 +732,22 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       : 'Form title updated successfully');
   };
 
+  // Add the missing handleElementUpdate function
+  const handleElementUpdate = (index: number, updatedElement: FormField) => {
+    const updatedElements = [...formElements];
+    
+    if (index >= 0 && index < updatedElements.length) {
+      updatedElements[index] = {
+        ...updatedElement,
+        // Preserve the original ID to ensure consistency
+        id: formElements[index].id
+      };
+      
+      setFormElements(updatedElements);
+      setRefreshKey(prev => prev + 1);
+    }
+  };
+
   // Show a loading screen during slow operations
   if (isLoading) {
     return (
