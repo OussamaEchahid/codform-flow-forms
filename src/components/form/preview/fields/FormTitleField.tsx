@@ -19,13 +19,33 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
   // Extract style properties or use defaults, prioritizing field-specific styles
   const styles = field.style || {};
   
-  // IMPORTANT: First check field's specific backgroundColor, THEN fall back to primaryColor
-  const backgroundColor = styles.backgroundColor || formStyle.primaryColor || '#9b87f5';
+  // Validate title and description visibility
+  const showTitle = styles.showTitle !== undefined ? !!styles.showTitle : true;
+  const showDescription = styles.showDescription !== undefined ? !!styles.showDescription : true;
+  
+  // If both title and description are hidden, don't render anything
+  if (showTitle === false && showDescription === false) {
+    return null;
+  }
   
   // Ensure valid hex color format for backgroundColor
-  const validatedBackgroundColor = backgroundColor && backgroundColor.startsWith('rgb') 
-    ? '#9b87f5' // Fallback to a safe default if RGB format is detected
-    : backgroundColor;
+  const validateColorFormat = (color: string | undefined): string | undefined => {
+    if (!color) return undefined;
+    
+    // Simple hex format validation (allows both short and long form hex)
+    const hexPattern = /^#([0-9A-F]{3}){1,2}$/i;
+    if (hexPattern.test(color)) {
+      return color;
+    }
+    
+    // If RGB format is detected or otherwise invalid, return the primaryColor or default
+    return formStyle.primaryColor || '#9b87f5';
+  };
+  
+  // IMPORTANT: First check field's specific backgroundColor, THEN fall back to primaryColor
+  const backgroundColor = validateColorFormat(styles.backgroundColor) || 
+                          validateColorFormat(formStyle.primaryColor) || 
+                          '#9b87f5';
   
   // Extract all style properties with fallbacks
   const {
@@ -37,40 +57,30 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
     descriptionFontSize = '14px',
     borderRadius = styles.borderRadius || formStyle.borderRadius || '8px',
     paddingY = styles.paddingY || '16px',
-    // Handle showTitle and showDescription correctly - default to true if undefined
-    showTitle = styles.showTitle !== undefined ? styles.showTitle : true,
-    showDescription = styles.showDescription !== undefined ? styles.showDescription : true,
     borderColor,
     borderWidth
   } = styles;
 
-  // If both title and description are hidden, don't render anything
-  if (showTitle === false && showDescription === false) {
-    return null;
-  }
-  
+  // Ensure hex colors are properly formatted
+  const safeColor = validateColorFormat(color as string) || '#ffffff';
+  const safeDescColor = validateColorFormat(descriptionColor as string) || 'rgba(255, 255, 255, 0.9)';
+
   // Store styling properties in data attributes for debugging
   const dataAttributes = {
     'data-field-type': 'form-title',
     'data-field-id': field.id,
-    'data-bg-color': validatedBackgroundColor,
+    'data-bg-color': backgroundColor,
     'data-show-title': showTitle ? 'true' : 'false',
     'data-show-desc': showDescription ? 'true' : 'false',
     'data-border-radius': borderRadius,
     'data-padding-y': paddingY
   };
 
-  // Ensure hex colors are properly formatted
-  const safeColor = typeof color === 'string' && color.startsWith('rgb') ? '#ffffff' : color;
-  const safeDescColor = typeof descriptionColor === 'string' && descriptionColor.startsWith('rgb') 
-    ? 'rgba(255, 255, 255, 0.9)' 
-    : descriptionColor;
-
   return (
     <div 
       className="form-title-container mb-6" 
       style={{
-        backgroundColor: validatedBackgroundColor,
+        backgroundColor,
         borderRadius,
         padding: `${paddingY} 16px`,
         marginTop: '0',

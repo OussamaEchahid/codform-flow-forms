@@ -18,6 +18,11 @@ interface ShopifyFormSync {
   };
 }
 
+interface CachedFormResult {
+  data: any;
+  timestamp: number;
+}
+
 export const useShopify = () => {
   const { shop, user: authUser } = useAuth();
   const [products, setProducts] = useState<ShopifyProduct[]>([]);
@@ -42,6 +47,12 @@ export const useShopify = () => {
   const defaultFormChecked = useRef(false);
   // Use a ref to prevent redundant calls in the same session
   const requestInProgress = useRef(false);
+  // Add cache to prevent excessive API calls
+  const defaultFormCache = useRef<{
+    [shopId: string]: CachedFormResult
+  }>({});
+  // Add a cooldown mechanism
+  const lastRequestTime = useRef<{[key: string]: number}>({});
 
   // Set the user from auth context
   useEffect(() => {
@@ -294,14 +305,7 @@ export const useShopify = () => {
   // Alias for syncForm for compatibility
   const syncFormWithShopify = syncForm;
 
-  // New function to get default form for a shop
-  const defaultFormCache = useRef<{
-    [shopId: string]: { 
-      data: any; 
-      timestamp: number;
-    }
-  }>({});
-  
+  // Get default form for a shop with improved caching and cooldown
   const getDefaultForm = useCallback(async (shopDomain?: string) => {
     const targetShop = shopDomain || shop;
     if (!targetShop) {
@@ -309,22 +313,48 @@ export const useShopify = () => {
       return null;
     }
 
-    // Prevent concurrent requests - important to stop request flooding
+    // Add request tracking and cooldown
+    const now = Date.now();
+    const lastRequest = lastRequestTime.current[targetShop] || 0;
+    const cooldownPeriod = 10000; // 10 seconds cooldown
+    
+    // Log detailed information about the request state for debugging
+    console.log('Default form request state:', {
+      targetShop,
+      hasCache: !!defaultFormCache.current[targetShop],
+      cacheAge: defaultFormCache.current[targetShop] 
+        ? now - defaultFormCache.current[targetShop].timestamp 
+        : 'no cache',
+      timeSinceLastRequest: now - lastRequest,
+      inProgress: requestInProgress.current,
+      cooldownActive: (now - lastRequest < cooldownPeriod)
+    });
+
+    // Prevent excessive requests with cooldown
+    if (now - lastRequest < cooldownPeriod) {
+      console.log(`Cooldown active (${(now - lastRequest)/1000}s < ${cooldownPeriod/1000}s), using cached result`);
+      return defaultFormCache.current[targetShop]?.data || null;
+    }
+
+    // Prevent concurrent requests
     if (requestInProgress.current) {
       console.log('Request already in progress, using cached result if available');
       return defaultFormCache.current[targetShop]?.data || null;
     }
 
-    // Check if we have a cached result that's less than 60 seconds old
+    // Check if we have a valid cached result (less than 5 minutes old)
     const cachedResult = defaultFormCache.current[targetShop];
-    if (cachedResult && (Date.now() - cachedResult.timestamp) < 60000) {
+    if (cachedResult && (now - cachedResult.timestamp) < 300000) {
       console.log('Using cached default form result for', targetShop);
       return cachedResult.data;
     }
 
     try {
-      // Mark that we're starting a request
+      // Update tracking before making request
       requestInProgress.current = true;
+      lastRequestTime.current[targetShop] = now;
+      
+      console.log(`Fetching default form for shop ${targetShop}`);
       
       // Get the most recently updated form for this shop
       const { data, error } = await shopifySupabase
@@ -345,10 +375,22 @@ export const useShopify = () => {
       // Cache the result with a timestamp
       defaultFormCache.current[targetShop] = {
         data: result,
-        timestamp: Date.now()
+        timestamp: now
       };
       
-      // Mark that we've checked for the default form in this component lifecycle
+      // Also store in localStorage for persistence across refreshes
+      try {
+        if (result) {
+          localStorage.setItem(`default_form_${targetShop}`, JSON.stringify({
+            ...result,
+            cacheTime: now
+          }));
+        }
+      } catch (e) {
+        console.warn('Error storing form in localStorage:', e);
+      }
+      
+      // Mark that we've checked for the default form
       defaultFormChecked.current = true;
       
       console.log('Default form found:', result?.id || 'none');
@@ -425,12 +467,19 @@ export const useShopify = () => {
     localStorage.removeItem('shopify_recovery_mode');
     localStorage.removeItem('shopify_last_url_shop');
     
+    // Clear form caches
+    Object.keys(defaultFormCache.current).forEach(key => {
+      localStorage.removeItem(`default_form_${key}`);
+    });
+    
     // Reset state
     setIsConnected(false);
     setTokenError(false);
     setTokenExpired(false);
     setFailSafeMode(false);
     setPendingSyncForms([]);
+    defaultFormCache.current = {};
+    lastRequestTime.current = {};
     
     // Clear Shopify connection manager
     shopifyConnectionManager.clearAllStores();

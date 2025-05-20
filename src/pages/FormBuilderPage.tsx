@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AppSidebar from '@/components/layout/AppSidebar';
@@ -32,6 +31,8 @@ const FormBuilderPage = () => {
   const defaultFormChecked = useRef(false);
   // Stop excessive API requests by tracking mount status
   const isMounted = useRef(false);
+  // Add a ref to track the last check time to implement a cooldown
+  const lastCheckTime = useRef(0);
   
   // Allow access if either authenticated with user or connected with Shopify
   const hasAccess = !!user || shopifyConnected;
@@ -53,25 +54,73 @@ const FormBuilderPage = () => {
     }
   }, [tokenError, failSafeMode, toggleFailSafeMode]);
   
-  // Check for default form - Modified to prevent infinite loops
+  // Check for default form - Modified to prevent infinite loops and implement cooldown
   useEffect(() => {
     // Only run on first mount
     if (isMounted.current) return;
     isMounted.current = true;
 
+    // Implement a function with cooldown to prevent excessive checks
     async function checkForDefaultForm() {
-      // Only check once per component lifecycle and when not already checking
-      if (!shop || isCheckingDefaultForm || defaultFormChecked.current) return;
+      // Skip check if:
+      // 1. Already checked in this component lifecycle
+      // 2. Currently checking (prevent concurrent checks)
+      // 3. No shop available
+      // 4. Less than 30 seconds since last check (cooldown)
+      if (
+        defaultFormChecked.current || 
+        isCheckingDefaultForm || 
+        !shop ||
+        (Date.now() - lastCheckTime.current < 30000)
+      ) {
+        console.log('Skipping default form check due to conditions:', {
+          alreadyChecked: defaultFormChecked.current,
+          currentlyChecking: isCheckingDefaultForm,
+          noShop: !shop,
+          cooldown: (Date.now() - lastCheckTime.current < 30000)
+        });
+        return;
+      }
       
+      // Update last check time immediately to prevent multiple checks
+      lastCheckTime.current = Date.now();
       setIsCheckingDefaultForm(true);
+      
       try {
         console.log('Checking for default form once...');
+        
+        // Try to get default form from localStorage first to avoid API call
+        const cachedDefaultForm = localStorage.getItem(`default_form_${shop}`);
+        if (cachedDefaultForm) {
+          try {
+            const parsedForm = JSON.parse(cachedDefaultForm);
+            const cacheTime = parsedForm.cacheTime || 0;
+            
+            // Use cached form if less than 5 minutes old
+            if (Date.now() - cacheTime < 300000) {
+              console.log('Using cached default form:', parsedForm.id);
+              defaultFormChecked.current = true;
+              setIsCheckingDefaultForm(false);
+              return;
+            }
+          } catch (e) {
+            console.error('Error parsing cached default form:', e);
+          }
+        }
+        
+        // If no valid cache, fetch from API
         const defaultForm = await getDefaultForm(shop);
         
         if (!defaultForm) {
-          console.log('No default form found, will create one when needed');
+          console.log('No default form found for shop:', shop);
         } else {
           console.log('Default form found:', defaultForm.id);
+          
+          // Cache the result
+          localStorage.setItem(`default_form_${shop}`, JSON.stringify({
+            ...defaultForm,
+            cacheTime: Date.now()
+          }));
         }
         
         // Mark that we've checked for the default form
@@ -83,8 +132,12 @@ const FormBuilderPage = () => {
       }
     }
     
-    // Only run this once when the component mounts
-    checkForDefaultForm();
+    // Add a small delay to prevent immediate check on mount
+    const timeoutId = setTimeout(() => {
+      checkForDefaultForm();
+    }, 1000);
+    
+    return () => clearTimeout(timeoutId);
   }, [shop, getDefaultForm, isCheckingDefaultForm]);
 
   // Fetch associated products for current form

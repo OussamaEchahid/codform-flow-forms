@@ -24,6 +24,10 @@ async function queryWithRetry(queryFn, maxRetries = 3, delay = 1000) {
   throw lastError;
 }
 
+// Simple in-memory cache
+const cache = new Map();
+const CACHE_TTL = 300000; // 5 minutes in milliseconds
+
 serve(async (req: Request) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -35,6 +39,7 @@ serve(async (req: Request) => {
     // Log request details for debugging
     const url = new URL(req.url);
     const shop = url.searchParams.get('shop');
+    const skipCache = url.searchParams.get('skipCache') === 'true';
     const requestId = `req_${Math.random().toString(36).substring(2, 10)}`;
     
     console.log(`[${requestId}] Default form request received for shop: ${shop}`);
@@ -54,6 +59,41 @@ serve(async (req: Request) => {
           status: 400 
         }
       );
+    }
+
+    // Check cache first (unless skipCache is true)
+    if (!skipCache) {
+      const cacheKey = `default_form_${shop}`;
+      const cachedData = cache.get(cacheKey);
+      
+      if (cachedData) {
+        const { data, timestamp } = cachedData;
+        const now = Date.now();
+        
+        // Return cached data if it's still fresh
+        if (now - timestamp < CACHE_TTL) {
+          console.log(`[${requestId}] Using cached data for shop ${shop}, age: ${(now - timestamp) / 1000}s`);
+          
+          return new Response(
+            JSON.stringify({ 
+              form: data,
+              success: true,
+              fromCache: true
+            }),
+            { 
+              headers: {
+                ...corsHeaders,
+                'Content-Type': 'application/json',
+                'Cache-Control': 'public, max-age=300'
+              }, 
+              status: 200 
+            }
+          );
+        } else {
+          console.log(`[${requestId}] Cache expired for shop ${shop}, fetching fresh data`);
+          cache.delete(cacheKey);
+        }
+      }
     }
 
     // Create Supabase client with PUBLIC ANON KEY - no auth needed for form retrieval
@@ -121,18 +161,24 @@ serve(async (req: Request) => {
 
     // Return form data or error
     if (defaultForms && defaultForms.length > 0) {
-      console.log(`[${requestId}] Default form found with ID: ${defaultForms[0].id}`);
+      const formData = defaultForms[0];
+      console.log(`[${requestId}] Default form found with ID: ${formData.id}`);
+      
+      // Store in cache
+      cache.set(`default_form_${shop}`, {
+        data: formData,
+        timestamp: Date.now()
+      });
+      
       return new Response(
         JSON.stringify({ 
-          form: defaultForms[0],
+          form: formData,
           success: true
         }),
         { 
           headers: {
             ...corsHeaders,
-            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-            'Pragma': 'no-cache',
-            'Expires': '0',
+            'Cache-Control': 'public, max-age=300',
             'Content-Type': 'application/json'
           }, 
           status: 200 
@@ -141,6 +187,13 @@ serve(async (req: Request) => {
     } else {
       // No form found
       console.log(`[${requestId}] No default form found for shop: ${shop}`);
+      
+      // Cache this negative result too to avoid repeated lookups
+      cache.set(`default_form_${shop}`, {
+        data: null,
+        timestamp: Date.now()
+      });
+      
       return new Response(
         JSON.stringify({ 
           message: 'No default form found for this shop',
