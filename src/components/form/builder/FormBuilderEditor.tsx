@@ -96,6 +96,16 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     borderRadius: '0.5rem',
     fontSize: '1rem',
     buttonStyle: 'rounded',
+    borderColor: '#e2e8f0',
+    borderWidth: '1px',
+    backgroundColor: '#ffffff',
+    paddingTop: '20px',
+    paddingBottom: '20px',
+    paddingLeft: '20px',
+    paddingRight: '20px',
+    formGap: '16px',
+    formDirection: 'ltr',
+    floatingLabels: false
   });
   
   const [refreshKey, setRefreshKey] = useState(0);
@@ -211,12 +221,22 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
       const newId = uuidv4();
       setCurrentFormId(newId);
 
-      // Set initial form style
+      // Set initial form style with all required properties
       const defaultStyle: FormStyle = {
         primaryColor: '#9b87f5',
         borderRadius: '0.5rem',
         fontSize: '1rem',
         buttonStyle: 'rounded',
+        borderColor: '#e2e8f0',
+        borderWidth: '1px',
+        backgroundColor: '#ffffff',
+        paddingTop: '20px',
+        paddingBottom: '20px',
+        paddingLeft: '20px',
+        paddingRight: '20px',
+        formGap: '16px',
+        formDirection: 'ltr',
+        floatingLabels: false
       };
       
       setFormStyle(defaultStyle);
@@ -341,6 +361,16 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
                 borderRadius: formData.style.borderRadius || '0.5rem',
                 fontSize: formData.style.fontSize || '1rem',
                 buttonStyle: formData.style.buttonStyle || 'rounded',
+                borderColor: formData.style.borderColor || '#e2e8f0',
+                borderWidth: formData.style.borderWidth || '1px',
+                backgroundColor: formData.style.backgroundColor || '#ffffff',
+                paddingTop: formData.style.paddingTop || '20px',
+                paddingBottom: formData.style.paddingBottom || '20px',
+                paddingLeft: formData.style.paddingLeft || '20px',
+                paddingRight: formData.style.paddingRight || '20px',
+                formGap: formData.style.formGap || '16px',
+                formDirection: formData.style.formDirection || 'ltr',
+                floatingLabels: formData.style.floatingLabels || false
               });
             } else {
               // قيم افتراضية إذا كان النمط مفقودًا
@@ -349,6 +379,16 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
                 borderRadius: '0.5rem',
                 fontSize: '1rem',
                 buttonStyle: 'rounded',
+                borderColor: '#e2e8f0',
+                borderWidth: '1px',
+                backgroundColor: '#ffffff',
+                paddingTop: '20px',
+                paddingBottom: '20px',
+                paddingLeft: '20px',
+                paddingRight: '20px',
+                formGap: '16px',
+                formDirection: 'ltr',
+                floatingLabels: false
               });
             }
           } else {
@@ -574,7 +614,17 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
           primaryColor: template.primaryColor || templateStyle.primaryColor,
           borderRadius: templateStyle.borderRadius,
           fontSize: templateStyle.fontSize,
-          buttonStyle: templateStyle.buttonStyle
+          buttonStyle: templateStyle.buttonStyle,
+          borderColor: templateStyle.borderColor || '#e2e8f0',
+          borderWidth: templateStyle.borderWidth || '1px',
+          backgroundColor: templateStyle.backgroundColor || '#ffffff',
+          paddingTop: templateStyle.paddingTop || '20px',
+          paddingBottom: templateStyle.paddingBottom || '20px',
+          paddingLeft: templateStyle.paddingLeft || '20px',
+          paddingRight: templateStyle.paddingRight || '20px',
+          formGap: templateStyle.formGap || '16px',
+          formDirection: templateStyle.formDirection || 'ltr',
+          floatingLabels: templateStyle.floatingLabels || false
         });
       }
       
