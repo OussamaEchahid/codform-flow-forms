@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
 import { X, Save, AlignLeft, AlignCenter, AlignRight, Type, Palette } from 'lucide-react';
@@ -55,6 +55,28 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
     showDescription: initialStyle?.showDescription !== false, // Default to true if not explicitly set to false
   });
 
+  // Update state when initialStyle changes (important for proper refreshing)
+  useEffect(() => {
+    if (isOpen) {
+      console.log("FormTitleEditor opened with initialStyle:", initialStyle);
+      setCurrentTitle(title);
+      setCurrentDescription(description);
+      setStyle({
+        backgroundColor: initialStyle?.backgroundColor || primaryColor,
+        color: initialStyle?.color || "#ffffff",
+        textAlign: initialStyle?.textAlign || (language === 'ar' ? 'right' : 'center'),
+        fontSize: initialStyle?.fontSize || "24px",
+        fontWeight: initialStyle?.fontWeight || "bold",
+        descriptionColor: initialStyle?.descriptionColor || "rgba(255, 255, 255, 0.9)",
+        descriptionFontSize: initialStyle?.descriptionFontSize || "14px",
+        borderRadius: initialStyle?.borderRadius || borderRadius,
+        paddingY: initialStyle?.paddingY || "16px",
+        showTitle: initialStyle?.showTitle !== false,
+        showDescription: initialStyle?.showDescription !== false,
+      });
+    }
+  }, [isOpen, initialStyle, title, description, primaryColor, borderRadius, language]);
+
   const handleStyleChange = (property: string, value: string | boolean) => {
     setStyle(prev => ({
       ...prev,
@@ -63,8 +85,20 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
   };
 
   const handleSave = () => {
-    onSave(currentTitle, currentDescription, style);
-    onClose();
+    console.log("Saving title with style from editor:", style);
+    
+    // Create a complete style object with all properties
+    const completeStyle = {
+      ...style,
+      // Ensure critical properties are explicitly defined
+      showTitle: typeof style.showTitle === 'boolean' ? style.showTitle : true,
+      showDescription: typeof style.showDescription === 'boolean' ? style.showDescription : true,
+      backgroundColor: style.backgroundColor || primaryColor,
+      borderRadius: style.borderRadius || borderRadius,
+      paddingY: style.paddingY || "16px"
+    };
+    
+    onSave(currentTitle, currentDescription, completeStyle);
   };
 
   // Common color presets
@@ -325,7 +359,8 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
             style={{
               backgroundColor: style.backgroundColor,
               borderRadius: style.borderRadius,
-              textAlign: style.textAlign as any
+              textAlign: style.textAlign as any,
+              padding: `${style.paddingY} 16px`,
             }}
           >
             {style.showTitle && (

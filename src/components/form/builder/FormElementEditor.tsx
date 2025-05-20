@@ -94,6 +94,8 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
     fontWeight: 'bold',
     descriptionColor: 'rgba(255, 255, 255, 0.9)',
     descriptionFontSize: '14px',
+    borderRadius: formStyle.borderRadius || '8px',
+    paddingY: '16px',
     showTitle: true,
     showDescription: true
   };
@@ -174,14 +176,27 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
   };
   
   const handleTitleSave = (title: string, description: string, style: any) => {
+    console.log("Saving title with style:", style);
+    
     // Use onTitleUpdate to handle title updates - this ensures consistency
     if (onTitleUpdate) {
-      // Preserve the original ID if it exists
-      const updatedStyle = {
-        ...titleFieldStyle,
-        ...style
+      // Create a complete style object with all required properties
+      const completeStyle = {
+        ...titleFieldStyle,  // Start with existing style to preserve any properties
+        ...style,            // Override with new style properties
+        // Ensure critical properties are always present
+        backgroundColor: style.backgroundColor || titleFieldStyle.backgroundColor || formStyle.primaryColor,
+        borderRadius: style.borderRadius || titleFieldStyle.borderRadius || formStyle.borderRadius,
+        paddingY: style.paddingY || titleFieldStyle.paddingY || '16px',
+        showTitle: typeof style.showTitle === 'boolean' ? style.showTitle : true,
+        showDescription: typeof style.showDescription === 'boolean' ? style.showDescription : true
       };
-      onTitleUpdate(title, description, updatedStyle);
+      
+      // Log the complete style object for debugging
+      console.log("Complete style being saved:", completeStyle);
+      
+      // Call the parent's title update function with complete style
+      onTitleUpdate(title, description, completeStyle);
     }
     
     setIsTitleEditorOpen(false);
@@ -217,7 +232,7 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
             style={{
               backgroundColor: titleFieldStyle.backgroundColor || formStyle.primaryColor,
               textAlign: (titleFieldStyle.textAlign as any) || (language === 'ar' ? 'right' : 'center'),
-              borderRadius: formStyle.borderRadius
+              borderRadius: titleFieldStyle.borderRadius || formStyle.borderRadius
             }}
           >
             {(titleFieldStyle.showTitle !== false) && (

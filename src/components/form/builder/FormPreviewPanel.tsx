@@ -109,6 +109,8 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           fontWeight: 'bold',
           descriptionColor: 'rgba(255, 255, 255, 0.9)',
           descriptionFontSize: '14px',
+          borderRadius: formStyle.borderRadius || '8px',
+          paddingY: '16px',
           showTitle: true,
           showDescription: true
         }
@@ -156,6 +158,11 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
             ...preservedStyle,
             // Only apply formStyle.primaryColor if no backgroundColor is set in the field's style
             backgroundColor: preservedStyle.backgroundColor || formStyle.primaryColor || '#9b87f5',
+            // Ensure required properties have defaults if missing
+            showTitle: typeof preservedStyle.showTitle === 'boolean' ? preservedStyle.showTitle : true,
+            showDescription: typeof preservedStyle.showDescription === 'boolean' ? preservedStyle.showDescription : true,
+            borderRadius: preservedStyle.borderRadius || formStyle.borderRadius || '8px',
+            paddingY: preservedStyle.paddingY || '16px'
           }
         };
       }
@@ -182,7 +189,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     
     console.log("Final processed fields count:", filteredFields.length);
     return filteredFields;
-  }, [fields, language, formStyle.primaryColor, formTitle, formDescription]);
+  }, [fields, language, formStyle.primaryColor, formStyle.borderRadius, formTitle, formDescription]);
 
   return (
     <div>
