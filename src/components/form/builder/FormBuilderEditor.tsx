@@ -70,10 +70,12 @@ const getActiveShopId = (): string | null => {
 };
 
 interface FormBuilderEditorProps {
+  shopId: string;
   formId?: string;
+  onClose?: () => void;
 }
 
-const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
+const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: initialFormId, onClose }) => {
   const navigate = useNavigate();
   const params = useParams();
   const { t, language } = useI18n();
@@ -111,13 +113,13 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const [refreshKey, setRefreshKey] = useState(0);
   const [formElements, setFormElements] = useState<Array<FormField>>([]);
   
-  const [selectedElementIndex, setSelectedElementIndex] = useState<number | null>(null);
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [isFieldEditorOpen, setIsFieldEditorOpen] = useState(false);
   const [currentEditingField, setCurrentEditingField] = useState<FormField | null>(null);
   const [formTitle, setFormTitle] = useState(language === 'ar' ? 'نموذج جديد' : 'New Form');
   const [formDescription, setFormDescription] = useState(language === 'ar' ? 'نموذج جديد' : 'New Form');
   const [currentPreviewStep, setCurrentPreviewStep] = useState(1);
-  const [currentFormId, setCurrentFormId] = useState<string | undefined>(formId || params.formId);
+  const [currentFormId, setCurrentFormId] = useState<string | undefined>(initialFormId);
 
   // إنشاء نموذج افتراضي جديد مع الحقول المطلوبة
   const createDefaultForm = (): FormField[] => {
@@ -567,7 +569,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     const updatedElements = [...formElements, newElement];
     setFormElements(updatedElements);
     setTimeout(() => {
-      setSelectedElementIndex(updatedElements.length - 1);
+      setSelectedIndex(updatedElements.length - 1);
       setRefreshKey(prev => prev + 1);
     }, 100);
   };
@@ -582,7 +584,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     const updatedElements = [...formElements];
     updatedElements.splice(index, 1);
     setFormElements(updatedElements);
-    setSelectedElementIndex(null);
+    setSelectedIndex(null);
     setRefreshKey(prev => prev + 1);
   };
 
@@ -660,7 +662,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     setCurrentEditingField(null);
     
     setTimeout(() => {
-      setSelectedElementIndex(null);
+      setSelectedIndex(null);
       setRefreshKey(prev => prev + 1);
     }, 100);
   };
@@ -710,7 +712,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     });
 
     setTimeout(() => {
-      setSelectedElementIndex(null);
+      setSelectedIndex(null);
       setRefreshKey(prev => prev + 1);
     }, 100);
   };
@@ -738,48 +740,67 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   };
 
   // Handle form title updates from the title editor
-  const handleFormTitleUpdate = (title: string, description: string, titleStyle: any) => {
+  const handleTitleUpdate = (title: string, description: string, titleStyle: any) => {
     // Update form title and description state
     setFormTitle(title);
     setFormDescription(description);
     
-    // Check if we have an existing form-title field
-    const titleFieldIndex = formElements.findIndex(field => field.type === 'form-title');
+    // Find title field index
+    const titleFieldIndex = formElements.findIndex(
+      element => element.type === 'form-title' && element.id === 'form-title-static'
+    );
     
-    if (titleFieldIndex !== -1) {
-      // Update existing title field
+    if (titleFieldIndex >= 0) {
+      // Update the field in elements array
       const updatedElements = [...formElements];
       updatedElements[titleFieldIndex] = {
         ...updatedElements[titleFieldIndex],
         label: title,
         helpText: description,
-        style: {
-          ...updatedElements[titleFieldIndex].style,
-          ...titleStyle
-        }
+        style: titleStyle
       };
       setFormElements(updatedElements);
     } else {
-      // Create new title field
-      const titleField: FormField = {
+      // Create a new title field
+      const newTitleField: FormField = {
+        id: 'form-title-static',
         type: 'form-title',
-        id: `form-title-${Date.now()}`,
         label: title,
         helpText: description,
-        style: titleStyle,
+        style: titleStyle
       };
       
-      // Add to beginning of elements array
-      const updatedElements = [titleField, ...formElements];
-      setFormElements(updatedElements);
+      // Add it to the beginning of elements
+      setFormElements([newTitleField, ...formElements]);
     }
     
-    // Refresh the preview
-    setRefreshKey(prev => prev + 1);
+    // If the title style sets backgroundColor, also update the global form style for consistency
+    if (titleStyle && titleStyle.backgroundColor) {
+      handleStylePropertyChange('backgroundColor', titleStyle.backgroundColor);
+    }
     
-    toast.success(language === 'ar' 
-      ? 'تم تحديث عنوان النموذج بنجاح' 
-      : 'Form title updated successfully');
+    setHasUnsavedChanges(true);
+    setRefreshKey(prev => prev + 1);
+  };
+
+  // Handle individual style property updates
+  const handleStylePropertyChange = (key: string, value: string) => {
+    setFormStyle(prevStyle => ({
+      ...prevStyle,
+      [key]: value
+    }));
+    
+    // Sync with form store when style properties change
+    formStore.setFormState({
+      style: {
+        ...formStore.formState.style,
+        [key]: value
+      }
+    });
+    
+    // Refresh preview after style change
+    setRefreshKey(prev => prev + 1);
+    setHasUnsavedChanges(true);
   };
 
   // Add the missing handleElementUpdate function
@@ -813,7 +834,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="flex flex-col h-screen">
       <FormHeader 
         onSave={handleSave}
         onPublish={handlePublish}
@@ -848,17 +869,18 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
             >
               <FormElementEditor
                 elements={formElements}
-                selectedIndex={selectedElementIndex}
-                onSelectElement={setSelectedElementIndex}
-                onEditElement={editElement}
-                onDeleteElement={deleteElement}
-                onDuplicateElement={duplicateElement}
+                selectedIndex={selectedIndex}
+                onSelectElement={handleSelectElement}
+                onEditElement={handleEditElement}
+                onDeleteElement={handleDeleteElement}
+                onDuplicateElement={handleDuplicateElement}
                 onReorderElements={handleReorderElements}
-                onUpdateElement={handleElementUpdate}
+                onUpdateElement={handleUpdateElement}
                 formTitle={formTitle}
                 formDescription={formDescription}
                 formStyle={formStyle}
-                onTitleUpdate={handleFormTitleUpdate}
+                onTitleUpdate={handleTitleUpdate}
+                onStyleChange={handleStylePropertyChange}
               />
             </SortableContext>
           </DndContext>

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useMemo } from 'react';
 import { FormField, FloatingButtonConfig, deepCloneField } from '@/lib/form-utils';
 import FormPreview from '@/components/form/FormPreview';
@@ -142,15 +141,16 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
         label: formTitle || '',
         helpText: formDescription || '',
         style: {
-          backgroundColor: formStyle.primaryColor || '#9b87f5',
+          // IMPORTANT: Use formStyle.backgroundColor first, then fall back to primaryColor
+          backgroundColor: formStyle.backgroundColor || formStyle.primaryColor || '#9b87f5',
           color: '#ffffff',
           textAlign: language === 'ar' ? 'right' : 'center',
           fontSize: '24px',
           fontWeight: 'bold',
           descriptionColor: 'rgba(255, 255, 255, 0.9)',
           descriptionFontSize: '14px',
-          borderRadius: formStyle.borderRadius, // Preserve borderRadius
-          paddingY: '16px', // Add default paddingY
+          borderRadius: formStyle.borderRadius, 
+          paddingY: '16px',
           showTitle: true,
           showDescription: true
         }
@@ -171,6 +171,8 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
         // Make sure to preserve all style properties
         style: {
           ...(titleField.style || {}),
+          // IMPORTANT: If backgroundColor is missing, use formStyle.backgroundColor, then primaryColor
+          backgroundColor: titleField.style?.backgroundColor || formStyle.backgroundColor || formStyle.primaryColor,
           // Explicitly preserve critical properties
           showTitle: titleField.style?.showTitle !== undefined ? titleField.style.showTitle : true,
           showDescription: titleField.style?.showDescription !== undefined ? titleField.style.showDescription : true,
@@ -198,7 +200,8 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
         
         console.log("Updating existing title field, preserving style:", 
                     preservedStyle.backgroundColor || "not set",
-                    "formStyle:", formStyle.primaryColor,
+                    "formStyle backgroundColor:", formStyle.backgroundColor,
+                    "formStyle primaryColor:", formStyle.primaryColor,
                     "ShowTitle:", preservedStyle.showTitle,
                     "ShowDescription:", preservedStyle.showDescription);
                     
@@ -209,8 +212,8 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           // Critical: Preserve all existing style properties
           style: {
             ...preservedStyle,
-            // Only apply formStyle.primaryColor if no backgroundColor is set in the field's style
-            backgroundColor: preservedStyle.backgroundColor || formStyle.primaryColor || '#9b87f5',
+            // IMPORTANT: Prioritize existing backgroundColor, then formStyle.backgroundColor, then formStyle.primaryColor
+            backgroundColor: preservedStyle.backgroundColor || formStyle.backgroundColor || formStyle.primaryColor || '#9b87f5',
             // Explicitly preserve these critical properties with their original values
             showTitle: preservedStyle.showTitle !== undefined ? preservedStyle.showTitle : true,
             showDescription: preservedStyle.showDescription !== undefined ? preservedStyle.showDescription : true,
@@ -242,7 +245,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     
     console.log("Final processed fields count:", filteredFields.length);
     return filteredFields;
-  }, [fields, language, formStyle.primaryColor, formStyle.borderRadius, formTitle, formDescription]);
+  }, [fields, language, formStyle.primaryColor, formStyle.backgroundColor, formStyle.borderRadius, formTitle, formDescription]);
 
   return (
     <div>

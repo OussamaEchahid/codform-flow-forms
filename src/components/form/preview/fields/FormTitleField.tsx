@@ -39,36 +39,13 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
     return null;
   }
   
-  // Ensure valid hex color format for backgroundColor
-  const validateColorFormat = (color: string | undefined): string | undefined => {
-    if (!color) return undefined;
-    
-    // Simple hex format validation (allows both short and long form hex)
-    const hexPattern = /^#([0-9A-F]{3}){1,2}$/i;
-    if (hexPattern.test(color)) {
-      return color;
-    }
-    
-    // Handle RGB format
-    const rgbPattern = /^rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/i;
-    const rgbMatch = color.match(rgbPattern);
-    if (rgbMatch) {
-      const r = parseInt(rgbMatch[1], 10);
-      const g = parseInt(rgbMatch[2], 10);
-      const b = parseInt(rgbMatch[3], 10);
-      
-      // Convert to hex
-      return `#${(r << 16 | g << 8 | b).toString(16).padStart(6, '0')}`;
-    }
-    
-    // If RGB format is detected or otherwise invalid, return the primaryColor or default
-    return formStyle.primaryColor || '#9b87f5';
-  };
-  
-  // IMPORTANT: First check field's specific backgroundColor, THEN fall back to primaryColor
-  const backgroundColor = validateColorFormat(styles.backgroundColor) || 
-                          validateColorFormat(formStyle.primaryColor) || 
-                          '#9b87f5';
+  // IMPORTANT: For backgroundColor, first check field-specific setting, THEN fall back to formStyle.backgroundColor, THEN to primaryColor
+  // This ensures proper cascade of style preferences and fixes the conflict between the two editing methods
+  const backgroundColor = 
+    styles.backgroundColor || 
+    formStyle.backgroundColor || 
+    formStyle.primaryColor || 
+    '#9b87f5';
   
   // Extract all style properties with fallbacks
   const {
@@ -83,10 +60,6 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
     borderColor = styles.borderColor || formStyle.borderColor || '#e2e8f0',
     borderWidth = styles.borderWidth || formStyle.borderWidth || '1px'
   } = styles;
-
-  // Ensure hex colors are properly formatted
-  const safeColor = validateColorFormat(color as string) || '#ffffff';
-  const safeDescColor = validateColorFormat(descriptionColor as string) || 'rgba(255, 255, 255, 0.9)';
 
   // Determine text alignment based on formStyle.formDirection, field style, and language
   const effectiveTextAlign = 
@@ -124,7 +97,7 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
       {showTitle && (
         <h1 
           style={{
-            color: safeColor,
+            color: color,
             fontSize,
             fontWeight,
             margin: '0',
@@ -138,7 +111,7 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
       {showDescription && field.helpText && (
         <p 
           style={{
-            color: safeDescColor,
+            color: descriptionColor,
             fontSize: descriptionFontSize,
             margin: (showTitle ? '8px 0 0 0' : '0'),
             padding: '0'
@@ -173,6 +146,7 @@ export default React.memo(FormTitleField, (prevProps, nextProps) => {
     prevStyle.borderRadius === nextStyle.borderRadius &&
     prevStyle.borderColor === nextStyle.borderColor &&
     prevStyle.borderWidth === nextStyle.borderWidth &&
+    prevStyle.backgroundColor === nextStyle.backgroundColor &&
     prevStyle.formDirection === nextStyle.formDirection
   );
 });

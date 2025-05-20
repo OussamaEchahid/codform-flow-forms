@@ -28,8 +28,20 @@ interface FormElementEditorProps {
     borderRadius: string;
     fontSize: string;
     buttonStyle: string;
+    // Add new style properties
+    borderColor?: string;
+    borderWidth?: string;
+    backgroundColor?: string;
+    paddingTop?: string;
+    paddingBottom?: string;
+    paddingLeft?: string;
+    paddingRight?: string;
+    formGap?: string;
+    formDirection?: 'ltr' | 'rtl';
+    floatingLabels?: boolean;
   };
   onTitleUpdate: (title: string, description: string, style: any) => void;
+  onStyleChange?: (key: string, value: string) => void;
 }
 
 // Improved deep copy function with proper TypeScript support
@@ -77,7 +89,8 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
   formTitle,
   formDescription,
   formStyle,
-  onTitleUpdate
+  onTitleUpdate,
+  onStyleChange
 }) => {
   const { language } = useI18n();
   const [isTitleEditorOpen, setIsTitleEditorOpen] = useState(false);
@@ -87,7 +100,7 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
   
   // Get the form title style from existing form-title field or default
   const titleFieldStyle = titleField?.style || {
-    backgroundColor: formStyle.primaryColor,
+    backgroundColor: formStyle.backgroundColor || formStyle.primaryColor,
     color: '#ffffff',
     textAlign: language === 'ar' ? 'right' : 'center',
     fontSize: '24px',
@@ -173,6 +186,7 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
     setIsTitleEditorOpen(false);
   };
   
+  // This function updates both the title field and syncs with global style if needed
   const handleTitleSave = (title: string, description: string, style: any) => {
     // Use onTitleUpdate to handle title updates - this ensures consistency
     if (onTitleUpdate) {
@@ -184,7 +198,19 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
       onTitleUpdate(title, description, updatedStyle);
     }
     
+    // Update global formStyle if the backgroundColor changes and onStyleChange is provided
+    if (style.backgroundColor && onStyleChange) {
+      onStyleChange('backgroundColor', style.backgroundColor);
+    }
+    
     setIsTitleEditorOpen(false);
+  };
+  
+  // Handle global style updates directly from title editor
+  const handleGlobalStyleUpdate = (key: string, value: string) => {
+    if (onStyleChange) {
+      onStyleChange(key, value);
+    }
   };
   
   // Filter out title field to get sortable elements
@@ -215,7 +241,7 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
           <div 
             className="rounded-md p-3"
             style={{
-              backgroundColor: titleFieldStyle.backgroundColor || formStyle.primaryColor,
+              backgroundColor: titleFieldStyle.backgroundColor || formStyle.backgroundColor || formStyle.primaryColor,
               textAlign: (titleFieldStyle.textAlign as any) || (language === 'ar' ? 'right' : 'center'),
               borderRadius: formStyle.borderRadius
             }}
@@ -276,10 +302,14 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
         onClose={handleTitleEditorClose}
         title={formTitle}
         description={formDescription}
-        style={titleFieldStyle}
+        style={{
+          ...titleFieldStyle,
+          backgroundColor: titleFieldStyle.backgroundColor || formStyle.backgroundColor || formStyle.primaryColor
+        }}
         onSave={handleTitleSave}
         primaryColor={formStyle.primaryColor}
         borderRadius={formStyle.borderRadius}
+        updateGlobalStyle={handleGlobalStyleUpdate}
       />
     </div>
   );
