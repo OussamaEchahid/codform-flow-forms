@@ -186,7 +186,7 @@ const TitleField = React.memo(
     // Simple check for object equality
     if (prevProps === nextProps) return true;
     
-    // Check if IDs match
+    // Check if IDs match - critical for stability during drag operations
     if (prevProps.field.id !== nextProps.field.id) return false;
     
     // Check if label or helpText changed

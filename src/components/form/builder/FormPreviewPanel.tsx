@@ -78,8 +78,36 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   // Process all fields with deep cloning to prevent mutations
   const processedFields = useMemo(() => {
     // Create deep copy of all fields to prevent mutations
-    return deepCloneFields(fields);
-  }, [fields, internalRefreshKey]);
+    const clonedFields = deepCloneFields(fields);
+    
+    // Check if there is already a form-title field
+    const hasTitleField = clonedFields.some(field => field.type === 'form-title');
+    
+    // If no title field exists, we'll use the formTitle and formDescription
+    let displayTitle = formTitle;
+    let displayDescription = formDescription;
+    
+    // Add default submit button if needed
+    const hasSubmitButton = clonedFields.some(field => field.type === 'submit');
+    
+    if (!hasSubmitButton) {
+      const submitButton: FormField = {
+        type: 'submit',
+        id: `submit-stable`,
+        label: language === 'ar' ? 'إرسال الطلب' : 'Submit Order',
+        style: {
+          backgroundColor: formStyle.primaryColor || '#9b87f5',
+          color: '#ffffff',
+          fontSize: '18px',
+          animation: true,
+          animationType: 'pulse',
+        },
+      };
+      clonedFields.push(submitButton);
+    }
+    
+    return clonedFields;
+  }, [fields, language, formStyle.primaryColor, formTitle, formDescription]);
   
   // Find title field if it exists in the processed fields
   const titleField = useMemo(() => {

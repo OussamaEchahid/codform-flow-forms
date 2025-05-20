@@ -206,7 +206,7 @@ const FormField = memo(({ field, formStyle }: FormFieldProps) => {
     'data-label-color': normalizedField.style?.labelColor || '#333',
     'data-label-font-size': normalizedField.style?.labelFontSize || formStyle.fontSize || '16px',
     'data-label-font-weight': normalizedField.style?.labelFontWeight || '600',
-    'data-background-color': normalizedField.style?.backgroundColor || (fieldType === 'submit' ? formStyle.primaryColor : undefined),
+    'data-background-color': normalizedField.style?.backgroundColor || (fieldType === 'submit' || fieldType === 'form-title' ? formStyle.primaryColor : undefined),
     'data-border-color': normalizedField.style?.borderColor,
     'data-border-width': normalizedField.style?.borderWidth,
   };

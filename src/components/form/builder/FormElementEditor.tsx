@@ -99,35 +99,16 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
     updatedField.id = elements[index].id;
     
     // Special handling for form-title field to preserve styling
-    if (updatedField.type === 'form-title') {
-      if (!updatedField.style) {
-        updatedField.style = {};
-      }
-      
-      // Ensure title field styles have defaults
-      updatedField.style.backgroundColor = updatedField.style.backgroundColor || '#9b87f5';
-      updatedField.style.color = updatedField.style.color || '#ffffff';
-      updatedField.style.descriptionColor = updatedField.style.descriptionColor || 'rgba(255, 255, 255, 0.9)';
-      updatedField.style.fontSize = updatedField.style.fontSize || '24px';
-      updatedField.style.descriptionFontSize = updatedField.style.descriptionFontSize || '14px';
-      updatedField.style.fontWeight = updatedField.style.fontWeight || 'bold';
-    }
-    
-    // Special handling for submit button
-    if (updatedField.type === 'submit') {
-      if (!updatedField.style) {
-        updatedField.style = {};
-      }
-      
-      // Ensure submit button styles are preserved
-      updatedField.style.backgroundColor = updatedField.style.backgroundColor || '#9b87f5';
-      updatedField.style.color = updatedField.style.color || '#ffffff';
-      
-      // Ensure icon settings are properly handled
-      if (updatedField.icon && updatedField.icon !== 'none') {
-        updatedField.style.showIcon = updatedField.style.showIcon !== undefined ? updatedField.style.showIcon : true;
-        updatedField.style.iconPosition = updatedField.style.iconPosition || (language === 'ar' ? 'right' : 'left');
-      }
+    if (updatedField.type === 'form-title' && (!updatedField.style || Object.keys(updatedField.style).length === 0)) {
+      updatedField.style = {
+        backgroundColor: '#9b87f5',
+        color: '#ffffff',
+        descriptionColor: 'rgba(255, 255, 255, 0.9)',
+        fontSize: '24px',
+        descriptionFontSize: '14px',
+        fontWeight: 'bold',
+        textAlign: language === 'ar' ? 'right' : 'left',
+      };
     }
     
     // Notify parent component about the update
