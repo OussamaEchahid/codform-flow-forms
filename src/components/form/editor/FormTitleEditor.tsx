@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface FormTitleEditorProps {
   isOpen: boolean;
@@ -49,10 +50,12 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
     descriptionColor: initialStyle?.descriptionColor || "rgba(255, 255, 255, 0.9)",
     descriptionFontSize: initialStyle?.descriptionFontSize || "14px",
     borderRadius: initialStyle?.borderRadius || borderRadius,
-    paddingY: initialStyle?.paddingY || "16px"
+    paddingY: initialStyle?.paddingY || "16px",
+    showTitle: initialStyle?.showTitle !== false, // Default to true if not explicitly set to false
+    showDescription: initialStyle?.showDescription !== false, // Default to true if not explicitly set to false
   });
 
-  const handleStyleChange = (property: string, value: string) => {
+  const handleStyleChange = (property: string, value: string | boolean) => {
     setStyle(prev => ({
       ...prev,
       [property]: value
@@ -87,6 +90,20 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
           </TabsList>
           
           <TabsContent value="content" className="space-y-4 mt-4">
+            <div className="flex items-center space-x-2 mb-4">
+              <Checkbox 
+                id="show-title" 
+                checked={style.showTitle} 
+                onCheckedChange={(checked) => handleStyleChange('showTitle', !!checked)}
+              />
+              <Label 
+                htmlFor="show-title" 
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                {language === 'ar' ? 'إظهار العنوان' : 'Show title'}
+              </Label>
+            </div>
+            
             <div className="space-y-2">
               <Label htmlFor="title" className={language === 'ar' ? 'text-right block' : 'block'}>
                 {language === 'ar' ? 'العنوان' : 'Title'}
@@ -96,7 +113,22 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
                 value={currentTitle}
                 onChange={(e) => setCurrentTitle(e.target.value)}
                 dir={language === 'ar' ? 'rtl' : 'ltr'}
+                disabled={!style.showTitle}
               />
+            </div>
+            
+            <div className="flex items-center space-x-2 mt-6 mb-4">
+              <Checkbox 
+                id="show-description" 
+                checked={style.showDescription} 
+                onCheckedChange={(checked) => handleStyleChange('showDescription', !!checked)}
+              />
+              <Label 
+                htmlFor="show-description" 
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                {language === 'ar' ? 'إظهار الوصف' : 'Show description'}
+              </Label>
             </div>
             
             <div className="space-y-2">
@@ -109,6 +141,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
                 onChange={(e) => setCurrentDescription(e.target.value)}
                 rows={3}
                 dir={language === 'ar' ? 'rtl' : 'ltr'}
+                disabled={!style.showDescription}
               />
             </div>
           </TabsContent>
@@ -295,10 +328,12 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
               textAlign: style.textAlign as any
             }}
           >
-            <h3 style={{ color: style.color, fontSize: style.fontSize, fontWeight: style.fontWeight as any, margin: 0 }}>
-              {currentTitle || (language === 'ar' ? 'عنوان النموذج' : 'Form Title')}
-            </h3>
-            {currentDescription && (
+            {style.showTitle && (
+              <h3 style={{ color: style.color, fontSize: style.fontSize, fontWeight: style.fontWeight as any, margin: 0 }}>
+                {currentTitle || (language === 'ar' ? 'عنوان النموذج' : 'Form Title')}
+              </h3>
+            )}
+            {style.showDescription && currentDescription && (
               <p style={{ color: style.descriptionColor, fontSize: style.descriptionFontSize, margin: '8px 0 0 0' }}>
                 {currentDescription}
               </p>

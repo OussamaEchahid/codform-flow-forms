@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
@@ -24,6 +23,9 @@ interface FormPreviewProps {
   hideFloatingButtonPreview?: boolean;
 }
 
+// Constant ID for form title to prevent regeneration
+const FORM_TITLE_ID = 'form-title-preview-static';
+
 const FormPreview: React.FC<FormPreviewProps> = ({
   formTitle,
   formDescription,
@@ -46,14 +48,15 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   // Process fields for display
   const sanitizedFields = useMemo(() => {
     // First, check if form-title exists
-    const hasTitleField = fields.some(field => field.type === 'form-title');
+    const titleFieldIndex = fields.findIndex(field => field.type === 'form-title');
+    const hasTitleField = titleFieldIndex !== -1;
     let processedFields = [...fields];
     
     // If there's no form title field and it's not hidden, add one
     if (!hasTitleField && !hideHeader) {
       const titleField: FormField = {
         type: 'form-title',
-        id: `form-title-preview`,
+        id: FORM_TITLE_ID,
         label: formTitle,
         helpText: formDescription,
         style: {
@@ -63,7 +66,9 @@ const FormPreview: React.FC<FormPreviewProps> = ({
           fontSize: '24px',
           fontWeight: 'bold',
           descriptionColor: 'rgba(255, 255, 255, 0.9)',
-          descriptionFontSize: '14px'
+          descriptionFontSize: '14px',
+          showTitle: true,
+          showDescription: true
         },
       };
       
@@ -72,16 +77,18 @@ const FormPreview: React.FC<FormPreviewProps> = ({
     } 
     // Update existing title with current values if they differ
     else if (hasTitleField) {
-      processedFields = processedFields.map(field => {
-        if (field.type === 'form-title') {
-          return {
-            ...field,
-            label: field.label || formTitle,
-            helpText: field.helpText || formDescription
-          };
+      // Preserve the existing style properties and visibility settings
+      const existingTitleField = processedFields[titleFieldIndex];
+      processedFields[titleFieldIndex] = {
+        ...existingTitleField,
+        label: existingTitleField.label || formTitle,
+        helpText: existingTitleField.helpText || formDescription,
+        // Preserve existing style properties
+        style: {
+          ...existingTitleField.style,
+          backgroundColor: existingTitleField.style?.backgroundColor || formStyle.primaryColor
         }
-        return field;
-      });
+      };
     }
     
     // Update fields with default values

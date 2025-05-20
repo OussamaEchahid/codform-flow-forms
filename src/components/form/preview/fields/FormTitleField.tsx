@@ -27,8 +27,15 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
     descriptionColor = 'rgba(255, 255, 255, 0.9)',
     descriptionFontSize = '14px',
     borderRadius = formStyle.borderRadius || '8px',
-    paddingY = '16px'
+    paddingY = '16px',
+    showTitle = true, // Default to true if not specified
+    showDescription = true // Default to true if not specified
   } = styles;
+
+  // If both title and description are hidden, don't render anything
+  if (!showTitle && !showDescription) {
+    return null;
+  }
 
   return (
     <div 
@@ -43,24 +50,26 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
       data-field-type="form-title"
       data-field-id={field.id}
     >
-      <h1 
-        style={{
-          color,
-          fontSize,
-          fontWeight,
-          margin: '0',
-          padding: '0'
-        }}
-      >
-        {field.label || ''}
-      </h1>
+      {showTitle && (
+        <h1 
+          style={{
+            color,
+            fontSize,
+            fontWeight,
+            margin: '0',
+            padding: '0'
+          }}
+        >
+          {field.label || ''}
+        </h1>
+      )}
       
-      {field.helpText && (
+      {showDescription && field.helpText && (
         <p 
           style={{
             color: descriptionColor,
             fontSize: descriptionFontSize,
-            margin: '8px 0 0 0',
+            margin: (showTitle ? '8px 0 0 0' : '0'),
             padding: '0'
           }}
         >

@@ -50,6 +50,9 @@ const deepCloneFields = (fields: FormField[]): FormField[] => {
   });
 };
 
+// Constant ID for form title to prevent regeneration
+const FORM_TITLE_ID = 'form-title-static';
+
 const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   formTitle,
   formDescription,
@@ -81,15 +84,30 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     const clonedFields = deepCloneFields(fields);
     
     // Check if we already have a form title field
-    const hasTitleField = clonedFields.some(field => field.type === 'form-title');
+    const titleFieldIndex = clonedFields.findIndex(field => field.type === 'form-title');
+    const hasTitleField = titleFieldIndex !== -1;
     
     let filteredFields = [...clonedFields];
     
-    // Add a form title field if it doesn't exist
-    if (!hasTitleField) {
+    // If there's a title field, just update its properties rather than adding a new one
+    if (hasTitleField) {
+      // Update existing title field with current form title and description
+      // but preserve its other style properties and visibility settings
+      const existingTitleField = filteredFields[titleFieldIndex];
+      filteredFields[titleFieldIndex] = {
+        ...existingTitleField,
+        label: formTitle,
+        helpText: formDescription,
+        style: {
+          ...existingTitleField.style,
+          backgroundColor: existingTitleField.style?.backgroundColor || formStyle.primaryColor
+        }
+      };
+    } else {
+      // Add a new form title field if it doesn't exist
       const titleField: FormField = {
         type: 'form-title',
-        id: `form-title-${Date.now()}`,
+        id: FORM_TITLE_ID,
         label: formTitle,
         helpText: formDescription,
         style: {
@@ -99,28 +117,14 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           fontSize: '24px',
           fontWeight: 'bold',
           descriptionColor: 'rgba(255, 255, 255, 0.9)',
-          descriptionFontSize: '14px'
+          descriptionFontSize: '14px',
+          showTitle: true,
+          showDescription: true
         },
       };
       
       // Add the title field at the beginning
       filteredFields = [titleField, ...filteredFields];
-    } else {
-      // Update existing title field with current form title and description
-      filteredFields = filteredFields.map(field => {
-        if (field.type === 'form-title') {
-          return {
-            ...field,
-            label: formTitle,
-            helpText: formDescription,
-            style: {
-              ...field.style,
-              backgroundColor: field.style?.backgroundColor || formStyle.primaryColor
-            }
-          };
-        }
-        return field;
-      });
     }
     
     // Add default submit button if needed
