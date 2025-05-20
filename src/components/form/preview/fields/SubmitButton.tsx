@@ -1,22 +1,7 @@
 
 import React from 'react';
 import { FormField } from '@/lib/form-utils';
-import { useI18n } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
-import { 
-  ShoppingCart, 
-  ArrowRight, 
-  Check, 
-  Send, 
-  Phone, 
-  Mail, 
-  MessageSquare, 
-  Image, 
-  User, 
-  CreditCard,
-  DollarSign,
-  Truck
-} from 'lucide-react';
 
 interface SubmitButtonProps {
   field: FormField;
@@ -29,145 +14,89 @@ interface SubmitButtonProps {
 }
 
 const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
-  const { language } = useI18n();
-  const style = field.style || {};
-  
-  // Get animation class if set
+  // Extract style values with fallbacks
+  const {
+    backgroundColor = field.style?.backgroundColor || formStyle.primaryColor || '#9b87f5',
+    color = field.style?.color || '#ffffff',
+    fontSize = field.style?.fontSize || formStyle.fontSize || '16px',
+    animation = field.style?.animation || false,
+    animationType = field.style?.animationType || 'pulse',
+    borderRadius = formStyle.borderRadius || '8px',
+    paddingY = field.style?.paddingY || '10px',
+    showIcon = field.style?.showIcon || false,
+    iconPosition = field.style?.iconPosition || 'left',
+    borderColor = field.style?.borderColor,
+    borderWidth = field.style?.borderWidth || '0px',
+  } = field.style || {};
+
+  // Generate animation class based on animation type
   const getAnimationClass = () => {
-    if (style.animation !== true) return '';
+    if (!animation) return '';
     
-    const animationType = style.animationType || 'pulse';
     switch (animationType) {
-      case 'pulse': return 'pulse-animation';
-      case 'shake': return 'shake-animation';
-      case 'bounce': return 'bounce-animation';
-      case 'wiggle': return 'wiggle-animation';
-      case 'flash': return 'flash-animation';
-      default: return '';
+      case 'pulse':
+        return 'pulse-animation';
+      case 'bounce':
+        return 'bounce-animation';
+      case 'shake':
+        return 'shake-animation';
+      case 'wiggle':
+        return 'wiggle-animation';
+      case 'flash':
+        return 'flash-animation';
+      default:
+        return '';
     }
   };
 
-  const animationClass = getAnimationClass();
-  
-  // Default button styling with fixed pixel measurements
-  const buttonStyle: React.CSSProperties = {
-    backgroundColor: style.backgroundColor || formStyle.primaryColor || '#9b87f5',
-    color: style.color || '#ffffff',
-    fontSize: style.fontSize || '18px',
-    fontWeight: style.fontWeight || '600',
-    borderRadius: style.borderRadius || formStyle.borderRadius || '8px',
-    borderColor: style.borderColor || 'transparent',
-    borderWidth: style.borderWidth || '0px',
-    borderStyle: 'solid',
-    padding: '14px 24px',
-    paddingTop: style.paddingY || '14px',
-    paddingBottom: style.paddingY || '14px',
-    paddingLeft: '24px',
-    paddingRight: '24px',
-    width: style.fullWidth === false ? 'auto' : '100%',
-    display: 'flex',
+  // Define button style
+  const btnStyle: React.CSSProperties = {
+    backgroundColor,
+    color,
+    fontSize,
+    borderRadius,
+    padding: `${paddingY} 24px`,
+    border: borderColor ? `${borderWidth} solid ${borderColor}` : 'none',
+    display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
     gap: '8px',
-    fontFamily: style.fontFamily || 'inherit',
     cursor: 'pointer',
-    transition: 'all 0.2s ease',
-    marginTop: '14px',
-    boxShadow: style.boxShadow || '0 2px 4px rgba(0, 0, 0, 0.1)',
-    position: 'relative' as 'relative',
-    overflow: 'hidden',
-    textAlign: 'center'
-  };
-  
-  // Icon rendering with more payment-related options
-  const renderIcon = () => {
-    if (!style.showIcon && !field.icon) return null;
-    
-    // Add specific styling for the icon
-    const iconStyle = {
-      width: '18px',
-      height: '18px',
-      display: 'inline-flex',
-      alignItems: 'center',
-      justifyContent: 'center'
-    };
-    
-    // Return Lucide React icon components
-    const iconName = field.icon?.toLowerCase() || style.icon?.toLowerCase();
-    if (!iconName) return null;
-    
-    switch (iconName) {
-      case 'shopping-cart':
-        return <ShoppingCart size={18} color={style.color || '#ffffff'} style={iconStyle} />;
-      case 'arrow-right':
-        return language === 'ar' ? 
-          <ArrowRight size={18} color={style.color || '#ffffff'} style={{ ...iconStyle, transform: 'scaleX(-1)' }} /> : 
-          <ArrowRight size={18} color={style.color || '#ffffff'} style={iconStyle} />;
-      case 'check':
-        return <Check size={18} color={style.color || '#ffffff'} style={iconStyle} />;
-      case 'send':
-        return <Send size={18} color={style.color || '#ffffff'} style={iconStyle} />;
-      case 'cart':
-      case 'shopping-bag':
-        return <ShoppingCart size={18} color={style.color || '#ffffff'} style={iconStyle} />;
-      case 'phone':
-        return <Phone size={18} color={style.color || '#ffffff'} style={iconStyle} />;
-      case 'mail':
-        return <Mail size={18} color={style.color || '#ffffff'} style={iconStyle} />;
-      case 'message':
-      case 'message-square':
-        return <MessageSquare size={18} color={style.color || '#ffffff'} style={iconStyle} />;
-      case 'image':
-        return <Image size={18} color={style.color || '#ffffff'} style={iconStyle} />;
-      case 'user':
-        return <User size={18} color={style.color || '#ffffff'} style={iconStyle} />;
-      case 'credit-card':
-      case 'payment':
-        return <CreditCard size={18} color={style.color || '#ffffff'} style={iconStyle} />;
-      case 'cash':
-      case 'cash-on-delivery':
-      case 'dollar':
-      case 'dollar-sign':
-        return <DollarSign size={18} color={style.color || '#ffffff'} style={iconStyle} />;
-      case 'delivery':
-      case 'truck':
-        return <Truck size={18} color={style.color || '#ffffff'} style={iconStyle} />;
-      default:
-        return null;
-    }
+    fontWeight: 'bold',
+    textAlign: 'center',
+    transition: 'all 0.2s ease-in-out',
   };
 
-  // Determine the content and order based on icon position
-  const iconPosition = style.iconPosition || (language === 'ar' ? 'right' : 'left');
-  const icon = renderIcon();
-  
+  // Add className for animation
+  const animClass = getAnimationClass();
+
   return (
-    <button
-      type="button"
-      disabled={false}
-      className={cn(
-        "codform-submit-btn", 
-        animationClass,
-      )}
-      style={buttonStyle}
-      dir={language === 'ar' ? 'rtl' : 'ltr'}
-      data-animation-type={style.animationType || 'none'}
-      data-button-style={formStyle.buttonStyle || 'rounded'}
-      data-has-animation={style.animation ? 'true' : 'false'}
-      data-icon-position={iconPosition}
-      data-has-icon={icon ? 'true' : 'false'}
-      data-bg-color={style.backgroundColor || formStyle.primaryColor || '#9b87f5'}
-      data-text-color={style.color || '#ffffff'}
-      data-font-size={style.fontSize || '18px'}
-      data-border-radius={style.borderRadius || formStyle.borderRadius || '8px'}
-      data-border-color={style.borderColor || 'transparent'}
-      data-border-width={style.borderWidth || '0px'}
+    <button 
+      type="button" 
+      className={cn("form-submit-btn w-full", animClass)}
+      style={btnStyle}
     >
-      {iconPosition === 'left' && icon}
-      <span>{field.label || (language === 'ar' ? 'إرسال الطلب' : 'Submit Order')}</span>
-      {iconPosition === 'right' && icon}
+      {showIcon && iconPosition === 'left' && field.icon && (
+        <span className="submit-icon-left">
+          {/* Icon would be rendered here */}
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </span>
+      )}
+      
+      {field.label || 'Submit'}
+      
+      {showIcon && iconPosition === 'right' && field.icon && (
+        <span className="submit-icon-right">
+          {/* Icon would be rendered here */}
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </span>
+      )}
     </button>
   );
 };
 
-export default SubmitButton;
+export default React.memo(SubmitButton);

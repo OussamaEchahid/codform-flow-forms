@@ -15,12 +15,22 @@ export interface FormFieldStyle {
   showTitle?: boolean;
   showDescription?: boolean;
   animation?: boolean;
-  animationType?: 'pulse' | 'bounce' | 'shake';
+  animationType?: 'pulse' | 'bounce' | 'shake' | 'wiggle' | 'flash';
+  borderColor?: string;
+  borderWidth?: string;
+  showLabel?: boolean;
+  labelColor?: string;
+  labelFontSize?: string;
+  labelFontWeight?: string;
+  showIcon?: boolean;
+  iconPosition?: string;
+  fullWidth?: boolean;
+  fontFamily?: string;
   // Add any other style properties you need
   [key: string]: any;
 }
 
-// Add validationRules and settings to the FormField interface
+// Add all needed properties to the FormField interface
 export interface FormField {
   type: string;
   id: string;
@@ -51,6 +61,16 @@ export interface FormField {
   settings?: {
     [key: string]: any;
   };
+  disabled?: boolean;
+  inputFor?: string;
+  errorMessage?: string;
+  content?: string;
+  src?: string;
+  alt?: string;
+  width?: string | number;
+  className?: string;
+  whatsappNumber?: string;
+  message?: string;
 }
 
 export interface FormStep {
@@ -128,3 +148,191 @@ export const deepCloneStep = (step: FormStep): FormStep => {
     fields: step.fields?.map(field => deepCloneField(field)) || []
   };
 };
+
+// Add helper functions for form creation
+export const createEmptyField = (type: string): FormField => {
+  const field: FormField = {
+    id: `field-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    type,
+    label: '',
+    required: false
+  };
+  
+  // Add default properties based on field type
+  switch (type) {
+    case 'form-title':
+      field.label = 'Form Title';
+      field.helpText = 'Form Description';
+      field.style = {
+        backgroundColor: '#9b87f5',
+        color: '#ffffff',
+        textAlign: 'center',
+        showTitle: true,
+        showDescription: true
+      };
+      break;
+    case 'submit':
+      field.label = 'Submit Form';
+      field.style = {
+        backgroundColor: '#9b87f5',
+        color: '#ffffff',
+        animation: true,
+        animationType: 'pulse'
+      };
+      break;
+    case 'text/html':
+      field.content = '<p>HTML Content</p>';
+      break;
+  }
+  
+  return field;
+};
+
+export const createDefaultForm = (): FormStep[] => {
+  return [
+    {
+      id: '1',
+      title: 'Step 1',
+      fields: [
+        createEmptyField('form-title'),
+        createEmptyField('text'),
+        createEmptyField('submit')
+      ]
+    }
+  ];
+};
+
+// Add basic form templates
+export const formTemplates = [
+  {
+    id: 1,
+    title: 'Contact Form',
+    description: 'Basic contact form with name, email and message',
+    data: [
+      {
+        id: '1',
+        title: 'Contact Information',
+        fields: [
+          {
+            id: 'contact-title',
+            type: 'form-title',
+            label: 'Contact Us',
+            helpText: 'Please fill out the form below',
+            style: {
+              backgroundColor: '#9b87f5',
+              color: '#ffffff',
+              textAlign: 'center',
+              showTitle: true,
+              showDescription: true
+            }
+          },
+          {
+            id: 'contact-name',
+            type: 'text',
+            label: 'Name',
+            required: true,
+            icon: 'user'
+          },
+          {
+            id: 'contact-email',
+            type: 'email',
+            label: 'Email',
+            required: true,
+            icon: 'mail'
+          },
+          {
+            id: 'contact-message',
+            type: 'textarea',
+            label: 'Message',
+            required: true,
+            rows: 4
+          },
+          {
+            id: 'contact-submit',
+            type: 'submit',
+            label: 'Send Message',
+            style: {
+              backgroundColor: '#9b87f5',
+              color: '#ffffff',
+              animation: true,
+              animationType: 'pulse'
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: 2,
+    title: 'Order Form',
+    description: 'Product order form with shipping details',
+    data: [
+      {
+        id: '1',
+        title: 'Customer Information',
+        fields: [
+          {
+            id: 'order-title',
+            type: 'form-title',
+            label: 'Place Your Order',
+            helpText: 'Fill out your details below',
+            style: {
+              backgroundColor: '#9b87f5',
+              color: '#ffffff',
+              textAlign: 'center'
+            }
+          },
+          {
+            id: 'order-name',
+            type: 'text',
+            label: 'Full Name',
+            required: true,
+            icon: 'user'
+          },
+          {
+            id: 'order-phone',
+            type: 'phone',
+            label: 'Phone Number',
+            required: true,
+            icon: 'phone'
+          },
+          {
+            id: 'order-address',
+            type: 'textarea',
+            label: 'Shipping Address',
+            required: true,
+            icon: 'map-pin',
+            rows: 3
+          }
+        ]
+      },
+      {
+        id: '2',
+        title: 'Order Details',
+        fields: [
+          {
+            id: 'order-products',
+            type: 'cart-items',
+            label: 'Selected Products'
+          },
+          {
+            id: 'order-summary',
+            type: 'cart-summary',
+            label: 'Order Summary'
+          },
+          {
+            id: 'order-submit',
+            type: 'submit',
+            label: 'Complete Order',
+            style: {
+              backgroundColor: '#9b87f5',
+              color: '#ffffff',
+              animation: true,
+              animationType: 'pulse'
+            }
+          }
+        ]
+      }
+    ]
+  }
+];

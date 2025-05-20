@@ -152,7 +152,10 @@ const FormField = memo(({ field, formStyle }: FormFieldProps) => {
         // Ensure backgroundColor is passed for submit button
         backgroundColor: field.style?.backgroundColor || (
           field.type === 'submit' ? formStyle.primaryColor : undefined
-        )
+        ),
+        // Add border properties if they exist in the field's style
+        borderColor: field.style?.borderColor,
+        borderWidth: field.style?.borderWidth
       }
     };
   }, [field, formStyle]);
@@ -219,6 +222,7 @@ const FormField = memo(({ field, formStyle }: FormFieldProps) => {
     'data-background-color': normalizedField.style?.backgroundColor || (fieldType === 'submit' ? formStyle.primaryColor : undefined),
     'data-border-color': normalizedField.style?.borderColor,
     'data-border-width': normalizedField.style?.borderWidth,
+    'data-content': normalizedField.content ? 'true' : 'false',
   };
 
   // Show warning if type is not supported
