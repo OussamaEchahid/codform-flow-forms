@@ -117,7 +117,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
   const applyTemplate = (templateId: number) => {
     const template = formTemplates.find(t => t.id === templateId);
     if (template) {
-      setFormSteps(template.data);
+      setFormSteps([...template.data]);  // Wrap in array to ensure FormStep[]
       setFormTitle(template.title);
       setFormDescription(template.description);
       setIsTemplateDialogOpen(false);
@@ -236,7 +236,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
       helpText: language === 'ar' ? 'نموذج جديد' : 'New Form',
       style: {
         color: '#ffffff',
-        textAlign: language === 'ar' ? 'right' : 'left',
+        textAlign: language === 'ar' ? 'right' : 'left' as 'right' | 'left',
         fontWeight: 'bold',
         fontSize: '24px',
         descriptionColor: '#ffffff',

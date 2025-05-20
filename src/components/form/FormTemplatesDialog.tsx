@@ -40,7 +40,7 @@ const FormTemplatesDialog: React.FC<FormTemplatesDialogProps> = ({
             >
               <div
                 className="p-4 text-white font-bold"
-                style={{ backgroundColor: template.primaryColor }}
+                style={{ backgroundColor: template.primaryColor || '#9b87f5' }}
               >
                 {template.title}
               </div>

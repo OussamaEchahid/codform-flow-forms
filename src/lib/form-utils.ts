@@ -1,6 +1,9 @@
 
 import { ReactNode } from 'react';
 
+// Define FormFieldType as a string type
+export type FormFieldType = string;
+
 // Extended the FormFieldStyle interface to include all properties
 export interface FormFieldStyle {
   color?: string;
@@ -116,6 +119,11 @@ export const deepCloneField = (field: FormField): FormField => {
   // Deep clone style
   if (field.style) {
     newField.style = { ...field.style };
+    
+    // Ensure textAlign is one of the allowed values
+    if (field.style.textAlign && !['left', 'center', 'right'].includes(field.style.textAlign as string)) {
+      newField.style.textAlign = 'left'; // Default to left if invalid
+    }
   }
   
   // Deep clone options
@@ -208,6 +216,7 @@ export const formTemplates = [
     id: 1,
     title: 'Contact Form',
     description: 'Basic contact form with name, email and message',
+    primaryColor: '#9b87f5',
     data: [
       {
         id: '1',
@@ -266,6 +275,7 @@ export const formTemplates = [
     id: 2,
     title: 'Order Form',
     description: 'Product order form with shipping details',
+    primaryColor: '#9b87f5',
     data: [
       {
         id: '1',

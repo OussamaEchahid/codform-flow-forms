@@ -115,14 +115,14 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     
     // Add title field first
     fields.push({
-      type: 'form-title' as FormFieldType,
+      type: 'form-title',
       id: `form-title-${Date.now()}`,
       label: language === 'ar' ? 'نموذج جديد' : 'New Form',
       helpText: language === 'ar' ? 'نموذج جديد' : 'New Form',
       style: {
         backgroundColor: '#9b87f5',
         color: '#ffffff',
-        textAlign: language === 'ar' ? 'right' : 'center',
+        textAlign: language === 'ar' ? 'right' : 'center' as 'right' | 'center',
         fontSize: '24px',
         fontWeight: 'bold',
         descriptionColor: 'rgba(255, 255, 255, 0.9)',
