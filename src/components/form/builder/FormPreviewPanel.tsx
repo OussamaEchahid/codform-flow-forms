@@ -75,11 +75,21 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     }
   }, [refreshKey, internalRefreshKey]);
   
-  // Process all fields without separating the title field
+  // Process all fields with deep cloning to prevent mutations
   const processedFields = useMemo(() => {
     // Create deep copy of all fields to prevent mutations
     return deepCloneFields(fields);
   }, [fields, internalRefreshKey]);
+  
+  // Find title field if it exists in the processed fields
+  const titleField = useMemo(() => {
+    // Look for a form-title field
+    return processedFields.find(field => field.type === 'form-title');
+  }, [processedFields]);
+  
+  // Use title field data if it exists, otherwise use the form title and description
+  const displayTitle = titleField ? titleField.label : formTitle;
+  const displayDescription = titleField ? titleField.helpText : formDescription;
 
   return (
     <div>
@@ -90,8 +100,8 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
       <div className="border rounded-lg p-3 bg-gray-50">
         <FormPreview 
           key={`preview-${internalRefreshKey}`}
-          formTitle={formTitle}
-          formDescription={formDescription}
+          formTitle={displayTitle}
+          formDescription={displayDescription}
           currentStep={currentStep}
           totalSteps={totalSteps}
           formStyle={formStyle}

@@ -5,7 +5,6 @@ import { useI18n } from '@/lib/i18n';
 import { FormField, FloatingButtonConfig } from '@/lib/form-utils';
 import FormFieldComponent from './preview/FormField';
 import FloatingButton from './preview/FloatingButton';
-import TitleField from './preview/fields/TitleField';
 
 interface FormPreviewProps {
   formTitle: string;
@@ -76,7 +75,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         updatedField.style = {};
       }
 
-      // Specific handling for form-title fields
+      // Special handling for form-title fields
       if (field.type === 'form-title') {
         if (!updatedField.style.backgroundColor) {
           updatedField.style.backgroundColor = formStyle.primaryColor || '#9b87f5';

@@ -4,6 +4,7 @@ import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, Keyboa
 import { SortableContext, sortableKeyboardCoordinates, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { FormField } from '@/lib/form-utils';
 import SortableField from '@/components/form/SortableField';
+import FormTitleEditor from '@/components/form/builder/FormTitleEditor';
 import { useI18n } from '@/lib/i18n';
 
 interface FormElementEditorProps {
@@ -150,15 +151,24 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={elements.map(element => element.id)} strategy={verticalListSortingStrategy}>
           {elements.map((element, index) => (
-            <SortableField 
-              key={element.id} 
-              field={element} 
-              onEdit={() => onEditElement(index)}
-              onDuplicate={() => onDuplicateElement(index)} 
-              onDelete={() => onDeleteElement(index)}
-              onFieldUpdate={(updatedField) => handleElementUpdate(index, updatedField)}
-              disabled={false} // Make ALL fields draggable, including form-title
-            />
+            element.type === 'form-title' ? (
+              <FormTitleEditor
+                key={element.id}
+                field={element}
+                onUpdateField={(updatedField) => handleElementUpdate(index, updatedField)}
+                isDraggable={true}
+              />
+            ) : (
+              <SortableField 
+                key={element.id} 
+                field={element} 
+                onEdit={() => onEditElement(index)}
+                onDuplicate={() => onDuplicateElement(index)} 
+                onDelete={() => onDeleteElement(index)}
+                onFieldUpdate={(updatedField) => handleElementUpdate(index, updatedField)}
+                disabled={false}
+              />
+            )
           ))}
         </SortableContext>
       </DndContext>

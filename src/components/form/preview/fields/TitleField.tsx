@@ -17,17 +17,6 @@ type TextAlign = 'left' | 'center' | 'right' | 'justify';
 // Define valid box-sizing values
 type BoxSizing = 'border-box' | 'content-box' | 'initial' | 'inherit';
 
-// Helper function to convert rem units to px units
-const convertRemToPx = (remValue: string): string => {
-  if (remValue.endsWith('rem')) {
-    // Extract the numeric value from rem
-    const numValue = parseFloat(remValue.replace('rem', ''));
-    // Convert rem to px (1rem = 16px typically)
-    return `${Math.round(numValue * 16)}px`;
-  }
-  return remValue;
-};
-
 // Helper function to ensure value ends with px unit
 const ensurePixelUnit = (value: string): string => {
   if (!value) return '';
@@ -39,7 +28,7 @@ const ensurePixelUnit = (value: string): string => {
   
   // If ends with rem, convert to px
   if (value.endsWith('rem')) {
-    return convertRemToPx(value);
+    return `${Math.round(parseFloat(value.replace('rem', '')) * 16)}px`;
   }
   
   // If already ends with px, return as is

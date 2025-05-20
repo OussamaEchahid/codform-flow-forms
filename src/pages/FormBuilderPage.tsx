@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { AlertCircle, ShoppingBag } from 'lucide-react';
 import { toast } from 'sonner';
 import { shopifySupabase } from '@/lib/shopify/supabase-client';
+import { v4 as uuidv4 } from 'uuid';
 
 const FormBuilderPage = () => {
   const { formId } = useParams();
@@ -69,7 +70,7 @@ const FormBuilderPage = () => {
     }
     
     checkForDefaultForm();
-  }, [shop, getDefaultForm]);
+  }, [shop, getDefaultForm, isCheckingDefaultForm]);
 
   // Fetch associated products for current form
   useEffect(() => {
