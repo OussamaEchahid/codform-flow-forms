@@ -114,7 +114,15 @@ export interface FormField {
     label: string;
   }>;
   
-  // Additional properties needed
+  // Added missing properties causing TypeScript errors
+  validationRules?: {
+    [key: string]: any;
+  };
+  settings?: {
+    [key: string]: any;
+  };
+  
+  // Additional properties
   inputFor?: string;
   errorMessage?: string;
   
