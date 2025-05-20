@@ -62,6 +62,23 @@ interface FormStore {
   updateFloatingButton: (config: any) => void;
 }
 
+const defaultFormStyle: FormStyle = {
+  primaryColor: '#9b87f5', // Default primary color for buttons
+  borderRadius: '1.5rem', // Large border radius by default
+  fontSize: '1rem',
+  buttonStyle: 'rounded',
+  borderColor: '#9b87f5', // Default border color
+  borderWidth: '2px',     // Default border width
+  backgroundColor: '#F9FAFB', // Default form background color - FIXED
+  paddingTop: '20px',
+  paddingBottom: '20px',
+  paddingLeft: '20px',
+  paddingRight: '20px',
+  formGap: '16px',
+  formDirection: 'ltr',
+  floatingLabels: false
+};
+
 const defaultFormState: FormState = {
   id: '',
   title: 'New Form',
@@ -69,45 +86,37 @@ const defaultFormState: FormState = {
   data: [],
   isPublished: false,
   shop_id: undefined,
-  style: {
-    primaryColor: '#9b87f5',
-    borderRadius: '1.5rem', // Large border radius
-    fontSize: '1rem',
-    buttonStyle: 'rounded',
-    // Default values for new styling properties with fixed defaults
-    borderColor: '#9b87f5', // Default purple border color
-    borderWidth: '2px',     // Default border width
-    backgroundColor: '#F9FAFB', // Default background color - FIXED
-    paddingTop: '20px',
-    paddingBottom: '20px',
-    paddingLeft: '20px',
-    paddingRight: '20px',
-    formGap: '16px',
-    formDirection: 'ltr',
-    floatingLabels: false
-  }
+  style: { ...defaultFormStyle }
 };
 
 export const useFormStore = create<FormStore>((set) => ({
   formState: {...defaultFormState},
-  setFormState: (form) => set((state) => ({ 
-    formState: { 
-      ...state.formState, 
-      ...form,
-      // CRITICAL FIX: Ensure style properties maintain their default values
-      style: form.style ? {
-        ...defaultFormState.style,
-        ...state.formState.style,
+  setFormState: (form) => set((state) => {
+    // Handle style updates separately to ensure defaults are preserved
+    let updatedStyle = state.formState.style || { ...defaultFormStyle };
+    
+    // If form contains style updates, merge them properly
+    if (form.style) {
+      updatedStyle = {
+        ...updatedStyle,
         ...form.style,
-        // ALWAYS maintain the default background color regardless of what's passed
-        backgroundColor: form.style.backgroundColor || state.formState.style?.backgroundColor || '#F9FAFB',
-        // Ensure these default values are always preserved
-        borderColor: form.style.borderColor || state.formState.style?.borderColor || '#9b87f5',
-        borderWidth: form.style.borderWidth || state.formState.style?.borderWidth || '2px',
-        borderRadius: form.style.borderRadius || state.formState.style?.borderRadius || '1.5rem',
-      } : state.formState.style
-    } 
-  })),
+        // ALWAYS maintain the fixed default values regardless of what's passed
+        backgroundColor: form.style.backgroundColor || updatedStyle.backgroundColor || defaultFormStyle.backgroundColor,
+        borderColor: form.style.borderColor || updatedStyle.borderColor || defaultFormStyle.borderColor,
+        borderWidth: form.style.borderWidth || updatedStyle.borderWidth || defaultFormStyle.borderWidth,
+        borderRadius: form.style.borderRadius || updatedStyle.borderRadius || defaultFormStyle.borderRadius,
+      };
+    }
+    
+    return {
+      formState: {
+        ...state.formState,
+        ...form,
+        // Use the properly merged style
+        style: updatedStyle
+      }
+    };
+  }),
   resetFormState: () => set({ formState: {...defaultFormState} }),
   
   // Initialize floating button configuration with all required properties

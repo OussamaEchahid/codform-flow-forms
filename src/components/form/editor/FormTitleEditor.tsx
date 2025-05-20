@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
@@ -78,18 +79,13 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
   }, [initialStyle, primaryColor, borderRadius, title, description, language]);
 
   const handleStyleChange = (property: string, value: string | boolean) => {
-    const newStyle = {
+    setStyle({
       ...style,
       [property]: value
-    };
-    setStyle(newStyle);
+    });
     
-    // CRITICAL FIX: NEVER update global backgroundColor when changing title background
-    // This ensures complete separation between title and form styling
-    if (property === 'backgroundColor' && updateGlobalStyle && typeof value === 'string') {
-      // Only update the primaryColor for buttons and other elements, but NOT the form background
-      updateGlobalStyle('primaryColor', value);
-    }
+    // CRITICAL FIX: Do NOT update ANY global styles when changing title styles
+    // This completely isolates title styling from form styling
   };
 
   const handleSave = () => {
@@ -98,10 +94,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
     // Save the field-specific style and title/description
     onSave(currentTitle, currentDescription, updatedStyle);
     
-    // IMPORTANT: ONLY update primaryColor, NEVER the form's backgroundColor
-    if (updateGlobalStyle && style.backgroundColor) {
-      updateGlobalStyle('primaryColor', style.backgroundColor);
-    }
+    // IMPORTANT: Do NOT update any global styles from here
     
     toast({
       description: language === 'ar' 

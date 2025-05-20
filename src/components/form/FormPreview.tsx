@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
@@ -124,7 +123,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
           label: formTitle || '',
           helpText: formDescription || '',
           style: {
-            // IMPORTANT: Use primaryColor for title, NOT form's backgroundColor
+            // IMPORTANT: Use primaryColor for title background, not form's background color
             backgroundColor: formStyle.primaryColor || '#9b87f5',
             color: '#ffffff',
             textAlign: language === 'ar' ? 'right' : 'center',
@@ -207,8 +206,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   // Determine the form direction, prioritizing formStyle.formDirection, then language
   const formDirection = formStyle.formDirection || (language === 'ar' ? 'rtl' : 'ltr');
   
-  // IMPORTANT: We need to separate the form background color from the title background color
-  // Always use the formStyle.backgroundColor or a default value
+  // IMPORTANT: Ensure form background color is always #F9FAFB by default
   const formBackgroundColor = formStyle.backgroundColor || '#F9FAFB'; 
   
   return (
@@ -218,7 +216,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         fontSize: formStyle.fontSize,
         '--form-primary-color': formStyle.primaryColor,
         borderRadius: formStyle.borderRadius,
-        backgroundColor: formBackgroundColor, // Use the form's background color
+        backgroundColor: formBackgroundColor, // Always use the form's background color
         border: `${formStyle.borderWidth || '2px'} solid ${formStyle.borderColor || '#9b87f5'}`,
         padding: '0',
       } as React.CSSProperties}

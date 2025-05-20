@@ -39,8 +39,9 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
     return null;
   }
   
-  // CRITICAL FIX: Always use the field's own backgroundColor and NEVER use formStyle.backgroundColor
-  // This ensures complete separation between title and form background colors
+  // CRITICAL: Use field's own backgroundColor for title background
+  // If not defined, fall back to formStyle.primaryColor (button color)
+  // This ensures complete separation between title background and form background
   const titleBackgroundColor = styles.backgroundColor || formStyle.primaryColor || '#9b87f5';
   
   // Extract all style properties with fallbacks
@@ -140,7 +141,6 @@ export default React.memo(FormTitleField, (prevProps, nextProps) => {
     prevStyle.borderRadius === nextStyle.borderRadius &&
     prevStyle.borderColor === nextStyle.borderColor &&
     prevStyle.borderWidth === nextStyle.borderWidth &&
-    // IMPORTANT: Remove comparison of backgroundColor to prevent unnecessary re-renders
     prevStyle.formDirection === nextStyle.formDirection
   );
 });
