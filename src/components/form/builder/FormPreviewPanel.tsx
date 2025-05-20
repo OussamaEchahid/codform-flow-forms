@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useMemo } from 'react';
 import { FormField, FloatingButtonConfig } from '@/lib/form-utils';
 import FormPreview from '@/components/form/FormPreview';
@@ -114,7 +115,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
       return false;
     });
     
-    // If we don't have any title field, create one
+    // If we don't have any title field, create one with preserved styles
     if (!titleField) {
       const newTitleField: FormField = {
         type: 'form-title',
@@ -139,7 +140,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     } 
     // If we have a title field but it doesn't have the standard ID
     else if (titleField && titleField.id !== FORM_TITLE_ID) {
-      // Create a new title field with standard ID but preserve all other properties
+      // Create a new title field with standard ID but preserve all other properties and style
       const standardizedTitle: FormField = {
         ...titleField,
         id: FORM_TITLE_ID,
@@ -153,6 +154,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
       filteredFields = [standardizedTitle, ...filteredFields];
     }
     // If we have a title field with the standard ID, update its label and description
+    // but preserve all style settings to prevent style loss on refresh
     else if (titleFieldById) {
       const titleIndex = filteredFields.findIndex(field => field.id === FORM_TITLE_ID);
       if (titleIndex !== -1) {
@@ -160,6 +162,12 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           ...filteredFields[titleIndex],
           label: formTitle || filteredFields[titleIndex].label || '',
           helpText: formDescription || filteredFields[titleIndex].helpText || '',
+          // Critical: Preserve all existing style properties and only update if undefined
+          style: {
+            ...filteredFields[titleIndex].style,
+            // Only apply formStyle.primaryColor if no backgroundColor is set in the field's style
+            backgroundColor: filteredFields[titleIndex].style?.backgroundColor || formStyle.primaryColor || '#9b87f5',
+          }
         };
       }
     }

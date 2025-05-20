@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
@@ -159,14 +160,20 @@ const FormPreview: React.FC<FormPreviewProps> = ({
       return [standardizedTitle, ...fieldsWithoutTitle];
     }
     
-    // For cases where title field exists with correct ID
+    // For cases where title field exists with correct ID, preserve its style properties
     return clonedFields.map(field => {
-      // If it's the title field with the correct ID, update label and helpText
+      // If it's the title field with the correct ID, update label and helpText but preserve style
       if (field.type === 'form-title' && field.id === FORM_TITLE_ID) {
         return {
           ...field,
           label: formTitle || field.label || '',
-          helpText: formDescription || field.helpText || ''
+          helpText: formDescription || field.helpText || '',
+          // Important: preserve existing style properties
+          style: {
+            ...field.style,
+            // Only use default if style or backgroundColor doesn't exist
+            backgroundColor: field.style?.backgroundColor || formStyle.primaryColor,
+          }
         };
       }
       // Keep all other fields unchanged

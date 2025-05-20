@@ -16,10 +16,11 @@ interface FormTitleFieldProps {
 const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => {
   const { language } = useI18n();
   
-  // Extract style properties or use defaults
+  // Extract style properties or use defaults, prioritizing field-specific styles
   const styles = field.style || {};
   const {
-    backgroundColor = formStyle.primaryColor || '#9b87f5',
+    // Important: Use field's backgroundColor first, then fall back to formStyle
+    backgroundColor = styles.backgroundColor || formStyle.primaryColor || '#9b87f5',
     color = '#ffffff',
     textAlign = language === 'ar' ? 'right' : 'center',
     fontSize = '24px',
@@ -37,6 +38,11 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
   if (showTitle === false && showDescription === false) {
     return null;
   }
+  
+  // Log actual background color being used for debugging
+  console.debug('FormTitleField rendered with backgroundColor:', backgroundColor, 
+    'Field style:', field.style?.backgroundColor, 
+    'Form style:', formStyle.primaryColor);
 
   return (
     <div 
@@ -50,6 +56,7 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
       }}
       data-field-type="form-title"
       data-field-id={field.id}
+      data-bg-color={backgroundColor} // For debugging
     >
       {showTitle && (
         <h1 
