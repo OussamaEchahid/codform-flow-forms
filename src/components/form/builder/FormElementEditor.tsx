@@ -32,7 +32,7 @@ const deepCopyElement = (element: FormField): FormField => {
     copy.style = { ...element.style };
   }
   
-  // Deep copy options array if it exists
+  // Deep clone options array if it exists
   if (element.options && Array.isArray(element.options)) {
     copy.options = element.options.map(option => ({ ...option }));
   }
@@ -157,7 +157,7 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
               onDuplicate={() => onDuplicateElement(index)} 
               onDelete={() => onDeleteElement(index)}
               onFieldUpdate={(updatedField) => handleElementUpdate(index, updatedField)}
-              disabled={false} // We now allow all fields to be dragged, including form-title
+              disabled={false} // Make ALL fields draggable, including form-title
             />
           ))}
         </SortableContext>

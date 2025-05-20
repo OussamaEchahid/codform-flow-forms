@@ -25,12 +25,12 @@ interface FormPreviewPanelProps {
   hideFloatingButtonPreview?: boolean;
 }
 
-// Deep clone function that preserves field IDs
+// Deep clone function that preserves field IDs and all properties
 const deepCloneFields = (fields: FormField[]): FormField[] => {
   if (!fields) return [];
   
   return fields.map(field => {
-    // Start with a complete copy of all properties
+    // Create a complete copy of all properties
     const newField = { ...field };
     
     // Always preserve the exact ID
@@ -75,45 +75,11 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     }
   }, [refreshKey, internalRefreshKey]);
   
-  // Process all fields - no longer separating the title field
+  // Process all fields without separating the title field
   const processedFields = useMemo(() => {
-    // Create deep copy of fields to prevent mutations
+    // Create deep copy of all fields to prevent mutations
     return deepCloneFields(fields);
   }, [fields, internalRefreshKey]);
-
-  // Find title field from all fields
-  const titleField = useMemo(() => {
-    return fields.find(field => field.type === 'form-title');
-  }, [fields, internalRefreshKey]);
-
-  // Extract title field information
-  const titleFieldInfo = useMemo(() => {
-    if (titleField) {
-      return {
-        title: titleField.label || formTitle,
-        description: titleField.helpText || formDescription,
-        backgroundColor: titleField.style?.backgroundColor || formStyle.primaryColor,
-        textColor: titleField.style?.color || '#ffffff',
-        descriptionColor: titleField.style?.descriptionColor || 'rgba(255, 255, 255, 0.9)',
-        textAlign: titleField.style?.textAlign as 'left' | 'center' | 'right' | 'justify' | undefined,
-        fontSize: titleField.style?.fontSize || '24px',
-        descriptionFontSize: titleField.style?.descriptionFontSize || '14px',
-        id: titleField.id
-      };
-    }
-    
-    // If no title field is found, use the default values
-    return {
-      title: formTitle,
-      description: formDescription,
-      backgroundColor: formStyle.primaryColor,
-      textColor: '#ffffff',
-      descriptionColor: 'rgba(255, 255, 255, 0.9)',
-      textAlign: language === 'ar' ? 'right' : 'left' as 'left' | 'right',
-      fontSize: '24px',
-      descriptionFontSize: '14px'
-    };
-  }, [titleField, formTitle, formDescription, formStyle.primaryColor, language]);
 
   return (
     <div>
@@ -129,10 +95,9 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           currentStep={currentStep}
           totalSteps={totalSteps}
           formStyle={formStyle}
-          fields={processedFields.filter(field => field.type !== 'form-title')}
+          fields={processedFields}
           floatingButton={floatingButton}
           hideFloatingButtonPreview={hideFloatingButtonPreview}
-          titleFieldInfo={titleFieldInfo}
         >
           <div></div>
         </FormPreview>

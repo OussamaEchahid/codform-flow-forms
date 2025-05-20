@@ -7,19 +7,6 @@ import FormFieldComponent from './preview/FormField';
 import FloatingButton from './preview/FloatingButton';
 import TitleField from './preview/fields/TitleField';
 
-interface TitleFieldInfo {
-  title: string;
-  description?: string;
-  backgroundColor?: string;
-  textColor?: string;
-  descriptionColor?: string;
-  textAlign?: 'left' | 'center' | 'right' | 'justify';
-  fontSize?: string;
-  descriptionFontSize?: string;
-  borderRadius?: string;
-  id?: string;
-}
-
 interface FormPreviewProps {
   formTitle: string;
   formDescription?: string;
@@ -36,7 +23,6 @@ interface FormPreviewProps {
   hideHeader?: boolean;
   floatingButton?: FloatingButtonConfig;
   hideFloatingButtonPreview?: boolean;
-  titleFieldInfo?: TitleFieldInfo;
 }
 
 const FormPreview: React.FC<FormPreviewProps> = ({
@@ -55,7 +41,6 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   hideHeader = false,
   floatingButton,
   hideFloatingButtonPreview = false,
-  titleFieldInfo
 }) => {
   const { language } = useI18n();
   
@@ -89,6 +74,19 @@ const FormPreview: React.FC<FormPreviewProps> = ({
       // Ensure basic style properties exist
       if (!updatedField.style) {
         updatedField.style = {};
+      }
+
+      // Specific handling for form-title fields
+      if (field.type === 'form-title') {
+        if (!updatedField.style.backgroundColor) {
+          updatedField.style.backgroundColor = formStyle.primaryColor || '#9b87f5';
+        }
+        if (!updatedField.style.color) {
+          updatedField.style.color = '#ffffff';
+        }
+        if (!updatedField.style.descriptionColor) {
+          updatedField.style.descriptionColor = 'rgba(255, 255, 255, 0.9)';
+        }
       }
       
       // Normalize font sizes to pixels
@@ -140,28 +138,6 @@ const FormPreview: React.FC<FormPreviewProps> = ({
     
     return result;
   }, [fields, language, formStyle.primaryColor]);
-  
-  // Create title field for rendering if needed
-  const titleField = useMemo(() => {
-    if (!titleFieldInfo) return null;
-    
-    // Create a standard form field from title info
-    return {
-      type: 'form-title' as const,
-      id: titleFieldInfo.id || 'form-title-default',
-      label: titleFieldInfo.title,
-      helpText: titleFieldInfo.description,
-      style: {
-        color: titleFieldInfo.textColor || '#ffffff',
-        backgroundColor: titleFieldInfo.backgroundColor || formStyle.primaryColor || '#9b87f5',
-        textAlign: titleFieldInfo.textAlign,
-        fontSize: titleFieldInfo.fontSize || '24px',
-        fontWeight: 'bold',
-        descriptionColor: titleFieldInfo.descriptionColor || 'rgba(255, 255, 255, 0.9)',
-        descriptionFontSize: titleFieldInfo.descriptionFontSize || '14px'
-      }
-    } as FormField;
-  }, [titleFieldInfo, formStyle.primaryColor]);
   
   return (
     <div 
@@ -226,11 +202,6 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         }}
         data-direction={language === 'ar' ? 'rtl' : 'ltr'}
       >
-        {/* Render title field using the TitleField component directly */}
-        {titleField && (
-          <TitleField field={titleField} formStyle={formStyle} />
-        )}
-        
         {sanitizedFields.length > 0 ? (
           <div className="space-y-4">
             {sanitizedFields.map(field => (
