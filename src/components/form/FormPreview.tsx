@@ -5,7 +5,7 @@ import { useI18n } from '@/lib/i18n';
 import { FormField, FloatingButtonConfig } from '@/lib/form-utils';
 import FormFieldComponent from './preview/FormField';
 import FloatingButton from './preview/FloatingButton';
-import StableFormTitle from './preview/fields/StableFormTitle';
+import TitleField from './preview/fields/TitleField';
 
 interface TitleFieldInfo {
   title: string;
@@ -141,17 +141,27 @@ const FormPreview: React.FC<FormPreviewProps> = ({
     return result;
   }, [fields, language, formStyle.primaryColor]);
   
-  // Get title field information
-  const titleInfo = titleFieldInfo || {
-    title: formTitle,
-    description: formDescription,
-    backgroundColor: formStyle.primaryColor,
-    textColor: '#ffffff',
-    descriptionColor: 'rgba(255, 255, 255, 0.9)',
-    textAlign: language === 'ar' ? 'right' : 'left',
-    fontSize: '24px',
-    descriptionFontSize: '14px'
-  };
+  // Create title field for rendering if needed
+  const titleField = useMemo(() => {
+    if (!titleFieldInfo) return null;
+    
+    // Create a standard form field from title info
+    return {
+      type: 'form-title' as const,
+      id: titleFieldInfo.id || 'form-title-default',
+      label: titleFieldInfo.title,
+      helpText: titleFieldInfo.description,
+      style: {
+        color: titleFieldInfo.textColor || '#ffffff',
+        backgroundColor: titleFieldInfo.backgroundColor || formStyle.primaryColor || '#9b87f5',
+        textAlign: titleFieldInfo.textAlign,
+        fontSize: titleFieldInfo.fontSize || '24px',
+        fontWeight: 'bold',
+        descriptionColor: titleFieldInfo.descriptionColor || 'rgba(255, 255, 255, 0.9)',
+        descriptionFontSize: titleFieldInfo.descriptionFontSize || '14px'
+      }
+    } as FormField;
+  }, [titleFieldInfo, formStyle.primaryColor]);
   
   return (
     <div 
@@ -216,19 +226,10 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         }}
         data-direction={language === 'ar' ? 'rtl' : 'ltr'}
       >
-        {/* Render the stable form title component */}
-        <StableFormTitle
-          title={titleInfo.title}
-          description={titleInfo.description}
-          backgroundColor={titleInfo.backgroundColor}
-          textColor={titleInfo.textColor}
-          descriptionColor={titleInfo.descriptionColor}
-          textAlign={titleInfo.textAlign}
-          fontSize={titleInfo.fontSize}
-          descriptionFontSize={titleInfo.descriptionFontSize}
-          borderRadius={formStyle.borderRadius}
-          id={titleInfo.id}
-        />
+        {/* Render title field using the TitleField component directly */}
+        {titleField && (
+          <TitleField field={titleField} formStyle={formStyle} />
+        )}
         
         {sanitizedFields.length > 0 ? (
           <div className="space-y-4">

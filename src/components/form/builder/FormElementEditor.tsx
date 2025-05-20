@@ -17,7 +17,7 @@ interface FormElementEditorProps {
   onUpdateElement?: (index: number, updatedElement: FormField) => void;
 }
 
-// Deep copy function that preserves IDs
+// Deep copy function that preserves all field properties and IDs
 const deepCopyElement = (element: FormField): FormField => {
   if (!element) return element;
   
@@ -73,7 +73,7 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
     const newIndex = elements.findIndex(item => item.id === over.id);
     
     if (onReorderElements && oldIndex !== -1 && newIndex !== -1) {
-      // Create exact deep copies of each element
+      // Create exact deep copies of each element to prevent mutations
       const newElementsArray = elements.map(element => deepCopyElement(element));
       
       // Use arrayMove to reorder elements
@@ -84,7 +84,7 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
     }
   }, [elements, onReorderElements]);
   
-  // Handle element updates
+  // Handle element updates with improved field preservation
   const handleElementUpdate = useCallback((index: number, field: FormField) => {
     if (index < 0 || index >= elements.length) {
       console.error(`Invalid element index: ${index}`);
@@ -96,6 +96,21 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
     
     // Preserve the original ID
     updatedField.id = elements[index].id;
+    
+    // Special handling for form-title field to preserve styling
+    if (updatedField.type === 'form-title') {
+      if (!updatedField.style) {
+        updatedField.style = {};
+      }
+      
+      // Ensure title field styles have defaults
+      updatedField.style.backgroundColor = updatedField.style.backgroundColor || '#9b87f5';
+      updatedField.style.color = updatedField.style.color || '#ffffff';
+      updatedField.style.descriptionColor = updatedField.style.descriptionColor || 'rgba(255, 255, 255, 0.9)';
+      updatedField.style.fontSize = updatedField.style.fontSize || '24px';
+      updatedField.style.descriptionFontSize = updatedField.style.descriptionFontSize || '14px';
+      updatedField.style.fontWeight = updatedField.style.fontWeight || 'bold';
+    }
     
     // Special handling for submit button
     if (updatedField.type === 'submit') {
@@ -142,7 +157,7 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
               onDuplicate={() => onDuplicateElement(index)} 
               onDelete={() => onDeleteElement(index)}
               onFieldUpdate={(updatedField) => handleElementUpdate(index, updatedField)}
-              disabled={element.type === 'form-title'} 
+              disabled={false} // We now allow all fields to be dragged, including form-title
             />
           ))}
         </SortableContext>

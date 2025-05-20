@@ -75,25 +75,19 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     }
   }, [refreshKey, internalRefreshKey]);
   
-  // Process fields - separate form title from regular fields
+  // Process all fields - no longer separating the title field
   const processedFields = useMemo(() => {
     // Create deep copy of fields to prevent mutations
-    let clonedFields = deepCloneFields(fields);
-    
-    // Check if fields exist
-    if (!clonedFields || clonedFields.length === 0) {
-      return [];
-    }
-    
-    // Remove any form-title fields (handled separately)
-    return clonedFields.filter(field => field.type !== 'form-title');
+    return deepCloneFields(fields);
   }, [fields, internalRefreshKey]);
 
-  // Extract title field information - this is critical for maintaining title settings
+  // Find title field from all fields
+  const titleField = useMemo(() => {
+    return fields.find(field => field.type === 'form-title');
+  }, [fields, internalRefreshKey]);
+
+  // Extract title field information
   const titleFieldInfo = useMemo(() => {
-    // Important: Look for a title field first
-    const titleField = fields.find(f => f.type === 'form-title');
-    
     if (titleField) {
       return {
         title: titleField.label || formTitle,
@@ -119,7 +113,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
       fontSize: '24px',
       descriptionFontSize: '14px'
     };
-  }, [fields, formTitle, formDescription, formStyle.primaryColor, language]);
+  }, [titleField, formTitle, formDescription, formStyle.primaryColor, language]);
 
   return (
     <div>
@@ -135,7 +129,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           currentStep={currentStep}
           totalSteps={totalSteps}
           formStyle={formStyle}
-          fields={processedFields}
+          fields={processedFields.filter(field => field.type !== 'form-title')}
           floatingButton={floatingButton}
           hideFloatingButtonPreview={hideFloatingButtonPreview}
           titleFieldInfo={titleFieldInfo}

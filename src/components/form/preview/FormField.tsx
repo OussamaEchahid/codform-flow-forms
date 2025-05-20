@@ -118,11 +118,6 @@ const FormField = memo(({ field, formStyle }: FormFieldProps) => {
     return null;
   }
 
-  // Skip form-title fields since they're now handled separately
-  if (field.type === 'form-title') {
-    return null;
-  }
-
   // Create a deep clone of the field to prevent unintended mutations
   const clonedField = deepCloneField(field);
   
@@ -144,8 +139,10 @@ const FormField = memo(({ field, formStyle }: FormFieldProps) => {
         labelColor: field.style?.labelColor || '#333',
         labelFontSize: field.style?.labelFontSize || formStyle.fontSize || '16px',
         labelFontWeight: field.style?.labelFontWeight || '600',
-        // Ensure backgroundColor is passed for submit button
-        backgroundColor: field.style?.backgroundColor || (field.type === 'submit' ? formStyle.primaryColor : undefined)
+        // Ensure backgroundColor is passed for submit button and form-title
+        backgroundColor: field.style?.backgroundColor || (
+          (field.type === 'submit' || field.type === 'form-title') ? formStyle.primaryColor : undefined
+        )
       }
     };
   }, [field, formStyle]);
@@ -173,7 +170,7 @@ const FormField = memo(({ field, formStyle }: FormFieldProps) => {
     'radio': RadioGroup,
     'checkbox': CheckboxGroup,
     'title': TitleField,
-    'form-title': TitleField,
+    'form-title': TitleField, // Form-title now uses TitleField component
     'text/html': HtmlContent,
     'cart-items': CartItems,
     'cart-summary': CartSummary,
