@@ -6,7 +6,7 @@ import { FormField } from '@/lib/form-utils';
 import SortableField from '@/components/form/SortableField';
 import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
-import { Edit, Palette } from 'lucide-react';
+import { Edit } from 'lucide-react';
 import FormTitleEditor from '../editor/FormTitleEditor';
 
 // Constant ID for form title to match across components
@@ -32,12 +32,12 @@ interface FormElementEditorProps {
   onTitleUpdate: (title: string, description: string, style: any) => void;
 }
 
-// Improved deep copy function that preserves all field properties and IDs
+// Improved deep copy function with proper TypeScript support
 const deepCopyElement = (element: FormField): FormField => {
   if (!element) return element;
   
   // Create a complete copy of all properties
-  const copy = { ...element };
+  const copy: FormField = { ...element };
   
   // Preserve the ID exactly as it was
   copy.id = element.id;
@@ -115,23 +115,28 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
       return;
     }
     
-    // Filter out the form-title field before handling the reordering
-    const elementsWithoutTitle = elements.filter(element => element.type !== 'form-title');
+    // Filter out form-title fields before handling reordering
+    const reorderableElements = elements.filter(element => element.type !== 'form-title' || element.id !== FORM_TITLE_ID);
     
-    const oldIndex = elementsWithoutTitle.findIndex(item => item.id === active.id);
-    const newIndex = elementsWithoutTitle.findIndex(item => item.id === over.id);
+    const oldIndex = reorderableElements.findIndex(item => item.id === active.id);
+    const newIndex = reorderableElements.findIndex(item => item.id === over.id);
     
     if (onReorderElements && oldIndex !== -1 && newIndex !== -1) {
       // Create exact deep copies of each element to prevent mutations
-      const newElementsArray = elementsWithoutTitle.map(element => deepCopyElement(element));
+      const newElementsArray = reorderableElements.map(element => deepCopyElement(element));
       
       // Use arrayMove to reorder elements
       const reorderedElements = arrayMove(newElementsArray, oldIndex, newIndex);
       
-      // Trigger the parent's reorder callback - title field handled separately
+      // If we have a title field, add it back at the beginning
+      if (titleField) {
+        reorderedElements.unshift(deepCopyElement(titleField));
+      }
+      
+      // Trigger the parent's reorder callback
       onReorderElements(reorderedElements);
     }
-  }, [elements, onReorderElements]);
+  }, [elements, onReorderElements, titleField]);
   
   // Handle element updates with improved field preservation
   const handleElementUpdate = useCallback((index: number, field: FormField) => {
@@ -141,15 +146,18 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
     }
     
     // Skip title field in direct element updates - it has its own flow
-    if (elements[index].type === 'form-title') {
+    if (elements[index].type === 'form-title' && elements[index].id === FORM_TITLE_ID) {
       return;
     }
     
     // Create deep copy to avoid modifying the original element
     const updatedField = deepCopyElement(field);
     
-    // Preserve the original ID
-    updatedField.id = elements[index].id;
+    // Ensure all fields have an id
+    if (!updatedField.id) {
+      console.error('Field is missing ID property:', updatedField);
+      return;
+    }
     
     // Notify parent component about the update
     if (onUpdateElement) {
@@ -179,8 +187,8 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
     setIsTitleEditorOpen(false);
   };
   
-  // Filter out any form-title fields for the sortable list
-  const sortableElements = elements.filter(element => element.type !== 'form-title');
+  // Filter out title field to get sortable elements
+  const sortableElements = elements.filter(element => element.type !== 'form-title' || element.id !== FORM_TITLE_ID);
   
   return (
     <div className="space-y-4">
@@ -212,15 +220,17 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
               borderRadius: formStyle.borderRadius
             }}
           >
-            <h3 style={{ 
-              color: titleFieldStyle.color || '#ffffff',
-              fontSize: titleFieldStyle.fontSize || '24px', 
-              fontWeight: (titleFieldStyle.fontWeight as any) || 'bold',
-              margin: 0
-            }}>
-              {formTitle}
-            </h3>
-            {formDescription && (
+            {(titleFieldStyle.showTitle !== false) && (
+              <h3 style={{ 
+                color: titleFieldStyle.color || '#ffffff',
+                fontSize: titleFieldStyle.fontSize || '24px', 
+                fontWeight: (titleFieldStyle.fontWeight as any) || 'bold',
+                margin: 0
+              }}>
+                {formTitle || (language === 'ar' ? 'عنوان النموذج' : 'Form Title')}
+              </h3>
+            )}
+            {(titleFieldStyle.showDescription !== false) && formDescription && (
               <p style={{ 
                 color: titleFieldStyle.descriptionColor || 'rgba(255, 255, 255, 0.9)',
                 fontSize: titleFieldStyle.descriptionFontSize || '14px',

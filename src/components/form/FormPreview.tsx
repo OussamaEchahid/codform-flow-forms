@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
@@ -27,13 +26,13 @@ interface FormPreviewProps {
 // Constant ID for form title to prevent regeneration - must match FormPreviewPanel
 const FORM_TITLE_ID = 'form-title-static';
 
-// Improved deep clone function to ensure ALL field properties and IDs are preserved exactly
+// Improved deep clone function with proper TypeScript support
 const deepCloneFields = (fields: FormField[]): FormField[] => {
   if (!fields) return [];
   
   return fields.map(field => {
     // Create a complete copy of all properties
-    const newField = { ...field };
+    const newField: FormField = { ...field };
     
     // Always preserve the exact ID to maintain field identity
     newField.id = field.id;
@@ -88,18 +87,19 @@ const FormPreview: React.FC<FormPreviewProps> = ({
     
     // Check if we already have a form-title field with the correct ID
     const hasTitleField = clonedFields.some(field => field.id === FORM_TITLE_ID);
+    const existingTitleField = clonedFields.find(field => field.type === 'form-title');
     
     // If fields array is empty or doesn't have a title field, create default title and submit fields
-    if (clonedFields.length === 0 || !hasTitleField) {
+    if (clonedFields.length === 0 || (!hasTitleField && !existingTitleField)) {
       const fieldsToCreate = [];
       
       // Only create a title field if we don't have one
-      if (!hasTitleField) {
+      if (!hasTitleField && !existingTitleField) {
         const titleField: FormField = {
           type: 'form-title',
           id: FORM_TITLE_ID,
-          label: formTitle,
-          helpText: formDescription,
+          label: formTitle || '',
+          helpText: formDescription || '',
           style: {
             backgroundColor: formStyle.primaryColor || '#9b87f5',
             color: '#ffffff',
@@ -141,13 +141,35 @@ const FormPreview: React.FC<FormPreviewProps> = ({
       return fieldsToCreate;
     }
     
-    // If we have fields and a title field, ensure all fields preserve their exact IDs
+    // Critical fix: If we have an existing form-title but not with the standard ID,
+    // preserve its properties but assign the static ID
+    if (!hasTitleField && existingTitleField) {
+      // First remove all form-title fields to avoid duplicates
+      const fieldsWithoutTitle = clonedFields.filter(field => field.type !== 'form-title');
+      
+      // Create a new title field with stable ID but preserve all other properties
+      const standardizedTitle: FormField = {
+        ...existingTitleField,
+        id: FORM_TITLE_ID,
+        label: formTitle || existingTitleField.label || '',
+        helpText: formDescription || existingTitleField.helpText || '',
+      };
+      
+      // Return fields with standardized title at the beginning
+      return [standardizedTitle, ...fieldsWithoutTitle];
+    }
+    
+    // For cases where title field exists with correct ID
     return clonedFields.map(field => {
-      // Special handling only for form-title to ensure it has the correct ID
-      if (field.type === 'form-title' && field.id !== FORM_TITLE_ID) {
-        return { ...field, id: FORM_TITLE_ID };
+      // If it's the title field with the correct ID, update label and helpText
+      if (field.type === 'form-title' && field.id === FORM_TITLE_ID) {
+        return {
+          ...field,
+          label: formTitle || field.label || '',
+          helpText: formDescription || field.helpText || ''
+        };
       }
-      // For all other fields, preserve them exactly as they are
+      // Keep all other fields unchanged
       return field;
     });
   }, [fields, language, formStyle.primaryColor, formTitle, formDescription]);

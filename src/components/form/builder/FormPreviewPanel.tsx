@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useMemo } from 'react';
 import { FormField, FloatingButtonConfig } from '@/lib/form-utils';
 import FormPreview from '@/components/form/FormPreview';
@@ -28,13 +27,13 @@ interface FormPreviewPanelProps {
 // Constant ID for form title - must match FormPreview
 const FORM_TITLE_ID = 'form-title-static';
 
-// Improved deep clone function that ensures ALL field IDs are preserved exactly as they are
+// Improved deep clone function with proper TypeScript support
 const deepCloneFields = (fields: FormField[]): FormField[] => {
   if (!fields) return [];
   
   return fields.map(field => {
     // Create a complete copy of all properties
-    const newField = { ...field };
+    const newField: FormField = { ...field };
     
     // Always preserve the exact ID to maintain field identity
     newField.id = field.id;
@@ -93,15 +92,11 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     // Create deep copy of all fields to prevent mutations
     const clonedFields = deepCloneFields(fields);
     
-    // Find an existing title field by ID first
+    // Find existing title fields
     const titleFieldById = clonedFields.find(field => field.id === FORM_TITLE_ID);
+    const titleFieldByType = clonedFields.find(field => field.type === 'form-title');
     
-    // If not found by ID, look for any form-title
-    const titleFieldByType = !titleFieldById ? 
-      clonedFields.find(field => field.type === 'form-title') : 
-      null;
-    
-    // Use the existing title field if found, or create a new one
+    // Determine which title field to use (prioritize by ID, then by type)
     const titleField = titleFieldById || titleFieldByType;
     
     // Filter out all form-title fields to avoid duplicates
@@ -109,58 +104,62 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
       // Keep non-title fields
       if (field.type !== 'form-title') return true;
       
-      // Keep the title field if it has the standard ID  
+      // Keep only one title field - prioritize the one with standard ID
       if (field.id === FORM_TITLE_ID) return true;
+      
+      // Keep only if we don't have a title field with standard ID yet
+      if (!titleFieldById && field === titleFieldByType) return true;
       
       // Remove all other form-title fields
       return false;
     });
     
-    // If we don't have a title field with the standard ID, create or update one
-    if (!filteredFields.some(field => field.id === FORM_TITLE_ID)) {
-      // Prepare the title field - either use existing or create new
-      const updatedTitleField: FormField = titleField 
-        ? {
-            ...titleField,
-            id: FORM_TITLE_ID, // Ensure consistent ID
-            type: 'form-title',
-            label: formTitle || titleField.label,
-            helpText: formDescription || titleField.helpText,
-            style: {
-              ...(titleField.style || {}),
-              backgroundColor: titleField.style?.backgroundColor || formStyle.primaryColor,
-              showTitle: titleField.style?.showTitle !== undefined ? titleField.style.showTitle : true,
-              showDescription: titleField.style?.showDescription !== undefined ? titleField.style.showDescription : true
-            }
-          }
-        : {
-            type: 'form-title',
-            id: FORM_TITLE_ID,
-            label: formTitle,
-            helpText: formDescription,
-            style: {
-              backgroundColor: formStyle.primaryColor || '#9b87f5',
-              color: '#ffffff',
-              textAlign: language === 'ar' ? 'right' : 'center',
-              fontSize: '24px',
-              fontWeight: 'bold',
-              descriptionColor: 'rgba(255, 255, 255, 0.9)',
-              descriptionFontSize: '14px',
-              showTitle: true,
-              showDescription: true
-            }
-          };
+    // If we don't have any title field, create one
+    if (!titleField) {
+      const newTitleField: FormField = {
+        type: 'form-title',
+        id: FORM_TITLE_ID,
+        label: formTitle || '',
+        helpText: formDescription || '',
+        style: {
+          backgroundColor: formStyle.primaryColor || '#9b87f5',
+          color: '#ffffff',
+          textAlign: language === 'ar' ? 'right' : 'center',
+          fontSize: '24px',
+          fontWeight: 'bold',
+          descriptionColor: 'rgba(255, 255, 255, 0.9)',
+          descriptionFontSize: '14px',
+          showTitle: true,
+          showDescription: true
+        }
+      };
       
       // Add the title field at the beginning
-      filteredFields = [updatedTitleField, ...filteredFields];
-    } else if (titleFieldById) {
-      // If we have a title field with the standard ID, update its content but preserve styling
+      filteredFields = [newTitleField, ...filteredFields];
+    } 
+    // If we have a title field but it doesn't have the standard ID
+    else if (titleField && titleField.id !== FORM_TITLE_ID) {
+      // Create a new title field with standard ID but preserve all other properties
+      const standardizedTitle: FormField = {
+        ...titleField,
+        id: FORM_TITLE_ID,
+        type: 'form-title',
+        label: formTitle || titleField.label || '',
+        helpText: formDescription || titleField.helpText || '',
+      };
+      
+      // Replace the existing title field with the standardized one
+      filteredFields = filteredFields.filter(field => field.id !== titleField.id);
+      filteredFields = [standardizedTitle, ...filteredFields];
+    }
+    // If we have a title field with the standard ID, update its label and description
+    else if (titleFieldById) {
       const titleIndex = filteredFields.findIndex(field => field.id === FORM_TITLE_ID);
       if (titleIndex !== -1) {
         filteredFields[titleIndex] = {
           ...filteredFields[titleIndex],
-          label: formTitle || filteredFields[titleIndex].label,
-          helpText: formDescription || filteredFields[titleIndex].helpText,
+          label: formTitle || filteredFields[titleIndex].label || '',
+          helpText: formDescription || filteredFields[titleIndex].helpText || '',
         };
       }
     }

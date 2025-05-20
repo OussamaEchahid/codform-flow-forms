@@ -87,12 +87,12 @@ const getFieldKey = (field: FormFieldType) => {
   return `field-${field.id}`;
 };
 
-// Improved deep clone function to preserve all field properties exactly
+// Improved deep clone function with full TypeScript support
 const deepCloneField = (field: FormFieldType): FormFieldType => {
   if (!field) return field;
   
   // Start with a complete copy of all properties
-  const clonedField = { ...field };
+  const clonedField: FormFieldType = { ...field };
   
   // Preserve the exact ID - critical for stability
   clonedField.id = field.id;
@@ -242,26 +242,40 @@ const FormField = memo(({ field, formStyle }: FormFieldProps) => {
 }, 
 // Improved deep comparison function for React.memo to prevent unnecessary re-renders
 (prevProps, nextProps) => {
-  // Quick reference check
+  // Quick reference check - if same object reference, no need to re-render
   if (prevProps === nextProps) return true;
   
-  // Compare field IDs - most important for stability
+  // Check ID first - most important for stability
   if (prevProps.field.id !== nextProps.field.id) return false;
   
-  // Compare important field properties that would affect rendering
+  // Check primary fields that would affect rendering
   if (prevProps.field.type !== nextProps.field.type) return false;
   if (prevProps.field.label !== nextProps.field.label) return false;
   if (prevProps.field.helpText !== nextProps.field.helpText) return false;
   if (prevProps.field.required !== nextProps.field.required) return false;
-  if (prevProps.field.icon !== nextProps.field.icon) return false;
   if (prevProps.field.placeholder !== nextProps.field.placeholder) return false;
+  if (prevProps.field.icon !== nextProps.field.icon) return false;
+  
+  // Check content field which is used in rich content fields
+  if (prevProps.field.content !== nextProps.field.content) return false;
   
   // Compare form styles that would affect rendering
   if (prevProps.formStyle?.primaryColor !== nextProps.formStyle?.primaryColor) return false;
   if (prevProps.formStyle?.borderRadius !== nextProps.formStyle?.borderRadius) return false;
   if (prevProps.formStyle?.fontSize !== nextProps.formStyle?.fontSize) return false;
   
-  // Deep compare styles - the most likely source of unnecessary renders
+  // Deep compare field options for dropdown, checkbox, and radio buttons
+  const prevOptions = prevProps.field.options || [];
+  const nextOptions = nextProps.field.options || [];
+  
+  if (prevOptions.length !== nextOptions.length) return false;
+  
+  for (let i = 0; i < prevOptions.length; i++) {
+    if (prevOptions[i].value !== nextOptions[i].value) return false;
+    if (prevOptions[i].label !== nextOptions[i].label) return false;
+  }
+  
+  // Deep compare style properties that affect rendering
   const prevStyle = prevProps.field.style || {};
   const nextStyle = nextProps.field.style || {};
   
@@ -275,21 +289,7 @@ const FormField = memo(({ field, formStyle }: FormFieldProps) => {
     if (prevStyle[key] !== nextStyle[key]) return false;
   }
   
-  // Compare field content to ensure rich content fields update correctly
-  if (prevProps.field.content !== nextProps.field.content) return false;
-  
-  // Compare field options for dropdown, checkbox, and radio fields
-  if (prevProps.field.options && nextProps.field.options) {
-    if (prevProps.field.options.length !== nextProps.field.options.length) return false;
-    
-    // Compare each option's value and label
-    for (let i = 0; i < prevProps.field.options.length; i++) {
-      if (prevProps.field.options[i].value !== nextProps.field.options[i].value) return false;
-      if (prevProps.field.options[i].label !== nextProps.field.options[i].label) return false;
-    }
-  }
-  
-  // If we made it this far, consider them equal
+  // If we made it here, consider them equal (no re-render needed)
   return true;
 });
 
