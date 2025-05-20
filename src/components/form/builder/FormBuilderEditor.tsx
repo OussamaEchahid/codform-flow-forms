@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useFormTemplates, FormData, formTemplates } from '@/lib/hooks/useFormTemplates';
@@ -70,7 +71,7 @@ const getActiveShopId = (): string | null => {
 };
 
 interface FormBuilderEditorProps {
-  shopId: string;
+  shopId?: string;
   formId?: string;
   onClose?: () => void;
 }
@@ -92,6 +93,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
   const [isPublished, setIsPublished] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   
   const [formStyle, setFormStyle] = useState<FormStyle>({
     primaryColor: '#9b87f5',
@@ -212,8 +214,8 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
       // Show loading state immediately
       setIsLoading(true);
       
-      const shopId = getActiveShopId();
-      if (!shopId) {
+      const activeShopId = getActiveShopId();
+      if (!activeShopId) {
         toast.error(language === 'ar' ? 'لم يتم العثور على متجر نشط' : 'No active shop found');
         setIsLoading(false);
         return;
@@ -260,7 +262,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
         title: formTitle,
         description: formDescription,
         data: [initialFormStep],
-        shop_id: shopId,
+        shop_id: activeShopId,
         is_published: false,
       }).select('id').single();
 
@@ -278,7 +280,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
         description: formDescription,
         data: [initialFormStep],
         isPublished: false,
-        shop_id: shopId,
+        shop_id: activeShopId,
         style: defaultStyle
       });
 
@@ -306,7 +308,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
   useEffect(() => {
     const loadFormData = async () => {
       setIsLoading(true);
-      const id = formId || params.formId;
+      const id = initialFormId || params.formId;
       
       if (id) {
         setCurrentFormId(id);
@@ -412,7 +414,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
     };
     
     loadFormData();
-  }, [formId, params.formId]);
+  }, [initialFormId, params.formId]);
 
   useEffect(() => {
     setRefreshKey(prev => prev + 1);
@@ -435,9 +437,9 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
         fields: formElements
       };
       
-      const shopId = getActiveShopId();
+      const activeShopId = getActiveShopId();
       
-      if (!shopId) {
+      if (!activeShopId) {
         console.warn("No active shop ID found, saving without shop association");
       }
       
@@ -446,7 +448,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
         title: formTitle,
         description: formDescription,
         data: [formStep],
-        shop_id: shopId,
+        shop_id: activeShopId,
         style: formStyle
       };
       
@@ -465,6 +467,9 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
           id: currentFormId,
           style: formStyle
         });
+        
+        // Reset unsaved changes flag
+        setHasUnsavedChanges(false);
       } else {
         // Try direct database update if the saveForm method fails
         const { error } = await supabase
@@ -473,7 +478,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
             title: formTitle,
             description: formDescription,
             data: [formStep],
-            shop_id: shopId,
+            shop_id: activeShopId,
             style: formStyle,
             updated_at: new Date().toISOString()
           })
@@ -484,6 +489,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
           toast.error(language === 'ar' ? 'فشل حفظ النموذج' : 'Failed to save form');
         } else {
           toast.success(language === 'ar' ? 'تم حفظ النموذج بنجاح' : 'Form saved successfully');
+          setHasUnsavedChanges(false);
         }
       }
     } catch (error) {
@@ -572,6 +578,9 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
       setSelectedIndex(updatedElements.length - 1);
       setRefreshKey(prev => prev + 1);
     }, 100);
+    
+    // Mark as having unsaved changes
+    setHasUnsavedChanges(true);
   };
 
   const editElement = (index: number) => {
@@ -586,6 +595,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
     setFormElements(updatedElements);
     setSelectedIndex(null);
     setRefreshKey(prev => prev + 1);
+    setHasUnsavedChanges(true);
   };
 
   const duplicateElement = (index: number) => {
@@ -600,6 +610,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
     setFormElements(updatedElements);
     
     setTimeout(() => setRefreshKey(prev => prev + 1), 100);
+    setHasUnsavedChanges(true);
     toast.success(language === 'ar' ? 'تم نسخ العنصر بنجاح' : 'Element duplicated successfully');
   };
 
@@ -613,10 +624,10 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
       
       if (templateStyle) {
         setFormStyle({
-          primaryColor: template.primaryColor || templateStyle.primaryColor,
-          borderRadius: templateStyle.borderRadius,
-          fontSize: templateStyle.fontSize,
-          buttonStyle: templateStyle.buttonStyle,
+          primaryColor: template.primaryColor || templateStyle.primaryColor || '#9b87f5',
+          borderRadius: templateStyle.borderRadius || '0.5rem',
+          fontSize: templateStyle.fontSize || '1rem',
+          buttonStyle: templateStyle.buttonStyle || 'rounded',
           borderColor: templateStyle.borderColor || '#e2e8f0',
           borderWidth: templateStyle.borderWidth || '1px',
           backgroundColor: templateStyle.backgroundColor || '#ffffff',
@@ -645,6 +656,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
       setFormElements(newElements);
       setRefreshKey(prev => prev + 1);
       setIsTemplateDialogOpen(false);
+      setHasUnsavedChanges(true);
       
       // Save the form immediately after applying template
       setTimeout(() => handleSave(), 500);
@@ -660,6 +672,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
     }
     setIsFieldEditorOpen(false);
     setCurrentEditingField(null);
+    setHasUnsavedChanges(true);
     
     setTimeout(() => {
       setSelectedIndex(null);
@@ -673,6 +686,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
       ...formStyle,
       ...newStyle
     });
+    setHasUnsavedChanges(true);
     setRefreshKey(prev => prev + 1);
   };
 
@@ -714,6 +728,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
     setTimeout(() => {
       setSelectedIndex(null);
       setRefreshKey(prev => prev + 1);
+      setHasUnsavedChanges(true);
     }, 100);
   };
 
@@ -721,6 +736,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
     setFormElements(reorderedElements);
     setTimeout(() => {
       setRefreshKey(prev => prev + 1);
+      setHasUnsavedChanges(true);
       toast.success(language === 'ar' ? 'تم إعادة ترتيب العناصر' : 'Elements reordered');
     }, 100);
   };
@@ -729,6 +745,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
     // Use the updateFloatingButton function from the useFormStore hook we called at the top
     updateFloatingButton(config);
     setRefreshKey(prev => prev + 1); // Refresh the preview
+    setHasUnsavedChanges(true);
   };
 
   const handleFloatingButtonOpen = () => {
@@ -791,6 +808,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
     }));
     
     // Sync with form store when style properties change
+    const formStore = useFormStore.getState();
     formStore.setFormState({
       style: {
         ...formStore.formState.style,
@@ -816,7 +834,29 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
       
       setFormElements(updatedElements);
       setRefreshKey(prev => prev + 1);
+      setHasUnsavedChanges(true);
     }
+  };
+  
+  // Implement missing handler functions
+  const handleSelectElement = (index: number) => {
+    setSelectedIndex(index);
+  };
+  
+  const handleEditElement = (index: number) => {
+    editElement(index);
+  };
+  
+  const handleDeleteElement = (index: number) => {
+    deleteElement(index);
+  };
+  
+  const handleDuplicateElement = (index: number) => {
+    duplicateElement(index);
+  };
+  
+  const handleUpdateElement = (index: number, updatedElement: FormField) => {
+    handleElementUpdate(index, updatedElement);
   };
 
   // Show a loading screen during slow operations

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AppSidebar from '@/components/layout/AppSidebar';
@@ -314,7 +315,7 @@ const FormBuilderPage = () => {
         {activeTab === 'dashboard' ? (
           <FormBuilderDashboard />
         ) : (
-          formId && formId !== 'new' && <FormBuilderEditor formId={formId} />
+          formId && formId !== 'new' && <FormBuilderEditor formId={formId} shopId={shop || ''} />
         )}
       </div>
     </div>
