@@ -47,13 +47,12 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   
   // Process fields for display
   const sanitizedFields = useMemo(() => {
-    // First, check if form-title exists
-    const titleFieldIndex = fields.findIndex(field => field.type === 'form-title');
-    const hasTitleField = titleFieldIndex !== -1;
-    let processedFields = [...fields];
+    // We should NOT modify fields here since they're already processed in FormPreviewPanel
+    // Just make sure we don't duplicate the form-title field
+    const processedFields = [...fields];
     
-    // If there's no form title field and it's not hidden, add one
-    if (!hasTitleField && !hideHeader) {
+    // This should be handled in FormPreviewPanel now, but keeping a fallback
+    if (processedFields.length === 0) {
       const titleField: FormField = {
         type: 'form-title',
         id: FORM_TITLE_ID,
@@ -73,25 +72,25 @@ const FormPreview: React.FC<FormPreviewProps> = ({
       };
       
       // Add title field at the beginning
-      processedFields = [titleField, ...processedFields];
-    } 
-    // Update existing title with current values if they differ
-    else if (hasTitleField) {
-      // Preserve the existing style properties and visibility settings
-      const existingTitleField = processedFields[titleFieldIndex];
-      processedFields[titleFieldIndex] = {
-        ...existingTitleField,
-        label: existingTitleField.label || formTitle,
-        helpText: existingTitleField.helpText || formDescription,
-        // Preserve existing style properties
+      processedFields.push(titleField);
+      
+      // Add default submit button if needed
+      const submitButton: FormField = {
+        type: 'submit',
+        id: `submit-stable`,
+        label: language === 'ar' ? 'إرسال الطلب' : 'Submit Order',
         style: {
-          ...existingTitleField.style,
-          backgroundColor: existingTitleField.style?.backgroundColor || formStyle.primaryColor
-        }
+          backgroundColor: formStyle.primaryColor || '#9b87f5',
+          color: '#ffffff',
+          fontSize: '18px',
+          animation: true,
+          animationType: 'pulse',
+        },
       };
+      processedFields.push(submitButton);
     }
     
-    // Update fields with default values
+    // Update fields with default values if needed
     const updatedFields = processedFields.map(field => {
       const updatedField = { ...field };
       
@@ -121,19 +120,6 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         updatedField.style = {};
       }
 
-      // Special handling for form-title fields
-      if (field.type === 'form-title') {
-        if (!updatedField.style.backgroundColor) {
-          updatedField.style.backgroundColor = formStyle.primaryColor || '#9b87f5';
-        }
-        if (!updatedField.style.color) {
-          updatedField.style.color = '#ffffff';
-        }
-        if (!updatedField.style.descriptionColor) {
-          updatedField.style.descriptionColor = 'rgba(255, 255, 255, 0.9)';
-        }
-      }
-      
       // Normalize font sizes to pixels
       if (updatedField.style.fontSize && !updatedField.style.fontSize.includes('px')) {
         if (updatedField.style.fontSize.includes('rem')) {
@@ -159,30 +145,8 @@ const FormPreview: React.FC<FormPreviewProps> = ({
       return updatedField;
     });
     
-    // Check if there is already a submit button
-    const hasSubmitButton = updatedFields.some(field => field.type === 'submit');
-    
-    let result = [...updatedFields];
-    
-    // Add default submit button if needed
-    if (!hasSubmitButton) {
-      const submitButton: FormField = {
-        type: 'submit',
-        id: `submit-stable`,
-        label: language === 'ar' ? 'إرسال الطلب' : 'Submit Order',
-        style: {
-          backgroundColor: formStyle.primaryColor || '#9b87f5',
-          color: '#ffffff',
-          fontSize: '18px',
-          animation: true,
-          animationType: 'pulse',
-        },
-      };
-      result.push(submitButton);
-    }
-    
-    return result;
-  }, [fields, language, formStyle.primaryColor, formTitle, formDescription, hideHeader]);
+    return updatedFields;
+  }, [fields, language, formStyle.primaryColor, formTitle, formDescription]);
   
   return (
     <div 

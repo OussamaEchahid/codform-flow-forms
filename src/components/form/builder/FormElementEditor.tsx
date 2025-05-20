@@ -70,14 +70,17 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
   const [isTitleEditorOpen, setIsTitleEditorOpen] = useState(false);
   
   // Get the form title style from existing form-title field or default
-  const titleFieldStyle = elements.find(el => el.type === 'form-title')?.style || {
+  const titleField = elements.find(el => el.type === 'form-title');
+  const titleFieldStyle = titleField?.style || {
     backgroundColor: formStyle.primaryColor,
     color: '#ffffff',
     textAlign: language === 'ar' ? 'right' : 'center',
     fontSize: '24px',
     fontWeight: 'bold',
     descriptionColor: 'rgba(255, 255, 255, 0.9)',
-    descriptionFontSize: '14px'
+    descriptionFontSize: '14px',
+    showTitle: true,
+    showDescription: true
   };
   
   // Configure sensors for drag and drop
@@ -140,7 +143,18 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
   };
   
   const handleTitleSave = (title: string, description: string, style: any) => {
-    onTitleUpdate(title, description, style);
+    // Ensure we preserve the title field's ID if it exists
+    if (titleField) {
+      const updatedStyle = {
+        ...titleFieldStyle,
+        ...style
+      };
+      onTitleUpdate(title, description, updatedStyle);
+    } else {
+      onTitleUpdate(title, description, style);
+    }
+    
+    setIsTitleEditorOpen(false);
   };
   
   // Filter out any form-title fields for the sortable list
