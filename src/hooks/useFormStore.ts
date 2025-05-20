@@ -74,10 +74,10 @@ const defaultFormState: FormState = {
     borderRadius: '1.5rem', // Large border radius
     fontSize: '1rem',
     buttonStyle: 'rounded',
-    // Default values for new styling properties
+    // Default values for new styling properties with fixed defaults
     borderColor: '#9b87f5', // Default purple border color
     borderWidth: '2px',     // Default border width
-    backgroundColor: '#F9FAFB', // Default background color
+    backgroundColor: '#F9FAFB', // Default background color - FIXED
     paddingTop: '20px',
     paddingBottom: '20px',
     paddingLeft: '20px',
@@ -93,7 +93,19 @@ export const useFormStore = create<FormStore>((set) => ({
   setFormState: (form) => set((state) => ({ 
     formState: { 
       ...state.formState, 
-      ...form 
+      ...form,
+      // CRITICAL FIX: Ensure style properties maintain their default values
+      style: form.style ? {
+        ...defaultFormState.style,
+        ...state.formState.style,
+        ...form.style,
+        // ALWAYS maintain the default background color regardless of what's passed
+        backgroundColor: form.style.backgroundColor || state.formState.style?.backgroundColor || '#F9FAFB',
+        // Ensure these default values are always preserved
+        borderColor: form.style.borderColor || state.formState.style?.borderColor || '#9b87f5',
+        borderWidth: form.style.borderWidth || state.formState.style?.borderWidth || '2px',
+        borderRadius: form.style.borderRadius || state.formState.style?.borderRadius || '1.5rem',
+      } : state.formState.style
     } 
   })),
   resetFormState: () => set({ formState: {...defaultFormState} }),

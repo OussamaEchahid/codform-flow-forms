@@ -124,7 +124,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
           label: formTitle || '',
           helpText: formDescription || '',
           style: {
-            // IMPORTANT: Only use primaryColor for title, NOT backgroundColor
+            // IMPORTANT: Use primaryColor for title, NOT form's backgroundColor
             backgroundColor: formStyle.primaryColor || '#9b87f5',
             color: '#ffffff',
             textAlign: language === 'ar' ? 'right' : 'center',

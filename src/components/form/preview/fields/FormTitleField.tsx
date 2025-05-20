@@ -39,9 +39,9 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
     return null;
   }
   
-  // CRITICAL FIX: Always prioritize field-specific backgroundColor
-  // This ensures the title background is colored correctly and isn't affected by the form's background
-  const backgroundColor = styles.backgroundColor || formStyle.primaryColor || '#9b87f5';
+  // CRITICAL FIX: Always use the field's own backgroundColor and NEVER use formStyle.backgroundColor
+  // This ensures complete separation between title and form background colors
+  const titleBackgroundColor = styles.backgroundColor || formStyle.primaryColor || '#9b87f5';
   
   // Extract all style properties with fallbacks
   const {
@@ -66,7 +66,7 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
   const dataAttributes = {
     'data-field-type': 'form-title',
     'data-field-id': field.id,
-    'data-bg-color': backgroundColor,
+    'data-bg-color': titleBackgroundColor,
     'data-show-title': showTitle ? 'true' : 'false',
     'data-show-desc': showDescription ? 'true' : 'false',
     'data-border-radius': borderRadius,
@@ -77,13 +77,14 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
     <div 
       className="form-title-container mb-6" 
       style={{
-        backgroundColor, // Use the prioritized background color
+        backgroundColor: titleBackgroundColor, // Use the field's specific background color
         borderRadius,
         padding: `${paddingY} 16px`,
         marginTop: '0',
         textAlign: effectiveTextAlign as any,
-        // IMPORTANT: Remove the border style from the title container
-        // This ensures that the form's border is not applied to the title
+        // IMPORTANT: Remove border style to prevent form border from affecting title
+        border: 'none', // This ensures the form's border is not applied to the title
+        overflow: 'hidden' // Ensure rounded corners work correctly
       }}
       {...dataAttributes}
     >
@@ -139,7 +140,7 @@ export default React.memo(FormTitleField, (prevProps, nextProps) => {
     prevStyle.borderRadius === nextStyle.borderRadius &&
     prevStyle.borderColor === nextStyle.borderColor &&
     prevStyle.borderWidth === nextStyle.borderWidth &&
-    prevStyle.backgroundColor === nextStyle.backgroundColor &&
+    // IMPORTANT: Remove comparison of backgroundColor to prevent unnecessary re-renders
     prevStyle.formDirection === nextStyle.formDirection
   );
 });

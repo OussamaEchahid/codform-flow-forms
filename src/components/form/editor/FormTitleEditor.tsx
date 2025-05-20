@@ -84,10 +84,10 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
     };
     setStyle(newStyle);
     
-    // IMPORTANT CHANGE: Don't update global backgroundColor from title editor
-    // This prevents title's backgroundColor from affecting the entire form
-    // We still update primaryColor to keep other elements in sync
+    // CRITICAL FIX: NEVER update global backgroundColor when changing title background
+    // This ensures complete separation between title and form styling
     if (property === 'backgroundColor' && updateGlobalStyle && typeof value === 'string') {
+      // Only update the primaryColor for buttons and other elements, but NOT the form background
       updateGlobalStyle('primaryColor', value);
     }
   };
@@ -98,8 +98,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
     // Save the field-specific style and title/description
     onSave(currentTitle, currentDescription, updatedStyle);
     
-    // IMPORTANT CHANGE: Don't update global backgroundColor from title editor
-    // Only update primaryColor to keep buttons and other elements in sync
+    // IMPORTANT: ONLY update primaryColor, NEVER the form's backgroundColor
     if (updateGlobalStyle && style.backgroundColor) {
       updateGlobalStyle('primaryColor', style.backgroundColor);
     }
@@ -227,7 +226,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
                   </div>
                 ))}
               </div>
-              <div className="text-xs text-amber-600 mt-1">
+              <div className="text-xs text-amber-600 mt-1 font-bold">
                 {language === 'ar' 
                   ? 'هذا اللون يؤثر فقط على خلفية العنوان وليس النموذج بأكمله'
                   : 'This color affects only the title background, not the entire form'}
