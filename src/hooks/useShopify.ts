@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { ShopifyProduct, ShopifyUser } from '@/lib/shopify/types';
 import { shopifyStores, shopifySupabase } from '@/lib/shopify/supabase-client';
 import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
@@ -289,11 +289,25 @@ export const useShopify = () => {
   const syncFormWithShopify = syncForm;
 
   // New function to get default form for a shop
+  const defaultFormCache = useRef<{
+    [shopId: string]: { 
+      data: any; 
+      timestamp: number;
+    }
+  }>({});
+  
   const getDefaultForm = useCallback(async (shopDomain?: string) => {
     const targetShop = shopDomain || shop;
     if (!targetShop) {
       console.warn('No shop provided to getDefaultForm');
       return null;
+    }
+
+    // Check if we have a cached result that's less than 30 seconds old
+    const cachedResult = defaultFormCache.current[targetShop];
+    if (cachedResult && (Date.now() - cachedResult.timestamp) < 30000) {
+      console.log('Using cached default form result for', targetShop);
+      return cachedResult.data;
     }
 
     try {
@@ -311,7 +325,16 @@ export const useShopify = () => {
         return null;
       }
 
-      return data && data.length > 0 ? data[0] : null;
+      const result = data && data.length > 0 ? data[0] : null;
+      
+      // Cache the result with a timestamp
+      defaultFormCache.current[targetShop] = {
+        data: result,
+        timestamp: Date.now()
+      };
+      
+      console.log('Default form found:', result?.id || 'none');
+      return result;
     } catch (error) {
       console.error('Exception in getDefaultForm:', error);
       return null;

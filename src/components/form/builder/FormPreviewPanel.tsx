@@ -32,7 +32,34 @@ const FORM_TITLE_ID = 'form-title-static';
 const deepCloneFields = (fields: FormField[]): FormField[] => {
   if (!fields) return [];
   
-  return fields.map(field => deepCloneField(field));
+  return fields.map(field => {
+    // Create a full deep copy of the field
+    const newField = deepCloneField(field);
+    
+    // Ensure style object is properly cloned with all properties
+    if (field.style) {
+      newField.style = { ...field.style };
+      
+      // Explicitly preserve special properties that might be lost
+      if ('showTitle' in field.style) {
+        newField.style.showTitle = field.style.showTitle;
+      }
+      
+      if ('showDescription' in field.style) {
+        newField.style.showDescription = field.style.showDescription;
+      }
+      
+      if ('borderRadius' in field.style) {
+        newField.style.borderRadius = field.style.borderRadius;
+      }
+      
+      if ('paddingY' in field.style) {
+        newField.style.paddingY = field.style.paddingY;
+      }
+    }
+    
+    return newField;
+  });
 };
 
 const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
@@ -76,7 +103,9 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     
     // Log the title field being used
     console.log("Title field found:", titleField?.id, "Type:", titleField?.type, 
-                "Style:", titleField?.style?.backgroundColor);
+                "Style:", titleField?.style?.backgroundColor,
+                "ShowTitle:", titleField?.style?.showTitle,
+                "ShowDescription:", titleField?.style?.showDescription);
     
     // Filter out all form-title fields to avoid duplicates
     let filteredFields = clonedFields.filter(field => {
@@ -109,6 +138,8 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           fontWeight: 'bold',
           descriptionColor: 'rgba(255, 255, 255, 0.9)',
           descriptionFontSize: '14px',
+          borderRadius: formStyle.borderRadius, // Preserve borderRadius
+          paddingY: '16px', // Add default paddingY
           showTitle: true,
           showDescription: true
         }
@@ -126,10 +157,21 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
         type: 'form-title',
         label: formTitle || titleField.label || '',
         helpText: formDescription || titleField.helpText || '',
+        // Make sure to preserve all style properties
+        style: {
+          ...(titleField.style || {}),
+          // Explicitly preserve critical properties
+          showTitle: titleField.style?.showTitle !== undefined ? titleField.style.showTitle : true,
+          showDescription: titleField.style?.showDescription !== undefined ? titleField.style.showDescription : true,
+          borderRadius: titleField.style?.borderRadius || formStyle.borderRadius,
+          paddingY: titleField.style?.paddingY || '16px'
+        }
       };
       
       console.log("Standardizing title field, preserving styles:", 
-                  standardizedTitle.style?.backgroundColor);
+                  standardizedTitle.style?.backgroundColor,
+                  "ShowTitle:", standardizedTitle.style?.showTitle,
+                  "ShowDescription:", standardizedTitle.style?.showDescription);
       
       // Replace the existing title field with the standardized one
       filteredFields = filteredFields.filter(field => field.id !== titleField.id);
@@ -145,7 +187,9 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
         
         console.log("Updating existing title field, preserving style:", 
                     preservedStyle.backgroundColor || "not set",
-                    "formStyle:", formStyle.primaryColor);
+                    "formStyle:", formStyle.primaryColor,
+                    "ShowTitle:", preservedStyle.showTitle,
+                    "ShowDescription:", preservedStyle.showDescription);
                     
         filteredFields[titleIndex] = {
           ...filteredFields[titleIndex],
@@ -156,6 +200,11 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
             ...preservedStyle,
             // Only apply formStyle.primaryColor if no backgroundColor is set in the field's style
             backgroundColor: preservedStyle.backgroundColor || formStyle.primaryColor || '#9b87f5',
+            // Explicitly preserve these critical properties with their original values
+            showTitle: preservedStyle.showTitle !== undefined ? preservedStyle.showTitle : true,
+            showDescription: preservedStyle.showDescription !== undefined ? preservedStyle.showDescription : true,
+            borderRadius: preservedStyle.borderRadius || formStyle.borderRadius,
+            paddingY: preservedStyle.paddingY || '16px'
           }
         };
       }
@@ -182,7 +231,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     
     console.log("Final processed fields count:", filteredFields.length);
     return filteredFields;
-  }, [fields, language, formStyle.primaryColor, formTitle, formDescription]);
+  }, [fields, language, formStyle.primaryColor, formStyle.borderRadius, formTitle, formDescription]);
 
   return (
     <div>

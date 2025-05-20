@@ -22,7 +22,7 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
   // IMPORTANT: First check field's specific backgroundColor, THEN fall back to primaryColor
   const backgroundColor = styles.backgroundColor || formStyle.primaryColor || '#9b87f5';
   
-  // Extract all other style properties with fallbacks
+  // Extract all style properties with fallbacks
   const {
     color = '#ffffff',
     textAlign = language === 'ar' ? 'right' : 'center',
@@ -30,11 +30,11 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
     fontWeight = 'bold',
     descriptionColor = 'rgba(255, 255, 255, 0.9)',
     descriptionFontSize = '14px',
-    borderRadius = formStyle.borderRadius || '8px',
-    paddingY = '16px',
-    // Default showTitle and showDescription to true if not specified
-    showTitle = true,
-    showDescription = true,
+    borderRadius = styles.borderRadius || formStyle.borderRadius || '8px',
+    paddingY = styles.paddingY || '16px',
+    // Handle showTitle and showDescription correctly - default to true if undefined
+    showTitle = styles.showTitle !== undefined ? styles.showTitle : true,
+    showDescription = styles.showDescription !== undefined ? styles.showDescription : true,
     borderColor,
     borderWidth
   } = styles;
@@ -44,11 +44,15 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
     return null;
   }
   
-  // Store the background color in a data attribute for debugging
+  // Store styling properties in data attributes for debugging
   const dataAttributes = {
     'data-field-type': 'form-title',
     'data-field-id': field.id,
     'data-bg-color': backgroundColor,
+    'data-show-title': showTitle ? 'true' : 'false',
+    'data-show-desc': showDescription ? 'true' : 'false',
+    'data-border-radius': borderRadius,
+    'data-padding-y': paddingY
   };
 
   return (

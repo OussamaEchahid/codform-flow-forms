@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AppSidebar from '@/components/layout/AppSidebar';
 import { useAuth } from '@/lib/auth';
@@ -28,6 +28,9 @@ const FormBuilderPage = () => {
   const [isCheckingDefaultForm, setIsCheckingDefaultForm] = useState(false);
   const [associatedProducts, setAssociatedProducts] = useState<Array<{id: string, title: string}>>([]);
   
+  // Add a ref to track if we've already checked for the default form
+  const defaultFormChecked = useRef(false);
+  
   // Allow access if either authenticated with user or connected with Shopify
   const hasAccess = !!user || shopifyConnected;
   
@@ -48,13 +51,15 @@ const FormBuilderPage = () => {
     }
   }, [tokenError, failSafeMode, toggleFailSafeMode]);
   
-  // Check for default form
+  // Check for default form - Modified to prevent infinite loops
   useEffect(() => {
     async function checkForDefaultForm() {
-      if (!shop || isCheckingDefaultForm) return;
+      // Only check once per component lifecycle and when not already checking
+      if (!shop || isCheckingDefaultForm || defaultFormChecked.current) return;
       
       setIsCheckingDefaultForm(true);
       try {
+        console.log('Checking for default form once...');
         const defaultForm = await getDefaultForm(shop);
         
         if (!defaultForm) {
@@ -62,6 +67,9 @@ const FormBuilderPage = () => {
         } else {
           console.log('Default form found:', defaultForm.id);
         }
+        
+        // Mark that we've checked for the default form
+        defaultFormChecked.current = true;
       } catch (error) {
         console.error('Error checking for default form:', error);
       } finally {
@@ -69,7 +77,10 @@ const FormBuilderPage = () => {
       }
     }
     
-    checkForDefaultForm();
+    // Only run this once when the component mounts
+    if (!defaultFormChecked.current) {
+      checkForDefaultForm();
+    }
   }, [shop, getDefaultForm, isCheckingDefaultForm]);
 
   // Fetch associated products for current form
