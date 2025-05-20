@@ -100,7 +100,7 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
   
   // Get the form title style from existing form-title field or default
   const titleFieldStyle = titleField?.style || {
-    backgroundColor: formStyle.backgroundColor || formStyle.primaryColor,
+    backgroundColor: formStyle.primaryColor,
     color: '#ffffff',
     textAlign: language === 'ar' ? 'right' : 'center',
     fontSize: '24px',
@@ -195,20 +195,30 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
         ...titleFieldStyle,
         ...style
       };
+      
+      console.log("Saving title with style:", updatedStyle);
       onTitleUpdate(title, description, updatedStyle);
     }
     
-    // Update global formStyle if the backgroundColor changes and onStyleChange is provided
+    // Update primaryColor for other elements like buttons
+    // CRITICAL: Do NOT update backgroundColor for the entire form
     if (style.backgroundColor && onStyleChange) {
-      onStyleChange('backgroundColor', style.backgroundColor);
+      onStyleChange('primaryColor', style.backgroundColor);
     }
     
     setIsTitleEditorOpen(false);
   };
   
-  // Handle global style updates directly from title editor
+  // Handle global style updates for title editor
   const handleGlobalStyleUpdate = (key: string, value: string) => {
-    if (onStyleChange) {
+    if (key === 'backgroundColor') {
+      // Convert backgroundColor updates to primaryColor updates
+      // This ensures the title background stays consistent with buttons
+      // without affecting the form's background
+      if (onStyleChange) {
+        onStyleChange('primaryColor', value);
+      }
+    } else if (onStyleChange) {
       onStyleChange(key, value);
     }
   };
@@ -230,6 +240,11 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
                 ? 'عنوان النموذج الذي سيظهر في أعلى النموذج'
                 : 'The form title that will appear at the top of your form'}
             </p>
+            <p className={`text-xs text-amber-600 mt-1 ${language === 'ar' ? 'text-right' : ''}`}>
+              {language === 'ar' 
+                ? 'لون الخلفية يؤثر فقط على خلفية العنوان وليس النموذج بأكمله'
+                : 'Background color only affects the title area, not the entire form'}
+            </p>
           </div>
           <Button variant="outline" size="sm" onClick={handleTitleEditorOpen}>
             <Edit className="w-4 h-4 mr-2" />
@@ -241,7 +256,7 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
           <div 
             className="rounded-md p-3"
             style={{
-              backgroundColor: titleFieldStyle.backgroundColor || formStyle.backgroundColor || formStyle.primaryColor,
+              backgroundColor: titleFieldStyle.backgroundColor || formStyle.primaryColor,
               textAlign: (titleFieldStyle.textAlign as any) || (language === 'ar' ? 'right' : 'center'),
               borderRadius: formStyle.borderRadius
             }}
@@ -304,7 +319,7 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
         description={formDescription}
         style={{
           ...titleFieldStyle,
-          backgroundColor: titleFieldStyle.backgroundColor || formStyle.backgroundColor || formStyle.primaryColor
+          backgroundColor: titleFieldStyle.backgroundColor || formStyle.primaryColor
         }}
         onSave={handleTitleSave}
         primaryColor={formStyle.primaryColor}

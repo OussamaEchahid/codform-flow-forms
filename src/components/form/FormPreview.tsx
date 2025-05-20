@@ -124,6 +124,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
           label: formTitle || '',
           helpText: formDescription || '',
           style: {
+            // IMPORTANT: Only use primaryColor for title, NOT backgroundColor
             backgroundColor: formStyle.primaryColor || '#9b87f5',
             color: '#ffffff',
             textAlign: language === 'ar' ? 'right' : 'center',
@@ -206,6 +207,10 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   // Determine the form direction, prioritizing formStyle.formDirection, then language
   const formDirection = formStyle.formDirection || (language === 'ar' ? 'rtl' : 'ltr');
   
+  // IMPORTANT: We need to separate the form background color from the title background color
+  // Always use #ffffff or another neutral color for the overall form background
+  const formBackgroundColor = '#ffffff'; // Fixed white background for the form
+  
   return (
     <div 
       className="rounded-lg border shadow-sm overflow-hidden codform-form"
@@ -213,7 +218,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         fontSize: formStyle.fontSize,
         '--form-primary-color': formStyle.primaryColor,
         borderRadius: formStyle.borderRadius,
-        backgroundColor: formStyle.backgroundColor || '#ffffff',
+        backgroundColor: formBackgroundColor, // Fixed white background - don't use formStyle.backgroundColor
         border: `${formStyle.borderWidth || '1px'} solid ${formStyle.borderColor || '#e2e8f0'}`,
         padding: '0',
       } as React.CSSProperties}
@@ -224,7 +229,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
       data-button-style={formStyle.buttonStyle}
       data-border-color={formStyle.borderColor}
       data-border-width={formStyle.borderWidth}
-      data-background-color={formStyle.backgroundColor}
+      data-background-color={formBackgroundColor} // Use fixed white background in data attribute
       data-form-direction={formStyle.formDirection}
       data-floating-labels={formStyle.floatingLabels ? 'true' : 'false'}
     >
@@ -273,6 +278,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
           direction: formDirection,
           padding: `${formStyle.paddingTop || '20px'} ${formStyle.paddingRight || '20px'} ${formStyle.paddingBottom || '20px'} ${formStyle.paddingLeft || '20px'}`,
           gap: formStyle.formGap || '16px',
+          backgroundColor: formBackgroundColor, // Fixed white background for content
         }}
         data-direction={formDirection}
       >

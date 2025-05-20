@@ -39,13 +39,9 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
     return null;
   }
   
-  // IMPORTANT: For backgroundColor, first check field-specific setting, THEN fall back to formStyle.backgroundColor, THEN to primaryColor
-  // This ensures proper cascade of style preferences and fixes the conflict between the two editing methods
-  const backgroundColor = 
-    styles.backgroundColor || 
-    formStyle.backgroundColor || 
-    formStyle.primaryColor || 
-    '#9b87f5';
+  // CRITICAL FIX: Always prioritize field-specific backgroundColor
+  // This ensures the title background is colored correctly and isn't affected by the form's background
+  const backgroundColor = styles.backgroundColor || formStyle.primaryColor || '#9b87f5';
   
   // Extract all style properties with fallbacks
   const {
@@ -85,7 +81,7 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
     <div 
       className="form-title-container mb-6" 
       style={{
-        backgroundColor,
+        backgroundColor, // Use the prioritized background color
         borderRadius,
         padding: `${paddingY} 16px`,
         marginTop: '0',

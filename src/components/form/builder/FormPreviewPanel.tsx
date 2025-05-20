@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useMemo } from 'react';
 import { FormField, FloatingButtonConfig, deepCloneField } from '@/lib/form-utils';
 import FormPreview from '@/components/form/FormPreview';
@@ -141,8 +142,8 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
         label: formTitle || '',
         helpText: formDescription || '',
         style: {
-          // IMPORTANT: Use formStyle.backgroundColor first, then fall back to primaryColor
-          backgroundColor: formStyle.backgroundColor || formStyle.primaryColor || '#9b87f5',
+          // CRITICAL FIX: Use primaryColor for title background, NOT backgroundColor
+          backgroundColor: formStyle.primaryColor || '#9b87f5',
           color: '#ffffff',
           textAlign: language === 'ar' ? 'right' : 'center',
           fontSize: '24px',
@@ -171,8 +172,8 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
         // Make sure to preserve all style properties
         style: {
           ...(titleField.style || {}),
-          // IMPORTANT: If backgroundColor is missing, use formStyle.backgroundColor, then primaryColor
-          backgroundColor: titleField.style?.backgroundColor || formStyle.backgroundColor || formStyle.primaryColor,
+          // IMPORTANT: Prioritize the field's own backgroundColor, THEN primaryColor
+          backgroundColor: titleField.style?.backgroundColor || formStyle.primaryColor,
           // Explicitly preserve critical properties
           showTitle: titleField.style?.showTitle !== undefined ? titleField.style.showTitle : true,
           showDescription: titleField.style?.showDescription !== undefined ? titleField.style.showDescription : true,
@@ -200,7 +201,6 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
         
         console.log("Updating existing title field, preserving style:", 
                     preservedStyle.backgroundColor || "not set",
-                    "formStyle backgroundColor:", formStyle.backgroundColor,
                     "formStyle primaryColor:", formStyle.primaryColor,
                     "ShowTitle:", preservedStyle.showTitle,
                     "ShowDescription:", preservedStyle.showDescription);
@@ -212,8 +212,8 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           // Critical: Preserve all existing style properties
           style: {
             ...preservedStyle,
-            // IMPORTANT: Prioritize existing backgroundColor, then formStyle.backgroundColor, then formStyle.primaryColor
-            backgroundColor: preservedStyle.backgroundColor || formStyle.backgroundColor || formStyle.primaryColor || '#9b87f5',
+            // IMPORTANT: Prioritize the field's existing backgroundColor, THEN primaryColor
+            backgroundColor: preservedStyle.backgroundColor || formStyle.primaryColor || '#9b87f5',
             // Explicitly preserve these critical properties with their original values
             showTitle: preservedStyle.showTitle !== undefined ? preservedStyle.showTitle : true,
             showDescription: preservedStyle.showDescription !== undefined ? preservedStyle.showDescription : true,
@@ -247,6 +247,12 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     return filteredFields;
   }, [fields, language, formStyle.primaryColor, formStyle.backgroundColor, formStyle.borderRadius, formTitle, formDescription]);
 
+  // Prepare form style for preview with fixed background color
+  const previewFormStyle = {
+    ...formStyle,
+    backgroundColor: '#ffffff' // Override backgroundColor to white for the form itself
+  };
+
   return (
     <div>
       <h3 className={`text-lg font-medium mb-3 ${language === 'ar' ? 'text-right' : ''}`}>
@@ -260,7 +266,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           formDescription={formDescription}
           currentStep={currentStep}
           totalSteps={totalSteps}
-          formStyle={formStyle}
+          formStyle={previewFormStyle}
           fields={processedFields}
           floatingButton={floatingButton}
           hideFloatingButtonPreview={hideFloatingButtonPreview}

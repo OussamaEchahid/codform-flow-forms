@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
@@ -85,10 +84,11 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
     };
     setStyle(newStyle);
     
-    // If changing backgroundColor and we have a global style updater,
-    // also update the global style to ensure consistency
+    // IMPORTANT CHANGE: Don't update global backgroundColor from title editor
+    // This prevents title's backgroundColor from affecting the entire form
+    // We still update primaryColor to keep other elements in sync
     if (property === 'backgroundColor' && updateGlobalStyle && typeof value === 'string') {
-      updateGlobalStyle('backgroundColor', value);
+      updateGlobalStyle('primaryColor', value);
     }
   };
 
@@ -98,9 +98,10 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
     // Save the field-specific style and title/description
     onSave(currentTitle, currentDescription, updatedStyle);
     
-    // Update global form style if we have the function
+    // IMPORTANT CHANGE: Don't update global backgroundColor from title editor
+    // Only update primaryColor to keep buttons and other elements in sync
     if (updateGlobalStyle && style.backgroundColor) {
-      updateGlobalStyle('backgroundColor', style.backgroundColor);
+      updateGlobalStyle('primaryColor', style.backgroundColor);
     }
     
     toast({
@@ -114,7 +115,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
   };
 
   // Common color presets
-  const colorPresets = ['#9b87f5', '#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#000000'];
+  const colorPresets = ['#9b87f5', '#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#000000', '#ff3b30', '#ff9500', '#34c759'];
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -214,11 +215,22 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
                 {colorPresets.map((color) => (
                   <div
                     key={color}
-                    className="w-8 h-8 rounded cursor-pointer border border-gray-300"
+                    className="w-8 h-8 rounded cursor-pointer border border-gray-300 relative"
                     style={{ backgroundColor: color }}
                     onClick={() => handleStyleChange('backgroundColor', color)}
-                  />
+                  >
+                    {style.backgroundColor === color && (
+                      <div className="absolute inset-0 flex items-center justify-center text-white">
+                        ✓
+                      </div>
+                    )}
+                  </div>
                 ))}
+              </div>
+              <div className="text-xs text-amber-600 mt-1">
+                {language === 'ar' 
+                  ? 'هذا اللون يؤثر فقط على خلفية العنوان وليس النموذج بأكمله'
+                  : 'This color affects only the title background, not the entire form'}
               </div>
             </div>
             
