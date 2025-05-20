@@ -4,7 +4,6 @@ import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, Keyboa
 import { SortableContext, sortableKeyboardCoordinates, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { FormField } from '@/lib/form-utils';
 import SortableField from '@/components/form/SortableField';
-import FormTitleEditor from '@/components/form/builder/FormTitleEditor';
 import { useI18n } from '@/lib/i18n';
 
 interface FormElementEditorProps {
@@ -98,24 +97,11 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
     // Preserve the original ID
     updatedField.id = elements[index].id;
     
-    // Special handling for form-title field to preserve styling
-    if (updatedField.type === 'form-title' && (!updatedField.style || Object.keys(updatedField.style).length === 0)) {
-      updatedField.style = {
-        backgroundColor: '#9b87f5',
-        color: '#ffffff',
-        descriptionColor: 'rgba(255, 255, 255, 0.9)',
-        fontSize: '24px',
-        descriptionFontSize: '14px',
-        fontWeight: 'bold',
-        textAlign: language === 'ar' ? 'right' : 'left',
-      };
-    }
-    
     // Notify parent component about the update
     if (onUpdateElement) {
       onUpdateElement(index, updatedField);
     }
-  }, [elements, onUpdateElement, language]);
+  }, [elements, onUpdateElement]);
   
   return (
     <div className="space-y-4">
@@ -132,24 +118,15 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={elements.map(element => element.id)} strategy={verticalListSortingStrategy}>
           {elements.map((element, index) => (
-            element.type === 'form-title' ? (
-              <FormTitleEditor
-                key={element.id}
-                field={element}
-                onUpdateField={(updatedField) => handleElementUpdate(index, updatedField)}
-                isDraggable={true}
-              />
-            ) : (
-              <SortableField 
-                key={element.id} 
-                field={element} 
-                onEdit={() => onEditElement(index)}
-                onDuplicate={() => onDuplicateElement(index)} 
-                onDelete={() => onDeleteElement(index)}
-                onFieldUpdate={(updatedField) => handleElementUpdate(index, updatedField)}
-                disabled={false}
-              />
-            )
+            <SortableField 
+              key={element.id} 
+              field={element} 
+              onEdit={() => onEditElement(index)}
+              onDuplicate={() => onDuplicateElement(index)} 
+              onDelete={() => onDeleteElement(index)}
+              onFieldUpdate={(updatedField) => handleElementUpdate(index, updatedField)}
+              disabled={false}
+            />
           ))}
         </SortableContext>
       </DndContext>

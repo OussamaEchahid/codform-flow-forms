@@ -80,15 +80,11 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     // Create deep copy of all fields to prevent mutations
     const clonedFields = deepCloneFields(fields);
     
-    // Check if there is already a form-title field
-    const hasTitleField = clonedFields.some(field => field.type === 'form-title');
-    
-    // If no title field exists, we'll use the formTitle and formDescription
-    let displayTitle = formTitle;
-    let displayDescription = formDescription;
+    // Remove any form-title fields
+    const filteredFields = clonedFields.filter(field => field.type !== 'form-title');
     
     // Add default submit button if needed
-    const hasSubmitButton = clonedFields.some(field => field.type === 'submit');
+    const hasSubmitButton = filteredFields.some(field => field.type === 'submit');
     
     if (!hasSubmitButton) {
       const submitButton: FormField = {
@@ -103,21 +99,11 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           animationType: 'pulse',
         },
       };
-      clonedFields.push(submitButton);
+      filteredFields.push(submitButton);
     }
     
-    return clonedFields;
-  }, [fields, language, formStyle.primaryColor, formTitle, formDescription]);
-  
-  // Find title field if it exists in the processed fields
-  const titleField = useMemo(() => {
-    // Look for a form-title field
-    return processedFields.find(field => field.type === 'form-title');
-  }, [processedFields]);
-  
-  // Use title field data if it exists, otherwise use the form title and description
-  const displayTitle = titleField ? titleField.label : formTitle;
-  const displayDescription = titleField ? titleField.helpText : formDescription;
+    return filteredFields;
+  }, [fields, language, formStyle.primaryColor]);
 
   return (
     <div>
@@ -128,8 +114,8 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
       <div className="border rounded-lg p-3 bg-gray-50">
         <FormPreview 
           key={`preview-${internalRefreshKey}`}
-          formTitle={displayTitle}
-          formDescription={displayDescription}
+          formTitle={formTitle}
+          formDescription={formDescription}
           currentStep={currentStep}
           totalSteps={totalSteps}
           formStyle={formStyle}

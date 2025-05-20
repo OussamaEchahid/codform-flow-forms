@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useFormTemplates, FormData, formTemplates } from '@/lib/hooks/useFormTemplates';
@@ -12,7 +13,6 @@ import FormElementList from '@/components/form/builder/FormElementList';
 import FormPreviewPanel from '@/components/form/builder/FormPreviewPanel';
 import FormStyleEditor from '@/components/form/builder/FormStyleEditor';
 import FormTemplatesDialog from '@/components/form/FormTemplatesDialog';
-import FormTitleEditor from '@/components/form/builder/FormTitleEditor';
 import FloatingButtonEditor from '@/components/form/builder/FloatingButtonEditor';
 import { useShopify } from '@/hooks/useShopify';
 import { 
@@ -58,8 +58,8 @@ const formElementTypes = [
   { type: 'cart-items', label: 'Cart Items', icon: '🛒' },
   { type: 'cart-summary', label: 'Cart Summary', icon: '🧾' },
   { type: 'whatsapp', label: 'WhatsApp', icon: '💬' },
-  { type: 'image', label: 'Image', icon: '🖼️' },
-  { type: 'form-title', label: 'Form Title', icon: 'H1' }
+  { type: 'image', label: 'Image', icon: '🖼️' }
+  // Removed 'form-title' element type
 ];
 
 // Add function to get active shop ID
@@ -109,90 +109,10 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   const [formDescription, setFormDescription] = useState(language === 'ar' ? 'نموذج جديد' : 'New Form');
   const [currentPreviewStep, setCurrentPreviewStep] = useState(1);
   const [currentFormId, setCurrentFormId] = useState<string | undefined>(formId || params.formId);
-  
-  // تحسين وظيفة البحث عن حقل عنوان النموذج
-  const getFormTitleField = (): FormField | undefined => {
-    return formElements.find(f => f.type === 'form-title');
-  };
-
-  // تحويل عنوان النموذج إلى حقل قابل للتعديل مع الخلفية البنفسجية
-  const addFormTitleField = () => {
-    // التحقق مما إذا كان حقل العنوان موجودًا بالفعل
-    const existingTitleField = getFormTitleField();
-    
-    if (existingTitleField) {
-      toast.info(language === 'ar' ? 'عنوان النموذج قابل للتعديل بالفعل' : 'Form title is already editable');
-      return;
-    }
-
-    // إنشاء حقل عنوان جديد دائمًا بخلفية بنفسجية
-    const titleField: FormField = {
-      type: 'form-title',
-      id: `form-title-${Date.now()}`,
-      label: formTitle,
-      helpText: formDescription,
-      style: {
-        color: '#ffffff', // نص أبيض للتباين
-        textAlign: language === 'ar' ? 'right' : 'left',
-        fontWeight: 'bold',
-        fontSize: '1.5rem',
-        descriptionColor: '#ffffff', // وصف أبيض للتباين
-        descriptionFontSize: '0.875rem',
-        backgroundColor: '#9b87f5', // خلفية بنفسجية دائمًا
-      }
-    };
-
-    // إضافة حقل العنوان في بداية النموذج
-    const updatedElements = [titleField, ...formElements.filter(f => f.type !== 'form-title')];
-    setFormElements(updatedElements);
-    setRefreshKey(prev => prev + 1);
-    toast.success(language === 'ar' ? 'تم تحويل العنوان إلى قابل للتعديل بنجاح' : 'Title converted to editable successfully');
-  };
-
-  // تحديث حقل عنوان النموذج - تم تحسينه للحفاظ على الإعدادات
-  const updateFormTitleField = (updatedField: FormField) => {
-    // نسخ عميق لقائمة الحقول لضمان عدم التأثير على حالة React
-    const updatedElements = formElements.map(field => {
-      if (field.id === updatedField.id) {
-        // نضمن الاحتفاظ بجميع خصائص الحقل المحدث
-        return {
-          ...updatedField,
-          // التأكد من أن لون الخلفية موجود
-          style: {
-            ...updatedField.style,
-            backgroundColor: updatedField.style?.backgroundColor || '#9b87f5',
-            color: updatedField.style?.color || '#ffffff',
-            descriptionColor: updatedField.style?.descriptionColor || '#ffffff',
-          }
-        };
-      }
-      return field;
-    });
-    
-    setFormElements(updatedElements);
-    setRefreshKey(prev => prev + 1);
-  };
 
   // إنشاء نموذج افتراضي جديد مع الحقول المطلوبة
   const createDefaultForm = (): FormField[] => {
     const fields: FormField[] = [];
-    
-    // إضافة حقل عنوان بخلفية بنفسجية دائمًا
-    fields.push({
-      type: 'form-title' as FormFieldType,
-      id: `form-title-${Date.now()}`,
-      label: language === 'ar' ? 'نموذج جديد' : 'New Form',
-      helpText: language === 'ar' ? 'نموذج جديد' : 'New Form',
-      style: {
-        color: '#ffffff', // نص أبيض للتباين
-        textAlign: language === 'ar' ? 'right' : 'left',
-        fontWeight: 'bold',
-        fontSize: '1.5rem',
-        descriptionColor: '#ffffff', // وصف أبيض للتباين
-        descriptionFontSize: '0.875rem',
-        backgroundColor: '#9b87f5', // خلفية بنفسجية دائمًا
-      }
-    });
     
     // إضافة حقل الاسم الكامل
     fields.push({
@@ -365,56 +285,34 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
             setFormTitle(formData.title);
             setFormDescription(formData.description || '');
             
-            // تأكد من أن النموذج يحتوي على كل العناصر المطلوبة
+            // Filter out any form-title elements
             let loadedElements = formData.data?.flatMap(step => step.fields) || [];
+            loadedElements = loadedElements.filter(f => f.type !== 'form-title');
             
-            // إذا لم يكن هناك عنوان للنموذج أو زر إرسال، أضفهما
-            let needsSubmitButton = !loadedElements.some(f => f.type === 'submit');
-            let needsTitleField = !loadedElements.some(f => f.type === 'form-title');
+            // إذا لم يكن هناك زر إرسال، أضفه
+            const needsSubmitButton = !loadedElements.some(f => f.type === 'submit');
             
-            // إذا كنا بحاجة إلى إضافة عناصر، نقوم بذلك
-            if (needsTitleField || needsSubmitButton) {
-              if (needsTitleField) {
-                const titleField: FormField = {
-                  type: 'form-title',
-                  id: `form-title-${Date.now()}`,
-                  label: formData.title,
-                  helpText: formData.description || '',
-                  style: {
-                    color: '#ffffff',
-                    textAlign: language === 'ar' ? 'right' : 'left',
-                    fontWeight: 'bold',
-                    fontSize: '1.5rem',
-                    descriptionColor: '#ffffff',
-                    descriptionFontSize: '0.875rem',
-                    backgroundColor: '#9b87f5', // خلفية بنفسجية دائمًا
-                  }
-                };
-                loadedElements = [titleField, ...loadedElements];
-              }
-              
-              if (needsSubmitButton) {
-                const submitButton: FormField = {
-                  type: 'submit',
-                  id: `submit-${Date.now()}`,
-                  label: language === 'ar' ? 'الدفع عند الاستلام' : 'Buy with Cash on Delivery',
-                  style: {
-                    backgroundColor: '#000000',
-                    color: '#ffffff',
-                    fontSize: '1.15rem',
-                    animation: true,
-                    animationType: 'shake',
-                    borderColor: '#eaeaff',
-                    borderRadius: '6px',
-                    borderWidth: '0px',
-                    paddingY: '12px',
-                    showIcon: true,
-                    icon: 'shopping-cart',
-                    iconPosition: 'left',
-                  },
-                };
-                loadedElements.push(submitButton);
-              }
+            if (needsSubmitButton) {
+              const submitButton: FormField = {
+                type: 'submit',
+                id: `submit-${Date.now()}`,
+                label: language === 'ar' ? 'الدفع عند الاستلام' : 'Buy with Cash on Delivery',
+                style: {
+                  backgroundColor: '#000000',
+                  color: '#ffffff',
+                  fontSize: '1.15rem',
+                  animation: true,
+                  animationType: 'shake',
+                  borderColor: '#eaeaff',
+                  borderRadius: '6px',
+                  borderWidth: '0px',
+                  paddingY: '12px',
+                  showIcon: true,
+                  icon: 'shopping-cart',
+                  iconPosition: 'left',
+                },
+              };
+              loadedElements.push(submitButton);
             }
             
             setFormElements(loadedElements);
@@ -461,22 +359,6 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   useEffect(() => {
     setRefreshKey(prev => prev + 1);
   }, [formElements]);
-
-  useEffect(() => {
-    // Update the form title field when language changes
-    const titleField = getFormTitleField();
-    if (titleField) {
-      // Only update alignment based on language
-      const updatedField = {
-        ...titleField,
-        style: {
-          ...titleField.style,
-          textAlign: language === 'ar' ? 'right' : 'left'
-        }
-      };
-      updateFormTitleField(updatedField);
-    }
-  }, [language]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -672,11 +554,14 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
         });
       }
       
+      // Filter out any form-title fields from template
       const newElements = template.data.flatMap(step => 
-        step.fields.map(field => ({
-          ...field,
-          id: `${field.type}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
-        }))
+        step.fields
+          .filter(field => field.type !== 'form-title')
+          .map(field => ({
+            ...field,
+            id: `${field.type}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+          }))
       );
       
       setFormTitle(template.title);
@@ -826,36 +711,8 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
               items={formElements.map(el => el.id)}
               strategy={verticalListSortingStrategy}
             >
-              {/* إضافة محرر العنوان كعنصر قابل للسحب والإفلات */}
-              {getFormTitleField() && (
-                <FormTitleEditor
-                  formTitle={formTitle}
-                  formDescription={formDescription}
-                  onFormTitleChange={(title) => setFormTitle(title)}
-                  onFormDescriptionChange={(desc) => setFormDescription(desc)}
-                  formTitleField={getFormTitleField()}
-                  onAddTitleField={addFormTitleField}
-                  onUpdateTitleField={updateFormTitleField}
-                  isDraggable={true}
-                />
-              )}
-              
-              {/* إذا لم يكن هناك حقل عنوان، عرض محرر العنوان العادي */}
-              {!getFormTitleField() && (
-                <FormTitleEditor
-                  formTitle={formTitle}
-                  formDescription={formDescription}
-                  onFormTitleChange={(title) => setFormTitle(title)}
-                  onFormDescriptionChange={(desc) => setFormDescription(desc)}
-                  formTitleField={undefined}
-                  onAddTitleField={addFormTitleField}
-                  onUpdateTitleField={updateFormTitleField}
-                  isDraggable={false}
-                />
-              )}
-              
               <FormElementEditor
-                elements={formElements.filter(field => field.type !== 'form-title')}
+                elements={formElements}
                 selectedIndex={selectedElementIndex}
                 onSelectElement={setSelectedElementIndex}
                 onEditElement={editElement}

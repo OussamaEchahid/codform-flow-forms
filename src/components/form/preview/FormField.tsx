@@ -5,7 +5,6 @@ import TextInput from './fields/TextInput';
 import TextArea from './fields/TextArea';
 import RadioGroup from './fields/RadioGroup';
 import CheckboxGroup from './fields/CheckboxGroup';
-import TitleField from './fields/TitleField';
 import CartItems from './fields/CartItems';
 import CartSummary from './fields/CartSummary';
 import SubmitButton from './fields/SubmitButton';
@@ -139,9 +138,9 @@ const FormField = memo(({ field, formStyle }: FormFieldProps) => {
         labelColor: field.style?.labelColor || '#333',
         labelFontSize: field.style?.labelFontSize || formStyle.fontSize || '16px',
         labelFontWeight: field.style?.labelFontWeight || '600',
-        // Ensure backgroundColor is passed for submit button and form-title
+        // Ensure backgroundColor is passed for submit button
         backgroundColor: field.style?.backgroundColor || (
-          (field.type === 'submit' || field.type === 'form-title') ? formStyle.primaryColor : undefined
+          field.type === 'submit' ? formStyle.primaryColor : undefined
         )
       }
     };
@@ -157,8 +156,8 @@ const FormField = memo(({ field, formStyle }: FormFieldProps) => {
 
   // Check if this field type is supported in store preview
   const supportedStoreFieldTypes = [
-    'text', 'textarea', 'radio', 'checkbox', 'title', 'text/html',
-    'submit', 'image', 'whatsapp', 'form-title', 'cart-items', 'cart-summary',
+    'text', 'textarea', 'radio', 'checkbox', 'text/html',
+    'submit', 'image', 'whatsapp', 'cart-items', 'cart-summary',
     'email', 'phone'
   ];
   
@@ -169,8 +168,6 @@ const FormField = memo(({ field, formStyle }: FormFieldProps) => {
     'textarea': TextArea,
     'radio': RadioGroup,
     'checkbox': CheckboxGroup,
-    'title': TitleField,
-    'form-title': TitleField, // Form-title now uses TitleField component
     'text/html': HtmlContent,
     'cart-items': CartItems,
     'cart-summary': CartSummary,
@@ -206,13 +203,13 @@ const FormField = memo(({ field, formStyle }: FormFieldProps) => {
     'data-label-color': normalizedField.style?.labelColor || '#333',
     'data-label-font-size': normalizedField.style?.labelFontSize || formStyle.fontSize || '16px',
     'data-label-font-weight': normalizedField.style?.labelFontWeight || '600',
-    'data-background-color': normalizedField.style?.backgroundColor || (fieldType === 'submit' || fieldType === 'form-title' ? formStyle.primaryColor : undefined),
+    'data-background-color': normalizedField.style?.backgroundColor || (fieldType === 'submit' ? formStyle.primaryColor : undefined),
     'data-border-color': normalizedField.style?.borderColor,
     'data-border-width': normalizedField.style?.borderWidth,
   };
 
   // Show warning if type is not supported
-  if (!isSupported && fieldType !== 'form-title') {
+  if (!isSupported) {
     return (
       <div className={`${marginClass} p-3 border border-yellow-300 bg-yellow-50 rounded-md`} key={fieldKey} {...dataAttributes}>
         <Component field={normalizedField} formStyle={formStyle} />
@@ -256,7 +253,7 @@ const FormField = memo(({ field, formStyle }: FormFieldProps) => {
   
   const styleKeys = [
     'textAlign', 'color', 'backgroundColor', 'fontSize', 'fontWeight', 
-    'descriptionColor', 'descriptionFontSize', 'showIcon'
+    'showIcon'
   ];
   
   for (const key of styleKeys) {
