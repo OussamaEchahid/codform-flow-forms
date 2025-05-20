@@ -9,6 +9,9 @@ import { Button } from '@/components/ui/button';
 import { Edit, Palette } from 'lucide-react';
 import FormTitleEditor from '../editor/FormTitleEditor';
 
+// Constant ID for form title to match across components
+const FORM_TITLE_ID = 'form-title-static';
+
 interface FormElementEditorProps {
   elements: FormField[];
   selectedIndex: number | null;
@@ -69,8 +72,10 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
   const { language } = useI18n();
   const [isTitleEditorOpen, setIsTitleEditorOpen] = useState(false);
   
+  // Find the form title field with its exact ID to ensure consistency
+  const titleField = elements.find(el => el.type === 'form-title' && (el.id === FORM_TITLE_ID || el.id === 'form-title-static'));
+  
   // Get the form title style from existing form-title field or default
-  const titleField = elements.find(el => el.type === 'form-title');
   const titleFieldStyle = titleField?.style || {
     backgroundColor: formStyle.primaryColor,
     color: '#ffffff',
@@ -105,12 +110,14 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
     
     if (onReorderElements && oldIndex !== -1 && newIndex !== -1) {
       // Create exact deep copies of each element to prevent mutations
-      const newElementsArray = elements.map(element => deepCopyElement(element));
+      const newElementsArray = elements
+        .filter(element => element.type !== 'form-title') // Filter out title field
+        .map(element => deepCopyElement(element));
       
       // Use arrayMove to reorder elements
       const reorderedElements = arrayMove(newElementsArray, oldIndex, newIndex);
       
-      // Trigger the parent's reorder callback
+      // Trigger the parent's reorder callback - title field handled separately
       onReorderElements(reorderedElements);
     }
   }, [elements, onReorderElements]);
@@ -119,6 +126,11 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
   const handleElementUpdate = useCallback((index: number, field: FormField) => {
     if (index < 0 || index >= elements.length) {
       console.error(`Invalid element index: ${index}`);
+      return;
+    }
+    
+    // Skip title field in direct element updates - it has its own flow
+    if (elements[index].type === 'form-title') {
       return;
     }
     
@@ -143,15 +155,14 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
   };
   
   const handleTitleSave = (title: string, description: string, style: any) => {
-    // Ensure we preserve the title field's ID if it exists
-    if (titleField) {
+    // Use onTitleUpdate to handle title updates - this ensures consistency
+    if (onTitleUpdate) {
+      // Preserve the original ID if it exists
       const updatedStyle = {
         ...titleFieldStyle,
         ...style
       };
       onTitleUpdate(title, description, updatedStyle);
-    } else {
-      onTitleUpdate(title, description, style);
     }
     
     setIsTitleEditorOpen(false);

@@ -23,8 +23,8 @@ interface FormPreviewProps {
   hideFloatingButtonPreview?: boolean;
 }
 
-// Constant ID for form title to prevent regeneration
-const FORM_TITLE_ID = 'form-title-preview-static';
+// Constant ID for form title to prevent regeneration - must match FormPreviewPanel
+const FORM_TITLE_ID = 'form-title-static';
 
 const FormPreview: React.FC<FormPreviewProps> = ({
   formTitle,
@@ -45,14 +45,14 @@ const FormPreview: React.FC<FormPreviewProps> = ({
 }) => {
   const { language } = useI18n();
   
-  // Process fields for display
+  // Process fields for display - avoid duplicating title fields
   const sanitizedFields = useMemo(() => {
-    // We should NOT modify fields here since they're already processed in FormPreviewPanel
-    // Just make sure we don't duplicate the form-title field
-    const processedFields = [...fields];
+    // We don't modify fields here since they're already processed in FormPreviewPanel
+    // Just ensure we don't have duplicate title fields
+    const hasFormTitle = fields.some(f => f.type === 'form-title' && f.id === FORM_TITLE_ID);
     
     // This should be handled in FormPreviewPanel now, but keeping a fallback
-    if (processedFields.length === 0) {
+    if (fields.length === 0 || !hasFormTitle) {
       const titleField: FormField = {
         type: 'form-title',
         id: FORM_TITLE_ID,
@@ -71,81 +71,34 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         },
       };
       
-      // Add title field at the beginning
-      processedFields.push(titleField);
-      
-      // Add default submit button if needed
-      const submitButton: FormField = {
-        type: 'submit',
-        id: `submit-stable`,
-        label: language === 'ar' ? 'إرسال الطلب' : 'Submit Order',
-        style: {
-          backgroundColor: formStyle.primaryColor || '#9b87f5',
-          color: '#ffffff',
-          fontSize: '18px',
-          animation: true,
-          animationType: 'pulse',
-        },
-      };
-      processedFields.push(submitButton);
+      // If no fields, create default ones with title
+      if (fields.length === 0) {
+        // Add title field at the beginning
+        const processedFields = [titleField];
+        
+        // Add default submit button if needed
+        const submitButton: FormField = {
+          type: 'submit',
+          id: `submit-stable`,
+          label: language === 'ar' ? 'إرسال الطلب' : 'Submit Order',
+          style: {
+            backgroundColor: formStyle.primaryColor || '#9b87f5',
+            color: '#ffffff',
+            fontSize: '18px',
+            animation: true,
+            animationType: 'pulse',
+          },
+        };
+        processedFields.push(submitButton);
+        
+        return processedFields;
+      } else {
+        // Just add the title field to the beginning of existing fields
+        return [titleField, ...fields.filter(f => f.type !== 'form-title')];
+      }
     }
     
-    // Update fields with default values if needed
-    const updatedFields = processedFields.map(field => {
-      const updatedField = { ...field };
-      
-      // Set empty label for cart items and summary
-      if ((field.type === 'cart-items' || field.type === 'cart-summary') && field.label === undefined) {
-        updatedField.label = '';
-      }
-      
-      // Handle icon properties
-      if (field.icon === '') {
-        updatedField.icon = 'none';
-      }
-      
-      // Ensure style.showIcon is defined if icon exists
-      if (field.icon && field.icon !== 'none') {
-        if (!updatedField.style) {
-          updatedField.style = {};
-        }
-        
-        updatedField.style.showIcon = updatedField.style?.showIcon !== undefined 
-          ? updatedField.style.showIcon 
-          : true;
-      }
-      
-      // Ensure basic style properties exist
-      if (!updatedField.style) {
-        updatedField.style = {};
-      }
-
-      // Normalize font sizes to pixels
-      if (updatedField.style.fontSize && !updatedField.style.fontSize.includes('px')) {
-        if (updatedField.style.fontSize.includes('rem')) {
-          const remValue = parseFloat(updatedField.style.fontSize);
-          updatedField.style.fontSize = `${remValue * 16}px`;
-        } else if (!isNaN(parseFloat(updatedField.style.fontSize))) {
-          updatedField.style.fontSize = `${updatedField.style.fontSize}px`;
-        }
-      }
-      
-      // Normalize label font size
-      if (updatedField.style.labelFontSize && !updatedField.style.labelFontSize.includes('px')) {
-        if (updatedField.style.labelFontSize.includes('rem')) {
-          const remValue = parseFloat(updatedField.style.labelFontSize);
-          updatedField.style.labelFontSize = `${remValue * 16}px`;
-        } else if (!isNaN(parseFloat(updatedField.style.labelFontSize))) {
-          updatedField.style.labelFontSize = `${updatedField.style.labelFontSize}px`;
-        }
-      } else if (!updatedField.style.labelFontSize) {
-        updatedField.style.labelFontSize = '16px';
-      }
-      
-      return updatedField;
-    });
-    
-    return updatedFields;
+    return fields;
   }, [fields, language, formStyle.primaryColor, formTitle, formDescription]);
   
   return (

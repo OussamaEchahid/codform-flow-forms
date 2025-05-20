@@ -28,12 +28,13 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
     descriptionFontSize = '14px',
     borderRadius = formStyle.borderRadius || '8px',
     paddingY = '16px',
-    showTitle = true, // Default to true if not specified
-    showDescription = true // Default to true if not specified
+    // Default showTitle and showDescription to true if not specified
+    showTitle = true,
+    showDescription = true
   } = styles;
 
   // If both title and description are hidden, don't render anything
-  if (!showTitle && !showDescription) {
+  if (showTitle === false && showDescription === false) {
     return null;
   }
 

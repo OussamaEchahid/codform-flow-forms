@@ -25,6 +25,9 @@ interface FormPreviewPanelProps {
   hideFloatingButtonPreview?: boolean;
 }
 
+// Constant ID for form title to prevent regeneration
+const FORM_TITLE_ID = 'form-title-static';
+
 // Deep clone function that preserves field IDs and all properties
 const deepCloneFields = (fields: FormField[]): FormField[] => {
   if (!fields) return [];
@@ -49,9 +52,6 @@ const deepCloneFields = (fields: FormField[]): FormField[] => {
     return newField;
   });
 };
-
-// Constant ID for form title to prevent regeneration
-const FORM_TITLE_ID = 'form-title-static';
 
 const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   formTitle,
@@ -83,19 +83,27 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     // Create deep copy of all fields to prevent mutations
     const clonedFields = deepCloneFields(fields);
     
-    // Identify the title field if it exists
+    // Find an existing title field by its fixed ID or type
+    const titleField = clonedFields.find(field => 
+      field.id === FORM_TITLE_ID || field.type === 'form-title'
+    );
+    
+    // Filter out all form-title fields to avoid duplicates
     let filteredFields = clonedFields.filter(field => field.type !== 'form-title');
-    const titleField = clonedFields.find(field => field.type === 'form-title');
     
     // Prepare the title field - either use existing or create new
     const updatedTitleField: FormField = titleField 
       ? {
           ...titleField,
-          label: titleField.label || formTitle,
-          helpText: titleField.helpText || formDescription,
+          id: FORM_TITLE_ID, // Ensure consistent ID
+          type: 'form-title',
+          label: formTitle || titleField.label,
+          helpText: formDescription || titleField.helpText,
           style: {
             ...(titleField.style || {}),
-            backgroundColor: titleField.style?.backgroundColor || formStyle.primaryColor
+            backgroundColor: titleField.style?.backgroundColor || formStyle.primaryColor,
+            showTitle: titleField.style?.showTitle !== undefined ? titleField.style.showTitle : true,
+            showDescription: titleField.style?.showDescription !== undefined ? titleField.style.showDescription : true
           }
         }
       : {
