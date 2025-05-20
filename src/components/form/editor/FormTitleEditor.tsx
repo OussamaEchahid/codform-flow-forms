@@ -59,11 +59,13 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
     showDescription: initialStyle?.showDescription !== false, // Default to true if not explicitly set to false
   });
 
-  // Update local state when external props change
+  // Update local state when external props change, using shallow copy to break references
   useEffect(() => {
     setCurrentTitle(title);
     setCurrentDescription(description);
-    setStyle({
+    
+    // Create a new object to break any references and avoid state mutations
+    const newStyle = {
       backgroundColor: initialStyle?.backgroundColor || primaryColor,
       color: initialStyle?.color || "#ffffff",
       textAlign: initialStyle?.textAlign || (language === 'ar' ? 'right' : 'center'),
@@ -75,26 +77,32 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
       paddingY: initialStyle?.paddingY || "16px",
       showTitle: initialStyle?.showTitle !== false,
       showDescription: initialStyle?.showDescription !== false,
-    });
+    };
+    
+    setStyle(newStyle);
   }, [initialStyle, primaryColor, borderRadius, title, description, language]);
 
   const handleStyleChange = (property: string, value: string | boolean) => {
-    setStyle({
+    // Create a new style object to avoid state mutations
+    const newStyle = {
       ...style,
       [property]: value
-    });
+    };
     
-    // CRITICAL FIX: Do NOT update ANY global styles when changing title styles
-    // This completely isolates title styling from form styling
+    setStyle(newStyle);
+    
+    // CRITICAL CHANGE: Never update global styles from title editor
+    // This ensures complete isolation between title styling and form styling
   };
 
   const handleSave = () => {
+    // Create a new style object to ensure clean data
     const updatedStyle = { ...style };
     
     // Save the field-specific style and title/description
     onSave(currentTitle, currentDescription, updatedStyle);
     
-    // IMPORTANT: Do NOT update any global styles from here
+    // IMPORTANT: Never update any global styles from here
     
     toast({
       description: language === 'ar' 
@@ -106,7 +114,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
     onClose();
   };
 
-  // Common color presets
+  // Common color presets with better contrast options
   const colorPresets = ['#9b87f5', '#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#000000', '#ff3b30', '#ff9500', '#34c759'];
   
   return (

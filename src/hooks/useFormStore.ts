@@ -62,6 +62,7 @@ interface FormStore {
   updateFloatingButton: (config: any) => void;
 }
 
+// IMPORTANT: Default styles - these are the guaranteed defaults that cannot be overridden
 const defaultFormStyle: FormStyle = {
   primaryColor: '#9b87f5', // Default primary color for buttons
   borderRadius: '1.5rem', // Large border radius by default
@@ -92,19 +93,22 @@ const defaultFormState: FormState = {
 export const useFormStore = create<FormStore>((set) => ({
   formState: {...defaultFormState},
   setFormState: (form) => set((state) => {
-    // Handle style updates separately to ensure defaults are preserved
-    let updatedStyle = state.formState.style || { ...defaultFormStyle };
+    // Create a clean copy of the current style
+    const currentStyle = state.formState.style || { ...defaultFormStyle };
     
-    // If form contains style updates, merge them properly
+    // Handle style updates completely separately from form title styling
+    let updatedStyle = { ...currentStyle };
+    
+    // If form contains style updates, apply them while preserving fixed defaults
     if (form.style) {
       updatedStyle = {
         ...updatedStyle,
         ...form.style,
-        // ALWAYS maintain the fixed default values regardless of what's passed
-        backgroundColor: form.style.backgroundColor || updatedStyle.backgroundColor || defaultFormStyle.backgroundColor,
-        borderColor: form.style.borderColor || updatedStyle.borderColor || defaultFormStyle.borderColor,
-        borderWidth: form.style.borderWidth || updatedStyle.borderWidth || defaultFormStyle.borderWidth,
-        borderRadius: form.style.borderRadius || updatedStyle.borderRadius || defaultFormStyle.borderRadius,
+        // Always ensure the default values are maintained for form (not title)
+        backgroundColor: form.style.backgroundColor || currentStyle.backgroundColor || defaultFormStyle.backgroundColor,
+        borderColor: form.style.borderColor || currentStyle.borderColor || defaultFormStyle.borderColor,
+        borderWidth: form.style.borderWidth || currentStyle.borderWidth || defaultFormStyle.borderWidth,
+        borderRadius: form.style.borderRadius || currentStyle.borderRadius || defaultFormStyle.borderRadius,
       };
     }
     

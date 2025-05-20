@@ -39,9 +39,9 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
     return null;
   }
   
-  // CRITICAL: Use field's own backgroundColor for title background
-  // If not defined, fall back to formStyle.primaryColor (button color)
-  // This ensures complete separation between title background and form background
+  // CRITICAL: Use field's own backgroundColor exclusively for title background
+  // If not defined, fall back to formStyle.primaryColor as a completely separate default
+  // This ensures complete independence between title background and form background
   const titleBackgroundColor = styles.backgroundColor || formStyle.primaryColor || '#9b87f5';
   
   // Extract all style properties with fallbacks
@@ -78,14 +78,18 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
     <div 
       className="form-title-container mb-6" 
       style={{
-        backgroundColor: titleBackgroundColor, // Use the field's specific background color
+        backgroundColor: titleBackgroundColor, // Use ONLY the field's specific background color
         borderRadius,
         padding: `${paddingY} 16px`,
         marginTop: '0',
         textAlign: effectiveTextAlign as any,
-        // IMPORTANT: Remove border style to prevent form border from affecting title
-        border: 'none', // This ensures the form's border is not applied to the title
-        overflow: 'hidden' // Ensure rounded corners work correctly
+        // IMPORTANT: Explicitly remove ALL border styles to ensure form border doesn't affect title
+        border: 'none', 
+        borderTop: 'none',
+        borderBottom: 'none',
+        borderLeft: 'none',
+        borderRight: 'none',
+        overflow: 'hidden', // Ensure rounded corners work correctly
       }}
       {...dataAttributes}
     >

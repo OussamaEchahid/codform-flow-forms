@@ -20,7 +20,7 @@ const FormStylingEditor: React.FC<FormStylingEditorProps> = ({ formStyle, onStyl
     onStyleChange({ [property]: value });
   };
   
-  // Color presets
+  // Color presets for form styling
   const colorPresets = ['#9b87f5', '#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#000000'];
   
   return (
@@ -60,8 +60,8 @@ const FormStylingEditor: React.FC<FormStylingEditorProps> = ({ formStyle, onStyl
         </div>
         <div className="text-xs text-muted-foreground mt-1">
           {language === 'ar' 
-            ? 'هذا اللون يطبق على الأزرار ولون الروابط'
-            : 'This color is applied to buttons and accent elements'}
+            ? 'هذا اللون يطبق على الأزرار والعناصر البارزة ولون العنوان الافتراضي فقط'
+            : 'This color is applied to buttons, accent elements, and default title background only'}
         </div>
       </div>
 
@@ -72,21 +72,21 @@ const FormStylingEditor: React.FC<FormStylingEditorProps> = ({ formStyle, onStyl
           </Label>
           <div className="flex items-center gap-2">
             <input
+              disabled
               type="color"
               value={formStyle.backgroundColor || '#F9FAFB'}
-              onChange={(e) => handleChange('backgroundColor', e.target.value)}
-              className="w-8 h-8 rounded cursor-pointer"
+              className="w-8 h-8 rounded cursor-not-allowed opacity-70"
             />
             <Input
+              disabled
               value={formStyle.backgroundColor || '#F9FAFB'}
-              onChange={(e) => handleChange('backgroundColor', e.target.value)}
-              className="flex-1"
+              className="flex-1 cursor-not-allowed opacity-70"
             />
           </div>
           <div className="text-xs text-muted-foreground mt-1">
             {language === 'ar' 
-              ? 'لون خلفية النموذج (لا يؤثر على خلفية العنوان)'
-              : 'Form background color (does not affect title background)'}
+              ? 'لون خلفية النموذج ثابت على #F9FAFB لتجربة أفضل'
+              : 'Form background color is fixed to #F9FAFB for best experience'}
           </div>
         </div>
         
@@ -297,6 +297,14 @@ const FormStylingEditor: React.FC<FormStylingEditorProps> = ({ formStyle, onStyl
               : 'When enabled, field labels appear as floating elements above the inputs'}
           </div>
         </div>
+      </div>
+      
+      <div className="mt-4 p-4 bg-amber-50 rounded border border-amber-200">
+        <p className="text-amber-700 font-medium text-sm">
+          {language === 'ar' 
+            ? 'لتخصيص عنوان النموذج، استخدم محرر عنوان النموذج من القائمة الرئيسية'
+            : 'To customize the form title appearance, use the Form Title Editor from the main menu'}
+        </p>
       </div>
     </div>
   );

@@ -102,6 +102,9 @@ const FormPreview: React.FC<FormPreviewProps> = ({
 }) => {
   const { language } = useI18n();
   
+  // IMPORTANT: Always enforce default backgroundColor for the form to #F9FAFB
+  const formBackgroundColor = '#F9FAFB';
+
   // Process fields while preserving IDs and ensuring there's no duplication
   const sanitizedFields = useMemo(() => {
     // Deep clone to prevent mutations - critical for stability
@@ -123,7 +126,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
           label: formTitle || '',
           helpText: formDescription || '',
           style: {
-            // IMPORTANT: Use primaryColor for title background, not form's background color
+            // IMPORTANT: Use primaryColor for title background
             backgroundColor: formStyle.primaryColor || '#9b87f5',
             color: '#ffffff',
             textAlign: language === 'ar' ? 'right' : 'center',
@@ -194,7 +197,8 @@ const FormPreview: React.FC<FormPreviewProps> = ({
           style: {
             ...field.style,
             // Only use default if style or backgroundColor doesn't exist
-            backgroundColor: field.style?.backgroundColor || formStyle.primaryColor,
+            // This keeps title background color separate from form background
+            backgroundColor: field.style?.backgroundColor || formStyle.primaryColor || '#9b87f5',
           }
         };
       }
@@ -206,9 +210,6 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   // Determine the form direction, prioritizing formStyle.formDirection, then language
   const formDirection = formStyle.formDirection || (language === 'ar' ? 'rtl' : 'ltr');
   
-  // IMPORTANT: Ensure form background color is always #F9FAFB by default
-  const formBackgroundColor = formStyle.backgroundColor || '#F9FAFB'; 
-  
   return (
     <div 
       className="rounded-lg border shadow-sm overflow-hidden codform-form"
@@ -216,7 +217,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         fontSize: formStyle.fontSize,
         '--form-primary-color': formStyle.primaryColor,
         borderRadius: formStyle.borderRadius,
-        backgroundColor: formBackgroundColor, // Always use the form's background color
+        backgroundColor: formBackgroundColor, // Always use #F9FAFB as form background
         border: `${formStyle.borderWidth || '2px'} solid ${formStyle.borderColor || '#9b87f5'}`,
         padding: '0',
       } as React.CSSProperties}
