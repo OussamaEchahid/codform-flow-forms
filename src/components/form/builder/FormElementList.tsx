@@ -11,63 +11,8 @@ interface FormElementListProps {
 const FormElementList: React.FC<FormElementListProps> = ({ onAddElement }) => {
   const { language } = useI18n();
   
-  // Define the available form elements with translations
+  // تحديث ترتيب العناصر المتاحة وفقًا للقائمة الجديدة
   const availableElements = [
-    { 
-      type: 'text', 
-      label: language === 'ar' ? 'حقل نص' : 'Text Input', 
-      icon: 'T' 
-    },
-    { 
-      type: 'email', 
-      label: language === 'ar' ? 'بريد إلكتروني' : 'Email Input', 
-      icon: '@' 
-    },
-    { 
-      type: 'phone', 
-      label: language === 'ar' ? 'رقم الهاتف' : 'Phone Input', 
-      icon: '☎' 
-    },
-    { 
-      type: 'textarea', 
-      label: language === 'ar' ? 'نص متعدد الأسطر' : 'Text Area', 
-      icon: '¶' 
-    },
-    { 
-      type: 'select', 
-      label: language === 'ar' ? 'قائمة منسدلة' : 'Dropdown', 
-      icon: '▼' 
-    },
-    { 
-      type: 'checkbox', 
-      label: language === 'ar' ? 'خانة اختيار' : 'Checkbox', 
-      icon: '☑' 
-    },
-    { 
-      type: 'radio', 
-      label: language === 'ar' ? 'زر راديو' : 'Radio Button', 
-      icon: '◉' 
-    },
-    { 
-      type: 'text/html', 
-      label: language === 'ar' ? 'نص/HTML' : 'HTML Content', 
-      icon: '</>' 
-    },
-    { 
-      type: 'submit', 
-      label: language === 'ar' ? 'زر إرسال الطلب' : 'Submit Button', 
-      icon: '✓' 
-    },
-    { 
-      type: 'cart-items', 
-      label: language === 'ar' ? 'عناصر السلة' : 'Cart Items', 
-      icon: '🛒' 
-    },
-    { 
-      type: 'cart-summary', 
-      label: language === 'ar' ? 'ملخص السلة' : 'Cart Summary', 
-      icon: '🧾' 
-    },
     { 
       type: 'whatsapp', 
       label: language === 'ar' ? 'واتساب' : 'WhatsApp', 
@@ -82,7 +27,52 @@ const FormElementList: React.FC<FormElementListProps> = ({ onAddElement }) => {
       type: 'form-title', 
       label: language === 'ar' ? 'عنوان النموذج' : 'Form Title', 
       icon: 'H1' 
-    }
+    },
+    { 
+      type: 'text/html', 
+      label: language === 'ar' ? 'نص/HTML' : 'HTML Content', 
+      icon: '</>' 
+    },
+    { 
+      type: 'cart-items', 
+      label: language === 'ar' ? 'عناصر السلة' : 'Cart Items', 
+      icon: '🛒' 
+    },
+    { 
+      type: 'cart-summary', 
+      label: language === 'ar' ? 'ملخص السلة' : 'Cart Summary', 
+      icon: '🧾' 
+    },
+    { 
+      type: 'text', 
+      label: language === 'ar' ? 'حقل نص' : 'Text Input', 
+      icon: 'T' 
+    },
+    { 
+      type: 'textarea', 
+      label: language === 'ar' ? 'نص متعدد الأسطر' : 'Multi-line Input', 
+      icon: '¶' 
+    },
+    { 
+      type: 'radio', 
+      label: language === 'ar' ? 'زر راديو' : 'Single Choice', 
+      icon: '◉' 
+    },
+    { 
+      type: 'checkbox', 
+      label: language === 'ar' ? 'خانة اختيار' : 'Multiple Choices', 
+      icon: '☑' 
+    },
+    { 
+      type: 'shipping', 
+      label: language === 'ar' ? 'خيارات الشحن' : 'Shipping', 
+      icon: '🚚' 
+    },
+    { 
+      type: 'countdown', 
+      label: language === 'ar' ? 'العد التنازلي' : 'Countdown', 
+      icon: '⏱️' 
+    },
   ];
 
   return (
