@@ -45,8 +45,47 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   
   // Process fields for display
   const sanitizedFields = useMemo(() => {
+    // First, check if form-title exists
+    const hasTitleField = fields.some(field => field.type === 'form-title');
+    let processedFields = [...fields];
+    
+    // If there's no form title field and it's not hidden, add one
+    if (!hasTitleField && !hideHeader) {
+      const titleField: FormField = {
+        type: 'form-title',
+        id: `form-title-preview`,
+        label: formTitle,
+        helpText: formDescription,
+        style: {
+          backgroundColor: formStyle.primaryColor || '#9b87f5',
+          color: '#ffffff',
+          textAlign: language === 'ar' ? 'right' : 'center',
+          fontSize: '24px',
+          fontWeight: 'bold',
+          descriptionColor: 'rgba(255, 255, 255, 0.9)',
+          descriptionFontSize: '14px'
+        },
+      };
+      
+      // Add title field at the beginning
+      processedFields = [titleField, ...processedFields];
+    } 
+    // Update existing title with current values if they differ
+    else if (hasTitleField) {
+      processedFields = processedFields.map(field => {
+        if (field.type === 'form-title') {
+          return {
+            ...field,
+            label: field.label || formTitle,
+            helpText: field.helpText || formDescription
+          };
+        }
+        return field;
+      });
+    }
+    
     // Update fields with default values
-    const updatedFields = fields.map(field => {
+    const updatedFields = processedFields.map(field => {
       const updatedField = { ...field };
       
       // Set empty label for cart items and summary
@@ -136,7 +175,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
     }
     
     return result;
-  }, [fields, language, formStyle.primaryColor]);
+  }, [fields, language, formStyle.primaryColor, formTitle, formDescription, hideHeader]);
   
   return (
     <div 

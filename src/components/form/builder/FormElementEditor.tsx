@@ -1,10 +1,13 @@
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { FormField } from '@/lib/form-utils';
 import SortableField from '@/components/form/SortableField';
 import { useI18n } from '@/lib/i18n';
+import { Button } from '@/components/ui/button';
+import { Edit, Palette } from 'lucide-react';
+import FormTitleEditor from '../editor/FormTitleEditor';
 
 interface FormElementEditorProps {
   elements: FormField[];
@@ -15,6 +18,15 @@ interface FormElementEditorProps {
   onDuplicateElement: (index: number) => void;
   onReorderElements?: (newOrder: FormField[]) => void;
   onUpdateElement?: (index: number, updatedElement: FormField) => void;
+  formTitle: string;
+  formDescription: string;
+  formStyle: {
+    primaryColor: string;
+    borderRadius: string;
+    fontSize: string;
+    buttonStyle: string;
+  };
+  onTitleUpdate: (title: string, description: string, style: any) => void;
 }
 
 // Deep copy function that preserves all field properties and IDs
@@ -48,9 +60,25 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
   onDeleteElement,
   onDuplicateElement,
   onReorderElements,
-  onUpdateElement
+  onUpdateElement,
+  formTitle,
+  formDescription,
+  formStyle,
+  onTitleUpdate
 }) => {
   const { language } = useI18n();
+  const [isTitleEditorOpen, setIsTitleEditorOpen] = useState(false);
+  
+  // Get the form title style from existing form-title field or default
+  const titleFieldStyle = elements.find(el => el.type === 'form-title')?.style || {
+    backgroundColor: formStyle.primaryColor,
+    color: '#ffffff',
+    textAlign: language === 'ar' ? 'right' : 'center',
+    fontSize: '24px',
+    fontWeight: 'bold',
+    descriptionColor: 'rgba(255, 255, 255, 0.9)',
+    descriptionFontSize: '14px'
+  };
   
   // Configure sensors for drag and drop
   const sensors = useSensors(useSensor(PointerSensor, {
@@ -103,8 +131,73 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
     }
   }, [elements, onUpdateElement]);
   
+  const handleTitleEditorOpen = () => {
+    setIsTitleEditorOpen(true);
+  };
+  
+  const handleTitleEditorClose = () => {
+    setIsTitleEditorOpen(false);
+  };
+  
+  const handleTitleSave = (title: string, description: string, style: any) => {
+    onTitleUpdate(title, description, style);
+  };
+  
+  // Filter out any form-title fields for the sortable list
+  const sortableElements = elements.filter(element => element.type !== 'form-title');
+  
   return (
     <div className="space-y-4">
+      {/* Form Title Editor Button */}
+      <div className="bg-gray-50 rounded-lg p-4 mb-6 border border-gray-200">
+        <div className="flex justify-between items-center">
+          <div>
+            <h3 className={`text-lg font-medium ${language === 'ar' ? 'text-right' : ''}`}>
+              {language === 'ar' ? 'عنوان النموذج' : 'Form Title'}
+            </h3>
+            <p className={`text-sm text-gray-500 ${language === 'ar' ? 'text-right' : ''}`}>
+              {language === 'ar' 
+                ? 'عنوان النموذج الذي سيظهر في أعلى النموذج'
+                : 'The form title that will appear at the top of your form'}
+            </p>
+          </div>
+          <Button variant="outline" size="sm" onClick={handleTitleEditorOpen}>
+            <Edit className="w-4 h-4 mr-2" />
+            {language === 'ar' ? 'تعديل العنوان' : 'Edit Title'}
+          </Button>
+        </div>
+        
+        <div className="mt-3 p-2 rounded-md bg-white border">
+          <div 
+            className="rounded-md p-3"
+            style={{
+              backgroundColor: titleFieldStyle.backgroundColor || formStyle.primaryColor,
+              textAlign: (titleFieldStyle.textAlign as any) || (language === 'ar' ? 'right' : 'center'),
+              borderRadius: formStyle.borderRadius
+            }}
+          >
+            <h3 style={{ 
+              color: titleFieldStyle.color || '#ffffff',
+              fontSize: titleFieldStyle.fontSize || '24px', 
+              fontWeight: (titleFieldStyle.fontWeight as any) || 'bold',
+              margin: 0
+            }}>
+              {formTitle}
+            </h3>
+            {formDescription && (
+              <p style={{ 
+                color: titleFieldStyle.descriptionColor || 'rgba(255, 255, 255, 0.9)',
+                fontSize: titleFieldStyle.descriptionFontSize || '14px',
+                margin: '8px 0 0 0'
+              }}>
+                {formDescription}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+      
+      {/* Form Fields */}
       {elements.length === 0 && (
         <div className="text-center p-8 border-2 border-dashed border-gray-300 rounded-lg">
           <p className="text-gray-500">
@@ -116,8 +209,8 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
       )}
       
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={elements.map(element => element.id)} strategy={verticalListSortingStrategy}>
-          {elements.map((element, index) => (
+        <SortableContext items={sortableElements.map(element => element.id)} strategy={verticalListSortingStrategy}>
+          {sortableElements.map((element, index) => (
             <SortableField 
               key={element.id} 
               field={element} 
@@ -130,6 +223,18 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
           ))}
         </SortableContext>
       </DndContext>
+      
+      {/* Form Title Editor Modal */}
+      <FormTitleEditor
+        isOpen={isTitleEditorOpen}
+        onClose={handleTitleEditorClose}
+        title={formTitle}
+        description={formDescription}
+        style={titleFieldStyle}
+        onSave={handleTitleSave}
+        primaryColor={formStyle.primaryColor}
+        borderRadius={formStyle.borderRadius}
+      />
     </div>
   );
 };

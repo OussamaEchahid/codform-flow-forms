@@ -1,0 +1,323 @@
+
+import React, { useState } from 'react';
+import { FormField } from '@/lib/form-utils';
+import { useI18n } from '@/lib/i18n';
+import { X, Save, AlignLeft, AlignCenter, AlignRight, Type, Palette } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+interface FormTitleEditorProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  description: string;
+  style: any;
+  onSave: (title: string, description: string, style: any) => void;
+  primaryColor: string;
+  borderRadius: string;
+}
+
+const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
+  isOpen,
+  onClose,
+  title,
+  description,
+  style: initialStyle,
+  onSave,
+  primaryColor,
+  borderRadius
+}) => {
+  const { language } = useI18n();
+  const [currentTitle, setCurrentTitle] = useState(title);
+  const [currentDescription, setCurrentDescription] = useState(description);
+  const [style, setStyle] = useState({
+    backgroundColor: initialStyle?.backgroundColor || primaryColor,
+    color: initialStyle?.color || "#ffffff",
+    textAlign: initialStyle?.textAlign || (language === 'ar' ? 'right' : 'center'),
+    fontSize: initialStyle?.fontSize || "24px",
+    fontWeight: initialStyle?.fontWeight || "bold",
+    descriptionColor: initialStyle?.descriptionColor || "rgba(255, 255, 255, 0.9)",
+    descriptionFontSize: initialStyle?.descriptionFontSize || "14px",
+    borderRadius: initialStyle?.borderRadius || borderRadius,
+    paddingY: initialStyle?.paddingY || "16px"
+  });
+
+  const handleStyleChange = (property: string, value: string) => {
+    setStyle(prev => ({
+      ...prev,
+      [property]: value
+    }));
+  };
+
+  const handleSave = () => {
+    onSave(currentTitle, currentDescription, style);
+    onClose();
+  };
+
+  // Common color presets
+  const colorPresets = ['#9b87f5', '#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#000000'];
+  
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className={language === 'ar' ? 'text-right' : 'text-left'}>
+            {language === 'ar' ? 'تحرير عنوان النموذج' : 'Edit Form Title'}
+          </DialogTitle>
+        </DialogHeader>
+        
+        <Tabs defaultValue="content" className="mt-4 w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="content">
+              {language === 'ar' ? 'المحتوى' : 'Content'}
+            </TabsTrigger>
+            <TabsTrigger value="style">
+              {language === 'ar' ? 'المظهر' : 'Style'}
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="content" className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <Label htmlFor="title" className={language === 'ar' ? 'text-right block' : 'block'}>
+                {language === 'ar' ? 'العنوان' : 'Title'}
+              </Label>
+              <Input
+                id="title"
+                value={currentTitle}
+                onChange={(e) => setCurrentTitle(e.target.value)}
+                dir={language === 'ar' ? 'rtl' : 'ltr'}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="description" className={language === 'ar' ? 'text-right block' : 'block'}>
+                {language === 'ar' ? 'الوصف' : 'Description'}
+              </Label>
+              <Textarea
+                id="description"
+                value={currentDescription}
+                onChange={(e) => setCurrentDescription(e.target.value)}
+                rows={3}
+                dir={language === 'ar' ? 'rtl' : 'ltr'}
+              />
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="style" className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <Label className={language === 'ar' ? 'text-right block' : 'block'}>
+                {language === 'ar' ? 'لون الخلفية' : 'Background Color'}
+              </Label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={style.backgroundColor}
+                  onChange={(e) => handleStyleChange('backgroundColor', e.target.value)}
+                  className="w-10 h-10 rounded cursor-pointer"
+                />
+                <Input
+                  value={style.backgroundColor}
+                  onChange={(e) => handleStyleChange('backgroundColor', e.target.value)}
+                  className="flex-1"
+                />
+              </div>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {colorPresets.map((color) => (
+                  <div
+                    key={color}
+                    className="w-8 h-8 rounded cursor-pointer border border-gray-300"
+                    style={{ backgroundColor: color }}
+                    onClick={() => handleStyleChange('backgroundColor', color)}
+                  />
+                ))}
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className={language === 'ar' ? 'text-right block' : 'block'}>
+                  {language === 'ar' ? 'لون النص' : 'Text Color'}
+                </Label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={style.color}
+                    onChange={(e) => handleStyleChange('color', e.target.value)}
+                    className="w-8 h-8 rounded cursor-pointer"
+                  />
+                  <Input
+                    value={style.color}
+                    onChange={(e) => handleStyleChange('color', e.target.value)}
+                    className="flex-1"
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label className={language === 'ar' ? 'text-right block' : 'block'}>
+                  {language === 'ar' ? 'محاذاة النص' : 'Text Alignment'}
+                </Label>
+                <div className="flex items-center gap-2 border rounded-md p-1">
+                  <Button
+                    type="button"
+                    variant={style.textAlign === 'left' ? 'default' : 'outline'}
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => handleStyleChange('textAlign', 'left')}
+                  >
+                    <AlignLeft size={16} />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={style.textAlign === 'center' ? 'default' : 'outline'}
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => handleStyleChange('textAlign', 'center')}
+                  >
+                    <AlignCenter size={16} />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={style.textAlign === 'right' ? 'default' : 'outline'}
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => handleStyleChange('textAlign', 'right')}
+                  >
+                    <AlignRight size={16} />
+                  </Button>
+                </div>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className={language === 'ar' ? 'text-right block' : 'block'}>
+                  {language === 'ar' ? 'حجم الخط' : 'Font Size'}
+                </Label>
+                <Input
+                  type="text"
+                  value={style.fontSize}
+                  onChange={(e) => handleStyleChange('fontSize', e.target.value)}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label className={language === 'ar' ? 'text-right block' : 'block'}>
+                  {language === 'ar' ? 'وزن الخط' : 'Font Weight'}
+                </Label>
+                <select
+                  className="w-full border rounded-md p-2"
+                  value={style.fontWeight}
+                  onChange={(e) => handleStyleChange('fontWeight', e.target.value)}
+                >
+                  <option value="normal">Normal</option>
+                  <option value="bold">Bold</option>
+                  <option value="500">Medium (500)</option>
+                  <option value="600">Semi-Bold (600)</option>
+                  <option value="800">Extra-Bold (800)</option>
+                </select>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className={language === 'ar' ? 'text-right block' : 'block'}>
+                  {language === 'ar' ? 'لون وصف النموذج' : 'Description Color'}
+                </Label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={style.descriptionColor}
+                    onChange={(e) => handleStyleChange('descriptionColor', e.target.value)}
+                    className="w-8 h-8 rounded cursor-pointer"
+                  />
+                  <Input
+                    value={style.descriptionColor}
+                    onChange={(e) => handleStyleChange('descriptionColor', e.target.value)}
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label className={language === 'ar' ? 'text-right block' : 'block'}>
+                  {language === 'ar' ? 'حجم خط الوصف' : 'Description Font Size'}
+                </Label>
+                <Input
+                  type="text"
+                  value={style.descriptionFontSize}
+                  onChange={(e) => handleStyleChange('descriptionFontSize', e.target.value)}
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className={language === 'ar' ? 'text-right block' : 'block'}>
+                  {language === 'ar' ? 'استدارة الحواف' : 'Border Radius'}
+                </Label>
+                <Input
+                  type="text"
+                  value={style.borderRadius}
+                  onChange={(e) => handleStyleChange('borderRadius', e.target.value)}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label className={language === 'ar' ? 'text-right block' : 'block'}>
+                  {language === 'ar' ? 'التباعد العمودي' : 'Vertical Padding'}
+                </Label>
+                <Input
+                  type="text"
+                  value={style.paddingY}
+                  onChange={(e) => handleStyleChange('paddingY', e.target.value)}
+                />
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
+        
+        <div className="pt-4 mt-4 border-t">
+          <div 
+            className="p-4 rounded"
+            style={{
+              backgroundColor: style.backgroundColor,
+              borderRadius: style.borderRadius,
+              textAlign: style.textAlign as any
+            }}
+          >
+            <h3 style={{ color: style.color, fontSize: style.fontSize, fontWeight: style.fontWeight as any, margin: 0 }}>
+              {currentTitle || (language === 'ar' ? 'عنوان النموذج' : 'Form Title')}
+            </h3>
+            {currentDescription && (
+              <p style={{ color: style.descriptionColor, fontSize: style.descriptionFontSize, margin: '8px 0 0 0' }}>
+                {currentDescription}
+              </p>
+            )}
+          </div>
+        </div>
+        
+        <DialogFooter className="mt-4">
+          <Button type="button" variant="outline" onClick={onClose}>
+            {language === 'ar' ? 'إلغاء' : 'Cancel'}
+          </Button>
+          <Button type="button" onClick={handleSave}>
+            <Save className="w-4 h-4 mr-2" />
+            {language === 'ar' ? 'حفظ' : 'Save'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default FormTitleEditor;

@@ -80,8 +80,48 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     // Create deep copy of all fields to prevent mutations
     const clonedFields = deepCloneFields(fields);
     
-    // Remove any form-title fields
-    const filteredFields = clonedFields.filter(field => field.type !== 'form-title');
+    // Check if we already have a form title field
+    const hasTitleField = clonedFields.some(field => field.type === 'form-title');
+    
+    let filteredFields = [...clonedFields];
+    
+    // Add a form title field if it doesn't exist
+    if (!hasTitleField) {
+      const titleField: FormField = {
+        type: 'form-title',
+        id: `form-title-${Date.now()}`,
+        label: formTitle,
+        helpText: formDescription,
+        style: {
+          backgroundColor: formStyle.primaryColor || '#9b87f5',
+          color: '#ffffff',
+          textAlign: language === 'ar' ? 'right' : 'center',
+          fontSize: '24px',
+          fontWeight: 'bold',
+          descriptionColor: 'rgba(255, 255, 255, 0.9)',
+          descriptionFontSize: '14px'
+        },
+      };
+      
+      // Add the title field at the beginning
+      filteredFields = [titleField, ...filteredFields];
+    } else {
+      // Update existing title field with current form title and description
+      filteredFields = filteredFields.map(field => {
+        if (field.type === 'form-title') {
+          return {
+            ...field,
+            label: formTitle,
+            helpText: formDescription,
+            style: {
+              ...field.style,
+              backgroundColor: field.style?.backgroundColor || formStyle.primaryColor
+            }
+          };
+        }
+        return field;
+      });
+    }
     
     // Add default submit button if needed
     const hasSubmitButton = filteredFields.some(field => field.type === 'submit');
@@ -103,7 +143,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     }
     
     return filteredFields;
-  }, [fields, language, formStyle.primaryColor]);
+  }, [fields, language, formStyle.primaryColor, formTitle, formDescription]);
 
   return (
     <div>

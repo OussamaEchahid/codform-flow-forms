@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useFormTemplates, FormData, formTemplates } from '@/lib/hooks/useFormTemplates';
@@ -113,6 +112,23 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   // إنشاء نموذج افتراضي جديد مع الحقول المطلوبة
   const createDefaultForm = (): FormField[] => {
     const fields: FormField[] = [];
+    
+    // Add title field first
+    fields.push({
+      type: 'form-title' as FormFieldType,
+      id: `form-title-${Date.now()}`,
+      label: language === 'ar' ? 'نموذج جديد' : 'New Form',
+      helpText: language === 'ar' ? 'نموذج جديد' : 'New Form',
+      style: {
+        backgroundColor: '#9b87f5',
+        color: '#ffffff',
+        textAlign: language === 'ar' ? 'right' : 'center',
+        fontSize: '24px',
+        fontWeight: 'bold',
+        descriptionColor: 'rgba(255, 255, 255, 0.9)',
+        descriptionFontSize: '14px',
+      },
+    });
     
     // إضافة حقل الاسم الكامل
     fields.push({
@@ -492,6 +508,14 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
   };
 
   const addElement = (type: string) => {
+    // Never add form-title through the normal element addition
+    if (type === 'form-title') {
+      toast.info(language === 'ar' 
+        ? 'عنوان النموذج موجود بالفعل، يمكنك تعديله من شاشة تحرير العناصر' 
+        : 'The form title already exists, you can edit it from the element editor');
+      return;
+    }
+    
     const newElement: FormField = {
       type: type as FormFieldType,
       id: `${type}-${Date.now()}`,
@@ -663,6 +687,51 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
     setIsFloatingButtonDialogOpen(false);
   };
 
+  // Handle form title updates from the title editor
+  const handleFormTitleUpdate = (title: string, description: string, titleStyle: any) => {
+    // Update form title and description state
+    setFormTitle(title);
+    setFormDescription(description);
+    
+    // Check if we have an existing form-title field
+    const titleFieldIndex = formElements.findIndex(field => field.type === 'form-title');
+    
+    if (titleFieldIndex !== -1) {
+      // Update existing title field
+      const updatedElements = [...formElements];
+      updatedElements[titleFieldIndex] = {
+        ...updatedElements[titleFieldIndex],
+        label: title,
+        helpText: description,
+        style: {
+          ...updatedElements[titleFieldIndex].style,
+          ...titleStyle
+        }
+      };
+      setFormElements(updatedElements);
+    } else {
+      // Create new title field
+      const titleField: FormField = {
+        type: 'form-title',
+        id: `form-title-${Date.now()}`,
+        label: title,
+        helpText: description,
+        style: titleStyle,
+      };
+      
+      // Add to beginning of elements array
+      const updatedElements = [titleField, ...formElements];
+      setFormElements(updatedElements);
+    }
+    
+    // Refresh the preview
+    setRefreshKey(prev => prev + 1);
+    
+    toast.success(language === 'ar' 
+      ? 'تم تحديث عنوان النموذج بنجاح' 
+      : 'Form title updated successfully');
+  };
+
   // Show a loading screen during slow operations
   if (isLoading) {
     return (
@@ -708,7 +777,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
             onDragEnd={handleDragEnd}
           >
             <SortableContext 
-              items={formElements.map(el => el.id)}
+              items={formElements.filter(el => el.type !== 'form-title').map(el => el.id)}
               strategy={verticalListSortingStrategy}
             >
               <FormElementEditor
@@ -719,6 +788,11 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId }) => {
                 onDeleteElement={deleteElement}
                 onDuplicateElement={duplicateElement}
                 onReorderElements={handleReorderElements}
+                onUpdateElement={handleElementUpdate}
+                formTitle={formTitle}
+                formDescription={formDescription}
+                formStyle={formStyle}
+                onTitleUpdate={handleFormTitleUpdate}
               />
             </SortableContext>
           </DndContext>

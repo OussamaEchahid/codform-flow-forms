@@ -1,4 +1,3 @@
-
 import React, { memo } from 'react';
 import { FormField as FormFieldType } from '@/lib/form-utils';
 import TextInput from './fields/TextInput';
@@ -13,6 +12,7 @@ import CountdownTimer from './fields/CountdownTimer';
 import WhatsAppButton from './fields/WhatsAppButton';
 import ImageField from './fields/ImageField';
 import HtmlContent from './fields/HtmlContent';
+import FormTitleField from './fields/FormTitleField';
 
 interface FormFieldProps {
   field: FormFieldType;
@@ -158,7 +158,7 @@ const FormField = memo(({ field, formStyle }: FormFieldProps) => {
   const supportedStoreFieldTypes = [
     'text', 'textarea', 'radio', 'checkbox', 'text/html',
     'submit', 'image', 'whatsapp', 'cart-items', 'cart-summary',
-    'email', 'phone'
+    'email', 'phone', 'form-title'
   ];
   
   const isSupported = supportedStoreFieldTypes.includes(fieldType) || supportedStoreFieldTypes.includes(normalizedField.type);
@@ -178,6 +178,7 @@ const FormField = memo(({ field, formStyle }: FormFieldProps) => {
     'image': ImageField,
     'email': TextInput,
     'phone': TextInput,
+    'form-title': FormTitleField,
   };
 
   const Component = components[fieldType] || components[normalizedField.type];
@@ -190,7 +191,8 @@ const FormField = memo(({ field, formStyle }: FormFieldProps) => {
   const fieldKey = getFieldKey(field);
   
   // Set margins: use optimized margins based on field type
-  const marginClass = fieldType === 'submit' ? 'mt-0' : 'mb-4';
+  const marginClass = fieldType === 'submit' ? 'mt-0' : 
+                      fieldType === 'form-title' ? 'mb-6' : 'mb-4';
 
   // Add data attributes to help ensure consistency between preview and store
   const dataAttributes = {
