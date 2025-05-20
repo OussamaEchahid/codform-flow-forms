@@ -58,6 +58,10 @@ interface FormFieldStyle {
   fullWidth?: boolean;
   fontFamily?: string;
   
+  // Title field specific properties
+  showTitle?: boolean;
+  showDescription?: boolean;
+  
   // Cart item and summary specific properties
   priceFontSize?: string;
   priceColor?: string;
