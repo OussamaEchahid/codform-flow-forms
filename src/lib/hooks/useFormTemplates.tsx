@@ -31,19 +31,58 @@ export interface FormTemplate {
   data: FormStep[];
 }
 
+// Helper function for retrying failed requests
+const fetchWithRetry = async (fetchFn, maxRetries = 3, delay = 1000) => {
+  let lastError;
+  
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await fetchFn();
+    } catch (error) {
+      console.warn(`Attempt ${attempt + 1}/${maxRetries} failed:`, error);
+      lastError = error;
+      
+      if (attempt < maxRetries - 1) {
+        // Wait before retrying (with exponential backoff)
+        await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, attempt)));
+      }
+    }
+  }
+  
+  throw lastError;
+};
+
 export const useFormTemplates = () => {
   const { setFormState } = useFormStore();
   const { user, shop } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [forms, setForms] = useState<FormData[]>([]);
-  const [isCreatingForm, setIsCreatingForm] = useState(false); // مؤشر جديد لمنع الإنشاء المتكرر
+  const [isCreatingForm, setIsCreatingForm] = useState(false);
+  const [offlineMode, setOfflineMode] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   // Get current active shop ID from localStorage if not available in context
   const getActiveShopId = () => {
     return shop || localStorage.getItem('shopify_store');
   };
+  
+  // Check if we have locally cached forms to use in offline mode
+  useEffect(() => {
+    const cachedForms = localStorage.getItem('cached_forms');
+    if (cachedForms) {
+      try {
+        // Attempt to parse and use cached forms
+        const parsedForms = JSON.parse(cachedForms);
+        if (Array.isArray(parsedForms) && parsedForms.length > 0) {
+          setForms(parsedForms);
+        }
+      } catch (e) {
+        console.error('Error parsing cached forms:', e);
+      }
+    }
+  }, []);
 
-  // Fetch all forms
+  // Fetch all forms with retry logic
   const fetchForms = async () => {
     try {
       setIsLoading(true);
@@ -55,31 +94,71 @@ export const useFormTemplates = () => {
         setIsLoading(false);
         return;
       }
-      
-      // Fetch forms from Supabase where shop_id matches
-      const { data, error } = await supabase
-        .from('forms')
-        .select('*')
-        .eq('shop_id', shopId)
-        .order('created_at', { ascending: false });
-      
-      if (error) {
-        console.error('Error fetching forms:', error);
-        toast.error('خطأ في جلب النماذج');
-        setIsLoading(false);
-        return;
+
+      try {
+        // Use fetchWithRetry to attempt the request multiple times
+        const { data, error } = await fetchWithRetry(async () => {
+          return await supabase
+            .from('forms')
+            .select('*')
+            .eq('shop_id', shopId)
+            .order('created_at', { ascending: false });
+        });
+        
+        if (error) {
+          console.error('Error fetching forms:', error);
+          toast.error('خطأ في جلب النماذج، جاري المحاولة مجددًا...');
+          
+          // Increment retry count for UI feedback
+          setRetryCount(prev => prev + 1);
+          
+          setIsLoading(false);
+          return;
+        }
+        
+        // Reset offline mode if successful
+        if (offlineMode) {
+          setOfflineMode(false);
+          toast.success('تم استعادة الاتصال بالخادم');
+        }
+        
+        // Transform data to match FormData interface
+        const formattedData = data.map(form => ({
+          ...form,
+          isPublished: form.is_published
+        }));
+        
+        // Cache forms for offline use
+        localStorage.setItem('cached_forms', JSON.stringify(formattedData));
+        
+        setForms(formattedData);
+        setRetryCount(0);
+      } catch (error) {
+        console.error('Failed to fetch forms after retries:', error);
+        
+        // Set offline mode
+        setOfflineMode(true);
+        
+        // Check for cached forms
+        const cachedForms = localStorage.getItem('cached_forms');
+        if (cachedForms) {
+          try {
+            const parsedForms = JSON.parse(cachedForms);
+            if (Array.isArray(parsedForms) && parsedForms.length > 0) {
+              setForms(parsedForms);
+              toast.warning('جاري استخدام النماذج المخزنة محليًا، قد لا تكون محدثة');
+            }
+          } catch (e) {
+            console.error('Error parsing cached forms:', e);
+          }
+        } else {
+          toast.error('تعذر الاتصال بالخادم وعدم وجود نماذج مخزنة محليًا');
+        }
       }
       
-      // Transform data to match FormData interface
-      const formattedData = data.map(form => ({
-        ...form,
-        isPublished: form.is_published
-      }));
-      
-      setForms(formattedData);
       setIsLoading(false);
     } catch (error) {
-      console.error('Error fetching forms', error);
+      console.error('Exception in fetchForms:', error);
       toast.error('خطأ في جلب النماذج');
       setIsLoading(false);
     }
@@ -116,24 +195,36 @@ export const useFormTemplates = () => {
         shop_id: shopId,
       };
 
-      // Insert into Supabase
-      const { error } = await supabase
-        .from('forms')
-        .insert({
-          id: newFormId,
-          title: template.title,
-          description: template.description,
-          data: template.data,
-          is_published: false,
-          shop_id: shopId,
-          user_id: user?.id
+      // Insert into Supabase with retry
+      try {
+        const { error } = await fetchWithRetry(async () => {
+          return await supabase
+            .from('forms')
+            .insert({
+              id: newFormId,
+              title: template.title,
+              description: template.description,
+              data: template.data,
+              is_published: false,
+              shop_id: shopId,
+              user_id: user?.id
+            });
         });
 
-      if (error) {
-        console.error('Error saving form to database:', error);
-        toast.error('خطأ في حفظ النموذج في قاعدة البيانات');
-        setIsLoading(false);
-        return null;
+        if (error) {
+          console.error('Error saving form to database:', error);
+          toast.error('خطأ في حفظ النموذج في قاعدة البيانات');
+          setIsLoading(false);
+          return null;
+        }
+      } catch (error) {
+        console.error('Failed to save form after retries:', error);
+        toast.error('فشل الاتصال بالخادم، سيتم حفظ النموذج محليًا');
+        
+        // Store in local forms even if server sync fails
+        const localForms = [...forms, formData];
+        setForms(localForms);
+        localStorage.setItem('cached_forms', JSON.stringify(localForms));
       }
 
       setFormState(formData);
@@ -265,25 +356,44 @@ export const useFormTemplates = () => {
         shop_id: shopId,
       };
       
-      // Insert the complete form with all required fields
-      const { error } = await supabase
-        .from('forms')
-        .insert({
-          id: newFormId,
-          title: formData.title,
-          description: formData.description,
-          data: formData.data,
-          is_published: false,
-          shop_id: shopId,
-          user_id: user?.id
+      // Insert the complete form with all required fields - with retry
+      try {
+        const { error } = await fetchWithRetry(async () => {
+          return await supabase
+            .from('forms')
+            .insert({
+              id: newFormId,
+              title: formData.title,
+              description: formData.description,
+              data: formData.data,
+              is_published: false,
+              shop_id: shopId,
+              user_id: user?.id
+            });
         });
         
-      if (error) {
-        console.error('Error saving form to database:', error);
-        toast.error('خطأ في حفظ النموذج في قاعدة البيانات');
-        setIsLoading(false);
-        setIsCreatingForm(false);
-        return null;
+        if (error) {
+          console.error('Error saving form to database:', error);
+          toast.error('خطأ في حفظ النموذج في قاعدة البيانات');
+          setIsLoading(false);
+          setIsCreatingForm(false);
+          return null;
+        }
+        
+        // Reset offline mode if we succeed
+        if (offlineMode) {
+          setOfflineMode(false);
+          toast.success('تم استعادة الاتصال بالخادم');
+        }
+      } catch (error) {
+        console.error('Failed to save form after retries:', error);
+        toast.warning('فشل الاتصال بالخادم، سيتم حفظ النموذج محليًا');
+        setOfflineMode(true);
+        
+        // Store in local forms even if server sync fails
+        const localForms = [...forms, formData];
+        setForms(localForms);
+        localStorage.setItem('cached_forms', JSON.stringify(localForms));
       }
 
       // Update form state and move to editing immediately
@@ -307,7 +417,7 @@ export const useFormTemplates = () => {
     }
   };
 
-  // Save form changes
+  // Save form changes with retry logic
   const saveForm = async (formId: string, formData: Partial<FormData>) => {
     try {
       setIsLoading(true);
@@ -319,24 +429,55 @@ export const useFormTemplates = () => {
         delete dbData.isPublished;
       }
       
-      // Update form in Supabase
-      const { error } = await supabase
-        .from('forms')
-        .update(dbData)
-        .eq('id', formId);
-      
-      if (error) {
-        console.error('Error updating form:', error);
-        toast.error('خطأ في تحديث النموذج');
-        setIsLoading(false);
-        return false;
-      }
-      
-      // Update local state if forms list is loaded
-      if (forms.length > 0) {
-        setForms(forms.map(form => 
-          form.id === formId ? { ...form, ...formData } : form
-        ));
+      // Update form in Supabase with retry
+      try {
+        const { error } = await fetchWithRetry(async () => {
+          return await supabase
+            .from('forms')
+            .update(dbData)
+            .eq('id', formId);
+        });
+        
+        if (error) {
+          console.error('Error updating form:', error);
+          toast.error('خطأ في تحديث النموذج');
+          setIsLoading(false);
+          return false;
+        }
+        
+        // Reset offline mode if we succeed
+        if (offlineMode) {
+          setOfflineMode(false);
+          toast.success('تم استعادة الاتصال بالخادم');
+        }
+        
+        // Update local state if forms list is loaded
+        if (forms.length > 0) {
+          const updatedForms = forms.map(form => 
+            form.id === formId ? { ...form, ...formData } : form
+          );
+          setForms(updatedForms);
+          
+          // Update local cache
+          localStorage.setItem('cached_forms', JSON.stringify(updatedForms));
+        }
+      } catch (error) {
+        console.error('Failed to save form after retries:', error);
+        toast.warning('فشل الاتصال بالخادم، تم حفظ التغييرات محليًا فقط');
+        
+        // Update local state even if server sync fails
+        if (forms.length > 0) {
+          const updatedForms = forms.map(form => 
+            form.id === formId ? { ...form, ...formData } : form
+          );
+          setForms(updatedForms);
+          
+          // Update local cache
+          localStorage.setItem('cached_forms', JSON.stringify(updatedForms));
+        }
+        
+        // Set offline mode
+        setOfflineMode(true);
       }
       
       setIsLoading(false);
@@ -349,30 +490,54 @@ export const useFormTemplates = () => {
     }
   };
 
-  // Publish or unpublish a form
+  // Publish or unpublish a form with retry logic
   const publishForm = async (formId: string, publish: boolean) => {
     try {
       setIsLoading(true);
       
-      // Update form in Supabase
-      const { error } = await supabase
-        .from('forms')
-        .update({ is_published: publish })
-        .eq('id', formId);
-      
-      if (error) {
-        console.error('Error publishing form:', error);
-        toast.error(publish ? 'خطأ في نشر النموذج' : 'خطأ في إلغاء نشر النموذج');
-        setIsLoading(false);
-        return false;
+      // Update form in Supabase with retry
+      try {
+        const { error } = await fetchWithRetry(async () => {
+          return await supabase
+            .from('forms')
+            .update({ is_published: publish })
+            .eq('id', formId);
+        });
+        
+        if (error) {
+          console.error('Error publishing form:', error);
+          toast.error(publish ? 'خطأ في نشر النموذج' : 'خطأ في إلغاء نشر النموذج');
+          setIsLoading(false);
+          return false;
+        }
+        
+        // Update local state
+        const updatedForms = forms.map(form => 
+          form.id === formId ? { ...form, isPublished: publish, is_published: publish } : form
+        );
+        setForms(updatedForms);
+        
+        // Update local cache
+        localStorage.setItem('cached_forms', JSON.stringify(updatedForms));
+        
+        toast.success(publish ? 'تم نشر النموذج بنجاح' : 'تم إلغاء نشر النموذج');
+      } catch (error) {
+        console.error('Failed to publish form after retries:', error);
+        toast.warning('فشل الاتصال بالخادم، تم تحديث الحالة محليًا فقط');
+        
+        // Update local state even if server sync fails
+        const updatedForms = forms.map(form => 
+          form.id === formId ? { ...form, isPublished: publish, is_published: publish } : form
+        );
+        setForms(updatedForms);
+        
+        // Update local cache
+        localStorage.setItem('cached_forms', JSON.stringify(updatedForms));
+        
+        // Set offline mode
+        setOfflineMode(true);
       }
       
-      // Update local state
-      setForms(forms.map(form => 
-        form.id === formId ? { ...form, isPublished: publish, is_published: publish } : form
-      ));
-      
-      toast.success(publish ? 'تم نشر النموذج بنجاح' : 'تم إلغاء نشر النموذج');
       setIsLoading(false);
       return true;
     } catch (error) {
@@ -383,48 +548,72 @@ export const useFormTemplates = () => {
     }
   };
 
-  // Delete a form
+  // Delete a form with retry logic
   const deleteForm = async (formId: string) => {
     try {
       setIsLoading(true);
       
-      // Step 1: First remove product associations (disable rather than delete)
+      // Step 1: First remove product associations (disable rather than delete) with retry
       try {
-        // Make a request to the new DELETE endpoint
-        const response = await fetch(`/api/shopify/product-settings?formId=${formId}`, {
-          method: 'DELETE',
+        // Make a request to the DELETE endpoint with retry logic
+        await fetchWithRetry(async () => {
+          const response = await fetch(`/api/shopify/product-settings?formId=${formId}`, {
+            method: 'DELETE',
+          });
+          
+          if (!response.ok) {
+            throw new Error('Failed to remove product associations');
+          }
+          
+          return { ok: true };
         });
-        
-        if (!response.ok) {
-          console.warn('Could not remove product associations, but proceeding with form deletion');
-        }
       } catch (error) {
         console.warn('Error removing product associations:', error);
         // Continue with deletion even if this step fails
       }
       
-      // Step 2: Delete form from Supabase
-      const { error } = await supabase
-        .from('forms')
-        .delete()
-        .eq('id', formId);
-      
-      if (error) {
-        console.error('Error deleting form:', error);
+      // Step 2: Delete form from Supabase with retry
+      try {
+        const { error } = await fetchWithRetry(async () => {
+          return await supabase
+            .from('forms')
+            .delete()
+            .eq('id', formId);
+        });
         
-        // If error contains foreign key constraint message, try to show a more helpful error
-        if (error.message?.includes('foreign key constraint')) {
-          toast.error('لا يمكن حذف هذا النموذج لأنه مرتبط بمنتجات. قم بإلغاء ارتباط المنتجات أولاً.');
-        } else {
-          toast.error('خطأ في حذف النموذج');
+        if (error) {
+          console.error('Error deleting form:', error);
+          
+          // If error contains foreign key constraint message, try to show a more helpful error
+          if (error.message?.includes('foreign key constraint')) {
+            toast.error('لا يمكن حذف هذا النموذج لأنه مرتبط بمنتجات. قم بإلغاء ارتباط المنتجات أولاً.');
+          } else {
+            toast.error('خطأ في حذف النموذج');
+          }
+          
+          setIsLoading(false);
+          return false;
         }
         
-        setIsLoading(false);
-        return false;
+        // Reset offline mode if we succeed
+        if (offlineMode) {
+          setOfflineMode(false);
+          toast.success('تم استعادة الاتصال بالخادم');
+        }
+      } catch (error) {
+        console.error('Failed to delete form after retries:', error);
+        toast.warning('فشل الاتصال بالخادم، تم حذف النموذج محليًا فقط');
+        
+        // Set offline mode
+        setOfflineMode(true);
       }
       
       // Step 3: Update local state
-      setForms(forms.filter(form => form.id !== formId));
+      const updatedForms = forms.filter(form => form.id !== formId);
+      setForms(updatedForms);
+      
+      // Update local cache
+      localStorage.setItem('cached_forms', JSON.stringify(updatedForms));
       
       toast.success('تم حذف النموذج بنجاح');
       setIsLoading(false);
@@ -437,7 +626,7 @@ export const useFormTemplates = () => {
     }
   };
   
-  // Load a specific form by ID
+  // Load a specific form by ID with retry logic
   const loadForm = async (formId: string | undefined) => {
     try {
       setIsLoading(true);
@@ -450,6 +639,28 @@ export const useFormTemplates = () => {
         return newForm;
       }
       
+      // Check local cache first
+      const cachedForms = localStorage.getItem('cached_forms');
+      if (cachedForms) {
+        try {
+          const parsedForms = JSON.parse(cachedForms);
+          if (Array.isArray(parsedForms)) {
+            const cachedForm = parsedForms.find(form => form.id === formId);
+            if (cachedForm) {
+              console.log('Found form in local cache:', formId);
+              // If we're in offline mode, use the cached form directly
+              if (offlineMode) {
+                setFormState(cachedForm);
+                setIsLoading(false);
+                return cachedForm;
+              }
+            }
+          }
+        } catch (e) {
+          console.error('Error parsing cached forms:', e);
+        }
+      }
+      
       // Validate UUID format before querying
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       if (!uuidRegex.test(formId)) {
@@ -459,37 +670,99 @@ export const useFormTemplates = () => {
         return null;
       }
       
-      // Fetch form from Supabase
-      const { data, error } = await supabase
-        .from('forms')
-        .select('*')
-        .eq('id', formId)
-        .single();
-      
-      if (error) {
-        console.error('Error loading form:', error);
-        toast.error('خطأ في تحميل النموذج');
+      // Fetch form from Supabase with retry
+      try {
+        const { data, error } = await fetchWithRetry(async () => {
+          return await supabase
+            .from('forms')
+            .select('*')
+            .eq('id', formId)
+            .single();
+        });
+        
+        if (error) {
+          console.error('Error loading form:', error);
+          toast.error('خطأ في تحميل النموذج');
+          setIsLoading(false);
+          return null;
+        }
+        
+        if (!data) {
+          toast.error('النموذج غير موجود');
+          setIsLoading(false);
+          return null;
+        }
+        
+        // Format data for form state
+        const formData: FormData = {
+          ...data,
+          isPublished: data.is_published
+        };
+        
+        // Update form cache with this form
+        let cachedFormsArray = [];
+        try {
+          const cached = localStorage.getItem('cached_forms');
+          if (cached) {
+            cachedFormsArray = JSON.parse(cached);
+            if (!Array.isArray(cachedFormsArray)) cachedFormsArray = [];
+          }
+        } catch (e) {
+          console.error('Error parsing cached forms:', e);
+          cachedFormsArray = [];
+        }
+        
+        // Add or update this form in the cache
+        const existingIndex = cachedFormsArray.findIndex(form => form.id === formId);
+        if (existingIndex >= 0) {
+          cachedFormsArray[existingIndex] = formData;
+        } else {
+          cachedFormsArray.push(formData);
+        }
+        
+        localStorage.setItem('cached_forms', JSON.stringify(cachedFormsArray));
+        
+        // Update form state
+        setFormState(formData);
+        
+        // Reset offline mode if we succeed
+        if (offlineMode) {
+          setOfflineMode(false);
+          toast.success('تم استعادة الاتصال بالخادم');
+        }
+        
+        setIsLoading(false);
+        return formData;
+      } catch (error) {
+        console.error('Failed to load form after retries:', error);
+        
+        // Try to load from cache instead
+        const cachedForms = localStorage.getItem('cached_forms');
+        if (cachedForms) {
+          try {
+            const parsedForms = JSON.parse(cachedForms);
+            if (Array.isArray(parsedForms)) {
+              const cachedForm = parsedForms.find(form => form.id === formId);
+              if (cachedForm) {
+                toast.warning('فشل الاتصال بالخادم، جاري استخدام النسخة المحلية من النموذج');
+                setFormState(cachedForm);
+                
+                // Set offline mode
+                setOfflineMode(true);
+                
+                setIsLoading(false);
+                return cachedForm;
+              }
+            }
+          } catch (e) {
+            console.error('Error parsing cached forms:', e);
+          }
+        }
+        
+        toast.error('تعذر تحميل النموذج، فضلًا تأكد من اتصالك بالإنترنت');
         setIsLoading(false);
         return null;
       }
-      
-      if (!data) {
-        toast.error('النموذج غير موجود');
-        setIsLoading(false);
-        return null;
-      }
-      
-      // Format data for form state
-      const formData: FormData = {
-        ...data,
-        isPublished: data.is_published
-      };
-      
-      // Update form state
-      setFormState(formData);
-      
-      setIsLoading(false);
-      return formData;
     } catch (error) {
       console.error('Error loading form', error);
       toast.error('خطأ في تحميل النموذج');
@@ -501,6 +774,8 @@ export const useFormTemplates = () => {
   return {
     forms,
     isLoading,
+    offlineMode,
+    retryCount,
     fetchForms,
     createFormFromTemplate,
     createDefaultForm,

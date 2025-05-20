@@ -3,6 +3,27 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 
+// Add retry mechanism for database operations
+async function queryWithRetry(queryFn, maxRetries = 3, delay = 1000) {
+  let lastError;
+  
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await queryFn();
+    } catch (error) {
+      console.warn(`Database query attempt ${attempt + 1}/${maxRetries} failed:`, error);
+      lastError = error;
+      
+      if (attempt < maxRetries - 1) {
+        // Wait before retrying (with exponential backoff)
+        await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, attempt)));
+      }
+    }
+  }
+  
+  throw lastError;
+}
+
 serve(async (req: Request) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -23,9 +44,13 @@ serve(async (req: Request) => {
     if (!shop) {
       console.error(`[${requestId}] Missing required parameter: shop`);
       return new Response(
-        JSON.stringify({ error: 'Missing required parameter: shop' }),
+        JSON.stringify({ 
+          error: 'Missing required parameter: shop',
+          success: false,
+          message: 'Shop parameter is required'
+        }),
         { 
-          headers: corsHeaders, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
           status: 400 
         }
       );
@@ -38,9 +63,13 @@ serve(async (req: Request) => {
     if (!supabaseUrl || !supabaseKey) {
       console.error(`[${requestId}] Missing Supabase configuration`);
       return new Response(
-        JSON.stringify({ error: 'Server configuration error' }),
+        JSON.stringify({ 
+          error: 'Server configuration error',
+          success: false,
+          message: 'Internal server configuration error'
+        }),
         { 
-          headers: corsHeaders, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
           status: 500 
         }
       );
@@ -50,21 +79,41 @@ serve(async (req: Request) => {
 
     console.log(`[${requestId}] Fetching default form for shop ${shop}`);
 
-    // Get the default form for this shop (most recently updated published form)
-    const { data: defaultForms, error: defaultError } = await supabase
-      .from('forms')
-      .select('*')
-      .eq('shop_id', shop)
-      .eq('is_published', true)
-      .order('updated_at', { ascending: false })
-      .limit(1);
+    // Get the default form for this shop (most recently updated published form) with retry
+    let defaultForms, defaultError;
+    
+    try {
+      const queryResult = await queryWithRetry(async () => {
+        return await supabase
+          .from('forms')
+          .select('*')
+          .eq('shop_id', shop)
+          .eq('is_published', true)
+          .order('updated_at', { ascending: false })
+          .limit(1);
+      });
+      
+      defaultForms = queryResult.data;
+      defaultError = queryResult.error;
+    } catch (error) {
+      console.error(`[${requestId}] Error after retries:`, error);
+      defaultError = {
+        message: error.message || 'Database query failed after multiple attempts',
+        details: error.toString()
+      };
+    }
     
     if (defaultError) {
       console.error(`[${requestId}] Error fetching default form:`, defaultError);
       return new Response(
-        JSON.stringify({ error: 'Failed to retrieve default form', details: defaultError }),
+        JSON.stringify({ 
+          error: 'Failed to retrieve default form', 
+          details: defaultError,
+          success: false,
+          message: 'Database error occurred'
+        }),
         { 
-          headers: corsHeaders, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
           status: 500 
         }
       );
@@ -74,13 +123,17 @@ serve(async (req: Request) => {
     if (defaultForms && defaultForms.length > 0) {
       console.log(`[${requestId}] Default form found with ID: ${defaultForms[0].id}`);
       return new Response(
-        JSON.stringify({ form: defaultForms[0] }),
+        JSON.stringify({ 
+          form: defaultForms[0],
+          success: true
+        }),
         { 
           headers: {
             ...corsHeaders,
             'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
             'Pragma': 'no-cache',
-            'Expires': '0'
+            'Expires': '0',
+            'Content-Type': 'application/json'
           }, 
           status: 200 
         }
@@ -89,9 +142,12 @@ serve(async (req: Request) => {
       // No form found
       console.log(`[${requestId}] No default form found for shop: ${shop}`);
       return new Response(
-        JSON.stringify({ message: 'No default form found for this shop' }),
+        JSON.stringify({ 
+          message: 'No default form found for this shop',
+          success: false
+        }),
         { 
-          headers: corsHeaders, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 404 
         }
       );
@@ -99,9 +155,14 @@ serve(async (req: Request) => {
   } catch (error) {
     console.error('Error processing request:', error);
     return new Response(
-      JSON.stringify({ error: 'Internal server error', details: error.message }),
+      JSON.stringify({ 
+        error: 'Internal server error', 
+        details: error.message,
+        success: false,
+        message: 'An unexpected error occurred'
+      }),
       { 
-        headers: corsHeaders, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
         status: 500 
       }
     );

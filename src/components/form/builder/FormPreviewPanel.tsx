@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useMemo } from 'react';
 import { FormField, FloatingButtonConfig, deepCloneField } from '@/lib/form-utils';
 import FormPreview from '@/components/form/FormPreview';
@@ -143,7 +144,8 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
         const preservedStyle = JSON.parse(JSON.stringify(filteredFields[titleIndex].style || {}));
         
         console.log("Updating existing title field, preserving style:", 
-                    preservedStyle.backgroundColor);
+                    preservedStyle.backgroundColor || "not set",
+                    "formStyle:", formStyle.primaryColor);
                     
         filteredFields[titleIndex] = {
           ...filteredFields[titleIndex],

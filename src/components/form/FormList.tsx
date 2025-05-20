@@ -26,7 +26,7 @@ import {
   AlertDialogTitle 
 } from '@/components/ui/alert-dialog';
 import { FormData, useFormTemplates } from '@/lib/hooks/useFormTemplates';
-import { Edit, MoreVertical, Trash, Eye, EyeOff, ShoppingBag, Link } from 'lucide-react';
+import { Edit, MoreVertical, Trash, Eye, EyeOff, ShoppingBag, Link, CloudOff, RefreshCw } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { Loader2 } from 'lucide-react';
@@ -34,26 +34,37 @@ import { Badge } from '@/components/ui/badge';
 import { shopifySupabase } from '@/lib/shopify/supabase-client';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ShopifyProduct } from '@/lib/shopify/types';
+import { toast } from 'sonner';
 
 interface FormListProps {
   forms: FormData[];
   isLoading: boolean;
   onSelectForm: (formId: string) => void;
+  offlineMode?: boolean;
+  onRefresh?: () => void;
+  retryCount?: number;
 }
 
-// This interface is no longer needed since we've updated FormData to include associatedProducts
-// interface FormWithProducts extends FormData {
-//   associatedProducts?: {
-//     id: string;
-//     title: string;
-//   }[];
-// }
-
-const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) => {
+const FormList: React.FC<FormListProps> = ({ 
+  forms, 
+  isLoading, 
+  onSelectForm,
+  offlineMode = false,
+  onRefresh,
+  retryCount = 0
+}) => {
   const [formToDelete, setFormToDelete] = useState<string | null>(null);
   const { publishForm, deleteForm } = useFormTemplates();
   const [enhancedForms, setEnhancedForms] = useState<FormData[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
+  const [retryAttempts, setRetryAttempts] = useState(0);
+
+  // Retry mechanism for fetching data
+  useEffect(() => {
+    if (retryCount > retryAttempts) {
+      setRetryAttempts(retryCount);
+    }
+  }, [retryCount, retryAttempts]);
 
   // Fetch associated products for each form
   useEffect(() => {
@@ -140,8 +151,13 @@ const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) =
       }
     };
     
-    fetchProductAssociations();
-  }, [forms]);
+    if (!offlineMode) {
+      fetchProductAssociations();
+    } else {
+      // In offline mode, just use the forms as is
+      setEnhancedForms(forms);
+    }
+  }, [forms, offlineMode]);
 
   const handlePublishToggle = async (formId: string, currentStatus: boolean) => {
     await publishForm(formId, !currentStatus);
@@ -151,6 +167,13 @@ const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) =
     if (formToDelete) {
       await deleteForm(formToDelete);
       setFormToDelete(null);
+    }
+  };
+  
+  const handleRefresh = () => {
+    if (onRefresh) {
+      toast.info('جاري تحديث البيانات...');
+      onRefresh();
     }
   };
 
@@ -168,6 +191,23 @@ const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) =
         <CardContent className="pt-6 text-center">
           <p className="text-gray-500 mb-4">لا توجد نماذج متاحة</p>
           <p className="text-sm text-gray-400">انقر على زر "إنشاء نموذج جديد" لإضافة نموذج</p>
+          {offlineMode && (
+            <div className="mt-4 flex flex-col items-center">
+              <Badge variant="outline" className="flex items-center gap-1 p-2 bg-amber-50 text-amber-800 border-amber-300">
+                <CloudOff className="h-4 w-4" />
+                <span>وضع عدم الاتصال - بعض الوظائف قد لا تعمل</span>
+              </Badge>
+              <Button onClick={handleRefresh} variant="outline" className="mt-2 text-sm" size="sm">
+                <RefreshCw className="mr-2 h-4 w-4" />
+                محاولة الاتصال مجددًا
+              </Button>
+            </div>
+          )}
+          {retryAttempts > 0 && (
+            <div className="mt-2 text-xs text-amber-600">
+              تمت محاولة إعادة الاتصال {retryAttempts} مرة
+            </div>
+          )}
         </CardContent>
       </Card>
     );
@@ -177,6 +217,27 @@ const FormList: React.FC<FormListProps> = ({ forms, isLoading, onSelectForm }) =
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Offline Mode Indicator */}
+      {offlineMode && (
+        <div className="col-span-full">
+          <div className="flex items-center justify-between p-4 bg-amber-50 border border-amber-300 rounded-md mb-4">
+            <div className="flex items-center gap-2">
+              <CloudOff className="h-5 w-5 text-amber-600" />
+              <span className="text-amber-800">وضع عدم الاتصال - يتم استخدام البيانات المخزنة محليًا</span>
+            </div>
+            <Button onClick={handleRefresh} variant="outline" size="sm" className="bg-white hover:bg-amber-100">
+              <RefreshCw className="mr-2 h-4 w-4" />
+              إعادة الاتصال
+            </Button>
+          </div>
+          {retryAttempts > 0 && (
+            <div className="text-center text-sm text-amber-600 mb-4">
+              تمت محاولة الاتصال {retryAttempts} مرة
+            </div>
+          )}
+        </div>
+      )}
+
       {displayForms.map((form) => (
         <Card key={form.id} className="overflow-hidden hover:shadow-md transition-shadow">
           <div className={`h-2 ${form.is_published ? 'bg-green-500' : 'bg-gray-300'}`}></div>

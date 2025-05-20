@@ -111,43 +111,58 @@ export interface FloatingButtonConfig {
 export const deepCloneField = (field: FormField): FormField => {
   if (!field) return field;
   
-  // Create a completely new field object
-  const newField: FormField = JSON.parse(JSON.stringify(field));
-  
-  // Always preserve the ID
-  newField.id = field.id;
-  
-  // Deep clone style - ensure textAlign is typed correctly
-  if (field.style) {
-    // First create a deep copy
-    newField.style = JSON.parse(JSON.stringify(field.style));
+  try {
+    // Create a completely new field object using deep copy
+    const newField: FormField = JSON.parse(JSON.stringify(field));
     
-    // Ensure textAlign is one of the allowed values
-    if (field.style.textAlign) {
-      const align = field.style.textAlign as string;
-      newField.style.textAlign = 
-        (align === 'left' || align === 'center' || align === 'right') 
-          ? align as 'left' | 'center' | 'right'
-          : (align === 'justify' ? 'left' : 'center') as 'left' | 'center' | 'right';
+    // Always preserve the ID
+    newField.id = field.id;
+    
+    // Deep clone style - ensure textAlign is typed correctly
+    if (field.style) {
+      // First create a deep copy
+      newField.style = JSON.parse(JSON.stringify(field.style));
+      
+      // Ensure textAlign is one of the allowed values
+      if (field.style.textAlign) {
+        const align = field.style.textAlign as string;
+        newField.style.textAlign = 
+          (align === 'left' || align === 'center' || align === 'right') 
+            ? align as 'left' | 'center' | 'right'
+            : (align === 'justify' ? 'left' : 'center') as 'left' | 'center' | 'right';
+      }
+      
+      // Make sure backgroundColor is preserved
+      if (field.style.backgroundColor) {
+        newField.style.backgroundColor = field.style.backgroundColor;
+      }
+      
+      // Ensure animation type is valid
+      if (field.style.animationType) {
+        const animType = field.style.animationType as string;
+        const validTypes = ['pulse', 'bounce', 'shake', 'wiggle', 'flash'];
+        newField.style.animationType = 
+          validTypes.includes(animType) 
+            ? animType as 'pulse' | 'bounce' | 'shake' | 'wiggle' | 'flash'
+            : 'pulse';
+      }
+      
+      // Preserve showTitle and showDescription
+      if (field.style.showTitle !== undefined) {
+        newField.style.showTitle = field.style.showTitle;
+      }
+      
+      if (field.style.showDescription !== undefined) {
+        newField.style.showDescription = field.style.showDescription;
+      }
     }
     
-    // Make sure backgroundColor is preserved
-    if (field.style.backgroundColor) {
-      newField.style.backgroundColor = field.style.backgroundColor;
-    }
-    
-    // Ensure animation type is valid
-    if (field.style.animationType) {
-      const animType = field.style.animationType as string;
-      const validTypes = ['pulse', 'bounce', 'shake', 'wiggle', 'flash'];
-      newField.style.animationType = 
-        validTypes.includes(animType) 
-          ? animType as 'pulse' | 'bounce' | 'shake' | 'wiggle' | 'flash'
-          : 'pulse';
-    }
+    return newField;
+  } catch (error) {
+    console.error('Error in deepCloneField:', error);
+    // Fallback to simple object copy if JSON parsing fails
+    return { ...field, style: field.style ? { ...field.style } : undefined };
   }
-  
-  return newField;
 };
 
 /**
@@ -156,11 +171,17 @@ export const deepCloneField = (field: FormField): FormField => {
 export const deepCloneStep = (step: FormStep): FormStep => {
   if (!step) return step;
   
-  return {
-    ...step,
-    id: step.id,
-    fields: step.fields?.map(field => deepCloneField(field)) || []
-  };
+  try {
+    return {
+      ...step,
+      id: step.id,
+      fields: step.fields?.map(field => deepCloneField(field)) || []
+    };
+  } catch (error) {
+    console.error('Error in deepCloneStep:', error);
+    // Fallback to simple object copy
+    return { ...step, fields: [...step.fields] };
+  }
 };
 
 // Add helper functions for form creation

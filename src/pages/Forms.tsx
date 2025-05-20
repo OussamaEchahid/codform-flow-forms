@@ -7,7 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import FormBuilderDashboard from '@/components/form/builder/FormBuilderDashboard';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertCircle, WifiOff, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -20,13 +20,15 @@ const Forms = () => {
   const [forms, setForms] = useState([]);
   const [currentShop, setCurrentShop] = useState<string | null>(null);
   const [isDataFetched, setIsDataFetched] = useState(false);
+  const [networkError, setNetworkError] = useState(false);
+  const [retryAttempt, setRetryAttempt] = useState(0);
 
   // Determine access based on various conditions
   const hasAccess = !!user || shopifyConnected || hasShopifyConnected;
 
   // Check Shopify connection and load forms - with useCallback to prevent infinite loops
   const checkShopifyConnection = useCallback(async () => {
-    if (isDataFetched) return; // Only fetch once
+    if (isDataFetched && !networkError && retryAttempt === 0) return; // Only fetch once unless retrying
     
     setIsLoading(true);
     try {
@@ -45,44 +47,118 @@ const Forms = () => {
         console.log("Active shop found:", activeShop);
         
         // Try to fetch forms for this shop
-        const { data: formsData, error: formsError } = await supabase
-          .from('forms')
-          .select('*')
-          .eq('shop_id', activeShop)
-          .order('created_at', { ascending: false });
-        
-        if (formsError) {
-          console.error("Error fetching forms:", formsError);
-          toast.error(language === 'ar' 
-            ? 'خطأ في جلب النماذج' 
-            : 'Error fetching forms');
-        } else if (formsData) {
-          console.log(`Found ${formsData.length} forms for shop ${activeShop}`);
-          setForms(formsData);
+        try {
+          const { data: formsData, error: formsError } = await supabase
+            .from('forms')
+            .select('*')
+            .eq('shop_id', activeShop)
+            .order('created_at', { ascending: false });
           
-          // If we found forms, we definitely have a connection
-          if (formsData.length > 0) {
-            setHasShopifyConnected(true);
-            localStorage.setItem('shopify_connected', 'true');
+          if (formsError) {
+            console.error("Error fetching forms:", formsError);
+            toast.error(language === 'ar' 
+              ? 'خطأ في جلب النماذج' 
+              : 'Error fetching forms');
+            
+            // Check if network error
+            if (formsError.message?.includes('Failed to fetch')) {
+              setNetworkError(true);
+              
+              // Load from local storage if available
+              const cachedForms = localStorage.getItem('cached_forms');
+              if (cachedForms) {
+                try {
+                  const parsedForms = JSON.parse(cachedForms);
+                  if (Array.isArray(parsedForms) && parsedForms.length > 0) {
+                    setForms(parsedForms);
+                    toast.warning(language === 'ar' 
+                      ? 'جاري استخدام البيانات المخزنة محليًا' 
+                      : 'Using locally stored data');
+                  }
+                } catch (e) {
+                  console.error('Error parsing cached forms:', e);
+                }
+              }
+            }
+          } else if (formsData) {
+            console.log(`Found ${formsData.length} forms for shop ${activeShop}`);
+            
+            // Reset network error state if successful
+            if (networkError) {
+              setNetworkError(false);
+              toast.success(language === 'ar' 
+                ? 'تم استعادة الاتصال بالخادم' 
+                : 'Connection restored');
+            }
+            
+            setForms(formsData);
+            
+            // Cache forms for offline use
+            localStorage.setItem('cached_forms', JSON.stringify(formsData));
+            
+            // If we found forms, we definitely have a connection
+            if (formsData.length > 0) {
+              setHasShopifyConnected(true);
+              localStorage.setItem('shopify_connected', 'true');
+            }
+          }
+        } catch (error) {
+          console.error("Network error fetching forms:", error);
+          setNetworkError(true);
+          
+          // Show toast only on first attempt or explicit retry
+          if (!isDataFetched || retryAttempt > 0) {
+            toast.error(language === 'ar' 
+              ? 'فشل الاتصال بالخادم' 
+              : 'Failed to connect to server');
+          }
+          
+          // Try to load from local storage
+          const cachedForms = localStorage.getItem('cached_forms');
+          if (cachedForms) {
+            try {
+              const parsedForms = JSON.parse(cachedForms);
+              if (Array.isArray(parsedForms)) {
+                setForms(parsedForms);
+                toast.warning(language === 'ar' 
+                  ? 'جاري استخدام البيانات المخزنة محليًا' 
+                  : 'Using locally stored data');
+              }
+            } catch (e) {
+              console.error('Error parsing cached forms:', e);
+            }
           }
         }
       } else {
         console.log("No active shop found");
       }
       
-      // Mark as fetched to prevent repeated fetching
+      // Mark as fetched to prevent repeated automatic fetching
       setIsDataFetched(true);
       
     } catch (error) {
       console.error("Error in checkShopifyConnection:", error);
+      setNetworkError(true);
     } finally {
       setIsLoading(false);
+      // Reset retry attempt after completion
+      if (retryAttempt > 0) {
+        setRetryAttempt(0);
+      }
     }
-  }, [shop, shopifyConnected, language, isDataFetched]);
+  }, [shop, shopifyConnected, language, isDataFetched, networkError, retryAttempt]);
   
   useEffect(() => {
     checkShopifyConnection();
   }, [checkShopifyConnection]);
+
+  // Function to manually retry connection
+  const retryConnection = () => {
+    setRetryAttempt(prev => prev + 1);
+    toast.info(language === 'ar' 
+      ? 'جاري محاولة الاتصال بالخادم...' 
+      : 'Attempting to connect to server...');
+  };
 
   // Handle bypass access for development or testing
   const enableBypass = () => {
@@ -147,8 +223,36 @@ const Forms = () => {
     <div className="flex min-h-screen bg-[#F8F9FB]">
       <AppSidebar />
       
+      {/* Network Error Banner */}
+      {networkError && (
+        <div className="absolute top-0 left-0 right-0 z-50 px-4 py-2">
+          <Alert variant="destructive" className="bg-red-50 border-red-200">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="text-red-700 flex justify-between items-center">
+              <div className="flex items-center">
+                <WifiOff className="h-4 w-4 mr-2" />
+                <span>
+                  {language === 'ar' 
+                    ? 'فشل الاتصال بالخادم. بعض الوظائف قد لا تعمل.'
+                    : 'Failed to connect to server. Some features may not work.'}
+                </span>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={retryConnection}
+                className="ml-2 flex items-center"
+              >
+                <RefreshCw className="h-3 w-3 mr-1" />
+                {language === 'ar' ? 'إعادة المحاولة' : 'Retry'}
+              </Button>
+            </AlertDescription>
+          </Alert>
+        </div>
+      )}
+      
       {/* Connection warning banner */}
-      {!shopifyConnected && hasShopifyConnected && (
+      {!shopifyConnected && hasShopifyConnected && !networkError && (
         <div className="absolute top-0 left-0 right-0 z-50 px-4 py-2">
           <Alert variant="warning" className="bg-amber-50 border-amber-200">
             <AlertDescription className="text-amber-700 flex justify-between items-center">
@@ -172,9 +276,12 @@ const Forms = () => {
       
       <div className="flex-1">
         <FormBuilderDashboard 
-          key={`dashboard-${currentShop}-${forms.length}`} 
+          key={`dashboard-${currentShop}-${forms.length}-${networkError}-${retryAttempt}`} 
           initialForms={forms} 
-          forceRefresh={false} 
+          forceRefresh={false}
+          offlineMode={networkError}
+          onRetryConnection={retryConnection}
+          retryCount={retryAttempt}
         />
       </div>
       
@@ -187,6 +294,8 @@ const Forms = () => {
           <div>Local Storage Connected: {localStorage.getItem('shopify_connected') === 'true' ? 'Yes' : 'No'}</div>
           <div>Forms Count: {forms.length}</div>
           <div>Data Fetched: {isDataFetched ? 'Yes' : 'No'}</div>
+          <div>Network Error: {networkError ? 'Yes' : 'No'}</div>
+          <div>Retry Attempt: {retryAttempt}</div>
         </div>
       )}
     </div>

@@ -3,11 +3,41 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 
+// Add retry mechanism for database operations
+async function queryWithRetry(queryFn, maxRetries = 3, delay = 1000) {
+  let lastError;
+  
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await queryFn();
+    } catch (error) {
+      console.warn(`Database query attempt ${attempt + 1}/${maxRetries} failed:`, error);
+      lastError = error;
+      
+      if (attempt < maxRetries - 1) {
+        // Wait before retrying (with exponential backoff)
+        await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, attempt)));
+      }
+    }
+  }
+  
+  throw lastError;
+}
+
 serve(async (req: Request) => {
+  // Add required headers to all responses
+  const responseHeaders = {
+    ...corsHeaders,
+    'Content-Type': 'application/json',
+    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0'
+  };
+
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     console.log("Handling OPTIONS request for CORS preflight");
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: responseHeaders });
   }
 
   try {
@@ -24,11 +54,12 @@ serve(async (req: Request) => {
     if (!shop || !productId) {
       console.error(`[${requestId}] Missing required parameters: shop=${shop}, productId=${productId}`);
       return new Response(
-        JSON.stringify({ error: 'Missing required parameters: shop or productId' }),
-        { 
-          headers: {...corsHeaders, 'Content-Type': 'application/json'},
-          status: 400 
-        }
+        JSON.stringify({ 
+          error: 'Missing required parameters: shop or productId',
+          success: false,
+          message: 'Shop and productId parameters are required' 
+        }),
+        { headers: responseHeaders, status: 400 }
       );
     }
 
@@ -39,11 +70,11 @@ serve(async (req: Request) => {
     if (!supabaseUrl || !supabaseKey) {
       console.error(`[${requestId}] Missing Supabase configuration`);
       return new Response(
-        JSON.stringify({ error: 'Server configuration error' }),
-        { 
-          headers: corsHeaders, 
-          status: 500 
-        }
+        JSON.stringify({ 
+          error: 'Server configuration error',
+          success: false 
+        }),
+        { headers: responseHeaders, status: 500 }
       );
     }
     
@@ -51,24 +82,40 @@ serve(async (req: Request) => {
 
     console.log(`[${requestId}] Fetching form for shop ${shop}, product ${productId}`);
 
-    // First, check if there's a specific form for this product
-    const { data: productSettings, error: settingsError } = await supabase
-      .from('shopify_product_settings')
-      .select('form_id, block_id, enabled')
-      .eq('shop_id', shop)
-      .eq('product_id', productId)
-      .eq('enabled', true)
-      .maybeSingle();
+    // First, check if there's a specific form for this product with retry
+    let productSettings, settingsError;
+    
+    try {
+      const queryResult = await queryWithRetry(async () => {
+        return await supabase
+          .from('shopify_product_settings')
+          .select('form_id, block_id, enabled')
+          .eq('shop_id', shop)
+          .eq('product_id', productId)
+          .eq('enabled', true)
+          .maybeSingle();
+      });
+      
+      productSettings = queryResult.data;
+      settingsError = queryResult.error;
+    } catch (error) {
+      console.error(`[${requestId}] Error after retries:`, error);
+      settingsError = {
+        message: error.message || 'Database query failed after multiple attempts',
+        details: error.toString()
+      };
+    }
 
     if (settingsError && settingsError.code !== 'PGRST116') {
       // Real error, not just "no rows returned"
       console.error(`[${requestId}] Error fetching product settings:`, settingsError);
       return new Response(
-        JSON.stringify({ error: 'Failed to retrieve product settings', details: settingsError }),
-        { 
-          headers: corsHeaders, 
-          status: 500 
-        }
+        JSON.stringify({ 
+          error: 'Failed to retrieve product settings', 
+          details: settingsError,
+          success: false 
+        }),
+        { headers: responseHeaders, status: 500 }
       );
     }
 
@@ -87,12 +134,27 @@ serve(async (req: Request) => {
       }
       
       // استرداد بيانات النموذج (فقط الحقول الأساسية والبيانات) - بدون عمود settings
-      const { data: formData, error: formError } = await supabase
-        .from('forms')
-        .select('id, title, description, data, style, is_published')
-        .eq('id', productSettings.form_id)
-        .eq('is_published', true)
-        .limit(1);
+      let formData, formError;
+      
+      try {
+        const queryResult = await queryWithRetry(async () => {
+          return await supabase
+            .from('forms')
+            .select('id, title, description, data, style, is_published')
+            .eq('id', productSettings.form_id)
+            .eq('is_published', true)
+            .limit(1);
+        });
+        
+        formData = queryResult.data;
+        formError = queryResult.error;
+      } catch (error) {
+        console.error(`[${requestId}] Error after retries:`, error);
+        formError = {
+          message: error.message || 'Database query failed after multiple attempts',
+          details: error.toString()
+        };
+      }
         
       if (!formError && formData && formData.length > 0) {
         form = formData[0];
@@ -114,13 +176,28 @@ serve(async (req: Request) => {
       formSource = 'default';
       
       // استرداد بيانات النموذج الافتراضي - بدون عمود settings
-      const { data: defaultForms, error: defaultError } = await supabase
-        .from('forms')
-        .select('id, title, description, data, style, is_published')
-        .eq('shop_id', shop)
-        .eq('is_published', true)
-        .order('updated_at', { ascending: false })
-        .limit(1);
+      let defaultForms, defaultError;
+      
+      try {
+        const queryResult = await queryWithRetry(async () => {
+          return await supabase
+            .from('forms')
+            .select('id, title, description, data, style, is_published')
+            .eq('shop_id', shop)
+            .eq('is_published', true)
+            .order('updated_at', { ascending: false })
+            .limit(1);
+        });
+        
+        defaultForms = queryResult.data;
+        defaultError = queryResult.error;
+      } catch (error) {
+        console.error(`[${requestId}] Error after retries:`, error);
+        defaultError = {
+          message: error.message || 'Database query failed after multiple attempts',
+          details: error.toString()
+        };
+      }
       
       if (!defaultError && defaultForms && defaultForms.length > 0) {
         form = defaultForms[0];
@@ -361,18 +438,10 @@ serve(async (req: Request) => {
         JSON.stringify({ 
           form,
           block_id: actualBlockId,
-          debug: debugInfo 
+          debug: debugInfo,
+          success: true
         }),
-        { 
-          headers: {
-            ...corsHeaders,
-            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-            'Pragma': 'no-cache',
-            'Expires': '0',
-            'Content-Type': 'application/json'
-          },
-          status: 200 
-        }
+        { headers: responseHeaders, status: 200 }
       );
     } else {
       // No form found at all
@@ -381,22 +450,22 @@ serve(async (req: Request) => {
         JSON.stringify({ 
           message: 'No form found for this shop',
           block_id: actualBlockId,
-          debug: debugInfo
+          debug: debugInfo,
+          success: false
         }),
-        { 
-          headers: {...corsHeaders, 'Content-Type': 'application/json'}, 
-          status: 404 
-        }
+        { headers: responseHeaders, status: 404 }
       );
     }
   } catch (error) {
     console.error('Error processing request:', error);
     return new Response(
-      JSON.stringify({ error: 'Internal server error', details: error.message }),
-      { 
-        headers: {...corsHeaders, 'Content-Type': 'application/json'}, 
-        status: 500 
-      }
+      JSON.stringify({ 
+        error: 'Internal server error', 
+        details: error.message,
+        success: false,
+        message: 'An unexpected error occurred' 
+      }),
+      { headers: responseHeaders, status: 500 }
     );
   }
 });

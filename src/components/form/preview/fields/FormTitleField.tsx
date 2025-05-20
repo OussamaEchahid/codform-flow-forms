@@ -44,15 +44,12 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
     return null;
   }
   
-  // Log actual background color being used for debugging
-  console.debug('FormTitleField rendered with:', { 
-    backgroundColor, 
-    fieldStyleBgColor: field.style?.backgroundColor, 
-    formStylePrimaryColor: formStyle.primaryColor,
-    fieldId: field.id,
-    showTitle,
-    showDescription
-  });
+  // Store the background color in a data attribute for debugging
+  const dataAttributes = {
+    'data-field-type': 'form-title',
+    'data-field-id': field.id,
+    'data-bg-color': backgroundColor,
+  };
 
   return (
     <div 
@@ -65,9 +62,7 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
         textAlign: textAlign as any,
         border: borderWidth ? `${borderWidth} solid ${borderColor || 'transparent'}` : undefined,
       }}
-      data-field-type="form-title"
-      data-field-id={field.id}
-      data-bg-color={backgroundColor} // For debugging
+      {...dataAttributes}
     >
       {showTitle && (
         <h1 
