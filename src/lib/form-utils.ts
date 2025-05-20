@@ -1,4 +1,3 @@
-
 import { ReactNode } from 'react';
 
 // Define FormFieldType as a string type
@@ -230,7 +229,7 @@ export const formTemplates = [
             style: {
               backgroundColor: '#9b87f5',
               color: '#ffffff',
-              textAlign: 'center',
+              textAlign: 'center' as 'center',
               showTitle: true,
               showDescription: true
             }
@@ -289,7 +288,7 @@ export const formTemplates = [
             style: {
               backgroundColor: '#9b87f5',
               color: '#ffffff',
-              textAlign: 'center'
+              textAlign: 'center' as 'center'
             }
           },
           {

@@ -24,7 +24,7 @@ import FormPreview from './FormPreview';
 import FormTemplatesDialog from './FormTemplatesDialog';
 import FieldEditor from './FieldEditor';
 import { cn } from '@/lib/utils';
-import { FormField, FormStep, createEmptyField, createDefaultForm, formTemplates } from '@/lib/form-utils';
+import { FormField, FormStep, deepCloneField, deepCloneStep, formTemplates } from '@/lib/form-utils';
 import { Dialog, DialogTrigger, DialogTitle, DialogContent, DialogFooter } from '@/components/ui/dialog';
 import { useFormTemplates, FormData } from '@/lib/hooks/useFormTemplates';
 import { toast } from 'sonner';
@@ -117,7 +117,32 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
   const applyTemplate = (templateId: number) => {
     const template = formTemplates.find(t => t.id === templateId);
     if (template) {
-      setFormSteps([...template.data]);  // Wrap in array to ensure FormStep[]
+      // Process the template data to ensure type safety
+      const processedData = template.data.map(step => {
+        // Clone the step
+        const newStep = { ...step };
+        
+        // Process each field to ensure type compatibility
+        const processedFields = step.fields.map(field => {
+          const newField = deepCloneField(field);
+          
+          // Ensure textAlign is a valid option
+          if (newField.style && newField.style.textAlign) {
+            const align = newField.style.textAlign as string;
+            newField.style.textAlign = 
+              (align === 'left' || align === 'center' || align === 'right') 
+                ? align 
+                : 'center';
+          }
+          
+          return newField;
+        });
+        
+        newStep.fields = processedFields;
+        return newStep;
+      });
+
+      setFormSteps(processedData);
       setFormTitle(template.title);
       setFormDescription(template.description);
       setIsTemplateDialogOpen(false);
@@ -236,7 +261,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
       helpText: language === 'ar' ? 'نموذج جديد' : 'New Form',
       style: {
         color: '#ffffff',
-        textAlign: language === 'ar' ? 'right' : 'left' as 'right' | 'left',
+        textAlign: (language === 'ar' ? 'right' : 'left') as 'right' | 'left',
         fontWeight: 'bold',
         fontSize: '24px',
         descriptionColor: '#ffffff',
@@ -322,6 +347,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
     }
   }, [initialFormData]);
 
+  // Create empty field with proper type handling
   const createEmptyField = (type: FormField['type']) => {
     let newField: FormField = {
       id: uuidv4(), // Use UUID from imported library
@@ -336,7 +362,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
         newField.label = 'عنوان النموذج المخصص';
         newField.helpText = 'وصف النموذج (اختياري)';
         newField.style = {
-          textAlign: 'center',
+          textAlign: 'center' as 'center',
           color: '#1A1F2C',
           fontSize: '1.5rem',
           fontWeight: 'bold',
