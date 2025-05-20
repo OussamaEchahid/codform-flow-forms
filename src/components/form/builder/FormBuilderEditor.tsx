@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useFormTemplates, FormData, formTemplates } from '@/lib/hooks/useFormTemplates';
@@ -97,12 +96,12 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
   
   const [formStyle, setFormStyle] = useState<FormStyle>({
     primaryColor: '#9b87f5',
-    borderRadius: '0.5rem',
+    borderRadius: '1.5rem', // Large border radius
     fontSize: '1rem',
     buttonStyle: 'rounded',
-    borderColor: '#e2e8f0',
-    borderWidth: '1px',
-    backgroundColor: '#ffffff',
+    borderColor: '#9b87f5', // Default border color
+    borderWidth: '2px',     // Default border width
+    backgroundColor: '#F9FAFB', // Default background color
     paddingTop: '20px',
     paddingBottom: '20px',
     paddingLeft: '20px',
@@ -228,12 +227,12 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
       // Set initial form style with all required properties
       const defaultStyle: FormStyle = {
         primaryColor: '#9b87f5',
-        borderRadius: '0.5rem',
+        borderRadius: '1.5rem', // Large border radius
         fontSize: '1rem',
         buttonStyle: 'rounded',
-        borderColor: '#e2e8f0',
-        borderWidth: '1px',
-        backgroundColor: '#ffffff',
+        borderColor: '#9b87f5', // Default border color
+        borderWidth: '2px',     // Default border width
+        backgroundColor: '#F9FAFB', // Default background color
         paddingTop: '20px',
         paddingBottom: '20px',
         paddingLeft: '20px',
@@ -362,12 +361,12 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
             if (formData.style) {
               setFormStyle({
                 primaryColor: formData.style.primaryColor || '#9b87f5',
-                borderRadius: formData.style.borderRadius || '0.5rem',
+                borderRadius: formData.style.borderRadius || '1.5rem', // Large border radius
                 fontSize: formData.style.fontSize || '1rem',
                 buttonStyle: formData.style.buttonStyle || 'rounded',
-                borderColor: formData.style.borderColor || '#e2e8f0',
-                borderWidth: formData.style.borderWidth || '1px',
-                backgroundColor: formData.style.backgroundColor || '#ffffff',
+                borderColor: formData.style.borderColor || '#9b87f5', // Default border color
+                borderWidth: formData.style.borderWidth || '2px',     // Default border width
+                backgroundColor: formData.style.backgroundColor || '#F9FAFB', // Default background color
                 paddingTop: formData.style.paddingTop || '20px',
                 paddingBottom: formData.style.paddingBottom || '20px',
                 paddingLeft: formData.style.paddingLeft || '20px',
@@ -380,12 +379,12 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
               // قيم افتراضية إذا كان النمط مفقودًا
               setFormStyle({
                 primaryColor: '#9b87f5',
-                borderRadius: '0.5rem',
+                borderRadius: '1.5rem', // Large border radius
                 fontSize: '1rem',
                 buttonStyle: 'rounded',
-                borderColor: '#e2e8f0',
-                borderWidth: '1px',
-                backgroundColor: '#ffffff',
+                borderColor: '#9b87f5', // Default border color
+                borderWidth: '2px',     // Default border width
+                backgroundColor: '#F9FAFB', // Default background color
                 paddingTop: '20px',
                 paddingBottom: '20px',
                 paddingLeft: '20px',
@@ -625,12 +624,12 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
       if (templateStyle) {
         setFormStyle({
           primaryColor: template.primaryColor || templateStyle.primaryColor || '#9b87f5',
-          borderRadius: templateStyle.borderRadius || '0.5rem',
+          borderRadius: templateStyle.borderRadius || '1.5rem', // Large border radius
           fontSize: templateStyle.fontSize || '1rem',
           buttonStyle: templateStyle.buttonStyle || 'rounded',
-          borderColor: templateStyle.borderColor || '#e2e8f0',
-          borderWidth: templateStyle.borderWidth || '1px',
-          backgroundColor: templateStyle.backgroundColor || '#ffffff',
+          borderColor: templateStyle.borderColor || '#9b87f5', // Default border color
+          borderWidth: templateStyle.borderWidth || '2px',     // Default border width
+          backgroundColor: templateStyle.backgroundColor || '#F9FAFB', // Default background color
           paddingTop: templateStyle.paddingTop || '20px',
           paddingBottom: templateStyle.paddingBottom || '20px',
           paddingLeft: templateStyle.paddingLeft || '20px',
@@ -808,10 +807,10 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
     }));
     
     // Sync with form store when style properties change
-    const formStore = useFormStore.getState();
-    formStore.setFormState({
+    const formStoreState = useFormStore.getState();
+    formStoreState.setFormState({
       style: {
-        ...formStore.formState.style,
+        ...formStoreState.formState.style,
         [key]: value
       }
     });

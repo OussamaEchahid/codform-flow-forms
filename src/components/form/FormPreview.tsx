@@ -85,9 +85,9 @@ const FormPreview: React.FC<FormPreviewProps> = ({
     fontSize: '16px',
     buttonStyle: 'rounded',
     // Default values for new style properties
-    borderColor: '#e2e8f0',
-    borderWidth: '1px',
-    backgroundColor: '#ffffff',
+    borderColor: '#9b87f5',
+    borderWidth: '2px',
+    backgroundColor: '#F9FAFB',
     paddingTop: '20px',
     paddingBottom: '20px',
     paddingLeft: '20px',
@@ -208,8 +208,8 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   const formDirection = formStyle.formDirection || (language === 'ar' ? 'rtl' : 'ltr');
   
   // IMPORTANT: We need to separate the form background color from the title background color
-  // Always use #ffffff or another neutral color for the overall form background
-  const formBackgroundColor = '#ffffff'; // Fixed white background for the form
+  // Always use the formStyle.backgroundColor or a default value
+  const formBackgroundColor = formStyle.backgroundColor || '#F9FAFB'; 
   
   return (
     <div 
@@ -218,8 +218,8 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         fontSize: formStyle.fontSize,
         '--form-primary-color': formStyle.primaryColor,
         borderRadius: formStyle.borderRadius,
-        backgroundColor: formBackgroundColor, // Fixed white background - don't use formStyle.backgroundColor
-        border: `${formStyle.borderWidth || '1px'} solid ${formStyle.borderColor || '#e2e8f0'}`,
+        backgroundColor: formBackgroundColor, // Use the form's background color
+        border: `${formStyle.borderWidth || '2px'} solid ${formStyle.borderColor || '#9b87f5'}`,
         padding: '0',
       } as React.CSSProperties}
       data-form-preview-id="form-preview-stable"
@@ -229,7 +229,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
       data-button-style={formStyle.buttonStyle}
       data-border-color={formStyle.borderColor}
       data-border-width={formStyle.borderWidth}
-      data-background-color={formBackgroundColor} // Use fixed white background in data attribute
+      data-background-color={formBackgroundColor}
       data-form-direction={formStyle.formDirection}
       data-floating-labels={formStyle.floatingLabels ? 'true' : 'false'}
     >
@@ -278,7 +278,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
           direction: formDirection,
           padding: `${formStyle.paddingTop || '20px'} ${formStyle.paddingRight || '20px'} ${formStyle.paddingBottom || '20px'} ${formStyle.paddingLeft || '20px'}`,
           gap: formStyle.formGap || '16px',
-          backgroundColor: formBackgroundColor, // Fixed white background for content
+          backgroundColor: formBackgroundColor, // Match the form background color
         }}
         data-direction={formDirection}
       >

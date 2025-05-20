@@ -48,42 +48,18 @@ const FormStyleEditor: React.FC<FormStyleEditorProps> = ({
   };
   
   return (
-    <Tabs defaultValue="general">
-      <TabsList className="grid w-full grid-cols-3">
+    <Tabs defaultValue="styling">
+      <TabsList className="grid w-full grid-cols-2">
         <TabsTrigger value="general">
           {language === 'ar' ? 'عام' : 'General'}
         </TabsTrigger>
         <TabsTrigger value="styling">
           {language === 'ar' ? 'التصميم' : 'Styling'}
         </TabsTrigger>
-        <TabsTrigger value="buttons">
-          {language === 'ar' ? 'الأزرار' : 'Buttons'}
-        </TabsTrigger>
       </TabsList>
       
       <TabsContent value="general" className="space-y-4 py-4">
         <div className="space-y-4">
-          <div className="grid gap-2">
-            <Label htmlFor="primary-color">
-              {language === 'ar' ? 'اللون الرئيسي' : 'Primary Color'}
-            </Label>
-            <div className="flex gap-2">
-              <Input
-                id="primary-color"
-                type="color"
-                value={formStyle.primaryColor}
-                onChange={(e) => handleStyleChange('primaryColor', e.target.value)}
-                className="w-12 h-10 p-1"
-              />
-              <Input
-                type="text"
-                value={formStyle.primaryColor}
-                onChange={(e) => handleStyleChange('primaryColor', e.target.value)}
-                className="flex-1"
-              />
-            </div>
-          </div>
-          
           <div className="grid gap-2">
             <Label htmlFor="border-radius">
               {language === 'ar' ? 'تقويس الحواف' : 'Border Radius'}
@@ -155,72 +131,43 @@ const FormStyleEditor: React.FC<FormStyleEditorProps> = ({
         />
       </TabsContent>
       
-      <TabsContent value="buttons" className="space-y-4 py-4">
-        <div className="space-y-4">
-          <div className="grid gap-2">
-            <Label htmlFor="button-style">
-              {language === 'ar' ? 'نمط الأزرار' : 'Button Style'}
-            </Label>
-            <Select 
-              value={formStyle.buttonStyle} 
-              onValueChange={(value) => handleStyleChange('buttonStyle', value)}
-            >
-              <SelectTrigger id="button-style">
-                <SelectValue placeholder={language === 'ar' ? 'اختر نمط الأزرار' : 'Select button style'} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="rounded">
-                  {language === 'ar' ? 'مستدير' : 'Rounded'}
-                </SelectItem>
-                <SelectItem value="square">
-                  {language === 'ar' ? 'مربع' : 'Square'}
-                </SelectItem>
-                <SelectItem value="pill">
-                  {language === 'ar' ? 'كبسولة' : 'Pill'}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-        
-        {/* Only show floating button section if specifically requested */}
-        {showFloatingButtonEditor && floatingButton && onFloatingButtonChange && (
-          <>
-            <Separator className="my-6" />
-            <h3 className="text-lg font-medium mb-4">
-              {language === 'ar' ? 'الزر العائم' : 'Floating Button'}
-            </h3>
-            
-            <div className="grid gap-4">
-              <div className="flex items-center space-x-2">
-                <input 
-                  type="checkbox" 
-                  id="enable-floating"
-                  checked={floatingButton.enabled}
-                  onChange={(e) => onFloatingButtonChange({
-                    ...floatingButton,
-                    enabled: e.target.checked
-                  })}
-                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                />
-                <Label htmlFor="enable-floating">
-                  {language === 'ar' ? 'تفعيل الزر العائم' : 'Enable Floating Button'}
-                </Label>
-              </div>
-              
-              <Button 
-                variant="secondary" 
-                className="mt-4"
-                onClick={() => {
-                  // Logic to open full floating button editor
-                }}
-              >
-                {language === 'ar' ? 'تخصيص الزر العائم' : 'Customize Floating Button'}
-              </Button>
+      {/* Only show floating button section if specifically requested */}
+      {showFloatingButtonEditor && floatingButton && onFloatingButtonChange && (
+        <>
+          <Separator className="my-6" />
+          <h3 className="text-lg font-medium mb-4">
+            {language === 'ar' ? 'الزر العائم' : 'Floating Button'}
+          </h3>
+          
+          <div className="grid gap-4">
+            <div className="flex items-center space-x-2">
+              <input 
+                type="checkbox" 
+                id="enable-floating"
+                checked={floatingButton.enabled}
+                onChange={(e) => onFloatingButtonChange({
+                  ...floatingButton,
+                  enabled: e.target.checked
+                })}
+                className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              />
+              <Label htmlFor="enable-floating">
+                {language === 'ar' ? 'تفعيل الزر العائم' : 'Enable Floating Button'}
+              </Label>
             </div>
-          </>
-        )}
-      </TabsContent>
+            
+            <Button 
+              variant="secondary" 
+              className="mt-4"
+              onClick={() => {
+                // Logic to open full floating button editor
+              }}
+            >
+              {language === 'ar' ? 'تخصيص الزر العائم' : 'Customize Floating Button'}
+            </Button>
+          </div>
+        </>
+      )}
       
       <div className="mt-6">
         <Button onClick={onSave} className="w-full">

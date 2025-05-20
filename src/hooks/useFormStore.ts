@@ -71,13 +71,13 @@ const defaultFormState: FormState = {
   shop_id: undefined,
   style: {
     primaryColor: '#9b87f5',
-    borderRadius: '8px',
+    borderRadius: '1.5rem', // Large border radius
     fontSize: '1rem',
     buttonStyle: 'rounded',
     // Default values for new styling properties
-    borderColor: '#e2e8f0',
-    borderWidth: '1px',
-    backgroundColor: '#ffffff',
+    borderColor: '#9b87f5', // Default purple border color
+    borderWidth: '2px',     // Default border width
+    backgroundColor: '#F9FAFB', // Default background color
     paddingTop: '20px',
     paddingBottom: '20px',
     paddingLeft: '20px',

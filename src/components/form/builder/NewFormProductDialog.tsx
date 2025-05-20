@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
@@ -159,9 +160,19 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
         }],
         style: {
           primaryColor: '#9b87f5',
-          borderRadius: '0.5rem',
+          borderRadius: '1.5rem', // Large border radius
           fontSize: '1rem',
           buttonStyle: 'rounded',
+          borderColor: '#9b87f5', // Default border color
+          borderWidth: '2px',     // Default border width
+          backgroundColor: '#F9FAFB', // Default background color
+          paddingTop: '20px',
+          paddingBottom: '20px',
+          paddingLeft: '20px',
+          paddingRight: '20px',
+          formGap: '16px',
+          formDirection: 'ltr',
+          floatingLabels: false
         }
       });
       
@@ -172,22 +183,45 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
         return;
       }
       
-      // Create product associations - FIX: Make sure the form_id is stored as a string to match the database schema
-      const productSettings = selectedProducts.map(productId => ({
-        form_id: newFormId,
-        product_id: productId,
-        shop_id: shopId,
-        enabled: true
-      }));
+      // Create product associations - Check for existing associations first
+      const productSettings = [];
       
-      const { error: associationError } = await supabase
-        .from('shopify_product_settings')
-        .insert(productSettings);
+      // Check for existing product associations to prevent duplicate key errors
+      for (const productId of selectedProducts) {
+        // Check if this association already exists
+        const { data: existingAssoc, error: checkError } = await supabase
+          .from('shopify_product_settings')
+          .select('*')
+          .eq('shop_id', shopId)
+          .eq('product_id', productId)
+          .single();
+        
+        if (checkError && checkError.code !== 'PGRST116') { // PGRST116 means no rows returned
+          console.warn(`Error checking association for product ${productId}:`, checkError);
+        }
+        
+        // Only add if no existing association
+        if (!existingAssoc) {
+          productSettings.push({
+            form_id: newFormId,
+            product_id: productId,
+            shop_id: shopId,
+            enabled: true
+          });
+        }
+      }
       
-      if (associationError) {
-        console.error("Error creating product associations:", associationError);
-        toast.error(language === 'ar' ? 'خطأ في ربط المنتجات' : 'Error associating products');
-        // Continue anyway - we'll navigate to the form editor
+      // Only insert if we have new associations to create
+      if (productSettings.length > 0) {
+        const { error: associationError } = await supabase
+          .from('shopify_product_settings')
+          .insert(productSettings);
+        
+        if (associationError) {
+          console.error("Error creating product associations:", associationError);
+          toast.error(language === 'ar' ? 'خطأ في ربط المنتجات' : 'Error associating products');
+          // Continue anyway - we'll navigate to the form editor
+        }
       }
       
       // Navigate to the form editor

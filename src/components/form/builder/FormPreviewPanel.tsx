@@ -247,10 +247,14 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     return filteredFields;
   }, [fields, language, formStyle.primaryColor, formStyle.backgroundColor, formStyle.borderRadius, formTitle, formDescription]);
 
-  // Prepare form style for preview with fixed background color
+  // Prepare form style for preview with default background color
+  // Make sure we have all required style properties with defaults
   const previewFormStyle = {
     ...formStyle,
-    backgroundColor: '#ffffff' // Override backgroundColor to white for the form itself
+    backgroundColor: formStyle.backgroundColor || '#F9FAFB', // Default background color
+    borderRadius: formStyle.borderRadius || '1.5rem', // Large border radius
+    borderColor: formStyle.borderColor || '#9b87f5', // Default border color
+    borderWidth: formStyle.borderWidth || '2px',     // Default border width
   };
 
   return (

@@ -53,8 +53,6 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
     descriptionFontSize = '14px',
     borderRadius = styles.borderRadius || formStyle.borderRadius || '8px',
     paddingY = styles.paddingY || '16px',
-    borderColor = styles.borderColor || formStyle.borderColor || '#e2e8f0',
-    borderWidth = styles.borderWidth || formStyle.borderWidth || '1px'
   } = styles;
 
   // Determine text alignment based on formStyle.formDirection, field style, and language
@@ -72,9 +70,7 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
     'data-show-title': showTitle ? 'true' : 'false',
     'data-show-desc': showDescription ? 'true' : 'false',
     'data-border-radius': borderRadius,
-    'data-padding-y': paddingY,
-    'data-border-color': borderColor,
-    'data-border-width': borderWidth
+    'data-padding-y': paddingY
   };
 
   return (
@@ -86,7 +82,8 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
         padding: `${paddingY} 16px`,
         marginTop: '0',
         textAlign: effectiveTextAlign as any,
-        border: `${borderWidth} solid ${borderColor}`,
+        // IMPORTANT: Remove the border style from the title container
+        // This ensures that the form's border is not applied to the title
       }}
       {...dataAttributes}
     >
