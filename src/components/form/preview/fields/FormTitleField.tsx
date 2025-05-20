@@ -81,4 +81,4 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
   );
 };
 
-export default FormTitleField;
+export default React.memo(FormTitleField);

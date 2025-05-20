@@ -1,3 +1,4 @@
+
 import React, { memo } from 'react';
 import { FormField as FormFieldType } from '@/lib/form-utils';
 import TextInput from './fields/TextInput';
@@ -254,12 +255,26 @@ const FormField = memo(({ field, formStyle }: FormFieldProps) => {
   const nextStyle = nextProps.field.style || {};
   
   const styleKeys = [
-    'textAlign', 'color', 'backgroundColor', 'fontSize', 'fontWeight', 
-    'showIcon'
+    'textAlign', 'color', 'backgroundColor', 'fontSize', 'fontWeight', 'showIcon',
+    'showTitle', 'showDescription'
   ];
   
   for (const key of styleKeys) {
     if (prevStyle[key] !== nextStyle[key]) return false;
+  }
+  
+  // Compare field content to ensure rich content fields update correctly
+  if (prevProps.field.content !== nextProps.field.content) return false;
+  
+  // Compare field options for dropdown, checkbox, and radio fields
+  if (prevProps.field.options && nextProps.field.options) {
+    if (prevProps.field.options.length !== nextProps.field.options.length) return false;
+    
+    // Compare each option's value and label
+    for (let i = 0; i < prevProps.field.options.length; i++) {
+      if (prevProps.field.options[i].value !== nextProps.field.options[i].value) return false;
+      if (prevProps.field.options[i].label !== nextProps.field.options[i].label) return false;
+    }
   }
   
   // If we made it this far, consider them equal

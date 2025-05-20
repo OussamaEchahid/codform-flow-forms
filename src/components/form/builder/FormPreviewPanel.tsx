@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useMemo } from 'react';
 import { FormField, FloatingButtonConfig } from '@/lib/form-utils';
 import FormPreview from '@/components/form/FormPreview';
@@ -25,10 +24,10 @@ interface FormPreviewPanelProps {
   hideFloatingButtonPreview?: boolean;
 }
 
-// Constant ID for form title to prevent regeneration
+// Constant ID for form title - must match FormPreview
 const FORM_TITLE_ID = 'form-title-static';
 
-// Deep clone function that preserves field IDs and all properties
+// Deep clone function that ensures field IDs are preserved
 const deepCloneFields = (fields: FormField[]): FormField[] => {
   if (!fields) return [];
   
@@ -83,13 +82,25 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     // Create deep copy of all fields to prevent mutations
     const clonedFields = deepCloneFields(fields);
     
-    // Find an existing title field by its fixed ID or type
-    const titleField = clonedFields.find(field => 
-      field.id === FORM_TITLE_ID || field.type === 'form-title'
-    );
+    // Find an existing title field by ID first
+    const titleFieldById = clonedFields.find(field => field.id === FORM_TITLE_ID);
+    
+    // If not found by ID, look for any form-title
+    const titleFieldByType = !titleFieldById ? 
+      clonedFields.find(field => field.type === 'form-title') : 
+      null;
+    
+    // Use the existing title field if found, or create a new one
+    const titleField = titleFieldById || titleFieldByType;
     
     // Filter out all form-title fields to avoid duplicates
-    let filteredFields = clonedFields.filter(field => field.type !== 'form-title');
+    let filteredFields = clonedFields.filter(field => {
+      // Keep the title field with FORM_TITLE_ID
+      if (field.id === FORM_TITLE_ID) return false;
+      
+      // Remove all other form-title fields
+      return field.type !== 'form-title';
+    });
     
     // Prepare the title field - either use existing or create new
     const updatedTitleField: FormField = titleField 

@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
@@ -45,14 +46,11 @@ const FormPreview: React.FC<FormPreviewProps> = ({
 }) => {
   const { language } = useI18n();
   
-  // Process fields for display - avoid duplicating title fields
+  // We don't process fields here anymore - we trust that FormPreviewPanel has already handled this
+  // Just ensure we're not re-processing anything
   const sanitizedFields = useMemo(() => {
-    // We don't modify fields here since they're already processed in FormPreviewPanel
-    // Just ensure we don't have duplicate title fields
-    const hasFormTitle = fields.some(f => f.type === 'form-title' && f.id === FORM_TITLE_ID);
-    
-    // This should be handled in FormPreviewPanel now, but keeping a fallback
-    if (fields.length === 0 || !hasFormTitle) {
+    // If fields array is empty, create default title and submit fields
+    if (fields.length === 0) {
       const titleField: FormField = {
         type: 'form-title',
         id: FORM_TITLE_ID,
@@ -71,34 +69,29 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         },
       };
       
-      // If no fields, create default ones with title
-      if (fields.length === 0) {
-        // Add title field at the beginning
-        const processedFields = [titleField];
-        
-        // Add default submit button if needed
-        const submitButton: FormField = {
-          type: 'submit',
-          id: `submit-stable`,
-          label: language === 'ar' ? 'إرسال الطلب' : 'Submit Order',
-          style: {
-            backgroundColor: formStyle.primaryColor || '#9b87f5',
-            color: '#ffffff',
-            fontSize: '18px',
-            animation: true,
-            animationType: 'pulse',
-          },
-        };
-        processedFields.push(submitButton);
-        
-        return processedFields;
-      } else {
-        // Just add the title field to the beginning of existing fields
-        return [titleField, ...fields.filter(f => f.type !== 'form-title')];
-      }
+      const submitButton: FormField = {
+        type: 'submit',
+        id: `submit-stable`,
+        label: language === 'ar' ? 'إرسال الطلب' : 'Submit Order',
+        style: {
+          backgroundColor: formStyle.primaryColor || '#9b87f5',
+          color: '#ffffff',
+          fontSize: '18px',
+          animation: true,
+          animationType: 'pulse',
+        },
+      };
+      
+      return [titleField, submitButton];
     }
     
-    return fields;
+    // If we have fields, just make sure we preserve the form-title ID
+    return fields.map(field => {
+      if (field.type === 'form-title' && field.id !== FORM_TITLE_ID) {
+        return { ...field, id: FORM_TITLE_ID };
+      }
+      return field;
+    });
   }, [fields, language, formStyle.primaryColor, formTitle, formDescription]);
   
   return (
