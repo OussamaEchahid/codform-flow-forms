@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
@@ -37,9 +38,9 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
     return null;
   }
   
-  // Only use the field's own backgroundColor, NOT related to the form's primaryColor
+  // Always use the field's own backgroundColor for consistency
   // This prevents the bug where title background disappears in the store
-  const titleBackgroundColor = styles.backgroundColor || '#9b87f5'; 
+  const titleBackgroundColor = styles.backgroundColor || formStyle.primaryColor || '#9b87f5';
 
   // Extract all style properties with fallbacks
   const {
@@ -53,7 +54,6 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
   } = styles;
 
   // Determine text alignment based on formStyle.formDirection, field style, and language
-  // Fix: Properly apply text alignment based on the hierarchy of settings
   let effectiveTextAlign;
   
   // If the field has explicit text alignment, use that first
@@ -84,6 +84,8 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
         border: 'none', 
         overflow: 'hidden',
         direction: direction,
+        boxShadow: styles.boxShadow || 'none',
+        width: '100%',
       }}
       dir={direction}
       data-form-title="true"
@@ -140,6 +142,19 @@ export default React.memo(FormTitleField, (prevProps, nextProps) => {
   
   // Check form direction changes which affect text alignment
   if (prevProps.formStyle.formDirection !== nextProps.formStyle.formDirection) return false;
+
+  // Deep compare form style objects that might affect the title display
+  const relevantPrevFormStyle = JSON.stringify({
+    borderRadius: prevProps.formStyle.borderRadius,
+    primaryColor: prevProps.formStyle.primaryColor,
+  });
+  
+  const relevantNextFormStyle = JSON.stringify({
+    borderRadius: nextProps.formStyle.borderRadius,
+    primaryColor: nextProps.formStyle.primaryColor,
+  });
+  
+  if (relevantPrevFormStyle !== relevantNextFormStyle) return false;
   
   // If we reach here, consider the components equal (no re-render needed)
   return true;

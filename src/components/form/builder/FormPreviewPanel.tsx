@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useMemo } from 'react';
 import { FormField, FloatingButtonConfig, deepCloneField } from '@/lib/form-utils';
 import FormPreview from '@/components/form/FormPreview';
@@ -49,29 +48,7 @@ const deepCloneFields = (fields: FormField[]): FormField[] => {
     
     // Ensure style object is properly cloned with all properties
     if (field.style) {
-      newField.style = { ...field.style };
-      
-      // Explicitly preserve special properties that might be lost
-      if ('showTitle' in field.style) {
-        newField.style.showTitle = field.style.showTitle;
-      }
-      
-      if ('showDescription' in field.style) {
-        newField.style.showDescription = field.style.showDescription;
-      }
-      
-      if ('borderRadius' in field.style) {
-        newField.style.borderRadius = field.style.borderRadius;
-      }
-      
-      if ('paddingY' in field.style) {
-        newField.style.paddingY = field.style.paddingY;
-      }
-
-      // Preserve text alignment
-      if ('textAlign' in field.style) {
-        newField.style.textAlign = field.style.textAlign;
-      }
+      newField.style = JSON.parse(JSON.stringify(field.style));
     }
     
     return newField;
@@ -170,18 +147,8 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
         type: 'form-title',
         label: formTitle || titleField.label || '',
         helpText: formDescription || titleField.helpText || '',
-        // Make sure to preserve all style properties
-        style: {
-          ...(titleField.style || {}),
-          // IMPORTANT: Prioritize the field's own backgroundColor, THEN primaryColor
-          backgroundColor: titleField.style?.backgroundColor || formStyle.primaryColor,
-          // Explicitly preserve critical properties
-          showTitle: titleField.style?.showTitle !== undefined ? titleField.style.showTitle : true,
-          showDescription: titleField.style?.showDescription !== undefined ? titleField.style.showDescription : true,
-          borderRadius: titleField.style?.borderRadius || formStyle.borderRadius,
-          paddingY: titleField.style?.paddingY || '16px',
-          textAlign: titleField.style?.textAlign
-        }
+        // Make sure to preserve all style properties by deep cloning
+        style: JSON.parse(JSON.stringify(titleField.style || {}))
       };
       
       console.log("Standardizing title field, preserving styles:", 
@@ -214,17 +181,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           label: formTitle || filteredFields[titleIndex].label || '',
           helpText: formDescription || filteredFields[titleIndex].helpText || '',
           // Critical: Preserve all existing style properties
-          style: {
-            ...preservedStyle,
-            // IMPORTANT: Prioritize the field's existing backgroundColor, THEN primaryColor
-            backgroundColor: preservedStyle.backgroundColor || formStyle.primaryColor || '#9b87f5',
-            // Explicitly preserve these critical properties with their original values
-            showTitle: preservedStyle.showTitle !== undefined ? preservedStyle.showTitle : true,
-            showDescription: preservedStyle.showDescription !== undefined ? preservedStyle.showDescription : true,
-            borderRadius: preservedStyle.borderRadius || formStyle.borderRadius,
-            paddingY: preservedStyle.paddingY || '16px',
-            textAlign: preservedStyle.textAlign
-          }
+          style: preservedStyle
         };
       }
     }

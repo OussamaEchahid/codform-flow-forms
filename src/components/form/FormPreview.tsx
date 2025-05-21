@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
@@ -41,24 +42,11 @@ const deepCloneFields = (fields: FormField[]): FormField[] => {
   if (!fields) return [];
   
   return fields.map(field => {
-    const newField: FormField = { ...field };
+    // Create a deep copy of the field to prevent mutations
+    const newField: FormField = JSON.parse(JSON.stringify(field));
+    
+    // Explicitly preserve the ID to ensure stability
     newField.id = field.id;
-    
-    if (field.style) {
-      newField.style = { ...field.style };
-    }
-    
-    if (field.options && Array.isArray(field.options)) {
-      newField.options = field.options.map(option => ({ ...option }));
-    }
-    
-    if (field.validationRules) {
-      newField.validationRules = { ...field.validationRules };
-    }
-    
-    if (field.settings) {
-      newField.settings = { ...field.settings };
-    }
     
     return newField;
   });
@@ -94,7 +82,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   const { language } = useI18n();
   
   // Always enforce default backgroundColor for the form
-  const formBackgroundColor = '#F9FAFB';
+  const formBackgroundColor = formStyle.backgroundColor || '#F9FAFB';
 
   // Process fields while preserving IDs and ensuring there's no duplication
   const sanitizedFields = useMemo(() => {
@@ -113,7 +101,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
           helpText: formDescription || '',
           style: {
             // Important - Use a standalone color that doesn't reference formStyle 
-            backgroundColor: '#9b87f5',
+            backgroundColor: formStyle.primaryColor || '#9b87f5',
             color: '#ffffff',
             textAlign: language === 'ar' ? 'right' : 'center',
             fontSize: '24px',
@@ -150,35 +138,8 @@ const FormPreview: React.FC<FormPreviewProps> = ({
       return fieldsToCreate;
     }
     
-    if (!hasTitleField && existingTitleField) {
-      const fieldsWithoutTitle = clonedFields.filter(field => field.type !== 'form-title');
-      
-      const standardizedTitle: FormField = {
-        ...existingTitleField,
-        id: FORM_TITLE_ID,
-        label: formTitle || existingTitleField.label || '',
-        helpText: formDescription || existingTitleField.helpText || '',
-      };
-      
-      return [standardizedTitle, ...fieldsWithoutTitle];
-    }
-    
-    return clonedFields.map(field => {
-      if (field.type === 'form-title' && field.id === FORM_TITLE_ID) {
-        return {
-          ...field,
-          label: formTitle || field.label || '',
-          helpText: formDescription || field.helpText || '',
-          style: {
-            ...field.style,
-            // Keep the title's background color separate from form's primaryColor
-            backgroundColor: field.style?.backgroundColor || '#9b87f5',
-          }
-        };
-      }
-      return field;
-    });
-  }, [fields, language, formTitle, formDescription]);
+    return clonedFields;
+  }, [fields, language, formTitle, formDescription, formStyle.primaryColor]);
   
   // Determine the form direction, prioritizing formStyle.formDirection, then language
   const formDirection = formStyle.formDirection || (language === 'ar' ? 'rtl' : 'ltr');

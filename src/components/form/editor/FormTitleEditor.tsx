@@ -1,33 +1,38 @@
 
-import React, { useState, useEffect } from 'react';
-import { FormField } from '@/lib/form-utils';
+import React, { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useI18n } from '@/lib/i18n';
-import { AlignLeft, AlignCenter, AlignRight, Save } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/components/ui/use-toast";
+import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 
-interface FormTitleEditorProps {
+export interface FormTitleEditorProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
   description: string;
-  style: any;
+  style: {
+    backgroundColor?: string;
+    color?: string;
+    textAlign?: 'left' | 'right' | 'center';
+    fontWeight?: string;
+    fontSize?: string;
+    descriptionColor?: string;
+    descriptionFontSize?: string;
+    showTitle?: boolean;
+    showDescription?: boolean;
+    borderRadius?: string;
+    paddingY?: string;
+    fontFamily?: string;
+  };
   onSave: (title: string, description: string, style: any) => void;
   primaryColor: string;
-  borderRadius: string;
-  updateGlobalStyle?: (key: string, value: string) => void;
+  borderRadius?: string;
+  updateGlobalStyle?: (key: string, value: string) => void; // Add this prop for global style updates
 }
 
 const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
@@ -35,374 +40,344 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
   onClose,
   title,
   description,
-  style: initialStyle,
+  style,
   onSave,
   primaryColor,
   borderRadius,
-  updateGlobalStyle,
+  updateGlobalStyle
 }) => {
   const { language } = useI18n();
-  const { toast } = useToast();
-  const [currentTitle, setCurrentTitle] = useState(title || '');
-  const [currentDescription, setCurrentDescription] = useState(description || '');
-  const [style, setStyle] = useState({
-    backgroundColor: initialStyle?.backgroundColor || '#9b87f5',
-    color: initialStyle?.color || "#ffffff",
-    textAlign: initialStyle?.textAlign || (language === 'ar' ? 'right' : 'center'),
-    fontSize: initialStyle?.fontSize || "24px",
-    fontWeight: initialStyle?.fontWeight || "bold",
-    descriptionColor: initialStyle?.descriptionColor || "rgba(255, 255, 255, 0.9)",
-    descriptionFontSize: initialStyle?.descriptionFontSize || "14px",
-    borderRadius: initialStyle?.borderRadius || borderRadius,
-    paddingY: initialStyle?.paddingY || "16px",
-    showTitle: initialStyle?.showTitle !== false, 
-    showDescription: initialStyle?.showDescription !== false, 
-  });
-
-  // Update state when props change, avoiding render loops
-  useEffect(() => {
-    // Only update if isOpen changes from false to true
-    if (isOpen) {
-      setCurrentTitle(title || '');
-      setCurrentDescription(description || '');
-      
-      setStyle({
-        backgroundColor: initialStyle?.backgroundColor || '#9b87f5',
-        color: initialStyle?.color || "#ffffff",
-        textAlign: initialStyle?.textAlign || (language === 'ar' ? 'right' : 'center'),
-        fontSize: initialStyle?.fontSize || "24px",
-        fontWeight: initialStyle?.fontWeight || "bold",
-        descriptionColor: initialStyle?.descriptionColor || "rgba(255, 255, 255, 0.9)",
-        descriptionFontSize: initialStyle?.descriptionFontSize || "14px",
-        borderRadius: initialStyle?.borderRadius || borderRadius,
-        paddingY: initialStyle?.paddingY || "16px",
-        showTitle: initialStyle?.showTitle !== false,
-        showDescription: initialStyle?.showDescription !== false,
+  const [localTitle, setLocalTitle] = useState(title);
+  const [localDescription, setLocalDescription] = useState(description);
+  const [localStyle, setLocalStyle] = useState({ ...style });
+  
+  const handleBackgroundColorChange = (color: string) => {
+    setLocalStyle({ ...localStyle, backgroundColor: color });
+    
+    // If updateGlobalStyle is provided, synchronize with global styles
+    if (updateGlobalStyle) {
+      updateGlobalStyle('primaryColor', color);
+    }
+  };
+  
+  const handleStyleChange = (key: string, value: any) => {
+    // For boolean values like showTitle, we need to handle them differently
+    if (typeof value === 'boolean') {
+      setLocalStyle({
+        ...localStyle,
+        [key]: value
+      });
+    } else {
+      setLocalStyle({
+        ...localStyle,
+        [key]: value
       });
     }
-  }, [isOpen, title, description, initialStyle, language, borderRadius]);
-
-  const handleStyleChange = (property: string, value: string | boolean) => {
-    setStyle(prevStyle => ({
-      ...prevStyle,
-      [property]: value
-    }));
-    
-    // If updateGlobalStyle is provided and the property is backgroundColor, update the global style
-    if (updateGlobalStyle && property === 'backgroundColor') {
-      updateGlobalStyle('primaryColor', value as string);
-    }
   };
-
-  const handleSave = () => {
-    // Create a clean copy of the style object to prevent references
-    const styleCopy = JSON.parse(JSON.stringify(style));
-    
-    // Call the onSave callback with copies of the data to prevent mutation
-    onSave(currentTitle, currentDescription, styleCopy);
-    
-    toast({
-      description: language === 'ar' 
-        ? "تم حفظ إعدادات العنوان بنجاح" 
-        : "Title settings saved successfully",
-      duration: 3000,
-    });
-    
-    onClose();
-  };
-
-  // Common color presets with better contrast options
-  const colorPresets = ['#9b87f5', '#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#000000', '#ff3b30', '#ff9500', '#34c759'];
   
+  const handleSaveClick = () => {
+    // Create a deep copy of the style to prevent reference issues
+    const styleCopy = JSON.parse(JSON.stringify(localStyle));
+    
+    // Ensure backgroundColor is explicitly set
+    if (!styleCopy.backgroundColor) {
+      styleCopy.backgroundColor = primaryColor;
+    }
+    
+    console.log('Saving form title with style:', styleCopy);
+    onSave(localTitle, localDescription, styleCopy);
+  };
+  
+  // Ensure we always have some default values
+  const effectiveStyle = {
+    backgroundColor: localStyle.backgroundColor || primaryColor || '#9b87f5',
+    color: localStyle.color || '#ffffff',
+    textAlign: localStyle.textAlign || (language === 'ar' ? 'right' : 'center'),
+    fontSize: localStyle.fontSize || '24px',
+    fontWeight: localStyle.fontWeight || 'bold',
+    descriptionColor: localStyle.descriptionColor || 'rgba(255, 255, 255, 0.9)',
+    descriptionFontSize: localStyle.descriptionFontSize || '16px',
+    showTitle: localStyle.showTitle !== undefined ? localStyle.showTitle : true,
+    showDescription: localStyle.showDescription !== undefined ? localStyle.showDescription : true,
+    borderRadius: localStyle.borderRadius || borderRadius || '8px',
+    paddingY: localStyle.paddingY || '16px',
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto">
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[625px]">
         <DialogHeader>
-          <DialogTitle className={language === 'ar' ? 'text-right' : 'text-left'}>
-            {language === 'ar' ? 'تحرير عنوان النموذج' : 'Edit Form Title'}
+          <DialogTitle className={language === 'ar' ? 'text-right' : ''}>
+            {language === 'ar' ? 'تعديل عنوان النموذج' : 'Edit Form Title'}
           </DialogTitle>
         </DialogHeader>
         
-        <Tabs defaultValue="content" className="mt-4 w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="content">
-              {language === 'ar' ? 'المحتوى' : 'Content'}
-            </TabsTrigger>
-            <TabsTrigger value="style">
-              {language === 'ar' ? 'المظهر' : 'Style'}
-            </TabsTrigger>
+        <Tabs defaultValue="content" className="w-full">
+          <TabsList>
+            <TabsTrigger value="content">{language === 'ar' ? 'المحتوى' : 'Content'}</TabsTrigger>
+            <TabsTrigger value="style">{language === 'ar' ? 'التصميم' : 'Style'}</TabsTrigger>
+            <TabsTrigger value="visibility">{language === 'ar' ? 'الظهور' : 'Visibility'}</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="content" className="space-y-4 mt-4">
-            <div className="flex items-center space-x-2 mb-4">
-              <Checkbox 
-                id="show-title" 
-                checked={style.showTitle} 
-                onCheckedChange={(checked) => handleStyleChange('showTitle', !!checked)}
-              />
-              <Label 
-                htmlFor="show-title" 
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+          <TabsContent value="content" className="space-y-4">
+            <div className="grid gap-4 py-4">
+              <div className={`flex flex-col space-y-1.5 ${language === 'ar' ? 'text-right' : ''}`}>
+                <Label htmlFor="title" className="mb-1">
+                  {language === 'ar' ? 'العنوان' : 'Title'}
+                </Label>
+                <Input 
+                  id="title" 
+                  value={localTitle} 
+                  onChange={(e) => setLocalTitle(e.target.value)}
+                  placeholder={language === 'ar' ? 'أدخل عنوان النموذج' : 'Enter form title'}
+                  dir={language === 'ar' ? 'rtl' : 'ltr'}
+                />
+              </div>
+              
+              <div className={`flex flex-col space-y-1.5 ${language === 'ar' ? 'text-right' : ''}`}>
+                <Label htmlFor="description" className="mb-1">
+                  {language === 'ar' ? 'الوصف' : 'Description'}
+                </Label>
+                <Textarea 
+                  id="description" 
+                  value={localDescription} 
+                  onChange={(e) => setLocalDescription(e.target.value)}
+                  placeholder={language === 'ar' ? 'أدخل وصفاً للنموذج (اختياري)' : 'Enter form description (optional)'}
+                  dir={language === 'ar' ? 'rtl' : 'ltr'}
+                />
+              </div>
+            </div>
+            
+            <div className="p-4 border rounded-lg">
+              <h3 className={`text-lg font-medium mb-2 ${language === 'ar' ? 'text-right' : ''}`}>
+                {language === 'ar' ? 'معاينة' : 'Preview'}
+              </h3>
+              <div 
+                className="rounded p-4" 
+                style={{
+                  backgroundColor: effectiveStyle.backgroundColor,
+                  borderRadius: effectiveStyle.borderRadius,
+                  textAlign: effectiveStyle.textAlign as 'left' | 'right' | 'center',
+                  padding: `${effectiveStyle.paddingY} 16px`,
+                  direction: language === 'ar' ? 'rtl' : 'ltr'
+                }}
               >
-                {language === 'ar' ? 'إظهار العنوان' : 'Show title'}
-              </Label>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="title" className={language === 'ar' ? 'text-right block' : 'block'}>
-                {language === 'ar' ? 'العنوان' : 'Title'}
-              </Label>
-              <Input
-                id="title"
-                value={currentTitle}
-                onChange={(e) => setCurrentTitle(e.target.value)}
-                dir={language === 'ar' ? 'rtl' : 'ltr'}
-                disabled={!style.showTitle}
-              />
-            </div>
-            
-            <div className="flex items-center space-x-2 mt-6 mb-4">
-              <Checkbox 
-                id="show-description" 
-                checked={style.showDescription} 
-                onCheckedChange={(checked) => handleStyleChange('showDescription', !!checked)}
-              />
-              <Label 
-                htmlFor="show-description" 
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
-                {language === 'ar' ? 'إظهار الوصف' : 'Show description'}
-              </Label>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="description" className={language === 'ar' ? 'text-right block' : 'block'}>
-                {language === 'ar' ? 'الوصف' : 'Description'}
-              </Label>
-              <Textarea
-                id="description"
-                value={currentDescription}
-                onChange={(e) => setCurrentDescription(e.target.value)}
-                rows={3}
-                dir={language === 'ar' ? 'rtl' : 'ltr'}
-                disabled={!style.showDescription}
-              />
+                {effectiveStyle.showTitle && (
+                  <h3 style={{ 
+                    color: effectiveStyle.color,
+                    fontSize: effectiveStyle.fontSize,
+                    fontWeight: effectiveStyle.fontWeight as any,
+                    margin: 0
+                  }}>
+                    {localTitle || (language === 'ar' ? 'عنوان النموذج' : 'Form Title')}
+                  </h3>
+                )}
+                
+                {effectiveStyle.showDescription && localDescription && (
+                  <p style={{ 
+                    color: effectiveStyle.descriptionColor,
+                    fontSize: effectiveStyle.descriptionFontSize,
+                    margin: '8px 0 0 0'
+                  }}>
+                    {localDescription}
+                  </p>
+                )}
+              </div>
             </div>
           </TabsContent>
           
-          <TabsContent value="style" className="space-y-4 mt-4">
-            <div className="space-y-2">
-              <Label className={language === 'ar' ? 'text-right block' : 'block'}>
-                {language === 'ar' ? 'لون الخلفية' : 'Background Color'}
-              </Label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={style.backgroundColor}
-                  onChange={(e) => handleStyleChange('backgroundColor', e.target.value)}
-                  className="w-10 h-10 rounded cursor-pointer"
-                />
-                <Input
-                  value={style.backgroundColor}
-                  onChange={(e) => handleStyleChange('backgroundColor', e.target.value)}
-                  className="flex-1"
-                />
-              </div>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {colorPresets.map((color) => (
-                  <div
-                    key={color}
-                    className="w-8 h-8 rounded cursor-pointer border border-gray-300 relative"
-                    style={{ backgroundColor: color }}
-                    onClick={() => handleStyleChange('backgroundColor', color)}
-                  >
-                    {style.backgroundColor === color && (
-                      <div className="absolute inset-0 flex items-center justify-center text-white">
-                        ✓
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-              <div className="text-xs text-amber-600 mt-1 font-bold">
-                {language === 'ar' 
-                  ? 'هذا اللون يؤثر فقط على خلفية العنوان وليس النموذج بأكمله'
-                  : 'This color affects only the title background, not the entire form'}
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className={language === 'ar' ? 'text-right block' : 'block'}>
-                  {language === 'ar' ? 'لون النص' : 'Text Color'}
+          <TabsContent value="style" className="space-y-4">
+            <div className="grid gap-4 py-4">
+              <div className={`flex flex-col space-y-1.5 ${language === 'ar' ? 'text-right' : ''}`}>
+                <Label htmlFor="backgroundColor" className="mb-1">
+                  {language === 'ar' ? 'لون الخلفية' : 'Background Color'}
                 </Label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    value={style.color}
-                    onChange={(e) => handleStyleChange('color', e.target.value)}
-                    className="w-8 h-8 rounded cursor-pointer"
+                <div className="flex gap-2">
+                  <div 
+                    className="w-10 h-10 rounded border cursor-pointer" 
+                    style={{ backgroundColor: localStyle.backgroundColor || primaryColor }}
+                    onClick={() => document.getElementById('colorPicker')?.click()}
                   />
-                  <Input
-                    value={style.color}
-                    onChange={(e) => handleStyleChange('color', e.target.value)}
+                  <Input 
+                    id="backgroundColor" 
+                    value={localStyle.backgroundColor || primaryColor} 
+                    onChange={(e) => handleBackgroundColorChange(e.target.value)}
                     className="flex-1"
                   />
+                  <input 
+                    type="color" 
+                    id="colorPicker"
+                    value={localStyle.backgroundColor || primaryColor} 
+                    onChange={(e) => handleBackgroundColorChange(e.target.value)}
+                    className="hidden"
+                  />
                 </div>
+                <p className="text-xs text-amber-600 mt-1">
+                  {language === 'ar' 
+                    ? 'هذا اللون سيؤثر على لون الخلفية للعنوان فقط'
+                    : 'This color affects only the title background'}
+                </p>
               </div>
               
-              <div className="space-y-2">
-                <Label className={language === 'ar' ? 'text-right block' : 'block'}>
+              <div className={`flex flex-col space-y-1.5 ${language === 'ar' ? 'text-right' : ''}`}>
+                <Label htmlFor="textAlign" className="mb-1">
                   {language === 'ar' ? 'محاذاة النص' : 'Text Alignment'}
                 </Label>
-                <div className="flex items-center gap-2 border rounded-md p-1">
-                  <Button
-                    type="button"
-                    variant={style.textAlign === 'left' ? 'default' : 'outline'}
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => handleStyleChange('textAlign', 'left')}
-                  >
-                    <AlignLeft size={16} />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={style.textAlign === 'center' ? 'default' : 'outline'}
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => handleStyleChange('textAlign', 'center')}
-                  >
-                    <AlignCenter size={16} />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={style.textAlign === 'right' ? 'default' : 'outline'}
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => handleStyleChange('textAlign', 'right')}
-                  >
-                    <AlignRight size={16} />
-                  </Button>
-                </div>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className={language === 'ar' ? 'text-right block' : 'block'}>
-                  {language === 'ar' ? 'حجم الخط' : 'Font Size'}
-                </Label>
-                <Input
-                  type="text"
-                  value={style.fontSize}
-                  onChange={(e) => handleStyleChange('fontSize', e.target.value)}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label className={language === 'ar' ? 'text-right block' : 'block'}>
-                  {language === 'ar' ? 'وزن الخط' : 'Font Weight'}
-                </Label>
-                <select
-                  className="w-full border rounded-md p-2"
-                  value={style.fontWeight}
-                  onChange={(e) => handleStyleChange('fontWeight', e.target.value)}
+                <Select 
+                  value={localStyle.textAlign || (language === 'ar' ? 'right' : 'center')} 
+                  onValueChange={(value) => handleStyleChange('textAlign', value)}
                 >
-                  <option value="normal">Normal</option>
-                  <option value="bold">Bold</option>
-                  <option value="500">Medium (500)</option>
-                  <option value="600">Semi-Bold (600)</option>
-                  <option value="800">Extra-Bold (800)</option>
-                </select>
+                  <SelectTrigger id="textAlign">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="left">{language === 'ar' ? 'يسار' : 'Left'}</SelectItem>
+                    <SelectItem value="center">{language === 'ar' ? 'وسط' : 'Center'}</SelectItem>
+                    <SelectItem value="right">{language === 'ar' ? 'يمين' : 'Right'}</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className={language === 'ar' ? 'text-right block' : 'block'}>
-                  {language === 'ar' ? 'لون وصف النموذج' : 'Description Color'}
+              
+              <div className={`flex flex-col space-y-1.5 ${language === 'ar' ? 'text-right' : ''}`}>
+                <Label htmlFor="titleColor" className="mb-1">
+                  {language === 'ar' ? 'لون العنوان' : 'Title Color'}
                 </Label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    value={style.descriptionColor}
-                    onChange={(e) => handleStyleChange('descriptionColor', e.target.value)}
-                    className="w-8 h-8 rounded cursor-pointer"
+                <div className="flex gap-2">
+                  <div 
+                    className="w-10 h-10 rounded border cursor-pointer" 
+                    style={{ backgroundColor: localStyle.color || '#ffffff' }}
+                    onClick={() => document.getElementById('titleColorPicker')?.click()}
                   />
-                  <Input
-                    value={style.descriptionColor}
-                    onChange={(e) => handleStyleChange('descriptionColor', e.target.value)}
+                  <Input 
+                    id="titleColor" 
+                    value={localStyle.color || '#ffffff'} 
+                    onChange={(e) => handleStyleChange('color', e.target.value)}
+                    className="flex-1"
+                  />
+                  <input 
+                    type="color" 
+                    id="titleColorPicker"
+                    value={localStyle.color || '#ffffff'} 
+                    onChange={(e) => handleStyleChange('color', e.target.value)}
+                    className="hidden"
                   />
                 </div>
               </div>
               
-              <div className="space-y-2">
-                <Label className={language === 'ar' ? 'text-right block' : 'block'}>
-                  {language === 'ar' ? 'حجم خط الوصف' : 'Description Font Size'}
+              <div className={`flex flex-col space-y-1.5 ${language === 'ar' ? 'text-right' : ''}`}>
+                <Label htmlFor="fontSize" className="mb-1">
+                  {language === 'ar' ? 'حجم خط العنوان' : 'Title Font Size'}
                 </Label>
-                <Input
-                  type="text"
-                  value={style.descriptionFontSize}
-                  onChange={(e) => handleStyleChange('descriptionFontSize', e.target.value)}
-                />
+                <Select 
+                  value={localStyle.fontSize || '24px'} 
+                  onValueChange={(value) => handleStyleChange('fontSize', value)}
+                >
+                  <SelectTrigger id="fontSize">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="16px">{language === 'ar' ? 'صغير' : 'Small'}</SelectItem>
+                    <SelectItem value="20px">{language === 'ar' ? 'متوسط' : 'Medium'}</SelectItem>
+                    <SelectItem value="24px">{language === 'ar' ? 'كبير' : 'Large'}</SelectItem>
+                    <SelectItem value="28px">{language === 'ar' ? 'كبير جداً' : 'Extra Large'}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className={`flex flex-col space-y-1.5 ${language === 'ar' ? 'text-right' : ''}`}>
+                <Label htmlFor="fontWeight" className="mb-1">
+                  {language === 'ar' ? 'سمك الخط' : 'Font Weight'}
+                </Label>
+                <Select 
+                  value={localStyle.fontWeight || 'bold'} 
+                  onValueChange={(value) => handleStyleChange('fontWeight', value)}
+                >
+                  <SelectTrigger id="fontWeight">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="normal">{language === 'ar' ? 'عادي' : 'Normal'}</SelectItem>
+                    <SelectItem value="bold">{language === 'ar' ? 'غامق' : 'Bold'}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className={`flex flex-col space-y-1.5 ${language === 'ar' ? 'text-right' : ''}`}>
+                <Label htmlFor="borderRadius" className="mb-1">
+                  {language === 'ar' ? 'استدارة الزوايا' : 'Border Radius'}
+                </Label>
+                <Select 
+                  value={localStyle.borderRadius || borderRadius || '8px'} 
+                  onValueChange={(value) => handleStyleChange('borderRadius', value)}
+                >
+                  <SelectTrigger id="borderRadius">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">{language === 'ar' ? 'بدون استدارة' : 'No Radius'}</SelectItem>
+                    <SelectItem value="4px">{language === 'ar' ? 'استدارة صغيرة' : 'Small'}</SelectItem>
+                    <SelectItem value="8px">{language === 'ar' ? 'استدارة متوسطة' : 'Medium'}</SelectItem>
+                    <SelectItem value="16px">{language === 'ar' ? 'استدارة كبيرة' : 'Large'}</SelectItem>
+                    <SelectItem value="24px">{language === 'ar' ? 'استدارة كبيرة جداً' : 'Extra Large'}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className={`flex flex-col space-y-1.5 ${language === 'ar' ? 'text-right' : ''}`}>
+                <Label htmlFor="paddingY" className="mb-1">
+                  {language === 'ar' ? 'المساحة الداخلية' : 'Padding'}
+                </Label>
+                <Select 
+                  value={localStyle.paddingY || '16px'} 
+                  onValueChange={(value) => handleStyleChange('paddingY', value)}
+                >
+                  <SelectTrigger id="paddingY">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="8px">{language === 'ar' ? 'صغيرة' : 'Small'}</SelectItem>
+                    <SelectItem value="16px">{language === 'ar' ? 'متوسطة' : 'Medium'}</SelectItem>
+                    <SelectItem value="24px">{language === 'ar' ? 'كبيرة' : 'Large'}</SelectItem>
+                    <SelectItem value="32px">{language === 'ar' ? 'كبيرة جداً' : 'Extra Large'}</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className={language === 'ar' ? 'text-right block' : 'block'}>
-                  {language === 'ar' ? 'استدارة الحواف' : 'Border Radius'}
+          </TabsContent>
+          
+          <TabsContent value="visibility" className="space-y-4">
+            <div className="grid gap-4 py-4">
+              <div className={`flex items-center justify-between ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+                <Label htmlFor="showTitle">
+                  {language === 'ar' ? 'إظهار العنوان' : 'Show Title'}
                 </Label>
-                <Input
-                  type="text"
-                  value={style.borderRadius}
-                  onChange={(e) => handleStyleChange('borderRadius', e.target.value)}
+                <Switch 
+                  id="showTitle" 
+                  checked={effectiveStyle.showTitle} 
+                  onCheckedChange={(checked) => handleStyleChange('showTitle', checked)}
                 />
               </div>
               
-              <div className="space-y-2">
-                <Label className={language === 'ar' ? 'text-right block' : 'block'}>
-                  {language === 'ar' ? 'التباعد العمودي' : 'Vertical Padding'}
+              <div className={`flex items-center justify-between ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+                <Label htmlFor="showDescription">
+                  {language === 'ar' ? 'إظهار الوصف' : 'Show Description'}
                 </Label>
-                <Input
-                  type="text"
-                  value={style.paddingY}
-                  onChange={(e) => handleStyleChange('paddingY', e.target.value)}
+                <Switch 
+                  id="showDescription" 
+                  checked={effectiveStyle.showDescription} 
+                  onCheckedChange={(checked) => handleStyleChange('showDescription', checked)}
                 />
               </div>
             </div>
           </TabsContent>
         </Tabs>
         
-        <div className="pt-4 mt-4 border-t">
-          <div 
-            className="p-4 rounded"
-            style={{
-              backgroundColor: style.backgroundColor,
-              borderRadius: style.borderRadius,
-              textAlign: style.textAlign as any
-            }}
-          >
-            {style.showTitle && (
-              <h3 style={{ color: style.color, fontSize: style.fontSize, fontWeight: style.fontWeight as any, margin: 0 }}>
-                {currentTitle || (language === 'ar' ? 'عنوان النموذج' : 'Form Title')}
-              </h3>
-            )}
-            {style.showDescription && currentDescription && (
-              <p style={{ color: style.descriptionColor, fontSize: style.descriptionFontSize, margin: '8px 0 0 0' }}>
-                {currentDescription}
-              </p>
-            )}
-          </div>
-        </div>
-        
-        <DialogFooter className="mt-4">
-          <Button type="button" variant="outline" onClick={onClose}>
+        <DialogFooter className={language === 'ar' ? 'justify-start' : ''}>
+          <Button variant="outline" onClick={onClose} className="ml-2">
             {language === 'ar' ? 'إلغاء' : 'Cancel'}
           </Button>
-          <Button type="button" onClick={handleSave}>
-            <Save className="w-4 h-4 mr-2" />
-            {language === 'ar' ? 'حفظ' : 'Save'}
+          <Button onClick={handleSaveClick}>
+            {language === 'ar' ? 'حفظ التغييرات' : 'Save Changes'}
           </Button>
         </DialogFooter>
       </DialogContent>

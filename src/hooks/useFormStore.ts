@@ -153,6 +153,9 @@ export const useFormStore = create<FormStore>((set) => ({
       backgroundColor: styleUpdates.backgroundColor || currentStyle.backgroundColor || defaultFormStyle.backgroundColor
     };
     
+    // Log the style changes for debugging
+    console.log('Updating form style:', updatedStyle);
+    
     return {
       formState: {
         ...state.formState,
