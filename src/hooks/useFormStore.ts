@@ -6,7 +6,7 @@ export interface FormStyle {
   borderRadius: string;
   fontSize: string;
   buttonStyle: string;
-  // New styling properties
+  // Styling properties
   borderColor: string;
   borderWidth: string;
   backgroundColor: string;
@@ -36,7 +36,7 @@ interface FormStore {
   setFormState: (form: Partial<FormState>) => void;
   resetFormState: () => void;
   
-  // Add floating button configuration
+  // Floating button configuration
   floatingButton: {
     enabled: boolean;
     text: string;
@@ -58,19 +58,19 @@ interface FormStore {
     showOnDesktop?: boolean;
   };
   
-  // Add function to update floating button configuration
+  // Update floating button configuration
   updateFloatingButton: (config: any) => void;
 }
 
-// IMPORTANT: Default styles - these are the guaranteed defaults that cannot be overridden
+// Default styles - these are the guaranteed defaults
 const defaultFormStyle: FormStyle = {
-  primaryColor: '#9b87f5', // Default primary color for buttons
-  borderRadius: '1.5rem', // Large border radius by default
+  primaryColor: '#9b87f5',
+  borderRadius: '1.5rem',
   fontSize: '1rem',
   buttonStyle: 'rounded',
-  borderColor: '#9b87f5', // Default border color
-  borderWidth: '2px',     // Default border width
-  backgroundColor: '#F9FAFB', // Default form background color - FIXED
+  borderColor: '#9b87f5',
+  borderWidth: '2px',
+  backgroundColor: '#F9FAFB', // Fixed form background color
   paddingTop: '20px',
   paddingBottom: '20px',
   paddingLeft: '20px',
@@ -96,7 +96,7 @@ export const useFormStore = create<FormStore>((set) => ({
     // Create a clean copy of the current style
     const currentStyle = state.formState.style || { ...defaultFormStyle };
     
-    // Handle style updates completely separately from form title styling
+    // Handle style updates separately from other form properties
     let updatedStyle = { ...currentStyle };
     
     // If form contains style updates, apply them while preserving fixed defaults
@@ -104,11 +104,8 @@ export const useFormStore = create<FormStore>((set) => ({
       updatedStyle = {
         ...updatedStyle,
         ...form.style,
-        // Always ensure the default values are maintained for form (not title)
+        // Always ensure the default background color is maintained
         backgroundColor: form.style.backgroundColor || currentStyle.backgroundColor || defaultFormStyle.backgroundColor,
-        borderColor: form.style.borderColor || currentStyle.borderColor || defaultFormStyle.borderColor,
-        borderWidth: form.style.borderWidth || currentStyle.borderWidth || defaultFormStyle.borderWidth,
-        borderRadius: form.style.borderRadius || currentStyle.borderRadius || defaultFormStyle.borderRadius,
       };
     }
     
@@ -116,14 +113,13 @@ export const useFormStore = create<FormStore>((set) => ({
       formState: {
         ...state.formState,
         ...form,
-        // Use the properly merged style
         style: updatedStyle
       }
     };
   }),
   resetFormState: () => set({ formState: {...defaultFormState} }),
   
-  // Initialize floating button configuration with all required properties
+  // Floating button configuration
   floatingButton: {
     enabled: false,
     text: 'Order Now',
@@ -145,7 +141,7 @@ export const useFormStore = create<FormStore>((set) => ({
     animation: 'none',
   },
   
-  // Add method to update floating button
+  // Update floating button
   updateFloatingButton: (config) => set((state) => ({
     floatingButton: {
       ...state.floatingButton,

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
-import { X, Save, AlignLeft, AlignCenter, AlignRight, Type, Palette } from 'lucide-react';
+import { AlignLeft, AlignCenter, AlignRight, Save } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -13,9 +13,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 
 interface FormTitleEditorProps {
@@ -27,7 +27,6 @@ interface FormTitleEditorProps {
   onSave: (title: string, description: string, style: any) => void;
   primaryColor: string;
   borderRadius: string;
-  updateGlobalStyle?: (key: string, value: string) => void;
 }
 
 const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
@@ -39,14 +38,13 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
   onSave,
   primaryColor,
   borderRadius,
-  updateGlobalStyle
 }) => {
   const { language } = useI18n();
   const { toast } = useToast();
-  const [currentTitle, setCurrentTitle] = useState(title);
-  const [currentDescription, setCurrentDescription] = useState(description);
+  const [currentTitle, setCurrentTitle] = useState(title || '');
+  const [currentDescription, setCurrentDescription] = useState(description || '');
   const [style, setStyle] = useState({
-    backgroundColor: initialStyle?.backgroundColor || primaryColor,
+    backgroundColor: initialStyle?.backgroundColor || '#9b87f5',
     color: initialStyle?.color || "#ffffff",
     textAlign: initialStyle?.textAlign || (language === 'ar' ? 'right' : 'center'),
     fontSize: initialStyle?.fontSize || "24px",
@@ -55,54 +53,42 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
     descriptionFontSize: initialStyle?.descriptionFontSize || "14px",
     borderRadius: initialStyle?.borderRadius || borderRadius,
     paddingY: initialStyle?.paddingY || "16px",
-    showTitle: initialStyle?.showTitle !== false, // Default to true if not explicitly set to false
-    showDescription: initialStyle?.showDescription !== false, // Default to true if not explicitly set to false
+    showTitle: initialStyle?.showTitle !== false, 
+    showDescription: initialStyle?.showDescription !== false, 
   });
 
-  // Update local state when external props change, using shallow copy to break references
+  // Update state when props change, avoiding render loop
   useEffect(() => {
-    setCurrentTitle(title);
-    setCurrentDescription(description);
-    
-    // Create a new object to break any references and avoid state mutations
-    const newStyle = {
-      backgroundColor: initialStyle?.backgroundColor || primaryColor,
-      color: initialStyle?.color || "#ffffff",
-      textAlign: initialStyle?.textAlign || (language === 'ar' ? 'right' : 'center'),
-      fontSize: initialStyle?.fontSize || "24px",
-      fontWeight: initialStyle?.fontWeight || "bold",
-      descriptionColor: initialStyle?.descriptionColor || "rgba(255, 255, 255, 0.9)",
-      descriptionFontSize: initialStyle?.descriptionFontSize || "14px",
-      borderRadius: initialStyle?.borderRadius || borderRadius,
-      paddingY: initialStyle?.paddingY || "16px",
-      showTitle: initialStyle?.showTitle !== false,
-      showDescription: initialStyle?.showDescription !== false,
-    };
-    
-    setStyle(newStyle);
-  }, [initialStyle, primaryColor, borderRadius, title, description, language]);
+    // Only update if isOpen changes from false to true
+    if (isOpen) {
+      setCurrentTitle(title || '');
+      setCurrentDescription(description || '');
+      
+      setStyle({
+        backgroundColor: initialStyle?.backgroundColor || '#9b87f5',
+        color: initialStyle?.color || "#ffffff",
+        textAlign: initialStyle?.textAlign || (language === 'ar' ? 'right' : 'center'),
+        fontSize: initialStyle?.fontSize || "24px",
+        fontWeight: initialStyle?.fontWeight || "bold",
+        descriptionColor: initialStyle?.descriptionColor || "rgba(255, 255, 255, 0.9)",
+        descriptionFontSize: initialStyle?.descriptionFontSize || "14px",
+        borderRadius: initialStyle?.borderRadius || borderRadius,
+        paddingY: initialStyle?.paddingY || "16px",
+        showTitle: initialStyle?.showTitle !== false,
+        showDescription: initialStyle?.showDescription !== false,
+      });
+    }
+  }, [isOpen]);
 
   const handleStyleChange = (property: string, value: string | boolean) => {
-    // Create a new style object to avoid state mutations
-    const newStyle = {
-      ...style,
+    setStyle(prevStyle => ({
+      ...prevStyle,
       [property]: value
-    };
-    
-    setStyle(newStyle);
-    
-    // CRITICAL CHANGE: Never update global styles from title editor
-    // This ensures complete isolation between title styling and form styling
+    }));
   };
 
   const handleSave = () => {
-    // Create a new style object to ensure clean data
-    const updatedStyle = { ...style };
-    
-    // Save the field-specific style and title/description
-    onSave(currentTitle, currentDescription, updatedStyle);
-    
-    // IMPORTANT: Never update any global styles from here
+    onSave(currentTitle, currentDescription, style);
     
     toast({
       description: language === 'ar' 

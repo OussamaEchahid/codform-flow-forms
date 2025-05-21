@@ -10,7 +10,6 @@ interface FormTitleFieldProps {
     borderRadius?: string;
     fontSize?: string;
     buttonStyle?: string;
-    // Add new style properties
     borderColor?: string;
     borderWidth?: string;
     backgroundColor?: string;
@@ -39,11 +38,9 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
     return null;
   }
   
-  // CRITICAL: Use field's own backgroundColor exclusively for title background
-  // If not defined, fall back to formStyle.primaryColor as a completely separate default
-  // This ensures complete independence between title background and form background
-  const titleBackgroundColor = styles.backgroundColor || formStyle.primaryColor || '#9b87f5';
-  
+  // Only use the field's own backgroundColor, NOT related to the form's primaryColor
+  const titleBackgroundColor = styles.backgroundColor || '#9b87f5'; 
+
   // Extract all style properties with fallbacks
   const {
     color = '#ffffff',
@@ -63,35 +60,18 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
      formStyle.formDirection === 'ltr' ? 'left' : 
      language === 'ar' ? 'right' : 'center');
 
-  // Store styling properties in data attributes for debugging
-  const dataAttributes = {
-    'data-field-type': 'form-title',
-    'data-field-id': field.id,
-    'data-bg-color': titleBackgroundColor,
-    'data-show-title': showTitle ? 'true' : 'false',
-    'data-show-desc': showDescription ? 'true' : 'false',
-    'data-border-radius': borderRadius,
-    'data-padding-y': paddingY
-  };
-
   return (
     <div 
       className="form-title-container mb-6" 
       style={{
-        backgroundColor: titleBackgroundColor, // Use ONLY the field's specific background color
+        backgroundColor: titleBackgroundColor, 
         borderRadius,
         padding: `${paddingY} 16px`,
         marginTop: '0',
         textAlign: effectiveTextAlign as any,
-        // IMPORTANT: Explicitly remove ALL border styles to ensure form border doesn't affect title
         border: 'none', 
-        borderTop: 'none',
-        borderBottom: 'none',
-        borderLeft: 'none',
-        borderRight: 'none',
-        overflow: 'hidden', // Ensure rounded corners work correctly
+        overflow: 'hidden',
       }}
-      {...dataAttributes}
     >
       {showTitle && (
         <h1 
@@ -123,28 +103,19 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
   );
 };
 
-// Use React.memo with custom comparison to prevent unnecessary re-renders
+// Simplified comparison function that doesn't reference global form style properties
 export default React.memo(FormTitleField, (prevProps, nextProps) => {
-  // Only re-render if critical properties have changed
   const prevField = prevProps.field;
   const nextField = nextProps.field;
-  const prevStyle = prevProps.formStyle;
-  const nextStyle = nextProps.formStyle;
-  
-  // Deep compare the style objects
+
+  // Deep compare only the field style objects, not the form style
   const prevFieldStyle = JSON.stringify(prevField.style || {});
   const nextFieldStyle = JSON.stringify(nextField.style || {});
   
-  // Also compare the new formStyle properties that could affect rendering
   return (
     prevField.id === nextField.id &&
     prevField.label === nextField.label &&
     prevField.helpText === nextField.helpText &&
-    prevFieldStyle === nextFieldStyle &&
-    prevStyle.primaryColor === nextStyle.primaryColor &&
-    prevStyle.borderRadius === nextStyle.borderRadius &&
-    prevStyle.borderColor === nextStyle.borderColor &&
-    prevStyle.borderWidth === nextStyle.borderWidth &&
-    prevStyle.formDirection === nextStyle.formDirection
+    prevFieldStyle === nextFieldStyle
   );
 });
