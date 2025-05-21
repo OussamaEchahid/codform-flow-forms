@@ -50,12 +50,13 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
   const [localTitle, setLocalTitle] = useState(title);
   const [localDescription, setLocalDescription] = useState(description);
   const [localStyle, setLocalStyle] = useState({ ...style });
+  const [syncWithGlobal, setSyncWithGlobal] = useState(false);
   
   const handleBackgroundColorChange = (color: string) => {
     setLocalStyle({ ...localStyle, backgroundColor: color });
     
-    // If updateGlobalStyle is provided, synchronize with global styles
-    if (updateGlobalStyle) {
+    // Only update global primary color if sync is enabled
+    if (syncWithGlobal && updateGlobalStyle) {
       updateGlobalStyle('primaryColor', color);
     }
   };
@@ -83,6 +84,9 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
     if (!styleCopy.backgroundColor) {
       styleCopy.backgroundColor = primaryColor;
     }
+    
+    // IMPORTANT: Mark style as title-specific to prevent global application
+    styleCopy._titleStyleOnly = true;
     
     console.log('Saving form title with style:', styleCopy);
     onSave(localTitle, localDescription, styleCopy);
@@ -211,6 +215,18 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
                     onChange={(e) => handleBackgroundColorChange(e.target.value)}
                     className="hidden"
                   />
+                </div>
+                <div className="flex items-center gap-2 mt-2">
+                  <Switch
+                    id="syncWithGlobal"
+                    checked={syncWithGlobal}
+                    onCheckedChange={setSyncWithGlobal}
+                  />
+                  <Label htmlFor="syncWithGlobal" className="text-xs text-gray-600">
+                    {language === 'ar' 
+                      ? 'استخدام هذا اللون أيضًا كلون أساسي للنموذج'
+                      : 'Also use this color as form primary color'}
+                  </Label>
                 </div>
                 <p className="text-xs text-amber-600 mt-1">
                   {language === 'ar' 

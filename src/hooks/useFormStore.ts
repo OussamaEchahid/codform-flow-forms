@@ -1,4 +1,3 @@
-
 import { create } from 'zustand';
 
 export interface FormStyle {
@@ -6,7 +5,7 @@ export interface FormStyle {
   borderRadius: string;
   fontSize: string;
   buttonStyle: string;
-  // خصائص التنسيق
+  // Formatting properties
   borderColor: string;
   borderWidth: string;
   backgroundColor: string;
@@ -36,7 +35,7 @@ interface FormStore {
   setFormState: (form: Partial<FormState>) => void;
   resetFormState: () => void;
   
-  // إعدادات الزر العائم
+  // Floating button settings
   floatingButton: {
     enabled: boolean;
     text: string;
@@ -58,14 +57,14 @@ interface FormStore {
     showOnDesktop?: boolean;
   };
   
-  // تحديث إعدادات الزر العائم
+  // Update floating button
   updateFloatingButton: (config: any) => void;
   
-  // إضافة طريقة مخصصة لتحديث نمط النموذج لمنع مشاكل المرجعية
+  // Add custom method to update form style to prevent reference issues
   updateFormStyle: (styleUpdates: Partial<FormStyle>) => void;
 }
 
-// الأنماط الافتراضية - هذه هي الإعدادات الافتراضية المضمونة
+// Default styles - these are the guaranteed default settings
 const defaultFormStyle: FormStyle = {
   primaryColor: '#9b87f5',
   borderRadius: '1.5rem',
@@ -73,7 +72,7 @@ const defaultFormStyle: FormStyle = {
   buttonStyle: 'rounded',
   borderColor: '#9b87f5',
   borderWidth: '2px',
-  backgroundColor: '#F9FAFB', // لون خلفية النموذج الثابت
+  backgroundColor: '#F9FAFB', // Fixed form background color
   paddingTop: '20px',
   paddingBottom: '20px',
   paddingLeft: '20px',
@@ -97,36 +96,36 @@ export const useFormStore = create<FormStore>((set) => ({
   formState: {...defaultFormState},
   
   setFormState: (form) => set((state) => {
-    // إنشاء نسخة عميقة من النمط الحالي لتجنب مشاكل المرجعية
+    // Create a deep copy of the current style to prevent reference issues
     const currentStyle = state.formState.style ? 
       JSON.parse(JSON.stringify(state.formState.style)) : 
       { ...defaultFormStyle };
     
-    // معالجة تحديثات النمط بشكل منفصل عن خصائص النموذج الأخرى
+    // Handle style updates separately from other form properties
     let updatedStyle = { ...currentStyle };
     
-    // إذا كان النموذج يحتوي على تحديثات نمط، فطبقها مع الحفاظ على الإعدادات الافتراضية الثابتة
+    // If the form has style updates, apply them while preserving fixed default settings
     if (form.style) {
-      // نسخة عميقة لمنع مشاكل المرجعية
+      // Deep copy to prevent reference issues
       const newStyleProps = JSON.parse(JSON.stringify(form.style));
       
-      // حل مشكلة تغيير لون الخلفية: عند تحديث نمط العنوان، لا تغير خلفية النموذج بأكملها
-      // خلفية العنوان تُحفظ في field.style.backgroundColor للحقل من النوع 'form-title'
+      // FIX: Keep backgroundColor independent from title background
+      // The title background is stored in field.style.backgroundColor for 'form-title' type fields
       updatedStyle = {
         ...updatedStyle,
         ...newStyleProps,
-        // دائمًا تأكد من الحفاظ على لون خلفية النموذج إلا إذا تم تغييره صراحةً لكل النموذج
+        // CRITICAL: Always ensure form background color is preserved unless explicitly changed for the whole form
         backgroundColor: newStyleProps.backgroundColor || currentStyle.backgroundColor || defaultFormStyle.backgroundColor,
       };
     }
     
-    // إنشاء نسخة عميقة من حالة النموذج الجديدة لتجنب التعديل
+    // Create a deep copy of the new form state to prevent mutation
     const newFormState = {
       ...state.formState,
       ...form
     };
     
-    // تأكد من أننا لا نحذف عن طريق الخطأ كائن النمط
+    // Make sure we don't accidentally delete the style object
     if (!newFormState.style) {
       newFormState.style = updatedStyle;
     } else {
@@ -140,25 +139,25 @@ export const useFormStore = create<FormStore>((set) => ({
   
   resetFormState: () => set({ formState: JSON.parse(JSON.stringify(defaultFormState)) }),
   
-  // إضافة طريقة مخصصة لتحديثات النمط لمنع مشاكل المرجعية
+  // Add custom method for style updates to prevent reference issues
   updateFormStyle: (styleUpdates) => set((state) => {
-    // إنشاء نسخة عميقة من النمط الحالي
+    // Create a deep copy of the current style
     const currentStyle = state.formState.style ? 
       JSON.parse(JSON.stringify(state.formState.style)) : 
       { ...defaultFormStyle };
     
-    // تطبيق التحديثات مع الحفاظ على القيم الافتراضية الأساسية
+    // Apply updates while preserving core default values
     const updatedStyle = {
       ...currentStyle,
       ...styleUpdates,
-      // دائمًا حافظ على لون الخلفية ما لم يتم تغييره صراحةً
-      // لا تسمح بنسخ لون خلفية العنوان إلى خلفية النموذج بالكامل
+      // Always preserve background color unless explicitly changed
+      // Don't allow title background color to be copied to whole form background
       backgroundColor: styleUpdates.hasOwnProperty('backgroundColor') ? 
                         styleUpdates.backgroundColor : 
                         currentStyle.backgroundColor || defaultFormStyle.backgroundColor
     };
     
-    // سجل تغييرات النمط للتصحيح
+    // Log style changes for debugging
     console.log('Updating form style:', updatedStyle);
     
     return {
@@ -169,7 +168,7 @@ export const useFormStore = create<FormStore>((set) => ({
     };
   }),
   
-  // تكوين الزر العائم
+  // Floating button configuration
   floatingButton: {
     enabled: false,
     text: 'Order Now',
@@ -191,7 +190,7 @@ export const useFormStore = create<FormStore>((set) => ({
     animation: 'none',
   },
   
-  // تحديث الزر العائم
+  // Update floating button
   updateFloatingButton: (config) => set((state) => ({
     floatingButton: {
       ...state.floatingButton,

@@ -138,8 +138,29 @@ const FormPreview: React.FC<FormPreviewProps> = ({
       return fieldsToCreate;
     }
     
+    // Update all fields with form direction if not specified
+    if (formStyle.formDirection) {
+      return clonedFields.map(field => {
+        // Skip fields that already have explicit text alignment
+        if (field.style?.textAlign) return field;
+        
+        // Only update specific field types that benefit from direction
+        if (['text', 'textarea', 'email', 'phone', 'form-title'].includes(field.type)) {
+          return {
+            ...field,
+            style: {
+              ...field.style,
+              textAlign: formStyle.formDirection === 'rtl' ? 'right' : 'left'
+            }
+          };
+        }
+        
+        return field;
+      });
+    }
+    
     return clonedFields;
-  }, [fields, language, formTitle, formDescription, formStyle.primaryColor]);
+  }, [fields, language, formTitle, formDescription, formStyle.primaryColor, formStyle.formDirection]);
   
   // Determine the form direction, prioritizing formStyle.formDirection, then language
   const formDirection = formStyle.formDirection || (language === 'ar' ? 'rtl' : 'ltr');
@@ -156,6 +177,11 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         padding: '0',
       } as React.CSSProperties}
       data-form-preview-id="form-preview-stable"
+      data-border-color={formStyle.borderColor}
+      data-border-width={formStyle.borderWidth}
+      data-border-radius={formStyle.borderRadius}
+      data-primary-color={formStyle.primaryColor}
+      data-form-direction={formDirection}
     >
       {totalSteps > 1 && (
         <div className="px-4 py-2 bg-gray-50">

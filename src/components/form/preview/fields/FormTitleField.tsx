@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
@@ -26,23 +25,23 @@ interface FormTitleFieldProps {
 const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => {
   const { language } = useI18n();
   
-  // استخراج خصائص النمط مع قيم افتراضية، مع إعطاء الأولوية لأنماط الحقل المحددة
+  // Extract style properties with default values, prioritizing field-specific styles
   const styles = field.style || {};
   
-  // التحقق من إظهار العنوان والوصف
+  // Check whether to show title and description
   const showTitle = styles.showTitle !== undefined ? !!styles.showTitle : true;
   const showDescription = styles.showDescription !== undefined ? !!styles.showDescription : true;
   
-  // إذا كان كل من العنوان والوصف مخفيين، لا تعرض أي شيء
+  // If both title and description are hidden, don't render anything
   if (showTitle === false && showDescription === false) {
     return null;
   }
   
-  // استخدم دائمًا لون خلفية الحقل نفسه للحصول على تناسق
-  // هذا يمنع الخطأ حيث تختفي خلفية العنوان في المتجر
+  // CRITICAL FIX: Use the field's own backgroundColor first, falling back to formStyle.primaryColor
+  // This keeps the title background color independent from the global form background
   const titleBackgroundColor = styles.backgroundColor || formStyle.primaryColor || '#9b87f5';
 
-  // استخراج جميع خصائص النمط مع القيم الافتراضية
+  // Extract all style properties with defaults
   const {
     color = '#ffffff',
     fontSize = '24px',
@@ -54,23 +53,23 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
     textAlign: styleTextAlign,
   } = styles;
 
-  // تحديد محاذاة النص بناءً على formStyle.formDirection ونمط الحقل واللغة
+  // Determine text alignment based on formStyle.formDirection, field style, and language
   let effectiveTextAlign;
   
-  // إذا كان للحقل محاذاة نص صريحة، استخدمها أولاً
+  // If the field has an explicit textAlign, use it first
   if (styleTextAlign) {
     effectiveTextAlign = styleTextAlign;
   } 
-  // وإلا، استخدم اتجاه النموذج إذا كان متاحًا
+  // Otherwise, use form direction if available
   else if (formStyle.formDirection) {
     effectiveTextAlign = formStyle.formDirection === 'rtl' ? 'right' : 'left';
   }
-  // القيمة الافتراضية بناءً على اللغة
+  // Default based on language
   else {
     effectiveTextAlign = language === 'ar' ? 'right' : 'center';
   }
 
-  // تعيين الاتجاه من اليمين إلى اليسار/من اليسار إلى اليمين الصحيح بناءً على إعدادات النموذج
+  // Set the correct right-to-left/left-to-right direction based on form settings
   const direction = formStyle.formDirection || (language === 'ar' ? 'rtl' : 'ltr');
 
   return (
@@ -126,28 +125,27 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
   );
 };
 
-// تحسين: تحديث مقارنة React.memo لمنع مشكلة تكرار الحقول
-// استخدام مقارنة عميقة لكائنات النمط
+// Performance improvement: Update React.memo comparison to prevent field duplication issue
 export default React.memo(FormTitleField, (prevProps, nextProps) => {
   const prevField = prevProps.field;
   const nextField = nextProps.field;
 
-  // التحقق من تطابق المعرفات
+  // Check ID match
   if (prevField.id !== nextField.id) return false;
   
-  // مقارنة خصائص الحقل الأساسية
+  // Compare basic field properties
   if (prevField.label !== nextField.label) return false;
   if (prevField.helpText !== nextField.helpText) return false;
   
-  // مقارنة عميقة لكائنات النمط للتقاط جميع تغييرات النمط
+  // Deep comparison for style objects to catch all style changes
   const prevStyle = JSON.stringify(prevField.style || {});
   const nextStyle = JSON.stringify(nextField.style || {});
   if (prevStyle !== nextStyle) return false;
   
-  // التحقق من تغييرات اتجاه النموذج التي تؤثر على محاذاة النص
+  // Check for form direction changes that affect text alignment
   if (prevProps.formStyle.formDirection !== nextProps.formStyle.formDirection) return false;
 
-  // مقارنة عميقة لكائنات نمط النموذج التي قد تؤثر على عرض العنوان
+  // Deep comparison for form style objects that might affect title display
   const relevantPrevFormStyle = JSON.stringify({
     borderRadius: prevProps.formStyle.borderRadius,
     primaryColor: prevProps.formStyle.primaryColor,
@@ -160,6 +158,6 @@ export default React.memo(FormTitleField, (prevProps, nextProps) => {
   
   if (relevantPrevFormStyle !== relevantNextFormStyle) return false;
   
-  // إذا وصلنا إلى هنا، اعتبر المكونات متساوية (لا حاجة لإعادة العرض)
+  // If we made it here, consider components equal (no need to re-render)
   return true;
 });
