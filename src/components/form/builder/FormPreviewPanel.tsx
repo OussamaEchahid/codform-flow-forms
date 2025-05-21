@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useMemo } from 'react';
 import { FormField, FloatingButtonConfig, deepCloneField } from '@/lib/form-utils';
 import FormPreview from '@/components/form/FormPreview';
@@ -8,7 +9,7 @@ interface FormStyle {
   borderRadius: string;
   fontSize: string;
   buttonStyle: string;
-  // Add new style properties
+  // إضافة خصائص نمط جديدة
   borderColor?: string;
   borderWidth?: string;
   backgroundColor?: string;
@@ -35,18 +36,18 @@ interface FormPreviewPanelProps {
   hideFloatingButtonPreview?: boolean;
 }
 
-// Constant ID for form title - must match FormPreview
+// معرف ثابت لعنوان النموذج - يجب أن يتطابق مع FormPreview
 const FORM_TITLE_ID = 'form-title-static';
 
-// Improved deep clone function with proper TypeScript support
+// تحسين دالة النسخ العميق مع دعم كامل لـ TypeScript
 const deepCloneFields = (fields: FormField[]): FormField[] => {
   if (!fields) return [];
   
   return fields.map(field => {
-    // Create a full deep copy of the field
+    // إنشاء نسخة عميقة كاملة من الحقل
     const newField = deepCloneField(field);
     
-    // Ensure style object is properly cloned with all properties
+    // التأكد من نسخ كائن النمط بشكل صحيح مع جميع الخصائص
     if (field.style) {
       newField.style = JSON.parse(JSON.stringify(field.style));
     }
@@ -70,28 +71,28 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
 }) => {
   const { language } = useI18n();
   
-  // Use internal refresh key to prevent rendering loops
+  // استخدم مفتاح تحديث داخلي لمنع حلقات العرض
   const [internalRefreshKey, setInternalRefreshKey] = useState(0);
   
-  // Update internal key only when refresh key increases
+  // تحديث المفتاح الداخلي فقط عند زيادة مفتاح التحديث
   useEffect(() => {
     if (refreshKey > internalRefreshKey) {
       setInternalRefreshKey(refreshKey);
     }
   }, [refreshKey, internalRefreshKey]);
   
-  // Process all fields with deep cloning to prevent mutations - critical for form stability
+  // معالجة جميع الحقول مع نسخ عميق لمنع التعديلات - أمر بالغ الأهمية لاستقرار النموذج
   const processedFields = useMemo(() => {
     console.log("Processing fields for preview, original count:", fields?.length || 0);
     
-    // Create deep copy of all fields to prevent mutations
+    // إنشاء نسخة عميقة من جميع الحقول لمنع التعديلات
     const clonedFields = deepCloneFields(fields);
     
-    // Find existing title fields - ensure stable references
+    // البحث عن حقول العنوان الموجودة - ضمان المراجع المستقرة
     const titleFieldById = clonedFields.find(field => field.id === FORM_TITLE_ID);
     const titleFieldByType = clonedFields.find(field => field.type === 'form-title' && field.id !== FORM_TITLE_ID);
     
-    // Determine which title field to use (prioritize by ID, then by type)
+    // تحديد حقل العنوان المراد استخدامه (الأولوية حسب المعرّف، ثم حسب النوع)
     const titleField = titleFieldById || titleFieldByType;
     
     console.log("Title field found:", titleField?.id, "Type:", titleField?.type, 
@@ -99,19 +100,19 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
                 "ShowTitle:", titleField?.style?.showTitle,
                 "ShowDescription:", titleField?.style?.showDescription);
     
-    // Filter out all form-title fields to avoid duplicates
+    // تصفية جميع حقول form-title لتجنب التكرار
     let filteredFields = clonedFields.filter(field => {
-      // Keep non-title fields
+      // الاحتفاظ بالحقول غير العنوان
       if (field.type !== 'form-title') return true;
       
-      // Keep only one title field - prioritize the one with standard ID
+      // الاحتفاظ بحقل عنوان واحد فقط - الأولوية للحقل ذي المعرف القياسي
       if (field.id === FORM_TITLE_ID) return true;
       
-      // Remove all other form-title fields
+      // إزالة جميع حقول form-title الأخرى
       return false;
     });
     
-    // If we don't have any title field, create one with preserved styles
+    // إذا لم يكن لدينا أي حقل عنوان، فأنشئ واحدًا مع أنماط محفوظة
     if (!titleField) {
       console.log("Creating new title field with default styles");
       const newTitleField: FormField = {
@@ -120,7 +121,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
         label: formTitle || '',
         helpText: formDescription || '',
         style: {
-          // Use primaryColor for title background
+          // استخدام primaryColor لخلفية العنوان
           backgroundColor: formStyle.primaryColor || '#9b87f5',
           color: '#ffffff',
           textAlign: language === 'ar' ? 'right' : 'center',
@@ -135,19 +136,19 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
         }
       };
       
-      // Add the title field at the beginning
+      // إضافة حقل العنوان في البداية
       filteredFields = [newTitleField, ...filteredFields];
     } 
-    // If we have a title field but it doesn't have the standard ID
+    // إذا كان لدينا حقل عنوان ولكنه لا يحتوي على المعرف القياسي
     else if (titleField && titleField.id !== FORM_TITLE_ID) {
-      // Create a new title field with standard ID but preserve all other properties and style
+      // إنشاء حقل عنوان جديد بمعرف قياسي ولكن الحفاظ على جميع الخصائص الأخرى والنمط
       const standardizedTitle: FormField = {
         ...titleField,
         id: FORM_TITLE_ID,
         type: 'form-title',
         label: formTitle || titleField.label || '',
         helpText: formDescription || titleField.helpText || '',
-        // Make sure to preserve all style properties by deep cloning
+        // تأكد من الحفاظ على جميع خصائص النمط عن طريق النسخ العميق
         style: JSON.parse(JSON.stringify(titleField.style || {}))
       };
       
@@ -156,16 +157,16 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
                   "ShowTitle:", standardizedTitle.style?.showTitle,
                   "ShowDescription:", standardizedTitle.style?.showDescription);
       
-      // Replace the existing title field with the standardized one
+      // استبدال حقل العنوان الموجود بالحقل المعياري
       filteredFields = filteredFields.filter(field => field.id !== titleField.id);
       filteredFields = [standardizedTitle, ...filteredFields];
     }
-    // If we have a title field with the standard ID, update its label and description
-    // but preserve all style settings to prevent style loss on refresh
+    // إذا كان لدينا حقل عنوان بالمعرف القياسي، فقم بتحديث التسمية والوصف
+    // لكن احتفظ بجميع إعدادات النمط لمنع فقدان النمط عند التحديث
     else if (titleFieldById) {
       const titleIndex = filteredFields.findIndex(field => field.id === FORM_TITLE_ID);
       if (titleIndex !== -1) {
-        // Make a deep copy of the style to prevent mutations
+        // عمل نسخة عميقة من النمط لمنع التعديلات
         const preservedStyle = JSON.parse(JSON.stringify(filteredFields[titleIndex].style || {}));
         
         console.log("Updating existing title field, preserving style:", 
@@ -174,19 +175,19 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
                     "ShowTitle:", preservedStyle.showTitle,
                     "ShowDescription:", preservedStyle.showDescription);
                     
-        // CRITICAL FIX: Create a brand new object to prevent reference issues
+        // إصلاح حاسم: إنشاء كائن جديد تمامًا لمنع مشاكل المرجعية
         filteredFields[titleIndex] = {
           type: 'form-title',
           id: FORM_TITLE_ID,
           label: formTitle || filteredFields[titleIndex].label || '',
           helpText: formDescription || filteredFields[titleIndex].helpText || '',
-          // Critical: Preserve all existing style properties
+          // أساسي: الحفاظ على جميع خصائص النمط الموجودة
           style: preservedStyle
         };
       }
     }
     
-    // Add default submit button if needed
+    // إضافة زر إرسال افتراضي إذا لزم الأمر
     const hasSubmitButton = filteredFields.some(field => field.type === 'submit');
     
     if (!hasSubmitButton) {
@@ -209,14 +210,14 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     return filteredFields;
   }, [fields, language, formStyle.primaryColor, formStyle.backgroundColor, formStyle.borderRadius, formTitle, formDescription, formStyle.formDirection]);
 
-  // Prepare form style for preview with default background color
-  // Make sure we have all required style properties with defaults
+  // تحضير نمط النموذج للمعاينة مع لون خلفية افتراضي
+  // التأكد من أن لدينا جميع خصائص النمط المطلوبة مع القيم الافتراضية
   const previewFormStyle = {
     ...formStyle,
-    backgroundColor: formStyle.backgroundColor || '#F9FAFB', // Default background color
-    borderRadius: formStyle.borderRadius || '1.5rem', // Large border radius
-    borderColor: formStyle.borderColor || '#9b87f5', // Default border color
-    borderWidth: formStyle.borderWidth || '2px',     // Default border width
+    backgroundColor: formStyle.backgroundColor || '#F9FAFB', // لون خلفية افتراضي
+    borderRadius: formStyle.borderRadius || '1.5rem', // نصف قطر حدود كبير
+    borderColor: formStyle.borderColor || '#9b87f5', // لون حدود افتراضي
+    borderWidth: formStyle.borderWidth || '2px',     // عرض حدود افتراضي
   };
 
   return (
