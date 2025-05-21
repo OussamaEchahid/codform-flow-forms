@@ -49,30 +49,10 @@ const deepCopyElement = (element: FormField): FormField => {
   if (!element) return element;
   
   // Create a complete copy of all properties
-  const copy: FormField = { ...element };
+  const copy = JSON.parse(JSON.stringify(element));
   
-  // Preserve the ID exactly as it was
+  // Ensure the ID is properly preserved
   copy.id = element.id;
-  
-  // Deep copy the style object
-  if (element.style) {
-    copy.style = { ...element.style };
-  }
-  
-  // Deep clone options array if it exists
-  if (element.options && Array.isArray(element.options)) {
-    copy.options = element.options.map(option => ({ ...option }));
-  }
-  
-  // Deep clone validation rules if they exist
-  if (element.validationRules) {
-    copy.validationRules = { ...element.validationRules };
-  }
-  
-  // Deep clone any other nested objects that might exist
-  if (element.settings) {
-    copy.settings = { ...element.settings };
-  }
   
   return copy;
 };
@@ -135,7 +115,7 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
     const newIndex = reorderableElements.findIndex(item => item.id === over.id);
     
     if (onReorderElements && oldIndex !== -1 && newIndex !== -1) {
-      // Create exact deep copies of each element to prevent mutations
+      // Create deep copies using JSON serialization to prevent mutations
       const newElementsArray = reorderableElements.map(element => deepCopyElement(element));
       
       // Use arrayMove to reorder elements
@@ -190,18 +170,14 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
   const handleTitleSave = (title: string, description: string, style: any) => {
     // Use onTitleUpdate to handle title updates - this ensures consistency
     if (onTitleUpdate) {
-      // Preserve the original ID if it exists
-      const updatedStyle = {
-        ...titleFieldStyle,
-        ...style
-      };
+      // Make a deep copy of the style to prevent mutations
+      const styleToSave = JSON.parse(JSON.stringify(style));
       
-      console.log("Saving title with style:", updatedStyle);
-      onTitleUpdate(title, description, updatedStyle);
+      console.log("Saving title with style:", styleToSave);
+      onTitleUpdate(title, description, styleToSave);
     }
     
     // Update primaryColor for other elements like buttons
-    // CRITICAL: Do NOT update backgroundColor for the entire form
     if (style.backgroundColor && onStyleChange) {
       onStyleChange('primaryColor', style.backgroundColor);
     }
@@ -211,14 +187,7 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
   
   // Handle global style updates for title editor
   const handleGlobalStyleUpdate = (key: string, value: string) => {
-    if (key === 'backgroundColor') {
-      // Convert backgroundColor updates to primaryColor updates
-      // This ensures the title background stays consistent with buttons
-      // without affecting the form's background
-      if (onStyleChange) {
-        onStyleChange('primaryColor', value);
-      }
-    } else if (onStyleChange) {
+    if (onStyleChange) {
       onStyleChange(key, value);
     }
   };

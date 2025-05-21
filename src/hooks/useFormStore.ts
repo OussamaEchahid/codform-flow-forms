@@ -60,6 +60,9 @@ interface FormStore {
   
   // Update floating button configuration
   updateFloatingButton: (config: any) => void;
+  
+  // Add a dedicated method for updating form style to prevent reference issues
+  updateFormStyle: (styleUpdates: Partial<FormStyle>) => void;
 }
 
 // Default styles - these are the guaranteed defaults
@@ -92,32 +95,71 @@ const defaultFormState: FormState = {
 
 export const useFormStore = create<FormStore>((set) => ({
   formState: {...defaultFormState},
+  
   setFormState: (form) => set((state) => {
-    // Create a clean copy of the current style
-    const currentStyle = state.formState.style || { ...defaultFormStyle };
+    // Create a deep copy of the current style to avoid reference issues
+    const currentStyle = state.formState.style ? 
+      JSON.parse(JSON.stringify(state.formState.style)) : 
+      { ...defaultFormStyle };
     
     // Handle style updates separately from other form properties
     let updatedStyle = { ...currentStyle };
     
     // If form contains style updates, apply them while preserving fixed defaults
     if (form.style) {
+      // Deep copy to prevent reference issues
+      const newStyleProps = JSON.parse(JSON.stringify(form.style));
+      
       updatedStyle = {
         ...updatedStyle,
-        ...form.style,
-        // Always ensure the default background color is maintained
-        backgroundColor: form.style.backgroundColor || currentStyle.backgroundColor || defaultFormStyle.backgroundColor,
+        ...newStyleProps,
+        // Always ensure the default background color is maintained unless explicitly changed
+        backgroundColor: newStyleProps.backgroundColor || currentStyle.backgroundColor || defaultFormStyle.backgroundColor,
       };
     }
+    
+    // Create a deep copy of the new form state to avoid mutation
+    const newFormState = {
+      ...state.formState,
+      ...form
+    };
+    
+    // Make sure we're not accidentally deleting the style object
+    if (!newFormState.style) {
+      newFormState.style = updatedStyle;
+    } else {
+      newFormState.style = updatedStyle;
+    }
+    
+    return {
+      formState: newFormState
+    };
+  }),
+  
+  resetFormState: () => set({ formState: JSON.parse(JSON.stringify(defaultFormState)) }),
+  
+  // Add dedicated method for style updates to prevent reference issues
+  updateFormStyle: (styleUpdates) => set((state) => {
+    // Create a deep copy of current style
+    const currentStyle = state.formState.style ? 
+      JSON.parse(JSON.stringify(state.formState.style)) : 
+      { ...defaultFormStyle };
+    
+    // Apply updates while preserving key defaults
+    const updatedStyle = {
+      ...currentStyle,
+      ...styleUpdates,
+      // Always preserve the background color unless explicitly changed
+      backgroundColor: styleUpdates.backgroundColor || currentStyle.backgroundColor || defaultFormStyle.backgroundColor
+    };
     
     return {
       formState: {
         ...state.formState,
-        ...form,
         style: updatedStyle
       }
     };
   }),
-  resetFormState: () => set({ formState: {...defaultFormState} }),
   
   // Floating button configuration
   floatingButton: {

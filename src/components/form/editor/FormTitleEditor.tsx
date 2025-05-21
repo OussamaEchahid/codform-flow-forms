@@ -59,7 +59,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
     showDescription: initialStyle?.showDescription !== false, 
   });
 
-  // Update state when props change, avoiding render loop
+  // Update state when props change, avoiding render loops
   useEffect(() => {
     // Only update if isOpen changes from false to true
     if (isOpen) {
@@ -80,7 +80,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
         showDescription: initialStyle?.showDescription !== false,
       });
     }
-  }, [isOpen]);
+  }, [isOpen, title, description, initialStyle, language, borderRadius]);
 
   const handleStyleChange = (property: string, value: string | boolean) => {
     setStyle(prevStyle => ({
@@ -95,7 +95,11 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
   };
 
   const handleSave = () => {
-    onSave(currentTitle, currentDescription, style);
+    // Create a clean copy of the style object to prevent references
+    const styleCopy = JSON.parse(JSON.stringify(style));
+    
+    // Call the onSave callback with copies of the data to prevent mutation
+    onSave(currentTitle, currentDescription, styleCopy);
     
     toast({
       description: language === 'ar' 
@@ -111,7 +115,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
   const colorPresets = ['#9b87f5', '#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#000000', '#ff3b30', '#ff9500', '#34c759'];
   
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className={language === 'ar' ? 'text-right' : 'text-left'}>
