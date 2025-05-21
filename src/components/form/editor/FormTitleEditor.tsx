@@ -27,6 +27,7 @@ interface FormTitleEditorProps {
   onSave: (title: string, description: string, style: any) => void;
   primaryColor: string;
   borderRadius: string;
+  updateGlobalStyle?: (key: string, value: string) => void;
 }
 
 const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
@@ -38,6 +39,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
   onSave,
   primaryColor,
   borderRadius,
+  updateGlobalStyle,
 }) => {
   const { language } = useI18n();
   const { toast } = useToast();
@@ -85,6 +87,11 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
       ...prevStyle,
       [property]: value
     }));
+    
+    // If updateGlobalStyle is provided and the property is backgroundColor, update the global style
+    if (updateGlobalStyle && property === 'backgroundColor') {
+      updateGlobalStyle('primaryColor', value as string);
+    }
   };
 
   const handleSave = () => {
