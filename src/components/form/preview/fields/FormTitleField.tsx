@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
@@ -29,11 +28,11 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
   // Extract style properties with default values, prioritizing field-specific styles
   const styles = field.style || {};
   
-  // Add logging to debug
-  console.log('FormTitleField: Processing title field with style:', 
-    styles, 
-    'Field ID:', field.id, 
-    'Has explicit _titleStyleOnly flag:', !!styles._titleStyleOnly);
+  // Add extensive logging for debugging
+  console.log('[FormTitleField] Rendering title field:', field.id);
+  console.log('[FormTitleField] Field style:', styles);
+  console.log('[FormTitleField] Form style:', formStyle);
+  console.log('[FormTitleField] Title style _titleStyleOnly flag:', !!styles._titleStyleOnly);
   
   // Check whether to show title and description
   const showTitle = styles.showTitle !== undefined ? !!styles.showTitle : true;
@@ -41,15 +40,16 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
   
   // If both title and description are hidden, don't render anything
   if (showTitle === false && showDescription === false) {
+    console.log('[FormTitleField] Both title and description are hidden, not rendering');
     return null;
   }
   
-  // IMPROVED: Title background color is ALWAYS from field-specific style or primary color
+  // CRITICAL: Title background color is ALWAYS from field-specific style or primary color
   // NEVER use form background color for title background!
   const titleBackgroundColor = styles.backgroundColor || formStyle.primaryColor || '#9b87f5';
   
-  console.log('FormTitleField: Using title background color:', titleBackgroundColor, 
-    'Form background is:', formStyle.backgroundColor);
+  console.log('[FormTitleField] Using title background color:', titleBackgroundColor);
+  console.log('[FormTitleField] Form background color is:', formStyle.backgroundColor);
 
   // Extract all style properties with defaults
   const {
@@ -142,33 +142,43 @@ export default React.memo(FormTitleField, (prevProps, nextProps) => {
   const nextField = nextProps.field;
 
   // Check ID match
-  if (prevField.id !== nextField.id) return false;
+  if (prevField.id !== nextField.id) {
+    console.log('[FormTitleField] ID changed, re-rendering');
+    return false;
+  }
   
   // Compare basic field properties
-  if (prevField.label !== nextField.label) return false;
-  if (prevField.helpText !== nextField.helpText) return false;
+  if (prevField.label !== nextField.label) {
+    console.log('[FormTitleField] Label changed, re-rendering');
+    return false;
+  }
+  if (prevField.helpText !== nextField.helpText) {
+    console.log('[FormTitleField] Help text changed, re-rendering');
+    return false;
+  }
   
   // Deep comparison for style objects to catch all style changes
   const prevStyle = JSON.stringify(prevField.style || {});
   const nextStyle = JSON.stringify(nextField.style || {});
-  if (prevStyle !== nextStyle) return false;
+  if (prevStyle !== nextStyle) {
+    console.log('[FormTitleField] Style changed, re-rendering');
+    return false;
+  }
   
   // Check for form direction changes that affect text alignment
-  if (prevProps.formStyle.formDirection !== nextProps.formStyle.formDirection) return false;
+  if (prevProps.formStyle.formDirection !== nextProps.formStyle.formDirection) {
+    console.log('[FormTitleField] Form direction changed, re-rendering');
+    return false;
+  }
 
-  // Deep comparison for form style objects that might affect title display
-  const relevantPrevFormStyle = JSON.stringify({
-    borderRadius: prevProps.formStyle.borderRadius,
-    primaryColor: prevProps.formStyle.primaryColor,
-  });
-  
-  const relevantNextFormStyle = JSON.stringify({
-    borderRadius: nextProps.formStyle.borderRadius,
-    primaryColor: nextProps.formStyle.primaryColor,
-  });
-  
-  if (relevantPrevFormStyle !== relevantNextFormStyle) return false;
+  // Check for primary color changes that affect title background
+  if (prevProps.formStyle.primaryColor !== nextProps.formStyle.primaryColor && 
+      (!prevField.style?.backgroundColor && !nextField.style?.backgroundColor)) {
+    console.log('[FormTitleField] Form primary color changed and affects title, re-rendering');
+    return false;
+  }
   
   // If we made it here, consider components equal (no need to re-render)
+  console.log('[FormTitleField] No changes detected, skipping render');
   return true;
 });

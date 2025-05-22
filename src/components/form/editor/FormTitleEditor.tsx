@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,7 +33,7 @@ export interface FormTitleEditorProps {
   onSave: (title: string, description: string, style: any) => void;
   primaryColor: string;
   borderRadius?: string;
-  updateGlobalStyle?: (key: string, value: string) => void; // Add this prop for global style updates
+  updateGlobalStyle?: (key: string, value: string) => void;
 }
 
 const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
@@ -53,16 +53,27 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
   const [localStyle, setLocalStyle] = useState({ ...style });
   const [syncWithGlobal, setSyncWithGlobal] = useState(false);
   
+  // Update local state when props change
+  useEffect(() => {
+    setLocalTitle(title);
+    setLocalDescription(description);
+    setLocalStyle({ ...style });
+  }, [title, description, style, isOpen]);
+  
   const handleBackgroundColorChange = (color: string) => {
+    console.log('[FormTitleEditor] Changed background color to:', color);
     setLocalStyle({ ...localStyle, backgroundColor: color });
     
     // Only update global primary color if sync is enabled
     if (syncWithGlobal && updateGlobalStyle) {
       updateGlobalStyle('primaryColor', color);
+      console.log('[FormTitleEditor] Also updating global primary color due to sync setting');
     }
   };
   
   const handleStyleChange = (key: string, value: any) => {
+    console.log(`[FormTitleEditor] Changing style property ${key} to:`, value);
+    
     // For boolean values like showTitle, we need to handle them differently
     if (typeof value === 'boolean') {
       setLocalStyle({
@@ -84,13 +95,15 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
     // Ensure backgroundColor is explicitly set
     if (!styleCopy.backgroundColor) {
       styleCopy.backgroundColor = primaryColor;
+      console.log('[FormTitleEditor] Setting default background color from primary color:', primaryColor);
     }
     
     // CRITICAL: Always explicitly mark this style as title-specific
     // This flag will be used across components to prevent affecting form background
     styleCopy._titleStyleOnly = true;
     
-    console.log('Saving form title with style:', styleCopy);
+    console.log('[FormTitleEditor] Saving form title with style:', styleCopy);
+    console.log('[FormTitleEditor] Title-specific flag set to true');
     
     // Alert user about title-only changes
     toast.success(
