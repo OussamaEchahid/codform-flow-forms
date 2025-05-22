@@ -17,6 +17,8 @@ export interface FormStyle {
   formGap: string;
   formDirection: 'ltr' | 'rtl';
   floatingLabels: boolean;
+  // Flag to indicate the style change is only for the title
+  _titleStyleOnly?: boolean;
 }
 
 export interface FormState {
