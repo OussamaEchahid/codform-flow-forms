@@ -17,8 +17,6 @@ export interface FormStyle {
   formGap?: string;
   formDirection?: 'ltr' | 'rtl';
   floatingLabels?: boolean;
-  // Flag to indicate the style change is only for the title
-  _titleStyleOnly?: boolean;
 }
 
 export interface FormState {
@@ -37,31 +35,6 @@ interface FormStore {
   formState: FormState;
   setFormState: (form: Partial<FormState>) => void;
   resetFormState: () => void;
-  
-  // Floating button settings
-  floatingButton: {
-    enabled: boolean;
-    text: string;
-    fontFamily?: string;
-    fontSize?: string;
-    fontWeight?: string;
-    textColor?: string;
-    backgroundColor?: string;
-    borderColor?: string;
-    borderRadius?: string;
-    borderWidth?: string;
-    paddingY?: string;
-    marginBottom?: string;
-    showIcon?: boolean;
-    icon?: string;
-    animation?: string;
-    position?: 'bottom' | 'top' | 'left' | 'right';
-    showOnMobile?: boolean;
-    showOnDesktop?: boolean;
-  };
-  
-  // Update floating button
-  updateFloatingButton: (config: any) => void;
   
   // Add custom method to update form style to prevent reference issues
   updateFormStyle: (styleUpdates: Partial<FormStyle>) => void;
@@ -88,7 +61,7 @@ const defaultFormStyle: FormStyle = {
 // Default form state with guaranteed values
 const defaultFormState: FormState = {
   id: '',
-  title: 'New Form',
+  title: '',
   description: '',
   data: [],
   isPublished: false,
@@ -116,31 +89,12 @@ export const useFormStore = create<FormStore>((set) => ({
       // Deep copy to prevent reference issues
       const newStyleProps = JSON.parse(JSON.stringify(form.style));
       
-      // CRITICAL: Detect and handle title-specific style updates
-      if (newStyleProps._titleStyleOnly === true) {
-        console.log('Title-specific style update detected - PROTECTING form background');
-        
-        // Store the original form background color before any changes
-        const originalFormBgColor = currentStyle.backgroundColor || defaultFormStyle.backgroundColor;
-        
-        // Apply all style changes except background color
-        updatedStyle = {
-          ...updatedStyle,
-          ...newStyleProps,
-          // Always preserve the original form background color
-          backgroundColor: originalFormBgColor,
-        };
-        
-        console.log('Protected form background:', originalFormBgColor);
-        console.log('Applied title-specific styles with protected background');
-      } else {
-        // For non-title style changes, apply normally
-        updatedStyle = {
-          ...updatedStyle,
-          ...newStyleProps,
-        };
-        console.log('Applied standard style update (non-title)');
-      }
+      // Apply the style updates normally
+      updatedStyle = {
+        ...updatedStyle,
+        ...newStyleProps,
+      };
+      console.log('Applied standard style update');
     }
     
     // Create a deep copy of the new form state to prevent mutation
@@ -174,39 +128,13 @@ export const useFormStore = create<FormStore>((set) => ({
       JSON.parse(JSON.stringify(state.formState.style)) : 
       { ...defaultFormStyle };
     
-    // Store the original form background color
-    const originalFormBgColor = currentStyle.backgroundColor || defaultFormStyle.backgroundColor;
-    
-    // CRITICAL: Check for title-specific style updates
-    if (styleUpdates._titleStyleOnly === true) {
-      console.log('Title-only style update detected - PREVENTING form background change');
-      
-      // Apply updates while preserving the background color
-      const updatedStyle = {
-        ...currentStyle,
-        ...styleUpdates,
-        // Always preserve the original background color for the form
-        backgroundColor: originalFormBgColor,
-      };
-      
-      console.log('Protected form background:', originalFormBgColor);
-      console.log('Final style with protected background:', updatedStyle);
-      
-      return {
-        formState: {
-          ...state.formState,
-          style: updatedStyle
-        }
-      };
-    }
-    
-    // For standard updates (not title-specific), apply normally
+    // Apply updates normally
     const updatedStyle = {
       ...currentStyle,
       ...styleUpdates,
     };
     
-    console.log('Applied standard style update (non-title)');
+    console.log('Applied style update');
     console.log('Final style:', updatedStyle);
     
     return {
@@ -215,37 +143,7 @@ export const useFormStore = create<FormStore>((set) => ({
         style: updatedStyle
       }
     };
-  }),
-  
-  // Floating button configuration
-  floatingButton: {
-    enabled: false,
-    text: 'Order Now',
-    textColor: '#ffffff',
-    backgroundColor: '#000000',
-    borderRadius: '4px',
-    showIcon: true,
-    icon: 'shopping-cart',
-    position: 'bottom',
-    showOnMobile: true,
-    showOnDesktop: true,
-    fontFamily: 'inherit',
-    fontSize: '16px',
-    fontWeight: '500',
-    borderColor: '#000000',
-    borderWidth: '0px',
-    paddingY: '12px',
-    marginBottom: '20px',
-    animation: 'none',
-  },
-  
-  // Update floating button
-  updateFloatingButton: (config) => set((state) => ({
-    floatingButton: {
-      ...state.floatingButton,
-      ...config,
-    }
-  })),
+  })
 }));
 
 export default useFormStore;

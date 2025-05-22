@@ -11,7 +11,7 @@ interface FormElementListProps {
 const FormElementList: React.FC<FormElementListProps> = ({ onAddElement }) => {
   const { language } = useI18n();
   
-  // تحديث ترتيب العناصر المتاحة وفقًا للقائمة الجديدة
+  // تحديث العناصر المتاحة وإزالة form-title
   const availableElements = [
     { 
       type: 'whatsapp', 
@@ -22,11 +22,6 @@ const FormElementList: React.FC<FormElementListProps> = ({ onAddElement }) => {
       type: 'image', 
       label: language === 'ar' ? 'صورة' : 'Image', 
       icon: '🖼️' 
-    },
-    { 
-      type: 'form-title', 
-      label: language === 'ar' ? 'عنوان النموذج' : 'Form Title', 
-      icon: 'H1' 
     },
     { 
       type: 'text/html', 

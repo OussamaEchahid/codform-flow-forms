@@ -2,15 +2,13 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { Save, FileCheck, Palette, FileText, MousePointerClick } from 'lucide-react';
+import { Save, FileCheck, FileText } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 
 interface FormHeaderProps {
   onSave: () => void;
   onPublish: () => void;
-  onStyleOpen: () => void;
   onTemplateOpen: () => void;
-  onFloatingButtonOpen: () => void; // Add new prop for floating button editor
   isSaving: boolean;
   isPublishing: boolean;
   isPublished: boolean;
@@ -19,9 +17,7 @@ interface FormHeaderProps {
 const FormHeader: React.FC<FormHeaderProps> = ({ 
   onSave, 
   onPublish, 
-  onStyleOpen, 
-  onTemplateOpen,
-  onFloatingButtonOpen, // Add new prop
+  onTemplateOpen, 
   isSaving,
   isPublishing,
   isPublished
@@ -42,23 +38,6 @@ const FormHeader: React.FC<FormHeaderProps> = ({
       </div>
       
       <div className="flex items-center gap-3">
-        <Button 
-          variant="outline" 
-          onClick={onStyleOpen}
-        >
-          <Palette size={16} className="mr-2" />
-          {language === 'ar' ? 'تخصيص المظهر' : 'Customize Style'}
-        </Button>
-        
-        {/* Add Floating Button customization button */}
-        <Button 
-          variant="outline" 
-          onClick={onFloatingButtonOpen}
-        >
-          <MousePointerClick size={16} className="mr-2" />
-          {language === 'ar' ? 'زر عائم' : 'Floating Button'}
-        </Button>
-        
         <Button 
           variant="outline"
           className="flex items-center gap-2"
