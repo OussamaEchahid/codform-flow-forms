@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
@@ -37,8 +38,8 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
     return null;
   }
   
-  // CRITICAL FIX: Use the field's own backgroundColor first, falling back to formStyle.primaryColor
-  // This keeps the title background color independent from the global form background
+  // CRITICAL: Title background color is COMPLETELY INDEPENDENT from form style
+  // Always prioritize field's own backgroundColor and NEVER use formStyle.backgroundColor
   const titleBackgroundColor = styles.backgroundColor || formStyle.primaryColor || '#9b87f5';
 
   // Extract all style properties with defaults

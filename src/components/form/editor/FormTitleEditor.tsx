@@ -85,7 +85,8 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
       styleCopy.backgroundColor = primaryColor;
     }
     
-    // IMPORTANT: Mark style as title-specific to prevent global application
+    // CRITICAL: Mark style as title-specific to prevent global application
+    // This flag will be used in useFormStore to prevent affecting form background
     styleCopy._titleStyleOnly = true;
     
     console.log('Saving form title with style:', styleCopy);

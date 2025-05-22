@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 
 export interface FormStyle {
@@ -109,13 +110,23 @@ export const useFormStore = create<FormStore>((set) => ({
       // Deep copy to prevent reference issues
       const newStyleProps = JSON.parse(JSON.stringify(form.style));
       
-      // FIX: Keep backgroundColor independent from title background
-      // The title background is stored in field.style.backgroundColor for 'form-title' type fields
+      // CRITICAL FIX: Prevent any title-specific styles from affecting form-wide styles
+      // Check if this style update is coming from title editor 
+      if (newStyleProps._titleStyleOnly) {
+        console.log('Title-specific style update detected, not affecting form backgroundColor');
+        
+        // NEVER allow title-specific style changes to affect global form background
+        delete newStyleProps.backgroundColor; // Remove so it doesn't override form background
+        delete newStyleProps._titleStyleOnly; // Remove our marker
+      }
+      
       updatedStyle = {
         ...updatedStyle,
         ...newStyleProps,
         // CRITICAL: Always ensure form background color is preserved unless explicitly changed for the whole form
-        backgroundColor: newStyleProps.backgroundColor || currentStyle.backgroundColor || defaultFormStyle.backgroundColor,
+        backgroundColor: newStyleProps._titleStyleOnly ? 
+          currentStyle.backgroundColor || defaultFormStyle.backgroundColor :
+          newStyleProps.backgroundColor || currentStyle.backgroundColor || defaultFormStyle.backgroundColor,
       };
     }
     
@@ -146,15 +157,19 @@ export const useFormStore = create<FormStore>((set) => ({
       JSON.parse(JSON.stringify(state.formState.style)) : 
       { ...defaultFormStyle };
     
+    // CRITICAL FIX: Check if this update is from title editor
+    if (styleUpdates._titleStyleOnly) {
+      console.log('Title-only style update detected in updateFormStyle, not affecting form backgroundColor');
+      
+      // Don't let title background color change affect the form background
+      delete styleUpdates.backgroundColor;
+      delete styleUpdates._titleStyleOnly;
+    }
+    
     // Apply updates while preserving core default values
     const updatedStyle = {
       ...currentStyle,
       ...styleUpdates,
-      // Always preserve background color unless explicitly changed
-      // Don't allow title background color to be copied to whole form background
-      backgroundColor: styleUpdates.hasOwnProperty('backgroundColor') ? 
-                        styleUpdates.backgroundColor : 
-                        currentStyle.backgroundColor || defaultFormStyle.backgroundColor
     };
     
     // Log style changes for debugging

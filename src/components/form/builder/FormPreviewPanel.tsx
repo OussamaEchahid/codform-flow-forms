@@ -120,7 +120,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
         label: formTitle || '',
         helpText: formDescription || '',
         style: {
-          // Use primaryColor for title background
+          // Use primaryColor for title background - NEVER use formStyle.backgroundColor here
           backgroundColor: formStyle.primaryColor || '#9b87f5',
           color: '#ffffff',
           textAlign: language === 'ar' ? 'right' : 'center',

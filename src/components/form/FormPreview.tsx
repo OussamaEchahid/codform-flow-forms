@@ -81,7 +81,8 @@ const FormPreview: React.FC<FormPreviewProps> = ({
 }) => {
   const { language } = useI18n();
   
-  // Always enforce default backgroundColor for the form
+  // CRITICAL: Always enforce a separate background color for the form
+  // This should NEVER be the same as the title background color
   const formBackgroundColor = formStyle.backgroundColor || '#F9FAFB';
 
   // Process fields while preserving IDs and ensuring there's no duplication
@@ -100,7 +101,8 @@ const FormPreview: React.FC<FormPreviewProps> = ({
           label: formTitle || '',
           helpText: formDescription || '',
           style: {
-            // Important - Use a standalone color that doesn't reference formStyle 
+            // Important - Use a standalone color that doesn't reference formStyle.backgroundColor
+            // Only use primaryColor as a fallback
             backgroundColor: formStyle.primaryColor || '#9b87f5',
             color: '#ffffff',
             textAlign: language === 'ar' ? 'right' : 'center',
@@ -172,7 +174,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         fontSize: formStyle.fontSize,
         '--form-primary-color': formStyle.primaryColor,
         borderRadius: formStyle.borderRadius,
-        backgroundColor: formBackgroundColor,
+        backgroundColor: formBackgroundColor, // Always use the form's background color
         border: `${formStyle.borderWidth || '2px'} solid ${formStyle.borderColor || '#9b87f5'}`,
         padding: '0',
       } as React.CSSProperties}
@@ -181,6 +183,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
       data-border-width={formStyle.borderWidth}
       data-border-radius={formStyle.borderRadius}
       data-primary-color={formStyle.primaryColor}
+      data-form-background={formBackgroundColor} // Add data attribute for form background
       data-form-direction={formDirection}
     >
       {totalSteps > 1 && (
@@ -228,7 +231,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
           direction: formDirection,
           padding: `${formStyle.paddingTop || '20px'} ${formStyle.paddingRight || '20px'} ${formStyle.paddingBottom || '20px'} ${formStyle.paddingLeft || '20px'}`,
           gap: formStyle.formGap || '16px',
-          backgroundColor: formBackgroundColor,
+          backgroundColor: formBackgroundColor, // Important: use form background color here too
         }}
         data-direction={formDirection}
       >
