@@ -266,6 +266,9 @@
         loader.style.display = 'none';
       }
       
+      // طباعة بيانات النموذج للتصحيح
+      console.log('Rendering form with data:', JSON.stringify(formData));
+      
       // إنشاء HTML للنموذج
       const formHtml = createFormHtml(formData, blockId);
       
@@ -292,7 +295,7 @@
       }
     }
     
-    // وظيفة لإنشاء HTML للنموذج - تم تحديثها لتطابق المعاينة تمامًا
+    // وظيفة لإنشاء HTML للنموذج - تم تحديثها لتطابق المعاينة تماماً
     function createFormHtml(formData, blockId) {
       // طباعة بيانات النموذج كاملة لتسهيل التصحيح
       console.log('Creating form HTML with data:', JSON.stringify(formData));
@@ -321,17 +324,6 @@
       const formPaddingLeft = formStyle.paddingLeft || '20px';
       const formPaddingRight = formStyle.paddingRight || '20px';
       const formGap = formStyle.formGap || '16px';
-      
-      console.log('Form styles detected:', {
-        primaryColor,
-        borderRadius,
-        formFontSize,
-        borderColor,
-        borderWidth,
-        backgroundColor,
-        padding: `${formPaddingTop} ${formPaddingRight} ${formPaddingBottom} ${formPaddingLeft}`,
-        direction: isRTL ? 'rtl' : 'ltr'
-      });
       
       // إنشاء CSS المحسن
       let html = `
@@ -482,7 +474,7 @@
           width: 100%;
         }
         
-        /* تنسيق عنوان النموذج */
+        /* تنسيق عنوان النموذج - IMPORTANT: COMPLETELY ISOLATED STYLES */
         .codform-title-wrapper {
           margin-bottom: 16px;
           display: block;
@@ -539,14 +531,15 @@
       if (formFields && formFields.length) {
         formFields.forEach((field, index) => {
           if (field && field.type) {
-            console.log(`Processing field ${index}:`, field.type, field.id);
+            console.log(`Processing field ${index}:`, field.type, field.id, 'Style:', field.style ? 'exists' : 'none');
             
             // إنشاء عنصر العنوان بشكل ديناميكي باستخدام قيم من field.style
             if (field.type === 'form-title' || field.type === 'title') {
               const style = field.style || {};
-              // استخدام القيم الديناميكية من field.style
+              // استخدام القيم الديناميكية من field.style - NEVER use form backgroundColor
               const titleAlign = style.textAlign || (isRTL ? 'right' : 'center');
-              // الحفاظ على خلفية العنوان الخاصة به ولا تسمح بتغيير خلفية النموذج بالكامل
+              // IMPORTANT: الحفاظ على خلفية العنوان من style.backgroundColor أو primaryColor
+              // NEVER use formStyle.backgroundColor for title background!
               const bgColor = style.backgroundColor || primaryColor || '#9b87f5';
               const titleColor = style.color || '#ffffff';
               const descColor = style.descriptionColor || 'rgba(255, 255, 255, 0.9)';
@@ -561,16 +554,28 @@
               const showDescription = style.showDescription !== false;
               const paddingY = style.paddingY || '16px';
               
-              console.log('Rendering title with styles:', {
-                bgColor, titleColor, titleAlign, showTitle, showDescription,
-                titleFontSize, descColor, descFontSize
-              });
+              console.log('Rendering title with:',
+                'bgColor:', bgColor,
+                'primaryColor:', primaryColor,
+                'formBackgroundColor:', backgroundColor,
+                'showTitle:', showTitle,
+                'showDesc:', showDescription);
               
               // إنشاء حاوية العنوان فقط إذا كان العنوان أو الوصف سيتم عرضه
               if (showTitle || showDescription) {
                 html += `
                 <div class="codform-title-wrapper" data-field-type="${field.type}" data-field-id="${field.id}">
-                  <div class="codform-title-container" style="background-color: ${bgColor}; padding: ${paddingY} 16px; border-radius: ${titleBorderRadius}; width: 100%; box-sizing: border-box; text-align: ${titleAlign}; direction: ${isRTL ? 'rtl' : 'ltr'};">
+                  <div class="codform-title-container" 
+                       style="background-color: ${bgColor}; 
+                             padding: ${paddingY} 16px; 
+                             border-radius: ${titleBorderRadius}; 
+                             width: 100%; 
+                             box-sizing: border-box; 
+                             text-align: ${titleAlign}; 
+                             direction: ${isRTL ? 'rtl' : 'ltr'};"
+                       data-title-bg-color="${bgColor}"
+                       data-form-bg-color="${backgroundColor}"
+                       data-title-only="true">
                     ${showTitle && field.label ? `
                     <h3 style="color: ${titleColor}; font-size: ${titleFontSize}; text-align: ${titleAlign}; font-weight: ${fontWeight}; font-family: ${fontFamily}; margin: 0px; padding: 0px; line-height: 1.3; display: block; direction: ${isRTL ? 'rtl' : 'ltr'};">
                       ${field.label}
@@ -679,8 +684,6 @@
                 </button>
               </div>`;
             }
-            
-            // يمكن إضافة أنواع حقول أخرى مدعومة هنا...
           }
         });
       } else {
@@ -990,4 +993,14 @@
   .codform-textarea {
     min-height: 100px !important;
   }
+  
+  /* CRITICAL: Always enforce title and form background separation */
+  .codform-title-container {
+    background-color: var(--title-bg-color, #9b87f5) !important;
+  }
+  
+  .codform-form-content {
+    background-color: var(--form-bg-color, #F9FAFB) !important; 
+  }
 </style>
+

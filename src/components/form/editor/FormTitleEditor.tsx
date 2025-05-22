@@ -9,6 +9,7 @@ import { useI18n } from '@/lib/i18n';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { toast } from 'sonner';
 
 export interface FormTitleEditorProps {
   isOpen: boolean;
@@ -90,6 +91,14 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
     styleCopy._titleStyleOnly = true;
     
     console.log('Saving form title with style:', styleCopy);
+    
+    // Alert user about title-only changes
+    toast.success(
+      language === 'ar' 
+        ? 'تم حفظ إعدادات العنوان بنجاح. هذه الإعدادات تؤثر فقط على العنوان وليس النموذج بالكامل.'
+        : 'Title settings saved successfully. These settings only affect the title, not the entire form.'
+    );
+    
     onSave(localTitle, localDescription, styleCopy);
   };
   
@@ -194,7 +203,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
           <TabsContent value="style" className="space-y-4">
             <div className="grid gap-4 py-4">
               <div className={`flex flex-col space-y-1.5 ${language === 'ar' ? 'text-right' : ''}`}>
-                <Label htmlFor="backgroundColor" className="mb-1">
+                <Label htmlFor="backgroundColor" className="mb-1 font-bold text-amber-700">
                   {language === 'ar' ? 'لون خلفية العنوان فقط' : 'Title Background Color Only'}
                 </Label>
                 <div className="flex gap-2">
@@ -393,8 +402,8 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
           <Button variant="outline" onClick={onClose} className="ml-2">
             {language === 'ar' ? 'إلغاء' : 'Cancel'}
           </Button>
-          <Button onClick={handleSaveClick}>
-            {language === 'ar' ? 'حفظ التغييرات' : 'Save Changes'}
+          <Button onClick={handleSaveClick} className="bg-amber-600 hover:bg-amber-700">
+            {language === 'ar' ? 'حفظ إعدادات العنوان فقط' : 'Save Title Settings Only'}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -29,6 +29,12 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
   // Extract style properties with default values, prioritizing field-specific styles
   const styles = field.style || {};
   
+  // Add logging to debug
+  console.log('FormTitleField: Processing title field with style:', 
+    styles, 
+    'Field ID:', field.id, 
+    'Has explicit _titleStyleOnly flag:', !!styles._titleStyleOnly);
+  
   // Check whether to show title and description
   const showTitle = styles.showTitle !== undefined ? !!styles.showTitle : true;
   const showDescription = styles.showDescription !== undefined ? !!styles.showDescription : true;
@@ -38,9 +44,12 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
     return null;
   }
   
-  // IMPORTANT: Title background color is COMPLETELY INDEPENDENT from form style
-  // Always use the title's own backgroundColor and NEVER use formStyle.backgroundColor
+  // IMPROVED: Title background color is ALWAYS from field-specific style or primary color
+  // NEVER use form background color for title background!
   const titleBackgroundColor = styles.backgroundColor || formStyle.primaryColor || '#9b87f5';
+  
+  console.log('FormTitleField: Using title background color:', titleBackgroundColor, 
+    'Form background is:', formStyle.backgroundColor);
 
   // Extract all style properties with defaults
   const {

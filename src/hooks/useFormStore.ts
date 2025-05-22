@@ -112,7 +112,7 @@ export const useFormStore = create<FormStore>((set) => ({
       // Deep copy to prevent reference issues
       const newStyleProps = JSON.parse(JSON.stringify(form.style));
       
-      // CRITICAL FIX: Check for title-specific styles and NEVER let them affect form background
+      // CRITICAL FIX FOR TITLE: Check for title-specific styles and NEVER let them affect form background
       if (newStyleProps._titleStyleOnly === true) {
         console.log('Title-specific style update detected - ISOLATING from form background');
         
@@ -130,7 +130,7 @@ export const useFormStore = create<FormStore>((set) => ({
           backgroundColor: originalFormBgColor,
         };
       } else {
-        // For non-title style changes, apply normally
+        // For non-title style changes, apply normally but NEVER change the title's background
         updatedStyle = {
           ...updatedStyle,
           ...newStyleProps,
@@ -168,7 +168,7 @@ export const useFormStore = create<FormStore>((set) => ({
     // Store the original form background color
     const originalFormBgColor = currentStyle.backgroundColor || defaultFormStyle.backgroundColor;
     
-    // CRITICAL FIX: Check for title-specific style updates
+    // CRITICAL FIX FOR TITLE: Check for title-specific style updates
     if (styleUpdates._titleStyleOnly === true) {
       console.log('Title-only style update detected - PREVENTING form background change');
       
