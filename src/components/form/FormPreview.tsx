@@ -81,10 +81,14 @@ const FormPreview: React.FC<FormPreviewProps> = ({
 }) => {
   const { language } = useI18n();
   
-  // CRITICAL: Always enforce a separate background color for the form
-  // This should NEVER be the same as the title background color
+  // CRITICAL: Always ensure form background has a fixed default that is NOT tied to primaryColor
+  // We always want a different color for form background and title background
   const formBackgroundColor = formStyle.backgroundColor || '#F9FAFB';
-
+  
+  // Log to help debugging
+  console.log('FormPreview: Form background color:', formBackgroundColor);
+  console.log('FormPreview: Primary color (for titles, etc):', formStyle.primaryColor);
+  
   // Process fields while preserving IDs and ensuring there's no duplication
   const sanitizedFields = useMemo(() => {
     const clonedFields = deepCloneFields(fields);
@@ -95,14 +99,14 @@ const FormPreview: React.FC<FormPreviewProps> = ({
       const fieldsToCreate = [];
       
       if (!hasTitleField && !existingTitleField) {
+        // Create a title field with appropriate style
         const titleField: FormField = {
           type: 'form-title',
           id: FORM_TITLE_ID,
           label: formTitle || '',
           helpText: formDescription || '',
           style: {
-            // Important - Use a standalone color that doesn't reference formStyle.backgroundColor
-            // Only use primaryColor as a fallback
+            // Important: Title background should use primaryColor, NOT the form's backgroundColor
             backgroundColor: formStyle.primaryColor || '#9b87f5',
             color: '#ffffff',
             textAlign: language === 'ar' ? 'right' : 'center',
@@ -111,7 +115,8 @@ const FormPreview: React.FC<FormPreviewProps> = ({
             descriptionColor: 'rgba(255, 255, 255, 0.9)',
             descriptionFontSize: '14px',
             showTitle: true,
-            showDescription: true
+            showDescription: true,
+            _titleStyleOnly: true // Mark as title-only to prevent affecting form background
           },
         };
         fieldsToCreate.push(titleField);
@@ -185,6 +190,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
       data-primary-color={formStyle.primaryColor}
       data-form-background={formBackgroundColor} // Add data attribute for form background
       data-form-direction={formDirection}
+      data-form-structure="main-container"
     >
       {totalSteps > 1 && (
         <div className="px-4 py-2 bg-gray-50">
@@ -234,6 +240,8 @@ const FormPreview: React.FC<FormPreviewProps> = ({
           backgroundColor: formBackgroundColor, // Important: use form background color here too
         }}
         data-direction={formDirection}
+        data-form-content="true"
+        data-background-color={formBackgroundColor}
       >
         {sanitizedFields.length > 0 ? (
           <div className="space-y-4" style={{ gap: formStyle.formGap || '16px' }}>

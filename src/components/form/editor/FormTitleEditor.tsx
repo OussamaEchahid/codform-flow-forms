@@ -85,8 +85,8 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
       styleCopy.backgroundColor = primaryColor;
     }
     
-    // CRITICAL: Mark style as title-specific to prevent global application
-    // This flag will be used in useFormStore to prevent affecting form background
+    // CRITICAL: Always explicitly mark this style as title-specific
+    // This flag will be used across components to prevent affecting form background
     styleCopy._titleStyleOnly = true;
     
     console.log('Saving form title with style:', styleCopy);
@@ -195,7 +195,7 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
             <div className="grid gap-4 py-4">
               <div className={`flex flex-col space-y-1.5 ${language === 'ar' ? 'text-right' : ''}`}>
                 <Label htmlFor="backgroundColor" className="mb-1">
-                  {language === 'ar' ? 'لون الخلفية' : 'Background Color'}
+                  {language === 'ar' ? 'لون خلفية العنوان فقط' : 'Title Background Color Only'}
                 </Label>
                 <div className="flex gap-2">
                   <div 
@@ -229,10 +229,10 @@ const FormTitleEditor: React.FC<FormTitleEditorProps> = ({
                       : 'Also use this color as form primary color'}
                   </Label>
                 </div>
-                <p className="text-xs text-amber-600 mt-1">
+                <p className="text-xs text-amber-600 mt-1 font-bold">
                   {language === 'ar' 
-                    ? 'هذا اللون سيؤثر على لون الخلفية للعنوان فقط'
-                    : 'This color affects only the title background'}
+                    ? 'هذا اللون يؤثر على لون خلفية العنوان فقط وليس النموذج بأكمله'
+                    : 'This color affects ONLY the title background, NOT the entire form'}
                 </p>
               </div>
               

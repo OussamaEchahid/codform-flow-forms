@@ -38,8 +38,8 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
     return null;
   }
   
-  // CRITICAL: Title background color is COMPLETELY INDEPENDENT from form style
-  // Always prioritize field's own backgroundColor and NEVER use formStyle.backgroundColor
+  // IMPORTANT: Title background color is COMPLETELY INDEPENDENT from form style
+  // Always use the title's own backgroundColor and NEVER use formStyle.backgroundColor
   const titleBackgroundColor = styles.backgroundColor || formStyle.primaryColor || '#9b87f5';
 
   // Extract all style properties with defaults
@@ -95,6 +95,7 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
       data-title-bg-color={titleBackgroundColor}
       data-show-title={showTitle ? 'true' : 'false'}
       data-show-description={showDescription ? 'true' : 'false'}
+      data-title-style-isolated="true"
     >
       {showTitle && (
         <h1 
