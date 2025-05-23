@@ -11,8 +11,13 @@ interface FormElementListProps {
 const FormElementList: React.FC<FormElementListProps> = ({ onAddElement }) => {
   const { language } = useI18n();
   
-  // Updated available elements, removing form-title
+  // Available elements with form-title as the first element
   const availableElements = [
+    { 
+      type: 'form-title', 
+      label: language === 'ar' ? 'عنوان النموذج' : 'Form Title', 
+      icon: 'T' 
+    },
     { 
       type: 'whatsapp', 
       label: language === 'ar' ? 'واتساب' : 'WhatsApp', 

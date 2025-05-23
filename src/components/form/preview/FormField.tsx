@@ -1,3 +1,4 @@
+
 import React, { memo } from 'react';
 import { FormField as FormFieldType } from '@/lib/form-utils';
 import TextInput from './fields/TextInput';
@@ -182,7 +183,7 @@ const FormField = memo(({ field, formStyle }: FormFieldProps) => {
   const supportedStoreFieldTypes = [
     'text', 'textarea', 'radio', 'checkbox', 'text/html',
     'submit', 'image', 'whatsapp', 'cart-items', 'cart-summary',
-    'email', 'phone'
+    'email', 'phone', 'form-title'
   ];
   
   const isSupported = supportedStoreFieldTypes.includes(fieldType) || supportedStoreFieldTypes.includes(normalizedField.type);
@@ -216,7 +217,7 @@ const FormField = memo(({ field, formStyle }: FormFieldProps) => {
   
   // Set margins: use optimized margins based on field type
   const marginClass = fieldType === 'submit' ? 'mt-0' : 
-                      fieldType === 'form-title' ? 'mb-6' : 'mb-4';
+                      fieldType === 'form-title' ? 'mb-4' : 'mb-4';
 
   // Add data attributes to help ensure consistency between preview and store
   const dataAttributes = {

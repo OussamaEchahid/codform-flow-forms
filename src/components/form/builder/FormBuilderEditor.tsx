@@ -122,6 +122,24 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
   const createDefaultForm = (): FormField[] => {
     const fields: FormField[] = [];
     
+    // إضافة عنوان النموذج كعنصر أول
+    fields.push({
+      type: 'form-title' as FormFieldType,
+      id: `form-title-${Date.now()}`,
+      label: language === 'ar' ? 'عنوان النموذج' : 'Form Title',
+      content: language === 'ar' ? 'املأ النموذج للدفع عند الاستلام' : 'Fill the form for cash on delivery',
+      style: {
+        fontSize: '1.5rem',
+        fontWeight: '700',
+        color: '#000000',
+        textAlign: 'center',
+        paddingTop: '6px',
+        paddingBottom: '6px',
+        paddingLeft: '0px',
+        paddingRight: '0px',
+      },
+    });
+    
     // إضافة حقل الاسم الكامل
     fields.push({
       type: 'text' as FormFieldType,
@@ -530,19 +548,34 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
   };
 
   const addElement = (type: string) => {
-    // تأكد من أن النوع ليس 'form-title'
-    if (type === 'form-title') {
-      toast.error(language === 'ar' ? 'عنصر عنوان النموذج غير مدعوم' : 'Form title element is not supported');
-      return;
-    }
+    let newElement: FormField;
     
-    const newElement: FormField = {
-      type: type as FormFieldType,
-      id: `${type}-${Date.now()}`,
-      label: language === 'ar' ? `${type} جديد` : `New ${type}`,
-      placeholder: language === 'ar' ? `أدخل ${type}` : `Enter ${type}`,
-      content: type === 'text/html' ? '<p>محتوى HTML</p>' : undefined,
-    };
+    if (type === 'form-title') {
+      newElement = {
+        type: 'form-title' as FormFieldType,
+        id: `form-title-${Date.now()}`,
+        label: language === 'ar' ? 'عنوان النموذج' : 'Form Title',
+        content: language === 'ar' ? 'عنوان النموذج' : 'Form Title',
+        style: {
+          fontSize: '1.5rem',
+          fontWeight: '700',
+          color: '#000000',
+          textAlign: 'center',
+          paddingTop: '6px',
+          paddingBottom: '6px',
+          paddingLeft: '0px',
+          paddingRight: '0px',
+        },
+      };
+    } else {
+      newElement = {
+        type: type as FormFieldType,
+        id: `${type}-${Date.now()}`,
+        label: language === 'ar' ? `${type} جديد` : `New ${type}`,
+        placeholder: language === 'ar' ? `أدخل ${type}` : `Enter ${type}`,
+        content: type === 'text/html' ? '<p>محتوى HTML</p>' : undefined,
+      };
+    }
     
     const updatedElements = [...formElements, newElement];
     setFormElements(updatedElements);
@@ -613,14 +646,12 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
         });
       }
       
-      // Filter out any form-title fields from template
+      // Include form-title elements from template
       const newElements = template.data.flatMap(step => 
-        step.fields
-          .filter(field => field.type !== 'form-title') // تصفية حقول form-title
-          .map(field => ({
-            ...field,
-            id: `${field.type}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
-          }))
+        step.fields.map(field => ({
+          ...field,
+          id: `${field.type}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+        }))
       );
       
       setFormTitle(template.title);
