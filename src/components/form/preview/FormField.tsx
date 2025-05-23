@@ -1,4 +1,3 @@
-
 import React, { memo } from 'react';
 import { FormField as FormFieldType } from '@/lib/form-utils';
 import TextInput from './fields/TextInput';
@@ -183,7 +182,7 @@ const FormField = memo(({ field, formStyle }: FormFieldProps) => {
   const supportedStoreFieldTypes = [
     'text', 'textarea', 'radio', 'checkbox', 'text/html',
     'submit', 'image', 'whatsapp', 'cart-items', 'cart-summary',
-    'email', 'phone', 'form-title'
+    'email', 'phone'
   ];
   
   const isSupported = supportedStoreFieldTypes.includes(fieldType) || supportedStoreFieldTypes.includes(normalizedField.type);
