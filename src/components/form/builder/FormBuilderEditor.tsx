@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useFormTemplates, FormData, formTemplates } from '@/lib/hooks/useFormTemplates';
@@ -325,6 +326,9 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
               loadedElements.push(submitButton);
             }
             
+            // تصفية أي حقول form-title من العناصر المحملة
+            loadedElements = loadedElements.filter(element => element.type !== 'form-title');
+            
             setFormElements(loadedElements);
             setIsPublished(!!formData.isPublished || !!formData.is_published);
             
@@ -526,6 +530,12 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
   };
 
   const addElement = (type: string) => {
+    // تأكد من أن النوع ليس 'form-title'
+    if (type === 'form-title') {
+      toast.error(language === 'ar' ? 'عنصر عنوان النموذج غير مدعوم' : 'Form title element is not supported');
+      return;
+    }
+    
     const newElement: FormField = {
       type: type as FormFieldType,
       id: `${type}-${Date.now()}`,
@@ -606,6 +616,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
       // Filter out any form-title fields from template
       const newElements = template.data.flatMap(step => 
         step.fields
+          .filter(field => field.type !== 'form-title') // تصفية حقول form-title
           .map(field => ({
             ...field,
             id: `${field.type}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`

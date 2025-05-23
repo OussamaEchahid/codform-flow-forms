@@ -22,7 +22,7 @@ interface FormTitleFieldProps {
   };
 }
 
-// This component has been disabled - form titles are now handled at the form level
+// This component has been completely disabled - form titles are no longer supported
 const FormTitleField: React.FC<FormTitleFieldProps> = () => {
   return null;
 };
