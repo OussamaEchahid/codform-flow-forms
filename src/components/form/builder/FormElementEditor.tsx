@@ -15,8 +15,8 @@ interface FormElementEditorProps {
   onDuplicateElement: (index: number) => void;
   onReorderElements?: (newOrder: FormField[]) => void;
   onUpdateElement?: (index: number, updatedElement: FormField) => void;
-  formTitle: string;
-  formDescription: string;
+  formTitle?: string;
+  formDescription?: string;
   formStyle: {
     primaryColor: string;
     borderRadius: string;
@@ -34,7 +34,6 @@ interface FormElementEditorProps {
     formDirection?: 'ltr' | 'rtl';
     floatingLabels?: boolean;
   };
-  onTitleUpdate: (title: string, description: string, style: any) => void;
   onStyleChange?: (key: string, value: string) => void;
 }
 
@@ -59,7 +58,9 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
   onDeleteElement,
   onDuplicateElement,
   onReorderElements,
-  onUpdateElement
+  onUpdateElement,
+  formStyle,
+  onStyleChange
 }) => {
   const { language } = useI18n();
   

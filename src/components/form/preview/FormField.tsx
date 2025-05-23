@@ -100,6 +100,15 @@ const deepCloneField = (field: FormFieldType): FormFieldType => {
   // Deep clone style object if it exists
   if (field.style) {
     clonedField.style = { ...field.style };
+    
+    // Ensure textAlign is properly typed
+    if (field.style.textAlign) {
+      const align = field.style.textAlign as string;
+      clonedField.style.textAlign = 
+        (align === 'left' || align === 'center' || align === 'right') 
+          ? align as 'left' | 'center' | 'right'
+          : (align === 'justify' ? 'left' : 'center') as 'left' | 'center' | 'right';
+    }
   }
   
   // Deep clone options array if it exists
@@ -155,7 +164,9 @@ const FormField = memo(({ field, formStyle }: FormFieldProps) => {
         ),
         // Add border properties if they exist in the field's style
         borderColor: field.style?.borderColor,
-        borderWidth: field.style?.borderWidth
+        borderWidth: field.style?.borderWidth,
+        // Ensure textAlign is type-safe
+        textAlign: field.style?.textAlign as 'left' | 'center' | 'right' | undefined
       }
     };
   }, [field, formStyle]);

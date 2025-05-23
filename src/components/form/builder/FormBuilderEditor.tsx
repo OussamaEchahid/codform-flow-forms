@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useFormTemplates, FormData, formTemplates } from '@/lib/hooks/useFormTemplates';
@@ -752,6 +751,11 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
     handleElementUpdate(index, updatedElement);
   };
 
+  const handleTitleUpdate = (title: string, description: string, style: any) => {
+    // Empty implementation since we removed title customization
+    console.log("Title update functionality has been removed");
+  };
+
   // Show a loading screen during slow operations
   if (isLoading) {
     return (
@@ -807,10 +811,9 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
                 onDuplicateElement={handleDuplicateElement}
                 onReorderElements={handleReorderElements}
                 onUpdateElement={handleUpdateElement}
-                formTitle={formTitle}
-                formDescription={formDescription}
                 formStyle={formStyle}
                 onStyleChange={handleStylePropertyChange}
+                onTitleUpdate={handleTitleUpdate}
               />
             </SortableContext>
           </DndContext>

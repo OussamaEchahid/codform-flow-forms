@@ -1,4 +1,3 @@
-
 import { ReactNode } from 'react';
 
 // Define FormFieldType as a string type
@@ -195,17 +194,6 @@ export const createEmptyField = (type: string): FormField => {
   
   // Add default properties based on field type
   switch (type) {
-    case 'form-title':
-      field.label = 'Form Title';
-      field.helpText = 'Form Description';
-      field.style = {
-        backgroundColor: '#9b87f5',
-        color: '#ffffff',
-        textAlign: 'center' as 'center',
-        showTitle: true,
-        showDescription: true
-      };
-      break;
     case 'submit':
       field.label = 'Submit Form';
       field.style = {

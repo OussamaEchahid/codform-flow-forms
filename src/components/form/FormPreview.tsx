@@ -96,7 +96,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
             ...field,
             style: {
               ...field.style,
-              textAlign: formStyle.formDirection === 'rtl' ? 'right' : 'left'
+              textAlign: (formStyle.formDirection === 'rtl' ? 'right' : 'left') as 'right' | 'left'
             }
           };
         }

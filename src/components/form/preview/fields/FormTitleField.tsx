@@ -24,7 +24,6 @@ interface FormTitleFieldProps {
 
 // This component has been disabled - form titles are now handled at the form level
 const FormTitleField: React.FC<FormTitleFieldProps> = () => {
-  console.log('[FormTitleField] Title rendering is disabled - this component is deprecated');
   return null;
 };
 
