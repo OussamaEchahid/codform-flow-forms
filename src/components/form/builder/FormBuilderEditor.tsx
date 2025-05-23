@@ -751,8 +751,9 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
     handleElementUpdate(index, updatedElement);
   };
 
+  // Empty implementation since we removed title customization
   const handleTitleUpdate = (title: string, description: string, style: any) => {
-    // Empty implementation since we removed title customization
+    // This function is no longer needed but we keep it to avoid breaking changes in other components
     console.log("Title update functionality has been removed");
   };
 

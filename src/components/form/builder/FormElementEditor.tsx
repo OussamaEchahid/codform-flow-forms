@@ -15,8 +15,6 @@ interface FormElementEditorProps {
   onDuplicateElement: (index: number) => void;
   onReorderElements?: (newOrder: FormField[]) => void;
   onUpdateElement?: (index: number, updatedElement: FormField) => void;
-  formTitle?: string;
-  formDescription?: string;
   formStyle: {
     primaryColor: string;
     borderRadius: string;
@@ -35,6 +33,8 @@ interface FormElementEditorProps {
     floatingLabels?: boolean;
   };
   onStyleChange?: (key: string, value: string) => void;
+  // Add the onTitleUpdate prop to match what's being passed in FormBuilderEditor
+  onTitleUpdate?: (title: string, description: string, style: any) => void;
 }
 
 // Improved deep copy function with proper TypeScript support
@@ -60,7 +60,9 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
   onReorderElements,
   onUpdateElement,
   formStyle,
-  onStyleChange
+  onStyleChange,
+  // Include onTitleUpdate in the destructuring but we won't use it since we removed title functionality
+  onTitleUpdate
 }) => {
   const { language } = useI18n();
   
