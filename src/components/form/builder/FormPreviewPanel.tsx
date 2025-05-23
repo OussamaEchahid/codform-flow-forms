@@ -81,11 +81,8 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     // Create a deep copy of all fields to prevent mutations
     const clonedFields = deepCloneFields(fields);
     
-    // Filter out all form-title fields
-    let filteredFields = clonedFields.filter(field => field.type !== 'form-title');
-    
     // Add default submit button if needed
-    const hasSubmitButton = filteredFields.some(field => field.type === 'submit');
+    const hasSubmitButton = clonedFields.some(field => field.type === 'submit');
     
     if (!hasSubmitButton) {
       const submitButton: FormField = {
@@ -100,12 +97,12 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           animationType: 'pulse',
         },
       };
-      filteredFields.push(submitButton);
+      clonedFields.push(submitButton);
     }
     
     // Apply current form direction to all fields that need it
     if (formStyle.formDirection) {
-      filteredFields = filteredFields.map(field => {
+      return clonedFields.map(field => {
         // Skip fields that already have explicit direction
         if (field.style?.textAlign) return field;
         
@@ -124,8 +121,8 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
       });
     }
     
-    console.log("Final processed fields count:", filteredFields.length);
-    return filteredFields;
+    console.log("Final processed fields count:", clonedFields.length);
+    return clonedFields;
   }, [fields, language, formStyle.primaryColor, formStyle.backgroundColor, formStyle.borderRadius, formStyle.formDirection]);
 
   // Prepare form style for preview with default background color

@@ -2,9 +2,8 @@
 import React, { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
-import { FormField, FloatingButtonConfig } from '@/lib/form-utils';
+import { FormField } from '@/lib/form-utils';
 import FormFieldComponent from './preview/FormField';
-import FloatingButton from './preview/FloatingButton';
 
 interface FormPreviewProps {
   formTitle: string;
@@ -30,12 +29,7 @@ interface FormPreviewProps {
   };
   fields?: FormField[];
   hideHeader?: boolean;
-  floatingButton?: FloatingButtonConfig;
-  hideFloatingButtonPreview?: boolean;
 }
-
-// Constant ID for form title to prevent regeneration
-const FORM_TITLE_ID = 'form-title-static';
 
 // Improved deep clone function with proper TypeScript support
 const deepCloneFields = (fields: FormField[]): FormField[] => {
@@ -76,13 +70,10 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   },
   fields = [],
   hideHeader = false,
-  floatingButton,
-  hideFloatingButtonPreview = false,
 }) => {
   const { language } = useI18n();
   
   // CRITICAL: Always ensure form background has a fixed default that is NOT tied to primaryColor
-  // We always want a different color for form background and title background
   const formBackgroundColor = formStyle.backgroundColor || '#F9FAFB';
   
   // Log to help debugging
@@ -92,58 +83,6 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   // Process fields while preserving IDs and ensuring there's no duplication
   const sanitizedFields = useMemo(() => {
     const clonedFields = deepCloneFields(fields);
-    const hasTitleField = clonedFields.some(field => field.id === FORM_TITLE_ID);
-    const existingTitleField = clonedFields.find(field => field.type === 'form-title');
-    
-    if (clonedFields.length === 0 || (!hasTitleField && !existingTitleField)) {
-      const fieldsToCreate = [];
-      
-      if (!hasTitleField && !existingTitleField) {
-        // Create a title field with appropriate style
-        const titleField: FormField = {
-          type: 'form-title',
-          id: FORM_TITLE_ID,
-          label: formTitle || '',
-          helpText: formDescription || '',
-          style: {
-            // Important: Title background should use primaryColor, NOT the form's backgroundColor
-            backgroundColor: formStyle.primaryColor || '#9b87f5',
-            color: '#ffffff',
-            textAlign: language === 'ar' ? 'right' : 'center',
-            fontSize: '24px',
-            fontWeight: 'bold',
-            descriptionColor: 'rgba(255, 255, 255, 0.9)',
-            descriptionFontSize: '14px',
-            showTitle: true,
-            showDescription: true,
-            _titleStyleOnly: true // Mark as title-only to prevent affecting form background
-          },
-        };
-        fieldsToCreate.push(titleField);
-      }
-      
-      if (clonedFields.length === 0) {
-        const submitButton: FormField = {
-          type: 'submit',
-          id: `submit-stable`,
-          label: language === 'ar' ? 'إرسال الطلب' : 'Submit Order',
-          style: {
-            backgroundColor: formStyle.primaryColor || '#9b87f5',
-            color: '#ffffff',
-            fontSize: '18px',
-            animation: true,
-            animationType: 'pulse',
-          },
-        };
-        fieldsToCreate.push(submitButton);
-      }
-      
-      if (clonedFields.length > 0) {
-        return [...fieldsToCreate, ...clonedFields];
-      }
-      
-      return fieldsToCreate;
-    }
     
     // Update all fields with form direction if not specified
     if (formStyle.formDirection) {
@@ -152,7 +91,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         if (field.style?.textAlign) return field;
         
         // Only update specific field types that benefit from direction
-        if (['text', 'textarea', 'email', 'phone', 'form-title'].includes(field.type)) {
+        if (['text', 'textarea', 'email', 'phone'].includes(field.type)) {
           return {
             ...field,
             style: {
@@ -257,10 +196,6 @@ const FormPreview: React.FC<FormPreviewProps> = ({
           children
         )}
       </div>
-
-      {floatingButton && floatingButton.enabled && !hideFloatingButtonPreview && (
-        <FloatingButton config={floatingButton} isPreview={true} />
-      )}
     </div>
   );
 };

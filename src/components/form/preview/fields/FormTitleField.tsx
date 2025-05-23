@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { FormField } from '@/lib/form-utils';
-import { useI18n } from '@/lib/i18n';
 
 interface FormTitleFieldProps {
   field: FormField;
@@ -23,9 +22,9 @@ interface FormTitleFieldProps {
   };
 }
 
-// This component is disabled and will not render anything
-const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => {
-  console.log('[FormTitleField] Title rendering is disabled');
+// This component has been disabled - form titles are now handled at the form level
+const FormTitleField: React.FC<FormTitleFieldProps> = () => {
+  console.log('[FormTitleField] Title rendering is disabled - this component is deprecated');
   return null;
 };
 

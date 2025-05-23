@@ -11,7 +11,7 @@ interface FormElementListProps {
 const FormElementList: React.FC<FormElementListProps> = ({ onAddElement }) => {
   const { language } = useI18n();
   
-  // تحديث العناصر المتاحة وإزالة form-title
+  // Updated available elements, removing form-title
   const availableElements = [
     { 
       type: 'whatsapp', 
