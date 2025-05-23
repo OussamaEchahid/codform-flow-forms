@@ -1,4 +1,3 @@
-
 import React, { memo } from 'react';
 import { FormField as FormFieldType } from '@/lib/form-utils';
 import TextInput from './fields/TextInput';
@@ -255,7 +254,6 @@ const FormField = memo(({ field, formStyle }: FormFieldProps) => {
     </div>
   );
 }, 
-// Improved deep comparison function for React.memo to prevent unnecessary re-renders
 (prevProps, nextProps) => {
   // Quick reference check - if same object reference, no need to re-render
   if (prevProps === nextProps) return true;
@@ -306,7 +304,8 @@ const FormField = memo(({ field, formStyle }: FormFieldProps) => {
   
   // If we made it here, consider them equal (no re-render needed)
   return true;
-});
+}
+);
 
 FormField.displayName = 'FormField';
 

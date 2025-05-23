@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useFormTemplates, FormData, formTemplates } from '@/lib/hooks/useFormTemplates';
@@ -130,13 +129,9 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
       content: language === 'ar' ? 'املأ النموذج للدفع عند الاستلام' : 'Fill the form for cash on delivery',
       style: {
         fontSize: '1.5rem',
-        fontWeight: '700',
+        fontWeight: '600',
         color: '#000000',
         textAlign: 'center',
-        paddingTop: '6px',
-        paddingBottom: '6px',
-        paddingLeft: '0px',
-        paddingRight: '0px',
       },
     });
     
@@ -558,13 +553,9 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
         content: language === 'ar' ? 'عنوان النموذج' : 'Form Title',
         style: {
           fontSize: '1.5rem',
-          fontWeight: '700',
+          fontWeight: '600',
           color: '#000000',
           textAlign: 'center',
-          paddingTop: '6px',
-          paddingBottom: '6px',
-          paddingLeft: '0px',
-          paddingRight: '0px',
         },
       };
     } else {

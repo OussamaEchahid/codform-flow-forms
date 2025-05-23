@@ -26,16 +26,12 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
   // Get title text from field content or label
   const titleText = field.content || field.label || 'عنوان النموذج';
   
-  // Get style properties with defaults
-  const textColor = field.style?.color || field.style?.labelColor || '#000000';
-  const fontSize = field.style?.fontSize || field.style?.labelFontSize || '1.5rem';
-  const fontWeight = field.style?.fontWeight || field.style?.labelFontWeight || '700';
+  // Get style properties with defaults - simple styling
+  const textColor = field.style?.color || '#000000';
+  const fontSize = field.style?.fontSize || '1.5rem';
+  const fontWeight = field.style?.fontWeight || '600';
   const textAlign = field.style?.textAlign || 'center';
   const fontFamily = field.style?.fontFamily || 'inherit';
-  const paddingTop = field.style?.paddingTop || '6px';
-  const paddingBottom = field.style?.paddingBottom || '6px';
-  const paddingLeft = field.style?.paddingLeft || '0px';
-  const paddingRight = field.style?.paddingRight || '0px';
 
   return (
     <div 
@@ -46,11 +42,7 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
         fontWeight: fontWeight,
         textAlign: textAlign as 'left' | 'center' | 'right',
         fontFamily: fontFamily,
-        paddingTop: paddingTop,
-        paddingBottom: paddingBottom,
-        paddingLeft: paddingLeft,
-        paddingRight: paddingRight,
-        margin: '0',
+        margin: '0 0 1rem 0',
         lineHeight: '1.2',
         direction: formStyle.formDirection || 'ltr'
       }}
