@@ -19,6 +19,26 @@ const FormElementList: React.FC<FormElementListProps> = ({ onAddElement }) => {
       icon: 'T' 
     },
     { 
+      type: 'text', 
+      label: language === 'ar' ? 'حقل نص' : 'Text Input', 
+      icon: 'T' 
+    },
+    { 
+      type: 'textarea', 
+      label: language === 'ar' ? 'نص متعدد الأسطر' : 'Multi-line Input', 
+      icon: '¶' 
+    },
+    { 
+      type: 'radio', 
+      label: language === 'ar' ? 'زر راديو' : 'Single Choice', 
+      icon: '◉' 
+    },
+    { 
+      type: 'checkbox', 
+      label: language === 'ar' ? 'خانة اختيار' : 'Multiple Choices', 
+      icon: '☑' 
+    },
+    { 
       type: 'whatsapp', 
       label: language === 'ar' ? 'واتساب' : 'WhatsApp', 
       icon: '💬' 
@@ -42,26 +62,6 @@ const FormElementList: React.FC<FormElementListProps> = ({ onAddElement }) => {
       type: 'cart-summary', 
       label: language === 'ar' ? 'ملخص السلة' : 'Cart Summary', 
       icon: '🧾' 
-    },
-    { 
-      type: 'text', 
-      label: language === 'ar' ? 'حقل نص' : 'Text Input', 
-      icon: 'T' 
-    },
-    { 
-      type: 'textarea', 
-      label: language === 'ar' ? 'نص متعدد الأسطر' : 'Multi-line Input', 
-      icon: '¶' 
-    },
-    { 
-      type: 'radio', 
-      label: language === 'ar' ? 'زر راديو' : 'Single Choice', 
-      icon: '◉' 
-    },
-    { 
-      type: 'checkbox', 
-      label: language === 'ar' ? 'خانة اختيار' : 'Multiple Choices', 
-      icon: '☑' 
     },
     { 
       type: 'shipping', 

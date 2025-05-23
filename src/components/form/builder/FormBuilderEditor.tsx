@@ -130,7 +130,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
       style: {
         fontSize: '1.5rem',
         fontWeight: '600',
-        color: '#000000',
+        color: '#1f2937',
         textAlign: 'center',
       },
     });
@@ -554,7 +554,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
         style: {
           fontSize: '1.5rem',
           fontWeight: '600',
-          color: '#000000',
+          color: '#1f2937',
           textAlign: 'center',
         },
       };

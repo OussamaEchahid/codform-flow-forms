@@ -26,8 +26,8 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
   // Get title text from field content or label
   const titleText = field.content || field.label || 'عنوان النموذج';
   
-  // Get style properties with defaults - simple styling
-  const textColor = field.style?.color || '#000000';
+  // Simple text styling - no background colors
+  const textColor = field.style?.color || '#1f2937';
   const fontSize = field.style?.fontSize || '1.5rem';
   const fontWeight = field.style?.fontWeight || '600';
   const textAlign = field.style?.textAlign || 'center';
@@ -35,7 +35,7 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
 
   return (
     <div 
-      className="form-title-field"
+      className="form-title-field w-full"
       style={{
         color: textColor,
         fontSize: fontSize,
@@ -43,8 +43,9 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
         textAlign: textAlign as 'left' | 'center' | 'right',
         fontFamily: fontFamily,
         margin: '0 0 1rem 0',
-        lineHeight: '1.2',
-        direction: formStyle.formDirection || 'ltr'
+        lineHeight: '1.3',
+        direction: formStyle.formDirection || 'ltr',
+        padding: '8px 0'
       }}
       data-field-type="form-title"
       data-field-id={field.id}
