@@ -196,6 +196,31 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
     return fields;
   };
 
+  // Function to ensure form title element exists
+  const ensureFormTitleExists = (elements: FormField[]): FormField[] => {
+    const hasFormTitle = elements.some(element => element.type === 'form-title');
+    
+    if (!hasFormTitle) {
+      const formTitleElement: FormField = {
+        type: 'form-title' as FormFieldType,
+        id: `form-title-${Date.now()}`,
+        label: language === 'ar' ? 'عنوان النموذج' : 'Form Title',
+        content: language === 'ar' ? 'املأ النموذج للدفع عند الاستلام' : 'Fill the form for cash on delivery',
+        style: {
+          fontSize: '1.5rem',
+          fontWeight: '600',
+          color: '#1f2937',
+          textAlign: 'center',
+        },
+      };
+      
+      // Add form title as the first element
+      return [formTitleElement, ...elements];
+    }
+    
+    return elements;
+  };
+
   // تهيئة نموذج جديد إذا لم يتم تقديم معرف نموذج - تم تحسينه للأداء
   const initializeNewForm = async () => {
     try {
@@ -339,8 +364,8 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
               loadedElements.push(submitButton);
             }
             
-            // تصفية أي حقول form-title من العناصر المحملة
-            loadedElements = loadedElements.filter(element => element.type !== 'form-title');
+            // Ensure form title exists and is first
+            loadedElements = ensureFormTitleExists(loadedElements);
             
             setFormElements(loadedElements);
             setIsPublished(!!formData.isPublished || !!formData.is_published);
