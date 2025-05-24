@@ -26,12 +26,17 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
   // Get title text from field content or label
   const titleText = field.content || field.label || 'عنوان النموذج';
   
-  // Simple text styling - no background colors
+  // Apply styling from field settings
   const textColor = field.style?.color || '#1f2937';
   const fontSize = field.style?.fontSize || '1.5rem';
   const fontWeight = field.style?.fontWeight || '600';
-  const textAlign = field.style?.textAlign || 'center';
-  const fontFamily = field.style?.fontFamily || 'inherit';
+  const fontFamily = field.style?.fontFamily || 'Tajawal';
+  
+  // Get padding values with defaults
+  const paddingTop = field.style?.paddingTop || '6px';
+  const paddingBottom = field.style?.paddingBottom || '6px';
+  const paddingLeft = field.style?.paddingLeft || '0px';
+  const paddingRight = field.style?.paddingRight || '0px';
 
   return (
     <div 
@@ -40,12 +45,15 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
         color: textColor,
         fontSize: fontSize,
         fontWeight: fontWeight,
-        textAlign: textAlign as 'left' | 'center' | 'right',
         fontFamily: fontFamily,
+        textAlign: 'center', // Always center the title
         margin: '0 0 1rem 0',
         lineHeight: '1.3',
         direction: formStyle.formDirection || 'ltr',
-        padding: '8px 0'
+        paddingTop: paddingTop,
+        paddingBottom: paddingBottom,
+        paddingLeft: paddingLeft,
+        paddingRight: paddingRight,
       }}
       data-field-type="form-title"
       data-field-id={field.id}
