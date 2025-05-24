@@ -1,3 +1,4 @@
+
 (() => {
   // codform.js
   console.log("Codform JS loaded");
@@ -141,18 +142,41 @@
         if (field.type === "form-title") {
           const titleElement = document.createElement("div");
           titleElement.className = "codform-title-field";
+          
+          // استخدام النص من content أو label أو النص الافتراضي
+          const titleText = field.content || field.label || "عنوان النموذج";
+          
+          // تطبيق التنسيق من إعدادات الحقل أو القيم الافتراضية
+          const textColor = field.style?.color || "#1f2937";
+          const fontSize = field.style?.fontSize || "1.5rem";
+          const fontWeight = field.style?.fontWeight || "600";
+          const fontFamily = field.style?.fontFamily || "Tajawal";
+          const paddingTop = field.style?.paddingTop || "6px";
+          const paddingBottom = field.style?.paddingBottom || "6px";
+          const paddingLeft = field.style?.paddingLeft || "0px";
+          const paddingRight = field.style?.paddingRight || "0px";
+          
           titleElement.style.cssText = `
-            color: ${field.style?.color || "#1f2937"};
-            font-size: ${field.style?.fontSize || "1.5rem"};
-            font-weight: ${field.style?.fontWeight || "600"};
-            text-align: ${field.style?.textAlign || "center"};
+            color: ${textColor};
+            font-size: ${fontSize};
+            font-weight: ${fontWeight};
+            font-family: ${fontFamily};
+            text-align: center;
             margin: 0 0 1rem 0;
             line-height: 1.3;
-            padding: 8px 0;
             direction: ${formStyle?.formDirection || "ltr"};
-            font-family: ${field.style?.fontFamily || "inherit"};
+            padding-top: ${paddingTop};
+            padding-bottom: ${paddingBottom};
+            padding-left: ${paddingLeft};
+            padding-right: ${paddingRight};
+            width: 100%;
+            display: block;
           `;
-          titleElement.textContent = field.content || field.label || "عنوان النموذج";
+          
+          titleElement.textContent = titleText;
+          titleElement.setAttribute('data-field-type', 'form-title');
+          titleElement.setAttribute('data-field-id', field.id || 'form-title-default');
+          
           formContainer.appendChild(titleElement);
           return;
         }
