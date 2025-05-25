@@ -27,8 +27,8 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
   const titleText = field.content || field.label || 'عنوان النموذج';
   
   // تطبيق التنسيق من إعدادات الحقل مع قيم افتراضية مناسبة - اللون الأسود كافتراضي
-  const textColor = field.style?.color || '#000000'; // تغيير اللون الافتراضي إلى الأسود
-  const fontSize = field.style?.fontSize || '24px'; // تكبير الخط قليلاً
+  const textColor = field.style?.color || '#000000'; // اللون الأسود كافتراضي
+  const fontSize = field.style?.fontSize || '1.5rem'; // حجم خط أكبر
   const fontWeight = field.style?.fontWeight || '600';
   const fontFamily = field.style?.fontFamily || 'Tajawal, Arial, sans-serif';
   
@@ -54,9 +54,17 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
     paddingRight: paddingRight,
     width: '100%',
     display: 'block',
-    backgroundColor: 'transparent', // خلفية شفافة
+    backgroundColor: 'transparent', // خلفية شفافة دائماً
     border: 'none', // بدون حدود
   };
+
+  console.log('FormTitleField rendering with:', {
+    titleText,
+    textColor,
+    fontSize,
+    fontWeight,
+    backgroundColor: 'transparent'
+  });
 
   return (
     <div 
@@ -64,6 +72,8 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
       style={titleStyle}
       data-field-type="form-title"
       data-field-id={field.id}
+      data-text-color={textColor}
+      data-background="transparent"
     >
       {titleText}
     </div>

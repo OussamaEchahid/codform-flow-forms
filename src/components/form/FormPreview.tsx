@@ -79,14 +79,31 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   // Log to help debugging
   console.log('FormPreview: Form background color:', formBackgroundColor);
   console.log('FormPreview: Primary color (for titles, etc):', formStyle.primaryColor);
+  console.log('FormPreview: Fields:', fields.map(f => ({ id: f.id, type: f.type, style: f.style })));
   
   // Process fields while preserving IDs and ensuring there's no duplication
   const sanitizedFields = useMemo(() => {
     const clonedFields = deepCloneFields(fields);
     
-    // Update all fields with form direction if not specified
-    if (formStyle.formDirection) {
-      return clonedFields.map(field => {
+    // تأكد من أن العناوين لها الإعدادات الصحيحة
+    const processedFields = clonedFields.map(field => {
+      if (field.type === 'form-title') {
+        // تأكد من الإعدادات الافتراضية للعناوين
+        if (!field.style) field.style = {};
+        if (!field.style.color) field.style.color = '#000000'; // اللون الأسود
+        if (!field.style.fontSize) field.style.fontSize = '1.5rem';
+        if (!field.style.fontWeight) field.style.fontWeight = '600';
+        if (!field.style.fontFamily) field.style.fontFamily = 'Tajawal, Arial, sans-serif';
+        if (!field.style.paddingTop) field.style.paddingTop = '12px';
+        if (!field.style.paddingBottom) field.style.paddingBottom = '12px';
+        if (!field.style.paddingLeft) field.style.paddingLeft = '0px';
+        if (!field.style.paddingRight) field.style.paddingRight = '0px';
+        
+        console.log('Processing form title field:', field.id, field.style);
+      }
+      
+      // Update all fields with form direction if not specified
+      if (formStyle.formDirection) {
         // Skip fields that already have explicit text alignment
         if (field.style?.textAlign) return field;
         
@@ -100,12 +117,12 @@ const FormPreview: React.FC<FormPreviewProps> = ({
             }
           };
         }
-        
-        return field;
-      });
-    }
+      }
+      
+      return field;
+    });
     
-    return clonedFields;
+    return processedFields;
   }, [fields, language, formTitle, formDescription, formStyle.primaryColor, formStyle.formDirection]);
   
   // Determine the form direction, prioritizing formStyle.formDirection, then language

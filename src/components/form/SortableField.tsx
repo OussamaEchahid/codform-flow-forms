@@ -62,7 +62,25 @@ const SortableField: React.FC<SortableFieldProps> = ({
   
   // When component mounts or field changes, sync the edited field state
   useEffect(() => {
-    setEditedField(JSON.parse(JSON.stringify(field)));
+    // تأكد من أن الحقول الجديدة لها الإعدادات الافتراضية الصحيحة
+    let fieldToSet = JSON.parse(JSON.stringify(field));
+    
+    // للعناوين الجديدة، تأكد من الإعدادات الافتراضية الصحيحة
+    if (field.type === 'form-title' && (!field.style || !field.style.color)) {
+      if (!fieldToSet.style) fieldToSet.style = {};
+      fieldToSet.style.color = fieldToSet.style.color || '#000000'; // اللون الأسود كافتراضي
+      fieldToSet.style.fontSize = fieldToSet.style.fontSize || '1.5rem';
+      fieldToSet.style.fontWeight = fieldToSet.style.fontWeight || '600';
+      fieldToSet.style.fontFamily = fieldToSet.style.fontFamily || 'Tajawal, Arial, sans-serif';
+      fieldToSet.style.paddingTop = fieldToSet.style.paddingTop || '12px';
+      fieldToSet.style.paddingBottom = fieldToSet.style.paddingBottom || '12px';
+      fieldToSet.style.paddingLeft = fieldToSet.style.paddingLeft || '0px';
+      fieldToSet.style.paddingRight = fieldToSet.style.paddingRight || '0px';
+      
+      console.log('Setting default styles for form title:', fieldToSet.style);
+    }
+    
+    setEditedField(fieldToSet);
   }, [field]);
 
   const handleFieldChange = (property: string, value: any) => {
@@ -96,6 +114,8 @@ const SortableField: React.FC<SortableFieldProps> = ({
     
     if (!field.style) field.style = {};
     field.style[property] = value;
+    
+    console.log(`Style updated: ${property} = ${value}`, updatedField.style);
     
     if (onFieldUpdate) {
       onFieldUpdate({...updatedField});
@@ -248,10 +268,10 @@ const SortableField: React.FC<SortableFieldProps> = ({
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <Label>{language === 'ar' ? 'حجم الخط' : 'Font size'}</Label>
-                        <span className="text-sm">{parseFloat(editedField.style?.fontSize || '1.5') || 1.5}</span>
+                        <span className="text-sm">{parseFloat(editedField.style?.fontSize?.replace('rem', '') || '1.5') || 1.5}</span>
                       </div>
                       <Slider
-                        value={[parseFloat(editedField.style?.fontSize || '1.5') || 1.5]}
+                        value={[parseFloat(editedField.style?.fontSize?.replace('rem', '') || '1.5') || 1.5]}
                         onValueChange={(value) => handleStyleChange('fontSize', `${value[0]}rem`)}
                         max={3}
                         min={0.5}
@@ -285,10 +305,10 @@ const SortableField: React.FC<SortableFieldProps> = ({
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <Label>{language === 'ar' ? 'وزن النص' : 'Text weight'}</Label>
-                        <span className="text-sm">({editedField.style?.fontWeight || '700'})</span>
+                        <span className="text-sm">({editedField.style?.fontWeight || '600'})</span>
                       </div>
                       <Slider
-                        value={[parseInt(editedField.style?.fontWeight || '700')]}
+                        value={[parseInt(editedField.style?.fontWeight || '600')]}
                         onValueChange={(value) => handleStyleChange('fontWeight', value[0].toString())}
                         max={900}
                         min={100}
@@ -301,10 +321,10 @@ const SortableField: React.FC<SortableFieldProps> = ({
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <Label>{language === 'ar' ? 'مسافة علوية' : 'padding-top'}</Label>
-                        <span className="text-sm">({parseInt(editedField.style?.paddingTop || '6') || 6})</span>
+                        <span className="text-sm">({parseInt(editedField.style?.paddingTop?.replace('px', '') || '12') || 12})</span>
                       </div>
                       <Slider
-                        value={[parseInt(editedField.style?.paddingTop || '6') || 6]}
+                        value={[parseInt(editedField.style?.paddingTop?.replace('px', '') || '12') || 12]}
                         onValueChange={(value) => handleStyleChange('paddingTop', `${value[0]}px`)}
                         max={30}
                         min={0}
@@ -317,10 +337,10 @@ const SortableField: React.FC<SortableFieldProps> = ({
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <Label>{language === 'ar' ? 'مسافة سفلية' : 'padding-bottom'}</Label>
-                        <span className="text-sm">({parseInt(editedField.style?.paddingBottom || '6') || 6})</span>
+                        <span className="text-sm">({parseInt(editedField.style?.paddingBottom?.replace('px', '') || '12') || 12})</span>
                       </div>
                       <Slider
-                        value={[parseInt(editedField.style?.paddingBottom || '6') || 6]}
+                        value={[parseInt(editedField.style?.paddingBottom?.replace('px', '') || '12') || 12]}
                         onValueChange={(value) => handleStyleChange('paddingBottom', `${value[0]}px`)}
                         max={30}
                         min={0}
@@ -333,10 +353,10 @@ const SortableField: React.FC<SortableFieldProps> = ({
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <Label>{language === 'ar' ? 'مسافة يمنى' : 'padding-right'}</Label>
-                        <span className="text-sm">({parseInt(editedField.style?.paddingRight || '0') || 0})</span>
+                        <span className="text-sm">({parseInt(editedField.style?.paddingRight?.replace('px', '') || '0') || 0})</span>
                       </div>
                       <Slider
-                        value={[parseInt(editedField.style?.paddingRight || '0') || 0]}
+                        value={[parseInt(editedField.style?.paddingRight?.replace('px', '') || '0') || 0]}
                         onValueChange={(value) => handleStyleChange('paddingRight', `${value[0]}px`)}
                         max={30}
                         min={0}
@@ -349,10 +369,10 @@ const SortableField: React.FC<SortableFieldProps> = ({
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <Label>{language === 'ar' ? 'مسافة يسرى' : 'padding-left'}</Label>
-                        <span className="text-sm">({parseInt(editedField.style?.paddingLeft || '0') || 0})</span>
+                        <span className="text-sm">({parseInt(editedField.style?.paddingLeft?.replace('px', '') || '0') || 0})</span>
                       </div>
                       <Slider
-                        value={[parseInt(editedField.style?.paddingLeft || '0') || 0]}
+                        value={[parseInt(editedField.style?.paddingLeft?.replace('px', '') || '0') || 0]}
                         onValueChange={(value) => handleStyleChange('paddingLeft', `${value[0]}px`)}
                         max={30}
                         min={0}
