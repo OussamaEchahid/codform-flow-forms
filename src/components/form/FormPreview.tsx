@@ -79,27 +79,28 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   // Log to help debugging
   console.log('FormPreview: Form background color:', formBackgroundColor);
   console.log('FormPreview: Primary color (for titles, etc):', formStyle.primaryColor);
-  console.log('FormPreview: Fields:', fields.map(f => ({ id: f.id, type: f.type, style: f.style })));
   
   // Process fields while preserving IDs and ensuring there's no duplication
   const sanitizedFields = useMemo(() => {
     const clonedFields = deepCloneFields(fields);
     
-    // تأكد من أن العناوين لها الإعدادات الصحيحة
+    // تطبيق إعدادات صحيحة للعناوين
     const processedFields = clonedFields.map(field => {
       if (field.type === 'form-title') {
-        // تأكد من الإعدادات الافتراضية للعناوين
+        // FORCE إعدادات صحيحة للعناوين
         if (!field.style) field.style = {};
-        if (!field.style.color) field.style.color = '#000000'; // اللون الأسود
-        if (!field.style.fontSize) field.style.fontSize = '1.5rem';
-        if (!field.style.fontWeight) field.style.fontWeight = '600';
-        if (!field.style.fontFamily) field.style.fontFamily = 'Tajawal, Arial, sans-serif';
-        if (!field.style.paddingTop) field.style.paddingTop = '12px';
-        if (!field.style.paddingBottom) field.style.paddingBottom = '12px';
-        if (!field.style.paddingLeft) field.style.paddingLeft = '0px';
-        if (!field.style.paddingRight) field.style.paddingRight = '0px';
         
-        console.log('Processing form title field:', field.id, field.style);
+        // FORCE اللون الأسود دائماً
+        field.style.color = '#000000';
+        field.style.fontSize = field.style.fontSize || '1.5rem';
+        field.style.fontWeight = field.style.fontWeight || '600';
+        field.style.fontFamily = field.style.fontFamily || 'Tajawal, Arial, sans-serif';
+        field.style.paddingTop = field.style.paddingTop || '12px';
+        field.style.paddingBottom = field.style.paddingBottom || '12px';
+        field.style.paddingLeft = field.style.paddingLeft || '0px';
+        field.style.paddingRight = field.style.paddingRight || '0px';
+        
+        console.log('FORCING BLACK COLOR FOR TITLE:', field.id, field.style.color);
       }
       
       // Update all fields with form direction if not specified
@@ -146,7 +147,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
       data-border-width={formStyle.borderWidth}
       data-border-radius={formStyle.borderRadius}
       data-primary-color={formStyle.primaryColor}
-      data-form-background={formBackgroundColor} // Add data attribute for form background
+      data-form-background={formBackgroundColor}
       data-form-direction={formDirection}
       data-form-structure="main-container"
     >
@@ -195,7 +196,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
           direction: formDirection,
           padding: `${formStyle.paddingTop || '20px'} ${formStyle.paddingRight || '20px'} ${formStyle.paddingBottom || '20px'} ${formStyle.paddingLeft || '20px'}`,
           gap: formStyle.formGap || '16px',
-          backgroundColor: formBackgroundColor, // Important: use form background color here too
+          backgroundColor: formBackgroundColor,
           display: 'flex',
           flexDirection: 'column',
         }}

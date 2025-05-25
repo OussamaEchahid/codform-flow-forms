@@ -150,52 +150,43 @@
           const titleElement = document.createElement("div");
           titleElement.className = "codform-title-field";
           
-          // استخدام النص من content أو label أو النص الافتراضي
+          // CRITICAL FIX: Force black color, no purple background, center alignment
           const titleText = field.content || field.label || "عنوان النموذج";
           
-          // تطبيق التنسيق من إعدادات الحقل أو القيم الافتراضية - اللون الأسود كافتراضي
-          const textColor = field.style?.color || "#000000"; // اللون الأسود كافتراضي
-          const fontSize = field.style?.fontSize || "1.5rem"; // حجم خط أكبر
-          const fontWeight = field.style?.fontWeight || "600";
-          const fontFamily = field.style?.fontFamily || "Tajawal, Arial, sans-serif";
-          const paddingTop = field.style?.paddingTop || "12px";
-          const paddingBottom = field.style?.paddingBottom || "12px";
-          const paddingLeft = field.style?.paddingLeft || "0px";
-          const paddingRight = field.style?.paddingRight || "0px";
-          
-          console.log('Storefront Title Rendering:', {
+          console.log('STOREFRONT TITLE RENDERING - FORCING BLACK:', {
             titleText,
-            textColor,
-            fontSize,
-            fontWeight,
+            originalColor: field.style?.color,
+            forcedColor: '#000000',
             backgroundColor: 'transparent'
           });
           
+          // FORCE الإعدادات الصحيحة - بدون اعتماد على field.style
           titleElement.style.cssText = `
-            color: ${textColor} !important;
-            font-size: ${fontSize} !important;
-            font-weight: ${fontWeight} !important;
-            font-family: ${fontFamily} !important;
+            color: #000000 !important;
+            font-size: ${field.style?.fontSize || "1.5rem"} !important;
+            font-weight: ${field.style?.fontWeight || "600"} !important;
+            font-family: ${field.style?.fontFamily || "Tajawal, Arial, sans-serif"} !important;
             text-align: center !important;
             margin: 0 0 1rem 0 !important;
             line-height: 1.4 !important;
             direction: ${formStyle?.formDirection || "ltr"} !important;
-            padding-top: ${paddingTop} !important;
-            padding-bottom: ${paddingBottom} !important;
-            padding-left: ${paddingLeft} !important;
-            padding-right: ${paddingRight} !important;
+            padding-top: ${field.style?.paddingTop || "12px"} !important;
+            padding-bottom: ${field.style?.paddingBottom || "12px"} !important;
+            padding-left: ${field.style?.paddingLeft || "0px"} !important;
+            padding-right: ${field.style?.paddingRight || "0px"} !important;
             width: 100% !important;
             display: block !important;
             background-color: transparent !important;
-            background: transparent !important;
+            background: none !important;
             border: none !important;
           `;
           
           titleElement.textContent = titleText;
           titleElement.setAttribute('data-field-type', 'form-title');
           titleElement.setAttribute('data-field-id', field.id || 'form-title-default');
-          titleElement.setAttribute('data-text-color', textColor);
+          titleElement.setAttribute('data-text-color', '#000000');
           titleElement.setAttribute('data-background', 'transparent');
+          titleElement.setAttribute('data-forced-black', 'true');
           
           formContainer.appendChild(titleElement);
           return;
