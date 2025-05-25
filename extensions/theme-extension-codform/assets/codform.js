@@ -37,6 +37,8 @@
       padding: ${formStyle.paddingTop || "20px"} ${formStyle.paddingRight || "20px"} ${formStyle.paddingBottom || "20px"} ${formStyle.paddingLeft || "20px"};
       direction: ${formStyle.formDirection || "ltr"};
       gap: ${formStyle.formGap || "16px"};
+      display: flex;
+      flex-direction: column;
     `;
     form.data.forEach((step) => {
       step.fields.forEach((field) => {
@@ -128,6 +130,11 @@
             color: ${field.style?.color || "#fff"};
             font-size: ${field.style?.fontSize || "1rem"};
             border-radius: ${formStyle.borderRadius || "0.5rem"};
+            padding: 12px 24px;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 16px;
           `;
           formContainer.appendChild(buttonElement);
           return;
@@ -146,13 +153,13 @@
           // استخدام النص من content أو label أو النص الافتراضي
           const titleText = field.content || field.label || "عنوان النموذج";
           
-          // تطبيق التنسيق من إعدادات الحقل أو القيم الافتراضية
-          const textColor = field.style?.color || "#1f2937";
-          const fontSize = field.style?.fontSize || "1.5rem";
+          // تطبيق التنسيق من إعدادات الحقل أو القيم الافتراضية - اللون الأسود كافتراضي
+          const textColor = field.style?.color || "#000000"; // تغيير اللون الافتراضي إلى الأسود
+          const fontSize = field.style?.fontSize || "24px"; // تكبير الخط قليلاً
           const fontWeight = field.style?.fontWeight || "600";
-          const fontFamily = field.style?.fontFamily || "Tajawal";
-          const paddingTop = field.style?.paddingTop || "6px";
-          const paddingBottom = field.style?.paddingBottom || "6px";
+          const fontFamily = field.style?.fontFamily || "Tajawal, Arial, sans-serif";
+          const paddingTop = field.style?.paddingTop || "12px";
+          const paddingBottom = field.style?.paddingBottom || "12px";
           const paddingLeft = field.style?.paddingLeft || "0px";
           const paddingRight = field.style?.paddingRight || "0px";
           
@@ -163,7 +170,7 @@
             font-family: ${fontFamily};
             text-align: center;
             margin: 0 0 1rem 0;
-            line-height: 1.3;
+            line-height: 1.4;
             direction: ${formStyle?.formDirection || "ltr"};
             padding-top: ${paddingTop};
             padding-bottom: ${paddingBottom};
@@ -171,6 +178,8 @@
             padding-right: ${paddingRight};
             width: 100%;
             display: block;
+            background-color: transparent;
+            border: none;
           `;
           
           titleElement.textContent = titleText;

@@ -121,6 +121,8 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         backgroundColor: formBackgroundColor, // Always use the form's background color
         border: `${formStyle.borderWidth || '2px'} solid ${formStyle.borderColor || '#9b87f5'}`,
         padding: '0',
+        display: 'flex',
+        flexDirection: 'column',
       } as React.CSSProperties}
       data-form-preview-id="form-preview-stable"
       data-border-color={formStyle.borderColor}
@@ -177,6 +179,8 @@ const FormPreview: React.FC<FormPreviewProps> = ({
           padding: `${formStyle.paddingTop || '20px'} ${formStyle.paddingRight || '20px'} ${formStyle.paddingBottom || '20px'} ${formStyle.paddingLeft || '20px'}`,
           gap: formStyle.formGap || '16px',
           backgroundColor: formBackgroundColor, // Important: use form background color here too
+          display: 'flex',
+          flexDirection: 'column',
         }}
         data-direction={formDirection}
         data-form-content="true"

@@ -26,19 +26,19 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
   // الحصول على النص من content أو label مع نص افتراضي
   const titleText = field.content || field.label || 'عنوان النموذج';
   
-  // تطبيق التنسيق من إعدادات الحقل مع قيم افتراضية مناسبة
-  const textColor = field.style?.color || '#1f2937';
-  const fontSize = field.style?.fontSize || '1.5rem';
+  // تطبيق التنسيق من إعدادات الحقل مع قيم افتراضية مناسبة - اللون الأسود كافتراضي
+  const textColor = field.style?.color || '#000000'; // تغيير اللون الافتراضي إلى الأسود
+  const fontSize = field.style?.fontSize || '24px'; // تكبير الخط قليلاً
   const fontWeight = field.style?.fontWeight || '600';
-  const fontFamily = field.style?.fontFamily || 'Tajawal';
+  const fontFamily = field.style?.fontFamily || 'Tajawal, Arial, sans-serif';
   
   // الحصول على قيم المسافات مع القيم الافتراضية
-  const paddingTop = field.style?.paddingTop || '6px';
-  const paddingBottom = field.style?.paddingBottom || '6px';
+  const paddingTop = field.style?.paddingTop || '12px';
+  const paddingBottom = field.style?.paddingBottom || '12px';
   const paddingLeft = field.style?.paddingLeft || '0px';
   const paddingRight = field.style?.paddingRight || '0px';
 
-  // التأكد من أن العنوان يُعرض في الوسط دائماً
+  // التأكد من أن العنوان يُعرض في الوسط دائماً مع خلفية شفافة
   const titleStyle: React.CSSProperties = {
     color: textColor,
     fontSize: fontSize,
@@ -46,7 +46,7 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
     fontFamily: fontFamily,
     textAlign: 'center', // دائماً في الوسط
     margin: '0 0 1rem 0',
-    lineHeight: '1.3',
+    lineHeight: '1.4',
     direction: formStyle.formDirection || 'ltr',
     paddingTop: paddingTop,
     paddingBottom: paddingBottom,
@@ -54,6 +54,8 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
     paddingRight: paddingRight,
     width: '100%',
     display: 'block',
+    backgroundColor: 'transparent', // خلفية شفافة
+    border: 'none', // بدون حدود
   };
 
   return (
