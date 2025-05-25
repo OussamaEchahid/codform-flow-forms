@@ -23,28 +23,30 @@ interface FormTitleFieldProps {
 }
 
 const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => {
-  // الحصول على النص من content أو label مع نص افتراضي
+  // Get title text from content or label
   const titleText = field.content || field.label || 'عنوان النموذج';
   
-  // تطبيق التنسيق من إعدادات الحقل مع قيم افتراضية مناسبة - FORCE BLACK COLOR
-  const textColor = '#000000'; // دائماً أسود
-  const fontSize = field.style?.fontSize || '1.5rem';
-  const fontWeight = field.style?.fontWeight || '600';
-  const fontFamily = field.style?.fontFamily || 'Tajawal, Arial, sans-serif';
+  // Apply styles from field settings - USE DYNAMIC VALUES FROM FIELD.STYLE
+  const fieldStyle = field.style || {};
+  const textColor = fieldStyle.color || '#000000'; // Use field color or default black
+  const fontSize = fieldStyle.fontSize || '1.5rem';
+  const fontWeight = fieldStyle.fontWeight || '600';
+  const fontFamily = fieldStyle.fontFamily || 'Tajawal, Arial, sans-serif';
+  const textAlign = fieldStyle.textAlign || 'center';
   
-  // الحصول على قيم المسافات مع القيم الافتراضية
-  const paddingTop = field.style?.paddingTop || '12px';
-  const paddingBottom = field.style?.paddingBottom || '12px';
-  const paddingLeft = field.style?.paddingLeft || '0px';
-  const paddingRight = field.style?.paddingRight || '0px';
+  // Get padding values with defaults
+  const paddingTop = fieldStyle.paddingTop || '12px';
+  const paddingBottom = fieldStyle.paddingBottom || '12px';
+  const paddingLeft = fieldStyle.paddingLeft || '0px';
+  const paddingRight = fieldStyle.paddingRight || '0px';
 
-  // تأكد من أن العنوان دائماً أسود، وسط، وخلفية شفافة
+  // DYNAMIC title style that respects field settings
   const titleStyle: React.CSSProperties = {
-    color: textColor,
+    color: textColor, // Use the actual color from field style
     fontSize: fontSize,
     fontWeight: fontWeight,
     fontFamily: fontFamily,
-    textAlign: 'center',
+    textAlign: textAlign as 'left' | 'center' | 'right',
     margin: '0 0 1rem 0',
     lineHeight: '1.4',
     direction: formStyle.formDirection || 'ltr',
@@ -59,12 +61,13 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
     border: 'none',
   };
 
-  console.log('FormTitleField rendering FORCED BLACK:', {
+  console.log('FormTitleField DYNAMIC RENDERING:', {
     titleText,
-    textColor: '#000000',
+    textColor,
     fontSize,
     fontWeight,
-    backgroundColor: 'transparent'
+    textAlign,
+    fieldStyle: fieldStyle
   });
 
   return (
@@ -73,9 +76,9 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
       style={titleStyle}
       data-field-type="form-title"
       data-field-id={field.id}
-      data-text-color="#000000"
+      data-text-color={textColor}
       data-background="transparent"
-      data-forced-black="true"
+      data-dynamic-color="true"
     >
       {titleText}
     </div>

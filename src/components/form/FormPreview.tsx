@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
@@ -84,23 +83,12 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   const sanitizedFields = useMemo(() => {
     const clonedFields = deepCloneFields(fields);
     
-    // تطبيق إعدادات صحيحة للعناوين
+    // DONT FORCE ANY COLORS - Let field styles be respected as-is
     const processedFields = clonedFields.map(field => {
+      // DON'T FORCE BLACK COLOR - preserve field.style.color as-is
       if (field.type === 'form-title') {
-        // FORCE إعدادات صحيحة للعناوين
-        if (!field.style) field.style = {};
-        
-        // FORCE اللون الأسود دائماً
-        field.style.color = '#000000';
-        field.style.fontSize = field.style.fontSize || '1.5rem';
-        field.style.fontWeight = field.style.fontWeight || '600';
-        field.style.fontFamily = field.style.fontFamily || 'Tajawal, Arial, sans-serif';
-        field.style.paddingTop = field.style.paddingTop || '12px';
-        field.style.paddingBottom = field.style.paddingBottom || '12px';
-        field.style.paddingLeft = field.style.paddingLeft || '0px';
-        field.style.paddingRight = field.style.paddingRight || '0px';
-        
-        console.log('FORCING BLACK COLOR FOR TITLE:', field.id, field.style.color);
+        // Preserve field style completely - don't override anything
+        console.log('PRESERVING FIELD STYLE AS-IS:', field.id, field.style);
       }
       
       // Update all fields with form direction if not specified
