@@ -1,3 +1,4 @@
+
 import React from 'react';
 import {
   reactExtension,
@@ -36,7 +37,7 @@ function Extension() {
     }
   }, [form_id, api_url]);
 
-  useBuyerJourneyIntercept(({ canRender, apply покупательJourneyChange }) => {
+  useBuyerJourneyIntercept(({ canRender, apply }) => {
     if (!formConfig) {
       return;
     }
@@ -96,6 +97,10 @@ function Extension() {
 
   const renderField = (field) => {
     if (field.type === 'form-title') {
+      const titleText = field.content || field.label || '';
+      const titleStyle = field.style || {};
+      const textColor = titleStyle.color || '#000000';
+      
       return (
         <Text 
           key={field.id}
@@ -103,7 +108,7 @@ function Extension() {
           emphasis="bold"
           appearance="base"
         >
-          {field.content || field.label || 'عنوان النموذج'}
+          {titleText}
         </Text>
       );
     }
