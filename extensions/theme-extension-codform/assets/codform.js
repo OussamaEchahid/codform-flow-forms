@@ -1,6 +1,6 @@
 
 (() => {
-  // codform.js - Clean version with proper form title handling
+  // codform.js - Clean version with form title handling removed
   console.log("Codform JS loaded - Clean version");
   
   async function fetchForm(formId) {
@@ -54,67 +54,9 @@
       step.fields.forEach((field) => {
         console.log('Processing field:', field.type, field.id, field);
         
-        // Handle form title field - COMPLETELY NEW IMPLEMENTATION
+        // Skip form-title fields completely
         if (field.type === "form-title") {
-          const titleElement = document.createElement("div");
-          titleElement.className = "codform-title-field";
-          
-          // Get title text from content or label
-          const titleText = field.content || field.label || "";
-          
-          // Skip rendering if no title text
-          if (!titleText) {
-            console.log('No title text found, skipping title rendering');
-            return;
-          }
-          
-          // Get dynamic styles from field settings
-          const fieldStyle = field.style || {};
-          const textColor = fieldStyle.color || "#000000";
-          const fontSize = fieldStyle.fontSize || "1.5rem";
-          const fontWeight = fieldStyle.fontWeight || "600";
-          const fontFamily = fieldStyle.fontFamily || "Tajawal, Arial, sans-serif";
-          const textAlign = fieldStyle.textAlign || "center";
-          const paddingTop = fieldStyle.paddingTop || "12px";
-          const paddingBottom = fieldStyle.paddingBottom || "12px";
-          const paddingLeft = fieldStyle.paddingLeft || "0px";
-          const paddingRight = fieldStyle.paddingRight || "0px";
-          
-          console.log('TITLE STYLE APPLICATION:', {
-            titleText,
-            textColor,
-            fontSize,
-            fontWeight,
-            textAlign,
-            fieldStyle: fieldStyle
-          });
-          
-          // Apply ALL styles with !important to override any conflicts
-          titleElement.style.cssText = `
-            color: ${textColor} !important;
-            font-size: ${fontSize} !important;
-            font-weight: ${fontWeight} !important;
-            font-family: ${fontFamily} !important;
-            text-align: ${textAlign} !important;
-            margin: 0 0 1rem 0 !important;
-            line-height: 1.4 !important;
-            direction: ${formStyle?.formDirection || "ltr"} !important;
-            padding: ${paddingTop} ${paddingRight} ${paddingBottom} ${paddingLeft} !important;
-            width: 100% !important;
-            display: block !important;
-            background: transparent !important;
-            border: none !important;
-            box-shadow: none !important;
-          `;
-          
-          titleElement.textContent = titleText;
-          titleElement.setAttribute('data-field-type', 'form-title');
-          titleElement.setAttribute('data-field-id', field.id || 'form-title-default');
-          titleElement.setAttribute('data-text-color', textColor);
-          titleElement.setAttribute('data-font-size', fontSize);
-          titleElement.setAttribute('data-text-align', textAlign);
-          
-          formContainer.appendChild(titleElement);
+          console.log('Skipping form-title field:', field.id);
           return;
         }
         

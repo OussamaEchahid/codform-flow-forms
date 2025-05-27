@@ -37,7 +37,6 @@ const availableFieldTypes: Array<{
   label: string;
   icon: React.ReactNode;
 }> = [
-  { type: 'form-title', label: 'عنوان النموذج المخصص', icon: <Palette size={16} /> },
   { type: 'text', label: 'حقل نص', icon: <FileText size={16} /> },
   { type: 'email', label: 'بريد إلكتروني', icon: <FileText size={16} /> },
   { type: 'phone', label: 'رقم هاتف', icon: <FileText size={16} /> },
@@ -253,23 +252,6 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
   const createCompleteDefaultForm = (): FormStep[] => {
     const defaultFields: FormField[] = [];
     
-    // Add form title field
-    defaultFields.push({
-      type: 'form-title',
-      id: uuidv4(),
-      label: language === 'ar' ? 'نموذج جديد' : 'New Form',
-      helpText: language === 'ar' ? 'نموذج جديد' : 'New Form',
-      style: {
-        color: '#ffffff',
-        textAlign: (language === 'ar' ? 'right' : 'left') as 'right' | 'left',
-        fontWeight: 'bold',
-        fontSize: '24px',
-        descriptionColor: '#ffffff',
-        descriptionFontSize: '14px',
-        backgroundColor: '#9b87f5',
-      }
-    });
-    
     // Add name field
     defaultFields.push({
       type: 'text',
@@ -358,19 +340,6 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
   
     // Add field-specific configuration
     switch (type) {
-      case 'form-title':
-        newField.label = 'عنوان النموذج المخصص';
-        newField.helpText = 'وصف النموذج (اختياري)';
-        newField.style = {
-          textAlign: 'center' as 'center',
-          color: '#1A1F2C',
-          fontSize: '1.5rem',
-          fontWeight: 'bold',
-          descriptionColor: '#6b7280',
-          descriptionFontSize: '1rem',
-          backgroundColor: '',
-        };
-        break;
       case 'text':
         newField.label = 'حقل نص';
         break;

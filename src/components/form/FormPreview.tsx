@@ -35,6 +35,11 @@ const deepCloneFields = (fields: FormField[]): FormField[] => {
   if (!fields) return [];
   
   return fields.map(field => {
+    // Skip form-title fields completely
+    if (field.type === 'form-title') {
+      return null;
+    }
+    
     // Create a deep copy of the field to prevent mutations
     const newField: FormField = JSON.parse(JSON.stringify(field));
     
@@ -42,7 +47,7 @@ const deepCloneFields = (fields: FormField[]): FormField[] => {
     newField.id = field.id;
     
     return newField;
-  });
+  }).filter(Boolean) as FormField[];
 };
 
 const FormPreview: React.FC<FormPreviewProps> = ({
