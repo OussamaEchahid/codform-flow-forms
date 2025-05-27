@@ -163,8 +163,15 @@
       if (typeof window.renderCodform === 'function') {
         window.renderCodform(formData, `codform-form-${blockId}`);
       } else {
-        console.error('renderCodform function not found');
-        showError("حدث خطأ في تحميل النموذج");
+        console.error('renderCodform function not found - waiting for script to load');
+        // إعادة المحاولة بعد تأخير قصير
+        setTimeout(() => {
+          if (typeof window.renderCodform === 'function') {
+            window.renderCodform(formData, `codform-form-${blockId}`);
+          } else {
+            showError("حدث خطأ في تحميل النموذج");
+          }
+        }, 500);
       }
       
       formContainer.style.display = 'block';
@@ -245,7 +252,7 @@
 
 <style>
   .codform-container {
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-family: Cairo, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     margin: 20px 0;
     max-width: 800px;
     margin-left: auto;
