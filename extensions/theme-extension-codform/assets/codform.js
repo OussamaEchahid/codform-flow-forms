@@ -1,7 +1,6 @@
 
 (() => {
-  // codform.js - استعادة الوظائف الأساسية مع إزالة العناصر القديمة
-  console.log("Codform JS loaded - Fixed version");
+  console.log("Codform JS loaded - Basic version");
   
   async function fetchForm(formId) {
     try {
@@ -17,7 +16,7 @@
     }
   }
   
-  async function renderForm(formData, containerId) {
+  function renderForm(formData, containerId) {
     console.log('renderForm called with:', formData, containerId);
     
     if (!formData) {
@@ -206,6 +205,13 @@
     formContainer.style.display = 'block';
   }
   
-  // Expose the function globally for backward compatibility
+  // Expose the function globally immediately
   window.renderCodform = renderForm;
+  
+  // Also expose it as a backup
+  if (typeof global !== 'undefined') {
+    global.renderCodform = renderForm;
+  }
+  
+  console.log("renderCodform function exposed:", typeof window.renderCodform);
 })();
