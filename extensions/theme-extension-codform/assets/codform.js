@@ -17,23 +17,24 @@
     }
   }
   
-  async function renderForm(formId, containerId) {
-    const form = await fetchForm(formId);
-    if (!form) {
-      console.error("Form not found or failed to load.");
+  async function renderForm(formData, containerId) {
+    console.log('renderForm called with:', formData, containerId);
+    
+    if (!formData) {
+      console.error("No form data provided to renderForm");
       return;
     }
     
     const formContainer = document.getElementById(containerId);
     if (!formContainer) {
-      console.error("Container element not found.");
+      console.error("Container element not found:", containerId);
       return;
     }
     
     // Clear existing content
     formContainer.innerHTML = "";
     
-    const formStyle = form.style || {};
+    const formStyle = formData.style || {};
     
     // Apply form container styles
     formContainer.style.cssText = `
@@ -54,7 +55,7 @@
     formElement.className = "codform-form";
     
     // Process all form fields
-    form.data.forEach((step) => {
+    formData.data.forEach((step) => {
       step.fields.forEach((field) => {
         console.log('Processing field:', field.type, field.id);
         
@@ -202,6 +203,7 @@
     });
     
     formContainer.appendChild(formElement);
+    formContainer.style.display = 'block';
   }
   
   // Expose the function globally for backward compatibility
