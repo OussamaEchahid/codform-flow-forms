@@ -35,8 +35,9 @@ interface FormFieldComponentProps {
 }
 
 const FormFieldComponent: React.FC<FormFieldComponentProps> = ({ field, formStyle }) => {
-  // Skip form-title fields completely
+  // COMPLETELY SKIP form-title fields - they should not render at all
   if (field.type === 'form-title') {
+    console.log('SKIPPING form-title field in FormFieldComponent:', field.id);
     return null;
   }
 

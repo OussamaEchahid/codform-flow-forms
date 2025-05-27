@@ -1,7 +1,7 @@
 
 (() => {
-  // codform.js - Clean version with form title handling removed
-  console.log("Codform JS loaded - Clean version");
+  // codform.js - Clean version without old form title handling
+  console.log("Codform JS loaded - Clean version without old title");
   
   async function fetchForm(formId) {
     try {
@@ -49,14 +49,14 @@
       flex-direction: column;
     `;
     
-    // Process all form fields
+    // Process all form fields - SKIP FORM-TITLE COMPLETELY
     form.data.forEach((step) => {
       step.fields.forEach((field) => {
-        console.log('Processing field:', field.type, field.id, field);
+        console.log('Processing field:', field.type, field.id);
         
-        // Skip form-title fields completely
+        // COMPLETELY SKIP form-title fields - do not render them at all
         if (field.type === "form-title") {
-          console.log('Skipping form-title field:', field.id);
+          console.log('SKIPPING form-title field completely:', field.id);
           return;
         }
         
@@ -214,6 +214,26 @@
           htmlContainer.innerHTML = field.content || "<p>HTML Content</p>";
           
           formContainer.appendChild(htmlContainer);
+          return;
+        }
+        
+        // Handle title fields (new implementation without background)
+        if (field.type === "title") {
+          const titleElement = document.createElement("h2");
+          titleElement.textContent = field.label || "Title";
+          titleElement.className = "codform-title";
+          
+          // Apply clean title styling without background
+          titleElement.style.cssText = `
+            color: ${field.style?.color || formStyle.primaryColor || "#000"};
+            font-size: ${field.style?.fontSize || "1.5rem"};
+            text-align: ${field.style?.textAlign || "center"};
+            margin: 0 0 16px 0;
+            padding: 0;
+            font-weight: bold;
+          `;
+          
+          formContainer.appendChild(titleElement);
           return;
         }
       });
