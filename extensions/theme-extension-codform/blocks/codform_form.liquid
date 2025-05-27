@@ -49,6 +49,105 @@
     },
     {
       "type": "checkbox",
+      "id": "enable_floating_button",
+      "label": "تفعيل الزر العائم",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "floating_button_text",
+      "label": "نص الزر العائم",
+      "default": "اطلب الآن"
+    },
+    {
+      "type": "select",
+      "id": "floating_icon",
+      "label": "أيقونة الزر العائم",
+      "options": [
+        { "value": "shopping-cart", "label": "عربة تسوق" },
+        { "value": "package", "label": "طرد" },
+        { "value": "truck", "label": "شاحنة" },
+        { "value": "send", "label": "إرسال" },
+        { "value": "none", "label": "بدون أيقونة" }
+      ],
+      "default": "shopping-cart"
+    },
+    {
+      "type": "checkbox",
+      "id": "floating_show_icon",
+      "label": "إظهار الأيقونة",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "floating_animation",
+      "label": "تأثير حركي للزر العائم",
+      "options": [
+        { "value": "none", "label": "بدون" },
+        { "value": "pulse", "label": "نبض" },
+        { "value": "shake", "label": "اهتزاز" },
+        { "value": "bounce", "label": "قفز" },
+        { "value": "wiggle", "label": "تمايل" },
+        { "value": "flash", "label": "وميض" }
+      ],
+      "default": "pulse"
+    },
+    {
+      "type": "color",
+      "id": "floating_bg_color",
+      "label": "لون خلفية الزر العائم",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "floating_text_color",
+      "label": "لون نص الزر العائم",
+      "default": "#ffffff"
+    },
+    {
+      "type": "text",
+      "id": "floating_border_radius",
+      "label": "انحناء حواف الزر العائم",
+      "default": "4px"
+    },
+    {
+      "type": "text",
+      "id": "floating_padding_y",
+      "label": "تباعد عمودي للزر العائم",
+      "default": "10px"
+    },
+    {
+      "type": "text",
+      "id": "floating_font_size",
+      "label": "حجم خط الزر العائم",
+      "default": "16px"
+    },
+    {
+      "type": "text",
+      "id": "floating_font_weight",
+      "label": "وزن خط الزر العائم",
+      "default": "500"
+    },
+    {
+      "type": "text",
+      "id": "floating_margin_bottom",
+      "label": "هامش سفلي للزر العائم",
+      "default": "20px"
+    },
+    {
+      "type": "text",
+      "id": "floating_border_width",
+      "label": "عرض حدود الزر العائم",
+      "default": "0px"
+    },
+    {
+      "type": "color",
+      "id": "floating_border_color",
+      "label": "لون حدود الزر العائم",
+      "default": "#000000"
+    },
+    {
+      "type": "checkbox",
       "id": "is_rtl",
       "label": "اتجاه النص من اليمين لليسار",
       "default": true
@@ -98,6 +197,7 @@
     if (container && loader) {
       loader.style.display = 'flex';
       
+      // إضافة معالج حدث إعادة المحاولة
       if (retryButton) {
         retryButton.addEventListener('click', function() {
           errorContainer.style.display = 'none';
@@ -106,9 +206,11 @@
         });
       }
       
+      // بدء تحميل النموذج
       fetchForm();
     }
     
+    // وظيفة لجلب النموذج بناءً على معرف المنتج
     function fetchForm() {
       const productId = container.getAttribute('data-product-id');
       const blockId = container.getAttribute('data-block-id');
@@ -120,10 +222,15 @@
         return;
       }
       
+      // طباعة معلومات التصحيح
       console.log('Fetching form with productId:', productId, 'blockId:', blockId, 'shop:', shop);
       
+      // استخدام عنوان URL الكامل مع https
       const apiUrl = `https://mtyfuwdsshlzqwjujavp.supabase.co/functions/v1/forms-product?shop=${encodeURIComponent(shop)}&productId=${encodeURIComponent(productId)}&blockId=${encodeURIComponent(blockId)}`;
       
+      console.log('Request URL:', apiUrl);
+      
+      // جلب تكوين النموذج
       fetch(apiUrl)
         .then(response => {
           if (!response.ok) {
@@ -147,37 +254,33 @@
         });
     }
     
+    // وظيفة لعرض النموذج
     function renderForm(formData, blockId) {
       if (!formContainer) {
         console.error('Form container not found');
         return;
       }
       
+      // إخفاء التحميل
       if (loader) {
         loader.style.display = 'none';
       }
       
+      // طباعة بيانات النموذج للتصحيح
       console.log('Rendering form with data:', JSON.stringify(formData));
       
-      // استخدام renderCodform المحدث من codform.js
-      if (typeof window.renderCodform === 'function') {
-        window.renderCodform(formData, `codform-form-${blockId}`);
-      } else {
-        console.error('renderCodform function not found - waiting for script to load');
-        // إعادة المحاولة بعد تأخير قصير
-        setTimeout(() => {
-          if (typeof window.renderCodform === 'function') {
-            window.renderCodform(formData, `codform-form-${blockId}`);
-          } else {
-            showError("حدث خطأ في تحميل النموذج");
-          }
-        }, 500);
-      }
+      // إنشاء HTML للنموذج
+      const formHtml = createFormHtml(formData, blockId);
       
+      // عرض النموذج
+      formContainer.innerHTML = formHtml;
       formContainer.style.display = 'block';
+      
+      // إعداد معالجات الأحداث
       setupFormHandlers(formData, blockId);
     }
     
+    // وظيفة لإظهار رسالة الخطأ
     function showError(message) {
       if (loader) loader.style.display = 'none';
       if (formContainer) formContainer.style.display = 'none';
@@ -192,13 +295,417 @@
       }
     }
     
+    // وظيفة لإنشاء HTML للنموذج - تم تحديثها لتطابق المعاينة تماماً
+    function createFormHtml(formData, blockId) {
+      // طباعة بيانات النموذج كاملة لتسهيل التصحيح
+      console.log('Creating form HTML with data:', JSON.stringify(formData));
+      
+      // استخراج إعدادات النموذج بعناية
+      const formStyle = formData.style || {};
+      const formFields = formData.fields || [];
+      
+      // إعداد متغيرات تكوين النموذج الأساسية
+      const hideHeader = true;
+      const enableIcons = container.getAttribute('data-enable-icons') === 'true';
+      const isRTL = formStyle.formDirection === 'rtl' || {{ block.settings.is_rtl | json }};
+      
+      // تعريف المتغيرات الأساسية قبل استخدامها
+      const primaryColor = formStyle.primaryColor || '#9b87f5';
+      const borderRadius = formStyle.borderRadius || '0.5rem';
+      const formFontSize = formStyle.fontSize || '16px'; // تغيير اسم المتغير لتجنب التداخل
+      const buttonStyle = formStyle.buttonStyle || 'rounded';
+      
+      // استخراج حدود وتنسيق النموذج
+      const borderColor = formStyle.borderColor || primaryColor;
+      const borderWidth = formStyle.borderWidth || '2px';
+      const backgroundColor = formStyle.backgroundColor || '#F9FAFB';
+      const formPaddingTop = formStyle.paddingTop || '20px';
+      const formPaddingBottom = formStyle.paddingBottom || '20px';
+      const formPaddingLeft = formStyle.paddingLeft || '20px';
+      const formPaddingRight = formStyle.paddingRight || '20px';
+      const formGap = formStyle.formGap || '16px';
+      
+      // إنشاء CSS المحسن
+      let html = `
+      <style>
+        /* أنماط الرسوم المتحركة */
+        @keyframes pulse-animation {
+          0% { transform: scale(1); }
+          50% { transform: scale(1.05); }
+          100% { transform: scale(1); }
+        }
+        
+        @keyframes shake-animation {
+          0%, 100% { transform: translateX(0); }
+          10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+          20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+        
+        @keyframes bounce-animation {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-8px); }
+        }
+        
+        @keyframes wiggle-animation {
+          0%, 100% { transform: rotate(0); }
+          25% { transform: rotate(-3deg); }
+          75% { transform: rotate(3deg); }
+        }
+        
+        @keyframes flash-animation {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.6; }
+        }
+        
+        .pulse-animation {
+          animation: pulse-animation 2s infinite ease-in-out !important;
+        }
+        
+        .shake-animation {
+          animation: shake-animation 0.8s infinite ease-in-out !important;
+        }
+        
+        .bounce-animation {
+          animation: bounce-animation 2s infinite ease-in-out !important;
+        }
+        
+        .wiggle-animation {
+          animation: wiggle-animation 2s infinite ease-in-out !important;
+        }
+        
+        .flash-animation {
+          animation: flash-animation 2s infinite ease-in-out !important;
+        }
+
+        /* الحاوية الخارجية للنموذج بالكامل */
+        .codform-form-wrapper {
+          background-color: ${backgroundColor};
+          border-radius: ${borderRadius};
+          border: ${borderWidth} solid ${borderColor};
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+          margin: 0 auto 20px;
+          overflow: hidden;
+          font-family: inherit;
+          width: 100%;
+          box-sizing: border-box;
+          padding: 0;
+          direction: ${isRTL ? 'rtl' : 'ltr'};
+        }
+        
+        /* منطقة المحتوى الداخلية */
+        .codform-form-content {
+          padding: ${formPaddingTop} ${formPaddingRight} ${formPaddingBottom} ${formPaddingLeft};
+          border-radius: 0 0 ${borderRadius} ${borderRadius};
+          background-color: ${backgroundColor};
+          gap: ${formGap};
+        }
+
+        /* تنسيقات حقول النموذج - بدون خلفية بيضاء */
+        .codform-field {
+          margin-bottom: ${formGap};
+          position: relative;
+        }
+
+        /* تنسيق الحاوية الحقيقية للحقول */
+        .codform-field-container {
+          position: relative;
+        }
+
+        /* تحسينات لحجم الحقول ومظهرها */
+        .codform-input, .codform-textarea {
+          width: 100%;
+          padding: 10px 12px;
+          border: 1px solid #d1d5db;
+          border-radius: ${borderRadius};
+          font-size: ${formFontSize};
+          color: rgb(31, 41, 55);
+          box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px;
+          line-height: 1.5;
+          font-family: inherit;
+          background-color: #ffffff;
+          box-sizing: border-box;
+          min-height: 44px; /* زيادة الارتفاع للحقول */
+        }
+
+        .codform-textarea {
+          min-height: 100px; /* زيادة الارتفاع لمساحات النص */
+        }
+
+        .codform-input.with-icon {
+          ${isRTL ? 'padding-right: 36px !important;' : 'padding-left: 36px !important;'}
+        }
+
+        /* تحسين تنسيق تسميات الحقول وحجم الخط */
+        .codform-field-label {
+          color: #333; 
+          font-size: ${formFontSize};
+          font-weight: 600;
+          font-family: inherit;
+          margin-bottom: 8px;
+          display: flex;
+          align-items: center;
+          text-align: ${isRTL ? 'right' : 'left'};
+        }
+
+        /* علامة الحقول المطلوبة محسنة */
+        .codform-required {
+          color: #ef4444;
+          ${isRTL ? 'margin-right: 4px;' : 'margin-left: 4px;'}
+          display: inline-block;
+        }
+
+        /* موضع الأيقونات في الحقول */
+        .codform-field-icon {
+          position: absolute !important;
+          ${isRTL ? 'right: 12px;' : 'left: 12px;'}
+          top: 50%;
+          transform: translateY(-50%);
+          color: #9ca3af;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 2;
+          pointer-events: none;
+        }
+        
+        /* حاوية المدخلات النسبية للأيقونات */
+        .codform-input-container {
+          position: relative;
+          width: 100%;
+        }
+        
+        /* تنسيق عنوان النموذج - IMPORTANT: COMPLETELY ISOLATED STYLES */
+        .codform-title-wrapper {
+          margin-bottom: 16px;
+          display: block;
+        }
+        
+        /* تنسيق زر الإرسال */
+        .codform-submit-btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          cursor: pointer;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+          font-family: inherit;
+          margin-top: 10px;
+          box-sizing: border-box;
+          outline: none;
+          text-decoration: none;
+          position: relative;
+          min-height: 50px; /* زيادة ارتفاع الزر */
+        }
+
+        /* تعديل أحجام النص البديل (placeholder) */
+        ::placeholder {
+          font-size: ${formFontSize};
+          opacity: 0.7;
+        }
+      </style>
+
+      <div class="codform-form-wrapper" 
+           data-form-preview-id="form-preview-${Date.now()}" 
+           data-primary-color="${primaryColor}" 
+           data-border-radius="${borderRadius}" 
+           data-font-size="${formFontSize}" 
+           data-button-style="${buttonStyle}" 
+           data-border-color="${borderColor}"
+           data-border-width="${borderWidth}"
+           data-background-color="${backgroundColor}"
+           data-direction="${isRTL ? 'rtl' : 'ltr'}"
+           style="--form-primary-color: ${primaryColor};">
+           
+        <div class="codform-form-content" 
+             data-direction="${isRTL ? 'rtl' : 'ltr'}" 
+             style="direction: ${isRTL ? 'rtl' : 'ltr'};">
+      `;
+      
+      // إنشاء نموذج داخل الحاوية
+      html += `<form id="codform-form-element-${blockId}" class="codform-form" style="display: block;">`;
+      
+      // طباعة معلومات عن الحقول للتصحيح
+      console.log('Processing form fields count:', formFields.length);
+      
+      // إضافة الحقول
+      if (formFields && formFields.length) {
+        formFields.forEach((field, index) => {
+          if (field && field.type) {
+            console.log(`Processing field ${index}:`, field.type, field.id, 'Style:', field.style ? 'exists' : 'none');
+            
+            // إنشاء عنصر العنوان بشكل ديناميكي باستخدام قيم من field.style
+            if (field.type === 'form-title' || field.type === 'title') {
+              const style = field.style || {};
+              // استخدام القيم الديناميكية من field.style - NEVER use form backgroundColor
+              const titleAlign = style.textAlign || (isRTL ? 'right' : 'center');
+              // IMPORTANT: الحفاظ على خلفية العنوان من style.backgroundColor أو primaryColor
+              // NEVER use formStyle.backgroundColor for title background!
+              const bgColor = style.backgroundColor || primaryColor || '#9b87f5';
+              const titleColor = style.color || '#ffffff';
+              const descColor = style.descriptionColor || 'rgba(255, 255, 255, 0.9)';
+              const titleFontSize = style.fontSize || '24px';
+              const descFontSize = style.descriptionFontSize || '14px';
+              const fontWeight = style.fontWeight || 'bold';
+              const descFontWeight = style.descriptionFontWeight || 'normal';
+              const fontFamily = style.fontFamily || 'inherit';
+              const titleBorderRadius = style.borderRadius || borderRadius;
+              // تحقق مما إذا كان يجب إظهار العنوان والوصف
+              const showTitle = style.showTitle !== false;
+              const showDescription = style.showDescription !== false;
+              const paddingY = style.paddingY || '16px';
+              
+              console.log('Rendering title with:',
+                'bgColor:', bgColor,
+                'primaryColor:', primaryColor,
+                'formBackgroundColor:', backgroundColor,
+                'showTitle:', showTitle,
+                'showDesc:', showDescription);
+              
+              // إنشاء حاوية العنوان فقط إذا كان العنوان أو الوصف سيتم عرضه
+              if (showTitle || showDescription) {
+                html += `
+                <div class="codform-title-wrapper" data-field-type="${field.type}" data-field-id="${field.id}">
+                  <div class="codform-title-container" 
+                       style="background-color: ${bgColor}; 
+                             padding: ${paddingY} 16px; 
+                             border-radius: ${titleBorderRadius}; 
+                             width: 100%; 
+                             box-sizing: border-box; 
+                             text-align: ${titleAlign}; 
+                             direction: ${isRTL ? 'rtl' : 'ltr'};"
+                       data-title-bg-color="${bgColor}"
+                       data-form-bg-color="${backgroundColor}"
+                       data-title-only="true">
+                    ${showTitle && field.label ? `
+                    <h3 style="color: ${titleColor}; font-size: ${titleFontSize}; text-align: ${titleAlign}; font-weight: ${fontWeight}; font-family: ${fontFamily}; margin: 0px; padding: 0px; line-height: 1.3; display: block; direction: ${isRTL ? 'rtl' : 'ltr'};">
+                      ${field.label}
+                    </h3>` : ''}
+                    ${showDescription && field.helpText ? `
+                    <p style="color: ${descColor}; font-size: ${descFontSize}; margin: ${showTitle ? '6px 0px 0px' : '0'}; padding: 0px; text-align: ${titleAlign}; font-family: ${fontFamily}; font-weight: ${descFontWeight}; line-height: 1.5; opacity: 0.9; direction: ${isRTL ? 'rtl' : 'ltr'};">
+                      ${field.helpText}
+                    </p>` : ''}
+                  </div>
+                </div>`;
+              }
+              return;
+            }
+            
+            // حقول النص والإدخال
+            if (field.type === 'text' || field.type === 'email' || field.type === 'phone') {
+              // الحصول على الإعدادات من field.style إن وجدت
+              const style = field.style || {};
+              const hasIcon = field.icon && field.icon !== 'none' && style.showIcon !== false;
+              let iconType = field.icon || (field.type === 'email' ? 'mail' : field.type === 'phone' ? 'phone' : 'user');
+              
+              // تحسين استخدام أحجام الخط من الإعدادات
+              const labelColor = style.labelColor || '#333';
+              const labelFontSize = style.labelFontSize || formFontSize;
+              const labelFontWeight = style.labelFontWeight || '600';
+              const inputFontSize = style.fontSize || formFontSize;
+              const textAlign = isRTL ? 'right' : 'left';
+              
+              html += `
+              <div class="codform-field" data-field-type="${field.type}" data-field-id="${field.id}">
+                <label for="${field.id}-input" class="codform-field-label" style="color: ${labelColor}; font-size: ${labelFontSize}; font-weight: ${labelFontWeight}; display: flex; align-items: center; text-align: ${textAlign};">
+                  ${field.label || ''}
+                  ${field.required ? '<span class="codform-required">*</span>' : ''}
+                </label>
+                <div class="codform-input-container">
+                  ${hasIcon ? `<div class="codform-field-icon">
+                    ${getIconSvg(iconType)}
+                  </div>` : ''}
+                  <input 
+                    type="${field.type === 'email' ? 'email' : field.type === 'phone' ? 'tel' : 'text'}" 
+                    id="${field.id}-input" 
+                    name="${field.id}" 
+                    placeholder="${field.placeholder || ''}" 
+                    aria-label="${field.label || ''}" 
+                    class="codform-input ${hasIcon ? 'with-icon' : ''}" 
+                    style="font-size: ${inputFontSize}; min-height: 44px; text-align: ${textAlign}; direction: ${isRTL ? 'rtl' : 'ltr'};"
+                    ${field.required ? 'required' : ''}
+                  >
+                </div>
+              </div>`;
+            } 
+            // حقل المناطق النصية
+            else if (field.type === 'textarea') {
+              // الحصول على الإعدادات من field.style إن وجدت
+              const style = field.style || {};
+              const labelColor = style.labelColor || '#333';
+              const labelFontSize = style.labelFontSize || formFontSize;
+              const labelFontWeight = style.labelFontWeight || '600';
+              const textareaFontSize = style.fontSize || formFontSize;
+              const textAlign = isRTL ? 'right' : 'left';
+              
+              html += `
+              <div class="codform-field" data-field-type="textarea" data-field-id="${field.id}">
+                <label for="${field.id}" class="codform-field-label" style="color: ${labelColor}; font-size: ${labelFontSize}; font-weight: ${labelFontWeight}; display: flex; align-items: center; text-align: ${textAlign};">
+                  ${field.label || ''}
+                  ${field.required ? '<span class="codform-required">*</span>' : ''}
+                </label>
+                <textarea 
+                  id="${field.id}" 
+                  rows="${field.rows || 4}" 
+                  placeholder="${field.placeholder || ''}" 
+                  class="codform-textarea" 
+                  style="font-size: ${textareaFontSize}; min-height: 100px; text-align: ${textAlign}; direction: ${isRTL ? 'rtl' : 'ltr'};"
+                  ${field.required ? 'required' : ''}
+                  name="${field.id}"
+                ></textarea>
+              </div>`;
+            } 
+            // حقل الإرسال (الزر)
+            else if (field.type === 'submit') {
+              const style = field.style || {};
+              const bgColor = style.backgroundColor || primaryColor;
+              const borderRadius = style.borderRadius || '6px';
+              const fontSize = style.fontSize || '19px';
+              const fontWeight = style.fontWeight || '500';
+              const textColor = style.color || '#ffffff';
+              const padding = style.paddingY ? `${style.paddingY} 24px` : '15px 24px';
+              const borderWidth = style.borderWidth || '0px';
+              const borderColor = style.borderColor || '#eaeaff';
+              const animationType = style.animationType || 'shake';
+              const iconPosition = style.iconPosition || (isRTL ? 'right' : 'left');
+              const hasAnimation = style.animation !== false;
+              const hasIcon = style.showIcon !== false;
+              const iconType = style.icon || 'shopping-cart';
+              
+              html += `
+              <div class="codform-field" data-field-type="submit" data-field-id="${field.id}">
+                <button 
+                  type="submit" 
+                  class="codform-submit-btn ${hasAnimation ? `${animationType}-animation` : ''}" 
+                  style="background-color: ${bgColor}; color: ${textColor}; font-size: ${fontSize}; font-weight: ${fontWeight}; border-radius: ${borderRadius}; border-color: ${borderColor}; border-width: ${borderWidth}; border-style: solid; padding: ${padding}; gap: 8px; min-height: 50px; direction: ${isRTL ? 'rtl' : 'ltr'};"
+                >
+                  ${iconPosition === 'left' && hasIcon ? `<span class="submit-icon-left">${getIconSvg(iconType)}</span>` : ''}
+                  <span>${field.label || 'Buy with Cash on Delivery'}</span>
+                  ${iconPosition === 'right' && hasIcon ? `<span class="submit-icon-right">${getIconSvg(iconType)}</span>` : ''}
+                </button>
+              </div>`;
+            }
+          }
+        });
+      } else {
+        console.error('No fields found in form data', formData);
+        html += '<div style="padding: 15px; text-align: center; color: #e32;">لا توجد حقول في هذا النموذج</div>';
+      }
+      
+      // إغلاق عناصر النموذج
+      html += `</form></div></div>`;
+      
+      return html;
+    }
+    
+    // وظيفة لإعداد معالجات الأحداث للنموذج
     function setupFormHandlers(formData, blockId) {
-      const formElement = document.querySelector(`#codform-form-${blockId} form`);
+      const formElement = document.querySelector(`#codform-form-element-${blockId}`);
       
       if (formElement) {
         formElement.addEventListener('submit', function(event) {
           event.preventDefault();
           
+          // جمع بيانات النموذج
           const formData = new FormData(formElement);
           const formDataObj = {};
           formData.forEach((value, key) => {
@@ -206,21 +713,27 @@
           });
           
           console.log('Form submitted with data:', formDataObj);
+          
+          // تمرير بيانات النموذج إلى API
           submitFormData(formDataObj, blockId);
         });
       }
     }
     
+    // وظيفة لإرسال بيانات النموذج
     function submitFormData(data, blockId) {
       const shop = Shopify.shop || window.location.hostname;
       const productId = container.getAttribute('data-product-id');
       
+      // عرض حالة التحميل
       formContainer.classList.add('codform-loading');
       
+      // إضافة معلومات السياق
       data.shop = shop;
       data.product_id = productId;
       data.form_id = blockId;
       
+      // إرسال البيانات إلى API
       const apiUrl = `https://mtyfuwdsshlzqwjujavp.supabase.co/functions/v1/submit-cod-form`;
       
       fetch(apiUrl, {
@@ -237,22 +750,45 @@
         return response.json();
       })
       .then(result => {
+        // إظهار رسالة النجاح
         formContainer.style.display = 'none';
         formContainer.classList.remove('codform-loading');
         successContainer.style.display = 'block';
       })
       .catch(error => {
+        // إظهار رسالة الخطأ
         console.error('Error submitting form:', error);
         formContainer.classList.remove('codform-loading');
         showError("حدث خطأ أثناء إرسال النموذج، يرجى المحاولة مرة أخرى.");
       });
     }
+    
+    // وظيفة للحصول على SVG للأيقونة
+    function getIconSvg(iconName) {
+      // مجموعة من الأيقونات SVG الشائعة
+      const icons = {
+        'user': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>',
+        'mail': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mail"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>',
+        'phone': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-phone"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>',
+        'home': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-home"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>',
+        'map-pin': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle></svg>',
+        'city': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-building"><rect x="2" y="8" width="20" height="14" rx="2"></rect><path d="M6 2v6"></path><path d="M18 2v6"></path><path d="M6 14h12"></path><path d="M6 18h12"></path></svg>',
+        'shopping-cart': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shopping-cart"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 2h9.72a2 2 0 0 0 2-2L23 6H6"></path></svg>',
+        'send': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-send"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>',
+        'package': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-package"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>',
+        'truck': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-truck"><path d="M10 17h4V5H2v12h3"></path><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5v8h1"></path><circle cx="7.5" cy="17.5" r="2.5"></circle><circle cx="17.5" cy="17.5" r="2.5"></circle></svg>'
+      };
+      
+      // إرجاع أيقونة SVG أو أيقونة المستخدم الافتراضية
+      return icons[iconName] || icons['user'];
+    }
   });
 </script>
 
 <style>
+  /* تنسيقات أساسية للنموذج */
   .codform-container {
-    font-family: Cairo, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     margin: 20px 0;
     max-width: 800px;
     margin-left: auto;
@@ -264,6 +800,7 @@
     padding: 0 15px;
   }
   
+  /* أنماط الزر */
   .codform-button {
     background-color: #9b87f5;
     color: white;
@@ -279,6 +816,7 @@
     opacity: 0.9;
   }
   
+  /* أيقونة التحميل */
   .codform-spinner {
     border: 4px solid rgba(0, 0, 0, 0.1);
     border-left-color: #9b87f5;
@@ -293,6 +831,7 @@
     100% { transform: rotate(360deg); }
   }
   
+  /* أيقونات النجاح والخطأ */
   .codform-success-icon, .codform-error-icon {
     width: 60px;
     height: 60px;
@@ -313,10 +852,155 @@
     background-color: #ff3b30;
   }
   
+  /* تعديلات RTL */
+  [dir="rtl"] .codform-field-icon {
+    right: 12px;
+    left: auto;
+  }
+  
+  [dir="ltr"] .codform-field-icon {
+    left: 12px;
+    right: auto;
+  }
+  
+  [dir="rtl"] .codform-input.with-icon {
+    padding-right: 36px !important;
+  }
+  
+  [dir="ltr"] .codform-input.with-icon {
+    padding-left: 36px !important;
+  }
+  
+  /* علامة الحقول المطلوبة */
+  .codform-required {
+    color: #ef4444;
+    display: inline-block;
+  }
+  
+  [dir="rtl"] .codform-required {
+    margin-right: 4px;
+  }
+  
+  [dir="ltr"] .codform-required {
+    margin-left: 4px;
+  }
+  
+  /* تنسيقات زر الإرسال */
+  .codform-submit-btn {
+    width: 100%;
+    cursor: pointer;
+    transition: 0.2s;
+    margin-top: 14px;
+    box-shadow: rgba(0, 0, 0, 0.1) 0px 2px 4px;
+    position: relative;
+    overflow: hidden;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 50px;
+  }
+  
+  /* أنماط الحركة */
+  @keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+  }
+  
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 90% { transform: translateX(-2px); }
+    20%, 80% { transform: translateX(4px); }
+    30%, 50%, 70% { transform: translateX(-6px); }
+    40%, 60% { transform: translateX(6px); }
+  }
+  
+  @keyframes bounce {
+    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-10px); }
+    60% { transform: translateY(-5px); }
+  }
+  
+  @keyframes wiggle {
+    0%, 100% { transform: rotate(0); }
+    25% { transform: rotate(-5deg); }
+    50% { transform: rotate(0); }
+    75% { transform: rotate(5deg); }
+  }
+  
+  @keyframes flash {
+    0%, 50%, 100% { opacity: 1; }
+    25%, 75% { opacity: 0.7; }
+  }
+  
+  .pulse-animation {
+    animation: pulse 2s infinite ease-in-out !important;
+  }
+  
+  .shake-animation {
+    animation: shake 0.8s infinite ease-in-out !important;
+  }
+  
+  .bounce-animation {
+    animation: bounce 2s infinite ease-in-out !important;
+  }
+  
+  .wiggle-animation {
+    animation: wiggle 0.7s ease-in-out infinite !important;
+  }
+  
+  .flash-animation {
+    animation: flash 3s infinite ease-in-out !important;
+  }
+  
+  /* تعديلات لتحسين التوافقية مع الأجهزة المختلفة */
   @media (max-width: 768px) {
     .codform-container {
       padding: 0 12px;
       margin: 12px 0;
     }
+    
+    .codform-title-container {
+      padding: 12px !important;
+    }
+  }
+
+  /* تحسينات خاصة للمتجر لتطابق المعاينة */
+  .codform-form-wrapper {
+    background-color: #f5f5f5 !important;
+  }
+  
+  .codform-field-label {
+    font-size: 16px !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+
+  /* تحسين حجم النص البديل */
+  ::placeholder {
+    font-size: 16px !important;
+    opacity: 0.7 !important;
+  }
+
+  /* ضمان الحجم المناسب للحقول */
+  .codform-input, .codform-textarea {
+    min-height: 44px !important;
+    font-size: 16px !important;
+  }
+
+  .codform-textarea {
+    min-height: 100px !important;
+  }
+  
+  /* CRITICAL: Always enforce title and form background separation */
+  .codform-title-container {
+    background-color: var(--title-bg-color, #9b87f5) !important;
+  }
+  
+  .codform-form-content {
+    background-color: var(--form-bg-color, #F9FAFB) !important; 
   }
 </style>
+

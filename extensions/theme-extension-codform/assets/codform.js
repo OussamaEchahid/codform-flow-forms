@@ -1,6 +1,7 @@
 
 (() => {
-  console.log("Codform JS loaded - Basic version");
+  // codform.js - Clean version with proper form title handling
+  console.log("Codform JS loaded - Clean version");
   
   async function fetchForm(formId) {
     try {
@@ -16,24 +17,23 @@
     }
   }
   
-  function renderForm(formData, containerId) {
-    console.log('renderForm called with:', formData, containerId);
-    
-    if (!formData) {
-      console.error("No form data provided to renderForm");
+  async function renderForm(formId, containerId) {
+    const form = await fetchForm(formId);
+    if (!form) {
+      console.error("Form not found or failed to load.");
       return;
     }
     
     const formContainer = document.getElementById(containerId);
     if (!formContainer) {
-      console.error("Container element not found:", containerId);
+      console.error("Container element not found.");
       return;
     }
     
     // Clear existing content
     formContainer.innerHTML = "";
     
-    const formStyle = formData.style || {};
+    const formStyle = form.style || {};
     
     // Apply form container styles
     formContainer.style.cssText = `
@@ -49,38 +49,47 @@
       flex-direction: column;
     `;
     
-    // Create form element
-    const formElement = document.createElement("form");
-    formElement.className = "codform-form";
-    
     // Process all form fields
-    formData.data.forEach((step) => {
+    form.data.forEach((step) => {
       step.fields.forEach((field) => {
-        console.log('Processing field:', field.type, field.id);
+        console.log('Processing field:', field.type, field.id, field);
         
-        // Handle form title field
+        // Handle form title field - COMPLETELY NEW IMPLEMENTATION
         if (field.type === "form-title") {
           const titleElement = document.createElement("div");
           titleElement.className = "codform-title-field";
           
+          // Get title text from content or label
           const titleText = field.content || field.label || "";
           
+          // Skip rendering if no title text
           if (!titleText) {
             console.log('No title text found, skipping title rendering');
             return;
           }
           
+          // Get dynamic styles from field settings
           const fieldStyle = field.style || {};
           const textColor = fieldStyle.color || "#000000";
           const fontSize = fieldStyle.fontSize || "1.5rem";
           const fontWeight = fieldStyle.fontWeight || "600";
-          const fontFamily = fieldStyle.fontFamily || "Cairo, Arial, sans-serif";
+          const fontFamily = fieldStyle.fontFamily || "Tajawal, Arial, sans-serif";
           const textAlign = fieldStyle.textAlign || "center";
           const paddingTop = fieldStyle.paddingTop || "12px";
           const paddingBottom = fieldStyle.paddingBottom || "12px";
           const paddingLeft = fieldStyle.paddingLeft || "0px";
           const paddingRight = fieldStyle.paddingRight || "0px";
           
+          console.log('TITLE STYLE APPLICATION:', {
+            titleText,
+            textColor,
+            fontSize,
+            fontWeight,
+            textAlign,
+            fieldStyle: fieldStyle
+          });
+          
+          // Apply ALL styles with !important to override any conflicts
           titleElement.style.cssText = `
             color: ${textColor} !important;
             font-size: ${fontSize} !important;
@@ -95,81 +104,136 @@
             display: block !important;
             background: transparent !important;
             border: none !important;
+            box-shadow: none !important;
           `;
           
           titleElement.textContent = titleText;
-          formElement.appendChild(titleElement);
+          titleElement.setAttribute('data-field-type', 'form-title');
+          titleElement.setAttribute('data-field-id', field.id || 'form-title-default');
+          titleElement.setAttribute('data-text-color', textColor);
+          titleElement.setAttribute('data-font-size', fontSize);
+          titleElement.setAttribute('data-text-align', textAlign);
+          
+          formContainer.appendChild(titleElement);
           return;
         }
         
         // Handle text input fields
         if (field.type === "text" || field.type === "email") {
-          const fieldContainer = document.createElement("div");
-          fieldContainer.className = "codform-field";
-          
-          if (field.label) {
-            const labelElement = document.createElement("label");
-            labelElement.textContent = field.label;
-            labelElement.className = "codform-label";
-            fieldContainer.appendChild(labelElement);
-          }
-          
           const inputElement = document.createElement("input");
           inputElement.type = field.type === "email" ? "email" : "text";
-          inputElement.name = field.id || field.type;
           inputElement.placeholder = field.placeholder || "";
           inputElement.required = field.required || false;
           inputElement.className = "codform-input";
           
-          fieldContainer.appendChild(inputElement);
-          formElement.appendChild(fieldContainer);
+          // Apply field styles if available
+          if (field.style) {
+            inputElement.style.cssText = `
+              color: ${field.style.color || "#000"};
+              font-size: ${field.style.fontSize || "16px"};
+              text-align: ${field.style.textAlign || "left"};
+            `;
+          }
+          
+          formContainer.appendChild(inputElement);
           return;
         }
         
         // Handle phone input fields
         if (field.type === "phone") {
-          const fieldContainer = document.createElement("div");
-          fieldContainer.className = "codform-field";
-          
-          if (field.label) {
-            const labelElement = document.createElement("label");
-            labelElement.textContent = field.label;
-            labelElement.className = "codform-label";
-            fieldContainer.appendChild(labelElement);
-          }
-          
           const inputElement = document.createElement("input");
           inputElement.type = "tel";
-          inputElement.name = field.id || field.type;
           inputElement.placeholder = field.placeholder || "";
           inputElement.required = field.required || false;
           inputElement.className = "codform-input";
           
-          fieldContainer.appendChild(inputElement);
-          formElement.appendChild(fieldContainer);
+          // Apply field styles if available
+          if (field.style) {
+            inputElement.style.cssText = `
+              color: ${field.style.color || "#000"};
+              font-size: ${field.style.fontSize || "16px"};
+              text-align: ${field.style.textAlign || "left"};
+            `;
+          }
+          
+          formContainer.appendChild(inputElement);
           return;
         }
         
         // Handle textarea fields
         if (field.type === "textarea") {
-          const fieldContainer = document.createElement("div");
-          fieldContainer.className = "codform-field";
-          
-          if (field.label) {
-            const labelElement = document.createElement("label");
-            labelElement.textContent = field.label;
-            labelElement.className = "codform-label";
-            fieldContainer.appendChild(labelElement);
-          }
-          
           const textareaElement = document.createElement("textarea");
-          textareaElement.name = field.id || field.type;
           textareaElement.placeholder = field.placeholder || "";
           textareaElement.required = field.required || false;
           textareaElement.className = "codform-textarea";
           
-          fieldContainer.appendChild(textareaElement);
-          formElement.appendChild(fieldContainer);
+          // Apply field styles if available
+          if (field.style) {
+            textareaElement.style.cssText = `
+              color: ${field.style.color || "#000"};
+              font-size: ${field.style.fontSize || "16px"};
+              text-align: ${field.style.textAlign || "left"};
+            `;
+          }
+          
+          formContainer.appendChild(textareaElement);
+          return;
+        }
+        
+        // Handle select fields
+        if (field.type === "select") {
+          const selectElement = document.createElement("select");
+          selectElement.className = "codform-select";
+          
+          field.options?.forEach((option) => {
+            const optionElement = document.createElement("option");
+            optionElement.value = option.value || option;
+            optionElement.textContent = option.label || option;
+            selectElement.appendChild(optionElement);
+          });
+          
+          formContainer.appendChild(selectElement);
+          return;
+        }
+        
+        // Handle checkbox fields
+        if (field.type === "checkbox") {
+          const checkboxContainer = document.createElement("div");
+          checkboxContainer.className = "codform-checkbox-container";
+          
+          const checkboxElement = document.createElement("input");
+          checkboxElement.type = "checkbox";
+          checkboxElement.id = field.id || `checkbox-${Math.random()}`;
+          checkboxElement.className = "codform-checkbox";
+          
+          const labelElement = document.createElement("label");
+          labelElement.textContent = field.label || "Option";
+          labelElement.htmlFor = checkboxElement.id;
+          
+          checkboxContainer.appendChild(checkboxElement);
+          checkboxContainer.appendChild(labelElement);
+          formContainer.appendChild(checkboxContainer);
+          return;
+        }
+        
+        // Handle radio fields
+        if (field.type === "radio") {
+          const radioContainer = document.createElement("div");
+          radioContainer.className = "codform-radio-container";
+          
+          const radioElement = document.createElement("input");
+          radioElement.type = "radio";
+          radioElement.id = field.id || `radio-${Math.random()}`;
+          radioElement.name = field.name || `radio-group-${Math.random()}`;
+          radioElement.className = "codform-radio";
+          
+          const labelElement = document.createElement("label");
+          labelElement.textContent = field.label || "Option";
+          labelElement.htmlFor = radioElement.id;
+          
+          radioContainer.appendChild(radioElement);
+          radioContainer.appendChild(labelElement);
+          formContainer.appendChild(radioContainer);
           return;
         }
         
@@ -177,41 +241,43 @@
         if (field.type === "submit") {
           const buttonElement = document.createElement("button");
           buttonElement.type = "submit";
-          buttonElement.textContent = field.label || "إرسال";
-          buttonElement.className = "codform-submit-button";
+          buttonElement.textContent = field.label || "Submit";
+          buttonElement.className = `codform-submit-button ${formStyle.buttonStyle || "rounded"}`;
           
+          // Apply button styles from field or form settings
           const buttonBgColor = field.style?.backgroundColor || formStyle.primaryColor || "#9b87f5";
           const buttonTextColor = field.style?.color || "#fff";
+          const buttonFontSize = field.style?.fontSize || "1rem";
           
           buttonElement.style.cssText = `
             background-color: ${buttonBgColor};
             color: ${buttonTextColor};
+            font-size: ${buttonFontSize};
             border-radius: ${formStyle.borderRadius || "0.5rem"};
             padding: 12px 24px;
             border: none;
             cursor: pointer;
             width: 100%;
             margin-top: 16px;
-            font-weight: 600;
           `;
           
-          formElement.appendChild(buttonElement);
+          formContainer.appendChild(buttonElement);
+          return;
+        }
+        
+        // Handle HTML content fields
+        if (field.type === "text/html") {
+          const htmlContainer = document.createElement("div");
+          htmlContainer.className = "codform-html-content";
+          htmlContainer.innerHTML = field.content || "<p>HTML Content</p>";
+          
+          formContainer.appendChild(htmlContainer);
           return;
         }
       });
     });
-    
-    formContainer.appendChild(formElement);
-    formContainer.style.display = 'block';
   }
   
-  // Expose the function globally immediately
+  // Expose the function globally
   window.renderCodform = renderForm;
-  
-  // Also expose it as a backup
-  if (typeof global !== 'undefined') {
-    global.renderCodform = renderForm;
-  }
-  
-  console.log("renderCodform function exposed:", typeof window.renderCodform);
 })();
