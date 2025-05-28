@@ -62,10 +62,8 @@
   class="codform-container" 
   data-product-id="{{ product.id }}"
   data-block-id="{{ block.id }}"
-  data-hide-header="true"
-  data-enable-icons="true"
 >
-  <div id="codform-form-loader-{{ block.id }}" class="codform-loader" style="display: flex; justify-content: center; padding: 20px;">
+  <div id="codform-form-loader-{{ block.id }}" class="codform-loader" style="display: flex; justify-content: center; align-items: center; flex-direction: column; padding: 20px;">
     <div class="codform-spinner"></div>
     <div style="margin-top: 10px;">{{ block.settings.loading_text }}</div>
   </div>
@@ -87,193 +85,199 @@
 </div>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    const container = document.getElementById('codform-container-{{ block.id }}');
-    const loader = document.getElementById('codform-form-loader-{{ block.id }}');
-    const formContainer = document.getElementById('codform-form-{{ block.id }}');
-    const errorContainer = document.getElementById('codform-error-{{ block.id }}');
-    const successContainer = document.getElementById('codform-success-{{ block.id }}');
-    const retryButton = document.getElementById('codform-retry-{{ block.id }}');
+document.addEventListener('DOMContentLoaded', function() {
+  console.log("🚀 Codform block script started for block: {{ block.id }}");
+  
+  const blockId = "{{ block.id }}";
+  const container = document.getElementById('codform-container-' + blockId);
+  const loader = document.getElementById('codform-form-loader-' + blockId);
+  const formContainer = document.getElementById('codform-form-' + blockId);
+  const errorContainer = document.getElementById('codform-error-' + blockId);
+  const successContainer = document.getElementById('codform-success-' + blockId);
+  const retryButton = document.getElementById('codform-retry-' + blockId);
+  
+  if (!container) {
+    console.error("❌ Container not found for block:", blockId);
+    return;
+  }
+  
+  // Show loading
+  if (loader) loader.style.display = 'flex';
+  
+  // Add retry functionality
+  if (retryButton) {
+    retryButton.addEventListener('click', function() {
+      console.log("🔄 Retry button clicked");
+      hideError();
+      showLoading();
+      fetchAndRenderForm();
+    });
+  }
+  
+  // Start the process
+  fetchAndRenderForm();
+  
+  function fetchAndRenderForm() {
+    const productId = container.getAttribute('data-product-id');
+    const shop = Shopify.shop || window.location.hostname;
     
-    if (container && loader) {
-      loader.style.display = 'flex';
-      
-      // Add retry event handler
-      if (retryButton) {
-        retryButton.addEventListener('click', function() {
-          errorContainer.style.display = 'none';
-          loader.style.display = 'flex';
-          fetchForm();
-        });
-      }
-      
-      // Start form loading
-      fetchForm();
+    if (!productId || !shop) {
+      showError("بيانات المنتج أو المتجر غير متوفرة");
+      console.error("❌ Missing product ID or shop information");
+      return;
     }
     
-    // Function to fetch form based on product ID
-    function fetchForm() {
-      const productId = container.getAttribute('data-product-id');
-      const blockId = container.getAttribute('data-block-id');
-      const shop = Shopify.shop || window.location.hostname;
-      
-      if (!productId || !shop) {
-        showError("بيانات المنتج أو المتجر غير متوفرة");
-        console.error('Missing product ID or shop information');
-        return;
-      }
-      
-      console.log('Fetching form with productId:', productId, 'blockId:', blockId, 'shop:', shop);
-      
-      const apiUrl = `https://mtyfuwdsshlzqwjujavp.supabase.co/functions/v1/forms-product?shop=${encodeURIComponent(shop)}&productId=${encodeURIComponent(productId)}&blockId=${encodeURIComponent(blockId)}`;
-      
-      console.log('Request URL:', apiUrl);
-      
-      // Fetch form configuration
-      fetch(apiUrl)
-        .then(response => {
-          if (!response.ok) {
-            console.error('HTTP error:', response.status, response.statusText);
-            throw new Error(`HTTP error ${response.status}`);
-          }
-          return response.json();
-        })
-        .then(data => {
-          if (data && data.form) {
-            console.log('Form data received successfully:', data);
-            renderFormData(data.form, blockId);
-          } else {
-            console.error('No form data received:', data);
-            showError("لا يوجد نموذج متوفر لهذا المنتج");
-          }
-        })
-        .catch(error => {
-          console.error('Error fetching form:', error);
-          showError("حدث خطأ أثناء تحميل النموذج");
-        });
-    }
+    console.log("📡 Fetching form data...", { productId, shop, blockId });
     
-    // Function to render form using the fixed renderCodform function
-    function renderFormData(formData, blockId) {
-      if (!formContainer) {
-        console.error('Form container not found');
-        return;
-      }
-      
-      // Hide loading
-      if (loader) {
-        loader.style.display = 'none';
-      }
-      
-      console.log('Rendering form with data:', formData);
-      
-      // Use the global renderCodform function
-      if (window.renderCodform) {
-        try {
-          // Create temporary ID for the container
-          const tempId = `temp-form-${blockId}`;
-          formContainer.id = tempId;
-          
-          // Call the render function with form data directly
-          window.renderCodform(formData, tempId);
-          
-          // Show the form
-          formContainer.style.display = 'block';
-          
-          // Restore original ID
-          formContainer.id = `codform-form-${blockId}`;
-          
-        } catch (error) {
-          console.error('Error rendering form:', error);
-          showError("حدث خطأ أثناء عرض النموذج");
+    const apiUrl = `https://mtyfuwdsshlzqwjujavp.supabase.co/functions/v1/forms-product?shop=${encodeURIComponent(shop)}&productId=${encodeURIComponent(productId)}&blockId=${encodeURIComponent(blockId)}`;
+    
+    fetch(apiUrl)
+      .then(response => {
+        console.log("📨 Response received:", response.status);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-      } else {
-        console.error('renderCodform function not found');
-        showError("لم يتم تحميل مكتبة النموذج بشكل صحيح");
-      }
+        return response.json();
+      })
+      .then(data => {
+        console.log("📋 Form data received:", data);
+        
+        if (data && data.form) {
+          renderForm(data.form);
+        } else {
+          showError("لا يوجد نموذج متوفر لهذا المنتج");
+        }
+      })
+      .catch(error => {
+        console.error("❌ Error fetching form:", error);
+        showError("حدث خطأ أثناء تحميل النموذج: " + error.message);
+      });
+  }
+  
+  function renderForm(formData) {
+    console.log("🎨 Starting form render...");
+    
+    // Hide loading
+    hideLoading();
+    
+    // Check if renderCodform function exists
+    if (typeof window.renderCodform !== 'function') {
+      console.error("❌ renderCodform function not found!");
+      showError("مشكلة في تحميل مكتبة النموذج");
+      return;
     }
     
-    // Function to show error message
-    function showError(message) {
-      if (loader) loader.style.display = 'none';
-      if (formContainer) formContainer.style.display = 'none';
-      if (successContainer) successContainer.style.display = 'none';
+    try {
+      // Create unique container ID
+      const containerId = 'codform-form-' + blockId;
       
-      if (errorContainer) {
-        const errorMessage = errorContainer.querySelector('p');
-        if (errorMessage && message) {
-          errorMessage.textContent = message;
-        }
-        errorContainer.style.display = 'block';
+      console.log("🔧 Calling renderCodform with:", { formData, containerId });
+      
+      // Call the render function
+      window.renderCodform(formData, containerId);
+      
+      // Show the form container
+      if (formContainer) {
+        formContainer.style.display = 'block';
       }
+      
+      console.log("✅ Form rendered successfully");
+      
+    } catch (error) {
+      console.error("❌ Error rendering form:", error);
+      showError("حدث خطأ أثناء عرض النموذج: " + error.message);
     }
-  });
+  }
+  
+  function showLoading() {
+    if (loader) loader.style.display = 'flex';
+    if (formContainer) formContainer.style.display = 'none';
+    if (errorContainer) errorContainer.style.display = 'none';
+    if (successContainer) successContainer.style.display = 'none';
+  }
+  
+  function hideLoading() {
+    if (loader) loader.style.display = 'none';
+  }
+  
+  function showError(message) {
+    hideLoading();
+    if (formContainer) formContainer.style.display = 'none';
+    if (successContainer) successContainer.style.display = 'none';
+    
+    if (errorContainer) {
+      const errorMessage = errorContainer.querySelector('p');
+      if (errorMessage && message) {
+        errorMessage.textContent = message;
+      }
+      errorContainer.style.display = 'block';
+    }
+    
+    console.error("❌ Error shown to user:", message);
+  }
+});
 </script>
 
 <style>
-  /* Basic form styles */
-  .codform-container {
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    margin: 20px 0;
-    max-width: 800px;
-    margin-left: auto;
-    margin-right: auto;
-    box-sizing: border-box;
-    width: 100%;
-    font-size: 16px;
-    line-height: 1.5;
-    padding: 0 15px;
-  }
-  
-  /* Button styles */
-  .codform-button {
-    background-color: #9b87f5;
-    color: white;
-    border: none;
-    padding: 10px 15px;
-    border-radius: 4px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  
-  .codform-button:hover {
-    opacity: 0.9;
-  }
-  
-  /* Loading spinner */
-  .codform-spinner {
-    border: 4px solid rgba(0, 0, 0, 0.1);
-    border-left-color: #9b87f5;
-    border-radius: 50%;
-    width: 30px;
-    height: 30px;
-    animation: spin 1s linear infinite;
-  }
-  
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-  
-  /* Success and error icons */
-  .codform-success-icon, .codform-error-icon {
-    width: 60px;
-    height: 60px;
-    margin: 0 auto 15px;
-    border-radius: 50%;
-    color: white;
-    font-size: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  
-  .codform-success-icon {
-    background-color: #34c759;
-  }
-  
-  .codform-error-icon {
-    background-color: #ff3b30;
-  }
+.codform-container {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  margin: 20px 0;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
+  width: 100%;
+  font-size: 16px;
+  line-height: 1.5;
+  padding: 0 15px;
+}
+
+.codform-button {
+  background-color: #9b87f5;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.codform-button:hover {
+  opacity: 0.9;
+}
+
+.codform-spinner {
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  border-left-color: #9b87f5;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.codform-success-icon, .codform-error-icon {
+  width: 60px;
+  height: 60px;
+  margin: 0 auto 15px;
+  border-radius: 50%;
+  color: white;
+  font-size: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.codform-success-icon {
+  background-color: #34c759;
+}
+
+.codform-error-icon {
+  background-color: #ff3b30;
+}
 </style>
