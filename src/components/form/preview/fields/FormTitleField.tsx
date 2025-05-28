@@ -40,9 +40,9 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
   const paddingLeft = fieldStyle.paddingLeft || '0px';
   const paddingRight = fieldStyle.paddingRight || '0px';
 
-  // DYNAMIC title style that respects field settings
+  // CLEAN title style - NO BACKGROUND, just text styling
   const titleStyle: React.CSSProperties = {
-    color: textColor, // Use the actual color from field style
+    color: textColor,
     fontSize: fontSize,
     fontWeight: fontWeight,
     fontFamily: fontFamily,
@@ -56,18 +56,19 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
     paddingRight: paddingRight,
     width: '100%',
     display: 'block',
-    backgroundColor: 'transparent',
+    backgroundColor: 'transparent', // ALWAYS transparent
     background: 'none',
     border: 'none',
   };
 
-  console.log('FormTitleField DYNAMIC RENDERING:', {
+  console.log('FormTitleField CLEAN RENDERING:', {
     titleText,
     textColor,
     fontSize,
     fontWeight,
     textAlign,
-    fieldStyle: fieldStyle
+    fieldStyle: fieldStyle,
+    backgroundColor: 'transparent'
   });
 
   return (
@@ -78,7 +79,7 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
       data-field-id={field.id}
       data-text-color={textColor}
       data-background="transparent"
-      data-dynamic-color="true"
+      data-clean-title="true"
     >
       {titleText}
     </div>

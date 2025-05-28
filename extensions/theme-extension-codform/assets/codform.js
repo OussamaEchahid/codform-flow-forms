@@ -1,7 +1,7 @@
 
 (() => {
-  // codform.js - Clean version with proper form title handling
-  console.log("Codform JS loaded - Clean version");
+  // codform.js - Clean version focused on form fields only
+  console.log("Codform JS loaded - Clean version focused on fields");
   
   async function fetchForm(formId) {
     try {
@@ -35,7 +35,7 @@
     
     const formStyle = form.style || {};
     
-    // Apply form container styles
+    // Apply form container styles - NO TITLE STYLES HERE
     formContainer.style.cssText = `
       --form-primary-color: ${formStyle.primaryColor || "#9b87f5"};
       border-radius: ${formStyle.borderRadius || "0.5rem"};
@@ -49,12 +49,12 @@
       flex-direction: column;
     `;
     
-    // Process all form fields
+    // Process all form fields - INCLUDING form-title fields
     form.data.forEach((step) => {
       step.fields.forEach((field) => {
         console.log('Processing field:', field.type, field.id, field);
         
-        // Handle form title field - COMPLETELY NEW IMPLEMENTATION
+        // Handle form title field - NEW CLEAN IMPLEMENTATION
         if (field.type === "form-title") {
           const titleElement = document.createElement("div");
           titleElement.className = "codform-title-field";
@@ -89,7 +89,7 @@
             fieldStyle: fieldStyle
           });
           
-          // Apply ALL styles with !important to override any conflicts
+          // Apply styles - NO BACKGROUND, just text styling
           titleElement.style.cssText = `
             color: ${textColor} !important;
             font-size: ${fontSize} !important;
