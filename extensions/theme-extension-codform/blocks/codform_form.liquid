@@ -88,9 +88,9 @@
 </div>
 
 <script>
-// دالة عرض النموذج - مضمنة مباشرة في البلوك
+// دالة عرض النموذج المحسنة - تطابق المعاينة تماماً
 function renderCodform(formData, containerId) {
-  console.log("🎯 renderCodform called inline", { formData, containerId });
+  console.log("🎯 Enhanced renderCodform called", { formData, containerId });
   
   try {
     const container = document.getElementById(containerId);
@@ -105,7 +105,7 @@ function renderCodform(formData, containerId) {
       return false;
     }
     
-    console.log("✅ Form data is valid, starting render");
+    console.log("✅ Form data is valid, starting enhanced render");
     container.innerHTML = "";
     
     const style = formData.style || {};
@@ -115,16 +115,18 @@ function renderCodform(formData, containerId) {
     const fontSize = style.fontSize || "16px";
     const formDirection = style.formDirection || "ltr";
     
+    // تطبيق التنسيق المحسن للحاوية
     container.style.cssText = `
       background-color: ${backgroundColor};
       border-radius: ${borderRadius};
       font-size: ${fontSize};
       direction: ${formDirection};
       padding: 20px;
-      font-family: system-ui, Arial, sans-serif;
+      font-family: 'Cairo', system-ui, Arial, sans-serif;
       max-width: 100%;
       box-sizing: border-box;
-      border: 1px solid #e5e7eb;
+      border: 2px solid ${primaryColor};
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     `;
     
     let allFields = [];
@@ -136,7 +138,7 @@ function renderCodform(formData, containerId) {
       });
     }
     
-    console.log(`📝 Processing ${allFields.length} fields`);
+    console.log(`📝 Processing ${allFields.length} fields with enhanced features`);
     
     if (allFields.length === 0) {
       container.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">لا توجد حقول في النموذج</div>';
@@ -145,6 +147,7 @@ function renderCodform(formData, containerId) {
     
     const form = document.createElement("form");
     form.style.cssText = "width: 100%; display: flex; flex-direction: column; gap: 16px;";
+    form.classList.add('codform-enhanced-form');
     
     allFields.forEach((field, index) => {
       if (!field || !field.type) {
@@ -152,20 +155,24 @@ function renderCodform(formData, containerId) {
         return;
       }
       
-      console.log(`🔧 Rendering field ${index + 1}: ${field.type}`);
+      console.log(`🔧 Rendering enhanced field ${index + 1}: ${field.type}`);
       
-      const fieldElement = createFieldElement(field, formDirection, primaryColor);
+      const fieldElement = createEnhancedFieldElement(field, formDirection, primaryColor);
       if (fieldElement) {
         form.appendChild(fieldElement);
       }
     });
     
     container.appendChild(form);
-    console.log("✅ Form rendered successfully");
+    
+    // تطبيق التحسينات والتأثيرات
+    applyEnhancedEffects(container);
+    
+    console.log("✅ Enhanced form rendered successfully");
     return true;
     
   } catch (error) {
-    console.error("❌ Error in renderCodform:", error);
+    console.error("❌ Error in enhanced renderCodform:", error);
     const container = document.getElementById(containerId);
     if (container) {
       container.innerHTML = '<div style="padding: 20px; text-align: center; color: #ff0000; border: 1px solid #ff0000; border-radius: 8px;">حدث خطأ في عرض النموذج: ' + error.message + '</div>';
@@ -174,25 +181,22 @@ function renderCodform(formData, containerId) {
   }
 }
 
-// دالة إنشاء عناصر الحقول
-function createFieldElement(field, direction, primaryColor) {
-  const wrapper = document.createElement("div");
-  wrapper.style.cssText = "margin-bottom: 16px; width: 100%;";
-  
+// دالة إنشاء عناصر الحقول المحسنة
+function createEnhancedFieldElement(field, direction, primaryColor) {
   switch (field.type) {
     case "form-title":
-      return createFormTitle(field, direction);
+      return createEnhancedFormTitle(field, direction);
       
     case "text":
     case "email":
     case "phone":
-      return createTextInput(field, direction);
+      return createEnhancedTextInput(field, direction, primaryColor);
       
     case "textarea":
-      return createTextarea(field, direction);
+      return createEnhancedTextarea(field, direction, primaryColor);
       
     case "submit":
-      return createSubmitButton(field, primaryColor);
+      return createEnhancedSubmitButton(field, primaryColor);
       
     case "text/html":
       return createHtmlContent(field);
@@ -201,22 +205,23 @@ function createFieldElement(field, direction, primaryColor) {
       console.warn("⚠️ Unknown field type:", field.type);
       const genericDiv = document.createElement("div");
       genericDiv.textContent = field.label || `حقل من نوع ${field.type}`;
-      genericDiv.style.cssText = "padding: 10px; background: #f0f0f0; border-radius: 4px; margin-bottom: 16px;";
+      genericDiv.style.cssText = "padding: 12px; background: #ffffff; border-radius: 8px; margin-bottom: 16px; border: 1px solid #e5e7eb;";
       return genericDiv;
   }
 }
 
-// دالة إنشاء عنوان النموذج
-function createFormTitle(field, direction) {
+// دالة إنشاء عنوان النموذج المحسن
+function createEnhancedFormTitle(field, direction) {
   const titleText = field.content || field.label || "";
   if (!titleText) return null;
   
   const titleElement = document.createElement("div");
+  titleElement.classList.add('codform-title-field');
   
   const fieldStyle = field.style || {};
   const textColor = fieldStyle.color || "#000000";
   const fontSize = fieldStyle.fontSize || "1.5rem";
-  const fontWeight = fieldStyle.fontWeight || "600";
+  const fontWeight = fieldStyle.fontWeight || "700";
   const textAlign = fieldStyle.textAlign || "center";
   
   titleElement.style.cssText = `
@@ -229,19 +234,76 @@ function createFormTitle(field, direction) {
     direction: ${direction};
     background: transparent;
     border: none;
-    padding: 12px 0;
+    padding: 0;
     width: 100%;
     display: block;
+    font-family: 'Cairo', system-ui, Arial, sans-serif;
   `;
   
   titleElement.textContent = titleText;
   return titleElement;
 }
 
-// دالة إنشاء حقل إدخال نص
-function createTextInput(field, direction) {
+// دالة إنشاء حقل إدخال نص محسن مع الأيقونات
+function createEnhancedTextInput(field, direction, primaryColor) {
   const wrapper = document.createElement("div");
-  wrapper.style.cssText = "margin-bottom: 16px; width: 100%;";
+  wrapper.classList.add('codform-field');
+  wrapper.style.cssText = `
+    margin-bottom: 16px;
+    width: 100%;
+    background-color: #ffffff;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  `;
+  
+  // إضافة تسمية الحقل
+  if (field.label) {
+    const label = document.createElement("label");
+    label.textContent = field.label;
+    if (field.required) {
+      label.innerHTML += '<span style="color: #ef4444; margin-left: 4px;">*</span>';
+    }
+    label.style.cssText = `
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #374151;
+      font-size: 16px;
+      font-family: 'Cairo', system-ui, Arial, sans-serif;
+    `;
+    wrapper.appendChild(label);
+  }
+  
+  // حاوية الإدخال مع الأيقونة
+  const inputContainer = document.createElement("div");
+  inputContainer.classList.add('codform-field-wrapper');
+  inputContainer.style.cssText = "position: relative; display: block;";
+  
+  // إضافة الأيقونة
+  if (field.icon && field.style?.showIcon !== false) {
+    const iconElement = document.createElement("div");
+    iconElement.classList.add('codform-field-icon');
+    iconElement.style.cssText = `
+      position: absolute;
+      ${direction === 'rtl' ? 'right: 12px; left: auto;' : 'left: 12px; right: auto;'}
+      top: 50%;
+      transform: translateY(-50%);
+      color: #9ca3af;
+      width: 18px;
+      height: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      z-index: 2;
+    `;
+    
+    // رسم الأيقونة بـ SVG
+    iconElement.innerHTML = getIconSVG(field.icon);
+    inputContainer.appendChild(iconElement);
+  }
   
   const input = document.createElement("input");
   
@@ -256,25 +318,88 @@ function createTextInput(field, direction) {
   input.placeholder = field.placeholder || field.label || "";
   input.required = field.required || false;
   
+  const hasIcon = field.icon && field.style?.showIcon !== false;
+  
   input.style.cssText = `
     width: 100%;
     padding: 12px;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    font-size: inherit;
-    font-family: inherit;
-    direction: ${direction};
+    ${direction === 'rtl' 
+      ? `padding-right: ${hasIcon ? '36px' : '12px'}; padding-left: 12px;`
+      : `padding-left: ${hasIcon ? '36px' : '12px'}; padding-right: 12px;`
+    }
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: all 0.2s ease-in-out;
+    font-family: 'Cairo', system-ui, Arial, sans-serif;
+    background-color: #ffffff;
+    color: #1f2937;
     box-sizing: border-box;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    direction: ${direction};
   `;
   
-  wrapper.appendChild(input);
+  // تحسين تأثيرات التركيز
+  input.addEventListener('focus', function() {
+    this.style.borderColor = primaryColor;
+    this.style.boxShadow = `0 0 0 3px rgba(155, 135, 245, 0.2)`;
+  });
+  
+  input.addEventListener('blur', function() {
+    this.style.borderColor = '#d1d5db';
+    this.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.05)';
+  });
+  
+  inputContainer.appendChild(input);
+  wrapper.appendChild(inputContainer);
+  
+  // إضافة نص المساعدة
+  if (field.helpText) {
+    const helpText = document.createElement("p");
+    helpText.textContent = field.helpText;
+    helpText.style.cssText = `
+      font-size: 14px;
+      color: #6b7280;
+      margin-top: 4px;
+      margin-bottom: 0;
+    `;
+    wrapper.appendChild(helpText);
+  }
+  
   return wrapper;
 }
 
-// دالة إنشاء منطقة نص
-function createTextarea(field, direction) {
+// دالة إنشاء منطقة نص محسنة
+function createEnhancedTextarea(field, direction, primaryColor) {
   const wrapper = document.createElement("div");
-  wrapper.style.cssText = "margin-bottom: 16px; width: 100%;";
+  wrapper.classList.add('codform-field');
+  wrapper.style.cssText = `
+    margin-bottom: 16px;
+    width: 100%;
+    background-color: #ffffff;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  `;
+  
+  // إضافة تسمية الحقل
+  if (field.label) {
+    const label = document.createElement("label");
+    label.textContent = field.label;
+    if (field.required) {
+      label.innerHTML += '<span style="color: #ef4444; margin-left: 4px;">*</span>';
+    }
+    label.style.cssText = `
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #374151;
+      font-size: 16px;
+      font-family: 'Cairo', system-ui, Arial, sans-serif;
+    `;
+    wrapper.appendChild(label);
+  }
   
   const textarea = document.createElement("textarea");
   textarea.placeholder = field.placeholder || field.label || "";
@@ -284,47 +409,96 @@ function createTextarea(field, direction) {
   textarea.style.cssText = `
     width: 100%;
     padding: 12px;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    font-size: inherit;
-    font-family: inherit;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 16px;
+    font-family: 'Cairo', system-ui, Arial, sans-serif;
     direction: ${direction};
     resize: vertical;
     box-sizing: border-box;
+    transition: all 0.2s ease-in-out;
+    background-color: #ffffff;
+    color: #1f2937;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   `;
+  
+  // تحسين تأثيرات التركيز
+  textarea.addEventListener('focus', function() {
+    this.style.borderColor = primaryColor;
+    this.style.boxShadow = `0 0 0 3px rgba(155, 135, 245, 0.2)`;
+  });
+  
+  textarea.addEventListener('blur', function() {
+    this.style.borderColor = '#d1d5db';
+    this.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.05)';
+  });
   
   wrapper.appendChild(textarea);
   return wrapper;
 }
 
-// دالة إنشاء زر الإرسال
-function createSubmitButton(field, primaryColor) {
+// دالة إنشاء زر الإرسال المحسن مع التأثيرات
+function createEnhancedSubmitButton(field, primaryColor) {
   const wrapper = document.createElement("div");
-  wrapper.style.cssText = "margin-bottom: 16px; width: 100%;";
+  wrapper.style.cssText = "margin-top: 20px; width: 100%;";
   
   const button = document.createElement("button");
   button.type = "submit";
   button.textContent = field.label || "إرسال";
+  button.classList.add('codform-submit-btn');
   
   const buttonBg = field.style?.backgroundColor || primaryColor;
   const buttonColor = field.style?.color || "#ffffff";
+  const animation = field.style?.animation;
+  const animationType = field.style?.animationType || 'pulse';
   
   button.style.cssText = `
     background-color: ${buttonBg};
     color: ${buttonColor};
     border: none;
-    padding: 12px 24px;
-    border-radius: 6px;
-    font-size: inherit;
+    padding: 14px 24px;
+    border-radius: 8px;
+    font-size: 18px;
     font-weight: 600;
     cursor: pointer;
     width: 100%;
-    transition: opacity 0.2s;
+    transition: all 0.3s ease;
     box-sizing: border-box;
+    font-family: 'Cairo', system-ui, Arial, sans-serif;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
   `;
   
-  button.addEventListener('mouseenter', () => button.style.opacity = '0.9');
-  button.addEventListener('mouseleave', () => button.style.opacity = '1');
+  // إضافة التأثيرات المتحركة
+  if (animation && animationType) {
+    applyButtonAnimation(button, animationType);
+  }
+  
+  // تحسين تأثيرات التفاعل
+  button.addEventListener('mouseenter', function() {
+    this.style.opacity = '0.9';
+    this.style.transform = 'translateY(-2px)';
+    this.style.boxShadow = '0 6px 12px rgba(0, 0, 0, 0.15)';
+  });
+  
+  button.addEventListener('mouseleave', function() {
+    this.style.opacity = '1';
+    this.style.transform = 'translateY(0)';
+    this.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+  });
+  
+  button.addEventListener('mousedown', function() {
+    this.style.transform = 'translateY(0) scale(0.98)';
+  });
+  
+  button.addEventListener('mouseup', function() {
+    this.style.transform = 'translateY(-2px) scale(1)';
+  });
   
   wrapper.appendChild(button);
   return wrapper;
@@ -338,9 +512,89 @@ function createHtmlContent(field) {
   return wrapper;
 }
 
+// دالة الحصول على أيقونة SVG
+function getIconSVG(iconType) {
+  const iconMap = {
+    'user': '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    'phone': '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M22 16.92V19.92C22.0011 20.1985 21.9441 20.4742 21.8325 20.7293C21.7209 20.9845 21.5573 21.2136 21.3521 21.4019C21.1468 21.5901 20.9046 21.7335 20.6407 21.8227C20.3769 21.9119 20.0974 21.9451 19.82 21.92C16.7428 21.5856 13.787 20.5341 11.19 18.85C8.77382 17.3147 6.72533 15.2662 5.18999 12.85C3.49997 10.2412 2.44824 7.27099 2.11999 4.18C2.095 3.90347 2.12787 3.62476 2.21649 3.36162C2.30512 3.09849 2.44756 2.85669 2.63476 2.65162C2.82196 2.44655 3.0498 2.28271 3.30379 2.17052C3.55777 2.05833 3.83233 2.00026 4.10999 2H7.10999C7.5953 1.99522 8.06579 2.16708 8.43376 2.48353C8.80173 2.79999 9.04207 3.23945 9.10999 3.72C9.23662 4.68007 9.47144 5.62273 9.80999 6.53C9.94454 6.88792 9.97366 7.27691 9.8939 7.65088C9.81415 8.02485 9.62886 8.36811 9.35999 8.64L8.08999 9.91C9.51355 12.4135 11.5865 14.4864 14.09 15.91L15.36 14.64C15.6319 14.3711 15.9751 14.1858 16.3491 14.1061C16.7231 14.0263 17.1121 14.0555 17.47 14.19C18.3773 14.5286 19.3199 14.7634 20.28 14.89C20.7658 14.9585 21.2094 15.2032 21.5265 15.5775C21.8437 15.9518 22.0122 16.4296 22 16.92Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    'map-pin': '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M21 10C21 17 12 23 12 23S3 17 3 10C3 7.61305 3.94821 5.32387 5.63604 3.63604C7.32387 1.94821 9.61305 1 12 1C14.3869 1 16.6761 1.94821 18.3639 3.63604C20.0518 5.32387 21 7.61305 21 10Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="10" r="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    'mail': '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 4H20C21.1 4 22 4.9 22 6V18C22 19.1 21.1 20 20 20H4C2.9 20 2 19.1 2 18V6C2 4.9 2.9 4 4 4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="22,6 12,13 2,6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    'message-square': '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+  };
+  
+  return iconMap[iconType] || iconMap['user'];
+}
+
+// دالة تطبيق التحريك للأزرار
+function applyButtonAnimation(button, animationType) {
+  const animations = {
+    'pulse': 'pulse 2s infinite ease-in-out',
+    'bounce': 'bounce 2s infinite ease-in-out',
+    'shake': 'shake 0.8s infinite ease-in-out',
+    'wiggle': 'wiggle 0.7s infinite ease-in-out',
+    'flash': 'flash 3s infinite ease-in-out'
+  };
+  
+  if (animations[animationType]) {
+    button.style.animation = animations[animationType];
+  }
+}
+
+// دالة تطبيق التحسينات والتأثيرات العامة
+function applyEnhancedEffects(container) {
+  // إضافة تأثيرات CSS المتقدمة
+  const style = document.createElement('style');
+  style.textContent = `
+    .codform-enhanced-form {
+      animation: fadeIn 0.5s ease-out;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    
+    @keyframes bounce {
+      0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+      40% { transform: translateY(-10px); }
+      60% { transform: translateY(-5px); }
+    }
+    
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      10%, 90% { transform: translateX(-2px); }
+      20%, 80% { transform: translateX(4px); }
+      30%, 50%, 70% { transform: translateX(-6px); }
+      40%, 60% { transform: translateX(6px); }
+    }
+    
+    @keyframes wiggle {
+      0%, 100% { transform: rotate(0deg); }
+      25% { transform: rotate(-5deg); }
+      50% { transform: rotate(0deg); }
+      75% { transform: rotate(5deg); }
+    }
+    
+    @keyframes flash {
+      0%, 50%, 100% { opacity: 1; }
+      25%, 75% { opacity: 0.5; }
+    }
+  `;
+  
+  if (!document.head.querySelector('style[data-codform-animations]')) {
+    style.setAttribute('data-codform-animations', 'true');
+    document.head.appendChild(style);
+  }
+}
+
 // الكود الرئيسي للبلوك
 document.addEventListener('DOMContentLoaded', function() {
-  console.log("🚀 Codform block script started for block: {{ block.id }}");
+  console.log("🚀 Enhanced Codform block script started for block: {{ block.id }}");
   
   const blockId = "{{ block.id }}";
   const container = document.getElementById('codform-container-' + blockId);
@@ -378,7 +632,7 @@ document.addEventListener('DOMContentLoaded', function() {
       return;
     }
     
-    console.log("📡 Fetching form data...", { productId, shop, blockId });
+    console.log("📡 Fetching enhanced form data...", { productId, shop, blockId });
     
     const apiUrl = `https://mtyfuwdsshlzqwjujavp.supabase.co/functions/v1/forms-product?shop=${encodeURIComponent(shop)}&productId=${encodeURIComponent(productId)}&blockId=${encodeURIComponent(blockId)}`;
     
@@ -391,7 +645,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return response.json();
       })
       .then(data => {
-        console.log("📋 Form data received:", data);
+        console.log("📋 Enhanced form data received:", data);
         
         if (data && data.form) {
           renderFormData(data.form);
@@ -400,18 +654,18 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       })
       .catch(error => {
-        console.error("❌ Error fetching form:", error);
+        console.error("❌ Error fetching enhanced form:", error);
         showError("حدث خطأ أثناء تحميل النموذج: " + error.message);
       });
   }
   
   function renderFormData(formData) {
-    console.log("🎨 Starting form render with inline function...");
+    console.log("🎨 Starting enhanced form render...");
     hideLoading();
     
     try {
       const containerId = 'codform-form-' + blockId;
-      console.log("🔧 Calling inline renderCodform with:", { formData, containerId });
+      console.log("🔧 Calling enhanced renderCodform with:", { formData, containerId });
       
       const success = renderCodform(formData, containerId);
       
@@ -419,13 +673,13 @@ document.addEventListener('DOMContentLoaded', function() {
         if (formContainer) {
           formContainer.style.display = 'block';
         }
-        console.log("✅ Form rendered successfully with inline function");
+        console.log("✅ Enhanced form rendered successfully");
       } else {
         showError("فشل في عرض النموذج");
       }
       
     } catch (error) {
-      console.error("❌ Error calling inline renderCodform:", error);
+      console.error("❌ Error calling enhanced renderCodform:", error);
       showError("حدث خطأ أثناء عرض النموذج: " + error.message);
     }
   }
@@ -458,14 +712,14 @@ document.addEventListener('DOMContentLoaded', function() {
       errorContainer.style.display = 'block';
     }
     
-    console.error("❌ Error shown to user:", message);
+    console.error("❌ Enhanced error shown to user:", message);
   }
 });
 </script>
 
 <style>
 .codform-container {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: 'Cairo', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   margin: 20px 0;
   max-width: 800px;
   margin-left: auto;
