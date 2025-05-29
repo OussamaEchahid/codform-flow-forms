@@ -88,7 +88,7 @@
 </div>
 
 <script>
-// دالة عرض النموذج المحسنة - تطابق المعاينة تماماً
+// دالة عرض النموذج المحسنة بدون خلفيات إضافية
 function renderCodform(formData, containerId) {
   console.log("🎯 Enhanced renderCodform called", { formData, containerId });
   
@@ -101,7 +101,7 @@ function renderCodform(formData, containerId) {
     
     if (!formData || !formData.data) {
       console.error("❌ Invalid form data:", formData);
-      container.innerHTML = '<div style="padding: 20px; text-align: center; color: #666; border: 1px solid #ddd; border-radius: 8px;">خطأ في تحميل النموذج - البيانات غير صحيحة</div>';
+      container.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">خطأ في تحميل النموذج - البيانات غير صحيحة</div>';
       return false;
     }
     
@@ -115,9 +115,8 @@ function renderCodform(formData, containerId) {
     const fontSize = style.fontSize || "16px";
     const formDirection = style.formDirection || "ltr";
     
-    // تطبيق التنسيق المحسن للحاوية
+    // تطبيق التنسيق للحاوية بدون خلفية إضافية
     container.style.cssText = `
-      background-color: ${backgroundColor};
       border-radius: ${borderRadius};
       font-size: ${fontSize};
       direction: ${formDirection};
@@ -126,7 +125,7 @@ function renderCodform(formData, containerId) {
       max-width: 100%;
       box-sizing: border-box;
       border: 2px solid ${primaryColor};
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      background-color: ${backgroundColor};
     `;
     
     let allFields = [];
@@ -146,7 +145,7 @@ function renderCodform(formData, containerId) {
     }
     
     const form = document.createElement("form");
-    form.style.cssText = "width: 100%; display: flex; flex-direction: column; gap: 16px;";
+    form.style.cssText = "width: 100%; display: flex; flex-direction: column; gap: 16px; background: transparent;";
     form.classList.add('codform-enhanced-form');
     
     allFields.forEach((field, index) => {
@@ -157,7 +156,7 @@ function renderCodform(formData, containerId) {
       
       console.log(`🔧 Rendering enhanced field ${index + 1}: ${field.type}`);
       
-      const fieldElement = createEnhancedFieldElement(field, formDirection, primaryColor);
+      const fieldElement = createEnhancedFieldElement(field, formDirection, primaryColor, backgroundColor);
       if (fieldElement) {
         form.appendChild(fieldElement);
       }
@@ -175,14 +174,14 @@ function renderCodform(formData, containerId) {
     console.error("❌ Error in enhanced renderCodform:", error);
     const container = document.getElementById(containerId);
     if (container) {
-      container.innerHTML = '<div style="padding: 20px; text-align: center; color: #ff0000; border: 1px solid #ff0000; border-radius: 8px;">حدث خطأ في عرض النموذج: ' + error.message + '</div>';
+      container.innerHTML = '<div style="padding: 20px; text-align: center; color: #ff0000;">حدث خطأ في عرض النموذج: ' + error.message + '</div>';
     }
     return false;
   }
 }
 
-// دالة إنشاء عناصر الحقول المحسنة
-function createEnhancedFieldElement(field, direction, primaryColor) {
+// دالة إنشاء عناصر الحقول بدون خلفيات إضافية
+function createEnhancedFieldElement(field, direction, primaryColor, formBackgroundColor) {
   switch (field.type) {
     case "form-title":
       return createEnhancedFormTitle(field, direction);
@@ -190,10 +189,10 @@ function createEnhancedFieldElement(field, direction, primaryColor) {
     case "text":
     case "email":
     case "phone":
-      return createEnhancedTextInput(field, direction, primaryColor);
+      return createEnhancedTextInput(field, direction, primaryColor, formBackgroundColor);
       
     case "textarea":
-      return createEnhancedTextarea(field, direction, primaryColor);
+      return createEnhancedTextarea(field, direction, primaryColor, formBackgroundColor);
       
     case "submit":
       return createEnhancedSubmitButton(field, primaryColor);
@@ -205,12 +204,12 @@ function createEnhancedFieldElement(field, direction, primaryColor) {
       console.warn("⚠️ Unknown field type:", field.type);
       const genericDiv = document.createElement("div");
       genericDiv.textContent = field.label || `حقل من نوع ${field.type}`;
-      genericDiv.style.cssText = "padding: 12px; background: #ffffff; border-radius: 8px; margin-bottom: 16px; border: 1px solid #e5e7eb;";
+      genericDiv.style.cssText = "padding: 12px; margin-bottom: 16px;";
       return genericDiv;
   }
 }
 
-// دالة إنشاء عنوان النموذج المحسن
+// دالة إنشاء عنوان النموذج بدون خلفية
 function createEnhancedFormTitle(field, direction) {
   const titleText = field.content || field.label || "";
   if (!titleText) return null;
@@ -244,18 +243,17 @@ function createEnhancedFormTitle(field, direction) {
   return titleElement;
 }
 
-// دالة إنشاء حقل إدخال نص محسن مع الأيقونات
-function createEnhancedTextInput(field, direction, primaryColor) {
+// دالة إنشاء حقل إدخال نص بدون خلفية إضافية
+function createEnhancedTextInput(field, direction, primaryColor, formBackgroundColor) {
   const wrapper = document.createElement("div");
   wrapper.classList.add('codform-field');
   wrapper.style.cssText = `
     margin-bottom: 16px;
     width: 100%;
-    background-color: #ffffff;
-    padding: 12px;
-    border-radius: 8px;
-    border: 1px solid #e5e7eb;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    background: transparent;
+    padding: 0;
+    border: none;
+    box-shadow: none;
   `;
   
   // إضافة تسمية الحقل
@@ -369,18 +367,17 @@ function createEnhancedTextInput(field, direction, primaryColor) {
   return wrapper;
 }
 
-// دالة إنشاء منطقة نص محسنة
-function createEnhancedTextarea(field, direction, primaryColor) {
+// دالة إنشاء منطقة نص بدون خلفية إضافية
+function createEnhancedTextarea(field, direction, primaryColor, formBackgroundColor) {
   const wrapper = document.createElement("div");
   wrapper.classList.add('codform-field');
   wrapper.style.cssText = `
     margin-bottom: 16px;
     width: 100%;
-    background-color: #ffffff;
-    padding: 12px;
-    border-radius: 8px;
-    border: 1px solid #e5e7eb;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    background: transparent;
+    padding: 0;
+    border: none;
+    box-shadow: none;
   `;
   
   // إضافة تسمية الحقل
@@ -437,10 +434,10 @@ function createEnhancedTextarea(field, direction, primaryColor) {
   return wrapper;
 }
 
-// دالة إنشاء زر الإرسال المحسن مع التأثيرات
+// دالة إنشاء زر الإرسال مع التأثيرات
 function createEnhancedSubmitButton(field, primaryColor) {
   const wrapper = document.createElement("div");
-  wrapper.style.cssText = "margin-top: 20px; width: 100%;";
+  wrapper.style.cssText = "margin-top: 20px; width: 100%; background: transparent;";
   
   const button = document.createElement("button");
   button.type = "submit";
@@ -492,14 +489,6 @@ function createEnhancedSubmitButton(field, primaryColor) {
     this.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
   });
   
-  button.addEventListener('mousedown', function() {
-    this.style.transform = 'translateY(0) scale(0.98)';
-  });
-  
-  button.addEventListener('mouseup', function() {
-    this.style.transform = 'translateY(-2px) scale(1)';
-  });
-  
   wrapper.appendChild(button);
   return wrapper;
 }
@@ -507,7 +496,7 @@ function createEnhancedSubmitButton(field, primaryColor) {
 // دالة إنشاء محتوى HTML
 function createHtmlContent(field) {
   const wrapper = document.createElement("div");
-  wrapper.style.cssText = "margin-bottom: 16px; width: 100%;";
+  wrapper.style.cssText = "margin-bottom: 16px; width: 100%; background: transparent;";
   wrapper.innerHTML = field.content || "<p>محتوى HTML</p>";
   return wrapper;
 }
