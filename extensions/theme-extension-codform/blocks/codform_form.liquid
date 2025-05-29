@@ -102,7 +102,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   // Show loading
-  if (loader) loader.style.display = 'flex';
+  showLoading();
   
   // Add retry functionality
   if (retryButton) {
@@ -110,12 +110,12 @@ document.addEventListener('DOMContentLoaded', function() {
       console.log("🔄 Retry button clicked");
       hideError();
       showLoading();
-      fetchAndRenderForm();
+      setTimeout(fetchAndRenderForm, 100); // Small delay to ensure UI updates
     });
   }
   
-  // Start the process
-  fetchAndRenderForm();
+  // Start the process with a small delay to ensure JS is loaded
+  setTimeout(fetchAndRenderForm, 500);
   
   function fetchAndRenderForm() {
     const productId = container.getAttribute('data-product-id');
@@ -160,33 +160,49 @@ document.addEventListener('DOMContentLoaded', function() {
     // Hide loading
     hideLoading();
     
-    // Check if renderCodform function exists
-    if (typeof window.renderCodform !== 'function') {
-      console.error("❌ renderCodform function not found!");
-      showError("مشكلة في تحميل مكتبة النموذج");
-      return;
+    // Wait for renderCodform function to be available
+    let attempts = 0;
+    const maxAttempts = 10;
+    
+    function tryRender() {
+      attempts++;
+      
+      if (typeof window.renderCodform === 'function') {
+        console.log("✅ renderCodform function found, calling it");
+        
+        try {
+          const containerId = 'codform-form-' + blockId;
+          console.log("🔧 Calling renderCodform with:", { formData, containerId });
+          
+          const success = window.renderCodform(formData, containerId);
+          
+          if (success) {
+            // Show the form container
+            if (formContainer) {
+              formContainer.style.display = 'block';
+            }
+            console.log("✅ Form rendered successfully");
+          } else {
+            showError("فشل في عرض النموذج");
+          }
+          
+        } catch (error) {
+          console.error("❌ Error calling renderCodform:", error);
+          showError("حدث خطأ أثناء عرض النموذج: " + error.message);
+        }
+      } else {
+        console.log(`⏳ renderCodform not ready yet, attempt ${attempts}/${maxAttempts}`);
+        
+        if (attempts < maxAttempts) {
+          setTimeout(tryRender, 200); // Try again after 200ms
+        } else {
+          console.error("❌ renderCodform function not found after maximum attempts!");
+          showError("مشكلة في تحميل مكتبة النموذج - تعذر العثور على الدالة");
+        }
+      }
     }
     
-    try {
-      // Create unique container ID
-      const containerId = 'codform-form-' + blockId;
-      
-      console.log("🔧 Calling renderCodform with:", { formData, containerId });
-      
-      // Call the render function
-      window.renderCodform(formData, containerId);
-      
-      // Show the form container
-      if (formContainer) {
-        formContainer.style.display = 'block';
-      }
-      
-      console.log("✅ Form rendered successfully");
-      
-    } catch (error) {
-      console.error("❌ Error rendering form:", error);
-      showError("حدث خطأ أثناء عرض النموذج: " + error.message);
-    }
+    tryRender();
   }
   
   function showLoading() {
@@ -198,6 +214,10 @@ document.addEventListener('DOMContentLoaded', function() {
   
   function hideLoading() {
     if (loader) loader.style.display = 'none';
+  }
+  
+  function hideError() {
+    if (errorContainer) errorContainer.style.display = 'none';
   }
   
   function showError(message) {
