@@ -256,12 +256,12 @@ function createFormTitle(field, direction) {
   return titleElement;
 }
 
-// دالة إنشاء حقل إدخال نص - محسنة مع خلفية بيضاء للحقول فقط
+// دالة إنشاء حقل إدخال نص - محسنة لتطابق المعاينة بدقة
 function createTextInput(field, direction, primaryColor) {
   const wrapper = document.createElement("div");
   wrapper.classList.add('codform-field');
   wrapper.style.cssText = `
-    margin-bottom: 0;
+    margin-bottom: 16px;
     width: 100%;
     background: transparent;
     padding: 0;
@@ -278,16 +278,16 @@ function createTextInput(field, direction, primaryColor) {
       display: block;
       margin-bottom: 8px;
       font-weight: 600;
-      color: #374151;
+      color: #334155;
       font-size: 16px;
-      font-family: 'Cairo', system-ui, Arial, sans-serif;
+      font-family: inherit;
       background: transparent;
       padding: 0;
     `;
     wrapper.appendChild(label);
   }
   
-  // حاوية الإدخال مع الأيقونة
+  // حاوية الإدخال مع الأيقونة - بدون خلفيات إضافية
   const inputContainer = document.createElement("div");
   inputContainer.classList.add('codform-input-wrapper');
   inputContainer.style.cssText = `
@@ -297,30 +297,6 @@ function createTextInput(field, direction, primaryColor) {
     padding: 0;
     margin: 0;
   `;
-  
-  // إضافة الأيقونة مع تحسينات لمنع التشابك
-  if (field.icon && field.style?.showIcon !== false) {
-    const iconElement = document.createElement("div");
-    iconElement.classList.add('codform-icon');
-    iconElement.style.cssText = `
-      position: absolute;
-      ${direction === 'rtl' ? 'right: 14px; left: auto;' : 'left: 14px; right: auto;'}
-      top: 50%;
-      transform: translateY(-50%);
-      color: #9ca3af;
-      width: 16px;
-      height: 16px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      pointer-events: none;
-      z-index: 10;
-      background: transparent;
-    `;
-    
-    iconElement.innerHTML = getIconSVG(field.icon);
-    inputContainer.appendChild(iconElement);
-  }
   
   const input = document.createElement("input");
   
@@ -334,38 +310,70 @@ function createTextInput(field, direction, primaryColor) {
   
   input.placeholder = field.placeholder || field.label || "";
   input.required = field.required || false;
+  input.classList.add('w-full', 'outline-none', 'transition-all', 'codform-input');
   
   const hasIcon = field.icon && field.style?.showIcon !== false;
   
+  // تطبيق نفس الأنماط الموجودة في المعاينة
   input.style.cssText = `
-    width: 100%;
-    padding: 14px;
+    color: rgb(31, 41, 55);
+    font-size: 1rem;
+    font-weight: 400;
+    font-family: inherit;
+    background-color: rgb(255, 255, 255);
+    border-color: rgb(209, 213, 219);
+    border-radius: 1.5rem;
+    border-width: 1px;
+    border-style: solid;
+    padding: 10px;
     ${direction === 'rtl' 
-      ? `padding-right: ${hasIcon ? '46px' : '14px'}; padding-left: 14px;`
-      : `padding-left: ${hasIcon ? '46px' : '14px'}; padding-right: 14px;`
+      ? `padding-right: ${hasIcon ? '36px' : '12px'}; padding-left: 12px;`
+      : `padding-left: ${hasIcon ? '36px' : '12px'}; padding-right: 12px;`
     }
-    border: 2px solid #e5e7eb;
-    border-radius: 8px;
-    font-size: 16px;
-    transition: all 0.2s ease-in-out;
-    font-family: 'Cairo', system-ui, Arial, sans-serif;
-    background-color: #ffffff;
-    color: #1f2937;
+    box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px;
+    width: 100%;
+    height: auto;
+    line-height: 1.5;
+    min-height: 44px;
     box-sizing: border-box;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     direction: ${direction};
     outline: none;
+    transition: all 0.2s ease;
   `;
+  
+  // إضافة الأيقونة إذا كانت موجودة - بنفس موقع المعاينة
+  if (hasIcon) {
+    const iconElement = document.createElement("div");
+    iconElement.classList.add('codform-icon');
+    iconElement.style.cssText = `
+      position: absolute;
+      ${direction === 'rtl' ? 'right: 12px; left: auto;' : 'left: 12px; right: auto;'}
+      top: 50%;
+      transform: translateY(-50%);
+      color: #9ca3af;
+      width: 18px;
+      height: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      z-index: 2;
+      background: transparent;
+    `;
+    
+    iconElement.innerHTML = getIconSVG(field.icon);
+    inputContainer.appendChild(iconElement);
+  }
   
   // تحسين تأثيرات التركيز
   input.addEventListener('focus', function() {
     this.style.borderColor = primaryColor;
-    this.style.boxShadow = `0 0 0 3px rgba(155, 135, 245, 0.15)`;
+    this.style.boxShadow = `0 0 0 2px rgba(155, 135, 245, 0.2)`;
   });
   
   input.addEventListener('blur', function() {
-    this.style.borderColor = '#e5e7eb';
-    this.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.05)';
+    this.style.borderColor = 'rgb(209, 213, 219)';
+    this.style.boxShadow = 'rgba(0, 0, 0, 0.05) 0px 1px 2px';
   });
   
   inputContainer.appendChild(input);
@@ -389,12 +397,12 @@ function createTextInput(field, direction, primaryColor) {
   return wrapper;
 }
 
-// دالة إنشاء منطقة نص - محسنة مع خلفية بيضاء
+// دالة إنشاء منطقة نص - محسنة لتطابق المعاينة
 function createTextarea(field, direction, primaryColor) {
   const wrapper = document.createElement("div");
   wrapper.classList.add('codform-field');
   wrapper.style.cssText = `
-    margin-bottom: 0;
+    margin-bottom: 16px;
     width: 100%;
     background: transparent;
     padding: 0;
@@ -411,9 +419,9 @@ function createTextarea(field, direction, primaryColor) {
       display: block;
       margin-bottom: 8px;
       font-weight: 600;
-      color: #374151;
+      color: #334155;
       font-size: 16px;
-      font-family: 'Cairo', system-ui, Arial, sans-serif;
+      font-family: inherit;
       background: transparent;
       padding: 0;
     `;
@@ -426,31 +434,37 @@ function createTextarea(field, direction, primaryColor) {
   textarea.rows = 4;
   
   textarea.style.cssText = `
+    color: rgb(31, 41, 55);
+    font-size: 1rem;
+    font-weight: 400;
+    font-family: inherit;
+    background-color: rgb(255, 255, 255);
+    border-color: rgb(209, 213, 219);
+    border-radius: 1.5rem;
+    border-width: 1px;
+    border-style: solid;
+    padding: 10px 12px;
+    box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px;
     width: 100%;
-    padding: 14px;
-    border: 2px solid #e5e7eb;
-    border-radius: 8px;
-    font-size: 16px;
-    font-family: 'Cairo', system-ui, Arial, sans-serif;
+    height: auto;
+    line-height: 1.5;
+    min-height: 100px;
+    box-sizing: border-box;
     direction: ${direction};
     resize: vertical;
-    box-sizing: border-box;
-    transition: all 0.2s ease-in-out;
-    background-color: #ffffff;
-    color: #1f2937;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     outline: none;
+    transition: all 0.2s ease;
   `;
   
   // تحسين تأثيرات التركيز
   textarea.addEventListener('focus', function() {
     this.style.borderColor = primaryColor;
-    this.style.boxShadow = `0 0 0 3px rgba(155, 135, 245, 0.15)`;
+    this.style.boxShadow = `0 0 0 2px rgba(155, 135, 245, 0.2)`;
   });
   
   textarea.addEventListener('blur', function() {
-    this.style.borderColor = '#e5e7eb';
-    this.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.05)';
+    this.style.borderColor = 'rgb(209, 213, 219)';
+    this.style.boxShadow = 'rgba(0, 0, 0, 0.05) 0px 1px 2px';
   });
   
   wrapper.appendChild(textarea);
@@ -526,7 +540,7 @@ function createSubmitButton(field, primaryColor) {
 function createHtmlContent(field) {
   const wrapper = document.createElement("div");
   wrapper.style.cssText = `
-    margin-bottom: 0; 
+    margin-bottom: 16px; 
     width: 100%; 
     background: transparent;
     padding: 0;
@@ -535,14 +549,14 @@ function createHtmlContent(field) {
   return wrapper;
 }
 
-// دالة الحصول على SVG للأيقونات - محسنة لمنع التشابك
+// دالة الحصول على SVG للأيقونات - محسنة
 function getIconSVG(iconName) {
   const icons = {
-    'user': '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
-    'phone': '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>',
-    'mail': '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-10 5L2 7"/></svg>',
-    'map-pin': '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>',
-    'message-square': '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>'
+    'user': '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+    'phone': '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>',
+    'mail': '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-10 5L2 7"/></svg>',
+    'map-pin': '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>',
+    'message-square': '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>'
   };
   
   return icons[iconName] || icons['user'];
