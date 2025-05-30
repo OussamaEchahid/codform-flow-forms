@@ -28,26 +28,28 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
   
   // Apply styles from field settings - USE DYNAMIC VALUES FROM FIELD.STYLE
   const fieldStyle = field.style || {};
-  const textColor = fieldStyle.color || '#000000'; // Use field color or default black
+  const textColor = fieldStyle.color || '#000000';
   const fontSize = fieldStyle.fontSize || '1.5rem';
-  const fontWeight = fieldStyle.fontWeight || '600';
-  const fontFamily = fieldStyle.fontFamily || 'Tajawal, Arial, sans-serif';
-  const textAlign = fieldStyle.textAlign || 'center';
+  const fontWeight = fieldStyle.fontWeight || '700';
+  const fontFamily = fieldStyle.fontFamily || 'Cairo, Tajawal, Arial, sans-serif';
+  
+  // ALWAYS center align the title regardless of form direction
+  const textAlign = 'center';
   
   // Get padding values with defaults
-  const paddingTop = fieldStyle.paddingTop || '12px';
-  const paddingBottom = fieldStyle.paddingBottom || '12px';
+  const paddingTop = fieldStyle.paddingTop || '0px';
+  const paddingBottom = fieldStyle.paddingBottom || '20px';
   const paddingLeft = fieldStyle.paddingLeft || '0px';
   const paddingRight = fieldStyle.paddingRight || '0px';
 
-  // CLEAN title style - NO BACKGROUND, just text styling
+  // Clean title style with proper centering
   const titleStyle: React.CSSProperties = {
     color: textColor,
     fontSize: fontSize,
     fontWeight: fontWeight,
     fontFamily: fontFamily,
-    textAlign: textAlign as 'left' | 'center' | 'right',
-    margin: '0 0 1rem 0',
+    textAlign: textAlign,
+    margin: '0 0 20px 0',
     lineHeight: '1.4',
     direction: formStyle.formDirection || 'ltr',
     paddingTop: paddingTop,
@@ -56,19 +58,18 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
     paddingRight: paddingRight,
     width: '100%',
     display: 'block',
-    backgroundColor: 'transparent', // ALWAYS transparent
+    backgroundColor: 'transparent',
     background: 'none',
     border: 'none',
   };
 
-  console.log('FormTitleField CLEAN RENDERING:', {
+  console.log('FormTitleField CENTERED RENDERING:', {
     titleText,
     textColor,
     fontSize,
     fontWeight,
-    textAlign,
-    fieldStyle: fieldStyle,
-    backgroundColor: 'transparent'
+    textAlign: 'center',
+    fieldStyle: fieldStyle
   });
 
   return (
@@ -77,8 +78,7 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
       style={titleStyle}
       data-field-type="form-title"
       data-field-id={field.id}
-      data-text-color={textColor}
-      data-background="transparent"
+      data-text-align="center"
       data-clean-title="true"
     >
       {titleText}

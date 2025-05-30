@@ -9,7 +9,6 @@ interface FormStyle {
   borderRadius: string;
   fontSize: string;
   buttonStyle: string;
-  // Add new style properties
   borderColor?: string;
   borderWidth?: string;
   backgroundColor?: string;
@@ -39,14 +38,10 @@ const deepCloneFields = (fields: FormField[]): FormField[] => {
   if (!fields) return [];
   
   return fields.map(field => {
-    // Create a complete deep copy of the field
     const newField = deepCloneField(field);
-    
-    // Ensure style object is correctly copied with all properties
     if (field.style) {
       newField.style = JSON.parse(JSON.stringify(field.style));
     }
-    
     return newField;
   });
 };
@@ -64,24 +59,19 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
 }) => {
   const { language } = useI18n();
   
-  // Use internal refresh key to prevent render loops
   const [internalRefreshKey, setInternalRefreshKey] = useState(0);
   
-  // Only update internal key when refresh key increases
   useEffect(() => {
     if (refreshKey > internalRefreshKey) {
       setInternalRefreshKey(refreshKey);
     }
   }, [refreshKey, internalRefreshKey]);
   
-  // Process all fields with deep cloning to prevent mutations - critical for form stability
   const processedFields = useMemo(() => {
     console.log("Processing fields for preview, original count:", fields?.length || 0);
     
-    // Create a deep copy of all fields to prevent mutations
     const clonedFields = deepCloneFields(fields);
     
-    // Add default submit button if needed
     const hasSubmitButton = clonedFields.some(field => field.type === 'submit');
     
     if (!hasSubmitButton) {
@@ -100,13 +90,10 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
       clonedFields.push(submitButton);
     }
     
-    // Apply current form direction to all fields that need it
     if (formStyle.formDirection) {
       return clonedFields.map(field => {
-        // Skip fields that already have explicit direction
         if (field.style?.textAlign) return field;
         
-        // Only update specific field types that benefit from direction
         if (['text', 'textarea', 'email', 'phone'].includes(field.type)) {
           return {
             ...field,
@@ -125,14 +112,13 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     return clonedFields;
   }, [fields, language, formStyle.primaryColor, formStyle.backgroundColor, formStyle.borderRadius, formStyle.formDirection]);
 
-  // Prepare form style for preview with default background color
-  // Make sure we have all required style properties with default values
+  // Enhanced form style with proper borders and background
   const previewFormStyle = {
     ...formStyle,
-    backgroundColor: formStyle.backgroundColor || '#F9FAFB', // Default background color
-    borderRadius: formStyle.borderRadius || '1.5rem', // Large border radius
-    borderColor: formStyle.borderColor || '#9b87f5', // Default border color
-    borderWidth: formStyle.borderWidth || '2px',     // Default border width
+    backgroundColor: formStyle.backgroundColor || '#ffffff',
+    borderRadius: formStyle.borderRadius || '12px',
+    borderColor: formStyle.borderColor || '#9b87f5',
+    borderWidth: formStyle.borderWidth || '2px',
   };
 
   return (
@@ -141,7 +127,14 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
         {language === 'ar' ? 'معاينة مباشرة' : 'Live Preview'}
       </h3>
       
-      <div className="border rounded-lg p-3 bg-gray-50">
+      {/* Enhanced preview container with proper styling that matches Shopify */}
+      <div 
+        className="rounded-xl p-6 shadow-sm"
+        style={{
+          backgroundColor: '#f8fafc',
+          border: '1px solid #e2e8f0'
+        }}
+      >
         <FormPreview 
           key={`preview-${internalRefreshKey}`}
           formTitle=""
