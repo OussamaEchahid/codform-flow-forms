@@ -40,7 +40,8 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   const fontSize = fieldStyle.fontSize || '1rem';
   const fontWeight = fieldStyle.fontWeight || '400';
   
-  const backgroundColor = fieldStyle.backgroundColor || 'rgb(255, 255, 255)';
+  // مهم: خلفية شفافة للحقول لتعتمد على خلفية النموذج
+  const backgroundColor = 'transparent';
   const borderColor = fieldStyle.borderColor || 'rgb(209, 213, 219)';
   const borderWidth = fieldStyle.borderWidth || '1px';
   const borderRadius = fieldStyle.borderRadius || '1.5rem';
@@ -97,7 +98,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   return (
     <div 
       className="mb-4" 
-      style={{ marginBottom: '16px' }}
+      style={{ marginBottom: '16px', background: 'transparent' }}
       dir={language === 'ar' ? 'rtl' : 'ltr'}
     >
       {showLabel && (
@@ -111,6 +112,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
             fontFamily: fontFamily,
             marginBottom: '8px',
             display: 'block',
+            backgroundColor: 'transparent',
             background: 'transparent',
             padding: '0'
           }}

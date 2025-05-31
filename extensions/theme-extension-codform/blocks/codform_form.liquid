@@ -88,7 +88,7 @@
 </div>
 
 <script>
-// دالة عرض النموذج - محسنة لتطابق المعاينة بدقة
+// دالة عرض النموذج - مطابقة تماماً للمعاينة
 function renderCodform(formData, containerId) {
   console.log("🎯 Rendering form to match preview exactly", { formData, containerId });
   
@@ -117,7 +117,7 @@ function renderCodform(formData, containerId) {
     const borderColor = style.borderColor || primaryColor;
     const borderWidth = style.borderWidth || "2px";
     
-    // إنشاء الحاوية الرئيسية مع الحد المحيط (مثل المعاينة تماماً)
+    // إنشاء الحاوية الرئيسية للنموذج - مطابقة للمعاينة تماماً
     const formWrapper = document.createElement("div");
     formWrapper.style.cssText = `
       background-color: ${backgroundColor};
@@ -159,6 +159,7 @@ function renderCodform(formData, containerId) {
       gap: 16px;
       margin: 0;
       padding: 0;
+      background: transparent;
     `;
     form.classList.add('codform-clean-form');
     
@@ -170,7 +171,7 @@ function renderCodform(formData, containerId) {
       
       console.log(`🔧 Rendering field ${index + 1}: ${field.type}`);
       
-      const fieldElement = createFieldElement(field, formDirection, primaryColor);
+      const fieldElement = createFieldElement(field, formDirection, primaryColor, backgroundColor);
       if (fieldElement) {
         form.appendChild(fieldElement);
       }
@@ -178,9 +179,6 @@ function renderCodform(formData, containerId) {
     
     formWrapper.appendChild(form);
     container.appendChild(formWrapper);
-    
-    // تطبيق التحسينات والتأثيرات
-    applyFormEffects(container);
     
     console.log("✅ Form rendered successfully matching preview design");
     return true;
@@ -196,7 +194,7 @@ function renderCodform(formData, containerId) {
 }
 
 // دالة إنشاء عناصر الحقول
-function createFieldElement(field, direction, primaryColor) {
+function createFieldElement(field, direction, primaryColor, formBackground) {
   switch (field.type) {
     case "form-title":
       return createFormTitle(field, direction);
@@ -204,10 +202,10 @@ function createFieldElement(field, direction, primaryColor) {
     case "text":
     case "email":
     case "phone":
-      return createTextInput(field, direction, primaryColor);
+      return createTextInput(field, direction, primaryColor, formBackground);
       
     case "textarea":
-      return createTextarea(field, direction, primaryColor);
+      return createTextarea(field, direction, primaryColor, formBackground);
       
     case "submit":
       return createSubmitButton(field, primaryColor);
@@ -224,7 +222,7 @@ function createFieldElement(field, direction, primaryColor) {
   }
 }
 
-// دالة إنشاء عنوان النموذج - محسنة للمحاذاة الوسطى
+// دالة إنشاء عنوان النموذج - وسط تماماً
 function createFormTitle(field, direction) {
   const titleText = field.content || field.label || "";
   if (!titleText) return null;
@@ -244,7 +242,6 @@ function createFormTitle(field, direction) {
     text-align: center;
     margin: 0 0 20px 0;
     line-height: 1.4;
-    direction: ${direction};
     width: 100%;
     display: block;
     font-family: 'Cairo', system-ui, Arial, sans-serif;
@@ -256,8 +253,8 @@ function createFormTitle(field, direction) {
   return titleElement;
 }
 
-// دالة إنشاء حقل إدخال نص - محسنة لتطابق المعاينة بدقة
-function createTextInput(field, direction, primaryColor) {
+// دالة إنشاء حقل إدخال نص - مطابقة للمعاينة بدقة
+function createTextInput(field, direction, primaryColor, formBackground) {
   const wrapper = document.createElement("div");
   wrapper.classList.add('codform-field');
   wrapper.style.cssText = `
@@ -287,7 +284,7 @@ function createTextInput(field, direction, primaryColor) {
     wrapper.appendChild(label);
   }
   
-  // حاوية الإدخال مع الأيقونة - بدون خلفيات إضافية
+  // حاوية الإدخال مع الأيقونة
   const inputContainer = document.createElement("div");
   inputContainer.classList.add('codform-input-wrapper');
   inputContainer.style.cssText = `
@@ -314,13 +311,13 @@ function createTextInput(field, direction, primaryColor) {
   
   const hasIcon = field.icon && field.style?.showIcon !== false;
   
-  // تطبيق نفس الأنماط الموجودة في المعاينة
+  // تطبيق نفس الأنماط الموجودة في المعاينة - بدون خلفية إضافية
   input.style.cssText = `
     color: rgb(31, 41, 55);
     font-size: 1rem;
     font-weight: 400;
     font-family: inherit;
-    background-color: rgb(255, 255, 255);
+    background-color: transparent;
     border-color: rgb(209, 213, 219);
     border-radius: 1.5rem;
     border-width: 1px;
@@ -341,7 +338,7 @@ function createTextInput(field, direction, primaryColor) {
     transition: all 0.2s ease;
   `;
   
-  // إضافة الأيقونة إذا كانت موجودة - بنفس موقع المعاينة
+  // إضافة الأيقونة - بموقع صحيح بدون تداخل
   if (hasIcon) {
     const iconElement = document.createElement("div");
     iconElement.classList.add('codform-icon');
@@ -397,8 +394,8 @@ function createTextInput(field, direction, primaryColor) {
   return wrapper;
 }
 
-// دالة إنشاء منطقة نص - محسنة لتطابق المعاينة
-function createTextarea(field, direction, primaryColor) {
+// دالة إنشاء منطقة نص
+function createTextarea(field, direction, primaryColor, formBackground) {
   const wrapper = document.createElement("div");
   wrapper.classList.add('codform-field');
   wrapper.style.cssText = `
@@ -408,7 +405,6 @@ function createTextarea(field, direction, primaryColor) {
     padding: 0;
   `;
   
-  // إضافة تسمية الحقل
   if (field.label) {
     const label = document.createElement("label");
     label.textContent = field.label;
@@ -438,7 +434,7 @@ function createTextarea(field, direction, primaryColor) {
     font-size: 1rem;
     font-weight: 400;
     font-family: inherit;
-    background-color: rgb(255, 255, 255);
+    background-color: transparent;
     border-color: rgb(209, 213, 219);
     border-radius: 1.5rem;
     border-width: 1px;
@@ -456,7 +452,6 @@ function createTextarea(field, direction, primaryColor) {
     transition: all 0.2s ease;
   `;
   
-  // تحسين تأثيرات التركيز
   textarea.addEventListener('focus', function() {
     this.style.borderColor = primaryColor;
     this.style.boxShadow = `0 0 0 2px rgba(155, 135, 245, 0.2)`;
@@ -471,7 +466,7 @@ function createTextarea(field, direction, primaryColor) {
   return wrapper;
 }
 
-// دالة إنشاء زر الإرسال - محسنة
+// دالة إنشاء زر الإرسال
 function createSubmitButton(field, primaryColor) {
   const wrapper = document.createElement("div");
   wrapper.style.cssText = `
@@ -514,12 +509,10 @@ function createSubmitButton(field, primaryColor) {
     outline: none;
   `;
   
-  // إضافة التأثيرات المتحركة
   if (animation && animationType) {
     applyButtonAnimation(button, animationType);
   }
   
-  // تحسين تأثيرات التفاعل
   button.addEventListener('mouseenter', function() {
     this.style.opacity = '0.9';
     this.style.transform = 'translateY(-2px)';
@@ -549,7 +542,7 @@ function createHtmlContent(field) {
   return wrapper;
 }
 
-// دالة الحصول على SVG للأيقونات - محسنة
+// دالة الحصول على SVG للأيقونات
 function getIconSVG(iconName) {
   const icons = {
     'user': '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
@@ -566,77 +559,6 @@ function getIconSVG(iconName) {
 function applyButtonAnimation(button, animationType) {
   if (!button || !animationType) return;
   button.classList.add(`${animationType}-animation`);
-}
-
-// دالة تطبيق التحسينات والتأثيرات العامة
-function applyFormEffects(container) {
-  const style = document.createElement('style');
-  style.textContent = `
-    .codform-clean-form {
-      animation: fadeIn 0.5s ease-out;
-    }
-    
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    
-    @keyframes pulse {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.05); }
-    }
-    
-    @keyframes bounce {
-      0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-      40% { transform: translateY(-10px); }
-      60% { transform: translateY(-5px); }
-    }
-    
-    @keyframes shake {
-      0%, 100% { transform: translateX(0); }
-      10%, 90% { transform: translateX(-2px); }
-      20%, 80% { transform: translateX(4px); }
-      30%, 50%, 70% { transform: translateX(-6px); }
-      40%, 60% { transform: translateX(6px); }
-    }
-    
-    @keyframes wiggle {
-      0%, 100% { transform: rotate(0deg); }
-      25% { transform: rotate(-5deg); }
-      50% { transform: rotate(0deg); }
-      75% { transform: rotate(5deg); }
-    }
-    
-    @keyframes flash {
-      0%, 50%, 100% { opacity: 1; }
-      25%, 75% { opacity: 0.5; }
-    }
-    
-    .pulse-animation {
-      animation: pulse 2s infinite ease-in-out !important;
-    }
-    
-    .shake-animation {
-      animation: shake 0.8s infinite ease-in-out !important;
-    }
-    
-    .bounce-animation {
-      animation: bounce 2s infinite ease-in-out !important;
-    }
-    
-    .wiggle-animation {
-      animation: wiggle 2s infinite ease-in-out !important;
-    }
-    
-    .flash-animation {
-      animation: flash 2s infinite ease-in-out !important;
-    }
-  `;
-  
-  if (!document.head.querySelector('style[data-codform-animations]')) {
-    style.setAttribute('data-codform-animations', 'true');
-    document.head.appendChild(style);
-  }
 }
 
 // الكود الرئيسي للبلوك
@@ -826,5 +748,66 @@ document.addEventListener('DOMContentLoaded', function() {
 
 .codform-error-icon {
   background-color: #ff3b30;
+}
+
+/* التأثيرات المتحركة */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-10px); }
+  60% { transform: translateY(-5px); }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 90% { transform: translateX(-2px); }
+  20%, 80% { transform: translateX(4px); }
+  30%, 50%, 70% { transform: translateX(-6px); }
+  40%, 60% { transform: translateX(6px); }
+}
+
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-5deg); }
+  50% { transform: rotate(0deg); }
+  75% { transform: rotate(5deg); }
+}
+
+@keyframes flash {
+  0%, 50%, 100% { opacity: 1; }
+  25%, 75% { opacity: 0.5; }
+}
+
+.pulse-animation {
+  animation: pulse 2s infinite ease-in-out !important;
+}
+
+.shake-animation {
+  animation: shake 0.8s infinite ease-in-out !important;
+}
+
+.bounce-animation {
+  animation: bounce 2s infinite ease-in-out !important;
+}
+
+.wiggle-animation {
+  animation: wiggle 2s infinite ease-in-out !important;
+}
+
+.flash-animation {
+  animation: flash 2s infinite ease-in-out !important;
+}
+
+.codform-clean-form {
+  animation: fadeIn 0.5s ease-out;
 }
 </style>
