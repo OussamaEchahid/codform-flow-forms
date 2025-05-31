@@ -87,9 +87,9 @@
 </div>
 
 <script>
-// دالة عرض النموذج - مطابقة تماماً للمعاينة مع خلفية بيضاء للحقول
+// دالة عرض النموذج - إصلاح مشكلة الخلفيات المتعددة والأيقونات
 function renderCodform(formData, containerId) {
-  console.log("🎯 Rendering form to match preview exactly", { formData, containerId });
+  console.log("🎯 Fixing multiple backgrounds and icon positioning", { formData, containerId });
   
   try {
     const container = document.getElementById(containerId);
@@ -104,7 +104,7 @@ function renderCodform(formData, containerId) {
       return false;
     }
     
-    console.log("✅ Form data is valid, rendering form to match preview");
+    console.log("✅ Form data is valid, fixing store rendering");
     container.innerHTML = "";
     
     const style = formData.style || {};
@@ -116,7 +116,7 @@ function renderCodform(formData, containerId) {
     const borderColor = style.borderColor || primaryColor;
     const borderWidth = style.borderWidth || "2px";
     
-    // إنشاء الحاوية الخارجية مطابقة للمعاينة تماماً
+    // إنشاء الحاوية الخارجية الوحيدة - بدون خلفيات متعددة
     const outerContainer = document.createElement("div");
     outerContainer.className = "rounded-lg border shadow-sm overflow-hidden codform-form";
     outerContainer.style.cssText = `
@@ -129,18 +129,20 @@ function renderCodform(formData, containerId) {
       flex-direction: column;
       box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
       overflow: hidden;
+      margin: 0;
     `;
     
-    // إنشاء حاوية المحتوى الداخلية
+    // إنشاء حاوية المحتوى الداخلية - خلفية شفافة
     const contentContainer = document.createElement("div");
     contentContainer.className = "codform-form-content";
     contentContainer.style.cssText = `
       direction: ${formDirection};
       padding: 20px;
       gap: 16px;
-      background-color: ${backgroundColor};
+      background: transparent;
       display: flex;
       flex-direction: column;
+      margin: 0;
     `;
     
     let allFields = [];
@@ -161,10 +163,10 @@ function renderCodform(formData, containerId) {
       return false;
     }
     
-    // إنشاء حاوية space-y-4
+    // إنشاء حاوية space-y-4 - خلفية شفافة
     const fieldsContainer = document.createElement("div");
     fieldsContainer.className = "space-y-4";
-    fieldsContainer.style.cssText = "gap: 16px;";
+    fieldsContainer.style.cssText = "gap: 16px; background: transparent; margin: 0; padding: 0;";
     
     allFields.forEach((field, index) => {
       if (!field || !field.type) {
@@ -184,7 +186,7 @@ function renderCodform(formData, containerId) {
     outerContainer.appendChild(contentContainer);
     container.appendChild(outerContainer);
     
-    console.log("✅ Form rendered successfully matching preview design");
+    console.log("✅ Store form rendered with fixed backgrounds and icons");
     return true;
     
   } catch (error) {
@@ -197,36 +199,7 @@ function renderCodform(formData, containerId) {
   }
 }
 
-// دالة إنشاء عناصر الحقول
-function createFieldElement(field, direction, primaryColor, formBackground) {
-  switch (field.type) {
-    case "form-title":
-      return createFormTitle(field, direction);
-      
-    case "text":
-    case "email":
-    case "phone":
-      return createTextInput(field, direction, primaryColor);
-      
-    case "textarea":
-      return createTextarea(field, direction, primaryColor);
-      
-    case "submit":
-      return createSubmitButton(field, primaryColor);
-      
-    case "text/html":
-      return createHtmlContent(field);
-      
-    default:
-      console.warn("⚠️ Unknown field type:", field.type);
-      const genericDiv = document.createElement("div");
-      genericDiv.textContent = field.label || `حقل من نوع ${field.type}`;
-      genericDiv.style.cssText = `padding: 12px; margin: 0; background: transparent;`;
-      return genericDiv;
-  }
-}
-
-// دالة إنشاء عنوان النموذج - وسط تماماً
+// دالة إنشاء عنوان النموذج - خلفية شفافة
 function createFormTitle(field, direction) {
   const titleText = field.content || field.label || "";
   if (!titleText) return null;
@@ -234,6 +207,7 @@ function createFormTitle(field, direction) {
   const titleWrapper = document.createElement("div");
   titleWrapper.className = "mb-4";
   titleWrapper.setAttribute("data-field-type", "form-title");
+  titleWrapper.style.cssText = "margin-bottom: 16px; background: transparent; padding: 0;";
   
   const titleElement = document.createElement("div");
   titleElement.className = "form-title-field w-full";
@@ -255,7 +229,7 @@ function createFormTitle(field, direction) {
     padding: 3px 0px 20px;
     width: 100%;
     display: block;
-    background: none;
+    background: transparent;
     border: none;
   `;
   
@@ -264,17 +238,17 @@ function createFormTitle(field, direction) {
   return titleWrapper;
 }
 
-// دالة إنشاء حقل إدخال نص - مطابقة للمعاينة بدقة مع خلفية بيضاء
+// دالة إنشاء حقل إدخال نص - إصلاح مشكلة الأيقونات والخلفيات
 function createTextInput(field, direction, primaryColor) {
   const wrapper = document.createElement("div");
   wrapper.className = "mb-4";
   wrapper.setAttribute("data-field-type", field.type);
-  wrapper.style.cssText = "margin-bottom: 16px; background: transparent;";
+  wrapper.style.cssText = "margin-bottom: 16px; background: transparent; padding: 0;";
   
   const innerWrapper = document.createElement("div");
   innerWrapper.className = "mb-4";
   innerWrapper.setAttribute("dir", direction);
-  innerWrapper.style.cssText = "margin-bottom: 16px; background: transparent;";
+  innerWrapper.style.cssText = "margin-bottom: 16px; background: transparent; padding: 0;";
   
   // إضافة تسمية الحقل
   if (field.label) {
@@ -285,9 +259,7 @@ function createTextInput(field, direction, primaryColor) {
     if (field.required) {
       const span = document.createElement("span");
       span.className = "text-red-500";
-      span.style.cssText = direction === 'rtl' ? 
-        "margin-right: 0; margin-left: 4px; color: rgb(239, 68, 68);" :
-        "margin-right: 4px; margin-left: 0; color: rgb(239, 68, 68);";
+      span.style.cssText = "margin-right: 4px; margin-left: 0px; color: rgb(239, 68, 68);";
       span.textContent = "*";
       label.appendChild(span);
     }
@@ -307,7 +279,7 @@ function createTextInput(field, direction, primaryColor) {
   // حاوية الإدخال مع الأيقونة
   const inputContainer = document.createElement("div");
   inputContainer.className = "relative";
-  inputContainer.style.cssText = "position: relative; background: transparent;";
+  inputContainer.style.cssText = "position: relative; background: transparent; padding: 0; margin: 0;";
   
   const input = document.createElement("input");
   
@@ -328,7 +300,7 @@ function createTextInput(field, direction, primaryColor) {
   
   const hasIcon = field.icon && field.style?.showIcon !== false;
   
-  // تطبيق نفس الأنماط الموجودة في المعاينة - خلفية بيضاء إلزامية
+  // تطبيق أنماط الحقل - خلفية بيضاء فقط للحقل نفسه
   input.style.cssText = `
     color: rgb(31, 41, 55);
     font-size: 1rem;
@@ -340,10 +312,7 @@ function createTextInput(field, direction, primaryColor) {
     border-width: 1px;
     border-style: solid;
     padding: 10px;
-    ${direction === 'rtl' 
-      ? `padding-right: ${hasIcon ? '36px' : '12px'}; padding-left: 12px;`
-      : `padding-left: ${hasIcon ? '36px' : '12px'}; padding-right: 12px;`
-    }
+    ${hasIcon ? 'padding-right: 36px; padding-left: 12px;' : 'padding-left: 12px; padding-right: 12px;'}
     box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px;
     width: 100%;
     height: auto;
@@ -353,15 +322,17 @@ function createTextInput(field, direction, primaryColor) {
     direction: ${direction};
     outline: none;
     transition: all 0.2s ease;
+    margin: 0;
   `;
   
-  // إضافة الأيقونة - بموقع صحيح بدون تداخل
+  // إضافة الأيقونة في الجانب الصحيح
   if (hasIcon) {
     const iconElement = document.createElement("div");
     iconElement.className = "absolute codform-field-icon";
     iconElement.style.cssText = `
       position: absolute;
-      ${direction === 'rtl' ? 'right: 12px; left: auto;' : 'left: 12px; right: auto;'}
+      right: 12px;
+      left: auto;
       top: 50%;
       transform: translateY(-50%);
       display: flex;
@@ -370,6 +341,9 @@ function createTextInput(field, direction, primaryColor) {
       z-index: 2;
       color: rgb(156, 163, 175);
       background: transparent;
+      width: 18px;
+      height: 18px;
+      pointer-events: none;
     `;
     
     iconElement.innerHTML = getIconSVG(field.icon);
