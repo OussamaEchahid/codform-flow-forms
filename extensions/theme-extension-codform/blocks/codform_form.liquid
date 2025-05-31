@@ -1,3 +1,4 @@
+
 {% comment %}
   @name: CODFORM Form Block
   @description: Display a cash on delivery form for products
@@ -87,9 +88,9 @@
 </div>
 
 <script>
-// دالة عرض النموذج - إصلاح مشكلة الخلفيات المتعددة والأيقونات
+// دالة عرض النموذج - مع إضافة جميع الدوال المفقودة
 function renderCodform(formData, containerId) {
-  console.log("🎯 Fixing multiple backgrounds and icon positioning", { formData, containerId });
+  console.log("🎯 Starting renderCodform", { formData, containerId });
   
   try {
     const container = document.getElementById(containerId);
@@ -104,7 +105,7 @@ function renderCodform(formData, containerId) {
       return false;
     }
     
-    console.log("✅ Form data is valid, fixing store rendering");
+    console.log("✅ Form data is valid, starting render");
     container.innerHTML = "";
     
     const style = formData.style || {};
@@ -116,7 +117,7 @@ function renderCodform(formData, containerId) {
     const borderColor = style.borderColor || primaryColor;
     const borderWidth = style.borderWidth || "2px";
     
-    // إنشاء الحاوية الخارجية الوحيدة - بدون خلفيات متعددة
+    // إنشاء الحاوية الخارجية الوحيدة
     const outerContainer = document.createElement("div");
     outerContainer.className = "rounded-lg border shadow-sm overflow-hidden codform-form";
     outerContainer.style.cssText = `
@@ -124,25 +125,14 @@ function renderCodform(formData, containerId) {
       border-radius: ${borderRadius};
       background-color: ${backgroundColor};
       border: ${borderWidth} solid ${borderColor};
-      padding: 0;
+      padding: 20px;
       display: flex;
       flex-direction: column;
       box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
       overflow: hidden;
       margin: 0;
-    `;
-    
-    // إنشاء حاوية المحتوى الداخلية - خلفية شفافة
-    const contentContainer = document.createElement("div");
-    contentContainer.className = "codform-form-content";
-    contentContainer.style.cssText = `
       direction: ${formDirection};
-      padding: 20px;
       gap: 16px;
-      background: transparent;
-      display: flex;
-      flex-direction: column;
-      margin: 0;
     `;
     
     let allFields = [];
@@ -157,16 +147,10 @@ function renderCodform(formData, containerId) {
     console.log(`📝 Processing ${allFields.length} fields`);
     
     if (allFields.length === 0) {
-      contentContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">لا توجد حقول في النموذج</div>';
-      outerContainer.appendChild(contentContainer);
+      outerContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">لا توجد حقول في النموذج</div>';
       container.appendChild(outerContainer);
       return false;
     }
-    
-    // إنشاء حاوية space-y-4 - خلفية شفافة
-    const fieldsContainer = document.createElement("div");
-    fieldsContainer.className = "space-y-4";
-    fieldsContainer.style.cssText = "gap: 16px; background: transparent; margin: 0; padding: 0;";
     
     allFields.forEach((field, index) => {
       if (!field || !field.type) {
@@ -178,15 +162,13 @@ function renderCodform(formData, containerId) {
       
       const fieldElement = createFieldElement(field, formDirection, primaryColor, backgroundColor);
       if (fieldElement) {
-        fieldsContainer.appendChild(fieldElement);
+        outerContainer.appendChild(fieldElement);
       }
     });
     
-    contentContainer.appendChild(fieldsContainer);
-    outerContainer.appendChild(contentContainer);
     container.appendChild(outerContainer);
     
-    console.log("✅ Store form rendered with fixed backgrounds and icons");
+    console.log("✅ Form rendered successfully");
     return true;
     
   } catch (error) {
@@ -199,14 +181,45 @@ function renderCodform(formData, containerId) {
   }
 }
 
-// دالة إنشاء عنوان النموذج - خلفية شفافة
+// دالة إنشاء عنصر الحقل
+function createFieldElement(field, direction, primaryColor, backgroundColor) {
+  const wrapper = document.createElement("div");
+  wrapper.style.cssText = "margin-bottom: 16px; width: 100%;";
+  
+  switch (field.type) {
+    case "form-title":
+      return createFormTitle(field, direction);
+      
+    case "text":
+    case "email":
+    case "phone":
+      return createTextInput(field, direction, primaryColor);
+      
+    case "textarea":
+      return createTextarea(field, direction, primaryColor);
+      
+    case "submit":
+      return createSubmitButton(field, primaryColor);
+      
+    case "text/html":
+      return createHtmlContent(field);
+      
+    default:
+      console.warn("⚠️ Unknown field type:", field.type);
+      const genericDiv = document.createElement("div");
+      genericDiv.textContent = field.label || `حقل من نوع ${field.type}`;
+      genericDiv.style.cssText = "padding: 10px; background: #f0f0f0; border-radius: 4px; margin-bottom: 16px;";
+      return genericDiv;
+  }
+}
+
+// دالة إنشاء عنوان النموذج
 function createFormTitle(field, direction) {
   const titleText = field.content || field.label || "";
   if (!titleText) return null;
   
   const titleWrapper = document.createElement("div");
   titleWrapper.className = "mb-4";
-  titleWrapper.setAttribute("data-field-type", "form-title");
   titleWrapper.style.cssText = "margin-bottom: 16px; background: transparent; padding: 0;";
   
   const titleElement = document.createElement("div");
@@ -238,16 +251,14 @@ function createFormTitle(field, direction) {
   return titleWrapper;
 }
 
-// دالة إنشاء حقل إدخال نص - إصلاح مشكلة الأيقونات والخلفيات
+// دالة إنشاء حقل إدخال نص
 function createTextInput(field, direction, primaryColor) {
   const wrapper = document.createElement("div");
   wrapper.className = "mb-4";
-  wrapper.setAttribute("data-field-type", field.type);
   wrapper.style.cssText = "margin-bottom: 16px; background: transparent; padding: 0;";
   
   const innerWrapper = document.createElement("div");
   innerWrapper.className = "mb-4";
-  innerWrapper.setAttribute("dir", direction);
   innerWrapper.style.cssText = "margin-bottom: 16px; background: transparent; padding: 0;";
   
   // إضافة تسمية الحقل
@@ -300,7 +311,7 @@ function createTextInput(field, direction, primaryColor) {
   
   const hasIcon = field.icon && field.style?.showIcon !== false;
   
-  // تطبيق أنماط الحقل - خلفية بيضاء فقط للحقل نفسه
+  // تطبيق أنماط الحقل
   input.style.cssText = `
     color: rgb(31, 41, 55);
     font-size: 1rem;
@@ -387,7 +398,6 @@ function createTextInput(field, direction, primaryColor) {
 function createTextarea(field, direction, primaryColor) {
   const wrapper = document.createElement("div");
   wrapper.className = "mb-4";
-  wrapper.setAttribute("data-field-type", "textarea");
   wrapper.style.cssText = "margin-bottom: 16px; background: transparent;";
   
   const innerWrapper = document.createElement("div");
@@ -464,7 +474,6 @@ function createTextarea(field, direction, primaryColor) {
 function createSubmitButton(field, primaryColor) {
   const wrapper = document.createElement("div");
   wrapper.className = "mt-0";
-  wrapper.setAttribute("data-field-type", "submit");
   wrapper.style.cssText = `
     margin-top: 8px; 
     width: 100%; 
@@ -798,4 +807,3 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 </style>
 
-</initial_code>
