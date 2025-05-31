@@ -40,7 +40,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   const fontSize = fieldStyle.fontSize || '1rem';
   const fontWeight = fieldStyle.fontWeight || '400';
   
-  // خلفية بيضاء ثابتة للحقول - هذا هو الحل
+  // خلفية بيضاء ثابتة للحقول - مطابقة للمتجر
   const backgroundColor = 'rgb(255, 255, 255)';
   const borderColor = fieldStyle.borderColor || 'rgb(209, 213, 219)';
   const borderWidth = fieldStyle.borderWidth || '1px';
@@ -167,7 +167,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
             fontSize: fontSize,
             fontWeight: fontWeight,
             fontFamily: fontFamily,
-            backgroundColor: backgroundColor,
+            backgroundColor: backgroundColor, // خلفية بيضاء دائماً
             borderColor: borderColor,
             borderRadius: borderRadius,
             borderWidth: borderWidth,
@@ -182,7 +182,8 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
             minHeight: '44px',
             boxSizing: 'border-box',
             direction: language === 'ar' ? 'rtl' : 'ltr',
-            outline: 'none'
+            outline: 'none',
+            transition: 'all 0.2s ease'
           }}
           required={field.required}
         />

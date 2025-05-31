@@ -87,7 +87,7 @@
 </div>
 
 <script>
-// دالة عرض النموذج - مطابقة تماماً للمعاينة
+// دالة عرض النموذج - مطابقة تماماً للمعاينة مع خلفية بيضاء للحقول
 function renderCodform(formData, containerId) {
   console.log("🎯 Rendering form to match preview exactly", { formData, containerId });
   
@@ -264,7 +264,7 @@ function createFormTitle(field, direction) {
   return titleWrapper;
 }
 
-// دالة إنشاء حقل إدخال نص - مطابقة للمعاينة بدقة
+// دالة إنشاء حقل إدخال نص - مطابقة للمعاينة بدقة مع خلفية بيضاء
 function createTextInput(field, direction, primaryColor) {
   const wrapper = document.createElement("div");
   wrapper.className = "mb-4";
@@ -328,7 +328,7 @@ function createTextInput(field, direction, primaryColor) {
   
   const hasIcon = field.icon && field.style?.showIcon !== false;
   
-  // تطبيق نفس الأنماط الموجودة في المعاينة - خلفية بيضاء
+  // تطبيق نفس الأنماط الموجودة في المعاينة - خلفية بيضاء إلزامية
   input.style.cssText = `
     color: rgb(31, 41, 55);
     font-size: 1rem;
