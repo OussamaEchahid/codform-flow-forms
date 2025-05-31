@@ -31,8 +31,8 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   
   // القيم الافتراضية للتنسيق
   const showLabel = fieldStyle.showLabel !== false;
-  const labelColor = fieldStyle.labelColor || '#334155';
-  const labelFontSize = fieldStyle.labelFontSize || '16px';
+  const labelColor = fieldStyle.labelColor || '#333333';
+  const labelFontSize = fieldStyle.labelFontSize || '1rem';
   const labelFontWeight = fieldStyle.labelFontWeight || '600';
   
   const fontFamily = fieldStyle.fontFamily || 'inherit';
@@ -40,8 +40,8 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   const fontSize = fieldStyle.fontSize || '1rem';
   const fontWeight = fieldStyle.fontWeight || '400';
   
-  // مهم: خلفية شفافة للحقول لتعتمد على خلفية النموذج
-  const backgroundColor = 'transparent';
+  // خلفية بيضاء ثابتة للحقول - هذا هو الحل
+  const backgroundColor = 'rgb(255, 255, 255)';
   const borderColor = fieldStyle.borderColor || 'rgb(209, 213, 219)';
   const borderWidth = fieldStyle.borderWidth || '1px';
   const borderRadius = fieldStyle.borderRadius || '1.5rem';
@@ -124,7 +124,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
               style={{
                 marginRight: language === 'ar' ? '0' : '4px',
                 marginLeft: language === 'ar' ? '4px' : '0',
-                color: '#ef4444'
+                color: 'rgb(239, 68, 68)'
               }}
             >
               *
@@ -147,7 +147,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
               alignItems: 'center',
               justifyContent: 'center',
               zIndex: 2,
-              color: '#9ca3af',
+              color: 'rgb(156, 163, 175)',
               background: 'transparent'
             }}
           >

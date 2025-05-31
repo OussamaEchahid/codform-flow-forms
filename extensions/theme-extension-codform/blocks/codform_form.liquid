@@ -1,4 +1,3 @@
-
 {% comment %}
   @name: CODFORM Form Block
   @description: Display a cash on delivery form for products
@@ -110,28 +109,38 @@ function renderCodform(formData, containerId) {
     
     const style = formData.style || {};
     const primaryColor = style.primaryColor || "#9b87f5";
-    const borderRadius = style.borderRadius || "12px";
-    const fontSize = style.fontSize || "16px";
+    const borderRadius = style.borderRadius || "1.5rem";
+    const fontSize = style.fontSize || "1rem";
     const formDirection = style.formDirection || "ltr";
-    const backgroundColor = style.backgroundColor || "#ffffff";
+    const backgroundColor = style.backgroundColor || "#F9FAFB";
     const borderColor = style.borderColor || primaryColor;
     const borderWidth = style.borderWidth || "2px";
     
-    // إنشاء الحاوية الرئيسية للنموذج - مطابقة للمعاينة تماماً
-    const formWrapper = document.createElement("div");
-    formWrapper.style.cssText = `
+    // إنشاء الحاوية الخارجية مطابقة للمعاينة تماماً
+    const outerContainer = document.createElement("div");
+    outerContainer.className = "rounded-lg border shadow-sm overflow-hidden codform-form";
+    outerContainer.style.cssText = `
+      font-size: ${fontSize};
+      border-radius: ${borderRadius};
       background-color: ${backgroundColor};
       border: ${borderWidth} solid ${borderColor};
-      border-radius: ${borderRadius};
-      padding: 24px;
-      font-family: 'Cairo', system-ui, Arial, sans-serif;
-      font-size: ${fontSize};
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+      overflow: hidden;
+    `;
+    
+    // إنشاء حاوية المحتوى الداخلية
+    const contentContainer = document.createElement("div");
+    contentContainer.className = "codform-form-content";
+    contentContainer.style.cssText = `
       direction: ${formDirection};
-      width: 100%;
-      max-width: 600px;
-      margin: 20px auto;
-      box-sizing: border-box;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+      gap: 16px;
+      background-color: ${backgroundColor};
+      display: flex;
+      flex-direction: column;
     `;
     
     let allFields = [];
@@ -146,22 +155,16 @@ function renderCodform(formData, containerId) {
     console.log(`📝 Processing ${allFields.length} fields`);
     
     if (allFields.length === 0) {
-      formWrapper.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">لا توجد حقول في النموذج</div>';
-      container.appendChild(formWrapper);
+      contentContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">لا توجد حقول في النموذج</div>';
+      outerContainer.appendChild(contentContainer);
+      container.appendChild(outerContainer);
       return false;
     }
     
-    const form = document.createElement("form");
-    form.style.cssText = `
-      width: 100%; 
-      display: flex; 
-      flex-direction: column; 
-      gap: 16px;
-      margin: 0;
-      padding: 0;
-      background: transparent;
-    `;
-    form.classList.add('codform-clean-form');
+    // إنشاء حاوية space-y-4
+    const fieldsContainer = document.createElement("div");
+    fieldsContainer.className = "space-y-4";
+    fieldsContainer.style.cssText = "gap: 16px;";
     
     allFields.forEach((field, index) => {
       if (!field || !field.type) {
@@ -173,12 +176,13 @@ function renderCodform(formData, containerId) {
       
       const fieldElement = createFieldElement(field, formDirection, primaryColor, backgroundColor);
       if (fieldElement) {
-        form.appendChild(fieldElement);
+        fieldsContainer.appendChild(fieldElement);
       }
     });
     
-    formWrapper.appendChild(form);
-    container.appendChild(formWrapper);
+    contentContainer.appendChild(fieldsContainer);
+    outerContainer.appendChild(contentContainer);
+    container.appendChild(outerContainer);
     
     console.log("✅ Form rendered successfully matching preview design");
     return true;
@@ -202,10 +206,10 @@ function createFieldElement(field, direction, primaryColor, formBackground) {
     case "text":
     case "email":
     case "phone":
-      return createTextInput(field, direction, primaryColor, formBackground);
+      return createTextInput(field, direction, primaryColor);
       
     case "textarea":
-      return createTextarea(field, direction, primaryColor, formBackground);
+      return createTextarea(field, direction, primaryColor);
       
     case "submit":
       return createSubmitButton(field, primaryColor);
@@ -227,73 +231,83 @@ function createFormTitle(field, direction) {
   const titleText = field.content || field.label || "";
   if (!titleText) return null;
   
+  const titleWrapper = document.createElement("div");
+  titleWrapper.className = "mb-4";
+  titleWrapper.setAttribute("data-field-type", "form-title");
+  
   const titleElement = document.createElement("div");
-  titleElement.classList.add('codform-title');
+  titleElement.className = "form-title-field w-full";
   
   const fieldStyle = field.style || {};
   const textColor = fieldStyle.color || "#000000";
-  const fontSize = fieldStyle.fontSize || "1.5rem";
-  const fontWeight = fieldStyle.fontWeight || "700";
+  const fontSize = fieldStyle.fontSize || "24px";
+  const fontWeight = fieldStyle.fontWeight || "800";
   
   titleElement.style.cssText = `
     color: ${textColor};
     font-size: ${fontSize};
     font-weight: ${fontWeight};
+    font-family: Cairo, Tajawal, Arial, sans-serif;
     text-align: center;
-    margin: 0 0 20px 0;
+    margin: 0px 0px 20px;
     line-height: 1.4;
+    direction: ${direction};
+    padding: 3px 0px 20px;
     width: 100%;
     display: block;
-    font-family: 'Cairo', system-ui, Arial, sans-serif;
-    padding: 0;
-    background: transparent;
+    background: none;
+    border: none;
   `;
   
   titleElement.textContent = titleText;
-  return titleElement;
+  titleWrapper.appendChild(titleElement);
+  return titleWrapper;
 }
 
 // دالة إنشاء حقل إدخال نص - مطابقة للمعاينة بدقة
-function createTextInput(field, direction, primaryColor, formBackground) {
+function createTextInput(field, direction, primaryColor) {
   const wrapper = document.createElement("div");
-  wrapper.classList.add('codform-field');
-  wrapper.style.cssText = `
-    margin-bottom: 16px;
-    width: 100%;
-    background: transparent;
-    padding: 0;
-  `;
+  wrapper.className = "mb-4";
+  wrapper.setAttribute("data-field-type", field.type);
+  wrapper.style.cssText = "margin-bottom: 16px; background: transparent;";
+  
+  const innerWrapper = document.createElement("div");
+  innerWrapper.className = "mb-4";
+  innerWrapper.setAttribute("dir", direction);
+  innerWrapper.style.cssText = "margin-bottom: 16px; background: transparent;";
   
   // إضافة تسمية الحقل
   if (field.label) {
     const label = document.createElement("label");
+    label.className = "block mb-2";
+    label.setAttribute("for", `${field.id}-input`);
     label.textContent = field.label;
     if (field.required) {
-      label.innerHTML += '<span style="color: #ef4444; margin-left: 4px;">*</span>';
+      const span = document.createElement("span");
+      span.className = "text-red-500";
+      span.style.cssText = direction === 'rtl' ? 
+        "margin-right: 0; margin-left: 4px; color: rgb(239, 68, 68);" :
+        "margin-right: 4px; margin-left: 0; color: rgb(239, 68, 68);";
+      span.textContent = "*";
+      label.appendChild(span);
     }
     label.style.cssText = `
-      display: block;
-      margin-bottom: 8px;
+      color: rgb(51, 51, 51);
+      font-size: 1rem;
       font-weight: 600;
-      color: #334155;
-      font-size: 16px;
       font-family: inherit;
+      margin-bottom: 8px;
+      display: block;
       background: transparent;
       padding: 0;
     `;
-    wrapper.appendChild(label);
+    innerWrapper.appendChild(label);
   }
   
   // حاوية الإدخال مع الأيقونة
   const inputContainer = document.createElement("div");
-  inputContainer.classList.add('codform-input-wrapper');
-  inputContainer.style.cssText = `
-    position: relative; 
-    display: block; 
-    background: transparent;
-    padding: 0;
-    margin: 0;
-  `;
+  inputContainer.className = "relative";
+  inputContainer.style.cssText = "position: relative; background: transparent;";
   
   const input = document.createElement("input");
   
@@ -305,19 +319,22 @@ function createTextInput(field, direction, primaryColor, formBackground) {
     input.type = "text";
   }
   
+  input.id = `${field.id}-input`;
+  input.name = field.id;
   input.placeholder = field.placeholder || field.label || "";
   input.required = field.required || false;
-  input.classList.add('w-full', 'outline-none', 'transition-all', 'codform-input');
+  input.className = "w-full outline-none transition-all codform-input";
+  input.setAttribute("aria-label", field.inputFor || field.label || "");
   
   const hasIcon = field.icon && field.style?.showIcon !== false;
   
-  // تطبيق نفس الأنماط الموجودة في المعاينة - بدون خلفية إضافية
+  // تطبيق نفس الأنماط الموجودة في المعاينة - خلفية بيضاء
   input.style.cssText = `
     color: rgb(31, 41, 55);
     font-size: 1rem;
     font-weight: 400;
     font-family: inherit;
-    background-color: transparent;
+    background-color: rgb(255, 255, 255);
     border-color: rgb(209, 213, 219);
     border-radius: 1.5rem;
     border-width: 1px;
@@ -341,20 +358,17 @@ function createTextInput(field, direction, primaryColor, formBackground) {
   // إضافة الأيقونة - بموقع صحيح بدون تداخل
   if (hasIcon) {
     const iconElement = document.createElement("div");
-    iconElement.classList.add('codform-icon');
+    iconElement.className = "absolute codform-field-icon";
     iconElement.style.cssText = `
       position: absolute;
       ${direction === 'rtl' ? 'right: 12px; left: auto;' : 'left: 12px; right: auto;'}
       top: 50%;
       transform: translateY(-50%);
-      color: #9ca3af;
-      width: 18px;
-      height: 18px;
       display: flex;
       align-items: center;
       justify-content: center;
-      pointer-events: none;
       z-index: 2;
+      color: rgb(156, 163, 175);
       background: transparent;
     `;
     
@@ -374,7 +388,8 @@ function createTextInput(field, direction, primaryColor, formBackground) {
   });
   
   inputContainer.appendChild(input);
-  wrapper.appendChild(inputContainer);
+  innerWrapper.appendChild(inputContainer);
+  wrapper.appendChild(innerWrapper);
   
   // إضافة نص المساعدة
   if (field.helpText) {
@@ -395,46 +410,52 @@ function createTextInput(field, direction, primaryColor, formBackground) {
 }
 
 // دالة إنشاء منطقة نص
-function createTextarea(field, direction, primaryColor, formBackground) {
+function createTextarea(field, direction, primaryColor) {
   const wrapper = document.createElement("div");
-  wrapper.classList.add('codform-field');
-  wrapper.style.cssText = `
-    margin-bottom: 16px;
-    width: 100%;
-    background: transparent;
-    padding: 0;
-  `;
+  wrapper.className = "mb-4";
+  wrapper.setAttribute("data-field-type", "textarea");
+  wrapper.style.cssText = "margin-bottom: 16px; background: transparent;";
+  
+  const innerWrapper = document.createElement("div");
+  innerWrapper.className = "mb-4";
   
   if (field.label) {
     const label = document.createElement("label");
+    label.className = "block mb-2 relative";
+    label.setAttribute("for", field.id);
     label.textContent = field.label;
     if (field.required) {
-      label.innerHTML += '<span style="color: #ef4444; margin-left: 4px;">*</span>';
+      const span = document.createElement("span");
+      span.className = "text-red-500";
+      span.style.cssText = direction === 'rtl' ?
+        "margin-right: 0; margin-left: 4px;" :
+        "margin-right: 4px; margin-left: 0;";
+      span.textContent = "*";
+      label.appendChild(span);
     }
     label.style.cssText = `
-      display: block;
-      margin-bottom: 8px;
+      color: rgb(51, 51, 51);
+      font-size: 1rem;
       font-weight: 600;
-      color: #334155;
-      font-size: 16px;
       font-family: inherit;
-      background: transparent;
-      padding: 0;
+      margin-bottom: 8px;
+      display: flex;
     `;
-    wrapper.appendChild(label);
+    innerWrapper.appendChild(label);
   }
   
   const textarea = document.createElement("textarea");
+  textarea.id = field.id;
   textarea.placeholder = field.placeholder || field.label || "";
   textarea.required = field.required || false;
   textarea.rows = 4;
+  textarea.className = "w-full py-2 px-3 bg-white border outline-none focus:ring-2 focus:ring-opacity-50 transition-all";
   
   textarea.style.cssText = `
     color: rgb(31, 41, 55);
     font-size: 1rem;
     font-weight: 400;
     font-family: inherit;
-    background-color: transparent;
     border-color: rgb(209, 213, 219);
     border-radius: 1.5rem;
     border-width: 1px;
@@ -442,11 +463,9 @@ function createTextarea(field, direction, primaryColor, formBackground) {
     padding: 10px 12px;
     box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px;
     width: 100%;
-    height: auto;
-    line-height: 1.5;
     min-height: 100px;
-    box-sizing: border-box;
-    direction: ${direction};
+    line-height: 1.5;
+    background-color: rgb(255, 255, 255);
     resize: vertical;
     outline: none;
     transition: all 0.2s ease;
@@ -462,13 +481,16 @@ function createTextarea(field, direction, primaryColor, formBackground) {
     this.style.boxShadow = 'rgba(0, 0, 0, 0.05) 0px 1px 2px';
   });
   
-  wrapper.appendChild(textarea);
+  innerWrapper.appendChild(textarea);
+  wrapper.appendChild(innerWrapper);
   return wrapper;
 }
 
 // دالة إنشاء زر الإرسال
 function createSubmitButton(field, primaryColor) {
   const wrapper = document.createElement("div");
+  wrapper.className = "mt-0";
+  wrapper.setAttribute("data-field-type", "submit");
   wrapper.style.cssText = `
     margin-top: 8px; 
     width: 100%; 
@@ -477,52 +499,48 @@ function createSubmitButton(field, primaryColor) {
   `;
   
   const button = document.createElement("button");
-  button.type = "submit";
-  button.textContent = field.label || "إرسال";
-  button.classList.add('codform-submit');
+  button.type = "button";
+  button.textContent = field.label || "Buy with Cash on Delivery";
+  button.className = "form-submit-btn w-full";
   
   const buttonBg = field.style?.backgroundColor || primaryColor;
   const buttonColor = field.style?.color || "#ffffff";
   const animation = field.style?.animation;
-  const animationType = field.style?.animationType || 'pulse';
+  const animationType = field.style?.animationType || 'shake';
+  
+  if (animation && animationType) {
+    button.classList.add(`${animationType}-animation`);
+  }
   
   button.style.cssText = `
     background-color: ${buttonBg};
     color: ${buttonColor};
-    border: none;
-    padding: 16px 24px;
-    border-radius: 8px;
-    font-size: 18px;
-    font-weight: 600;
-    cursor: pointer;
-    width: 100%;
-    transition: all 0.3s ease;
-    box-sizing: border-box;
-    font-family: 'Cairo', system-ui, Arial, sans-serif;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    position: relative;
-    overflow: hidden;
-    display: flex;
+    font-size: 19px;
+    border-radius: 6px;
+    padding: 15px 24px;
+    border: 0px solid #eaeaff;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    text-align: center;
+    transition: all 0.2s ease-in-out;
+    width: 100%;
+    box-sizing: border-box;
+    font-family: 'Cairo', system-ui, Arial, sans-serif;
     outline: none;
   `;
   
-  if (animation && animationType) {
-    applyButtonAnimation(button, animationType);
-  }
-  
   button.addEventListener('mouseenter', function() {
     this.style.opacity = '0.9';
-    this.style.transform = 'translateY(-2px)';
-    this.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.2)';
+    this.style.transform = 'translateY(-1px)';
   });
   
   button.addEventListener('mouseleave', function() {
     this.style.opacity = '1';
     this.style.transform = 'translateY(0)';
-    this.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
   });
   
   wrapper.appendChild(button);
@@ -545,20 +563,14 @@ function createHtmlContent(field) {
 // دالة الحصول على SVG للأيقونات
 function getIconSVG(iconName) {
   const icons = {
-    'user': '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
-    'phone': '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>',
-    'mail': '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-10 5L2 7"/></svg>',
-    'map-pin': '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>',
-    'message-square': '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>'
+    'user': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user text-gray-500 codform-icon" aria-hidden="true" style="width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center;"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>',
+    'phone': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-phone text-gray-500 codform-icon" aria-hidden="true" style="width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center;"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>',
+    'mail': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mail text-gray-500 codform-icon" aria-hidden="true" style="width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center;"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-10 5L2 7"/></svg>',
+    'map-pin': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin text-gray-500 codform-icon" aria-hidden="true" style="width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center;"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle></svg>',
+    'message-square': '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-message-square text-gray-500 codform-icon" aria-hidden="true" style="width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>'
   };
   
   return icons[iconName] || icons['user'];
-}
-
-// دالة تطبيق تأثيرات الأزرار
-function applyButtonAnimation(button, animationType) {
-  if (!button || !animationType) return;
-  button.classList.add(`${animationType}-animation`);
 }
 
 // الكود الرئيسي للبلوك
@@ -811,3 +823,5 @@ document.addEventListener('DOMContentLoaded', function() {
   animation: fadeIn 0.5s ease-out;
 }
 </style>
+
+</initial_code>
