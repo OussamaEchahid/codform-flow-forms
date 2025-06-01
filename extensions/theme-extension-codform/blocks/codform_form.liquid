@@ -88,7 +88,7 @@
 </div>
 
 <script>
-// دالة عرض النموذج - مع إضافة جميع الدوال المفقودة
+// دالة عرض النموذج - محسنة لتطابق المعاينة تماماً
 function renderCodform(formData, containerId) {
   console.log("🎯 Starting renderCodform", { formData, containerId });
   
@@ -117,7 +117,7 @@ function renderCodform(formData, containerId) {
     const borderColor = style.borderColor || primaryColor;
     const borderWidth = style.borderWidth || "2px";
     
-    // إنشاء الحاوية الخارجية الوحيدة
+    // إنشاء الحاوية الخارجية - مطابقة للمعاينة تماماً
     const outerContainer = document.createElement("div");
     outerContainer.className = "rounded-lg border shadow-sm overflow-hidden codform-form";
     outerContainer.style.cssText = `
@@ -125,15 +125,31 @@ function renderCodform(formData, containerId) {
       border-radius: ${borderRadius};
       background-color: ${backgroundColor};
       border: ${borderWidth} solid ${borderColor};
-      padding: 20px;
+      padding: 0;
       display: flex;
       flex-direction: column;
       box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
       overflow: hidden;
       margin: 0;
       direction: ${formDirection};
-      gap: 16px;
     `;
+    
+    // إنشاء محتوى النموذج الداخلي - مطابق للمعاينة
+    const formContent = document.createElement("div");
+    formContent.className = "codform-form-content";
+    formContent.style.cssText = `
+      direction: ${formDirection};
+      padding: 20px;
+      gap: 16px;
+      background-color: ${backgroundColor};
+      display: flex;
+      flex-direction: column;
+    `;
+    
+    // إنشاء حاوية الحقول
+    const fieldsContainer = document.createElement("div");
+    fieldsContainer.className = "space-y-4";
+    fieldsContainer.style.cssText = "gap: 16px;";
     
     let allFields = [];
     if (Array.isArray(formData.data)) {
@@ -147,8 +163,7 @@ function renderCodform(formData, containerId) {
     console.log(`📝 Processing ${allFields.length} fields`);
     
     if (allFields.length === 0) {
-      outerContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">لا توجد حقول في النموذج</div>';
-      container.appendChild(outerContainer);
+      container.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">لا توجد حقول في النموذج</div>';
       return false;
     }
     
@@ -160,12 +175,14 @@ function renderCodform(formData, containerId) {
       
       console.log(`🔧 Rendering field ${index + 1}: ${field.type}`);
       
-      const fieldElement = createFieldElement(field, formDirection, primaryColor, backgroundColor);
+      const fieldElement = createFieldElement(field, formDirection, primaryColor);
       if (fieldElement) {
-        outerContainer.appendChild(fieldElement);
+        fieldsContainer.appendChild(fieldElement);
       }
     });
     
+    formContent.appendChild(fieldsContainer);
+    outerContainer.appendChild(formContent);
     container.appendChild(outerContainer);
     
     console.log("✅ Form rendered successfully");
@@ -181,11 +198,8 @@ function renderCodform(formData, containerId) {
   }
 }
 
-// دالة إنشاء عنصر الحقل
-function createFieldElement(field, direction, primaryColor, backgroundColor) {
-  const wrapper = document.createElement("div");
-  wrapper.style.cssText = "margin-bottom: 16px; width: 100%;";
-  
+// دالة إنشاء عنصر الحقل - محسنة لتطابق المعاينة
+function createFieldElement(field, direction, primaryColor) {
   switch (field.type) {
     case "form-title":
       return createFormTitle(field, direction);
@@ -213,14 +227,14 @@ function createFieldElement(field, direction, primaryColor, backgroundColor) {
   }
 }
 
-// دالة إنشاء عنوان النموذج
+// دالة إنشاء عنوان النموذج - مطابقة للمعاينة
 function createFormTitle(field, direction) {
   const titleText = field.content || field.label || "";
   if (!titleText) return null;
   
   const titleWrapper = document.createElement("div");
   titleWrapper.className = "mb-4";
-  titleWrapper.style.cssText = "margin-bottom: 16px; background: transparent; padding: 0;";
+  titleWrapper.style.cssText = "margin-bottom: 16px;";
   
   const titleElement = document.createElement("div");
   titleElement.className = "form-title-field w-full";
@@ -229,13 +243,14 @@ function createFormTitle(field, direction) {
   const textColor = fieldStyle.color || "#000000";
   const fontSize = fieldStyle.fontSize || "24px";
   const fontWeight = fieldStyle.fontWeight || "800";
+  const textAlign = fieldStyle.textAlign || "center";
   
   titleElement.style.cssText = `
     color: ${textColor};
     font-size: ${fontSize};
     font-weight: ${fontWeight};
     font-family: Cairo, Tajawal, Arial, sans-serif;
-    text-align: center;
+    text-align: ${textAlign};
     margin: 0px 0px 20px;
     line-height: 1.4;
     direction: ${direction};
@@ -251,17 +266,18 @@ function createFormTitle(field, direction) {
   return titleWrapper;
 }
 
-// دالة إنشاء حقل إدخال نص
+// دالة إنشاء حقل إدخال نص - مطابقة للمعاينة تماماً
 function createTextInput(field, direction, primaryColor) {
   const wrapper = document.createElement("div");
   wrapper.className = "mb-4";
-  wrapper.style.cssText = "margin-bottom: 16px; background: transparent; padding: 0;";
+  wrapper.style.cssText = "margin-bottom: 16px;";
   
   const innerWrapper = document.createElement("div");
   innerWrapper.className = "mb-4";
+  innerWrapper.setAttribute("dir", direction);
   innerWrapper.style.cssText = "margin-bottom: 16px; background: transparent; padding: 0;";
   
-  // إضافة تسمية الحقل
+  // إضافة تسمية الحقل - بنفس تنسيق المعاينة
   if (field.label) {
     const label = document.createElement("label");
     label.className = "block mb-2";
@@ -311,7 +327,7 @@ function createTextInput(field, direction, primaryColor) {
   
   const hasIcon = field.icon && field.style?.showIcon !== false;
   
-  // تطبيق أنماط الحقل
+  // تطبيق أنماط الحقل - مطابقة للمعاينة تماماً
   input.style.cssText = `
     color: rgb(31, 41, 55);
     font-size: 1rem;
@@ -376,29 +392,14 @@ function createTextInput(field, direction, primaryColor) {
   innerWrapper.appendChild(inputContainer);
   wrapper.appendChild(innerWrapper);
   
-  // إضافة نص المساعدة
-  if (field.helpText) {
-    const helpText = document.createElement("p");
-    helpText.textContent = field.helpText;
-    helpText.style.cssText = `
-      font-size: 14px;
-      color: #6b7280;
-      margin-top: 6px;
-      margin-bottom: 0;
-      background: transparent;
-      padding: 0;
-    `;
-    wrapper.appendChild(helpText);
-  }
-  
   return wrapper;
 }
 
-// دالة إنشاء منطقة نص
+// دالة إنشاء منطقة نص - مطابقة للمعاينة
 function createTextarea(field, direction, primaryColor) {
   const wrapper = document.createElement("div");
   wrapper.className = "mb-4";
-  wrapper.style.cssText = "margin-bottom: 16px; background: transparent;";
+  wrapper.style.cssText = "margin-bottom: 16px;";
   
   const innerWrapper = document.createElement("div");
   innerWrapper.className = "mb-4";
@@ -411,9 +412,7 @@ function createTextarea(field, direction, primaryColor) {
     if (field.required) {
       const span = document.createElement("span");
       span.className = "text-red-500";
-      span.style.cssText = direction === 'rtl' ?
-        "margin-right: 0; margin-left: 4px;" :
-        "margin-right: 4px; margin-left: 0;";
+      span.style.cssText = "margin-right: 4px; margin-left: 0px;";
       span.textContent = "*";
       label.appendChild(span);
     }
@@ -470,7 +469,7 @@ function createTextarea(field, direction, primaryColor) {
   return wrapper;
 }
 
-// دالة إنشاء زر الإرسال
+// دالة إنشاء زر الإرسال - مطابقة للمعاينة تماماً
 function createSubmitButton(field, primaryColor) {
   const wrapper = document.createElement("div");
   wrapper.className = "mt-0";
@@ -745,7 +744,7 @@ document.addEventListener('DOMContentLoaded', function() {
   background-color: #ff3b30;
 }
 
-/* التأثيرات المتحركة */
+/* التأثيرات المتحركة - مطابقة للمعاينة */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
@@ -806,4 +805,3 @@ document.addEventListener('DOMContentLoaded', function() {
   animation: fadeIn 0.5s ease-out;
 }
 </style>
-
