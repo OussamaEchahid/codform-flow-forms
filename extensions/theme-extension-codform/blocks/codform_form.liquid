@@ -87,7 +87,7 @@
 </div>
 
 <script>
-// دالة عرض النموذج - مصححة نهائياً لتطابق المعاينة
+// دالة عرض النموذج - مصححة نهائياً مع إضافة الدالة المفقودة
 function renderCodform(formData, containerId) {
   console.log("🎯 Starting renderCodform", { formData, containerId });
   
@@ -116,7 +116,7 @@ function renderCodform(formData, containerId) {
     const borderColor = style.borderColor || primaryColor;
     const borderWidth = style.borderWidth || "2px";
     
-    // إنشاء الحاوية الوحيدة مع الحدود البنفسجية والخلفية الواحدة
+    // إنشاء الحاوية الرئيسية مع الخلفية والحدود البنفسجية
     const mainContainer = document.createElement("div");
     mainContainer.className = "rounded-lg border shadow-sm overflow-hidden codform-form";
     mainContainer.style.cssText = `
@@ -135,7 +135,7 @@ function renderCodform(formData, containerId) {
       box-sizing: border-box;
     `;
     
-    // إنشاء حاوية الحقول بدون خلفية إضافية
+    // إنشاء حاوية الحقول
     const fieldsContainer = document.createElement("div");
     fieldsContainer.className = "space-y-4";
     fieldsContainer.style.cssText = "gap: 16px; display: flex; flex-direction: column;";
@@ -186,6 +186,35 @@ function renderCodform(formData, containerId) {
   }
 }
 
+// دالة إنشاء عنصر الحقل - الدالة المفقودة التي تسبب الخطأ
+function createFieldElement(field, direction, primaryColor) {
+  if (!field || !field.type) {
+    console.warn("⚠️ Invalid field:", field);
+    return null;
+  }
+  
+  switch (field.type) {
+    case "form-title":
+      return createFormTitle(field, direction);
+    case "text":
+    case "email":
+    case "phone":
+      return createTextInput(field, direction, primaryColor);
+    case "textarea":
+      return createTextarea(field, direction, primaryColor);
+    case "submit":
+      return createSubmitButton(field, primaryColor);
+    case "text/html":
+      return createHtmlContent(field);
+    default:
+      console.warn("⚠️ Unknown field type:", field.type);
+      const wrapper = document.createElement("div");
+      wrapper.textContent = field.label || `حقل من نوع ${field.type}`;
+      wrapper.style.cssText = "padding: 10px; margin-bottom: 16px;";
+      return wrapper;
+  }
+}
+
 // دالة إنشاء عنوان النموذج - مع ضمان المحاذاة للوسط
 function createFormTitle(field, direction) {
   const titleText = field.content || field.label || "";
@@ -225,7 +254,7 @@ function createFormTitle(field, direction) {
   return titleWrapper;
 }
 
-// دالة إنشاء حقل إدخال نص - مطابقة للمعاينة تماماً مع إصلاحات
+// دالة إنشاء حقل إدخال نص - مطابقة للمعاينة تماماً
 function createTextInput(field, direction, primaryColor) {
   const wrapper = document.createElement("div");
   wrapper.className = "mb-4";
@@ -236,7 +265,7 @@ function createTextInput(field, direction, primaryColor) {
   innerWrapper.setAttribute("dir", direction);
   innerWrapper.style.cssText = "margin-bottom: 16px; background: transparent; padding: 0;";
   
-  // إضافة تسمية الحقل - بنفس تنسيق المعاينة
+  // إضافة تسمية الحقل
   if (field.label) {
     const label = document.createElement("label");
     label.className = "block mb-2";
@@ -428,7 +457,7 @@ function createTextarea(field, direction, primaryColor) {
   return wrapper;
 }
 
-// دالة إنشاء زر الإرسال - مطابقة للمعاينة
+// دالة إنشاء زر الإرسال - بحجم مناسب مطابق للمعاينة
 function createSubmitButton(field, primaryColor) {
   const wrapper = document.createElement("div");
   wrapper.className = "mt-0";
