@@ -117,7 +117,7 @@ function renderCodform(formData, containerId) {
     const borderColor = style.borderColor || primaryColor;
     const borderWidth = style.borderWidth || "2px";
     
-    // إنشاء الحاوية الخارجية - مطابقة للمعاينة تماماً
+    // إنشاء الحاوية الخارجية - مطابقة للمعاينة تماماً مع الخط البنفسجي
     const outerContainer = document.createElement("div");
     outerContainer.className = "rounded-lg border shadow-sm overflow-hidden codform-form";
     outerContainer.style.cssText = `
@@ -469,7 +469,7 @@ function createTextarea(field, direction, primaryColor) {
   return wrapper;
 }
 
-// دالة إنشاء زر الإرسال - مطابقة للمعاينة تماماً
+// دالة إنشاء زر الإرسال - مطابقة للمعاينة تماماً مع الحجم الصحيح
 function createSubmitButton(field, primaryColor) {
   const wrapper = document.createElement("div");
   wrapper.className = "mt-0";
@@ -494,12 +494,13 @@ function createSubmitButton(field, primaryColor) {
     button.classList.add(`${animationType}-animation`);
   }
   
+  // تطبيق الحجم الصحيح للزر - مطابق للمعاينة
   button.style.cssText = `
     background-color: ${buttonBg};
     color: ${buttonColor};
-    font-size: 19px;
+    font-size: 16px;
     border-radius: 6px;
-    padding: 15px 24px;
+    padding: 12px 20px;
     border: 0px solid #eaeaff;
     display: inline-flex;
     align-items: center;
@@ -513,6 +514,7 @@ function createSubmitButton(field, primaryColor) {
     box-sizing: border-box;
     font-family: 'Cairo', system-ui, Arial, sans-serif;
     outline: none;
+    min-height: 44px;
   `;
   
   button.addEventListener('mouseenter', function() {
