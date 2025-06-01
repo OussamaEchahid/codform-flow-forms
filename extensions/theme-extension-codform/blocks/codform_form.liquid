@@ -87,7 +87,7 @@
 </div>
 
 <script>
-// دالة عرض النموذج - مطابقة للمعاينة تماماً مع إصلاح المشاكل
+// دالة عرض النموذج - مصححة نهائياً لتطابق المعاينة
 function renderCodform(formData, containerId) {
   console.log("🎯 Starting renderCodform", { formData, containerId });
   
@@ -116,39 +116,29 @@ function renderCodform(formData, containerId) {
     const borderColor = style.borderColor || primaryColor;
     const borderWidth = style.borderWidth || "2px";
     
-    // إنشاء الحاوية الخارجية مع الحدود البنفسجية - بدون خلفيات مكررة
-    const outerContainer = document.createElement("div");
-    outerContainer.className = "rounded-lg border shadow-sm overflow-hidden codform-form";
-    outerContainer.style.cssText = `
+    // إنشاء الحاوية الوحيدة مع الحدود البنفسجية والخلفية الواحدة
+    const mainContainer = document.createElement("div");
+    mainContainer.className = "rounded-lg border shadow-sm overflow-hidden codform-form";
+    mainContainer.style.cssText = `
       font-size: ${fontSize};
       border-radius: ${borderRadius};
       border: ${borderWidth} solid ${borderColor};
-      padding: 0;
+      background-color: ${backgroundColor};
+      padding: 20px;
       display: flex;
       flex-direction: column;
       box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-      overflow: hidden;
       margin: 0;
       direction: ${formDirection};
-      background: transparent;
-    `;
-    
-    // إنشاء محتوى النموذج الداخلي مع خلفية واحدة فقط
-    const formContent = document.createElement("div");
-    formContent.className = "codform-form-content";
-    formContent.style.cssText = `
-      direction: ${formDirection};
-      padding: 20px;
       gap: 16px;
-      background-color: ${backgroundColor};
-      display: flex;
-      flex-direction: column;
+      width: 100%;
+      box-sizing: border-box;
     `;
     
-    // إنشاء حاوية الحقول
+    // إنشاء حاوية الحقول بدون خلفية إضافية
     const fieldsContainer = document.createElement("div");
     fieldsContainer.className = "space-y-4";
-    fieldsContainer.style.cssText = "gap: 16px;";
+    fieldsContainer.style.cssText = "gap: 16px; display: flex; flex-direction: column;";
     
     let allFields = [];
     if (Array.isArray(formData.data)) {
@@ -180,9 +170,8 @@ function renderCodform(formData, containerId) {
       }
     });
     
-    formContent.appendChild(fieldsContainer);
-    outerContainer.appendChild(formContent);
-    container.appendChild(outerContainer);
+    mainContainer.appendChild(fieldsContainer);
+    container.appendChild(mainContainer);
     
     console.log("✅ Form rendered successfully");
     return true;
@@ -197,36 +186,7 @@ function renderCodform(formData, containerId) {
   }
 }
 
-// دالة إنشاء عنصر الحقل
-function createFieldElement(field, direction, primaryColor) {
-  switch (field.type) {
-    case "form-title":
-      return createFormTitle(field, direction);
-      
-    case "text":
-    case "email":
-    case "phone":
-      return createTextInput(field, direction, primaryColor);
-      
-    case "textarea":
-      return createTextarea(field, direction, primaryColor);
-      
-    case "submit":
-      return createSubmitButton(field, primaryColor);
-      
-    case "text/html":
-      return createHtmlContent(field);
-      
-    default:
-      console.warn("⚠️ Unknown field type:", field.type);
-      const genericDiv = document.createElement("div");
-      genericDiv.textContent = field.label || `حقل من نوع ${field.type}`;
-      genericDiv.style.cssText = "padding: 10px; background: #f0f0f0; border-radius: 4px; margin-bottom: 16px;";
-      return genericDiv;
-  }
-}
-
-// دالة إنشاء عنوان النموذج - مع إصلاح المحاذاة للوسط
+// دالة إنشاء عنوان النموذج - مع ضمان المحاذاة للوسط
 function createFormTitle(field, direction) {
   const titleText = field.content || field.label || "";
   if (!titleText) return null;
@@ -243,7 +203,7 @@ function createFormTitle(field, direction) {
   const fontSize = fieldStyle.fontSize || "24px";
   const fontWeight = fieldStyle.fontWeight || "800";
   
-  // إجبار المحاذاة للوسط دائماً
+  // ضمان المحاذاة للوسط دائماً
   titleElement.style.cssText = `
     color: ${textColor};
     font-size: ${fontSize};
@@ -468,7 +428,7 @@ function createTextarea(field, direction, primaryColor) {
   return wrapper;
 }
 
-// دالة إنشاء زر الإرسال - مطابقة للمعاينة تماماً مع الحجم الصحيح
+// دالة إنشاء زر الإرسال - مطابقة للمعاينة
 function createSubmitButton(field, primaryColor) {
   const wrapper = document.createElement("div");
   wrapper.className = "mt-0";
@@ -807,4 +767,4 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 </style>
 
-</initial_code>
+</edits_to_apply>
