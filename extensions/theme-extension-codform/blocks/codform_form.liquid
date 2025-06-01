@@ -1,4 +1,3 @@
-
 {% comment %}
   @name: CODFORM Form Block
   @description: Display a cash on delivery form for products
@@ -88,7 +87,7 @@
 </div>
 
 <script>
-// دالة عرض النموذج - محسنة لتطابق المعاينة تماماً
+// دالة عرض النموذج - مطابقة للمعاينة تماماً مع إصلاح المشاكل
 function renderCodform(formData, containerId) {
   console.log("🎯 Starting renderCodform", { formData, containerId });
   
@@ -117,13 +116,12 @@ function renderCodform(formData, containerId) {
     const borderColor = style.borderColor || primaryColor;
     const borderWidth = style.borderWidth || "2px";
     
-    // إنشاء الحاوية الخارجية - مطابقة للمعاينة تماماً مع الخط البنفسجي
+    // إنشاء الحاوية الخارجية مع الحدود البنفسجية - بدون خلفيات مكررة
     const outerContainer = document.createElement("div");
     outerContainer.className = "rounded-lg border shadow-sm overflow-hidden codform-form";
     outerContainer.style.cssText = `
       font-size: ${fontSize};
       border-radius: ${borderRadius};
-      background-color: ${backgroundColor};
       border: ${borderWidth} solid ${borderColor};
       padding: 0;
       display: flex;
@@ -132,9 +130,10 @@ function renderCodform(formData, containerId) {
       overflow: hidden;
       margin: 0;
       direction: ${formDirection};
+      background: transparent;
     `;
     
-    // إنشاء محتوى النموذج الداخلي - مطابق للمعاينة
+    // إنشاء محتوى النموذج الداخلي مع خلفية واحدة فقط
     const formContent = document.createElement("div");
     formContent.className = "codform-form-content";
     formContent.style.cssText = `
@@ -198,7 +197,7 @@ function renderCodform(formData, containerId) {
   }
 }
 
-// دالة إنشاء عنصر الحقل - محسنة لتطابق المعاينة
+// دالة إنشاء عنصر الحقل
 function createFieldElement(field, direction, primaryColor) {
   switch (field.type) {
     case "form-title":
@@ -227,7 +226,7 @@ function createFieldElement(field, direction, primaryColor) {
   }
 }
 
-// دالة إنشاء عنوان النموذج - مطابقة للمعاينة
+// دالة إنشاء عنوان النموذج - مع إصلاح المحاذاة للوسط
 function createFormTitle(field, direction) {
   const titleText = field.content || field.label || "";
   if (!titleText) return null;
@@ -243,14 +242,14 @@ function createFormTitle(field, direction) {
   const textColor = fieldStyle.color || "#000000";
   const fontSize = fieldStyle.fontSize || "24px";
   const fontWeight = fieldStyle.fontWeight || "800";
-  const textAlign = fieldStyle.textAlign || "center";
   
+  // إجبار المحاذاة للوسط دائماً
   titleElement.style.cssText = `
     color: ${textColor};
     font-size: ${fontSize};
     font-weight: ${fontWeight};
     font-family: Cairo, Tajawal, Arial, sans-serif;
-    text-align: ${textAlign};
+    text-align: center;
     margin: 0px 0px 20px;
     line-height: 1.4;
     direction: ${direction};
@@ -266,7 +265,7 @@ function createFormTitle(field, direction) {
   return titleWrapper;
 }
 
-// دالة إنشاء حقل إدخال نص - مطابقة للمعاينة تماماً
+// دالة إنشاء حقل إدخال نص - مطابقة للمعاينة تماماً مع إصلاحات
 function createTextInput(field, direction, primaryColor) {
   const wrapper = document.createElement("div");
   wrapper.className = "mb-4";
@@ -807,3 +806,5 @@ document.addEventListener('DOMContentLoaded', function() {
   animation: fadeIn 0.5s ease-out;
 }
 </style>
+
+</initial_code>
