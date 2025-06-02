@@ -87,7 +87,7 @@
 </div>
 
 <script>
-// دالة عرض النموذج - مطابقة تماماً للمعاينة
+// دالة عرض النموذج - مُعادة الكتابة بالكامل لتطابق المعاينة
 function renderCodform(formData, containerId) {
   console.log("🎯 Starting renderCodform", { formData, containerId });
   
@@ -113,22 +113,17 @@ function renderCodform(formData, containerId) {
     const fontSize = style.fontSize || "1rem";
     const formDirection = style.formDirection || "ltr";
     
-    // إنشاء الحاوية الرئيسية - مطابقة تماماً للمعاينة
+    // إنشاء الحاوية الرئيسية البسيطة - مطابقة تماماً للمعاينة
     const mainContainer = document.createElement("div");
     mainContainer.className = "rounded-lg border shadow-sm overflow-hidden codform-form";
     mainContainer.style.cssText = `
       font-size: ${fontSize};
       border-radius: ${borderRadius};
-      border: 2px solid ${primaryColor};
       background-color: #F9FAFB;
+      border: 2px solid ${primaryColor};
       padding: 0px;
       display: flex;
       flex-direction: column;
-      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-      margin: 0;
-      direction: ${formDirection};
-      width: 100%;
-      box-sizing: border-box;
     `;
     
     // إنشاء حاوية المحتوى الداخلية
@@ -143,7 +138,7 @@ function renderCodform(formData, containerId) {
       flex-direction: column;
     `;
     
-    // إنشاء حاوية الحقول مع المسافات الصحيحة
+    // إنشاء حاوية الحقول
     const fieldsContainer = document.createElement("div");
     fieldsContainer.className = "space-y-4";
     fieldsContainer.style.cssText = "gap: 16px;";
@@ -241,7 +236,6 @@ function createFormTitle(field, direction) {
   const fontSize = fieldStyle.fontSize || "24px";
   const fontWeight = fieldStyle.fontWeight || "bold";
   
-  // ضمان المحاذاة للوسط دائماً - مطابق للمعاينة
   titleElement.style.cssText = `
     color: ${textColor};
     font-size: ${fontSize};
@@ -274,7 +268,7 @@ function createTextInput(field, direction, primaryColor) {
   innerWrapper.setAttribute("dir", direction);
   innerWrapper.style.cssText = "margin-bottom: 16px; background: transparent;";
   
-  // إضافة تسمية الحقل - مطابقة تماماً للمعاينة
+  // إضافة تسمية الحقل
   if (field.label) {
     const label = document.createElement("label");
     label.className = "block mb-2";
@@ -287,7 +281,6 @@ function createTextInput(field, direction, primaryColor) {
       span.textContent = "*";
       label.appendChild(span);
     }
-    // تنسيق أسماء الحقول - مطابق تماماً للمعاينة
     label.style.cssText = `
       color: rgb(51, 51, 51);
       font-size: 1rem;
@@ -410,7 +403,6 @@ function createTextarea(field, direction, primaryColor) {
       span.textContent = "*";
       label.appendChild(span);
     }
-    // تنسيق أسماء الحقول - مطابق تماماً للمعاينة
     label.style.cssText = `
       color: rgb(51, 51, 51);
       font-size: 1rem;
@@ -429,7 +421,6 @@ function createTextarea(field, direction, primaryColor) {
   textarea.rows = 4;
   textarea.className = "w-full py-2 px-3 bg-white border outline-none focus:ring-2 focus:ring-opacity-50 transition-all";
   
-  // تطبيق نفس أنماط الحقول مع ارتفاع مختلف
   textarea.style.cssText = `
     color: rgb(31, 41, 55);
     font-size: 1rem;
@@ -465,7 +456,7 @@ function createTextarea(field, direction, primaryColor) {
   return wrapper;
 }
 
-// دالة إنشاء زر الإرسال - مطابق تماماً للمعاينة
+// دالة إنشاء زر الإرسال - مطابق تماماً للمعاينة مع التحديث الصحيح للحجم
 function createSubmitButton(field, primaryColor) {
   const wrapper = document.createElement("div");
   wrapper.className = "mt-0";
@@ -490,13 +481,13 @@ function createSubmitButton(field, primaryColor) {
     button.classList.add(`${animationType}-animation`);
   }
   
-  // تطبيق الحجم الصحيح للزر - مطابق تماماً للمعاينة
+  // تطبيق الحجم المطابق للمعاينة: 19px و padding 15px 24px
   button.style.cssText = `
     background-color: ${buttonBg};
     color: ${buttonColor};
-    font-size: 16px;
+    font-size: 19px;
     border-radius: 6px;
-    padding: 12px 20px;
+    padding: 15px 24px;
     border: 0px solid #eaeaff;
     display: inline-flex;
     align-items: center;
