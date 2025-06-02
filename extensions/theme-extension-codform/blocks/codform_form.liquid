@@ -121,21 +121,32 @@ function renderCodform(formData, containerId) {
       border-radius: ${borderRadius};
       border: 2px solid ${primaryColor};
       background-color: #F9FAFB;
-      padding: 20px;
+      padding: 0px;
       display: flex;
       flex-direction: column;
       box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
       margin: 0;
       direction: ${formDirection};
-      gap: 16px;
       width: 100%;
       box-sizing: border-box;
+    `;
+    
+    // إنشاء حاوية المحتوى الداخلية
+    const contentContainer = document.createElement("div");
+    contentContainer.className = "codform-form-content";
+    contentContainer.style.cssText = `
+      direction: ${formDirection};
+      padding: 20px;
+      gap: 16px;
+      background-color: #F9FAFB;
+      display: flex;
+      flex-direction: column;
     `;
     
     // إنشاء حاوية الحقول مع المسافات الصحيحة
     const fieldsContainer = document.createElement("div");
     fieldsContainer.className = "space-y-4";
-    fieldsContainer.style.cssText = "gap: 16px; display: flex; flex-direction: column;";
+    fieldsContainer.style.cssText = "gap: 16px;";
     
     let allFields = [];
     if (Array.isArray(formData.data)) {
@@ -167,7 +178,8 @@ function renderCodform(formData, containerId) {
       }
     });
     
-    mainContainer.appendChild(fieldsContainer);
+    contentContainer.appendChild(fieldsContainer);
+    mainContainer.appendChild(contentContainer);
     container.appendChild(mainContainer);
     
     console.log("✅ Form rendered successfully");
@@ -225,9 +237,9 @@ function createFormTitle(field, direction) {
   titleElement.className = "form-title-field w-full";
   
   const fieldStyle = field.style || {};
-  const textColor = fieldStyle.color || "#000000";
+  const textColor = fieldStyle.color || "#9b87f5";
   const fontSize = fieldStyle.fontSize || "24px";
-  const fontWeight = fieldStyle.fontWeight || "800";
+  const fontWeight = fieldStyle.fontWeight || "bold";
   
   // ضمان المحاذاة للوسط دائماً - مطابق للمعاينة
   titleElement.style.cssText = `
@@ -239,10 +251,10 @@ function createFormTitle(field, direction) {
     margin: 0px 0px 20px;
     line-height: 1.4;
     direction: ${direction};
-    padding: 3px 0px 20px;
+    padding: 0px 0px 20px;
     width: 100%;
     display: block;
-    background: transparent;
+    background: none;
     border: none;
   `;
   
@@ -255,12 +267,12 @@ function createFormTitle(field, direction) {
 function createTextInput(field, direction, primaryColor) {
   const wrapper = document.createElement("div");
   wrapper.className = "mb-4";
-  wrapper.style.cssText = "margin-bottom: 16px;"; // مسافة صحيحة بين الحقول
+  wrapper.style.cssText = "margin-bottom: 16px;";
   
   const innerWrapper = document.createElement("div");
   innerWrapper.className = "mb-4";
   innerWrapper.setAttribute("dir", direction);
-  innerWrapper.style.cssText = "margin-bottom: 16px; background: transparent; padding: 0;";
+  innerWrapper.style.cssText = "margin-bottom: 16px; background: transparent;";
   
   // إضافة تسمية الحقل - مطابقة تماماً للمعاينة
   if (field.label) {
@@ -284,7 +296,7 @@ function createTextInput(field, direction, primaryColor) {
       margin-bottom: 8px;
       display: block;
       background: transparent;
-      padding: 0;
+      padding: 0px;
     `;
     innerWrapper.appendChild(label);
   }
@@ -292,7 +304,7 @@ function createTextInput(field, direction, primaryColor) {
   // حاوية الإدخال مع الأيقونة
   const inputContainer = document.createElement("div");
   inputContainer.className = "relative";
-  inputContainer.style.cssText = "position: relative; background: transparent; padding: 0; margin: 0;";
+  inputContainer.style.cssText = "position: relative; background: transparent;";
   
   const input = document.createElement("input");
   
@@ -313,7 +325,7 @@ function createTextInput(field, direction, primaryColor) {
   
   const hasIcon = field.icon && field.style?.showIcon !== false;
   
-  // تطبيق أنماط الحقل - مطابقة تماماً للمعاينة
+  // تطبيق أنماط الحقل - مطابقة تماماً للمعاينة مع موضع الأيقونة الصحيح
   input.style.cssText = `
     color: rgb(31, 41, 55);
     font-size: 1rem;
@@ -324,8 +336,7 @@ function createTextInput(field, direction, primaryColor) {
     border-radius: 1.5rem;
     border-width: 1px;
     border-style: solid;
-    padding: 10px;
-    ${hasIcon ? 'padding-right: 36px; padding-left: 12px;' : 'padding-left: 12px; padding-right: 12px;'}
+    padding: 10px 12px 10px ${hasIcon ? '36px' : '12px'};
     box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px;
     width: 100%;
     height: auto;
@@ -334,18 +345,18 @@ function createTextInput(field, direction, primaryColor) {
     box-sizing: border-box;
     direction: ${direction};
     outline: none;
-    transition: all 0.2s ease;
-    margin: 0;
+    transition: 0.2s;
+    margin: 0px;
   `;
   
-  // إضافة الأيقونة في الجانب الصحيح
+  // إضافة الأيقونة في الجانب الأيسر (مطابق للمعاينة)
   if (hasIcon) {
     const iconElement = document.createElement("div");
     iconElement.className = "absolute codform-field-icon";
     iconElement.style.cssText = `
       position: absolute;
-      right: 12px;
-      left: auto;
+      left: 12px;
+      right: auto;
       top: 50%;
       transform: translateY(-50%);
       display: flex;
@@ -354,9 +365,6 @@ function createTextInput(field, direction, primaryColor) {
       z-index: 2;
       color: rgb(156, 163, 175);
       background: transparent;
-      width: 18px;
-      height: 18px;
-      pointer-events: none;
     `;
     
     iconElement.innerHTML = getIconSVG(field.icon);
@@ -439,7 +447,7 @@ function createTextarea(field, direction, primaryColor) {
     background-color: rgb(255, 255, 255);
     resize: vertical;
     outline: none;
-    transition: all 0.2s ease;
+    transition: 0.2s;
   `;
   
   textarea.addEventListener('focus', function() {
@@ -465,7 +473,7 @@ function createSubmitButton(field, primaryColor) {
     margin-top: 8px; 
     width: 100%; 
     background: transparent;
-    padding: 0;
+    padding: 0px;
   `;
   
   const button = document.createElement("button");
@@ -497,7 +505,7 @@ function createSubmitButton(field, primaryColor) {
     cursor: pointer;
     font-weight: bold;
     text-align: center;
-    transition: all 0.2s ease-in-out;
+    transition: 0.2s ease-in-out;
     width: 100%;
     box-sizing: border-box;
     font-family: 'Cairo', system-ui, Arial, sans-serif;
