@@ -1,3 +1,4 @@
+
 {% comment %}
   @name: CODFORM Form Block
   @description: Display a cash on delivery form for products
@@ -87,7 +88,7 @@
 </div>
 
 <script>
-// دالة عرض النموذج - مصححة نهائياً مع إضافة الدالة المفقودة
+// دالة عرض النموذج - مطابقة تماماً للمعاينة
 function renderCodform(formData, containerId) {
   console.log("🎯 Starting renderCodform", { formData, containerId });
   
@@ -112,11 +113,11 @@ function renderCodform(formData, containerId) {
     const borderRadius = style.borderRadius || "1.5rem";
     const fontSize = style.fontSize || "1rem";
     const formDirection = style.formDirection || "ltr";
-    const backgroundColor = style.backgroundColor || "#F9FAFB";
+    const backgroundColor = style.backgroundColor || "#F9FAFB"; // نفس لون المعاينة تماماً
     const borderColor = style.borderColor || primaryColor;
     const borderWidth = style.borderWidth || "2px";
     
-    // إنشاء الحاوية الرئيسية مع الخلفية والحدود البنفسجية
+    // إنشاء الحاوية الرئيسية - مطابقة تماماً للمعاينة
     const mainContainer = document.createElement("div");
     mainContainer.className = "rounded-lg border shadow-sm overflow-hidden codform-form";
     mainContainer.style.cssText = `
@@ -135,7 +136,7 @@ function renderCodform(formData, containerId) {
       box-sizing: border-box;
     `;
     
-    // إنشاء حاوية الحقول
+    // إنشاء حاوية الحقول مع المسافات الصحيحة
     const fieldsContainer = document.createElement("div");
     fieldsContainer.className = "space-y-4";
     fieldsContainer.style.cssText = "gap: 16px; display: flex; flex-direction: column;";
@@ -186,7 +187,7 @@ function renderCodform(formData, containerId) {
   }
 }
 
-// دالة إنشاء عنصر الحقل - الدالة المفقودة التي تسبب الخطأ
+// دالة إنشاء عنصر الحقل
 function createFieldElement(field, direction, primaryColor) {
   if (!field || !field.type) {
     console.warn("⚠️ Invalid field:", field);
@@ -215,7 +216,7 @@ function createFieldElement(field, direction, primaryColor) {
   }
 }
 
-// دالة إنشاء عنوان النموذج - مع ضمان المحاذاة للوسط
+// دالة إنشاء عنوان النموذج - مطابقة تماماً للمعاينة
 function createFormTitle(field, direction) {
   const titleText = field.content || field.label || "";
   if (!titleText) return null;
@@ -232,7 +233,7 @@ function createFormTitle(field, direction) {
   const fontSize = fieldStyle.fontSize || "24px";
   const fontWeight = fieldStyle.fontWeight || "800";
   
-  // ضمان المحاذاة للوسط دائماً
+  // ضمان المحاذاة للوسط دائماً - مطابق للمعاينة
   titleElement.style.cssText = `
     color: ${textColor};
     font-size: ${fontSize};
@@ -254,18 +255,18 @@ function createFormTitle(field, direction) {
   return titleWrapper;
 }
 
-// دالة إنشاء حقل إدخال نص - مطابقة للمعاينة تماماً
+// دالة إنشاء حقل إدخال نص - مطابقة تماماً للمعاينة
 function createTextInput(field, direction, primaryColor) {
   const wrapper = document.createElement("div");
   wrapper.className = "mb-4";
-  wrapper.style.cssText = "margin-bottom: 16px;";
+  wrapper.style.cssText = "margin-bottom: 16px;"; // مسافة صحيحة بين الحقول
   
   const innerWrapper = document.createElement("div");
   innerWrapper.className = "mb-4";
   innerWrapper.setAttribute("dir", direction);
   innerWrapper.style.cssText = "margin-bottom: 16px; background: transparent; padding: 0;";
   
-  // إضافة تسمية الحقل
+  // إضافة تسمية الحقل - مطابقة تماماً للمعاينة
   if (field.label) {
     const label = document.createElement("label");
     label.className = "block mb-2";
@@ -278,6 +279,7 @@ function createTextInput(field, direction, primaryColor) {
       span.textContent = "*";
       label.appendChild(span);
     }
+    // تنسيق أسماء الحقول - مطابق تماماً للمعاينة
     label.style.cssText = `
       color: rgb(51, 51, 51);
       font-size: 1rem;
@@ -315,7 +317,7 @@ function createTextInput(field, direction, primaryColor) {
   
   const hasIcon = field.icon && field.style?.showIcon !== false;
   
-  // تطبيق أنماط الحقل - مطابقة للمعاينة تماماً
+  // تطبيق أنماط الحقل - مطابقة تماماً للمعاينة
   input.style.cssText = `
     color: rgb(31, 41, 55);
     font-size: 1rem;
@@ -404,6 +406,7 @@ function createTextarea(field, direction, primaryColor) {
       span.textContent = "*";
       label.appendChild(span);
     }
+    // تنسيق أسماء الحقول - مطابق تماماً للمعاينة
     label.style.cssText = `
       color: rgb(51, 51, 51);
       font-size: 1rem;
@@ -422,6 +425,7 @@ function createTextarea(field, direction, primaryColor) {
   textarea.rows = 4;
   textarea.className = "w-full py-2 px-3 bg-white border outline-none focus:ring-2 focus:ring-opacity-50 transition-all";
   
+  // تطبيق نفس أنماط الحقول مع ارتفاع مختلف
   textarea.style.cssText = `
     color: rgb(31, 41, 55);
     font-size: 1rem;
@@ -457,7 +461,7 @@ function createTextarea(field, direction, primaryColor) {
   return wrapper;
 }
 
-// دالة إنشاء زر الإرسال - بحجم مناسب مطابق للمعاينة
+// دالة إنشاء زر الإرسال - مطابق تماماً للمعاينة
 function createSubmitButton(field, primaryColor) {
   const wrapper = document.createElement("div");
   wrapper.className = "mt-0";
@@ -482,7 +486,7 @@ function createSubmitButton(field, primaryColor) {
     button.classList.add(`${animationType}-animation`);
   }
   
-  // تطبيق الحجم الصحيح للزر - مطابق للمعاينة
+  // تطبيق الحجم الصحيح للزر - مطابق تماماً للمعاينة
   button.style.cssText = `
     background-color: ${buttonBg};
     color: ${buttonColor};
