@@ -699,7 +699,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
     }, 100);
   };
 
-  // Handle style change needs to match the expected signature
+  // تحديث دالة handleStyleChange لتدعم زر تغيير الاتجاه
   const handleStyleChange = (newStyle: any) => {
     setFormStyle({
       ...formStyle,
@@ -889,6 +889,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
             onPreviousStep={() => setCurrentPreviewStep(prev => Math.max(prev - 1, 1))}
             onNextStep={() => setCurrentPreviewStep(prev => Math.min(prev + 1, 1))}
             refreshKey={refreshKey}
+            onStyleChange={handleStyleChange}
           />
         </div>
       </div>

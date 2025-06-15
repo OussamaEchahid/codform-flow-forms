@@ -103,7 +103,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
     <div 
       className="mb-4" 
       style={{ marginBottom: '16px', background: 'transparent' }}
-      dir={formDirection} // استخدام اتجاه النموذج
+      dir={formDirection}
     >
       {showLabel && (
         <label 
@@ -143,8 +143,8 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
             className="absolute codform-field-icon" 
             style={{
               position: 'absolute',
-              left: '12px', // دائماً على اليسار
-              right: 'auto',
+              left: formDirection === 'rtl' ? 'auto' : '12px',
+              right: formDirection === 'rtl' ? '12px' : 'auto',
               top: '50%',
               transform: 'translateY(-50%)',
               display: 'flex',
@@ -173,12 +173,16 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
             fontFamily: fontFamily,
             backgroundColor: backgroundColor,
             borderColor: borderColor,
-            borderRadius: borderRadius,
+            borderRadius: '1.5rem',
             borderWidth: borderWidth,
             borderStyle: 'solid',
             padding: paddingY,
-            paddingLeft: (showIcon && hasIcon) ? '36px' : '12px',
-            paddingRight: '12px',
+            paddingLeft: formDirection === 'rtl' 
+              ? ((showIcon && hasIcon) ? '36px' : '12px')
+              : ((showIcon && hasIcon) ? '36px' : '12px'),
+            paddingRight: formDirection === 'rtl' 
+              ? '12px' 
+              : ((showIcon && hasIcon) ? '12px' : '12px'),
             boxShadow: 'rgba(0, 0, 0, 0.05) 0px 1px 2px',
             width: '100%',
             height: 'auto',
@@ -186,6 +190,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
             minHeight: '44px',
             boxSizing: 'border-box',
             direction: formDirection,
+            textAlign: formDirection === 'rtl' ? 'right' : 'left',
             outline: 'none',
             transition: 'all 0.2s ease'
           }}
