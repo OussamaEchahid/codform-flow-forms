@@ -45,12 +45,6 @@
       "id": "retry_button",
       "label": "نص زر إعادة المحاولة",
       "default": "إعادة المحاولة"
-    },
-    {
-      "type": "checkbox",
-      "id": "is_rtl",
-      "label": "اتجاه النص من اليمين لليسار",
-      "default": true
     }
   ]
 }
@@ -114,9 +108,9 @@ function renderCodform(formData, containerId) {
 
     const style = formData.style || {};
     const primaryColor = style.primaryColor || "#9b87f5";
-    const borderRadius = style.borderRadius || "1.5rem";
-    const fontSize = style.fontSize || "16px"; // FIX: Use px for consistency
-    const formDirection = style.formDirection || ({{ block.settings.is_rtl | default: true }}) ? "rtl" : "ltr"; // FIX: Use block setting for direction fallback
+    const borderRadius = style.borderRadius || "0.5rem"; // FIX: Default value now matches builder
+    const fontSize = style.fontSize || "16px";
+    const formDirection = style.formDirection || "rtl"; // FIX: Source of truth is form data, default to RTL
     const backgroundColor = style.backgroundColor || "#F9FAFB";
     const borderColor = style.borderColor || primaryColor;
     const borderWidth = style.borderWidth || "2px";
@@ -223,7 +217,7 @@ function createFieldElement(field, direction, primaryColor, formStyle = {}) {
     case "phone":
       return createTextInput(field, direction, primaryColor, formStyle);
     case "textarea":
-      return createTextarea(field, direction, primaryColor);
+      return createTextarea(field, direction, primaryColor, formStyle); // FIX: Pass formStyle
     case "submit":
       return createSubmitButton(field, primaryColor, formStyle);
     case "text/html":
@@ -355,7 +349,7 @@ function createTextInput(field, direction, primaryColor, formStyle = {}) {
   const backgroundColor = 'rgb(255, 255, 255)';
   const borderColor = fieldStyle.borderColor || 'rgb(209, 213, 219)';
   const borderWidth = fieldStyle.borderWidth || '1px';
-  const borderRadius = fieldStyle.borderRadius || formStyles.borderRadius || '8px';
+  const borderRadius = fieldStyle.borderRadius || formStyles.borderRadius || '0.5rem'; // FIX: Default value now matches builder
   const paddingY = fieldStyle.paddingY ? `${fieldStyle.paddingY}px` : '10px';
 
   let paddingLeft = '12px';
@@ -416,7 +410,7 @@ function createTextInput(field, direction, primaryColor, formStyle = {}) {
 }
 
 // دالة إنشاء منطقة نص - مطابقة للمعاينة
-function createTextarea(field, direction, primaryColor) {
+function createTextarea(field, direction, primaryColor, formStyle = {}) { // FIX: Accept formStyle
   const wrapper = document.createElement("div");
   // FIX: Remove margin-bottom to rely on parent gap for spacing
   wrapper.className = "";
@@ -424,6 +418,7 @@ function createTextarea(field, direction, primaryColor) {
   wrapper.setAttribute("dir", direction);
 
   const fieldStyle = field.style || {};
+  const formStyles = formStyle || {}; // FIX: Use passed formStyle
 
   const showLabel = fieldStyle.showLabel !== false;
   if (showLabel && field.label) {
@@ -467,7 +462,7 @@ function createTextarea(field, direction, primaryColor) {
   const backgroundColor = 'rgb(255, 255, 255)';
   const borderColor = fieldStyle.borderColor || 'rgb(209, 213, 219)';
   const borderWidth = fieldStyle.borderWidth || '1px';
-  const borderRadius = fieldStyle.borderRadius || '8px';
+  const borderRadius = fieldStyle.borderRadius || formStyles.borderRadius || '0.5rem'; // FIX: Use formStyle and match default
   const paddingY = fieldStyle.paddingY ? `${fieldStyle.paddingY}px` : '10px';
 
   textarea.style.cssText = `
@@ -862,3 +857,5 @@ document.addEventListener('DOMContentLoaded', function() {
   animation: fadeIn 0.5s ease-out;
 }
 </style>
+
+</initial_code>

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { FormStyle } from '@/hooks/useFormStore';
 import { FloatingButtonConfig } from '@/lib/form-utils';
@@ -60,6 +59,28 @@ const FormStyleEditor: React.FC<FormStyleEditorProps> = ({
       
       <TabsContent value="general" className="space-y-4 py-4">
         <div className="space-y-4">
+          <div className="grid gap-2">
+            <Label htmlFor="form-direction">
+              {language === 'ar' ? 'اتجاه النموذج' : 'Form Direction'}
+            </Label>
+            <Select 
+              value={formStyle.formDirection || 'rtl'} 
+              onValueChange={(value) => handleStyleChange('formDirection', value)}
+            >
+              <SelectTrigger id="form-direction">
+                <SelectValue placeholder={language === 'ar' ? 'اختر اتجاه النموذج' : 'Select form direction'} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="rtl">
+                  {language === 'ar' ? 'من اليمين لليسار' : 'Right-to-Left (RTL)'}
+                </SelectItem>
+                <SelectItem value="ltr">
+                  {language === 'ar' ? 'من اليسار لليمين' : 'Left-to-Right (LTR)'}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
           <div className="grid gap-2">
             <Label htmlFor="border-radius">
               {language === 'ar' ? 'تقويس الحواف' : 'Border Radius'}
