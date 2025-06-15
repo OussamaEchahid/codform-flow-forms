@@ -88,7 +88,7 @@
 <script>
 // دالة عرض النموذج - مع إصلاح منطق الأيقونات وزوايا الحقول
 function renderCodform(formData, containerId) {
-  console.log("🎯 Rendering Codform with corrected logic", { formData, containerId });
+  console.log("🎯 Rendering Codform with unified styling", { formData, containerId });
 
   try {
     const container = document.getElementById(containerId);
@@ -108,14 +108,14 @@ function renderCodform(formData, containerId) {
 
     const style = formData.style || {};
     const primaryColor = style.primaryColor || "#9b87f5";
-    const borderRadius = style.borderRadius || "1.5rem"; // FIX: توحيد القيمة الافتراضية مع المعاينة
+    const borderRadius = "1.5rem"; // توحيد مع المعاينة
     const fontSize = style.fontSize || "1rem";
     const formDirection = style.formDirection || "rtl";
     const backgroundColor = style.backgroundColor || "#F9FAFB";
     const borderColor = style.borderColor || primaryColor;
     const borderWidth = style.borderWidth || "2px";
 
-    console.log("🔧 Using form styles:", { borderRadius, fontSize, formDirection });
+    console.log("🔧 Using unified form styles:", { borderRadius, fontSize, formDirection });
 
     // هيكل مطابق تماماً لـ FormPreview
     const mainContainer = document.createElement("div");
@@ -130,6 +130,7 @@ function renderCodform(formData, containerId) {
       flex-direction: column;
       width: 100%;
       box-sizing: border-box;
+      direction: ${formDirection};
     `;
 
     const contentContainer = document.createElement("div");
@@ -188,7 +189,7 @@ function renderCodform(formData, containerId) {
     mainContainer.appendChild(contentContainer);
     container.appendChild(mainContainer);
     
-    console.log("✅ Form rendered successfully with corrected structure.");
+    console.log("✅ Form rendered successfully with unified styling.");
     return true;
     
   } catch (error) {
@@ -268,7 +269,7 @@ function createFormTitle(field, direction) {
   return titleWrapper;
 }
 
-// دالة إنشاء حقل إدخال نص - مع إصلاح منطق الأيقونات نهائياً
+// دالة إنشاء حقل إدخال نص - مع توحيد الزوايا والأيقونات
 function createTextInput(field, direction, primaryColor, formStyle = {}) {
   const wrapper = document.createElement("div");
   wrapper.className = "";
@@ -315,7 +316,7 @@ function createTextInput(field, direction, primaryColor, formStyle = {}) {
   if (hasIcon) {
     const iconElement = document.createElement("div");
     iconElement.className = "absolute codform-field-icon";
-    // FIX: الأيقونة دائماً على اليسار في النماذج العربية
+    // الأيقونة دائماً على اليسار
     iconElement.style.cssText = `
         position: absolute;
         left: 12px;
@@ -347,10 +348,10 @@ function createTextInput(field, direction, primaryColor, formStyle = {}) {
   const backgroundColor = 'rgb(255, 255, 255)';
   const borderColor = fieldStyle.borderColor || 'rgb(209, 213, 219)';
   const borderWidth = fieldStyle.borderWidth || '1px';
-  const borderRadius = fieldStyle.borderRadius || formStyles.borderRadius || '1.5rem'; // FIX: توحيد القيمة مع المعاينة
+  const borderRadius = '1.5rem'; // توحيد مع المعاينة
   const paddingY = fieldStyle.paddingY ? `${fieldStyle.paddingY}px` : '10px';
 
-  // FIX: الأيقونة دائماً على اليسار في النماذج العربية
+  // الأيقونة دائماً على اليسار
   const paddingLeft = (hasIcon) ? '36px' : '12px';
   const paddingRight = '12px';
 
@@ -455,7 +456,7 @@ function createTextarea(field, direction, primaryColor, formStyle = {}) {
   const backgroundColor = 'rgb(255, 255, 255)';
   const borderColor = fieldStyle.borderColor || 'rgb(209, 213, 219)';
   const borderWidth = fieldStyle.borderWidth || '1px';
-  const borderRadius = fieldStyle.borderRadius || formStyles.borderRadius || '1.5rem'; // FIX: توحيد القيمة مع المعاينة
+  const borderRadius = '1.5rem'; // توحيد مع المعاينة
   const paddingY = fieldStyle.paddingY ? `${fieldStyle.paddingY}px` : '10px';
 
   console.log("🔧 Textarea styles:", { fontSize, borderRadius });
@@ -526,8 +527,8 @@ function createSubmitButton(field, primaryColor, formStyle = {}) {
 
   const backgroundColor = fieldStyle.backgroundColor || formStyles.primaryColor || '#9b87f5';
   const color = fieldStyle.color || '#ffffff';
-  const fontSize = fieldStyle.fontSize || formStyles.fontSize || '18px'; // FIX: توحيد حجم زر الإرسال
-  const borderRadius = fieldStyle.borderRadius || formStyles.borderRadius || '1.5rem'; // FIX: توحيد التقويس
+  const fontSize = fieldStyle.fontSize || formStyles.fontSize || '18px';
+  const borderRadius = '1.5rem'; // توحيد مع المعاينة
   const paddingY = fieldStyle.paddingY || '10px';
   const borderWidth = fieldStyle.borderWidth || '0px';
   const borderColor = fieldStyle.borderColor || 'transparent';

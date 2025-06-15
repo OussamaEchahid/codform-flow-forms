@@ -1,9 +1,12 @@
+
 import React, { useEffect, useState, useMemo } from 'react';
 import { FormField, deepCloneField } from '@/lib/form-utils';
 import FormPreview from '@/components/form/FormPreview';
 import { useI18n } from '@/lib/i18n';
 import { useFormStore } from '@/hooks/useFormStore';
 import { Button } from '@/components/ui/button';
+import { ArrowLeftRight } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface FormStyle {
   primaryColor: string;
@@ -68,9 +71,14 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     }
   }, [refreshKey, internalRefreshKey]);
   
+  // زر تغيير الاتجاه - منفصل عن لغة الموقع
   const toggleDirection = () => {
-    const newDirection = formStyle.formDirection === 'rtl' ? 'ltr' : 'rtl';
+    const currentDirection = formStyle.formDirection || 'ltr';
+    const newDirection = currentDirection === 'rtl' ? 'ltr' : 'rtl';
     updateFormStyle({ formDirection: newDirection });
+    toast.success(language === 'ar' 
+      ? `تم تغيير الاتجاه إلى ${newDirection === 'rtl' ? 'يمين-يسار' : 'يسار-يمين'}` 
+      : `Direction changed to ${newDirection.toUpperCase()}`);
   };
   
   const processedFields = useMemo(() => {
@@ -91,12 +99,13 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           fontSize: '18px',
           animation: true,
           animationType: 'pulse',
-          borderRadius: formStyle.borderRadius || '1.5rem',
+          borderRadius: '1.5rem', // توحيد مع المتجر
         },
       };
       clonedFields.push(submitButton);
     }
     
+    // تطبيق اتجاه النموذج بغض النظر عن لغة الموقع
     if (formStyle.formDirection) {
       return clonedFields.map(field => {
         if (field.style?.textAlign) return field;
@@ -122,7 +131,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   const previewFormStyle = {
     ...formStyle,
     backgroundColor: formStyle.backgroundColor || '#ffffff',
-    borderRadius: formStyle.borderRadius || '1.5rem', // FIX: Match default
+    borderRadius: '1.5rem', // توحيد مع المتجر
     borderColor: formStyle.borderColor || '#9b87f5',
     borderWidth: formStyle.borderWidth || '2px',
   };
@@ -133,8 +142,15 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
         <h3 className={`text-lg font-medium ${language === 'ar' ? 'text-right' : ''}`}>
           {language === 'ar' ? 'معاينة مباشرة' : 'Live Preview'}
         </h3>
-        <Button variant="outline" size="sm" onClick={toggleDirection}>
-          {language === 'ar' ? 'تغيير الاتجاه' : 'Direction'}: {formStyle.formDirection?.toUpperCase() || 'LTR'}
+        {/* زر تغيير الاتجاه فوق المعاينة */}
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={toggleDirection}
+          className="bg-white shadow-md border-2 border-blue-200 hover:border-blue-400 transition-all"
+        >
+          <ArrowLeftRight className="w-4 h-4 mr-2" />
+          {language === 'ar' ? 'تغيير الاتجاه' : 'Toggle Direction'}: {formStyle.formDirection?.toUpperCase() || 'LTR'}
         </Button>
       </div>
       
@@ -144,6 +160,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           backgroundColor: '#f8fafc',
           border: '1px solid #e2e8f0'
         }}
+        dir={formStyle.formDirection || 'ltr'} // فرض اتجاه النموذج بغض النظر عن لغة الموقع
       >
         <FormPreview 
           key={`preview-${internalRefreshKey}`}

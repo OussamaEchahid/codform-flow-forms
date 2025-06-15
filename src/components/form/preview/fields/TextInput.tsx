@@ -22,12 +22,16 @@ interface TextInputProps {
     primaryColor?: string;
     borderRadius?: string;
     fontSize?: string;
+    formDirection?: 'ltr' | 'rtl';
   };
 }
 
 const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   const { language } = useI18n();
   const fieldStyle = field.style || {};
+  
+  // استخدام اتجاه النموذج من formStyle بدلاً من لغة الموقع
+  const formDirection = formStyle.formDirection || 'ltr';
   
   // القيم الافتراضية للتنسيق
   const showLabel = fieldStyle.showLabel !== false;
@@ -44,7 +48,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   const backgroundColor = 'rgb(255, 255, 255)';
   const borderColor = fieldStyle.borderColor || 'rgb(209, 213, 219)';
   const borderWidth = fieldStyle.borderWidth || '1px';
-  const borderRadius = fieldStyle.borderRadius || formStyle.borderRadius || '0.5rem';
+  const borderRadius = '1.5rem'; // توحيد مع المتجر
   const paddingY = fieldStyle.paddingY ? `${fieldStyle.paddingY}px` : '10px';
   
   // تحديد إذا كان هناك أيقونة وإذا كان يجب إظهارها
@@ -99,7 +103,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
     <div 
       className="mb-4" 
       style={{ marginBottom: '16px', background: 'transparent' }}
-      dir={language === 'ar' ? 'rtl' : 'ltr'}
+      dir={formDirection} // استخدام اتجاه النموذج
     >
       {showLabel && (
         <label 
@@ -122,8 +126,8 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
             <span 
               className="text-red-500" 
               style={{
-                marginRight: language === 'ar' ? '0' : '4px',
-                marginLeft: language === 'ar' ? '4px' : '0',
+                marginRight: formDirection === 'rtl' ? '0' : '4px',
+                marginLeft: formDirection === 'rtl' ? '4px' : '0',
                 color: 'rgb(239, 68, 68)'
               }}
             >
@@ -139,7 +143,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
             className="absolute codform-field-icon" 
             style={{
               position: 'absolute',
-              left: '12px', // FIX: الأيقونة دائماً على اليسار في النماذج العربية
+              left: '12px', // دائماً على اليسار
               right: 'auto',
               top: '50%',
               transform: 'translateY(-50%)',
@@ -173,7 +177,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
             borderWidth: borderWidth,
             borderStyle: 'solid',
             padding: paddingY,
-            paddingLeft: (showIcon && hasIcon) ? '36px' : '12px', // FIX: الأيقونة دائماً على اليسار
+            paddingLeft: (showIcon && hasIcon) ? '36px' : '12px',
             paddingRight: '12px',
             boxShadow: 'rgba(0, 0, 0, 0.05) 0px 1px 2px',
             width: '100%',
@@ -181,7 +185,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
             lineHeight: 1.5,
             minHeight: '44px',
             boxSizing: 'border-box',
-            direction: language === 'ar' ? 'rtl' : 'ltr',
+            direction: formDirection,
             outline: 'none',
             transition: 'all 0.2s ease'
           }}
