@@ -22,7 +22,7 @@ const FormBuilderPage = () => {
   const { t, language } = useI18n();
   const { fetchForms } = useFormTemplates();
   const { tokenError, failSafeMode, toggleFailSafeMode, getDefaultForm } = useShopify();
-  const { formStyle, updateFormStyle } = useFormStore();
+  const { formState, updateFormStyle } = useFormStore();
   
   const [activeTab, setActiveTab] = useState<'dashboard' | 'editor'>(formId ? 'editor' : 'dashboard');
   const [bypassEnabled, setBypassEnabled] = useState(false);
@@ -45,7 +45,8 @@ const FormBuilderPage = () => {
   
   // زر تغيير الاتجاه
   const toggleDirection = () => {
-    const newDirection = formStyle.formDirection === 'rtl' ? 'ltr' : 'rtl';
+    const currentDirection = formState.style?.formDirection || 'ltr';
+    const newDirection = currentDirection === 'rtl' ? 'ltr' : 'rtl';
     updateFormStyle({ formDirection: newDirection });
     toast.success(language === 'ar' 
       ? `تم تغيير الاتجاه إلى ${newDirection === 'rtl' ? 'يمين-يسار' : 'يسار-يمين'}` 
@@ -336,7 +337,7 @@ const FormBuilderPage = () => {
                   className="bg-white shadow-md border-2 border-blue-200 hover:border-blue-400 transition-all"
                 >
                   <ArrowLeftRight className="w-4 h-4 mr-2" />
-                  {language === 'ar' ? 'تغيير الاتجاه' : 'Toggle Direction'}: {formStyle.formDirection?.toUpperCase() || 'LTR'}
+                  {language === 'ar' ? 'تغيير الاتجاه' : 'Toggle Direction'}: {formState.style?.formDirection?.toUpperCase() || 'LTR'}
                 </Button>
               </div>
               <FormBuilderEditor formId={formId} shopId={shop || ''} />
