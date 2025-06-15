@@ -59,6 +59,11 @@
 <!-- تحميل ملف CSS -->
 {{ 'codform.css' | asset_url | stylesheet_tag }}
 
+<!-- تحميل خط Cairo لضمان تطابق الخطوط -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
 <div 
   id="codform-container-{{ block.id }}" 
   class="codform-container" 
@@ -179,7 +184,7 @@ function renderCodform(formData, containerId) {
       
       console.log(`🔧 Rendering field ${index + 1}: ${field.type}`);
       
-      const fieldElement = createFieldElement(field, formDirection, primaryColor);
+      const fieldElement = createFieldElement(field, formDirection, primaryColor, style);
       if (fieldElement) {
         fieldsContainer.appendChild(fieldElement);
       }
@@ -204,7 +209,7 @@ function renderCodform(formData, containerId) {
 }
 
 // دالة إنشاء عنصر الحقل
-function createFieldElement(field, direction, primaryColor) {
+function createFieldElement(field, direction, primaryColor, formStyle = {}) {
   if (!field || !field.type) {
     console.warn("⚠️ Invalid field:", field);
     return null;
@@ -216,11 +221,11 @@ function createFieldElement(field, direction, primaryColor) {
     case "text":
     case "email":
     case "phone":
-      return createTextInput(field, direction, primaryColor);
+      return createTextInput(field, direction, primaryColor, formStyle);
     case "textarea":
       return createTextarea(field, direction, primaryColor);
     case "submit":
-      return createSubmitButton(field, primaryColor);
+      return createSubmitButton(field, primaryColor, formStyle);
     case "text/html":
       return createHtmlContent(field);
     default:
@@ -271,131 +276,140 @@ function createFormTitle(field, direction) {
 }
 
 // دالة إنشاء حقل إدخال نص - مطابقة تماماً للمعاينة
-function createTextInput(field, direction, primaryColor) {
+function createTextInput(field, direction, primaryColor, formStyle = {}) {
   const wrapper = document.createElement("div");
   wrapper.className = "mb-4";
-  wrapper.style.cssText = "margin-bottom: 16px;";
-  
-  const innerWrapper = document.createElement("div");
-  innerWrapper.className = "mb-4";
-  innerWrapper.setAttribute("dir", direction);
-  innerWrapper.style.cssText = "margin-bottom: 16px; background: transparent;";
-  
-  // إضافة تسمية الحقل
-  if (field.label) {
+  wrapper.style.cssText = "margin-bottom: 16px; background: transparent;";
+  wrapper.setAttribute("dir", direction);
+
+  const fieldStyle = field.style || {};
+  const formStyles = formStyle || {};
+
+  const showLabel = fieldStyle.showLabel !== false;
+  if (showLabel && field.label) {
     const label = document.createElement("label");
+    label.htmlFor = `${field.id}-input`;
     label.className = "block mb-2";
-    label.setAttribute("for", `${field.id}-input`);
     label.textContent = field.label;
+
+    label.style.cssText = `
+        color: ${fieldStyle.labelColor || '#333333'};
+        font-size: ${fieldStyle.labelFontSize || '1rem'};
+        font-weight: ${fieldStyle.labelFontWeight || '600'};
+        font-family: 'Cairo', sans-serif;
+        margin-bottom: 8px;
+        display: block;
+        background: transparent;
+        padding: 0px;
+    `;
+
     if (field.required) {
       const span = document.createElement("span");
       span.className = "text-red-500";
-      span.style.cssText = "margin-right: 4px; margin-left: 0px; color: rgb(239, 68, 68);";
-      span.textContent = "*";
+      span.textContent = " *";
+      span.style.color = "rgb(239, 68, 68)";
       label.appendChild(span);
     }
-    label.style.cssText = `
-      color: rgb(51, 51, 51);
-      font-size: 1rem;
-      font-weight: 600;
-      font-family: inherit;
-      margin-bottom: 8px;
-      display: block;
-      background: transparent;
-      padding: 0px;
-    `;
-    innerWrapper.appendChild(label);
+    wrapper.appendChild(label);
   }
-  
-  // حاوية الإدخال مع الأيقونة
+
   const inputContainer = document.createElement("div");
   inputContainer.className = "relative";
   inputContainer.style.cssText = "position: relative; background: transparent;";
-  
-  const input = document.createElement("input");
-  
-  if (field.type === "email") {
-    input.type = "email";
-  } else if (field.type === "phone") {
-    input.type = "tel";
-  } else {
-    input.type = "text";
-  }
-  
-  input.id = `${field.id}-input`;
-  input.name = field.id;
-  input.placeholder = field.placeholder || field.label || "";
-  input.required = field.required || false;
-  input.className = "w-full outline-none transition-all codform-input";
-  input.setAttribute("aria-label", field.inputFor || field.label || "");
-  
-  const hasIcon = field.icon && field.style?.showIcon !== false;
-  
-  const inputPaddingStyle = direction === 'rtl'
-    ? `padding: 10px 36px 10px 12px;`
-    : `padding: 10px 12px 10px 36px;`;
 
-  // تطبيق أنماط الحقل - مطابقة تماماً للمعاينة مع موضع الأيقونة الصحيح
-  input.style.cssText = `
-    color: rgb(31, 41, 55);
-    font-size: 1rem;
-    font-weight: 400;
-    font-family: inherit;
-    background-color: rgb(255, 255, 255);
-    border-color: rgb(209, 213, 219);
-    border-radius: 1.5rem;
-    border-width: 1px;
-    border-style: solid;
-    ${hasIcon ? inputPaddingStyle : 'padding: 10px 12px;'}
-    box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px;
-    width: 100%;
-    height: auto;
-    line-height: 1.5;
-    min-height: 44px;
-    box-sizing: border-box;
-    direction: ${direction};
-    outline: none;
-    transition: 0.2s;
-    margin: 0px;
-  `;
-  
-  // إضافة الأيقونة في الجانب الصحيح حسب اتجاه النص
+  const hasIcon = field.icon && field.icon !== 'none' && field.style?.showIcon !== false;
+
   if (hasIcon) {
     const iconElement = document.createElement("div");
     iconElement.className = "absolute codform-field-icon";
-    const iconPositionStyle = direction === 'rtl' ? 'right: 12px; left: auto;' : 'left: 12px; right: auto;';
+    const iconPosition = direction === 'rtl' ? 'right' : 'left';
     iconElement.style.cssText = `
-      position: absolute;
-      ${iconPositionStyle}
-      top: 50%;
-      transform: translateY(-50%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 2;
-      color: rgb(156, 163, 175);
-      background: transparent;
+        position: absolute;
+        top: 50%;
+        ${iconPosition}: 12px;
+        transform: translateY(-50%);
+        z-index: 2;
+        color: rgb(156, 163, 175);
+        display: flex;
+        align-items: center;
+        justify-content: center;
     `;
-    
     iconElement.innerHTML = getIconSVG(field.icon);
     inputContainer.appendChild(iconElement);
   }
-  
-  // تحسين تأثيرات التركيز
+
+  const input = document.createElement("input");
+  input.type = (field.type === 'email') ? 'email' : (field.type === 'phone') ? 'tel' : 'text';
+  input.id = `${field.id}-input`;
+  input.name = field.id;
+  input.placeholder = field.placeholder || '';
+  input.required = field.required || false;
+  input.className = "w-full outline-none transition-all codform-input";
+  input.setAttribute("aria-label", field.inputFor || field.label || "");
+
+  const textColor = fieldStyle.color || 'rgb(31, 41, 55)';
+  const fontSize = fieldStyle.fontSize || '1rem';
+  const fontWeight = fieldStyle.fontWeight || '400';
+  const backgroundColor = 'rgb(255, 255, 255)';
+  const borderColor = fieldStyle.borderColor || 'rgb(209, 213, 219)';
+  const borderWidth = fieldStyle.borderWidth || '1px';
+  const borderRadius = fieldStyle.borderRadius || formStyles.borderRadius || '8px';
+  const paddingY = fieldStyle.paddingY ? `${fieldStyle.paddingY}px` : '10px';
+
+  let paddingLeft = '12px';
+  let paddingRight = '12px';
+  if (hasIcon) {
+    if (direction === 'rtl') {
+      paddingRight = '36px';
+    } else {
+      paddingLeft = '36px';
+    }
+  }
+
+  input.style.cssText = `
+      color: ${textColor};
+      font-size: ${fontSize};
+      font-weight: ${fontWeight};
+      font-family: 'Cairo', sans-serif;
+      background-color: ${backgroundColor};
+      border-color: ${borderColor};
+      border-radius: ${borderRadius};
+      border-width: ${borderWidth};
+      border-style: solid;
+      padding: ${paddingY} ${paddingRight} ${paddingY} ${paddingLeft};
+      box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px;
+      width: 100%;
+      height: auto;
+      line-height: 1.5;
+      min-height: 44px;
+      box-sizing: border-box;
+      direction: ${direction};
+      outline: none;
+      transition: all 0.2s ease;
+      margin: 0px;
+  `;
+
   input.addEventListener('focus', function() {
     this.style.borderColor = primaryColor;
-    this.style.boxShadow = `0 0 0 2px rgba(155, 135, 245, 0.2)`;
+    this.style.boxShadow = `0 0 0 3px rgba(155, 135, 245, 0.2)`;
   });
-  
+
   input.addEventListener('blur', function() {
-    this.style.borderColor = 'rgb(209, 213, 219)';
+    this.style.borderColor = fieldStyle.borderColor || 'rgb(209, 213, 219)';
     this.style.boxShadow = 'rgba(0, 0, 0, 0.05) 0px 1px 2px';
   });
-  
+
   inputContainer.appendChild(input);
-  innerWrapper.appendChild(inputContainer);
-  wrapper.appendChild(innerWrapper);
-  
+  wrapper.appendChild(inputContainer);
+
+  if (field.helpText) {
+    const helpText = document.createElement("p");
+    helpText.className = "mt-1 text-xs text-gray-500 codform-help-text";
+    helpText.textContent = field.helpText;
+    helpText.style.cssText = "margin-top: 6px; font-size: 14px; color: #6b7280; background: transparent; padding: 0;";
+    wrapper.appendChild(helpText);
+  }
+
   return wrapper;
 }
 
@@ -403,78 +417,104 @@ function createTextInput(field, direction, primaryColor) {
 function createTextarea(field, direction, primaryColor) {
   const wrapper = document.createElement("div");
   wrapper.className = "mb-4";
-  wrapper.style.cssText = "margin-bottom: 16px;";
-  
-  const innerWrapper = document.createElement("div");
-  innerWrapper.className = "mb-4";
-  
-  if (field.label) {
+  wrapper.style.cssText = "margin-bottom: 16px; background: transparent;";
+  wrapper.setAttribute("dir", direction);
+
+  const fieldStyle = field.style || {};
+
+  const showLabel = fieldStyle.showLabel !== false;
+  if (showLabel && field.label) {
     const label = document.createElement("label");
-    label.className = "block mb-2 relative";
-    label.setAttribute("for", field.id);
+    label.htmlFor = field.id;
+    label.className = "block mb-2";
     label.textContent = field.label;
+
+    label.style.cssText = `
+      color: ${fieldStyle.labelColor || '#333333'};
+      font-size: ${fieldStyle.labelFontSize || '1rem'};
+      font-weight: ${fieldStyle.labelFontWeight || '600'};
+      font-family: 'Cairo', sans-serif;
+      margin-bottom: 8px;
+      display: block;
+      background: transparent;
+      padding: 0px;
+    `;
+
     if (field.required) {
       const span = document.createElement("span");
       span.className = "text-red-500";
-      span.style.cssText = "margin-right: 4px; margin-left: 0px;";
-      span.textContent = "*";
+      span.textContent = " *";
+      span.style.color = "rgb(239, 68, 68)";
       label.appendChild(span);
     }
-    label.style.cssText = `
-      color: rgb(51, 51, 51);
-      font-size: 1rem;
-      font-weight: 600;
-      font-family: inherit;
-      margin-bottom: 8px;
-      display: flex;
-    `;
-    innerWrapper.appendChild(label);
+    wrapper.appendChild(label);
   }
-  
+
   const textarea = document.createElement("textarea");
   textarea.id = field.id;
-  textarea.placeholder = field.placeholder || field.label || "";
+  textarea.name = field.id;
+  textarea.placeholder = field.placeholder || '';
   textarea.required = field.required || false;
-  textarea.rows = 4;
-  textarea.className = "w-full py-2 px-3 bg-white border outline-none focus:ring-2 focus:ring-opacity-50 transition-all";
-  
+  textarea.className = "w-full outline-none transition-all codform-input";
+  textarea.setAttribute("aria-label", field.inputFor || field.label || "");
+
+  const textColor = fieldStyle.color || 'rgb(31, 41, 55)';
+  const fontSize = fieldStyle.fontSize || '1rem';
+  const fontWeight = fieldStyle.fontWeight || '400';
+  const backgroundColor = 'rgb(255, 255, 255)';
+  const borderColor = fieldStyle.borderColor || 'rgb(209, 213, 219)';
+  const borderWidth = fieldStyle.borderWidth || '1px';
+  const borderRadius = fieldStyle.borderRadius || '8px';
+  const paddingY = fieldStyle.paddingY ? `${fieldStyle.paddingY}px` : '10px';
+
   textarea.style.cssText = `
-    color: rgb(31, 41, 55);
-    font-size: 1rem;
-    font-weight: 400;
-    font-family: inherit;
-    border-color: rgb(209, 213, 219);
-    border-radius: 1.5rem;
-    border-width: 1px;
+    color: ${textColor};
+    font-size: ${fontSize};
+    font-weight: ${fontWeight};
+    font-family: 'Cairo', sans-serif;
+    background-color: ${backgroundColor};
+    border-color: ${borderColor};
+    border-radius: ${borderRadius};
+    border-width: ${borderWidth};
     border-style: solid;
-    padding: 10px 12px;
+    padding: ${paddingY} 12px;
     box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px;
     width: 100%;
     min-height: 100px;
     line-height: 1.5;
-    background-color: rgb(255, 255, 255);
-    resize: vertical;
+    box-sizing: border-box;
+    direction: ${direction};
     outline: none;
-    transition: 0.2s;
+    transition: all 0.2s ease;
+    margin: 0px;
+    resize: vertical;
   `;
-  
+
   textarea.addEventListener('focus', function() {
     this.style.borderColor = primaryColor;
-    this.style.boxShadow = `0 0 0 2px rgba(155, 135, 245, 0.2)`;
+    this.style.boxShadow = `0 0 0 3px rgba(155, 135, 245, 0.2)`;
   });
-  
+
   textarea.addEventListener('blur', function() {
-    this.style.borderColor = 'rgb(209, 213, 219)';
+    this.style.borderColor = fieldStyle.borderColor || 'rgb(209, 213, 219)';
     this.style.boxShadow = 'rgba(0, 0, 0, 0.05) 0px 1px 2px';
   });
-  
-  innerWrapper.appendChild(textarea);
-  wrapper.appendChild(innerWrapper);
+
+  wrapper.appendChild(textarea);
+
+  if (field.helpText) {
+    const helpText = document.createElement("p");
+    helpText.className = "mt-1 text-xs text-gray-500 codform-help-text";
+    helpText.textContent = field.helpText;
+    helpText.style.cssText = "margin-top: 6px; font-size: 14px; color: #6b7280; background: transparent; padding: 0;";
+    wrapper.appendChild(helpText);
+  }
+
   return wrapper;
 }
 
-// دالة إنشاء زر الإرسال - مطابق تماماً للمعاينة مع التحديث الصحيح للحجم
-function createSubmitButton(field, primaryColor) {
+// دالة إنشاء زر الإرسال - مطابقة تماماً للمعاينة
+function createSubmitButton(field, primaryColor, formStyle = {}) {
   const wrapper = document.createElement("div");
   wrapper.className = "mt-0";
   wrapper.style.cssText = `
@@ -483,54 +523,62 @@ function createSubmitButton(field, primaryColor) {
     background: transparent;
     padding: 0px;
   `;
-  
+
   const button = document.createElement("button");
-  button.type = "button";
+  button.type = "submit";
   button.textContent = field.label || "Buy with Cash on Delivery";
-  button.className = "form-submit-btn w-full";
-  
-  const buttonBg = field.style?.backgroundColor || primaryColor;
-  const buttonColor = field.style?.color || "#ffffff";
-  const animation = field.style?.animation;
-  const animationType = field.style?.animationType || 'shake';
-  
+
+  const fieldStyle = field.style || {};
+  const formStyles = formStyle || {};
+
+  const backgroundColor = fieldStyle.backgroundColor || formStyles.primaryColor || '#9b87f5';
+  const color = fieldStyle.color || '#ffffff';
+  const fontSize = fieldStyle.fontSize || formStyles.fontSize || '16px';
+  const borderRadius = fieldStyle.borderRadius || formStyles.borderRadius || '8px';
+  const paddingY = fieldStyle.paddingY || '10px';
+  const borderWidth = fieldStyle.borderWidth || '0px';
+  const borderColor = fieldStyle.borderColor || 'transparent';
+  const animation = fieldStyle.animation;
+  const animationType = fieldStyle.animationType || 'pulse';
+
   if (animation && animationType) {
-    button.classList.add(`${animationType}-animation`);
+    button.className = `form-submit-btn w-full ${animationType}-animation`;
+  } else {
+    button.className = "form-submit-btn w-full";
   }
-  
-  // تطبيق الحجم المطابق للمعاينة: 19px و padding 15px 24px
+
   button.style.cssText = `
-    background-color: ${buttonBg};
-    color: ${buttonColor};
-    font-size: 19px;
-    border-radius: 6px;
-    padding: 15px 24px;
-    border: 0px solid #eaeaff;
-    display: inline-flex;
+    background-color: ${backgroundColor};
+    color: ${color};
+    font-size: ${fontSize};
+    border-radius: ${borderRadius};
+    padding: ${paddingY} 24px;
+    border: ${borderWidth} solid ${borderColor};
+    display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
     cursor: pointer;
     font-weight: bold;
     text-align: center;
-    transition: 0.2s ease-in-out;
+    transition: all 0.2s ease-in-out;
     width: 100%;
     box-sizing: border-box;
     font-family: 'Cairo', system-ui, Arial, sans-serif;
     outline: none;
     min-height: 44px;
   `;
-  
+
   button.addEventListener('mouseenter', function() {
     this.style.opacity = '0.9';
     this.style.transform = 'translateY(-1px)';
   });
-  
+
   button.addEventListener('mouseleave', function() {
     this.style.opacity = '1';
     this.style.transform = 'translateY(0)';
   });
-  
+
   wrapper.appendChild(button);
   return wrapper;
 }
@@ -811,5 +859,3 @@ document.addEventListener('DOMContentLoaded', function() {
   animation: fadeIn 0.5s ease-out;
 }
 </style>
-
-</edits_to_apply>
