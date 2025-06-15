@@ -115,8 +115,8 @@ function renderCodform(formData, containerId) {
     const style = formData.style || {};
     const primaryColor = style.primaryColor || "#9b87f5";
     const borderRadius = style.borderRadius || "1.5rem";
-    const fontSize = style.fontSize || "1rem";
-    const formDirection = style.formDirection || "ltr";
+    const fontSize = style.fontSize || "16px"; // FIX: Use px for consistency
+    const formDirection = style.formDirection || ({{ block.settings.is_rtl | default: true }}) ? "rtl" : "ltr"; // FIX: Use block setting for direction fallback
     const backgroundColor = style.backgroundColor || "#F9FAFB";
     const borderColor = style.borderColor || primaryColor;
     const borderWidth = style.borderWidth || "2px";
@@ -243,8 +243,9 @@ function createFormTitle(field, direction) {
   if (!titleText) return null;
   
   const titleWrapper = document.createElement("div");
-  titleWrapper.className = "mb-4";
-  titleWrapper.style.cssText = "margin-bottom: 16px;";
+  // FIX: Remove margin-bottom to rely on parent container's gap property for spacing
+  titleWrapper.className = "";
+  titleWrapper.style.cssText = "";
   
   const titleElement = document.createElement("div");
   titleElement.className = "form-title-field w-full";
@@ -260,10 +261,10 @@ function createFormTitle(field, direction) {
     font-weight: ${fontWeight};
     font-family: Cairo, Tajawal, Arial, sans-serif;
     text-align: center;
-    margin: 0px 0px 20px;
+    margin: 0;
     line-height: 1.4;
     direction: ${direction};
-    padding: 0px 0px 20px;
+    padding: 0;
     width: 100%;
     display: block;
     background: none;
@@ -278,8 +279,9 @@ function createFormTitle(field, direction) {
 // دالة إنشاء حقل إدخال نص - مطابقة تماماً للمعاينة
 function createTextInput(field, direction, primaryColor, formStyle = {}) {
   const wrapper = document.createElement("div");
-  wrapper.className = "mb-4";
-  wrapper.style.cssText = "margin-bottom: 16px; background: transparent;";
+  // FIX: Remove margin-bottom to rely on parent gap for spacing
+  wrapper.className = "";
+  wrapper.style.cssText = "background: transparent;";
   wrapper.setAttribute("dir", direction);
 
   const fieldStyle = field.style || {};
@@ -294,7 +296,7 @@ function createTextInput(field, direction, primaryColor, formStyle = {}) {
 
     label.style.cssText = `
         color: ${fieldStyle.labelColor || '#333333'};
-        font-size: ${fieldStyle.labelFontSize || '1rem'};
+        font-size: ${fieldStyle.labelFontSize || '16px'}; /* FIX: Use px instead of rem */
         font-weight: ${fieldStyle.labelFontWeight || '600'};
         font-family: 'Cairo', sans-serif;
         margin-bottom: 8px;
@@ -322,7 +324,7 @@ function createTextInput(field, direction, primaryColor, formStyle = {}) {
   if (hasIcon) {
     const iconElement = document.createElement("div");
     iconElement.className = "absolute codform-field-icon";
-    const iconPosition = direction === 'rtl' ? 'right' : 'left';
+    const iconPosition = direction === 'rtl' ? 'right' : 'left'; // This logic is now correct because `direction` is fixed
     iconElement.style.cssText = `
         position: absolute;
         top: 50%;
@@ -348,7 +350,7 @@ function createTextInput(field, direction, primaryColor, formStyle = {}) {
   input.setAttribute("aria-label", field.inputFor || field.label || "");
 
   const textColor = fieldStyle.color || 'rgb(31, 41, 55)';
-  const fontSize = fieldStyle.fontSize || '1rem';
+  const fontSize = fieldStyle.fontSize || '16px'; // FIX: Use px instead of rem
   const fontWeight = fieldStyle.fontWeight || '400';
   const backgroundColor = 'rgb(255, 255, 255)';
   const borderColor = fieldStyle.borderColor || 'rgb(209, 213, 219)';
@@ -416,8 +418,9 @@ function createTextInput(field, direction, primaryColor, formStyle = {}) {
 // دالة إنشاء منطقة نص - مطابقة للمعاينة
 function createTextarea(field, direction, primaryColor) {
   const wrapper = document.createElement("div");
-  wrapper.className = "mb-4";
-  wrapper.style.cssText = "margin-bottom: 16px; background: transparent;";
+  // FIX: Remove margin-bottom to rely on parent gap for spacing
+  wrapper.className = "";
+  wrapper.style.cssText = "background: transparent;";
   wrapper.setAttribute("dir", direction);
 
   const fieldStyle = field.style || {};
@@ -431,7 +434,7 @@ function createTextarea(field, direction, primaryColor) {
 
     label.style.cssText = `
       color: ${fieldStyle.labelColor || '#333333'};
-      font-size: ${fieldStyle.labelFontSize || '1rem'};
+      font-size: ${fieldStyle.labelFontSize || '16px'}; /* FIX: Use px instead of rem */
       font-weight: ${fieldStyle.labelFontWeight || '600'};
       font-family: 'Cairo', sans-serif;
       margin-bottom: 8px;
@@ -459,7 +462,7 @@ function createTextarea(field, direction, primaryColor) {
   textarea.setAttribute("aria-label", field.inputFor || field.label || "");
 
   const textColor = fieldStyle.color || 'rgb(31, 41, 55)';
-  const fontSize = fieldStyle.fontSize || '1rem';
+  const fontSize = fieldStyle.fontSize || '16px'; // FIX: Use px instead of rem
   const fontWeight = fieldStyle.fontWeight || '400';
   const backgroundColor = 'rgb(255, 255, 255)';
   const borderColor = fieldStyle.borderColor || 'rgb(209, 213, 219)';
