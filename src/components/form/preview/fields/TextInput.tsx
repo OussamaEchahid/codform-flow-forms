@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
@@ -43,7 +44,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   const backgroundColor = 'rgb(255, 255, 255)';
   const borderColor = fieldStyle.borderColor || 'rgb(209, 213, 219)';
   const borderWidth = fieldStyle.borderWidth || '1px';
-  const borderRadius = fieldStyle.borderRadius || formStyle.borderRadius || '1.5rem'; // FIX: Inherit from formStyle and match default
+  const borderRadius = fieldStyle.borderRadius || formStyle.borderRadius || '0.5rem';
   const paddingY = fieldStyle.paddingY ? `${fieldStyle.paddingY}px` : '10px';
   
   // تحديد إذا كان هناك أيقونة وإذا كان يجب إظهارها
@@ -138,7 +139,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
             className="absolute codform-field-icon" 
             style={{
               position: 'absolute',
-              left: '12px', // FIX: Icon is always on the left for consistency
+              left: '12px', // FIX: الأيقونة دائماً على اليسار في النماذج العربية
               right: 'auto',
               top: '50%',
               transform: 'translateY(-50%)',
@@ -172,8 +173,8 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
             borderWidth: borderWidth,
             borderStyle: 'solid',
             padding: paddingY,
-            paddingLeft: (showIcon && hasIcon) ? '36px' : '12px', // FIX: Adjust left padding for icon
-            paddingRight: '12px', // FIX: Right padding is now standard
+            paddingLeft: (showIcon && hasIcon) ? '36px' : '12px', // FIX: الأيقونة دائماً على اليسار
+            paddingRight: '12px',
             boxShadow: 'rgba(0, 0, 0, 0.05) 0px 1px 2px',
             width: '100%',
             height: 'auto',

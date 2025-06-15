@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AppSidebar from '@/components/layout/AppSidebar';
@@ -9,9 +10,10 @@ import FormBuilderDashboard from '@/components/form/builder/FormBuilderDashboard
 import FormBuilderEditor from '@/components/form/builder/FormBuilderEditor';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, ShoppingBag } from 'lucide-react';
+import { AlertCircle, ShoppingBag, ArrowLeftRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { shopifySupabase } from '@/lib/shopify/supabase-client';
+import { useFormStore } from '@/hooks/useFormStore';
 
 const FormBuilderPage = () => {
   const { formId } = useParams();
@@ -20,6 +22,7 @@ const FormBuilderPage = () => {
   const { t, language } = useI18n();
   const { fetchForms } = useFormTemplates();
   const { tokenError, failSafeMode, toggleFailSafeMode, getDefaultForm } = useShopify();
+  const { formStyle, updateFormStyle } = useFormStore();
   
   const [activeTab, setActiveTab] = useState<'dashboard' | 'editor'>(formId ? 'editor' : 'dashboard');
   const [bypassEnabled, setBypassEnabled] = useState(false);
@@ -40,6 +43,15 @@ const FormBuilderPage = () => {
   const localStorageConnected = localStorage.getItem('shopify_connected') === 'true';
   const actualHasAccess = hasAccess || localStorageConnected || bypassEnabled;
   
+  // زر تغيير الاتجاه
+  const toggleDirection = () => {
+    const newDirection = formStyle.formDirection === 'rtl' ? 'ltr' : 'rtl';
+    updateFormStyle({ formDirection: newDirection });
+    toast.success(language === 'ar' 
+      ? `تم تغيير الاتجاه إلى ${newDirection === 'rtl' ? 'يمين-يسار' : 'يسار-يمين'}` 
+      : `Direction changed to ${newDirection.toUpperCase()}`);
+  };
+
   // Handle connection issues automatically
   useEffect(() => {
     if (tokenError) {
@@ -313,7 +325,23 @@ const FormBuilderPage = () => {
         {activeTab === 'dashboard' ? (
           <FormBuilderDashboard />
         ) : (
-          formId && formId !== 'new' && <FormBuilderEditor formId={formId} shopId={shop || ''} />
+          formId && formId !== 'new' && (
+            <div className="relative">
+              {/* زر تغيير الاتجاه فوق المعاينة - واضح ومرئي */}
+              <div className="absolute top-4 right-4 z-10">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={toggleDirection}
+                  className="bg-white shadow-md border-2 border-blue-200 hover:border-blue-400 transition-all"
+                >
+                  <ArrowLeftRight className="w-4 h-4 mr-2" />
+                  {language === 'ar' ? 'تغيير الاتجاه' : 'Toggle Direction'}: {formStyle.formDirection?.toUpperCase() || 'LTR'}
+                </Button>
+              </div>
+              <FormBuilderEditor formId={formId} shopId={shop || ''} />
+            </div>
+          )
         )}
       </div>
     </div>

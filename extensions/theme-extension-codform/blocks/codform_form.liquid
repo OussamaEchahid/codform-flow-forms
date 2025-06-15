@@ -86,9 +86,9 @@
 </div>
 
 <script>
-// دالة عرض النموذج - تمت إعادة كتابتها بالكامل لحل مشاكل التخطيط
+// دالة عرض النموذج - مع إصلاح منطق الأيقونات وزوايا الحقول
 function renderCodform(formData, containerId) {
-  console.log("🎯 Rerunning renderCodform to fix layout issues", { formData, containerId });
+  console.log("🎯 Rendering Codform with corrected logic", { formData, containerId });
 
   try {
     const container = document.getElementById(containerId);
@@ -108,15 +108,16 @@ function renderCodform(formData, containerId) {
 
     const style = formData.style || {};
     const primaryColor = style.primaryColor || "#9b87f5";
-    const borderRadius = style.borderRadius || "1.5rem"; // FIX: Default value now matches builder
-    const fontSize = style.fontSize || "1rem"; // FIX: Default value now matches builder (16px)
+    const borderRadius = style.borderRadius || "1.5rem"; // FIX: توحيد القيمة الافتراضية مع المعاينة
+    const fontSize = style.fontSize || "1rem";
     const formDirection = style.formDirection || "rtl";
     const backgroundColor = style.backgroundColor || "#F9FAFB";
     const borderColor = style.borderColor || primaryColor;
     const borderWidth = style.borderWidth || "2px";
 
-    // This structure now EXACTLY matches the React FormPreview component.
-    // 1. mainContainer: The outer shell with the border and rounded corners. No padding.
+    console.log("🔧 Using form styles:", { borderRadius, fontSize, formDirection });
+
+    // هيكل مطابق تماماً لـ FormPreview
     const mainContainer = document.createElement("div");
     mainContainer.className = "rounded-lg border shadow-sm overflow-hidden codform-form";
     mainContainer.style.cssText = `
@@ -131,7 +132,6 @@ function renderCodform(formData, containerId) {
       box-sizing: border-box;
     `;
 
-    // 2. contentContainer: The inner container with the actual padding and content.
     const contentContainer = document.createElement("div");
     contentContainer.className = "codform-form-content";
     contentContainer.style.cssText = `
@@ -145,7 +145,6 @@ function renderCodform(formData, containerId) {
       box-sizing: border-box;
     `;
     
-    // 3. fieldsContainer: Holds all the individual fields.
     const fieldsContainer = document.createElement("div");
     fieldsContainer.className = "space-y-4";
     fieldsContainer.style.cssText = `
@@ -217,7 +216,7 @@ function createFieldElement(field, direction, primaryColor, formStyle = {}) {
     case "phone":
       return createTextInput(field, direction, primaryColor, formStyle);
     case "textarea":
-      return createTextarea(field, direction, primaryColor, formStyle); // FIX: Pass formStyle
+      return createTextarea(field, direction, primaryColor, formStyle);
     case "submit":
       return createSubmitButton(field, primaryColor, formStyle);
     case "text/html":
@@ -237,7 +236,6 @@ function createFormTitle(field, direction) {
   if (!titleText) return null;
   
   const titleWrapper = document.createElement("div");
-  // FIX: Remove margin-bottom to rely on parent container's gap property for spacing
   titleWrapper.className = "";
   titleWrapper.style.cssText = "";
   
@@ -270,10 +268,9 @@ function createFormTitle(field, direction) {
   return titleWrapper;
 }
 
-// دالة إنشاء حقل إدخال نص - مطابقة تماماً للمعاينة
+// دالة إنشاء حقل إدخال نص - مع إصلاح منطق الأيقونات نهائياً
 function createTextInput(field, direction, primaryColor, formStyle = {}) {
   const wrapper = document.createElement("div");
-  // FIX: Remove margin-bottom to rely on parent gap for spacing
   wrapper.className = "";
   wrapper.style.cssText = "background: transparent;";
   wrapper.setAttribute("dir", direction);
@@ -290,7 +287,7 @@ function createTextInput(field, direction, primaryColor, formStyle = {}) {
 
     label.style.cssText = `
         color: ${fieldStyle.labelColor || '#333333'};
-        font-size: ${fieldStyle.labelFontSize || '16px'}; /* FIX: Use px instead of rem */
+        font-size: ${fieldStyle.labelFontSize || formStyles.fontSize || '16px'};
         font-weight: ${fieldStyle.labelFontWeight || '600'};
         font-family: 'Cairo', sans-serif;
         margin-bottom: 8px;
@@ -318,11 +315,12 @@ function createTextInput(field, direction, primaryColor, formStyle = {}) {
   if (hasIcon) {
     const iconElement = document.createElement("div");
     iconElement.className = "absolute codform-field-icon";
-    const iconPosition = direction === 'rtl' ? 'right' : 'left'; // This logic is now correct because `direction` is fixed
+    // FIX: الأيقونة دائماً على اليسار في النماذج العربية
     iconElement.style.cssText = `
         position: absolute;
+        left: 12px;
+        right: auto;
         top: 50%;
-        ${iconPosition}: 12px;
         transform: translateY(-50%);
         z-index: 2;
         color: rgb(156, 163, 175);
@@ -344,23 +342,19 @@ function createTextInput(field, direction, primaryColor, formStyle = {}) {
   input.setAttribute("aria-label", field.inputFor || field.label || "");
 
   const textColor = fieldStyle.color || 'rgb(31, 41, 55)';
-  const fontSize = fieldStyle.fontSize || '16px'; // FIX: Use px instead of rem
+  const fontSize = fieldStyle.fontSize || formStyles.fontSize || '16px';
   const fontWeight = fieldStyle.fontWeight || '400';
   const backgroundColor = 'rgb(255, 255, 255)';
   const borderColor = fieldStyle.borderColor || 'rgb(209, 213, 219)';
   const borderWidth = fieldStyle.borderWidth || '1px';
-  const borderRadius = fieldStyle.borderRadius || formStyles.borderRadius || '0.5rem'; // FIX: Default value now matches builder
+  const borderRadius = fieldStyle.borderRadius || formStyles.borderRadius || '1.5rem'; // FIX: توحيد القيمة مع المعاينة
   const paddingY = fieldStyle.paddingY ? `${fieldStyle.paddingY}px` : '10px';
 
-  let paddingLeft = '12px';
-  let paddingRight = '12px';
-  if (hasIcon) {
-    if (direction === 'rtl') {
-      paddingRight = '36px';
-    } else {
-      paddingLeft = '36px';
-    }
-  }
+  // FIX: الأيقونة دائماً على اليسار في النماذج العربية
+  const paddingLeft = (hasIcon) ? '36px' : '12px';
+  const paddingRight = '12px';
+
+  console.log("🔧 Text input styles:", { fontSize, borderRadius, paddingLeft, paddingRight, hasIcon });
 
   input.style.cssText = `
       color: ${textColor};
@@ -409,16 +403,15 @@ function createTextInput(field, direction, primaryColor, formStyle = {}) {
   return wrapper;
 }
 
-// دالة إنشاء منطقة نص - مطابقة للمعاينة
-function createTextarea(field, direction, primaryColor, formStyle = {}) { // FIX: Accept formStyle
+// دالة إنشاء منطقة نص - مع توحيد borderRadius
+function createTextarea(field, direction, primaryColor, formStyle = {}) {
   const wrapper = document.createElement("div");
-  // FIX: Remove margin-bottom to rely on parent gap for spacing
   wrapper.className = "";
   wrapper.style.cssText = "background: transparent;";
   wrapper.setAttribute("dir", direction);
 
   const fieldStyle = field.style || {};
-  const formStyles = formStyle || {}; // FIX: Use passed formStyle
+  const formStyles = formStyle || {};
 
   const showLabel = fieldStyle.showLabel !== false;
   if (showLabel && field.label) {
@@ -429,7 +422,7 @@ function createTextarea(field, direction, primaryColor, formStyle = {}) { // FIX
 
     label.style.cssText = `
       color: ${fieldStyle.labelColor || '#333333'};
-      font-size: ${fieldStyle.labelFontSize || '16px'}; /* FIX: Use px instead of rem */
+      font-size: ${fieldStyle.labelFontSize || formStyles.fontSize || '16px'};
       font-weight: ${fieldStyle.labelFontWeight || '600'};
       font-family: 'Cairo', sans-serif;
       margin-bottom: 8px;
@@ -457,13 +450,15 @@ function createTextarea(field, direction, primaryColor, formStyle = {}) { // FIX
   textarea.setAttribute("aria-label", field.inputFor || field.label || "");
 
   const textColor = fieldStyle.color || 'rgb(31, 41, 55)';
-  const fontSize = fieldStyle.fontSize || '16px'; // FIX: Use px instead of rem
+  const fontSize = fieldStyle.fontSize || formStyles.fontSize || '16px';
   const fontWeight = fieldStyle.fontWeight || '400';
   const backgroundColor = 'rgb(255, 255, 255)';
   const borderColor = fieldStyle.borderColor || 'rgb(209, 213, 219)';
   const borderWidth = fieldStyle.borderWidth || '1px';
-  const borderRadius = fieldStyle.borderRadius || formStyles.borderRadius || '0.5rem'; // FIX: Use formStyle and match default
+  const borderRadius = fieldStyle.borderRadius || formStyles.borderRadius || '1.5rem'; // FIX: توحيد القيمة مع المعاينة
   const paddingY = fieldStyle.paddingY ? `${fieldStyle.paddingY}px` : '10px';
+
+  console.log("🔧 Textarea styles:", { fontSize, borderRadius });
 
   textarea.style.cssText = `
     color: ${textColor};
@@ -511,7 +506,7 @@ function createTextarea(field, direction, primaryColor, formStyle = {}) { // FIX
   return wrapper;
 }
 
-// دالة إنشاء زر الإرسال - مطابقة تماماً للمعاينة
+// دالة إنشاء زر الإرسال - مع توحيد الحجم والتقويس
 function createSubmitButton(field, primaryColor, formStyle = {}) {
   const wrapper = document.createElement("div");
   wrapper.className = "mt-0";
@@ -531,13 +526,15 @@ function createSubmitButton(field, primaryColor, formStyle = {}) {
 
   const backgroundColor = fieldStyle.backgroundColor || formStyles.primaryColor || '#9b87f5';
   const color = fieldStyle.color || '#ffffff';
-  const fontSize = fieldStyle.fontSize || formStyles.fontSize || '18px'; // FIX: Increase default size to match preview
-  const borderRadius = fieldStyle.borderRadius || formStyles.borderRadius || '1.5rem'; // FIX: Match preview default
+  const fontSize = fieldStyle.fontSize || formStyles.fontSize || '18px'; // FIX: توحيد حجم زر الإرسال
+  const borderRadius = fieldStyle.borderRadius || formStyles.borderRadius || '1.5rem'; // FIX: توحيد التقويس
   const paddingY = fieldStyle.paddingY || '10px';
   const borderWidth = fieldStyle.borderWidth || '0px';
   const borderColor = fieldStyle.borderColor || 'transparent';
   const animation = fieldStyle.animation;
   const animationType = fieldStyle.animationType || 'pulse';
+
+  console.log("🔧 Submit button styles:", { fontSize, borderRadius, backgroundColor });
 
   if (animation && animationType) {
     button.className = `form-submit-btn w-full ${animationType}-animation`;
@@ -857,3 +854,5 @@ document.addEventListener('DOMContentLoaded', function() {
   animation: fadeIn 0.5s ease-out;
 }
 </style>
+
+</script>
