@@ -3,15 +3,14 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap');
 
-/* تكوين أساسي للحاوية الرئيسية */
+/* تكوين أساسي للحاوية الرئيسية - تمت إزالة الأنماط المرئية لمنع التعارض */
 .codform-container {
   font-family: 'Cairo', sans-serif;
   direction: rtl;
   margin: 20px 0;
-  padding: 15px;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  background-color: #ffffff;
+  padding: 0; /* تم التعديل */
+  border: none; /* تم التعديل */
+  background-color: transparent; /* تم التعديل */
   max-width: 800px;
   margin-left: auto;
   margin-right: auto;
@@ -19,7 +18,7 @@
   width: 100%;
   font-size: 16px;
   line-height: 1.5;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: none; /* تم التعديل */
 }
 
 /* 
@@ -32,7 +31,7 @@
   margin-top: 14px;
 }
 
-/* تنسيق الحقول */
+/* ... keep existing code (from .codform-field to .codform-submit-btn svg) ... */
 .codform-field {
   margin-bottom: 16px !important;
   display: block !important;
@@ -550,7 +549,6 @@
 /* تعديلات لتحسين التوافقية مع الأجهزة المختلفة */
 @media (max-width: 768px) {
   .codform-container {
-    padding: 12px;
     margin: 12px 0;
   }
 
@@ -600,12 +598,12 @@
   flex-shrink: 0 !important;
 }
 
-/* تحسين عرض الحاوية الرئيسية للنموذج */
+/* تحسين عرض الحاوية الرئيسية للنموذج - تمت إزالة الأنماط المتعارضة */
 .codform-form {
-  padding: 16px !important;
-  border: 1px solid #e5e7eb !important;
-  border-radius: 8px !important;
-  background-color: #f5f5f5 !important;
+  /*
+    تم إزالة الخصائص المتعارضة مثل padding, border, background-color.
+    يتم الآن التحكم في هذه الأنماط بالكامل بواسطة جافاسكريبت لضمان تطابق المعاينة مع المتجر.
+  */
 }
 
 /* إصلاح موضع الأيقونات في حقول الإدخال */
