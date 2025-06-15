@@ -87,61 +87,73 @@
 </div>
 
 <script>
-// دالة عرض النموذج - مُعادة الكتابة بالكامل لتطابق المعاينة
+// دالة عرض النموذج - تمت إعادة كتابتها بالكامل لحل مشاكل التخطيط
 function renderCodform(formData, containerId) {
-  console.log("🎯 Starting renderCodform", { formData, containerId });
-  
+  console.log("🎯 Rerunning renderCodform to fix layout issues", { formData, containerId });
+
   try {
     const container = document.getElementById(containerId);
     if (!container) {
       console.error("❌ Container not found:", containerId);
       return false;
     }
-    
+
     if (!formData || !formData.data) {
       console.error("❌ Invalid form data:", formData);
       container.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">خطأ في تحميل النموذج - البيانات غير صحيحة</div>';
       return false;
     }
-    
-    console.log("✅ Form data is valid, starting render");
-    container.innerHTML = "";
-    
+
+    console.log("✅ Form data is valid, starting render.");
+    container.innerHTML = ""; // Clear previous content
+
     const style = formData.style || {};
     const primaryColor = style.primaryColor || "#9b87f5";
     const borderRadius = style.borderRadius || "1.5rem";
     const fontSize = style.fontSize || "1rem";
     const formDirection = style.formDirection || "ltr";
-    
-    // إنشاء الحاوية الرئيسية البسيطة - مطابقة تماماً للمعاينة
+    const backgroundColor = style.backgroundColor || "#F9FAFB";
+    const borderColor = style.borderColor || primaryColor;
+    const borderWidth = style.borderWidth || "2px";
+
+    // This structure now EXACTLY matches the React FormPreview component.
+    // 1. mainContainer: The outer shell with the border and rounded corners. No padding.
     const mainContainer = document.createElement("div");
     mainContainer.className = "rounded-lg border shadow-sm overflow-hidden codform-form";
     mainContainer.style.cssText = `
       font-size: ${fontSize};
       border-radius: ${borderRadius};
-      background-color: #F9FAFB;
-      border: 2px solid ${primaryColor};
-      padding: 0px;
+      background-color: ${backgroundColor};
+      border: ${borderWidth} solid ${borderColor};
+      padding: 0;
       display: flex;
       flex-direction: column;
+      width: 100%;
+      box-sizing: border-box;
     `;
-    
-    // إنشاء حاوية المحتوى الداخلية
+
+    // 2. contentContainer: The inner container with the actual padding and content.
     const contentContainer = document.createElement("div");
     contentContainer.className = "codform-form-content";
     contentContainer.style.cssText = `
       direction: ${formDirection};
-      padding: 20px;
-      gap: 16px;
-      background-color: #F9FAFB;
+      padding: ${style.paddingTop || '20px'} ${style.paddingRight || '20px'} ${style.paddingBottom || '20px'} ${style.paddingLeft || '20px'};
+      gap: ${style.formGap || '16px'};
+      background-color: ${backgroundColor};
       display: flex;
       flex-direction: column;
+      width: 100%;
+      box-sizing: border-box;
     `;
     
-    // إنشاء حاوية الحقول
+    // 3. fieldsContainer: Holds all the individual fields.
     const fieldsContainer = document.createElement("div");
     fieldsContainer.className = "space-y-4";
-    fieldsContainer.style.cssText = "gap: 16px;";
+    fieldsContainer.style.cssText = `
+        display: flex; 
+        flex-direction: column; 
+        gap: ${style.formGap || '16px'};
+    `;
     
     let allFields = [];
     if (Array.isArray(formData.data)) {
@@ -173,11 +185,12 @@ function renderCodform(formData, containerId) {
       }
     });
     
+    // Assemble the DOM structure
     contentContainer.appendChild(fieldsContainer);
     mainContainer.appendChild(contentContainer);
     container.appendChild(mainContainer);
     
-    console.log("✅ Form rendered successfully");
+    console.log("✅ Form rendered successfully with corrected structure.");
     return true;
     
   } catch (error) {
@@ -318,6 +331,10 @@ function createTextInput(field, direction, primaryColor) {
   
   const hasIcon = field.icon && field.style?.showIcon !== false;
   
+  const inputPaddingStyle = direction === 'rtl'
+    ? `padding: 10px 36px 10px 12px;`
+    : `padding: 10px 12px 10px 36px;`;
+
   // تطبيق أنماط الحقل - مطابقة تماماً للمعاينة مع موضع الأيقونة الصحيح
   input.style.cssText = `
     color: rgb(31, 41, 55);
@@ -329,7 +346,7 @@ function createTextInput(field, direction, primaryColor) {
     border-radius: 1.5rem;
     border-width: 1px;
     border-style: solid;
-    padding: 10px 12px 10px ${hasIcon ? '36px' : '12px'};
+    ${hasIcon ? inputPaddingStyle : 'padding: 10px 12px;'}
     box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px;
     width: 100%;
     height: auto;
@@ -342,14 +359,14 @@ function createTextInput(field, direction, primaryColor) {
     margin: 0px;
   `;
   
-  // إضافة الأيقونة في الجانب الأيسر (مطابق للمعاينة)
+  // إضافة الأيقونة في الجانب الصحيح حسب اتجاه النص
   if (hasIcon) {
     const iconElement = document.createElement("div");
     iconElement.className = "absolute codform-field-icon";
+    const iconPositionStyle = direction === 'rtl' ? 'right: 12px; left: auto;' : 'left: 12px; right: auto;';
     iconElement.style.cssText = `
       position: absolute;
-      left: 12px;
-      right: auto;
+      ${iconPositionStyle}
       top: 50%;
       transform: translateY(-50%);
       display: flex;
