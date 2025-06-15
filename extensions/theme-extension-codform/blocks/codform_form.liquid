@@ -108,9 +108,9 @@ function renderCodform(formData, containerId) {
 
     const style = formData.style || {};
     const primaryColor = style.primaryColor || "#9b87f5";
-    const borderRadius = style.borderRadius || "0.5rem"; // FIX: Default value now matches builder
-    const fontSize = style.fontSize || "16px";
-    const formDirection = style.formDirection || "rtl"; // FIX: Source of truth is form data, default to RTL
+    const borderRadius = style.borderRadius || "1.5rem"; // FIX: Default value now matches builder
+    const fontSize = style.fontSize || "1rem"; // FIX: Default value now matches builder (16px)
+    const formDirection = style.formDirection || "rtl";
     const backgroundColor = style.backgroundColor || "#F9FAFB";
     const borderColor = style.borderColor || primaryColor;
     const borderWidth = style.borderWidth || "2px";
@@ -531,8 +531,8 @@ function createSubmitButton(field, primaryColor, formStyle = {}) {
 
   const backgroundColor = fieldStyle.backgroundColor || formStyles.primaryColor || '#9b87f5';
   const color = fieldStyle.color || '#ffffff';
-  const fontSize = fieldStyle.fontSize || formStyles.fontSize || '16px';
-  const borderRadius = fieldStyle.borderRadius || formStyles.borderRadius || '8px';
+  const fontSize = fieldStyle.fontSize || formStyles.fontSize || '18px'; // FIX: Increase default size to match preview
+  const borderRadius = fieldStyle.borderRadius || formStyles.borderRadius || '1.5rem'; // FIX: Match preview default
   const paddingY = fieldStyle.paddingY || '10px';
   const borderWidth = fieldStyle.borderWidth || '0px';
   const borderColor = fieldStyle.borderColor || 'transparent';
@@ -857,5 +857,3 @@ document.addEventListener('DOMContentLoaded', function() {
   animation: fadeIn 0.5s ease-out;
 }
 </style>
-
-</initial_code>

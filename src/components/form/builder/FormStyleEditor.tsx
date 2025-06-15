@@ -64,7 +64,7 @@ const FormStyleEditor: React.FC<FormStyleEditorProps> = ({
               {language === 'ar' ? 'اتجاه النموذج' : 'Form Direction'}
             </Label>
             <Select 
-              value={formStyle.formDirection || 'rtl'} 
+              value={formStyle.formDirection || 'ltr'} 
               onValueChange={(value) => handleStyleChange('formDirection', value)}
             >
               <SelectTrigger id="form-direction">
