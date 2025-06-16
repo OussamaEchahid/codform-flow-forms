@@ -86,9 +86,9 @@
 </div>
 
 <script>
-// دالة عرض النموذج - مع إصلاح جذري لمشكلة اتجاه الأيقونات
+// دالة عرض النموذج - مع إصلاح نهائي لمشكلة اتجاه الأيقونات
 function renderCodform(formData, containerId) {
-  console.log("🎯 Rendering Codform with FIXED icon direction logic", { formData, containerId });
+  console.log("🎯 Rendering Codform with FINAL ICON FIX", { formData, containerId });
 
   try {
     const container = document.getElementById(containerId);
@@ -115,7 +115,7 @@ function renderCodform(formData, containerId) {
     const borderColor = style.borderColor || primaryColor;
     const borderWidth = style.borderWidth || "2px";
 
-    console.log("🔧 FIXED - Using form direction for icons:", formDirection);
+    console.log("🔧 FINAL FIX - Form direction detected:", formDirection);
 
     const mainContainer = document.createElement("div");
     mainContainer.className = "rounded-lg border shadow-sm overflow-hidden codform-form";
@@ -187,7 +187,7 @@ function renderCodform(formData, containerId) {
     mainContainer.appendChild(contentContainer);
     container.appendChild(mainContainer);
     
-    console.log("✅ Form rendered successfully with FIXED icon positioning.");
+    console.log("✅ Form rendered successfully with FINAL ICON FIX.");
     return true;
     
   } catch (error) {
@@ -267,7 +267,7 @@ function createFormTitle(field, direction) {
   return titleWrapper;
 }
 
-// دالة إنشاء حقل إدخال نص - مع إصلاح جذري لمشكلة اتجاه الأيقونات
+// دالة إنشاء حقل إدخال نص - مع إصلاح نهائي للأيقونات
 function createTextInput(field, direction, primaryColor, formStyle = {}) {
   const wrapper = document.createElement("div");
   wrapper.className = "";
@@ -277,11 +277,8 @@ function createTextInput(field, direction, primaryColor, formStyle = {}) {
   const fieldStyle = field.style || {};
   const formStyles = formStyle || {};
 
-  // إصلاح جذري: تحديد موضع الأيقونة بناءً على الاتجاه الفعلي
-  const isRTL = direction === 'rtl';
-  const iconPosition = isRTL ? 'right' : 'left';
-  
-  console.log(`🔧 FIXED ICON POSITIONING: Direction=${direction}, IsRTL=${isRTL}, IconPosition=${iconPosition}`);
+  // إصلاح نهائي: تحديد موضع الأيقونة بطريقة مبسطة وواضحة
+  console.log(`🔧 FINAL ICON FIX: Direction=${direction}, Field=${field.id}`);
 
   const showLabel = fieldStyle.showLabel !== false;
   if (showLabel && field.label) {
@@ -321,11 +318,22 @@ function createTextInput(field, direction, primaryColor, formStyle = {}) {
     const iconElement = document.createElement("div");
     iconElement.className = "absolute codform-field-icon";
     
-    // إصلاح جذري: استخدام الاتجاه الصحيح للأيقونة
+    // إصلاح نهائي: منطق مبسط تماماً
+    let iconLeft = 'auto';
+    let iconRight = 'auto';
+    
+    if (direction === 'rtl') {
+      iconRight = '12px';
+      console.log(`🎯 RTL: Icon positioned RIGHT for field ${field.id}`);
+    } else {
+      iconLeft = '12px';
+      console.log(`🎯 LTR: Icon positioned LEFT for field ${field.id}`);
+    }
+    
     iconElement.style.cssText = `
         position: absolute;
-        left: ${iconPosition === 'left' ? '12px' : 'auto'};
-        right: ${iconPosition === 'right' ? '12px' : 'auto'};
+        left: ${iconLeft};
+        right: ${iconRight};
         top: 50%;
         transform: translateY(-50%);
         z-index: 2;
@@ -335,7 +343,6 @@ function createTextInput(field, direction, primaryColor, formStyle = {}) {
         justify-content: center;
     `;
     
-    console.log(`🎯 ICON FIXED: Setting icon to ${iconPosition} side for direction ${direction}`);
     iconElement.innerHTML = getIconSVG(field.icon);
     inputContainer.appendChild(iconElement);
   }
@@ -358,16 +365,21 @@ function createTextInput(field, direction, primaryColor, formStyle = {}) {
   const borderRadius = '1.5rem';
   const paddingY = fieldStyle.paddingY ? `${fieldStyle.paddingY}px` : '10px';
 
-  // إصلاح جذري: حساب المسافات الداخلية بناءً على الاتجاه الصحيح
-  const paddingLeft = isRTL 
-    ? '12px' 
-    : ((hasIcon) ? '40px' : '12px');
-    
-  const paddingRight = isRTL 
-    ? ((hasIcon) ? '40px' : '12px')
-    : '12px';
-
-  console.log(`🔧 PADDING FIXED: Direction=${direction}, PaddingLeft=${paddingLeft}, PaddingRight=${paddingRight}, HasIcon=${hasIcon}`);
+  // إصلاح نهائي: padding مبسط تماماً
+  let paddingLeft = '12px';
+  let paddingRight = '12px';
+  
+  if (direction === 'rtl') {
+    if (hasIcon) {
+      paddingRight = '40px';
+    }
+    console.log(`🎯 RTL: PaddingLeft=${paddingLeft}, PaddingRight=${paddingRight}`);
+  } else {
+    if (hasIcon) {
+      paddingLeft = '40px';
+    }
+    console.log(`🎯 LTR: PaddingLeft=${paddingLeft}, PaddingRight=${paddingRight}`);
+  }
 
   input.style.cssText = `
       color: ${textColor};
@@ -387,7 +399,7 @@ function createTextInput(field, direction, primaryColor, formStyle = {}) {
       min-height: 44px;
       box-sizing: border-box;
       direction: ${direction};
-      text-align: ${isRTL ? 'right' : 'left'};
+      text-align: ${direction === 'rtl' ? 'right' : 'left'};
       outline: none;
       transition: all 0.2s ease;
       margin: 0px;
