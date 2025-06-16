@@ -30,7 +30,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   const { language } = useI18n();
   const fieldStyle = field.style || {};
   
-  // استخدام اتجاه النموذج من formStyle بدلاً من لغة الموقع
+  // استخدام اتجاه النموذج من formStyle
   const formDirection = formStyle.formDirection || 'ltr';
   
   // القيم الافتراضية للتنسيق
@@ -44,18 +44,21 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   const fontSize = fieldStyle.fontSize || '1rem';
   const fontWeight = fieldStyle.fontWeight || '400';
   
-  // خلفية بيضاء ثابتة للحقول - مطابقة للمتجر
+  // خلفية بيضاء ثابتة للحقول
   const backgroundColor = 'rgb(255, 255, 255)';
   const borderColor = fieldStyle.borderColor || 'rgb(209, 213, 219)';
   const borderWidth = fieldStyle.borderWidth || '1px';
-  const borderRadius = '1.5rem'; // توحيد مع المتجر
+  const borderRadius = '1.5rem';
   const paddingY = fieldStyle.paddingY ? `${fieldStyle.paddingY}px` : '10px';
   
   // تحديد إذا كان هناك أيقونة وإذا كان يجب إظهارها
   const hasIcon = field.icon && field.icon !== 'none' && field.icon !== '';
   const showIcon = fieldStyle.showIcon !== undefined ? fieldStyle.showIcon : hasIcon;
   
-  // تحسين وظيفة عرض الأيقونات مع التشخيص الإضافي
+  // تحديد موضع الأيقونة بناءً على اتجاه النموذج
+  const iconPosition = formDirection === 'rtl' ? 'right' : 'left';
+  
+  // تحسين وظيفة عرض الأيقونات
   const renderIcon = () => {
     if (!hasIcon || !showIcon) return null;
     
@@ -98,6 +101,15 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   };
   
   const inputId = `${field.id}-input`;
+  
+  // حساب المسافات الداخلية للنص بناءً على وجود الأيقونة واتجاه النموذج
+  const paddingLeft = formDirection === 'rtl' 
+    ? '12px' 
+    : ((showIcon && hasIcon) ? '40px' : '12px');
+    
+  const paddingRight = formDirection === 'rtl' 
+    ? ((showIcon && hasIcon) ? '40px' : '12px')
+    : '12px';
   
   return (
     <div 
@@ -143,8 +155,8 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
             className="absolute codform-field-icon" 
             style={{
               position: 'absolute',
-              left: formDirection === 'rtl' ? 'auto' : '12px',
-              right: formDirection === 'rtl' ? '12px' : 'auto',
+              left: iconPosition === 'left' ? '12px' : 'auto',
+              right: iconPosition === 'right' ? '12px' : 'auto',
               top: '50%',
               transform: 'translateY(-50%)',
               display: 'flex',
@@ -173,16 +185,12 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
             fontFamily: fontFamily,
             backgroundColor: backgroundColor,
             borderColor: borderColor,
-            borderRadius: '1.5rem',
+            borderRadius: borderRadius,
             borderWidth: borderWidth,
             borderStyle: 'solid',
             padding: paddingY,
-            paddingLeft: formDirection === 'rtl' 
-              ? ((showIcon && hasIcon) ? '36px' : '12px')
-              : ((showIcon && hasIcon) ? '36px' : '12px'),
-            paddingRight: formDirection === 'rtl' 
-              ? '12px' 
-              : ((showIcon && hasIcon) ? '12px' : '12px'),
+            paddingLeft: paddingLeft,
+            paddingRight: paddingRight,
             boxShadow: 'rgba(0, 0, 0, 0.05) 0px 1px 2px',
             width: '100%',
             height: 'auto',
