@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useMemo } from 'react';
 import { FormField, deepCloneField } from '@/lib/form-utils';
 import FormPreview from '@/components/form/FormPreview';
@@ -75,9 +74,9 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   // زر تغيير الاتجاه - منفصل عن لغة الموقع
   const toggleDirection = () => {
     const currentDirection = formStyle.formDirection || 'ltr';
-    const newDirection = currentDirection === 'rtl' ? 'ltr' : 'rtl';
+    const newDirection: 'ltr' | 'rtl' = currentDirection === 'rtl' ? 'ltr' : 'rtl';
     
-    const newFormStyle = {
+    const newFormStyle: FormStyle = {
       ...formStyle,
       formDirection: newDirection
     };
