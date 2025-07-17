@@ -7,488 +7,20 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instanciate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "12.2.3 (519615d)"
+  }
   public: {
     Tables: {
-      form_submissions: {
-        Row: {
-          created_at: string
-          data: Json
-          form_id: string
-          id: string
-          order_id: string | null
-          shop_id: string | null
-          status: string | null
-          updated_at: string
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string
-          data?: Json
-          form_id: string
-          id?: string
-          order_id?: string | null
-          shop_id?: string | null
-          status?: string | null
-          updated_at?: string
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string
-          data?: Json
-          form_id?: string
-          id?: string
-          order_id?: string | null
-          shop_id?: string | null
-          status?: string | null
-          updated_at?: string
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "form_submissions_form_id_fkey"
-            columns: ["form_id"]
-            isOneToOne: false
-            referencedRelation: "forms"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      forms: {
-        Row: {
-          borderRadius: string | null
-          buttonStyle: string | null
-          created_at: string
-          data: Json
-          description: string | null
-          fontSize: string | null
-          id: string
-          is_published: boolean
-          primaryColor: string | null
-          product_id: string | null
-          shop_id: string | null
-          style: Json | null
-          submitbuttontext: string | null
-          title: string
-          updated_at: string
-          user_id: string | null
-        }
-        Insert: {
-          borderRadius?: string | null
-          buttonStyle?: string | null
-          created_at?: string
-          data?: Json
-          description?: string | null
-          fontSize?: string | null
-          id?: string
-          is_published?: boolean
-          primaryColor?: string | null
-          product_id?: string | null
-          shop_id?: string | null
-          style?: Json | null
-          submitbuttontext?: string | null
-          title: string
-          updated_at?: string
-          user_id?: string | null
-        }
-        Update: {
-          borderRadius?: string | null
-          buttonStyle?: string | null
-          created_at?: string
-          data?: Json
-          description?: string | null
-          fontSize?: string | null
-          id?: string
-          is_published?: boolean
-          primaryColor?: string | null
-          product_id?: string | null
-          shop_id?: string | null
-          style?: Json | null
-          submitbuttontext?: string | null
-          title?: string
-          updated_at?: string
-          user_id?: string | null
-        }
-        Relationships: []
-      }
-      landing_page_templates: {
-        Row: {
-          content: Json
-          created_at: string
-          id: string
-          page_id: string
-          updated_at: string
-        }
-        Insert: {
-          content?: Json
-          created_at?: string
-          id?: string
-          page_id: string
-          updated_at?: string
-        }
-        Update: {
-          content?: Json
-          created_at?: string
-          id?: string
-          page_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "landing_page_templates_page_id_fkey"
-            columns: ["page_id"]
-            isOneToOne: false
-            referencedRelation: "landing_pages"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      landing_pages: {
-        Row: {
-          created_at: string
-          id: string
-          is_published: boolean
-          product_id: string | null
-          slug: string
-          title: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          is_published?: boolean
-          product_id?: string | null
-          slug: string
-          title: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          is_published?: boolean
-          product_id?: string | null
-          slug?: string
-          title?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      products: {
-        Row: {
-          created_at: string
-          description: string | null
-          id: string
-          image_url: string | null
-          name: string
-          price: number | null
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          image_url?: string | null
-          name: string
-          price?: number | null
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          image_url?: string | null
-          name?: string
-          price?: number | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      shopify_auth: {
-        Row: {
-          created_at: string
-          expires_at: string
-          id: string
-          shop: string
-          state: string
-        }
-        Insert: {
-          created_at?: string
-          expires_at?: string
-          id?: string
-          shop: string
-          state: string
-        }
-        Update: {
-          created_at?: string
-          expires_at?: string
-          id?: string
-          shop?: string
-          state?: string
-        }
-        Relationships: []
-      }
-      shopify_cached_products: {
-        Row: {
-          id: string
-          products: Json
-          shop: string
-          updated_at: string | null
-        }
-        Insert: {
-          id?: string
-          products?: Json
-          shop: string
-          updated_at?: string | null
-        }
-        Update: {
-          id?: string
-          products?: Json
-          shop?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "shopify_cached_products_shop_fkey"
-            columns: ["shop"]
-            isOneToOne: false
-            referencedRelation: "shopify_shops"
-            referencedColumns: ["shop"]
-          },
-        ]
-      }
-      shopify_form_insertion: {
-        Row: {
-          block_id: string | null
-          created_at: string | null
-          form_id: string
-          id: string
-          insertion_method: string | null
-          position: string | null
-          shop_id: string
-          theme_type: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          block_id?: string | null
-          created_at?: string | null
-          form_id: string
-          id?: string
-          insertion_method?: string | null
-          position?: string | null
-          shop_id: string
-          theme_type?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          block_id?: string | null
-          created_at?: string | null
-          form_id?: string
-          id?: string
-          insertion_method?: string | null
-          position?: string | null
-          shop_id?: string
-          theme_type?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "shopify_form_insertion_form_id_fkey"
-            columns: ["form_id"]
-            isOneToOne: false
-            referencedRelation: "forms"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      shopify_page_syncs: {
-        Row: {
-          created_at: string
-          id: string
-          page_id: string
-          shop_id: string
-          synced_url: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          page_id: string
-          shop_id: string
-          synced_url: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          page_id?: string
-          shop_id?: string
-          synced_url?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "shopify_page_syncs_page_id_fkey"
-            columns: ["page_id"]
-            isOneToOne: false
-            referencedRelation: "landing_pages"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      shopify_product_settings: {
-        Row: {
-          block_id: string | null
-          created_at: string | null
-          enabled: boolean | null
-          form_id: string
-          id: string
-          product_id: string
-          shop_id: string
-          updated_at: string | null
-        }
-        Insert: {
-          block_id?: string | null
-          created_at?: string | null
-          enabled?: boolean | null
-          form_id: string
-          id?: string
-          product_id: string
-          shop_id: string
-          updated_at?: string | null
-        }
-        Update: {
-          block_id?: string | null
-          created_at?: string | null
-          enabled?: boolean | null
-          form_id?: string
-          id?: string
-          product_id?: string
-          shop_id?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "shopify_product_settings_form_id_fkey"
-            columns: ["form_id"]
-            isOneToOne: false
-            referencedRelation: "forms"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      shopify_shops: {
-        Row: {
-          access_token: string | null
-          created_at: string | null
-          id: string
-          is_active: boolean | null
-          shop: string
-          updated_at: string | null
-        }
-        Insert: {
-          access_token?: string | null
-          created_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          shop: string
-          updated_at?: string | null
-        }
-        Update: {
-          access_token?: string | null
-          created_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          shop?: string
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      shopify_stores: {
-        Row: {
-          access_token: string | null
-          created_at: string | null
-          id: string
-          is_active: boolean | null
-          scope: string | null
-          shop: string
-          token_type: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          access_token?: string | null
-          created_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          scope?: string | null
-          shop: string
-          token_type?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          access_token?: string | null
-          created_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          scope?: string | null
-          shop?: string
-          token_type?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      add_column_if_not_exists: {
-        Args: {
-          p_table: string
-          p_column: string
-          p_type: string
-          p_default?: string
-        }
-        Returns: undefined
-      }
-      associate_product_with_form: {
-        Args: {
-          p_shop_id: string
-          p_product_id: string
-          p_form_id: string
-          p_block_id?: string
-          p_enabled?: boolean
-        }
-        Returns: string
-      }
-      check_column_exists: {
-        Args: { p_table: string; p_column: string }
-        Returns: boolean
-      }
-      check_trigger_exists: {
-        Args: { trigger_name: string }
-        Returns: boolean
-      }
-      cleanup_expired_shopify_auth: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      create_form_with_shop: {
-        Args: {
-          p_title: string
-          p_description: string
-          p_data: Json
-          p_shop_id: string
-          p_user_id: string
-        }
-        Returns: string
-      }
-      create_table_if_not_exists: {
-        Args: { p_table_name: string; p_table_definition: string }
-        Returns: undefined
-      }
-      create_timestamp_trigger: {
-        Args: { table_name: string }
-        Returns: undefined
-      }
+      [_ in never]: never
     }
     Enums: {
       [_ in never]: never
@@ -499,21 +31,25 @@ export type Database = {
   }
 }
 
-type DefaultSchema = Database[Extract<keyof Database, "public">]
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
@@ -531,14 +67,16 @@ export type Tables<
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
@@ -554,14 +92,16 @@ export type TablesInsert<
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
@@ -577,14 +117,16 @@ export type TablesUpdate<
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
-> = DefaultSchemaEnumNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
@@ -592,14 +134,16 @@ export type Enums<
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
     : never = never,
-> = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
