@@ -274,9 +274,10 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
         id: newId,
         title: formTitle,
         description: formDescription,
-        data: [initialFormStep],
+        data: [initialFormStep] as any,
         shop_id: activeShopId,
         is_published: false,
+        user_id: shopifyIntegration.user?.id || 'anonymous'
       }).select('id').single();
 
       if (error) {
@@ -303,8 +304,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
       // Update rest of the form data in the background
       setTimeout(async () => {
         await supabase.from('forms').update({
-          style: defaultStyle,
-          user_id: shopifyIntegration.user?.id || null
+          style: defaultStyle as any
         }).eq('id', newId);
       }, 500);
 
@@ -489,9 +489,9 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
           .update({
             title: formTitle,
             description: formDescription,
-            data: [formStep],
+            data: [formStep] as any,
             shop_id: activeShopId,
-            style: formStyle,
+            style: formStyle as any,
             updated_at: new Date().toISOString()
           })
           .eq('id', currentFormId);

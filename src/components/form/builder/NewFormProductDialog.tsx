@@ -153,11 +153,12 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
         description: language === 'ar' ? 'نموذج جديد' : 'New Form',
         shop_id: shopId,
         is_published: false,
+        user_id: 'anonymous',
         data: [{
           id: '1',
           title: 'Main Step',
           fields: defaultFields
-        }],
+        }] as any,
         style: {
           primaryColor: '#9b87f5',
           borderRadius: '1.5rem', // Large border radius

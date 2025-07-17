@@ -204,10 +204,10 @@ export const useFormTemplates = () => {
               id: newFormId,
               title: template.title,
               description: template.description,
-              data: template.data,
+              data: template.data as any,
               is_published: false,
               shop_id: shopId,
-              user_id: user?.id
+              user_id: user?.id || 'anonymous'
             });
         });
 
@@ -365,10 +365,10 @@ export const useFormTemplates = () => {
               id: newFormId,
               title: formData.title,
               description: formData.description,
-              data: formData.data,
+              data: formData.data as any,
               is_published: false,
               shop_id: shopId,
-              user_id: user?.id
+              user_id: user?.id || 'anonymous'
             });
         });
         

@@ -1,16 +1,10 @@
 
-import { Database as ShopifyDatabase } from '@/lib/shopify/database-types';
 import { Json } from './types';
 
-// Extend the shopify database types with additional tables
-export interface Database extends ShopifyDatabase {
+// Database types that match the actual Supabase schema
+export interface Database {
   public: {
     Tables: {
-      shopify_stores: ShopifyDatabase['public']['Tables']['shopify_stores'];
-      shopify_product_settings: ShopifyDatabase['public']['Tables']['shopify_product_settings'];
-      shopify_form_insertion: ShopifyDatabase['public']['Tables']['shopify_form_insertion'];
-      
-      // Add other tables used in the main application
       forms: {
         Row: {
           id: string;
@@ -19,9 +13,10 @@ export interface Database extends ShopifyDatabase {
           data: Json;
           is_published: boolean;
           created_at: string;
+          updated_at: string;
           user_id: string;
-          shop_id?: string | null;
-          style?: Json | null;
+          shop_id: string | null;
+          style: Json | null;
         };
         Insert: {
           id?: string;
@@ -30,6 +25,7 @@ export interface Database extends ShopifyDatabase {
           data: Json;
           is_published?: boolean;
           created_at?: string;
+          updated_at?: string;
           user_id: string;
           shop_id?: string | null;
           style?: Json | null;
@@ -41,6 +37,7 @@ export interface Database extends ShopifyDatabase {
           data?: Json;
           is_published?: boolean;
           created_at?: string;
+          updated_at?: string;
           user_id?: string;
           shop_id?: string | null;
           style?: Json | null;
@@ -54,7 +51,7 @@ export interface Database extends ShopifyDatabase {
           form_id: string;
           data: Json;
           created_at: string;
-          user_id?: string | null;
+          user_id: string | null;
         };
         Insert: {
           id?: string;
@@ -72,9 +69,125 @@ export interface Database extends ShopifyDatabase {
         };
         Relationships: [];
       };
+
+      shopify_stores: {
+        Row: {
+          id: string;
+          shop: string;
+          access_token: string | null;
+          token_type: string | null;
+          scope: string | null;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          shop: string;
+          access_token?: string | null;
+          token_type?: string | null;
+          scope?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          shop?: string;
+          access_token?: string | null;
+          token_type?: string | null;
+          scope?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+
+      shopify_product_settings: {
+        Row: {
+          id: string;
+          form_id: string;
+          product_id: string;
+          shop_id: string;
+          block_id: string | null;
+          enabled: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          form_id: string;
+          product_id: string;
+          shop_id: string;
+          block_id?: string | null;
+          enabled?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          form_id?: string;
+          product_id?: string;
+          shop_id?: string;
+          block_id?: string | null;
+          enabled?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+
+      shopify_form_insertion: {
+        Row: {
+          id: string;
+          form_id: string;
+          shop_id: string;
+          position: string;
+          block_id: string | null;
+          theme_type: string;
+          insertion_method: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          form_id: string;
+          shop_id: string;
+          position: string;
+          block_id?: string | null;
+          theme_type: string;
+          insertion_method: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          form_id?: string;
+          shop_id?: string;
+          position?: string;
+          block_id?: string | null;
+          theme_type?: string;
+          insertion_method?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {};
-    Functions: {};
+    Functions: {
+      associate_product_with_form: {
+        Args: {
+          p_shop_id: string;
+          p_product_id: string;
+          p_form_id: string;
+          p_block_id?: string;
+          p_enabled?: boolean;
+        };
+        Returns: string;
+      };
+    };
     Enums: {};
     CompositeTypes: {};
   };

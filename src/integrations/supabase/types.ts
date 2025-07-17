@@ -14,13 +14,210 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      form_submissions: {
+        Row: {
+          created_at: string
+          data: Json
+          form_id: string
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          data?: Json
+          form_id: string
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          data?: Json
+          form_id?: string
+          id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_submissions_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "forms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      forms: {
+        Row: {
+          created_at: string
+          data: Json
+          description: string | null
+          id: string
+          is_published: boolean
+          shop_id: string | null
+          style: Json | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data?: Json
+          description?: string | null
+          id?: string
+          is_published?: boolean
+          shop_id?: string | null
+          style?: Json | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json
+          description?: string | null
+          id?: string
+          is_published?: boolean
+          shop_id?: string | null
+          style?: Json | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      shopify_form_insertion: {
+        Row: {
+          block_id: string | null
+          created_at: string
+          form_id: string
+          id: string
+          insertion_method: string
+          position: string
+          shop_id: string
+          theme_type: string
+          updated_at: string
+        }
+        Insert: {
+          block_id?: string | null
+          created_at?: string
+          form_id: string
+          id?: string
+          insertion_method: string
+          position: string
+          shop_id: string
+          theme_type: string
+          updated_at?: string
+        }
+        Update: {
+          block_id?: string | null
+          created_at?: string
+          form_id?: string
+          id?: string
+          insertion_method?: string
+          position?: string
+          shop_id?: string
+          theme_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopify_form_insertion_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "forms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shopify_product_settings: {
+        Row: {
+          block_id: string | null
+          created_at: string
+          enabled: boolean
+          form_id: string
+          id: string
+          product_id: string
+          shop_id: string
+          updated_at: string
+        }
+        Insert: {
+          block_id?: string | null
+          created_at?: string
+          enabled?: boolean
+          form_id: string
+          id?: string
+          product_id: string
+          shop_id: string
+          updated_at?: string
+        }
+        Update: {
+          block_id?: string | null
+          created_at?: string
+          enabled?: boolean
+          form_id?: string
+          id?: string
+          product_id?: string
+          shop_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopify_product_settings_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "forms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shopify_stores: {
+        Row: {
+          access_token: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          scope: string | null
+          shop: string
+          token_type: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_token?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          scope?: string | null
+          shop: string
+          token_type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          scope?: string | null
+          shop?: string
+          token_type?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      associate_product_with_form: {
+        Args: {
+          p_shop_id: string
+          p_product_id: string
+          p_form_id: string
+          p_block_id?: string
+          p_enabled?: boolean
+        }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never

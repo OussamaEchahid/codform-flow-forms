@@ -9,7 +9,7 @@ import { InfoIcon } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { useShopify } from '@/hooks/useShopify';
 import ShopifyProductSelection from './ShopifyProductSelection';
-import { shopifySupabase } from '@/lib/shopify/supabase-client';
+import { supabase } from '@/integrations/supabase/client';
 import { ensureUUID } from '@/lib/shopify/types';
 
 interface ShopifyIntegrationProps {
@@ -46,7 +46,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId, onSave,
         // Ensure we're using a valid UUID for the query
         const validFormId = ensureUUID(formId);
         
-        const { data } = await shopifySupabase
+        const { data } = await supabase
           .from('shopify_product_settings')
           .select('product_id')
           .eq('form_id', validFormId)
@@ -75,7 +75,7 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId, onSave,
       
       // Call the associate_product_with_form RPC function for each product
       for (const productId of selectedProducts) {
-        const { data, error } = await shopifySupabase.rpc('associate_product_with_form', {
+        const { data, error } = await supabase.rpc('associate_product_with_form', {
           p_shop_id: shop,
           p_product_id: productId,
           p_form_id: validFormId,
