@@ -5,8 +5,8 @@
 function fetchCodForm(shopDomain, productId, blockId) {
   const timestamp = Date.now();
   const apiUrl = productId 
-    ? `https://mtyfuwdsshlzqwjujavp.functions.supabase.co/forms-product?shop=${shopDomain}&productId=${productId}&_t=${timestamp}`
-    : `https://mtyfuwdsshlzqwjujavp.functions.supabase.co/forms-default?shop=${shopDomain}&_t=${timestamp}`;
+    ? `https://trlklwixfeaexhydzaue.functions.supabase.co/forms-product?shop=${shopDomain}&productId=${productId}&_t=${timestamp}`
+    : `https://trlklwixfeaexhydzaue.functions.supabase.co/forms-default?shop=${shopDomain}&_t=${timestamp}`;
   
   const fetchOptions = {
     method: 'GET',
