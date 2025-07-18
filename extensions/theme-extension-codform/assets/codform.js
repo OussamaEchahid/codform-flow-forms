@@ -168,7 +168,24 @@
   // Create text input
   function createTextInput(field, direction) {
     const wrapper = document.createElement("div");
+    wrapper.className = "codform-field";
     wrapper.style.cssText = "margin-bottom: 16px; width: 100%;";
+    
+    // Create label if field has label
+    if (field.label) {
+      const label = document.createElement("label");
+      label.textContent = field.label;
+      label.style.cssText = `
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #374151;
+        font-size: inherit;
+        font-family: inherit;
+        direction: ${direction};
+      `;
+      wrapper.appendChild(label);
+    }
     
     const input = document.createElement("input");
     

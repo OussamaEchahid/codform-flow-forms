@@ -47,7 +47,7 @@
   margin-bottom: 8px;
   font-weight: 600;
   color: #374151;
-  font-size: 16px; /* Default size, can be overridden by inline styles */
+  /* Font size will be set by JavaScript inline styles */
 }
 
 .codform-field input[type="text"],
