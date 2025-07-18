@@ -167,12 +167,8 @@ const FormBuilderPage = () => {
         
         const productIds = productSettings.map(s => s.product_id);
         
-        // Fetch product details from cached products table
-        const { data: cachedProducts } = await shopifySupabase
-          .from('shopify_cached_products')
-          .select('products')
-          .eq('shop', shop)
-          .single();
+        // Skip cached products query since table doesn't exist
+        const cachedProducts = null;
           
         if (cachedProducts?.products && !isCancelled) {
           const shopifyProducts = cachedProducts.products;

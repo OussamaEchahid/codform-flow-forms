@@ -11,7 +11,7 @@ import { Loader2, ShoppingBag, AlertCircle, RefreshCw, InfoIcon } from 'lucide-r
 import { ShopifyProduct, ProductFormConflict } from '@/lib/shopify/types';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { shopifySupabase } from '@/lib/shopify/supabase-client';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ShopifyProductSelectionProps {
   selectedProducts: string[];
@@ -93,12 +93,12 @@ const ShopifyProductSelection: React.FC<ShopifyProductSelectionProps> = ({
   
   // Fetch associated product details for read-only mode
   useEffect(() => {
-    if (!formId || !shop || !readOnly) return;
+    if (!formId || !shop || !readOnly || formId === "new") return;
     
     async function fetchAssociatedProducts() {
       try {
         // Get product settings for this form
-        const { data: productSettings, error } = await shopifySupabase
+        const { data: productSettings, error } = await supabase
           .from('shopify_product_settings')
           .select('*')
           .eq('form_id', formId);
@@ -116,12 +116,8 @@ const ShopifyProductSelection: React.FC<ShopifyProductSelectionProps> = ({
         
         const productIds = productSettings.map(s => s.product_id);
         
-        // Fetch product details from cached products table
-        const { data: cachedProducts } = await shopifySupabase
-          .from('shopify_cached_products')
-          .select('products')
-          .eq('shop', shop)
-          .single();
+        // Skip cached products query since table doesn't exist
+        const cachedProducts = null;
           
         if (cachedProducts?.products) {
           const shopifyProducts = cachedProducts.products;
@@ -145,11 +141,11 @@ const ShopifyProductSelection: React.FC<ShopifyProductSelectionProps> = ({
   // Check for product-form conflicts
   useEffect(() => {
     async function checkForConflicts() {
-      if (!shop || selectedProducts.length === 0 || !formId) return;
+      if (!shop || selectedProducts.length === 0 || !formId || formId === "new") return;
       
       try {
         // Find existing product settings for the selected products
-        const { data: existingSettings, error } = await shopifySupabase
+        const { data: existingSettings, error } = await supabase
           .from('shopify_product_settings')
           .select('product_id, form_id')
           .in('product_id', selectedProducts)
@@ -167,19 +163,15 @@ const ShopifyProductSelection: React.FC<ShopifyProductSelectionProps> = ({
         
         // Get forms data for conflict details
         const formIds = [...new Set(existingSettings.map(s => s.form_id))];
-        const { data: conflictForms } = await shopifySupabase
+        const { data: conflictForms } = await supabase
           .from('forms')
           .select('id, title')
           .in('id', formIds);
           
         if (!conflictForms) return;
         
-        // Get product details
-        const { data: cachedProducts } = await shopifySupabase
-          .from('shopify_cached_products')
-          .select('products')
-          .eq('shop', shop)
-          .single();
+        // Skip cached products query since table doesn't exist
+        const cachedProducts = null;
           
         if (!cachedProducts?.products) return;
         
@@ -191,11 +183,11 @@ const ShopifyProductSelection: React.FC<ShopifyProductSelectionProps> = ({
           
           if (product && form) {
             // Get the current form details
-            const { data: currentForm } = await shopifySupabase
+            const { data: currentForm } = await supabase
               .from('forms')
               .select('title')
               .eq('id', formId)
-              .single();
+              .maybeSingle();
               
             conflicts.push({
               productId: setting.product_id,

@@ -31,7 +31,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { shopifySupabase } from '@/lib/shopify/supabase-client';
+import { supabase } from '@/integrations/supabase/client';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ShopifyProduct } from '@/lib/shopify/types';
 import { toast } from 'sonner';
@@ -75,7 +75,7 @@ const FormList: React.FC<FormListProps> = ({
       
       try {
         // Get all product settings
-        const { data: productSettings, error } = await shopifySupabase
+        const { data: productSettings, error } = await supabase
           .from('shopify_product_settings')
           .select('*')
           .in('form_id', forms.map(form => form.id));
@@ -109,11 +109,8 @@ const FormList: React.FC<FormListProps> = ({
           return;
         }
         
-        const { data: cachedProducts } = await shopifySupabase
-          .from('shopify_cached_products')
-          .select('products')
-          .eq('shop', shopId)
-          .single();
+        // Skip cached products query since table doesn't exist
+        const cachedProducts = null;
           
         // Map the products to forms
         const productsMap = new Map<string, { id: string; title: string }>();
