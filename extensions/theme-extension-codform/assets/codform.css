@@ -43,11 +43,11 @@
 }
 
 .codform-field label {
-  display: block !important;
-  margin-bottom: 8px !important;
-  font-weight: 600 !important;
-  color: #374151 !important;
-  font-size: 16px !important;
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #374151;
+  /* Remove font-size !important to allow dynamic styling */
 }
 
 .codform-field input[type="text"],
@@ -82,11 +82,9 @@
   box-shadow: 0 0 0 3px rgba(155, 135, 245, 0.2) !important;
 }
 
-/* تحسين عرض الأيقونات داخل الحقول */
+/* تحسين عرض الأيقونات داخل الحقول - دعم RTL/LTR */
 .codform-field-icon {
   position: absolute !important;
-  right: 12px !important;
-  left: auto !important;
   top: 50% !important;
   transform: translateY(-50%) !important;
   color: #9ca3af !important;
@@ -97,6 +95,19 @@
   justify-content: center !important;
   pointer-events: none !important;
   z-index: 2 !important;
+  /* Position will be set dynamically by JavaScript based on form direction */
+}
+
+/* RTL icon positioning */
+.codform-container[dir="rtl"] .codform-field-icon {
+  right: 12px !important;
+  left: auto !important;
+}
+
+/* LTR icon positioning */
+.codform-container[dir="ltr"] .codform-field-icon {
+  left: 12px !important;
+  right: auto !important;
 }
 
 .codform-field-wrapper {

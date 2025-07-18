@@ -63,6 +63,7 @@
   class="codform-container" 
   data-product-id="{{ product.id }}"
   data-block-id="{{ block.id }}"
+  dir="ltr"
 >
   <div id="codform-form-loader-{{ block.id }}" class="codform-loader" style="display: flex; justify-content: center; align-items: center; flex-direction: column; padding: 20px;">
     <div class="codform-spinner"></div>
@@ -154,6 +155,12 @@ function renderCodform(formData, containerId) {
       box-sizing: border-box;
       direction: ${formDirection};
     `;
+    
+    // Update main container direction attribute for CSS selectors
+    const mainContainerElement = container.closest('.codform-container') || container.parentElement.closest('.codform-container');
+    if (mainContainerElement) {
+      mainContainerElement.setAttribute('dir', formDirection);
+    }
 
     const contentContainer = document.createElement("div");
     contentContainer.className = "codform-form-content";
