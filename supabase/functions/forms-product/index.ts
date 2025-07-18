@@ -15,7 +15,6 @@ async function queryWithRetry(queryFn, maxRetries = 3, delay = 1000) {
       lastError = error;
       
       if (attempt < maxRetries - 1) {
-        // Wait before retrying (with exponential backoff)
         await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, attempt)));
       }
     }
@@ -25,7 +24,6 @@ async function queryWithRetry(queryFn, maxRetries = 3, delay = 1000) {
 }
 
 serve(async (req: Request) => {
-  // Add required headers to all responses
   const responseHeaders = {
     ...corsHeaders,
     'Content-Type': 'application/json',
@@ -34,45 +32,47 @@ serve(async (req: Request) => {
     'Expires': '0'
   };
 
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     console.log("Handling OPTIONS request for CORS preflight");
     return new Response(null, { headers: responseHeaders });
   }
 
   try {
-    // Log request details for debugging
     const url = new URL(req.url);
     const shop = url.searchParams.get('shop');
     const productId = url.searchParams.get('productId');
-    const blockId = url.searchParams.get('blockId'); // Get blockId from URL params
+    const blockId = url.searchParams.get('blockId');
     const requestId = `req_${Math.random().toString(36).substring(2, 10)}`;
     const debugMode = url.searchParams.get('debug') === 'true';
     
-    console.log(`[${requestId}] Product form request received - shop: ${shop}, product: ${productId}, blockId: ${blockId}, debug: ${debugMode}`);
+    console.log(`[${requestId}] 🎯 COMPREHENSIVE FIX - Product form request received`);
+    console.log(`[${requestId}] Parameters: shop=${shop}, product=${productId}, blockId=${blockId}, debug=${debugMode}`);
 
     if (!shop || !productId) {
-      console.error(`[${requestId}] Missing required parameters: shop=${shop}, productId=${productId}`);
+      console.error(`[${requestId}] ❌ Missing required parameters`);
       return new Response(
         JSON.stringify({ 
           error: 'Missing required parameters: shop or productId',
           success: false,
-          message: 'Shop and productId parameters are required' 
+          message: 'Shop and productId parameters are required',
+          requestId,
+          timestamp: new Date().toISOString()
         }),
         { headers: responseHeaders, status: 400 }
       );
     }
 
-    // Create Supabase client - with PUBLIC ANON KEY
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
     const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY') || '';
     
     if (!supabaseUrl || !supabaseKey) {
-      console.error(`[${requestId}] Missing Supabase configuration`);
+      console.error(`[${requestId}] ❌ Missing Supabase configuration`);
       return new Response(
         JSON.stringify({ 
           error: 'Server configuration error',
-          success: false 
+          success: false,
+          requestId,
+          timestamp: new Date().toISOString()
         }),
         { headers: responseHeaders, status: 500 }
       );
@@ -80,12 +80,13 @@ serve(async (req: Request) => {
     
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    console.log(`[${requestId}] Fetching form for shop ${shop}, product ${productId}`);
+    console.log(`[${requestId}] 🔍 Fetching form for shop ${shop}, product ${productId}`);
 
-    // First, check if there's a specific form for this product with retry
+    // First, check if there's a specific form for this product
     let productSettings, settingsError;
     
     try {
+      console.log(`[${requestId}] 🔎 Checking product-specific settings...`);
       const queryResult = await queryWithRetry(async () => {
         return await supabase
           .from('shopify_product_settings')
@@ -98,8 +99,15 @@ serve(async (req: Request) => {
       
       productSettings = queryResult.data;
       settingsError = queryResult.error;
+      
+      console.log(`[${requestId}] 📋 Product settings result:`, { 
+        found: !!productSettings, 
+        formId: productSettings?.form_id,
+        error: settingsError?.message 
+      });
+      
     } catch (error) {
-      console.error(`[${requestId}] Error after retries:`, error);
+      console.error(`[${requestId}] ❌ Error fetching product settings:`, error);
       settingsError = {
         message: error.message || 'Database query failed after multiple attempts',
         details: error.toString()
@@ -107,76 +115,73 @@ serve(async (req: Request) => {
     }
 
     if (settingsError && settingsError.code !== 'PGRST116') {
-      // Real error, not just "no rows returned"
-      console.error(`[${requestId}] Error fetching product settings:`, settingsError);
+      console.error(`[${requestId}] ❌ Real error in product settings:`, settingsError);
       return new Response(
         JSON.stringify({ 
           error: 'Failed to retrieve product settings', 
           details: settingsError,
-          success: false 
+          success: false,
+          requestId,
+          timestamp: new Date().toISOString()
         }),
         { headers: responseHeaders, status: 500 }
       );
     }
 
-    // If we have product-specific settings, get that form
     let form = null;
     let formSource = 'none';
-    let actualBlockId = blockId || ''; // Use provided blockId or empty string
+    let actualBlockId = blockId || '';
     
+    // Try to get product-specific form first
     if (productSettings && productSettings.form_id) {
-      console.log(`[${requestId}] Found product-specific form ID: ${productSettings.form_id}`);
+      console.log(`[${requestId}] 🎯 Found product-specific form ID: ${productSettings.form_id}`);
       formSource = 'product-specific';
       
-      // Use the product settings block_id if available and no blockId was provided
       if (productSettings.block_id && !actualBlockId) {
         actualBlockId = productSettings.block_id;
       }
       
-      // استرداد بيانات النموذج (فقط الحقول الأساسية والبيانات) - بدون عمود settings
-      let formData, formError;
-      
       try {
+        console.log(`[${requestId}] 🔄 Fetching product-specific form data...`);
         const queryResult = await queryWithRetry(async () => {
           return await supabase
             .from('forms')
             .select('id, title, description, data, style, is_published')
             .eq('id', productSettings.form_id)
             .eq('is_published', true)
-            .single();
+            .maybeSingle();
         });
         
-        formData = queryResult.data;
-        formError = queryResult.error;
-      } catch (error) {
-        console.error(`[${requestId}] Error after retries:`, error);
-        formError = {
-          message: error.message || 'Database query failed after multiple attempts',
-          details: error.toString()
-        };
-      }
+        const formData = queryResult.data;
+        const formError = queryResult.error;
         
-      if (!formError && formData) {
-        form = formData;
-        // إضافة كائن إعدادات افتراضي إذا لم يكن موجودًا
-        form.settings = form.settings || { enableIcons: true };
-        console.log(`[${requestId}] Successfully fetched product-specific form with ID: ${form.id}`);
-      } else if (formError) {
-        console.log(`[${requestId}] Error fetching product-specific form: ${formError.message}. Will try default form.`);
-      } else {
-        console.log(`[${requestId}] No product-specific form found with ID: ${productSettings.form_id}. Will try default form.`);
+        console.log(`[${requestId}] 📄 Form data result:`, { 
+          found: !!formData, 
+          formId: formData?.id,
+          error: formError?.message 
+        });
+        
+        if (!formError && formData) {
+          form = formData;
+          form.settings = form.settings || { enableIcons: true };
+          console.log(`[${requestId}] ✅ Successfully fetched product-specific form`);
+        } else if (formError) {
+          console.log(`[${requestId}] ⚠️ Error fetching product-specific form: ${formError.message}. Will try default form.`);
+        } else {
+          console.log(`[${requestId}] ⚠️ No product-specific form found. Will try default form.`);
+        }
+        
+      } catch (error) {
+        console.error(`[${requestId}] ❌ Error in product-specific form query:`, error);
       }
     } else {
-      console.log(`[${requestId}] No product-specific settings found for product ${productId}`);
+      console.log(`[${requestId}] ℹ️ No product-specific settings found`);
     }
 
     // If no product-specific form was found, get the default form
     if (!form) {
-      console.log(`[${requestId}] Trying default form for shop ${shop}`);
+      console.log(`[${requestId}] 🔄 Trying default form for shop ${shop}`);
       formSource = 'default';
-      
-      // استرداد بيانات النموذج الافتراضي - بدون عمود settings
-      let defaultForms, defaultError;
       
       try {
         const queryResult = await queryWithRetry(async () => {
@@ -189,57 +194,53 @@ serve(async (req: Request) => {
             .limit(1);
         });
         
-        defaultForms = queryResult.data;
-        defaultError = queryResult.error;
+        const defaultForms = queryResult.data;
+        const defaultError = queryResult.error;
+        
+        console.log(`[${requestId}] 📄 Default forms result:`, { 
+          count: defaultForms?.length || 0,
+          error: defaultError?.message 
+        });
+        
+        if (!defaultError && defaultForms && defaultForms.length > 0) {
+          form = defaultForms[0];
+          form.settings = form.settings || { enableIcons: true };
+          console.log(`[${requestId}] ✅ Using default form: ${form.id}`);
+        } else if (defaultError) {
+          console.error(`[${requestId}] ❌ Error fetching default form:`, defaultError);
+        } else {
+          console.log(`[${requestId}] ⚠️ No default form found for shop ${shop}`);
+        }
+        
       } catch (error) {
-        console.error(`[${requestId}] Error after retries:`, error);
-        defaultError = {
-          message: error.message || 'Database query failed after multiple attempts',
-          details: error.toString()
-        };
-      }
-      
-      if (!defaultError && defaultForms && defaultForms.length > 0) {
-        form = defaultForms[0];
-        // إضافة كائن إعدادات افتراضي إذا لم يكن موجودًا
-        form.settings = form.settings || { enableIcons: true };
-        console.log(`[${requestId}] Using default form: ${form.id}`);
-      } else if (defaultError) {
-        console.error(`[${requestId}] Error fetching default form:`, defaultError);
-      } else {
-        console.log(`[${requestId}] No default form found for shop ${shop}`);
+        console.error(`[${requestId}] ❌ Error in default form query:`, error);
       }
     }
 
-    // If we still don't have a blockId, generate one
+    // Generate blockId if needed
     if (!actualBlockId) {
       actualBlockId = `codform_${Date.now().toString(36)}`;
-      console.log(`[${requestId}] Generated new blockId: ${actualBlockId}`);
+      console.log(`[${requestId}] 🆔 Generated new blockId: ${actualBlockId}`);
     }
 
-    // تحسين: استخراج الحقول من بنية data
+    // Extract and process fields from form data
     if (form && form.data) {
-      console.log(`[${requestId}] Extracting fields from form data structure`);
+      console.log(`[${requestId}] 🔧 Processing form data structure`);
       
-      // Initialize fields array
       let extractedFields = [];
       
       try {
-        // Check if data is an array (steps format)
         if (Array.isArray(form.data)) {
-          console.log(`[${requestId}] Form data is in steps format with ${form.data.length} steps`);
-          // Extract fields from all steps
+          console.log(`[${requestId}] 📊 Form data is in steps format with ${form.data.length} steps`);
           for (const step of form.data) {
             if (step && step.fields && Array.isArray(step.fields)) {
               extractedFields = [...extractedFields, ...step.fields];
             }
           }
         } else if (typeof form.data === 'object' && form.data !== null) {
-          // Try to find fields in other data structures
           if (form.data.fields && Array.isArray(form.data.fields)) {
             extractedFields = form.data.fields;
           } else if (form.data.steps && Array.isArray(form.data.steps)) {
-            // Extract from steps if available
             for (const step of form.data.steps) {
               if (step && step.fields && Array.isArray(step.fields)) {
                 extractedFields = [...extractedFields, ...step.fields];
@@ -248,22 +249,21 @@ serve(async (req: Request) => {
           }
         }
         
-        console.log(`[${requestId}] Successfully extracted ${extractedFields.length} fields from form.data`);
+        console.log(`[${requestId}] ✅ Successfully extracted ${extractedFields.length} fields`);
         form.fields = extractedFields;
+        
       } catch (err) {
-        console.error(`[${requestId}] Error extracting fields from data:`, err);
-        // Initialize as empty array if extraction fails
+        console.error(`[${requestId}] ❌ Error extracting fields:`, err);
         form.fields = [];
       }
     }
 
-    // 4. إنشاء حقول افتراضية إذا لم تكن موجودة
+    // Create default fields if none exist
     if (form && (!form.fields || !Array.isArray(form.fields) || form.fields.length === 0)) {
-      console.log(`[${requestId}] Creating default fields for form`);
+      console.log(`[${requestId}] 🛠️ Creating default fields`);
       
       const language = form.style?.direction === 'rtl' ? 'ar' : 'en';
       
-      // إنشاء حقول افتراضية
       form.fields = [
         {
           type: 'form-title',
@@ -319,62 +319,49 @@ serve(async (req: Request) => {
         }
       ];
       
-      console.log(`[${requestId}] Created ${form.fields.length} default fields for the form`);
+      console.log(`[${requestId}] ✅ Created ${form.fields.length} default fields`);
     }
 
-    // Ensure the settings object exists and process field data
+    // Final form processing
     if (form) {
-      // Make sure form has a settings object
       if (!form.settings) {
         form.settings = { enableIcons: true };
-        console.log(`[${requestId}] Created default settings object for form`);
       }
       
-      // Make sure enableIcons is set (default to true if not specified)
       form.settings.enableIcons = form.settings.enableIcons !== false;
-      
-      // Add block_id to the form for reference
       form.block_id = actualBlockId;
       
-      // Process form fields to ensure icons are correctly formatted
+      // Process form fields
       if (form.fields && Array.isArray(form.fields)) {
         form.fields = form.fields.map(field => {
           if (!field) return field;
           
-          // Make a copy of the field to avoid modifying the original
           const processedField = { ...field };
           
-          // Make sure icon is properly defined and not empty string
           if (processedField.icon === undefined || processedField.icon === '') {
             processedField.icon = 'none';
           }
           
-          // Ensure style object exists
           if (!processedField.style) {
             processedField.style = {};
           }
           
-          // Make sure showIcon is properly defined if an icon exists
           if (processedField.icon && processedField.icon !== 'none') {
             processedField.style.showIcon = processedField.style.showIcon !== undefined ? 
               processedField.style.showIcon : true;
           }
 
-          // Special handling for submit buttons to ensure they have the right style
           if (processedField.type === 'submit') {
             if (!processedField.style) processedField.style = {};
-            // Ensure animation settings are properly transferred
             if (processedField.style.animation) {
               processedField.style.animationType = processedField.style.animationType || 'pulse';
             }
-            // Ensure consistent colors
             processedField.style.backgroundColor = processedField.style.backgroundColor || '#9b87f5';
             processedField.style.color = processedField.style.color || '#ffffff';
             processedField.style.fontSize = processedField.style.fontSize || '18px';
           }
           
-          // Special handling for text inputs to ensure icon display is correct
-          if (processedField.type === 'text' || processedField.type === 'phone' || processedField.type === 'email') {
+          if (['text', 'phone', 'email'].includes(processedField.type)) {
             if (processedField.icon && processedField.icon !== 'none') {
               if (!processedField.style) processedField.style = {};
               processedField.style.showIcon = true;
@@ -383,22 +370,10 @@ serve(async (req: Request) => {
           
           return processedField;
         });
-
-        // Log all form fields with icon information for debugging
-        if (debugMode || (form.fields && form.fields.some(f => f && f.icon && f.icon !== 'none'))) {
-          console.log(`[${requestId}] Form fields with icon information:`);
-          form.fields.forEach(field => {
-            if (field && field.icon && field.icon !== 'none') {
-              console.log(`[${requestId}] Field ${field.id} (${field.type}) has icon: ${field.icon}, showIcon: ${field.style?.showIcon !== false}`);
-            }
-          });
-        }
       } else {
-        console.error(`[${requestId}] Form fields are missing or not an array`);
         form.fields = [];
       }
 
-      // Verify that form style object exists
       if (!form.style) {
         form.style = {
           primaryColor: '#9b87f5',
@@ -409,7 +384,6 @@ serve(async (req: Request) => {
       }
     }
 
-    // Add debug information if requested
     const debugInfo = debugMode ? {
       requestId,
       timestamp: new Date().toISOString(),
@@ -425,45 +399,47 @@ serve(async (req: Request) => {
       style: form?.style || null
     } : undefined;
 
-    // Return form data
+    // Return success response
     if (form) {
       const fieldsWithIcons = form.fields?.filter(field => field && field.icon && field.icon !== 'none') || [];
-      console.log(`[${requestId}] Successfully sending form data to client. Form has ${form.fields?.length || 0} fields, ${fieldsWithIcons.length} with icons`);
-      
-      if (fieldsWithIcons.length > 0) {
-        console.log(`[${requestId}] Icon types used: ${fieldsWithIcons.map(f => f.icon).join(', ')}`);
-      }
+      console.log(`[${requestId}] 🎉 SUCCESS - Sending form data to client`);
+      console.log(`[${requestId}] 📊 Form stats: ${form.fields?.length || 0} fields, ${fieldsWithIcons.length} with icons`);
       
       return new Response(
         JSON.stringify({ 
           form,
           block_id: actualBlockId,
           debug: debugInfo,
-          success: true
+          success: true,
+          requestId,
+          timestamp: new Date().toISOString()
         }),
         { headers: responseHeaders, status: 200 }
       );
     } else {
-      // No form found at all
-      console.log(`[${requestId}] No form found for shop ${shop}`);
+      console.log(`[${requestId}] 📭 No form found for shop ${shop}`);
       return new Response(
         JSON.stringify({ 
           message: 'No form found for this shop',
           block_id: actualBlockId,
           debug: debugInfo,
-          success: false
+          success: false,
+          requestId,
+          timestamp: new Date().toISOString()
         }),
         { headers: responseHeaders, status: 404 }
       );
     }
+    
   } catch (error) {
-    console.error('Error processing request:', error);
+    console.error('❌ CRITICAL ERROR in forms-product:', error);
     return new Response(
       JSON.stringify({ 
         error: 'Internal server error', 
         details: error.message,
         success: false,
-        message: 'An unexpected error occurred' 
+        message: 'An unexpected error occurred',
+        timestamp: new Date().toISOString()
       }),
       { headers: responseHeaders, status: 500 }
     );

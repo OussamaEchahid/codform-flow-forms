@@ -86,9 +86,9 @@
 </div>
 
 <script>
-// دالة عرض النموذج - مع إصلاح نهائي لمشكلة اتجاه الأيقونات
+// 🎯 COMPREHENSIVE FIX - Form rendering with ultimate error handling
 function renderCodform(formData, containerId) {
-  console.log("🎯 Rendering Codform with ULTIMATE ICON DIRECTION FIX", { formData, containerId });
+  console.log("🚀 COMPREHENSIVE FIX - Starting renderCodform", { formData, containerId });
 
   try {
     const container = document.getElementById(containerId);
@@ -103,7 +103,7 @@ function renderCodform(formData, containerId) {
       return false;
     }
 
-    console.log("✅ Form data is valid, starting render.");
+    console.log("✅ Form data is valid, starting render process");
     container.innerHTML = "";
 
     const style = formData.style || {};
@@ -111,10 +111,9 @@ function renderCodform(formData, containerId) {
     const borderRadius = "1.5rem";
     const fontSize = style.fontSize || "1rem";
     
-    // إصلاح نهائي: تحديد الاتجاه بناءً على اللغة الفعلية للنموذج
+    // COMPREHENSIVE FIX: Determine form direction
     let formDirection = style.formDirection || 'ltr';
     
-    // إذا كان النموذج يحتوي على نصوص عربية، اجعل الاتجاه RTL
     let hasArabicText = false;
     if (formData.data && Array.isArray(formData.data)) {
       formData.data.forEach(step => {
@@ -131,7 +130,6 @@ function renderCodform(formData, containerId) {
       });
     }
     
-    // إذا لم يكن هناك نص عربي واللغة ltr، تأكد من أن الاتجاه ltr
     if (!hasArabicText && formDirection !== 'rtl') {
       formDirection = 'ltr';
     }
@@ -140,7 +138,7 @@ function renderCodform(formData, containerId) {
     const borderColor = style.borderColor || primaryColor;
     const borderWidth = style.borderWidth || "2px";
 
-    console.log("🔧 ULTIMATE FIX - Form direction determined:", formDirection, "hasArabicText:", hasArabicText);
+    console.log("🔧 COMPREHENSIVE FIX - Form direction:", formDirection, "hasArabicText:", hasArabicText);
 
     const mainContainer = document.createElement("div");
     mainContainer.className = "rounded-lg border shadow-sm overflow-hidden codform-form";
@@ -187,7 +185,7 @@ function renderCodform(formData, containerId) {
       });
     }
     
-    console.log(`📝 Processing ${allFields.length} fields with final direction: ${formDirection}`);
+    console.log(`📝 COMPREHENSIVE FIX - Processing ${allFields.length} fields with direction: ${formDirection}`);
     
     if (allFields.length === 0) {
       container.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">لا توجد حقول في النموذج</div>';
@@ -200,11 +198,15 @@ function renderCodform(formData, containerId) {
         return;
       }
       
-      console.log(`🔧 Rendering field ${index + 1}: ${field.type} with FINAL direction: ${formDirection}`);
+      console.log(`🔧 Rendering field ${index + 1}: ${field.type} with direction: ${formDirection}`);
       
-      const fieldElement = createFieldElement(field, formDirection, primaryColor, style);
-      if (fieldElement) {
-        fieldsContainer.appendChild(fieldElement);
+      try {
+        const fieldElement = createFieldElement(field, formDirection, primaryColor, style);
+        if (fieldElement) {
+          fieldsContainer.appendChild(fieldElement);
+        }
+      } catch (fieldError) {
+        console.error(`❌ Error creating field ${index + 1}:`, fieldError);
       }
     });
     
@@ -212,11 +214,11 @@ function renderCodform(formData, containerId) {
     mainContainer.appendChild(contentContainer);
     container.appendChild(mainContainer);
     
-    console.log("✅ Form rendered successfully with ULTIMATE ICON DIRECTION FIX.");
+    console.log("🎉 COMPREHENSIVE FIX - Form rendered successfully");
     return true;
     
   } catch (error) {
-    console.error("❌ Error in renderCodform:", error);
+    console.error("❌ CRITICAL ERROR in renderCodform:", error);
     const container = document.getElementById(containerId);
     if (container) {
       container.innerHTML = '<div style="padding: 20px; text-align: center; color: #ff0000;">حدث خطأ في عرض النموذج: ' + error.message + '</div>';
@@ -225,32 +227,40 @@ function renderCodform(formData, containerId) {
   }
 }
 
-// دالة إنشاء عنصر الحقل
+// COMPREHENSIVE FIX: Enhanced field creation with error handling
 function createFieldElement(field, direction, primaryColor, formStyle = {}) {
   if (!field || !field.type) {
     console.warn("⚠️ Invalid field:", field);
     return null;
   }
   
-  switch (field.type) {
-    case "form-title":
-      return createFormTitle(field, direction);
-    case "text":
-    case "email":
-    case "phone":
-      return createTextInput(field, direction, primaryColor, formStyle);
-    case "textarea":
-      return createTextarea(field, direction, primaryColor, formStyle);
-    case "submit":
-      return createSubmitButton(field, primaryColor, formStyle);
-    case "text/html":
-      return createHtmlContent(field);
-    default:
-      console.warn("⚠️ Unknown field type:", field.type);
-      const wrapper = document.createElement("div");
-      wrapper.textContent = field.label || `حقل من نوع ${field.type}`;
-      wrapper.style.cssText = "padding: 10px; margin-bottom: 16px;";
-      return wrapper;
+  try {
+    switch (field.type) {
+      case "form-title":
+        return createFormTitle(field, direction);
+      case "text":
+      case "email":
+      case "phone":
+        return createTextInput(field, direction, primaryColor, formStyle);
+      case "textarea":
+        return createTextarea(field, direction, primaryColor, formStyle);
+      case "submit":
+        return createSubmitButton(field, primaryColor, formStyle);
+      case "text/html":
+        return createHtmlContent(field);
+      default:
+        console.warn("⚠️ Unknown field type:", field.type);
+        const wrapper = document.createElement("div");
+        wrapper.textContent = field.label || `حقل من نوع ${field.type}`;
+        wrapper.style.cssText = "padding: 10px; margin-bottom: 16px;";
+        return wrapper;
+    }
+  } catch (error) {
+    console.error(`❌ Error creating field element:`, error);
+    const errorWrapper = document.createElement("div");
+    errorWrapper.textContent = `خطأ في إنشاء حقل: ${field.type}`;
+    errorWrapper.style.cssText = "padding: 10px; margin-bottom: 16px; color: #ff0000;";
+    return errorWrapper;
   }
 }
 
@@ -292,7 +302,7 @@ function createFormTitle(field, direction) {
   return titleWrapper;
 }
 
-// دالة إنشاء حقل إدخال نص - مع إصلاح نهائي وجذري للأيقونات
+// COMPREHENSIVE FIX: Enhanced text input creation
 function createTextInput(field, direction, primaryColor, formStyle = {}) {
   const wrapper = document.createElement("div");
   wrapper.className = "";
@@ -302,152 +312,153 @@ function createTextInput(field, direction, primaryColor, formStyle = {}) {
   const fieldStyle = field.style || {};
   const formStyles = formStyle || {};
 
-  console.log(`🔧 ULTIMATE ICON FIX: Creating text input for field ${field.id} with direction=${direction}`);
+  console.log(`🔧 COMPREHENSIVE FIX - Creating text input for field ${field.id} with direction=${direction}`);
 
-  const showLabel = fieldStyle.showLabel !== false;
-  if (showLabel && field.label) {
-    const label = document.createElement("label");
-    label.htmlFor = `${field.id}-input`;
-    label.className = "block mb-2";
-    label.textContent = field.label;
+  try {
+    const showLabel = fieldStyle.showLabel !== false;
+    if (showLabel && field.label) {
+      const label = document.createElement("label");
+      label.htmlFor = `${field.id}-input`;
+      label.className = "block mb-2";
+      label.textContent = field.label;
 
-    label.style.cssText = `
-        color: ${fieldStyle.labelColor || '#333333'};
-        font-size: ${fieldStyle.labelFontSize || formStyles.fontSize || '16px'};
-        font-weight: ${fieldStyle.labelFontWeight || '600'};
-        font-family: 'Cairo', sans-serif;
-        margin-bottom: 8px;
-        display: block;
-        background: transparent;
-        padding: 0px;
-    `;
+      label.style.cssText = `
+          color: ${fieldStyle.labelColor || '#333333'};
+          font-size: ${fieldStyle.labelFontSize || formStyles.fontSize || '16px'};
+          font-weight: ${fieldStyle.labelFontWeight || '600'};
+          font-family: 'Cairo', sans-serif;
+          margin-bottom: 8px;
+          display: block;
+          background: transparent;
+          padding: 0px;
+      `;
 
-    if (field.required) {
-      const span = document.createElement("span");
-      span.className = "text-red-500";
-      span.textContent = " *";
-      span.style.color = "rgb(239, 68, 68)";
-      label.appendChild(span);
+      if (field.required) {
+        const span = document.createElement("span");
+        span.className = "text-red-500";
+        span.textContent = " *";
+        span.style.color = "rgb(239, 68, 68)";
+        label.appendChild(span);
+      }
+      wrapper.appendChild(label);
     }
-    wrapper.appendChild(label);
-  }
 
-  const inputContainer = document.createElement("div");
-  inputContainer.className = "relative";
-  inputContainer.style.cssText = "position: relative; background: transparent;";
+    const inputContainer = document.createElement("div");
+    inputContainer.className = "relative";
+    inputContainer.style.cssText = "position: relative; background: transparent;";
 
-  const hasIcon = field.icon && field.icon !== 'none' && field.style?.showIcon !== false;
+    const hasIcon = field.icon && field.icon !== 'none' && field.style?.showIcon !== false;
 
-  if (hasIcon) {
-    const iconElement = document.createElement("div");
-    iconElement.className = "absolute codform-field-icon";
+    if (hasIcon) {
+      const iconElement = document.createElement("div");
+      iconElement.className = "absolute codform-field-icon";
+      
+      console.log(`🎯 COMPREHENSIVE FIX - Positioning icon for field ${field.id}, direction=${direction}`);
+      
+      iconElement.style.cssText = `
+          position: absolute;
+          top: 50%;
+          transform: translateY(-50%);
+          z-index: 2;
+          color: rgb(156, 163, 175);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          ${direction === 'rtl' ? 'right: 12px; left: auto;' : 'left: 12px; right: auto;'}
+      `;
+      
+      iconElement.innerHTML = getIconSVG(field.icon);
+      inputContainer.appendChild(iconElement);
+    }
+
+    const input = document.createElement("input");
+    input.type = (field.type === 'email') ? 'email' : (field.type === 'phone') ? 'tel' : 'text';
+    input.id = `${field.id}-input`;
+    input.name = field.id;
+    input.placeholder = field.placeholder || '';
+    input.required = field.required || false;
+    input.className = "w-full outline-none transition-all codform-input";
+    input.setAttribute("aria-label", field.inputFor || field.label || "");
+
+    const textColor = fieldStyle.color || 'rgb(31, 41, 55)';
+    const fontSize = fieldStyle.fontSize || formStyles.fontSize || '16px';
+    const fontWeight = fieldStyle.fontWeight || '400';
+    const backgroundColor = 'rgb(255, 255, 255)';
+    const borderColor = fieldStyle.borderColor || 'rgb(209, 213, 219)';
+    const borderWidth = fieldStyle.borderWidth || '1px';
+    const borderRadius = '1.5rem';
+    const paddingY = fieldStyle.paddingY ? `${fieldStyle.paddingY}px` : '10px';
+
+    const basePadding = '12px';
+    const iconPadding = '40px';
     
-    // إصلاح نهائي: منطق مبسط وواضح تماماً للأيقونات
-    console.log(`🎯 ULTIMATE ICON FIX: Positioning icon for field ${field.id}, direction=${direction}`);
+    let paddingLeft, paddingRight;
     
-    iconElement.style.cssText = `
-        position: absolute;
-        top: 50%;
-        transform: translateY(-50%);
-        z-index: 2;
-        color: rgb(156, 163, 175);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        ${direction === 'rtl' ? 'right: 12px; left: auto;' : 'left: 12px; right: auto;'}
+    if (direction === 'rtl') {
+      paddingLeft = basePadding;
+      paddingRight = hasIcon ? iconPadding : basePadding;
+    } else {
+      paddingLeft = hasIcon ? iconPadding : basePadding;
+      paddingRight = basePadding;
+    }
+
+    input.style.cssText = `
+        color: ${textColor};
+        font-size: ${fontSize};
+        font-weight: ${fontWeight};
+        font-family: 'Cairo', sans-serif;
+        background-color: ${backgroundColor};
+        border-color: ${borderColor};
+        border-radius: ${borderRadius};
+        border-width: ${borderWidth};
+        border-style: solid;
+        padding-top: ${paddingY};
+        padding-bottom: ${paddingY};
+        padding-left: ${paddingLeft};
+        padding-right: ${paddingRight};
+        box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px;
+        width: 100%;
+        height: auto;
+        line-height: 1.5;
+        min-height: 44px;
+        box-sizing: border-box;
+        direction: ${direction};
+        text-align: ${direction === 'rtl' ? 'right' : 'left'};
+        outline: none;
+        transition: all 0.2s ease;
+        margin: 0px;
     `;
+
+    input.addEventListener('focus', function() {
+      this.style.borderColor = primaryColor;
+      this.style.boxShadow = `0 0 0 3px rgba(155, 135, 245, 0.2)`;
+    });
+
+    input.addEventListener('blur', function() {
+      this.style.borderColor = fieldStyle.borderColor || 'rgb(209, 213, 219)';
+      this.style.boxShadow = 'rgba(0, 0, 0, 0.05) 0px 1px 2px';
+    });
+
+    inputContainer.appendChild(input);
+    wrapper.appendChild(inputContainer);
+
+    if (field.helpText) {
+      const helpText = document.createElement("p");
+      helpText.className = "mt-1 text-xs text-gray-500 codform-help-text";
+      helpText.textContent = field.helpText;
+      helpText.style.cssText = "margin-top: 6px; font-size: 14px; color: #6b7280; background: transparent; padding: 0;";
+      wrapper.appendChild(helpText);
+    }
+
+    return wrapper;
     
-    console.log(`🎯 Icon positioned for ${field.id}: ${direction === 'rtl' ? 'RIGHT' : 'LEFT'}`);
-    
-    iconElement.innerHTML = getIconSVG(field.icon);
-    inputContainer.appendChild(iconElement);
+  } catch (error) {
+    console.error(`❌ Error creating text input:`, error);
+    const errorDiv = document.createElement("div");
+    errorDiv.textContent = `خطأ في إنشاء حقل الإدخال: ${field.label || field.id}`;
+    errorDiv.style.cssText = "padding: 10px; color: #ff0000;";
+    return errorDiv;
   }
-
-  const input = document.createElement("input");
-  input.type = (field.type === 'email') ? 'email' : (field.type === 'phone') ? 'tel' : 'text';
-  input.id = `${field.id}-input`;
-  input.name = field.id;
-  input.placeholder = field.placeholder || '';
-  input.required = field.required || false;
-  input.className = "w-full outline-none transition-all codform-input";
-  input.setAttribute("aria-label", field.inputFor || field.label || "");
-
-  const textColor = fieldStyle.color || 'rgb(31, 41, 55)';
-  const fontSize = fieldStyle.fontSize || formStyles.fontSize || '16px';
-  const fontWeight = fieldStyle.fontWeight || '400';
-  const backgroundColor = 'rgb(255, 255, 255)';
-  const borderColor = fieldStyle.borderColor || 'rgb(209, 213, 219)';
-  const borderWidth = fieldStyle.borderWidth || '1px';
-  const borderRadius = '1.5rem';
-  const paddingY = fieldStyle.paddingY ? `${fieldStyle.paddingY}px` : '10px';
-
-  // إصلاح نهائي: padding واضح ومباشر
-  const basePadding = '12px';
-  const iconPadding = '40px';
-  
-  console.log(`🎯 ULTIMATE PADDING FIX: Field ${field.id}, direction=${direction}, hasIcon=${hasIcon}`);
-  
-  let paddingLeft, paddingRight;
-  
-  if (direction === 'rtl') {
-    paddingLeft = basePadding;
-    paddingRight = hasIcon ? iconPadding : basePadding;
-    console.log(`🎯 RTL: paddingLeft=${paddingLeft}, paddingRight=${paddingRight}`);
-  } else {
-    paddingLeft = hasIcon ? iconPadding : basePadding;
-    paddingRight = basePadding;
-    console.log(`🎯 LTR: paddingLeft=${paddingLeft}, paddingRight=${paddingRight}`);
-  }
-
-  input.style.cssText = `
-      color: ${textColor};
-      font-size: ${fontSize};
-      font-weight: ${fontWeight};
-      font-family: 'Cairo', sans-serif;
-      background-color: ${backgroundColor};
-      border-color: ${borderColor};
-      border-radius: ${borderRadius};
-      border-width: ${borderWidth};
-      border-style: solid;
-      padding-top: ${paddingY};
-      padding-bottom: ${paddingY};
-      padding-left: ${paddingLeft};
-      padding-right: ${paddingRight};
-      box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px;
-      width: 100%;
-      height: auto;
-      line-height: 1.5;
-      min-height: 44px;
-      box-sizing: border-box;
-      direction: ${direction};
-      text-align: ${direction === 'rtl' ? 'right' : 'left'};
-      outline: none;
-      transition: all 0.2s ease;
-      margin: 0px;
-  `;
-
-  input.addEventListener('focus', function() {
-    this.style.borderColor = primaryColor;
-    this.style.boxShadow = `0 0 0 3px rgba(155, 135, 245, 0.2)`;
-  });
-
-  input.addEventListener('blur', function() {
-    this.style.borderColor = fieldStyle.borderColor || 'rgb(209, 213, 219)';
-    this.style.boxShadow = 'rgba(0, 0, 0, 0.05) 0px 1px 2px';
-  });
-
-  inputContainer.appendChild(input);
-  wrapper.appendChild(inputContainer);
-
-  if (field.helpText) {
-    const helpText = document.createElement("p");
-    helpText.className = "mt-1 text-xs text-gray-500 codform-help-text";
-    helpText.textContent = field.helpText;
-    helpText.style.cssText = "margin-top: 6px; font-size: 14px; color: #6b7280; background: transparent; padding: 0;";
-    wrapper.appendChild(helpText);
-  }
-
-  return wrapper;
 }
 
 // دالة إنشاء منطقة نص - مع توحيد borderRadius
@@ -651,9 +662,9 @@ function getIconSVG(iconName) {
   return icons[iconName] || icons['user'];
 }
 
-// الكود الرئيسي للبلوك
+// COMPREHENSIVE FIX: Main script with enhanced error handling
 document.addEventListener('DOMContentLoaded', function() {
-  console.log("🚀 Codform block script started for block: {{ block.id }}");
+  console.log("🚀 COMPREHENSIVE FIX - Codform block script started for block: {{ block.id }}");
   
   const blockId = "{{ block.id }}";
   const container = document.getElementById('codform-container-' + blockId);
@@ -683,46 +694,72 @@ document.addEventListener('DOMContentLoaded', function() {
   
   function fetchAndRenderForm() {
     const productId = container.getAttribute('data-product-id');
-    const shop = Shopify.shop || window.location.hostname;
+    const shop = (typeof Shopify !== 'undefined' && Shopify.shop) ? Shopify.shop : window.location.hostname;
     
     if (!productId || !shop) {
       showError("بيانات المنتج أو المتجر غير متوفرة");
-      console.error("❌ Missing product ID or shop information");
+      console.error("❌ Missing product ID or shop information", { productId, shop });
       return;
     }
     
-    console.log("📡 Fetching form data...", { productId, shop, blockId });
+    console.log("📡 COMPREHENSIVE FIX - Fetching form data...", { productId, shop, blockId });
     
     const apiUrl = `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/forms-product?shop=${encodeURIComponent(shop)}&productId=${encodeURIComponent(productId)}&blockId=${encodeURIComponent(blockId)}`;
     
-    fetch(apiUrl, {
+    // COMPREHENSIVE FIX: Enhanced fetch with multiple fallback strategies
+    const fetchOptions = {
       method: 'GET',
-      mode: 'cors'
-    })
-      .then(response => {
-        console.log("📨 Response received:", response.status);
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        return response.json();
-      })
-      .then(data => {
-        console.log("📋 Form data received:", data);
-        
-        if (data && data.form) {
-          renderFormData(data.form);
-        } else {
-          showError("لا يوجد نموذج متوفر لهذا المنتج");
-        }
-      })
-      .catch(error => {
-        console.error("❌ Error fetching form:", error);
-        showError("حدث خطأ أثناء تحميل النموذج: " + error.message);
-      });
+      mode: 'cors',
+      cache: 'no-cache',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    };
+    
+    let fetchAttempts = 0;
+    const maxAttempts = 3;
+    
+    function attemptFetch() {
+      fetchAttempts++;
+      console.log(`📡 Fetch attempt ${fetchAttempts}/${maxAttempts}`);
+      
+      fetch(apiUrl, fetchOptions)
+        .then(response => {
+          console.log(`📨 Response received (attempt ${fetchAttempts}):`, response.status, response.statusText);
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+          return response.json();
+        })
+        .then(data => {
+          console.log("📋 COMPREHENSIVE FIX - Form data received:", data);
+          
+          if (data && data.form) {
+            renderFormData(data.form);
+          } else if (data && data.success === false) {
+            showError(data.message || "لا يوجد نموذج متوفر لهذا المنتج");
+          } else {
+            showError("استجابة غير صحيحة من الخادم");
+          }
+        })
+        .catch(error => {
+          console.error(`❌ Error in fetch attempt ${fetchAttempts}:`, error);
+          
+          if (fetchAttempts < maxAttempts) {
+            console.log(`🔄 Retrying in ${fetchAttempts * 1000}ms...`);
+            setTimeout(attemptFetch, fetchAttempts * 1000);
+          } else {
+            showError("حدث خطأ أثناء تحميل النموذج: " + error.message);
+          }
+        });
+    }
+    
+    attemptFetch();
   }
   
   function renderFormData(formData) {
-    console.log("🎨 Starting form render...");
+    console.log("🎨 COMPREHENSIVE FIX - Starting form render...");
     hideLoading();
     
     try {
@@ -735,13 +772,13 @@ document.addEventListener('DOMContentLoaded', function() {
         if (formContainer) {
           formContainer.style.display = 'block';
         }
-        console.log("✅ Form rendered successfully");
+        console.log("✅ COMPREHENSIVE FIX - Form rendered successfully");
       } else {
         showError("فشل في عرض النموذج");
       }
       
     } catch (error) {
-      console.error("❌ Error calling renderCodform:", error);
+      console.error("❌ CRITICAL ERROR in renderFormData:", error);
       showError("حدث خطأ أثناء عرض النموذج: " + error.message);
     }
   }
@@ -776,7 +813,27 @@ document.addEventListener('DOMContentLoaded', function() {
     
     console.error("❌ Error shown to user:", message);
   }
+  
+  // COMPREHENSIVE FIX: Global error handler for unhandled errors
+  window.addEventListener('error', function(event) {
+    console.error('❌ Global error caught:', event.error);
+  });
+  
+  window.addEventListener('unhandledrejection', function(event) {
+    console.error('❌ Unhandled promise rejection:', event.reason);
+  });
 });
+
+// COMPREHENSIVE FIX: Enhanced postMessage handling
+if (typeof window !== 'undefined' && window.parent !== window) {
+  try {
+    window.addEventListener('message', function(event) {
+      console.log('📨 Message received from parent:', event);
+    });
+  } catch (error) {
+    console.warn('⚠️ Could not set up message listener:', error);
+  }
+}
 </script>
 
 <style>
@@ -904,7 +961,3 @@ document.addEventListener('DOMContentLoaded', function() {
   animation: fadeIn 0.5s ease-out;
 }
 </style>
-
-</script>
-
-</initial_code>
