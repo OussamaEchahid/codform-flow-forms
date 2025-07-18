@@ -146,17 +146,31 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
       // Generate default form fields
       const defaultFields = createDefaultFormFields();
       
-      // Create default form in database
-      // Generate a UUID for anonymous users
-      const anonymousUserId = uuidv4();
+      // Sign in anonymously if not already authenticated
+      const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
       
+      if (authError) {
+        console.error("Error with anonymous auth:", authError);
+        toast.error(language === 'ar' ? 'خطأ في المصادقة' : 'Authentication error');
+        setIsCreating(false);
+        return;
+      }
+      
+      const userId = authData.user?.id;
+      if (!userId) {
+        toast.error(language === 'ar' ? 'خطأ في الحصول على معرف المستخدم' : 'Error getting user ID');
+        setIsCreating(false);
+        return;
+      }
+      
+      // Create default form in database
       const { error: formError } = await supabase.from('forms').insert({
         id: newFormId,
         title: language === 'ar' ? 'نموذج جديد' : 'New Form',
         description: language === 'ar' ? 'نموذج جديد' : 'New Form',
         shop_id: shopId,
         is_published: false,
-        user_id: anonymousUserId,
+        user_id: userId,
         data: [{
           id: '1',
           title: 'Main Step',
