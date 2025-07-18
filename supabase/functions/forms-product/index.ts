@@ -191,19 +191,19 @@ serve(async (req: Request) => {
             .eq('shop_id', shop)
             .eq('is_published', true)
             .order('updated_at', { ascending: false })
-            .limit(1);
+            .maybeSingle();
         });
         
-        const defaultForms = queryResult.data;
+        const defaultForm = queryResult.data;
         const defaultError = queryResult.error;
         
         console.log(`[${requestId}] 📄 Default forms result:`, { 
-          count: defaultForms?.length || 0,
+          found: !!defaultForm,
           error: defaultError?.message 
         });
         
-        if (!defaultError && defaultForms && defaultForms.length > 0) {
-          form = defaultForms[0];
+        if (!defaultError && defaultForm) {
+          form = defaultForm;
           form.settings = form.settings || { enableIcons: true };
           console.log(`[${requestId}] ✅ Using default form: ${form.id}`);
         } else if (defaultError) {
