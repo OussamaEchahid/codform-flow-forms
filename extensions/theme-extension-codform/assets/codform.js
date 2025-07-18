@@ -80,7 +80,7 @@
         
         console.log(`🔧 Rendering field ${index + 1}: ${field.type}`);
         
-        const fieldElement = createFieldElement(field, formDirection, primaryColor);
+        const fieldElement = createFieldElement(field, formDirection, primaryColor, fontSize);
         if (fieldElement) {
           form.appendChild(fieldElement);
         }
@@ -101,24 +101,24 @@
   }
   
   // Helper function to create field elements
-  function createFieldElement(field, direction, primaryColor) {
+  function createFieldElement(field, direction, primaryColor, fontSize) {
     const wrapper = document.createElement("div");
     wrapper.style.cssText = "margin-bottom: 16px; width: 100%;";
     
     switch (field.type) {
       case "form-title":
-        return createFormTitle(field, direction);
+        return createFormTitle(field, direction, fontSize);
         
       case "text":
       case "email":
       case "phone":
-        return createTextInput(field, direction);
+        return createTextInput(field, direction, fontSize);
         
       case "textarea":
-        return createTextarea(field, direction);
+        return createTextarea(field, direction, fontSize);
         
       case "submit":
-        return createSubmitButton(field, primaryColor);
+        return createSubmitButton(field, primaryColor, fontSize);
         
       case "text/html":
         return createHtmlContent(field);
@@ -133,7 +133,7 @@
   }
   
   // Create form title
-  function createFormTitle(field, direction) {
+  function createFormTitle(field, direction, defaultFontSize) {
     const titleText = field.content || field.label || "";
     if (!titleText) return null;
     
@@ -166,7 +166,7 @@
   }
   
   // Create text input
-  function createTextInput(field, direction) {
+  function createTextInput(field, direction, defaultFontSize) {
     const wrapper = document.createElement("div");
     wrapper.className = "codform-field";
     wrapper.style.cssText = "margin-bottom: 16px; width: 100%;";
@@ -180,7 +180,7 @@
         margin-bottom: 8px;
         font-weight: 600;
         color: #374151;
-        font-size: inherit;
+        font-size: ${defaultFontSize};
         font-family: inherit;
         direction: ${direction};
       `;
@@ -206,7 +206,7 @@
       padding: 12px;
       border: 1px solid #ddd;
       border-radius: 6px;
-      font-size: inherit;
+      font-size: ${defaultFontSize};
       font-family: inherit;
       direction: ${direction};
       box-sizing: border-box;
@@ -217,7 +217,7 @@
   }
   
   // Create textarea
-  function createTextarea(field, direction) {
+  function createTextarea(field, direction, defaultFontSize) {
     const wrapper = document.createElement("div");
     wrapper.style.cssText = "margin-bottom: 16px; width: 100%;";
     
@@ -231,7 +231,7 @@
       padding: 12px;
       border: 1px solid #ddd;
       border-radius: 6px;
-      font-size: inherit;
+      font-size: ${defaultFontSize};
       font-family: inherit;
       direction: ${direction};
       resize: vertical;
@@ -243,7 +243,7 @@
   }
   
   // Create submit button
-  function createSubmitButton(field, primaryColor) {
+  function createSubmitButton(field, primaryColor, defaultFontSize) {
     const wrapper = document.createElement("div");
     wrapper.style.cssText = "margin-bottom: 16px; width: 100%;";
     
@@ -260,7 +260,7 @@
       border: none;
       padding: 12px 24px;
       border-radius: 6px;
-      font-size: inherit;
+      font-size: ${defaultFontSize};
       font-weight: 600;
       cursor: pointer;
       width: 100%;
