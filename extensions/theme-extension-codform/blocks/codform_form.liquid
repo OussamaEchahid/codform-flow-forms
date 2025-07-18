@@ -695,7 +695,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     const apiUrl = `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/forms-product?shop=${encodeURIComponent(shop)}&productId=${encodeURIComponent(productId)}&blockId=${encodeURIComponent(blockId)}`;
     
-    fetch(apiUrl)
+    fetch(apiUrl, {
+      method: 'GET',
+      mode: 'cors'
+    })
       .then(response => {
         console.log("📨 Response received:", response.status);
         if (!response.ok) {

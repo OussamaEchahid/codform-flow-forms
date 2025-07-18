@@ -143,7 +143,7 @@ serve(async (req: Request) => {
             .select('id, title, description, data, style, is_published')
             .eq('id', productSettings.form_id)
             .eq('is_published', true)
-            .limit(1);
+            .single();
         });
         
         formData = queryResult.data;
@@ -156,8 +156,8 @@ serve(async (req: Request) => {
         };
       }
         
-      if (!formError && formData && formData.length > 0) {
-        form = formData[0];
+      if (!formError && formData) {
+        form = formData;
         // إضافة كائن إعدادات افتراضي إذا لم يكن موجودًا
         form.settings = form.settings || { enableIcons: true };
         console.log(`[${requestId}] Successfully fetched product-specific form with ID: ${form.id}`);
