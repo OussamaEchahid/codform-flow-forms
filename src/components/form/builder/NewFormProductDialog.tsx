@@ -147,13 +147,16 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
       const defaultFields = createDefaultFormFields();
       
       // Create default form in database
+      // Generate a UUID for anonymous users
+      const anonymousUserId = uuidv4();
+      
       const { error: formError } = await supabase.from('forms').insert({
         id: newFormId,
         title: language === 'ar' ? 'نموذج جديد' : 'New Form',
         description: language === 'ar' ? 'نموذج جديد' : 'New Form',
         shop_id: shopId,
         is_published: false,
-        user_id: 'anonymous',
+        user_id: anonymousUserId,
         data: [{
           id: '1',
           title: 'Main Step',
@@ -195,7 +198,7 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
           .select('*')
           .eq('shop_id', shopId)
           .eq('product_id', productId)
-          .single();
+          .maybeSingle();
         
         if (checkError && checkError.code !== 'PGRST116') { // PGRST116 means no rows returned
           console.warn(`Error checking association for product ${productId}:`, checkError);
