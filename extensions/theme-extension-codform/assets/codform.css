@@ -47,7 +47,7 @@
   margin-bottom: 8px;
   font-weight: 600;
   color: #374151;
-  /* Remove font-size !important to allow dynamic styling */
+  font-size: 16px; /* Default size, can be overridden by inline styles */
 }
 
 .codform-field input[type="text"],
@@ -62,7 +62,7 @@
   padding-left: 12px !important;
   border: 1px solid #d1d5db !important;
   border-radius: 8px !important;
-  font-size: 16px !important;
+  font-size: 16px !important; /* Fixed size for inputs and placeholders */
   transition: all 0.2s ease-in-out !important;
   font-family: 'Cairo', sans-serif !important;
   background-color: #ffffff !important;
@@ -72,6 +72,14 @@
   line-height: 1.5 !important;
   margin: 0 !important;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Placeholder text styling */
+.codform-field input::placeholder,
+.codform-field textarea::placeholder {
+  color: #9ca3af !important;
+  font-size: 16px !important;
+  font-family: 'Cairo', sans-serif !important;
 }
 
 .codform-field input:focus,
