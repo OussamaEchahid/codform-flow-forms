@@ -513,15 +513,14 @@ export const useFormTemplates = () => {
         }
         
         // Update local state immediately
-        setForms(prevForms => prevForms.map(form => 
-          form.id === formId ? { ...form, isPublished: publish, is_published: publish } : form
-        ));
-        
-        // Update local cache
-        const updatedForms = forms.map(form => 
-          form.id === formId ? { ...form, isPublished: publish, is_published: publish } : form
-        );
-        localStorage.setItem('cached_forms', JSON.stringify(updatedForms));
+        setForms(prevForms => {
+          const updatedForms = prevForms.map(form => 
+            form.id === formId ? { ...form, isPublished: publish, is_published: publish } : form
+          );
+          // Update local cache immediately
+          localStorage.setItem('cached_forms', JSON.stringify(updatedForms));
+          return updatedForms;
+        });
         
         toast.success(publish ? 'تم نشر النموذج بنجاح' : 'تم إلغاء نشر النموذج بنجاح');
         
@@ -534,14 +533,13 @@ export const useFormTemplates = () => {
         toast.warning('فشل الاتصال بالخادم، تم تحديث الحالة محليًا فقط');
         
         // Update local state even if server sync fails
-        setForms(prevForms => prevForms.map(form => 
-          form.id === formId ? { ...form, isPublished: publish, is_published: publish } : form
-        ));
-        
-        const updatedForms = forms.map(form => 
-          form.id === formId ? { ...form, isPublished: publish, is_published: publish } : form
-        );
-        localStorage.setItem('cached_forms', JSON.stringify(updatedForms));
+        setForms(prevForms => {
+          const updatedForms = prevForms.map(form => 
+            form.id === formId ? { ...form, isPublished: publish, is_published: publish } : form
+          );
+          localStorage.setItem('cached_forms', JSON.stringify(updatedForms));
+          return updatedForms;
+        });
         
         // Set offline mode
         setOfflineMode(true);
@@ -606,12 +604,10 @@ export const useFormTemplates = () => {
       setForms(prevForms => {
         const updatedForms = prevForms.filter(form => form.id !== formId);
         console.log('📝 النماذج بعد الحذف:', updatedForms.length);
+        // Update local cache immediately
+        localStorage.setItem('cached_forms', JSON.stringify(updatedForms));
         return updatedForms;
       });
-      
-      // Update local cache
-      const updatedForms = forms.filter(form => form.id !== formId);
-      localStorage.setItem('cached_forms', JSON.stringify(updatedForms));
       
       // Reset offline mode if we succeed
       if (offlineMode) {
