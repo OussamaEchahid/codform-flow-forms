@@ -26,10 +26,10 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
   // Get title text from content or label
   const titleText = field.content || field.label || 'عنوان النموذج';
   
-  // Apply styles from field settings - USE DYNAMIC VALUES FROM FIELD.STYLE
+  // Apply styles from field settings - FORCE BLACK COLOR FOR ALL TITLES
   const fieldStyle = field.style || {};
-  // FIXED: استخدام اللون الأسود كافتراضي بدلاً من hsl(var(--foreground))
-  const textColor = fieldStyle.color || '#000000';
+  // FORCE BLACK COLOR: إجبار جميع العناوين على اللون الأسود بغض النظر عن القيمة المحفوظة
+  const textColor = '#000000'; // إجبار اللون الأسود دائماً
   const fontSize = fieldStyle.fontSize || '1.5rem';
   const fontWeight = fieldStyle.fontWeight || '700';
   const fontFamily = fieldStyle.fontFamily || 'Cairo, Tajawal, Arial, sans-serif';
