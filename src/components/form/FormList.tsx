@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { 
   Card, 
@@ -35,6 +34,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ShopifyProduct } from '@/lib/shopify/types';
 import { toast } from 'sonner';
+import ProductManagementModal from './ProductManagementModal';
 
 interface FormListProps {
   forms: FormData[];
@@ -67,6 +67,10 @@ const FormList: React.FC<FormListProps> = ({
   const [enhancedForms, setEnhancedForms] = useState<EnhancedFormData[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
   const [retryAttempts, setRetryAttempts] = useState(0);
+
+  // Product management modal state
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const [selectedFormForProducts, setSelectedFormForProducts] = useState<{ id: string; title: string } | null>(null);
 
   // Retry mechanism for fetching data
   useEffect(() => {
@@ -328,9 +332,20 @@ const FormList: React.FC<FormListProps> = ({
     }
   };
 
-  const handleManageProducts = (formId: string) => {
-    // Navigate to Shopify product settings for this form
-    window.open(`/shopify-products?form=${formId}`, '_blank');
+  const handleManageProducts = (formId: string, formTitle: string) => {
+    setSelectedFormForProducts({ id: formId, title: formTitle });
+    setIsProductModalOpen(true);
+  };
+
+  const handleCloseProductModal = () => {
+    setIsProductModalOpen(false);
+    setSelectedFormForProducts(null);
+    // Refresh the enhanced forms to show updated product associations
+    if (onRefresh) {
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+    }
   };
 
   if (isLoading) {
@@ -372,246 +387,230 @@ const FormList: React.FC<FormListProps> = ({
   const displayForms = enhancedForms.length > 0 ? enhancedForms : forms;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {/* Offline Mode Indicator */}
-      {offlineMode && (
-        <div className="col-span-full">
-          <div className="flex items-center justify-between p-4 bg-amber-50 border border-amber-300 rounded-md mb-4">
-            <div className="flex items-center gap-2">
-              <CloudOff className="h-5 w-5 text-amber-600" />
-              <span className="text-amber-800">وضع عدم الاتصال - يتم استخدام البيانات المخزنة محليًا</span>
-            </div>
-            <Button onClick={handleRefresh} variant="outline" size="sm" className="bg-white hover:bg-amber-100">
-              <RefreshCw className="mr-2 h-4 w-4" />
-              إعادة الاتصال
-            </Button>
-          </div>
-          {retryAttempts > 0 && (
-            <div className="text-center text-sm text-amber-600 mb-4">
-              تمت محاولة الاتصال {retryAttempts} مرة
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Loading indicator for products */}
-      {isLoadingProducts && (
-        <div className="col-span-full">
-          <div className="flex items-center justify-center p-4 bg-blue-50 border border-blue-200 rounded-md mb-4">
-            <Loader2 className="h-4 w-4 animate-spin text-blue-600 mr-2" />
-            <span className="text-blue-800">جاري تحميل بيانات المنتجات المرتبطة...</span>
-          </div>
-        </div>
-      )}
-
-      {displayForms.map((form) => {
-        const isCurrentlyOperating = isOperating === form.id;
-        console.log('🎨 عرض النموذج:', form.id, 'منتجات مرتبطة:', form.associatedProducts?.length || 0);
-        
-        return (
-        <Card key={form.id} className="overflow-hidden hover:shadow-md transition-shadow">
-          <div className={`h-2 ${form.is_published ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-          <CardHeader className="pb-2">
-            <div className="flex justify-between items-start">
-              <div className="flex-1">
-                <CardTitle className="text-lg truncate">
-                  {form.title}
-                </CardTitle>
-                {/* Display associated products if any */}
-                {form.associatedProducts && form.associatedProducts.length > 0 && (
-                  <div className="mt-3 p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
-                    <div className="flex items-center gap-2 mb-2">
-                      <ShoppingBag className="h-4 w-4 text-blue-600" />
-                      <span className="text-sm font-semibold text-blue-800">
-                        مرتبط بـ {form.associatedProducts.length} {form.associatedProducts.length === 1 ? 'منتج' : 'منتجات'}
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {form.associatedProducts.slice(0, 3).map((product) => (
-                        <TooltipProvider key={product.id}>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div className="flex items-center gap-2 bg-white rounded-md p-2 shadow-sm border hover:shadow-md transition-shadow cursor-pointer">
-                                <img 
-                                  src={product.image} 
-                                  alt={product.title}
-                                  className="w-10 h-10 rounded object-cover border"
-                                  onError={(e) => {
-                                    (e.target as HTMLImageElement).src = '/placeholder.svg';
-                                  }}
-                                />
-                                 <div className="flex flex-col">
-                                   <span className="text-xs font-medium text-gray-700 truncate max-w-20">
-                                     {product.title}
-                                   </span>
-                                   <span className="text-xs text-gray-500">
-                                     ID: {product.id}
-                                   </span>
-                                 </div>
-                                 <button
-                                   onClick={(e) => {
-                                     e.stopPropagation();
-                                     handleRemoveProduct(form.id, product.id);
-                                   }}
-                                   className="ml-1 h-6 w-6 bg-red-500 text-white hover:bg-red-600 rounded-full flex items-center justify-center transition-colors shadow-sm"
-                                   title="إزالة المنتج من النموذج"
-                                 >
-                                   <Trash className="h-3 w-3" />
-                                 </button>
-                                 <ExternalLink className="h-3 w-3 text-gray-400" />
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <div className="max-w-48 text-center">
-                                <p className="font-semibold">{product.title}</p>
-                                <p className="text-xs text-gray-500">معرف المنتج: {product.id}</p>
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      ))}
-                      {form.associatedProducts.length > 3 && (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div className="flex items-center justify-center bg-white rounded-md p-2 shadow-sm border hover:shadow-md transition-shadow cursor-pointer">
-                                <span className="text-xs text-blue-600 font-medium">
-                                  +{form.associatedProducts.length - 3}
-                                </span>
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <div className="max-w-64">
-                                <p className="font-semibold mb-2">المنتجات الإضافية:</p>
-                                {form.associatedProducts.slice(3).map((product) => (
-                                  <p key={product.id} className="text-sm">{product.title}</p>
-                                ))}
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      )}
-                    </div>
-                  </div>
-                )}
+    <>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Offline Mode Indicator */}
+        {offlineMode && (
+          <div className="col-span-full">
+            <div className="flex items-center justify-between p-4 bg-amber-50 border border-amber-300 rounded-md mb-4">
+              <div className="flex items-center gap-2">
+                <CloudOff className="h-5 w-5 text-amber-600" />
+                <span className="text-amber-800">وضع عدم الاتصال - يتم استخدام البيانات المخزنة محليًا</span>
               </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled={isCurrentlyOperating}>
-                    {isCurrentlyOperating ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <MoreVertical className="h-4 w-4" />
-                    )}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => onSelectForm(form.id)} disabled={isCurrentlyOperating}>
-                    <Edit className="mr-2 h-4 w-4" />
-                    <span>تعديل</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleManageProducts(form.id)} disabled={isCurrentlyOperating}>
-                    <ShoppingBag className="mr-2 h-4 w-4" />
-                    <span>إدارة المنتجات</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={() => handlePublishToggle(form.id, form.is_published)} 
-                    disabled={isCurrentlyOperating}
-                  >
-                    {form.is_published ? (
-                      <>
-                        <EyeOff className="mr-2 h-4 w-4" />
-                        <span>إلغاء النشر</span>
-                      </>
-                    ) : (
-                      <>
-                        <Eye className="mr-2 h-4 w-4" />
-                        <span>نشر</span>
-                      </>
-                    )}
-                  </DropdownMenuItem>
-                  {form.associatedProducts && form.associatedProducts.length > 0 && (
-                    <>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-blue-600">
-                        <Link className="mr-2 h-4 w-4" />
-                        <span>المنتجات المرتبطة ({form.associatedProducts.length})</span>
-                      </DropdownMenuItem>
-                    </>
-                  )}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem 
-                    onClick={() => setFormToDelete(form.id)}
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    disabled={isCurrentlyOperating}
-                  >
-                    <Trash className="mr-2 h-4 w-4" />
-                    <span>حذف</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <Button onClick={handleRefresh} variant="outline" size="sm" className="bg-white hover:bg-amber-100">
+                <RefreshCw className="mr-2 h-4 w-4" />
+                إعادة الاتصال
+              </Button>
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="flex justify-between items-center mb-2">
-              <Badge variant={form.is_published ? "success" : "secondary"}>
-                {form.is_published ? 'منشور' : 'مسودة'}
-              </Badge>
-              <span className="text-xs text-gray-500 rtl:text-left">
-                {formatDistanceToNow(new Date(form.created_at), { addSuffix: true, locale: ar })}
-              </span>
-            </div>
-            <p className="text-sm text-gray-600 line-clamp-2">{form.description || 'لا يوجد وصف'}</p>
-          </CardContent>
-          <CardFooter className="border-t pt-4">
-            <Button 
-              variant="default" 
-              onClick={() => onSelectForm(form.id)}
-              className="w-full"
-              disabled={isCurrentlyOperating}
-            >
-              {isCurrentlyOperating ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  جاري المعالجة...
-                </>
-              ) : (
-                "عرض وتعديل"
-              )}
-            </Button>
-          </CardFooter>
-        </Card>
-        );
-      })}
+            {retryAttempts > 0 && (
+              <div className="text-center text-sm text-amber-600 mb-4">
+                تمت محاولة الاتصال {retryAttempts} مرة
+              </div>
+            )}
+          </div>
+        )}
 
-      <AlertDialog open={!!formToDelete} onOpenChange={(open) => !open && setFormToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>هل أنت متأكد من حذف النموذج؟</AlertDialogTitle>
-            <AlertDialogDescription>
-              لا يمكن التراجع عن هذا الإجراء. سيتم حذف النموذج بشكل دائم وإزالة جميع البيانات المرتبطة به.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isOperating === formToDelete}>إلغاء</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleDelete} 
-              className="bg-red-600 hover:bg-red-700"
-              disabled={isOperating === formToDelete}
-            >
-              {isOperating === formToDelete ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  جاري الحذف...
-                </>
-              ) : (
-                "حذف"
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
+        {/* Loading indicator for products */}
+        {isLoadingProducts && (
+          <div className="col-span-full">
+            <div className="flex items-center justify-center p-4 bg-blue-50 border border-blue-200 rounded-md mb-4">
+              <Loader2 className="h-4 w-4 animate-spin text-blue-600 mr-2" />
+              <span className="text-blue-800">جاري تحميل بيانات المنتجات المرتبطة...</span>
+            </div>
+          </div>
+        )}
+
+        {displayForms.map((form) => {
+          const isCurrentlyOperating = isOperating === form.id;
+          console.log('🎨 عرض النموذج:', form.id, 'منتجات مرتبطة:', form.associatedProducts?.length || 0);
+          
+          return (
+          <Card key={form.id} className="overflow-hidden hover:shadow-md transition-shadow">
+            <div className={`h-2 ${form.is_published ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+            <CardHeader className="pb-2">
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <CardTitle className="text-lg truncate">
+                    {form.title}
+                  </CardTitle>
+                  {/* Display associated products if any */}
+                  {form.associatedProducts && form.associatedProducts.length > 0 && (
+                    <div className="mt-3 p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
+                      <div className="flex items-center gap-2 mb-2">
+                        <ShoppingBag className="h-4 w-4 text-blue-600" />
+                        <span className="text-sm font-semibold text-blue-800">
+                          مرتبط بـ {form.associatedProducts.length} {form.associatedProducts.length === 1 ? 'منتج' : 'منتجات'}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {form.associatedProducts.slice(0, 3).map((product) => (
+                          <TooltipProvider key={product.id}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className="flex items-center gap-2 bg-white rounded-md p-2 shadow-sm border hover:shadow-md transition-shadow cursor-pointer">
+                                  <img 
+                                    src={product.image} 
+                                    alt={product.title}
+                                    className="w-10 h-10 rounded object-cover border"
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).src = '/placeholder.svg';
+                                    }}
+                                  />
+                                   <div className="flex flex-col">
+                                     <span className="text-xs font-medium text-gray-700 truncate max-w-20">
+                                       {product.title}
+                                     </span>
+                                     <span className="text-xs text-gray-500">
+                                       ID: {product.id}
+                                     </span>
+                                   </div>
+                                   <button
+                                     onClick={(e) => {
+                                       e.stopPropagation();
+                                       handleRemoveProduct(form.id, product.id);
+                                     }}
+                                     className="ml-1 h-6 w-6 bg-red-500 text-white hover:bg-red-600 rounded-full flex items-center justify-center transition-colors shadow-sm"
+                                     title="إزالة المنتج من النموذج"
+                                   >
+                                     <Trash className="h-3 w-3" />
+                                   </button>
+                                   <ExternalLink className="h-3 w-3 text-gray-400" />
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <div className="max-w-48 text-center">
+                                  <p className="font-semibold">{product.title}</p>
+                                  <p className="text-xs text-gray-500">معرف المنتج: {product.id}</p>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        ))}
+                        {form.associatedProducts.length > 3 && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className="flex items-center justify-center bg-white rounded-md p-2 shadow-sm border hover:shadow-md transition-shadow cursor-pointer">
+                                  <span className="text-xs text-blue-600 font-medium">
+                                    +{form.associatedProducts.length - 3}
+                                  </span>
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <div className="max-w-64">
+                                  <p className="font-semibold mb-2">المنتجات الإضافية:</p>
+                                  {form.associatedProducts.slice(3).map((product) => (
+                                    <p key={product.id} className="text-sm">{product.title}</p>
+                                  ))}
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled={isCurrentlyOperating}>
+                      {isCurrentlyOperating ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <MoreVertical className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => onSelectForm(form.id)} disabled={isCurrentlyOperating}>
+                      <Edit className="mr-2 h-4 w-4" />
+                      <span>تعديل</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleManageProducts(form.id, form.title)} disabled={isCurrentlyOperating}>
+                      <ShoppingBag className="mr-2 h-4 w-4" />
+                      <span>إدارة المنتجات</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => handlePublishToggle(form.id, form.is_published)} 
+                      disabled={isCurrentlyOperating}
+                    >
+                      {form.is_published ? (
+                        <>
+                          <EyeOff className="mr-2 h-4 w-4" />
+                          <span>إلغاء النشر</span>
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="mr-2 h-4 w-4" />
+                          <span>نشر</span>
+                        </>
+                      )}
+                    </DropdownMenuItem>
+                    {form.associatedProducts && form.associatedProducts.length > 0 && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="text-blue-600">
+                          <Link className="mr-2 h-4 w-4" />
+                          <span>المنتجات المرتبطة ({form.associatedProducts.length})</span>
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                      onClick={() => setFormToDelete(form.id)}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      disabled={isCurrentlyOperating}
+                    >
+                      <Trash className="mr-2 h-4 w-4" />
+                      <span>حذف</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="flex justify-between items-center mb-2">
+                <Badge variant={form.is_published ? "success" : "secondary"}>
+                  {form.is_published ? 'منشور' : 'مسودة'}
+                </Badge>
+                <span className="text-xs text-gray-500 rtl:text-left">
+                  {formatDistanceToNow(new Date(form.created_at), { addSuffix: true, locale: ar })}
+                </span>
+              </div>
+              <p className="text-sm text-gray-600 line-clamp-2">{form.description || 'لا يوجد وصف'}</p>
+            </CardContent>
+            <CardFooter className="border-t pt-4">
+              <Button 
+                variant="default" 
+                onClick={() => onSelectForm(form.id)}
+                className="w-full"
+                disabled={isCurrentlyOperating}
+              >
+                {isCurrentlyOperating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    جاري المعالجة...
+                  </>
+                ) : (
+                  "عرض وتعديل"
+                )}
+              </Button>
+            </CardFooter>
+          </Card>
+          );
+        })}
+
+        {/* Product Management Modal */}
+        {selectedFormForProducts && (
+          <ProductManagementModal
+            isOpen={isProductModalOpen}
+            onClose={handleCloseProductModal}
+            formId={selectedFormForProducts.id}
+            formTitle={selectedFormForProducts.title}
+          />
+        )}
+      </div>
+    </>
   );
 };
 
