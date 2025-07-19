@@ -62,13 +62,21 @@ const ProductManagementModal: React.FC<ProductManagementModalProps> = ({
       if (response.ok) {
         const data = await response.json();
         if (data.success && data.products) {
-          const transformedProducts = data.products.map((product: any) => ({
-            id: String(product.id).replace('gid://shopify/Product/', ''),
-            title: product.title || `منتج ${product.id}`,
-            handle: product.handle || '',
-            image: product.featuredImage || product.image || '/placeholder.svg',
-            status: 'active' as const
-          }));
+          const transformedProducts: ShopifyProduct[] = data.products.map((product: any) => {
+            const getImageUrl = (imageData: any): string => {
+              if (typeof imageData === 'string') return imageData;
+              if (imageData && typeof imageData === 'object' && imageData.src) return imageData.src;
+              return '/placeholder.svg';
+            };
+
+            return {
+              id: String(product.id).replace('gid://shopify/Product/', ''),
+              title: product.title || `منتج ${product.id}`,
+              handle: product.handle || '',
+              image: getImageUrl(product.featuredImage) || getImageUrl(product.image) || '/placeholder.svg',
+              status: 'active' as const
+            };
+          });
           setProducts(transformedProducts);
         }
       }
@@ -201,7 +209,7 @@ const ProductManagementModal: React.FC<ProductManagementModalProps> = ({
                     >
                       <div className="flex items-start gap-3">
                         <img
-                          src={product.image}
+                          src={typeof product.image === 'string' ? product.image : product.image?.src || '/placeholder.svg'}
                           alt={product.title}
                           className="w-16 h-16 rounded object-cover border"
                           onError={(e) => {
