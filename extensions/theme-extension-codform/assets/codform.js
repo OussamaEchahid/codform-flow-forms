@@ -43,6 +43,8 @@ console.log('🚀 CODFORM: Loading Shopify submit handler...');
     const buttons = document.querySelectorAll([
       'button[type="submit"]',
       'input[type="submit"]',
+      '.form-submit-btn',
+      '.submit-btn',
       'button:not([type])',
       '.btn',
       '.button',
@@ -56,30 +58,48 @@ console.log('🚀 CODFORM: Loading Shopify submit handler...');
       '.cart-form button'
     ].join(','));
     
-    console.log(`🔍 CODFORM: Found ${buttons.length} buttons`);
+    console.log(`🔍 CODFORM: Found ${buttons.length} buttons on page`);
     
-    buttons.forEach(function(button) {
+    buttons.forEach(function(button, index) {
       // Skip if already processed
       if (button.hasAttribute('data-codform-processed')) {
+        console.log(`⚠️ CODFORM: Button ${index + 1} already processed`);
         return;
       }
       
-      const text = (button.textContent || button.value || '').toLowerCase();
+      const text = (button.textContent || button.value || '').toLowerCase().trim();
       const classes = (button.className || '').toLowerCase();
+      const buttonType = button.type || '';
+      
+      console.log(`🔍 CODFORM: Checking button ${index + 1}:`, {
+        text: text,
+        classes: classes,
+        type: buttonType,
+        element: button
+      });
       
       // Better detection logic for Arabic/English submit buttons
       const isSubmitButton = 
-        button.type === 'submit' ||
-        text.includes('submit') || text.includes('order') || text.includes('طلب') ||
-        text.includes('إرسال') || text.includes('أضف') || text.includes('شراء') ||
+        buttonType === 'submit' ||
+        classes.includes('form-submit-btn') ||
+        classes.includes('submit-btn') ||
+        text.includes('submit order') || text.includes('submit') || text.includes('order') || 
+        text.includes('طلب') || text.includes('إرسال') || text.includes('أضف') || text.includes('شراء') ||
         text.includes('add to cart') || text.includes('buy now') || text.includes('checkout') ||
         classes.includes('submit') || classes.includes('order') || classes.includes('buy') ||
         classes.includes('checkout') || classes.includes('cart');
       
       if (isSubmitButton) {
-        console.log('✅ CODFORM: Attaching handler to button:', button, 'Text:', text, 'Classes:', classes);
+        console.log('✅ CODFORM: *** ATTACHING HANDLER TO BUTTON ***:', {
+          text: text,
+          classes: classes,
+          type: buttonType,
+          element: button
+        });
         button.setAttribute('data-codform-processed', 'true');
         button.addEventListener('click', handleSubmit, true);
+      } else {
+        console.log(`⭕ CODFORM: Button ${index + 1} NOT a submit button`);
       }
     });
   }
