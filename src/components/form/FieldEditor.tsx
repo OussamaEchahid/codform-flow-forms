@@ -109,6 +109,50 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
     });
   };
 
+  // Handle form title color change  
+  const handleTitleColorChange = (color: string) => {
+    setCurrentField({
+      ...currentField,
+      style: {
+        ...currentField.style,
+        color: color
+      }
+    });
+  };
+
+  // Handle form title font size change
+  const handleTitleFontSizeChange = (fontSize: string) => {
+    setCurrentField({
+      ...currentField,
+      style: {
+        ...currentField.style,
+        fontSize: fontSize
+      }
+    });
+  };
+
+  // Handle form title font weight change
+  const handleTitleFontWeightChange = (fontWeight: string) => {
+    setCurrentField({
+      ...currentField,
+      style: {
+        ...currentField.style,
+        fontWeight: fontWeight
+      }
+    });
+  };
+
+  // Handle form title background color change
+  const handleTitleBackgroundChange = (backgroundColor: string) => {
+    setCurrentField({
+      ...currentField,
+      style: {
+        ...currentField.style,
+        backgroundColor: backgroundColor
+      }
+    });
+  };
+
   const renderEditorByType = () => {
     switch (currentField.type) {
       case 'text':
@@ -260,6 +304,162 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
                           <SelectItem value="600">600 - {language === 'ar' ? 'شبه غامق' : 'Semi Bold'}</SelectItem>
                           <SelectItem value="700">700 - {language === 'ar' ? 'غامق' : 'Bold'}</SelectItem>
                           <SelectItem value="800">800 - {language === 'ar' ? 'أكثر غمقا' : 'Extra Bold'}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-end space-x-2 rtl:space-x-reverse pt-4">
+                    <Button type="button" variant="outline" onClick={onClose}>
+                      {language === 'ar' ? 'إلغاء' : 'Cancel'}
+                    </Button>
+                    <Button onClick={() => handleSaveField(currentField)}>{language === 'ar' ? 'حفظ' : 'Save'}</Button>
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
+          </div>
+        );
+      
+      
+      case 'form-title':
+        return (
+          <div className="p-4">
+            <h3 className="text-lg font-medium mb-4">
+              {language === 'ar' ? 'تعديل عنوان النموذج' : 'Edit Form Title'}
+            </h3>
+            
+            <Tabs defaultValue="basic" value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="basic">{language === 'ar' ? 'أساسي' : 'Basic'}</TabsTrigger>
+                <TabsTrigger value="styling">{language === 'ar' ? 'تنسيق' : 'Styling'}</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="basic">
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+                    <UIFormField
+                      control={form.control}
+                      name="label"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{language === 'ar' ? 'نص العنوان' : 'Title Text'}</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder={language === 'ar' ? 'عنوان النموذج' : 'Form Title'} />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <UIFormField
+                      control={form.control}
+                      name="helpText"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{language === 'ar' ? 'النص التوضيحي' : 'Description Text'}</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder={language === 'ar' ? 'نص توضيحي اختياري' : 'Optional description text'} />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <div className="flex justify-end space-x-2 rtl:space-x-reverse pt-4">
+                      <Button type="button" variant="outline" onClick={onClose}>
+                        {language === 'ar' ? 'إلغاء' : 'Cancel'}
+                      </Button>
+                      <Button type="submit">{language === 'ar' ? 'حفظ' : 'Save'}</Button>
+                    </div>
+                  </form>
+                </Form>
+              </TabsContent>
+              
+              <TabsContent value="styling">
+                <div className="space-y-4 p-4 bg-gray-50 rounded-md">
+                  <h4 className="font-medium">
+                    {language === 'ar' ? 'تنسيق العنوان' : 'Title Styling'}
+                  </h4>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <FormLabel>{language === 'ar' ? 'لون النص' : 'Text Color'}</FormLabel>
+                      <div className="flex mt-1 gap-2 items-center">
+                        <Input
+                          type="color"
+                          value={currentField.style?.color || '#000000'}
+                          onChange={(e) => handleTitleColorChange(e.target.value)}
+                          className="w-12 h-8 p-1"
+                        />
+                        <Input
+                          type="text"
+                          value={currentField.style?.color || '#000000'}
+                          onChange={(e) => handleTitleColorChange(e.target.value)}
+                          className="flex-1"
+                        />
+                      </div>
+                      <p className="text-sm text-gray-500 mt-1">
+                        {language === 'ar' ? 'لون نص العنوان' : 'Title text color'}
+                      </p>
+                    </div>
+
+                    <div>
+                      <FormLabel>{language === 'ar' ? 'لون الخلفية' : 'Background Color'}</FormLabel>
+                      <div className="flex mt-1 gap-2 items-center">
+                        <Input
+                          type="color"
+                          value={currentField.style?.backgroundColor || 'transparent'}
+                          onChange={(e) => handleTitleBackgroundChange(e.target.value)}
+                          className="w-12 h-8 p-1"
+                        />
+                        <Input
+                          type="text"
+                          value={currentField.style?.backgroundColor || 'transparent'}
+                          onChange={(e) => handleTitleBackgroundChange(e.target.value)}
+                          className="flex-1"
+                        />
+                      </div>
+                      <p className="text-sm text-gray-500 mt-1">
+                        {language === 'ar' ? 'لون خلفية العنوان' : 'Title background color'}
+                      </p>
+                    </div>
+
+                    <div>
+                      <FormLabel>{language === 'ar' ? 'حجم الخط' : 'Font Size'}</FormLabel>
+                      <Select
+                        value={currentField.style?.fontSize || '24px'}
+                        onValueChange={handleTitleFontSizeChange}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder={language === 'ar' ? 'اختر حجم الخط' : 'Select font size'} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="16px">16px - {language === 'ar' ? 'صغير' : 'Small'}</SelectItem>
+                          <SelectItem value="18px">18px - {language === 'ar' ? 'متوسط صغير' : 'Medium Small'}</SelectItem>
+                          <SelectItem value="20px">20px - {language === 'ar' ? 'متوسط' : 'Medium'}</SelectItem>
+                          <SelectItem value="24px">24px - {language === 'ar' ? 'كبير' : 'Large'}</SelectItem>
+                          <SelectItem value="28px">28px - {language === 'ar' ? 'كبير جدا' : 'Very Large'}</SelectItem>
+                          <SelectItem value="32px">32px - {language === 'ar' ? 'ضخم' : 'Huge'}</SelectItem>
+                          <SelectItem value="36px">36px - {language === 'ar' ? 'ضخم جدا' : 'Extra Huge'}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <FormLabel>{language === 'ar' ? 'وزن الخط' : 'Font Weight'}</FormLabel>
+                      <Select
+                        value={currentField.style?.fontWeight || 'bold'}
+                        onValueChange={handleTitleFontWeightChange}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder={language === 'ar' ? 'اختر وزن الخط' : 'Select font weight'} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="400">400 - {language === 'ar' ? 'عادي' : 'Normal'}</SelectItem>
+                          <SelectItem value="500">500 - {language === 'ar' ? 'متوسط' : 'Medium'}</SelectItem>
+                          <SelectItem value="600">600 - {language === 'ar' ? 'شبه غامق' : 'Semi Bold'}</SelectItem>
+                          <SelectItem value="700">700 - {language === 'ar' ? 'غامق' : 'Bold'}</SelectItem>
+                          <SelectItem value="800">800 - {language === 'ar' ? 'أكثر غمقا' : 'Extra Bold'}</SelectItem>
+                          <SelectItem value="900">900 - {language === 'ar' ? 'أسود' : 'Black'}</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
