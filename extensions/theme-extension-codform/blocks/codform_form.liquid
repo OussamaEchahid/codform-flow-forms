@@ -526,7 +526,12 @@ function createTextarea(field, direction, primaryColor, formStyle = {}) {
   textarea.setAttribute("aria-label", field.inputFor || field.label || "");
 
   const textColor = fieldStyle.color || 'rgb(31, 41, 55)';
-  const fontSize = fieldStyle.fontSize || formStyles.fontSize || '16px';
+  // تحويل حجم الخط من rem إلى px إذا لزم الأمر - إصلاح حقل العنوان
+  let textareaFontSize = fieldStyle.fontSize || formStyles.fontSize || '16px';
+  if (textareaFontSize.includes('rem')) {
+    textareaFontSize = (parseFloat(textareaFontSize) * 16) + 'px';
+  }
+  const fontSize = textareaFontSize;
   const fontWeight = fieldStyle.fontWeight || '400';
   const backgroundColor = 'rgb(255, 255, 255)';
   const borderColor = fieldStyle.borderColor || 'rgb(209, 213, 219)';
