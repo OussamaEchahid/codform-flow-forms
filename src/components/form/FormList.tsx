@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { 
   Card, 
@@ -26,7 +25,7 @@ import {
   AlertDialogTitle 
 } from '@/components/ui/alert-dialog';
 import { FormData, useFormTemplates } from '@/lib/hooks/useFormTemplates';
-import { Edit, MoreVertical, Trash, Eye, EyeOff, ShoppingBag, Link, CloudOff, RefreshCw } from 'lucide-react';
+import { Edit, MoreVertical, Trash, Eye, EyeOff, ShoppingBag, Link, CloudOff, RefreshCw, ExternalLink } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { Loader2 } from 'lucide-react';
@@ -75,7 +74,7 @@ const FormList: React.FC<FormListProps> = ({
         return;
       }
       
-      console.log('Starting product association fetch for', forms.length, 'forms');
+      console.log('🔄 بدء جلب المنتجات المرتبطة للنماذج:', forms.length);
       setIsLoadingProducts(true);
       
       try {
@@ -86,12 +85,12 @@ const FormList: React.FC<FormListProps> = ({
           .in('form_id', forms.map(form => form.id));
           
         if (error) {
-          console.error('Error fetching product settings:', error);
+          console.error('❌ خطأ في جلب إعدادات المنتج:', error);
           setEnhancedForms(forms);
           return;
         }
         
-        console.log('Product settings fetched:', productSettings);
+        console.log('✅ تم جلب إعدادات المنتج:', productSettings);
         
         // Group product IDs by form ID
         const productsByForm = productSettings?.reduce((acc, setting) => {
@@ -102,31 +101,31 @@ const FormList: React.FC<FormListProps> = ({
           return acc;
         }, {} as Record<string, string[]>) || {};
         
-        console.log('Products grouped by form:', productsByForm);
+        console.log('📊 تجميع المنتجات حسب النموذج:', productsByForm);
         
         // Get all unique product IDs
         const allProductIds = [...new Set(productSettings?.map(s => s.product_id) || [])];
         
         if (allProductIds.length === 0) {
-          console.log('No product IDs found, using forms as-is');
+          console.log('⚠️ لا توجد معرفات منتجات، استخدام النماذج كما هي');
           setEnhancedForms(forms);
           return;
         }
         
-        console.log('Fetching details for product IDs:', allProductIds);
+        console.log('🎯 جلب تفاصيل المنتجات للمعرفات:', allProductIds);
         
         const shopId = localStorage.getItem('shopify_store');
         if (!shopId) {
-          console.error('No shop ID found in localStorage');
+          console.error('❌ لم يتم العثور على معرف المتجر في localStorage');
           setEnhancedForms(forms);
           return;
         }
         
         // Fetch product details from Shopify API via our edge function
-        const productsMap = new Map<string, { id: string; title: string; image: string }>();
+        const productsMap = new Map<string, { id: string; title: string; image: string; handle?: string }>();
         
         try {
-          console.log('Calling shopify-products edge function with:', { shop: shopId, productIds: allProductIds });
+          console.log('🚀 استدعاء edge function مع:', { shop: shopId, productIds: allProductIds });
           
           const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-products`, {
             method: 'POST',
@@ -140,72 +139,80 @@ const FormList: React.FC<FormListProps> = ({
             })
           });
           
-          console.log('Edge function response status:', response.status);
+          console.log('📡 استجابة edge function:', response.status);
           
           if (response.ok) {
             const data = await response.json();
-            console.log('Edge function response data:', data);
+            console.log('📦 بيانات استجابة edge function:', data);
             
             if (data.success && data.products) {
               data.products.forEach((product: any) => {
-                const productId = String(product.id).replace('gid://shopify/Product/', '');
+                // تنظيف معرف المنتج
+                const originalId = String(product.id);
+                const cleanId = originalId.replace('gid://shopify/Product/', '');
+                
+                // تحديد الصورة المناسبة
                 let imageUrl = '/placeholder.svg';
                 
-                // Try multiple image sources
-                if (product.featuredImage?.url) {
-                  imageUrl = product.featuredImage.url;
-                } else if (product.images?.length > 0) {
-                  imageUrl = product.images[0].url || product.images[0].src || product.images[0];
-                } else if (product.image?.src) {
-                  imageUrl = product.image.src;
+                if (product.featuredImage) {
+                  imageUrl = product.featuredImage;
+                } else if (product.images && product.images.length > 0) {
+                  imageUrl = product.images[0];
                 } else if (product.image) {
                   imageUrl = product.image;
                 }
                 
-                console.log('Processing product:', { 
-                  originalId: product.id, 
-                  cleanId: productId, 
+                console.log('🔧 معالجة المنتج:', { 
+                  originalId, 
+                  cleanId, 
                   title: product.title, 
                   image: imageUrl,
-                  fullProduct: product
+                  handle: product.handle
                 });
                 
                 const productData = {
-                  id: productId,
-                  title: product.title || 'منتج غير معروف',
-                  image: imageUrl
+                  id: cleanId,
+                  title: product.title || `منتج ${cleanId}`,
+                  image: imageUrl,
+                  handle: product.handle || ''
                 };
                 
-                productsMap.set(productId, productData);
-                productsMap.set(product.id, productData);
+                // حفظ البيانات بكلا المعرفين
+                productsMap.set(cleanId, productData);
+                productsMap.set(originalId, productData);
               });
               
-              console.log('Products map created:', productsMap);
+              console.log('🗺️ خريطة المنتجات المنشأة:', productsMap);
             } else {
-              console.error('Edge function returned non-success response:', data);
+              console.error('❌ edge function أرجع استجابة غير ناجحة:', data);
             }
           } else {
-            console.error('Edge function HTTP error:', response.status, response.statusText);
-            const errorText = await response.text();
-            console.error('Error response body:', errorText);
+            console.error('❌ خطأ HTTP في edge function:', response.status, response.statusText);
           }
         } catch (fetchError) {
-          console.error('Error calling edge function:', fetchError);
+          console.error('❌ خطأ في استدعاء edge function:', fetchError);
         }
         
         // Enhance the forms with associated products
         const formsWithProducts = forms.map(form => {
           const productIds = productsByForm[form.id] || [];
-          console.log(`Form ${form.id} has product IDs:`, productIds);
+          console.log(`📋 النموذج ${form.id} يحتوي على معرفات المنتجات:`, productIds);
           
           const associatedProducts = productIds.map(id => {
-            // Try both original ID and cleaned ID
             const product = productsMap.get(id) || productsMap.get(String(id).replace('gid://shopify/Product/', ''));
-            console.log(`Looking up product ID ${id}:`, product);
+            if (!product) {
+              // إنشاء منتج افتراضي عند عدم وجود بيانات
+              return {
+                id: String(id).replace('gid://shopify/Product/', ''),
+                title: `منتج ${String(id).replace('gid://shopify/Product/', '')}`,
+                image: '/placeholder.svg',
+                handle: ''
+              };
+            }
             return product;
-          }).filter(p => p !== undefined) as { id: string; title: string; image: string }[];
+          });
           
-          console.log(`Form ${form.id} final associated products:`, associatedProducts);
+          console.log(`📋 المنتجات المرتبطة النهائية للنموذج ${form.id}:`, associatedProducts);
           
           return {
             ...form,
@@ -213,10 +220,10 @@ const FormList: React.FC<FormListProps> = ({
           };
         });
         
-        console.log('Final enhanced forms:', formsWithProducts);
+        console.log('🎉 النماذج المحسّنة النهائية:', formsWithProducts);
         setEnhancedForms(formsWithProducts);
       } catch (error) {
-        console.error('Error enhancing forms with products:', error);
+        console.error('❌ خطأ في تحسين النماذج بالمنتجات:', error);
         setEnhancedForms(forms);
       } finally {
         setIsLoadingProducts(false);
@@ -342,18 +349,32 @@ const FormList: React.FC<FormListProps> = ({
                                 <img 
                                   src={product.image} 
                                   alt={product.title}
-                                  className="w-8 h-8 rounded object-cover"
+                                  className="w-10 h-10 rounded object-cover border"
                                   onError={(e) => {
                                     (e.target as HTMLImageElement).src = '/placeholder.svg';
                                   }}
                                 />
-                                <span className="text-xs font-medium text-gray-700 truncate max-w-20">
-                                  {product.title}
-                                </span>
+                                <div className="flex flex-col">
+                                  <span className="text-xs font-medium text-gray-700 truncate max-w-20">
+                                    {product.title}
+                                  </span>
+                                  <span className="text-xs text-gray-500">
+                                    ID: {product.id}
+                                  </span>
+                                </div>
+                                {product.handle && (
+                                  <ExternalLink className="h-3 w-3 text-gray-400" />
+                                )}
                               </div>
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p className="max-w-48 text-center">{product.title}</p>
+                              <div className="max-w-48 text-center">
+                                <p className="font-semibold">{product.title}</p>
+                                <p className="text-xs text-gray-500">معرف المنتج: {product.id}</p>
+                                {product.handle && (
+                                  <p className="text-xs text-blue-600">اسم المنتج: {product.handle}</p>
+                                )}
+                              </div>
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>

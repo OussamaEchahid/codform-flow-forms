@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.23.0'
 
@@ -28,7 +27,7 @@ interface RequestParams {
 serve(async (req: Request) => {
   try {
     const requestId = `edge_${Math.random().toString(36).substring(2, 8)}`;
-    console.log(`[${requestId}] Request received`);
+    console.log(`[${requestId}] 🚀 تم استلام الطلب`);
     
     // Handle CORS preflight requests
     if (req.method === 'OPTIONS') {
@@ -53,7 +52,7 @@ serve(async (req: Request) => {
         accessToken = body.accessToken;
         productIds = body.productIds;
       } catch (err) {
-        console.error(`[${requestId}] Error parsing request body:`, err);
+        console.error(`[${requestId}] ❌ خطأ في تحليل محتوى الطلب:`, err);
       }
     }
 
@@ -67,7 +66,7 @@ serve(async (req: Request) => {
       });
     }
 
-    console.log(`[${requestId}] Processing request for shop: ${shop}, forceRefresh: ${forceRefresh}, includeTestProducts: ${includeTestProducts}, productIds: ${productIds}`);
+    console.log(`[${requestId}] 📊 معالجة الطلب للمتجر: ${shop}, إعادة تحديث: ${forceRefresh}, تضمين منتجات تجريبية: ${includeTestProducts}, معرفات المنتجات: ${productIds}`);
 
     // Setup Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
@@ -76,7 +75,7 @@ serve(async (req: Request) => {
 
     // If specific product IDs are requested, try to fetch them specifically
     if (productIds && productIds.length > 0) {
-      console.log(`[${requestId}] Fetching specific products: ${productIds}`);
+      console.log(`[${requestId}] 🎯 جلب منتجات محددة: ${productIds}`);
       
       // Get shop access token
       const { data: shopData, error: shopError } = await supabase
@@ -86,32 +85,35 @@ serve(async (req: Request) => {
         .single();
       
       if (shopError || !shopData || !shopData.access_token) {
-        console.error(`[${requestId}] Error fetching shop access token:`, shopError);
+        console.error(`[${requestId}] ❌ خطأ في جلب رمز الوصول للمتجر:`, shopError);
         
         // Generate mock products for specific IDs if this is a dev store
         if (shop.includes('myshopify.com')) {
-          console.log(`[${requestId}] Test store detected, returning mock data for specific IDs`);
-          const mockProducts = productIds.map((id, index) => ({
-            id: id,
-            title: `Mock Product ${index + 1} (ID: ${id})`,
-            handle: `mock-product-${index + 1}`,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            published_at: new Date().toISOString(),
-            status: 'active',
-            tags: '',
-            price: `${Math.floor(10 + Math.random() * 90)}.99`,
-            images: [`https://via.placeholder.com/500x500.png?text=Mock+Product+${index+1}`],
-            featuredImage: `https://via.placeholder.com/500x500.png?text=Mock+Product+${index+1}`,
-            variants: [
-              {
-                id: `gid://shopify/ProductVariant/${2000000 + index}`,
-                price: `${Math.floor(10 + Math.random() * 90)}.99`,
-                title: 'Default Title',
-                available: true
-              }
-            ]
-          }));
+          console.log(`[${requestId}] 🧪 تم اكتشاف متجر تجريبي، إرجاع بيانات وهمية للمعرفات المحددة`);
+          const mockProducts = productIds.map((id, index) => {
+            const cleanId = id.replace('gid://shopify/Product/', '');
+            return {
+              id: cleanId,
+              title: `منتج تجريبي ${index + 1} (معرف: ${cleanId})`,
+              handle: `mock-product-${index + 1}`,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+              published_at: new Date().toISOString(),
+              status: 'active',
+              tags: 'test-product',
+              price: `${Math.floor(10 + Math.random() * 90)}.99`,
+              images: [`https://via.placeholder.com/500x500.png?text=منتج+تجريبي+${index+1}`],
+              featuredImage: `https://via.placeholder.com/500x500.png?text=منتج+تجريبي+${index+1}`,
+              variants: [
+                {
+                  id: `${2000000 + index}`,
+                  price: `${Math.floor(10 + Math.random() * 90)}.99`,
+                  title: 'Default Title',
+                  available: true
+                }
+              ]
+            };
+          });
           
           return new Response(JSON.stringify({
             success: true,
@@ -137,14 +139,14 @@ serve(async (req: Request) => {
         id.includes('gid://shopify/Product/') ? id.replace('gid://shopify/Product/', '') : id
       );
       
-      console.log(`[${requestId}] Clean product IDs: ${cleanProductIds}`);
+      console.log(`[${requestId}] 🧹 معرفات المنتجات النظيفة: ${cleanProductIds}`);
       
       // Fetch specific products from Shopify API
       try {
         const idsQuery = cleanProductIds.map(id => `ids=${id}`).join('&');
         const apiUrl = `https://${shop}/admin/api/2024-04/products.json?${idsQuery}&status=any`;
         
-        console.log(`[${requestId}] Calling Shopify API: ${apiUrl}`);
+        console.log(`[${requestId}] 📡 استدعاء Shopify API: ${apiUrl}`);
         
         const shopifyResponse = await fetch(apiUrl, {
           headers: {
@@ -160,21 +162,26 @@ serve(async (req: Request) => {
         const shopifyData = await shopifyResponse.json();
         let products = shopifyData.products;
         
-        console.log(`[${requestId}] Shopify API returned ${products?.length || 0} products`);
+        console.log(`[${requestId}] 📦 Shopify API أرجع ${products?.length || 0} منتج`);
         
         if (!products || !Array.isArray(products)) {
-          console.error(`[${requestId}] Invalid product data returned:`, products);
+          console.error(`[${requestId}] ❌ بيانات منتج غير صالحة:`, products);
           products = [];
         }
         
         // Transform the products to match our expected format
         products = products.map((product: any) => {
-          // Process all images
-          const images = product.images && product.images.length > 0 ? 
-            product.images.map((img: any) => img.src) : [];
+          // Process images - اختيار أفضل صورة متاحة
+          let featuredImage = '/placeholder.svg';
           
-          // Get featured image
-          const featuredImage = product.image?.src || (images.length > 0 ? images[0] : '/placeholder.svg');
+          if (product.image?.src) {
+            featuredImage = product.image.src;
+          } else if (product.images && product.images.length > 0) {
+            featuredImage = product.images[0].src;
+          }
+          
+          const images = product.images && product.images.length > 0 ? 
+            product.images.map((img: any) => img.src) : [featuredImage];
           
           // Process variants
           const variants = product.variants && product.variants.length > 0 ?
@@ -184,6 +191,13 @@ serve(async (req: Request) => {
               price: variant.price,
               available: variant.inventory_quantity > 0 || variant.inventory_policy === 'continue'
             })) : [];
+          
+          console.log(`[${requestId}] 🔧 تحويل المنتج ${product.id}:`, {
+            id: product.id,
+            title: product.title,
+            featuredImage,
+            imagesCount: images.length
+          });
           
           return {
             id: product.id,
@@ -201,7 +215,7 @@ serve(async (req: Request) => {
           };
         });
         
-        console.log(`[${requestId}] Transformed ${products.length} products`);
+        console.log(`[${requestId}] ✅ تم تحويل ${products.length} منتج`);
         
         return new Response(JSON.stringify({
           success: true,
@@ -213,7 +227,7 @@ serve(async (req: Request) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       } catch (error) {
-        console.error(`[${requestId}] Error fetching specific products from Shopify:`, error);
+        console.error(`[${requestId}] ❌ خطأ في جلب منتجات محددة من Shopify:`, error);
         
         return new Response(JSON.stringify({
           success: false,
@@ -236,13 +250,13 @@ serve(async (req: Request) => {
         .limit(1);
         
       if (!cacheError && cachedProducts && cachedProducts.length > 0 && cachedProducts[0].products) {
-        console.log(`[${requestId}] Returning cached products for ${shop}`);
+        console.log(`[${requestId}] 📂 إرجاع منتجات مخزنة للمتجر ${shop}`);
         let productsData = cachedProducts[0].products;
         
         // Always filter test products unless explicitly included
         if (!includeTestProducts) {
           productsData = filterTestProducts(productsData);
-          console.log(`[${requestId}] Filtered test products from cache, returning ${productsData.length} products`);
+          console.log(`[${requestId}] 🧹 تم تصفية المنتجات التجريبية من الذاكرة المؤقتة، إرجاع ${productsData.length} منتج`);
         }
         
         return new Response(JSON.stringify({
@@ -266,11 +280,11 @@ serve(async (req: Request) => {
         .single();
       
       if (shopError || !shopData || !shopData.access_token) {
-        console.error(`[${requestId}] Error fetching shop access token:`, shopError);
+        console.error(`[${requestId}] ❌ خطأ في جلب رمز الوصول للمتجر:`, shopError);
         
         // Generate mock products only if this is a dev store
         if (shop.includes('myshopify.com')) {
-          console.log(`[${requestId}] Test store detected, returning mock data`);
+          console.log(`[${requestId}] 🧪 تم اكتشاف متجر تجريبي، إرجاع بيانات وهمية`);
           const mockProducts = generateMockProducts();
           
           return new Response(JSON.stringify({
@@ -315,18 +329,23 @@ serve(async (req: Request) => {
       let products = shopifyData.products;
       
       if (!products || !Array.isArray(products)) {
-        console.error(`[${requestId}] Invalid product data returned:`, products);
+        console.error(`[${requestId}] ❌ بيانات منتج غير صالحة:`, products);
         throw new Error('Invalid product data returned from Shopify API');
       }
       
       // Transform the products to match our expected format
       products = products.map((product: any) => {
-        // Process all images
-        const images = product.images && product.images.length > 0 ? 
-          product.images.map((img: any) => img.src) : [];
+        // Process images - اختيار أفضل صورة متاحة
+        let featuredImage = '/placeholder.svg';
         
-        // Get featured image
-        const featuredImage = product.image?.src || (images.length > 0 ? images[0] : '/placeholder.svg');
+        if (product.image?.src) {
+          featuredImage = product.image.src;
+        } else if (product.images && product.images.length > 0) {
+          featuredImage = product.images[0].src;
+        }
+        
+        const images = product.images && product.images.length > 0 ? 
+          product.images.map((img: any) => img.src) : [featuredImage];
         
         // Process variants
         const variants = product.variants && product.variants.length > 0 ?
@@ -366,12 +385,12 @@ serve(async (req: Request) => {
           });
           
         if (cacheInsertError) {
-          console.error(`[${requestId}] Error caching products:`, cacheInsertError);
+          console.error(`[${requestId}] ❌ خطأ في حفظ المنتجات في الذاكرة المؤقتة:`, cacheInsertError);
         } else {
-          console.log(`[${requestId}] Successfully cached ${products.length} products for ${shop}`);
+          console.log(`[${requestId}] ✅ تم حفظ ${products.length} منتج في الذاكرة المؤقتة للمتجر ${shop}`);
         }
       } catch (cacheError) {
-        console.error(`[${requestId}] Cache operation failed:`, cacheError);
+        console.error(`[${requestId}] ❌ فشل عملية الحفظ في الذاكرة المؤقتة:`, cacheError);
         // Continue anyway, caching is not critical
       }
       
@@ -379,7 +398,7 @@ serve(async (req: Request) => {
       if (!includeTestProducts) {
         const originalCount = products.length;
         products = filterTestProducts(products);
-        console.log(`[${requestId}] Filtered ${originalCount - products.length} test products, returning ${products.length} products`);
+        console.log(`[${requestId}] 🧹 تم تصفية ${originalCount - products.length} منتج تجريبي، إرجاع ${products.length} منتج`);
       }
       
       return new Response(JSON.stringify({
@@ -391,7 +410,7 @@ serve(async (req: Request) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     } catch (error) {
-      console.error(`[${requestId}] Error fetching products from Shopify:`, error);
+      console.error(`[${requestId}] ❌ خطأ في جلب المنتجات من Shopify:`, error);
       
       return new Response(JSON.stringify({
         success: false,
@@ -402,7 +421,7 @@ serve(async (req: Request) => {
       });
     }
   } catch (error) {
-    console.error('Unhandled error:', error);
+    console.error('❌ خطأ غير متوقع:', error);
     return new Response(JSON.stringify({
       success: false,
       message: `Unhandled error: ${error.message}`
