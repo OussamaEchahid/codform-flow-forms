@@ -448,11 +448,12 @@ const FormList: React.FC<FormListProps> = ({
                                      e.stopPropagation();
                                      handleRemoveProduct(form.id, product.id);
                                    }}
-                                   className="h-5 w-5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full flex items-center justify-center transition-colors"
+                                   className="ml-1 h-6 w-6 bg-red-500 text-white hover:bg-red-600 rounded-full flex items-center justify-center transition-colors shadow-sm"
                                    title="إزالة المنتج من النموذج"
                                  >
                                    <Trash className="h-3 w-3" />
                                  </button>
+                                 <ExternalLink className="h-3 w-3 text-gray-400" />
                               </div>
                             </TooltipTrigger>
                             <TooltipContent>
