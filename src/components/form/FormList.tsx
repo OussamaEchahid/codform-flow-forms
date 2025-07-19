@@ -333,8 +333,10 @@ const FormList: React.FC<FormListProps> = ({
   };
 
   const handleManageProducts = (formId: string, formTitle: string) => {
+    console.log('🔍 تم النقر على زر إدارة المنتجات:', { formId, formTitle });
     setSelectedFormForProducts({ id: formId, title: formTitle });
     setIsProductModalOpen(true);
+    console.log('✅ تم فتح المودال بنجاح');
   };
 
   const handleCloseProductModal = () => {
