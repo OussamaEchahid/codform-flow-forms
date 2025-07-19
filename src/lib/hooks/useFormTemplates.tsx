@@ -564,62 +564,60 @@ export const useFormTemplates = () => {
       setIsLoading(true);
       
       // Step 1: Delete form from Supabase first
-      try {
-        console.log('🔄 محاولة حذف النموذج من قاعدة البيانات...');
-        const { error, data } = await fetchWithRetry(async () => {
-          return await supabase
-            .from('forms')
-            .delete()
-            .eq('id', formId);
-        });
-        
-        console.log('📊 نتيجة الحذف:', { error, data });
-        
-        if (error) {
-          console.error('❌ خطأ في حذف النموذج:', error);
-          toast.error('خطأ في حذف النموذج من قاعدة البيانات');
-          setIsLoading(false);
-          return false;
-        }
-        
-        console.log('✅ تم حذف النموذج بنجاح من قاعدة البيانات');
-        
-        // Step 2: Remove product associations only after form deletion succeeds
-        try {
-          const { error: assocError } = await fetchWithRetry(async () => {
-            return await supabase
-              .from('shopify_product_settings')
-              .delete()
-              .eq('form_id', formId);
-          });
-          
-          if (assocError) {
-            console.warn('Error removing product associations:', assocError);
-            // Form is already deleted, this is just cleanup
-          }
-        } catch (error) {
-          console.warn('Failed to remove product associations:', error);
-          // Form is already deleted, this is just cleanup
-        }
-        
-        // Reset offline mode if we succeed
-        if (offlineMode) {
-          setOfflineMode(false);
-          toast.success('تم استعادة الاتصال بالخادم');
-        }
-      } catch (error) {
-        console.error('Failed to delete form after retries:', error);
-        toast.error('فشل في حذف النموذج - حاول مرة أخرى');
+      console.log('🔄 محاولة حذف النموذج من قاعدة البيانات...');
+      const { error, data } = await fetchWithRetry(async () => {
+        return await supabase
+          .from('forms')
+          .delete()
+          .eq('id', formId);
+      });
+      
+      console.log('📊 نتيجة الحذف:', { error, data });
+      
+      if (error) {
+        console.error('❌ خطأ في حذف النموذج:', error);
+        toast.error('خطأ في حذف النموذج من قاعدة البيانات');
         setIsLoading(false);
         return false;
       }
       
-      // Step 3: Update local state only after successful deletion
-      setForms(prevForms => prevForms.filter(form => form.id !== formId));
+      console.log('✅ تم حذف النموذج بنجاح من قاعدة البيانات');
+      
+      // Step 2: Remove product associations (cleanup)
+      try {
+        const { error: assocError } = await fetchWithRetry(async () => {
+          return await supabase
+            .from('shopify_product_settings')
+            .delete()
+            .eq('form_id', formId);
+        });
+        
+        if (assocError) {
+          console.warn('Error removing product associations:', assocError);
+          // Form is already deleted, this is just cleanup
+        }
+      } catch (error) {
+        console.warn('Failed to remove product associations:', error);
+        // Form is already deleted, this is just cleanup
+      }
+      
+      // Step 3: Update local state (this was the issue!)
+      console.log('🔄 تحديث الواجهة المحلية...');
+      setForms(prevForms => {
+        const updatedForms = prevForms.filter(form => form.id !== formId);
+        console.log('📝 النماذج بعد الحذف:', updatedForms.length);
+        return updatedForms;
+      });
       
       // Update local cache
       const updatedForms = forms.filter(form => form.id !== formId);
       localStorage.setItem('cached_forms', JSON.stringify(updatedForms));
+      
+      // Reset offline mode if we succeed
+      if (offlineMode) {
+        setOfflineMode(false);
+        toast.success('تم استعادة الاتصال بالخادم');
+      }
       
       toast.success('تم حذف النموذج بنجاح');
       setIsLoading(false);
