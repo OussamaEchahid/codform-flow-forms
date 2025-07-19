@@ -26,114 +26,26 @@ const Forms = () => {
   // Determine access based on various conditions
   const hasAccess = !!user || shopifyConnected || hasShopifyConnected;
 
-  // Check Shopify connection and load forms - with useCallback to prevent infinite loops
+  // Simplified connection check - let useFormTemplates handle form fetching
   const checkShopifyConnection = useCallback(async () => {
-    if (isDataFetched && !networkError && retryAttempt === 0) return; // Only fetch once unless retrying
+    if (isDataFetched && !networkError && retryAttempt === 0) return;
     
     setIsLoading(true);
     try {
-      // Try to get shop from localStorage first as fallback
       const shopFromLocalStorage = localStorage.getItem('shopify_store');
       const isConnectedFromLocalStorage = localStorage.getItem('shopify_connected') === 'true';
       
-      // Set initial connection state
       setHasShopifyConnected(shopifyConnected || isConnectedFromLocalStorage);
       
-      // Use shop from context or localStorage
       const activeShop = shop || shopFromLocalStorage;
       setCurrentShop(activeShop);
       
       if (activeShop) {
         console.log("Active shop found:", activeShop);
-        
-        // Try to fetch forms for this shop
-        try {
-          const { data: formsData, error: formsError } = await supabase
-            .from('forms')
-            .select('*')
-            .eq('shop_id', activeShop)
-            .order('created_at', { ascending: false });
-          
-          if (formsError) {
-            console.error("Error fetching forms:", formsError);
-            toast.error(language === 'ar' 
-              ? 'خطأ في جلب النماذج' 
-              : 'Error fetching forms');
-            
-            // Check if network error
-            if (formsError.message?.includes('Failed to fetch')) {
-              setNetworkError(true);
-              
-              // Load from local storage if available
-              const cachedForms = localStorage.getItem('cached_forms');
-              if (cachedForms) {
-                try {
-                  const parsedForms = JSON.parse(cachedForms);
-                  if (Array.isArray(parsedForms) && parsedForms.length > 0) {
-                    setForms(parsedForms);
-                    toast.warning(language === 'ar' 
-                      ? 'جاري استخدام البيانات المخزنة محليًا' 
-                      : 'Using locally stored data');
-                  }
-                } catch (e) {
-                  console.error('Error parsing cached forms:', e);
-                }
-              }
-            }
-          } else if (formsData) {
-            console.log(`Found ${formsData.length} forms for shop ${activeShop}`);
-            
-            // Reset network error state if successful
-            if (networkError) {
-              setNetworkError(false);
-              toast.success(language === 'ar' 
-                ? 'تم استعادة الاتصال بالخادم' 
-                : 'Connection restored');
-            }
-            
-            setForms(formsData);
-            
-            // Cache forms for offline use
-            localStorage.setItem('cached_forms', JSON.stringify(formsData));
-            
-            // If we found forms, we definitely have a connection
-            if (formsData.length > 0) {
-              setHasShopifyConnected(true);
-              localStorage.setItem('shopify_connected', 'true');
-            }
-          }
-        } catch (error) {
-          console.error("Network error fetching forms:", error);
-          setNetworkError(true);
-          
-          // Show toast only on first attempt or explicit retry
-          if (!isDataFetched || retryAttempt > 0) {
-            toast.error(language === 'ar' 
-              ? 'فشل الاتصال بالخادم' 
-              : 'Failed to connect to server');
-          }
-          
-          // Try to load from local storage
-          const cachedForms = localStorage.getItem('cached_forms');
-          if (cachedForms) {
-            try {
-              const parsedForms = JSON.parse(cachedForms);
-              if (Array.isArray(parsedForms)) {
-                setForms(parsedForms);
-                toast.warning(language === 'ar' 
-                  ? 'جاري استخدام البيانات المخزنة محليًا' 
-                  : 'Using locally stored data');
-              }
-            } catch (e) {
-              console.error('Error parsing cached forms:', e);
-            }
-          }
-        }
-      } else {
-        console.log("No active shop found");
+        setHasShopifyConnected(true);
+        setNetworkError(false);
       }
       
-      // Mark as fetched to prevent repeated automatic fetching
       setIsDataFetched(true);
       
     } catch (error) {
@@ -141,12 +53,11 @@ const Forms = () => {
       setNetworkError(true);
     } finally {
       setIsLoading(false);
-      // Reset retry attempt after completion
       if (retryAttempt > 0) {
         setRetryAttempt(0);
       }
     }
-  }, [shop, shopifyConnected, language, isDataFetched, networkError, retryAttempt]);
+  }, [shop, shopifyConnected, isDataFetched, networkError, retryAttempt]);
   
   useEffect(() => {
     checkShopifyConnection();
@@ -276,8 +187,8 @@ const Forms = () => {
       
       <div className="flex-1">
         <FormBuilderDashboard 
-          key={`dashboard-${currentShop}-${forms.length}-${networkError}-${retryAttempt}`} 
-          initialForms={forms} 
+          key={`dashboard-${currentShop}`} 
+          initialForms={[]} 
           forceRefresh={false}
           offlineMode={networkError}
           onRetryConnection={retryConnection}

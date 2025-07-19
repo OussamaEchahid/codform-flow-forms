@@ -66,9 +66,8 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
   
   // Update formList when initialForms or forms change
   useEffect(() => {
-    if (initialForms.length > 0 || forms.length > 0) {
-      setFormList(initialForms.length > 0 ? initialForms : forms);
-    }
+    // Always use forms from hook for real-time updates
+    setFormList(forms.length > 0 ? forms : initialForms);
   }, [forms, initialForms]);
 
   // Fetch product counts for each form - with useCallback to prevent unnecessary rerenders
@@ -122,9 +121,8 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
     try {
       const success = await deleteForm(formId);
       if (success) {
-        // Update local form list immediately
-        setFormList(prevForms => prevForms.filter(form => form.id !== formId));
         toast.success(language === 'ar' ? 'تم حذف النموذج بنجاح' : 'Form deleted successfully');
+        // The forms state will be updated automatically via the hook
       }
     } catch (error) {
       console.error('Error deleting form:', error);
