@@ -4,6 +4,9 @@ console.log('🚀 CODFORM: Loading Shopify submit handler...');
 (function() {
   'use strict';
   
+  console.log('🔥 CODFORM: Script is running!');
+  console.log('🔥 CODFORM: Current URL:', window.location.href);
+  
   // Configuration
   const API_URL = 'https://trlklwixfeaexhydzaue.supabase.co/functions/v1/api-submissions';
   const FORM_ID = 'bc668a8c-2d40-44a3-b073-effc4c8f13cf';
