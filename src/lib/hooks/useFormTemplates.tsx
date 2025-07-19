@@ -560,23 +560,29 @@ export const useFormTemplates = () => {
   // Delete a form with retry logic
   const deleteForm = async (formId: string) => {
     try {
+      console.log('🗑️ بدء عملية حذف النموذج:', formId);
       setIsLoading(true);
       
       // Step 1: Delete form from Supabase first
       try {
-        const { error } = await fetchWithRetry(async () => {
+        console.log('🔄 محاولة حذف النموذج من قاعدة البيانات...');
+        const { error, data } = await fetchWithRetry(async () => {
           return await supabase
             .from('forms')
             .delete()
             .eq('id', formId);
         });
         
+        console.log('📊 نتيجة الحذف:', { error, data });
+        
         if (error) {
-          console.error('Error deleting form:', error);
+          console.error('❌ خطأ في حذف النموذج:', error);
           toast.error('خطأ في حذف النموذج من قاعدة البيانات');
           setIsLoading(false);
           return false;
         }
+        
+        console.log('✅ تم حذف النموذج بنجاح من قاعدة البيانات');
         
         // Step 2: Remove product associations only after form deletion succeeds
         try {
