@@ -149,29 +149,35 @@ const FormList: React.FC<FormListProps> = ({
             if (data.success && data.products) {
               data.products.forEach((product: any) => {
                 const productId = String(product.id).replace('gid://shopify/Product/', '');
-                const imageUrl = product.featuredImage || 
-                               (product.images && product.images[0]) || 
-                               '/placeholder.svg';
+                let imageUrl = '/placeholder.svg';
+                
+                // Try multiple image sources
+                if (product.featuredImage?.url) {
+                  imageUrl = product.featuredImage.url;
+                } else if (product.images?.length > 0) {
+                  imageUrl = product.images[0].url || product.images[0].src || product.images[0];
+                } else if (product.image?.src) {
+                  imageUrl = product.image.src;
+                } else if (product.image) {
+                  imageUrl = product.image;
+                }
                 
                 console.log('Processing product:', { 
                   originalId: product.id, 
                   cleanId: productId, 
                   title: product.title, 
-                  image: imageUrl 
+                  image: imageUrl,
+                  fullProduct: product
                 });
                 
-                productsMap.set(productId, {
+                const productData = {
                   id: productId,
-                  title: product.title,
+                  title: product.title || 'منتج غير معروف',
                   image: imageUrl
-                });
+                };
                 
-                // Also store with original ID format in case it's needed
-                productsMap.set(product.id, {
-                  id: product.id,
-                  title: product.title,
-                  image: imageUrl
-                });
+                productsMap.set(productId, productData);
+                productsMap.set(product.id, productData);
               });
               
               console.log('Products map created:', productsMap);
