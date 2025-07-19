@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
@@ -76,6 +75,18 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
     });
   };
 
+  // UNIFIED FONT SIZE HANDLER - affects both label and input
+  const handleFontSizeChange = (fontSize: string) => {
+    setCurrentField({
+      ...currentField,
+      style: {
+        ...currentField.style,
+        fontSize: fontSize, // This will be used for both labels and inputs
+        labelFontSize: fontSize // Keep for backward compatibility
+      }
+    });
+  };
+
   // Handle label color change
   const handleLabelColorChange = (color: string) => {
     setCurrentField({
@@ -83,17 +94,6 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
       style: {
         ...currentField.style,
         labelColor: color
-      }
-    });
-  };
-
-  // Handle label font size change
-  const handleLabelFontSizeChange = (fontSize: string) => {
-    setCurrentField({
-      ...currentField,
-      style: {
-        ...currentField.style,
-        labelFontSize: fontSize
       }
     });
   };
@@ -200,7 +200,7 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
               <TabsContent value="styling">
                 <div className="space-y-4 p-4 bg-gray-50 rounded-md">
                   <h4 className="font-medium">
-                    {language === 'ar' ? 'تنسيق تسمية الحقل' : 'Label Styling'}
+                    {language === 'ar' ? 'تنسيق الحقل' : 'Field Styling'}
                   </h4>
                   
                   <div className="space-y-4">
@@ -209,13 +209,13 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
                       <div className="flex mt-1 gap-2 items-center">
                         <Input
                           type="color"
-                          value={currentField.style?.labelColor || '#333333'}
+                          value={currentField.style?.labelColor || '#374151'}
                           onChange={(e) => handleLabelColorChange(e.target.value)}
                           className="w-12 h-8 p-1"
                         />
                         <Input
                           type="text"
-                          value={currentField.style?.labelColor || '#333333'}
+                          value={currentField.style?.labelColor || '#374151'}
                           onChange={(e) => handleLabelColorChange(e.target.value)}
                           className="flex-1"
                         />
@@ -223,10 +223,10 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
                     </div>
 
                     <div>
-                      <FormLabel>{language === 'ar' ? 'حجم خط التسمية' : 'Label Font Size'}</FormLabel>
+                      <FormLabel>{language === 'ar' ? 'حجم الخط (للتسمية والحقل معاً)' : 'Font Size (Label & Input)'}</FormLabel>
                       <Select
-                        value={currentField.style?.labelFontSize || '16px'}
-                        onValueChange={handleLabelFontSizeChange}
+                        value={currentField.style?.fontSize || '16px'}
+                        onValueChange={handleFontSizeChange}
                       >
                         <SelectTrigger className="w-full">
                           <SelectValue placeholder={language === 'ar' ? 'اختر حجم الخط' : 'Select font size'} />
@@ -240,6 +240,9 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
                           <SelectItem value="24px">24px - {language === 'ar' ? 'ضخم' : 'Huge'}</SelectItem>
                         </SelectContent>
                       </Select>
+                      <p className="text-sm text-gray-500 mt-1">
+                        {language === 'ar' ? 'هذا الإعداد يؤثر على التسمية والحقل معاً' : 'This setting affects both label and input field'}
+                      </p>
                     </div>
 
                     <div>
@@ -382,7 +385,7 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
                       <FormLabel>{language === 'ar' ? 'حجم خط التسمية' : 'Label Font Size'}</FormLabel>
                       <Select
                         value={currentField.style?.labelFontSize || '16px'}
-                        onValueChange={handleLabelFontSizeChange}
+                        onValueChange={handleFontSizeChange}
                       >
                         <SelectTrigger className="w-full">
                           <SelectValue placeholder={language === 'ar' ? 'اختر حجم الخط' : 'Select font size'} />
@@ -512,7 +515,7 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
                       <FormLabel>{language === 'ar' ? 'حجم خط التسمية' : 'Label Font Size'}</FormLabel>
                       <Select
                         value={currentField.style?.labelFontSize || '16px'}
-                        onValueChange={handleLabelFontSizeChange}
+                        onValueChange={handleFontSizeChange}
                       >
                         <SelectTrigger className="w-full">
                           <SelectValue placeholder={language === 'ar' ? 'اختر حجم الخط' : 'Select font size'} />

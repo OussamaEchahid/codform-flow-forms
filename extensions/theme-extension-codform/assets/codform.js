@@ -29,19 +29,23 @@
       // Clear container
       container.innerHTML = "";
       
-      // Get form style with safe defaults
+      // Get form style with safe defaults - FIXED FONT SIZE LOGIC
       const style = formData.style || {};
       const primaryColor = style.primaryColor || "#9b87f5";
       const backgroundColor = style.backgroundColor || "#F9FAFB";
       const borderRadius = style.borderRadius || "8px";
-      const fontSize = style.fontSize || "16px";
+      
+      // UNIFIED FONT SIZE LOGIC - This fixes the main issue
+      const defaultFontSize = style.fontSize || "16px";
+      console.log("📏 Using unified font size:", defaultFontSize);
+      
       const formDirection = style.formDirection || "ltr";
       
       // Apply container styles
       container.style.cssText = `
         background-color: ${backgroundColor};
         border-radius: ${borderRadius};
-        font-size: ${fontSize};
+        font-size: ${defaultFontSize};
         direction: ${formDirection};
         padding: 20px;
         font-family: system-ui, Arial, sans-serif;
@@ -71,7 +75,7 @@
       const form = document.createElement("form");
       form.style.cssText = "width: 100%; display: flex; flex-direction: column; gap: 16px;";
       
-      // Render each field
+      // Render each field with unified font size
       allFields.forEach((field, index) => {
         if (!field || !field.type) {
           console.warn("⚠️ Invalid field at index", index, field);
@@ -80,7 +84,7 @@
         
         console.log(`🔧 Rendering field ${index + 1}: ${field.type}`);
         
-        const fieldElement = createFieldElement(field, formDirection, primaryColor, fontSize);
+        const fieldElement = createFieldElement(field, formDirection, primaryColor, defaultFontSize);
         if (fieldElement) {
           form.appendChild(fieldElement);
         }
@@ -100,25 +104,25 @@
     }
   }
   
-  // Helper function to create field elements
-  function createFieldElement(field, direction, primaryColor, fontSize) {
+  // Helper function to create field elements - UPDATED WITH UNIFIED FONT SIZE
+  function createFieldElement(field, direction, primaryColor, defaultFontSize) {
     const wrapper = document.createElement("div");
     wrapper.style.cssText = "margin-bottom: 16px; width: 100%;";
     
     switch (field.type) {
       case "form-title":
-        return createFormTitle(field, direction, fontSize);
+        return createFormTitle(field, direction, defaultFontSize);
         
       case "text":
       case "email":
       case "phone":
-        return createTextInput(field, direction, fontSize);
+        return createTextInput(field, direction, defaultFontSize);
         
       case "textarea":
-        return createTextarea(field, direction, fontSize);
+        return createTextarea(field, direction, defaultFontSize);
         
       case "submit":
-        return createSubmitButton(field, primaryColor, fontSize);
+        return createSubmitButton(field, primaryColor, defaultFontSize);
         
       case "text/html":
         return createHtmlContent(field);
@@ -165,22 +169,30 @@
     return titleElement;
   }
   
-  // Create text input
+  // Create text input - UNIFIED FONT SIZE FOR LABEL AND INPUT
   function createTextInput(field, direction, defaultFontSize) {
     const wrapper = document.createElement("div");
     wrapper.className = "codform-field";
     wrapper.style.cssText = "margin-bottom: 16px; width: 100%;";
     
-    // Create label if field has label
+    // UNIFIED FONT SIZE LOGIC - field font size OR default font size
+    const fieldStyle = field.style || {};
+    const unifiedFontSize = fieldStyle.fontSize || defaultFontSize;
+    const labelColor = fieldStyle.labelColor || "#374151";
+    const labelFontWeight = fieldStyle.labelFontWeight || "600";
+    
+    console.log(`📏 Field ${field.label}: using font size ${unifiedFontSize}`);
+    
+    // Create label if field has label - SAME FONT SIZE AS INPUT
     if (field.label) {
       const label = document.createElement("label");
       label.textContent = field.label;
       label.style.cssText = `
         display: block;
         margin-bottom: 8px;
-        font-weight: 600;
-        color: #374151;
-        font-size: ${defaultFontSize};
+        font-weight: ${labelFontWeight};
+        color: ${labelColor};
+        font-size: ${unifiedFontSize};
         font-family: inherit;
         direction: ${direction};
       `;
@@ -201,12 +213,13 @@
     input.placeholder = field.placeholder || field.label || "";
     input.required = field.required || false;
     
+    // INPUT USES THE SAME UNIFIED FONT SIZE
     input.style.cssText = `
       width: 100%;
       padding: 12px;
       border: 1px solid #ddd;
       border-radius: 6px;
-      font-size: ${defaultFontSize};
+      font-size: ${unifiedFontSize};
       font-family: inherit;
       direction: ${direction};
       box-sizing: border-box;
@@ -216,22 +229,45 @@
     return wrapper;
   }
   
-  // Create textarea
+  // Create textarea - UNIFIED FONT SIZE FOR LABEL AND TEXTAREA
   function createTextarea(field, direction, defaultFontSize) {
     const wrapper = document.createElement("div");
     wrapper.style.cssText = "margin-bottom: 16px; width: 100%;";
+    
+    // UNIFIED FONT SIZE LOGIC
+    const fieldStyle = field.style || {};
+    const unifiedFontSize = fieldStyle.fontSize || defaultFontSize;
+    const labelColor = fieldStyle.labelColor || "#374151";
+    const labelFontWeight = fieldStyle.labelFontWeight || "600";
+    
+    // Create label if field has label - SAME FONT SIZE AS TEXTAREA
+    if (field.label) {
+      const label = document.createElement("label");
+      label.textContent = field.label;
+      label.style.cssText = `
+        display: block;
+        margin-bottom: 8px;
+        font-weight: ${labelFontWeight};
+        color: ${labelColor};
+        font-size: ${unifiedFontSize};
+        font-family: inherit;
+        direction: ${direction};
+      `;
+      wrapper.appendChild(label);
+    }
     
     const textarea = document.createElement("textarea");
     textarea.placeholder = field.placeholder || field.label || "";
     textarea.required = field.required || false;
     textarea.rows = 4;
     
+    // TEXTAREA USES THE SAME UNIFIED FONT SIZE
     textarea.style.cssText = `
       width: 100%;
       padding: 12px;
       border: 1px solid #ddd;
       border-radius: 6px;
-      font-size: ${defaultFontSize};
+      font-size: ${unifiedFontSize};
       font-family: inherit;
       direction: ${direction};
       resize: vertical;
@@ -251,8 +287,10 @@
     button.type = "submit";
     button.textContent = field.label || "إرسال";
     
-    const buttonBg = field.style?.backgroundColor || primaryColor;
-    const buttonColor = field.style?.color || "#ffffff";
+    const fieldStyle = field.style || {};
+    const buttonBg = fieldStyle.backgroundColor || primaryColor;
+    const buttonColor = fieldStyle.color || "#ffffff";
+    const buttonFontSize = fieldStyle.fontSize || defaultFontSize;
     
     button.style.cssText = `
       background-color: ${buttonBg};
@@ -260,7 +298,7 @@
       border: none;
       padding: 12px 24px;
       border-radius: 6px;
-      font-size: ${defaultFontSize};
+      font-size: ${buttonFontSize};
       font-weight: 600;
       cursor: pointer;
       width: 100%;

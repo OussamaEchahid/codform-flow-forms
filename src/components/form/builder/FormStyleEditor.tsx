@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { FormStyle } from '@/hooks/useFormStore';
 import { FloatingButtonConfig } from '@/lib/form-utils';
@@ -80,6 +81,35 @@ const FormStyleEditor: React.FC<FormStyleEditorProps> = ({
               </SelectContent>
             </Select>
           </div>
+
+          {/* UNIFIED FONT SIZE CONTROL for entire form */}
+          <div className="grid gap-2">
+            <Label htmlFor="form-font-size">
+              {language === 'ar' ? 'حجم الخط الأساسي للنموذج' : 'Base Form Font Size'}
+            </Label>
+            <Select 
+              value={formStyle.fontSize || '16px'} 
+              onValueChange={(value) => handleStyleChange('fontSize', value)}
+            >
+              <SelectTrigger id="form-font-size">
+                <SelectValue placeholder={language === 'ar' ? 'اختر حجم الخط' : 'Select font size'} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="12px">12px - {language === 'ar' ? 'صغير جداً' : 'Very Small'}</SelectItem>
+                <SelectItem value="14px">14px - {language === 'ar' ? 'صغير' : 'Small'}</SelectItem>
+                <SelectItem value="16px">16px - {language === 'ar' ? 'متوسط (افتراضي)' : 'Medium (Default)'}</SelectItem>
+                <SelectItem value="18px">18px - {language === 'ar' ? 'كبير' : 'Large'}</SelectItem>
+                <SelectItem value="20px">20px - {language === 'ar' ? 'كبير جداً' : 'Very Large'}</SelectItem>
+                <SelectItem value="24px">24px - {language === 'ar' ? 'ضخم' : 'Huge'}</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-sm text-gray-500">
+              {language === 'ar' ? 
+                'هذا الحجم سيُطبق على جميع الحقول والتسميات في النموذج' : 
+                'This size will be applied to all fields and labels in the form'
+              }
+            </p>
+          </div>
           
           <div className="grid gap-2">
             <Label htmlFor="border-radius">
@@ -109,34 +139,6 @@ const FormStyleEditor: React.FC<FormStyleEditorProps> = ({
                   {language === 'ar' ? 'كبير' : 'Large'}
                 </SelectItem>
                 <SelectItem value="1.5rem">
-                  {language === 'ar' ? 'كبير جداً' : 'Extra Large'}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="grid gap-2">
-            <Label htmlFor="font-size">
-              {language === 'ar' ? 'حجم الخط' : 'Font Size'}
-            </Label>
-            <Select 
-              value={formStyle.fontSize} 
-              onValueChange={(value) => handleStyleChange('fontSize', value)}
-            >
-              <SelectTrigger id="font-size">
-                <SelectValue placeholder={language === 'ar' ? 'اختر حجم الخط' : 'Select font size'} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="0.875rem">
-                  {language === 'ar' ? 'صغير' : 'Small'}
-                </SelectItem>
-                <SelectItem value="1rem">
-                  {language === 'ar' ? 'متوسط' : 'Medium'}
-                </SelectItem>
-                <SelectItem value="1.125rem">
-                  {language === 'ar' ? 'كبير' : 'Large'}
-                </SelectItem>
-                <SelectItem value="1.25rem">
                   {language === 'ar' ? 'كبير جداً' : 'Extra Large'}
                 </SelectItem>
               </SelectContent>

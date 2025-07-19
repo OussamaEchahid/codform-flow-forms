@@ -40,15 +40,15 @@ interface FormStore {
   updateFormStyle: (styleUpdates: Partial<FormStyle>) => void;
 }
 
-// Default styles - these are the guaranteed default settings
+// Default styles - UNIFIED FONT SIZE DEFAULTS
 const defaultFormStyle: FormStyle = {
   primaryColor: '#9b87f5',
   borderRadius: '1.5rem',
-  fontSize: '1rem',
+  fontSize: '16px', // EXPLICIT DEFAULT FONT SIZE - this fixes the core issue
   buttonStyle: 'rounded',
   borderColor: '#9b87f5',
   borderWidth: '2px',
-  backgroundColor: '#F9FAFB', // Fixed form background color
+  backgroundColor: '#F9FAFB',
   paddingTop: '20px',
   paddingBottom: '20px',
   paddingLeft: '20px',
@@ -58,7 +58,7 @@ const defaultFormStyle: FormStyle = {
   floatingLabels: false
 };
 
-// Default form state with guaranteed values
+// Default form state with guaranteed fontSize value
 const defaultFormState: FormState = {
   id: '',
   title: '',
@@ -81,34 +81,32 @@ export const useFormStore = create<FormStore>((set) => ({
       JSON.parse(JSON.stringify(state.formState.style)) : 
       { ...defaultFormStyle };
     
-    // Handle style updates separately from other form properties
-    let updatedStyle = { ...currentStyle };
+    // ENSURE FONT SIZE IS ALWAYS SET - this is the key fix
+    let updatedStyle = { 
+      ...currentStyle,
+      fontSize: currentStyle.fontSize || defaultFormStyle.fontSize // Always guarantee fontSize
+    };
     
-    // If the form has style updates, apply them while preserving fixed default settings
+    // If the form has style updates, apply them while preserving fontSize defaults
     if (form.style) {
       // Deep copy to prevent reference issues
       const newStyleProps = JSON.parse(JSON.stringify(form.style));
       
-      // Apply the style updates normally
+      // Apply the style updates, ensuring fontSize is preserved
       updatedStyle = {
         ...updatedStyle,
         ...newStyleProps,
+        fontSize: newStyleProps.fontSize || updatedStyle.fontSize || defaultFormStyle.fontSize
       };
-      console.log('Applied standard style update');
+      console.log('Applied style update with guaranteed fontSize:', updatedStyle.fontSize);
     }
     
     // Create a deep copy of the new form state to prevent mutation
     const newFormState = {
       ...state.formState,
-      ...form
+      ...form,
+      style: updatedStyle // Always use the updated style with guaranteed fontSize
     };
-    
-    // Make sure we don't accidentally delete the style object
-    if (!newFormState.style) {
-      newFormState.style = updatedStyle;
-    } else {
-      newFormState.style = updatedStyle;
-    }
     
     console.log('Final form state style:', newFormState.style);
     
@@ -119,7 +117,7 @@ export const useFormStore = create<FormStore>((set) => ({
   
   resetFormState: () => set({ formState: JSON.parse(JSON.stringify(defaultFormState)) }),
   
-  // Add custom method for style updates to prevent reference issues
+  // UPDATED: Custom method for style updates with fontSize guarantee
   updateFormStyle: (styleUpdates) => set((state) => {
     console.log('updateFormStyle called with:', styleUpdates);
     
@@ -128,13 +126,14 @@ export const useFormStore = create<FormStore>((set) => ({
       JSON.parse(JSON.stringify(state.formState.style)) : 
       { ...defaultFormStyle };
     
-    // Apply updates normally
+    // Apply updates with fontSize guarantee
     const updatedStyle = {
       ...currentStyle,
       ...styleUpdates,
+      fontSize: styleUpdates.fontSize || currentStyle.fontSize || defaultFormStyle.fontSize
     };
     
-    console.log('Applied style update');
+    console.log('Applied style update with fontSize guarantee');
     console.log('Final style:', updatedStyle);
     
     return {
