@@ -36,7 +36,12 @@
       const borderRadius = style.borderRadius || "8px";
       
       // UNIFIED FONT SIZE LOGIC - This fixes the main issue
-      const defaultFontSize = style.fontSize || "16px";
+      let formFontSize = style.fontSize || "16px";
+      // تحويل rem إلى px إذا لزم الأمر
+      if (formFontSize.includes('rem')) {
+        formFontSize = (parseFloat(formFontSize) * 16) + 'px';
+      }
+      const defaultFontSize = formFontSize;
       console.log("📏 Using unified font size:", defaultFontSize);
       
       const formDirection = style.formDirection || "ltr";
@@ -177,7 +182,12 @@
     
     // UNIFIED FONT SIZE LOGIC - field font size OR default font size
     const fieldStyle = field.style || {};
-    const unifiedFontSize = fieldStyle.fontSize || defaultFontSize;
+    // تحويل rem إلى px إذا لزم الأمر
+    let fieldFontSize = fieldStyle.fontSize || defaultFontSize;
+    if (fieldFontSize.includes('rem')) {
+      fieldFontSize = (parseFloat(fieldFontSize) * 16) + 'px';
+    }
+    const unifiedFontSize = fieldFontSize;
     const labelColor = fieldStyle.labelColor || "#374151";
     const labelFontWeight = fieldStyle.labelFontWeight || "600";
     
@@ -236,7 +246,12 @@
     
     // UNIFIED FONT SIZE LOGIC
     const fieldStyle = field.style || {};
-    const unifiedFontSize = fieldStyle.fontSize || defaultFontSize;
+    // تحويل rem إلى px إذا لزم الأمر
+    let fieldFontSize = fieldStyle.fontSize || defaultFontSize;
+    if (fieldFontSize.includes('rem')) {
+      fieldFontSize = (parseFloat(fieldFontSize) * 16) + 'px';
+    }
+    const unifiedFontSize = fieldFontSize;
     const labelColor = fieldStyle.labelColor || "#374151";
     const labelFontWeight = fieldStyle.labelFontWeight || "600";
     

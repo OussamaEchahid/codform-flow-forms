@@ -329,9 +329,15 @@ function createTextInput(field, direction, primaryColor, formStyle = {}) {
       label.className = "block mb-2";
       label.textContent = field.label;
 
+      // تحويل حجم الخط من rem إلى px إذا لزم الأمر
+      let labelFontSize = fieldStyle.labelFontSize || formStyles.fontSize || '16px';
+      if (labelFontSize.includes('rem')) {
+        labelFontSize = (parseFloat(labelFontSize) * 16) + 'px';
+      }
+      
       label.style.cssText = `
           color: ${fieldStyle.labelColor || '#333333'};
-          font-size: ${fieldStyle.labelFontSize || formStyles.fontSize || '16px'};
+          font-size: ${labelFontSize};
           font-weight: ${fieldStyle.labelFontWeight || '600'};
           font-family: 'Cairo', sans-serif;
           margin-bottom: 8px;
@@ -388,7 +394,12 @@ function createTextInput(field, direction, primaryColor, formStyle = {}) {
     input.setAttribute("aria-label", field.inputFor || field.label || "");
 
     const textColor = fieldStyle.color || 'rgb(31, 41, 55)';
-    const fontSize = fieldStyle.fontSize || formStyles.fontSize || '16px';
+    // تحويل حجم الخط من rem إلى px إذا لزم الأمر
+    let inputFontSize = fieldStyle.fontSize || formStyles.fontSize || '16px';
+    if (inputFontSize.includes('rem')) {
+      inputFontSize = (parseFloat(inputFontSize) * 16) + 'px';
+    }
+    const fontSize = inputFontSize;
     const fontWeight = fieldStyle.fontWeight || '400';
     const backgroundColor = 'rgb(255, 255, 255)';
     const borderColor = fieldStyle.borderColor || 'rgb(209, 213, 219)';
