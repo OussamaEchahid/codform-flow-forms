@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { 
   Card, 
@@ -61,6 +62,7 @@ const FormList: React.FC<FormListProps> = ({
   retryCount = 0
 }) => {
   const [formToDelete, setFormToDelete] = useState<string | null>(null);
+  const [isOperating, setIsOperating] = useState<string | null>(null);
   const { publishForm, deleteForm } = useFormTemplates();
   const [enhancedForms, setEnhancedForms] = useState<EnhancedFormData[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
@@ -155,11 +157,9 @@ const FormList: React.FC<FormListProps> = ({
             
             if (data.success && data.products) {
               data.products.forEach((product: any) => {
-                // تنظيف معرف المنتج
                 const originalId = String(product.id);
                 const cleanId = originalId.replace('gid://shopify/Product/', '');
                 
-                // تحديد الصورة المناسبة
                 let imageUrl = '/placeholder.svg';
                 
                 if (product.featuredImage) {
@@ -183,7 +183,6 @@ const FormList: React.FC<FormListProps> = ({
                   image: imageUrl
                 };
                 
-                // حفظ البيانات بكلا المعرفين
                 productsMap.set(cleanId, productData);
                 productsMap.set(originalId, productData);
               });
@@ -207,7 +206,6 @@ const FormList: React.FC<FormListProps> = ({
           const associatedProducts = productIds.map(id => {
             const product = productsMap.get(id) || productsMap.get(String(id).replace('gid://shopify/Product/', ''));
             if (!product) {
-              // إنشاء منتج افتراضي عند عدم وجود بيانات
               return {
                 id: String(id).replace('gid://shopify/Product/', ''),
                 title: `منتج ${String(id).replace('gid://shopify/Product/', '')}`,
@@ -239,13 +237,54 @@ const FormList: React.FC<FormListProps> = ({
   }, [forms, offlineMode]);
 
   const handlePublishToggle = async (formId: string, currentStatus: boolean) => {
-    await publishForm(formId, !currentStatus);
+    if (isOperating) {
+      console.log('عملية جارية، تجاهل الطلب');
+      return;
+    }
+    
+    const newStatus = !currentStatus;
+    console.log(`🔄 تغيير حالة نشر النموذج ${formId} من ${currentStatus} إلى ${newStatus}`);
+    
+    setIsOperating(formId);
+    
+    try {
+      const success = await publishForm(formId, newStatus);
+      
+      if (success) {
+        console.log(`✅ تم تغيير حالة نشر النموذج بنجاح`);
+        // The forms state is already updated by the hook
+      } else {
+        console.error(`❌ فشل تغيير حالة نشر النموذج`);
+      }
+    } catch (error) {
+      console.error('خطأ في تغيير حالة النشر:', error);
+    } finally {
+      setIsOperating(null);
+    }
   };
 
   const handleDelete = async () => {
-    if (formToDelete) {
-      await deleteForm(formToDelete);
+    if (!formToDelete || isOperating) {
+      return;
+    }
+    
+    console.log(`🗑️ بدء حذف النموذج: ${formToDelete}`);
+    setIsOperating(formToDelete);
+    
+    try {
+      const success = await deleteForm(formToDelete);
+      
+      if (success) {
+        console.log(`✅ تم حذف النموذج بنجاح`);
+        // The forms state is already updated by the hook
+      } else {
+        console.error(`❌ فشل حذف النموذج`);
+      }
+    } catch (error) {
+      console.error('خطأ في حذف النموذج:', error);
+    } finally {
       setFormToDelete(null);
+      setIsOperating(null);
     }
   };
   
@@ -328,7 +367,9 @@ const FormList: React.FC<FormListProps> = ({
       )}
 
       {displayForms.map((form) => {
+        const isCurrentlyOperating = isOperating === form.id;
         console.log('🎨 عرض النموذج:', form.id, 'منتجات مرتبطة:', form.associatedProducts?.length || 0);
+        
         return (
         <Card key={form.id} className="overflow-hidden hover:shadow-md transition-shadow">
           <div className={`h-2 ${form.is_published ? 'bg-green-500' : 'bg-gray-300'}`}></div>
@@ -408,16 +449,23 @@ const FormList: React.FC<FormListProps> = ({
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                    <MoreVertical className="h-4 w-4" />
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled={isCurrentlyOperating}>
+                    {isCurrentlyOperating ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <MoreVertical className="h-4 w-4" />
+                    )}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => onSelectForm(form.id)}>
+                  <DropdownMenuItem onClick={() => onSelectForm(form.id)} disabled={isCurrentlyOperating}>
                     <Edit className="mr-2 h-4 w-4" />
                     <span>تعديل</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handlePublishToggle(form.id, form.is_published)}>
+                  <DropdownMenuItem 
+                    onClick={() => handlePublishToggle(form.id, form.is_published)} 
+                    disabled={isCurrentlyOperating}
+                  >
                     {form.is_published ? (
                       <>
                         <EyeOff className="mr-2 h-4 w-4" />
@@ -443,6 +491,7 @@ const FormList: React.FC<FormListProps> = ({
                   <DropdownMenuItem 
                     onClick={() => setFormToDelete(form.id)}
                     className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    disabled={isCurrentlyOperating}
                   >
                     <Trash className="mr-2 h-4 w-4" />
                     <span>حذف</span>
@@ -467,8 +516,16 @@ const FormList: React.FC<FormListProps> = ({
               variant="default" 
               onClick={() => onSelectForm(form.id)}
               className="w-full"
+              disabled={isCurrentlyOperating}
             >
-              عرض وتعديل
+              {isCurrentlyOperating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  جاري المعالجة...
+                </>
+              ) : (
+                "عرض وتعديل"
+              )}
             </Button>
           </CardFooter>
         </Card>
@@ -484,9 +541,20 @@ const FormList: React.FC<FormListProps> = ({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>إلغاء</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
-              حذف
+            <AlertDialogCancel disabled={isOperating === formToDelete}>إلغاء</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDelete} 
+              className="bg-red-600 hover:bg-red-700"
+              disabled={isOperating === formToDelete}
+            >
+              {isOperating === formToDelete ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  جاري الحذف...
+                </>
+              ) : (
+                "حذف"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
