@@ -258,16 +258,16 @@ const FormList: React.FC<FormListProps> = ({
                   {form.title}
                 </CardTitle>
                 {/* Display associated products if any */}
-                {form.associatedProducts && form.associatedProducts.length > 0 && (
+                {(form as any).associatedProducts && (form as any).associatedProducts.length > 0 && (
                   <div className="mt-3 p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
                     <div className="flex items-center gap-2 mb-2">
                       <ShoppingBag className="h-4 w-4 text-blue-600" />
-                      <span className="text-sm font-semibold text-blue-800">
-                        مرتبط بـ {form.associatedProducts.length} {form.associatedProducts.length === 1 ? 'منتج' : 'منتجات'}
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {form.associatedProducts.slice(0, 3).map(product => (
+                       <span className="text-sm font-semibold text-blue-800">
+                         مرتبط بـ {(form as any).associatedProducts.length} {(form as any).associatedProducts.length === 1 ? 'منتج' : 'منتجات'}
+                       </span>
+                     </div>
+                     <div className="flex flex-wrap gap-2">
+                       {(form as any).associatedProducts.slice(0, 3).map((product: any) => (
                         <div key={product.id} className="flex items-center gap-2 bg-white rounded-md p-2 shadow-sm border">
                           <img 
                             src={product.image} 
@@ -282,13 +282,13 @@ const FormList: React.FC<FormListProps> = ({
                           </span>
                         </div>
                       ))}
-                      {form.associatedProducts.length > 3 && (
-                        <div className="flex items-center justify-center bg-white rounded-md p-2 shadow-sm border">
-                          <span className="text-xs text-blue-600 font-medium">
-                            +{form.associatedProducts.length - 3}
-                          </span>
-                        </div>
-                      )}
+                       {(form as any).associatedProducts.length > 3 && (
+                         <div className="flex items-center justify-center bg-white rounded-md p-2 shadow-sm border">
+                           <span className="text-xs text-blue-600 font-medium">
+                             +{(form as any).associatedProducts.length - 3}
+                           </span>
+                         </div>
+                       )}
                     </div>
                   </div>
                 )}
@@ -317,15 +317,15 @@ const FormList: React.FC<FormListProps> = ({
                       </>
                     )}
                   </DropdownMenuItem>
-                  {form.associatedProducts && form.associatedProducts.length > 0 && (
-                    <>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-blue-600">
-                        <Link className="mr-2 h-4 w-4" />
-                        <span>المنتجات المرتبطة ({form.associatedProducts.length})</span>
-                      </DropdownMenuItem>
-                    </>
-                  )}
+                   {(form as any).associatedProducts && (form as any).associatedProducts.length > 0 && (
+                     <>
+                       <DropdownMenuSeparator />
+                       <DropdownMenuItem className="text-blue-600">
+                         <Link className="mr-2 h-4 w-4" />
+                         <span>المنتجات المرتبطة ({(form as any).associatedProducts.length})</span>
+                       </DropdownMenuItem>
+                     </>
+                   )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem 
                     onClick={() => setFormToDelete(form.id)}
