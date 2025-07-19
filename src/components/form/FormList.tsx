@@ -246,27 +246,25 @@ const FormList: React.FC<FormListProps> = ({
                 </CardTitle>
                 {/* Display associated products if any */}
                 {form.associatedProducts && form.associatedProducts.length > 0 && (
-                  <div className="flex items-center gap-1 mt-1 text-xs text-gray-600">
-                    <ShoppingBag className="h-3 w-3" />
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span>
-                            {form.associatedProducts.length} {form.associatedProducts.length === 1 ? 'منتج' : 'منتجات'}
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <div className="max-w-xs">
-                            <p className="font-bold mb-1">المنتجات المرتبطة:</p>
-                            <ul className="list-disc list-inside space-y-1">
-                              {form.associatedProducts.map(product => (
-                                <li key={product.id}>{product.title}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                  <div className="mt-2 p-2 bg-blue-50 rounded-md border border-blue-200">
+                    <div className="flex items-center gap-2 mb-1">
+                      <ShoppingBag className="h-4 w-4 text-blue-600" />
+                      <span className="text-sm font-medium text-blue-800">
+                        مرتبط بـ {form.associatedProducts.length} {form.associatedProducts.length === 1 ? 'منتج' : 'منتجات'}
+                      </span>
+                    </div>
+                    <div className="space-y-1">
+                      {form.associatedProducts.slice(0, 2).map(product => (
+                        <div key={product.id} className="text-xs text-blue-700 truncate">
+                          • {product.title}
+                        </div>
+                      ))}
+                      {form.associatedProducts.length > 2 && (
+                        <div className="text-xs text-blue-600 italic">
+                          و {form.associatedProducts.length - 2} منتجات أخرى...
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
