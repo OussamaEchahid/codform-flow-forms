@@ -562,25 +562,7 @@ export const useFormTemplates = () => {
     try {
       setIsLoading(true);
       
-      // Step 1: First remove product associations
-      try {
-        const { error: assocError } = await fetchWithRetry(async () => {
-          return await supabase
-            .from('shopify_product_settings')
-            .delete()
-            .eq('form_id', formId);
-        });
-        
-        if (assocError) {
-          console.warn('Error removing product associations:', assocError);
-          // Continue with deletion even if this step fails
-        }
-      } catch (error) {
-        console.warn('Failed to remove product associations:', error);
-        // Continue with deletion even if this step fails
-      }
-      
-      // Step 2: Delete form from Supabase with retry
+      // Step 1: Delete form from Supabase first
       try {
         const { error } = await fetchWithRetry(async () => {
           return await supabase
@@ -596,6 +578,24 @@ export const useFormTemplates = () => {
           return false;
         }
         
+        // Step 2: Remove product associations only after form deletion succeeds
+        try {
+          const { error: assocError } = await fetchWithRetry(async () => {
+            return await supabase
+              .from('shopify_product_settings')
+              .delete()
+              .eq('form_id', formId);
+          });
+          
+          if (assocError) {
+            console.warn('Error removing product associations:', assocError);
+            // Form is already deleted, this is just cleanup
+          }
+        } catch (error) {
+          console.warn('Failed to remove product associations:', error);
+          // Form is already deleted, this is just cleanup
+        }
+        
         // Reset offline mode if we succeed
         if (offlineMode) {
           setOfflineMode(false);
@@ -603,13 +603,12 @@ export const useFormTemplates = () => {
         }
       } catch (error) {
         console.error('Failed to delete form after retries:', error);
-        toast.warning('فشل الاتصال بالخادم، سيتم حذف النموذج محليًا فقط');
-        
-        // Set offline mode
-        setOfflineMode(true);
+        toast.error('فشل في حذف النموذج - حاول مرة أخرى');
+        setIsLoading(false);
+        return false;
       }
       
-      // Step 3: Update local state immediately
+      // Step 3: Update local state only after successful deletion
       setForms(prevForms => prevForms.filter(form => form.id !== formId));
       
       // Update local cache
