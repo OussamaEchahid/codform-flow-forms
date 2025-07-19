@@ -39,7 +39,7 @@ console.log('🚀 CODFORM: Loading Shopify submit handler...');
   
   // Attach event handlers to submit buttons
   function attachToSubmitButtons() {
-    // Get all potential submit buttons
+    // Get all potential submit buttons with better selectors
     const buttons = document.querySelectorAll([
       'button[type="submit"]',
       'input[type="submit"]',
@@ -47,7 +47,13 @@ console.log('🚀 CODFORM: Loading Shopify submit handler...');
       '.btn',
       '.button',
       '[class*="submit"]',
-      '[class*="order"]'
+      '[class*="order"]',
+      '[class*="buy"]',
+      '[class*="checkout"]',
+      '[class*="cart"]',
+      'form button',
+      '.product-form button',
+      '.cart-form button'
     ].join(','));
     
     console.log(`🔍 CODFORM: Found ${buttons.length} buttons`);
@@ -59,13 +65,19 @@ console.log('🚀 CODFORM: Loading Shopify submit handler...');
       }
       
       const text = (button.textContent || button.value || '').toLowerCase();
-      const isSubmitButton = text.includes('submit') || text.includes('order') || 
-                            text.includes('إرسال') || text.includes('طلب') ||
-                            text.includes('add to cart') || text.includes('buy') ||
-                            button.type === 'submit';
+      const classes = (button.className || '').toLowerCase();
+      
+      // Better detection logic for Arabic/English submit buttons
+      const isSubmitButton = 
+        button.type === 'submit' ||
+        text.includes('submit') || text.includes('order') || text.includes('طلب') ||
+        text.includes('إرسال') || text.includes('أضف') || text.includes('شراء') ||
+        text.includes('add to cart') || text.includes('buy now') || text.includes('checkout') ||
+        classes.includes('submit') || classes.includes('order') || classes.includes('buy') ||
+        classes.includes('checkout') || classes.includes('cart');
       
       if (isSubmitButton) {
-        console.log('✅ CODFORM: Attaching handler to button:', button);
+        console.log('✅ CODFORM: Attaching handler to button:', button, 'Text:', text, 'Classes:', classes);
         button.setAttribute('data-codform-processed', 'true');
         button.addEventListener('click', handleSubmit, true);
       }
