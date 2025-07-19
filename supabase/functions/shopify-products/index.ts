@@ -67,13 +67,165 @@ serve(async (req: Request) => {
       });
     }
 
-    console.log(`[${requestId}] Processing request for shop: ${shop}, forceRefresh: ${forceRefresh}, includeTestProducts: ${includeTestProducts}`);
+    console.log(`[${requestId}] Processing request for shop: ${shop}, forceRefresh: ${forceRefresh}, includeTestProducts: ${includeTestProducts}, productIds: ${productIds}`);
 
     // Setup Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // If specific product IDs are requested, try to fetch them specifically
+    if (productIds && productIds.length > 0) {
+      console.log(`[${requestId}] Fetching specific products: ${productIds}`);
+      
+      // Get shop access token
+      const { data: shopData, error: shopError } = await supabase
+        .from('shopify_stores')
+        .select('access_token')
+        .eq('shop', shop)
+        .single();
+      
+      if (shopError || !shopData || !shopData.access_token) {
+        console.error(`[${requestId}] Error fetching shop access token:`, shopError);
+        
+        // Generate mock products for specific IDs if this is a dev store
+        if (shop.includes('myshopify.com')) {
+          console.log(`[${requestId}] Test store detected, returning mock data for specific IDs`);
+          const mockProducts = productIds.map((id, index) => ({
+            id: id,
+            title: `Mock Product ${index + 1} (ID: ${id})`,
+            handle: `mock-product-${index + 1}`,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            published_at: new Date().toISOString(),
+            status: 'active',
+            tags: '',
+            price: `${Math.floor(10 + Math.random() * 90)}.99`,
+            images: [`https://via.placeholder.com/500x500.png?text=Mock+Product+${index+1}`],
+            featuredImage: `https://via.placeholder.com/500x500.png?text=Mock+Product+${index+1}`,
+            variants: [
+              {
+                id: `gid://shopify/ProductVariant/${2000000 + index}`,
+                price: `${Math.floor(10 + Math.random() * 90)}.99`,
+                title: 'Default Title',
+                available: true
+              }
+            ]
+          }));
+          
+          return new Response(JSON.stringify({
+            success: true,
+            products: mockProducts,
+            count: mockProducts.length,
+            isMockData: true
+          }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+        
+        return new Response(JSON.stringify({
+          success: false,
+          message: 'Shop not found or access token missing',
+        }), {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      
+      // Clean product IDs (remove GraphQL prefix if present)
+      const cleanProductIds = productIds.map(id => 
+        id.includes('gid://shopify/Product/') ? id.replace('gid://shopify/Product/', '') : id
+      );
+      
+      console.log(`[${requestId}] Clean product IDs: ${cleanProductIds}`);
+      
+      // Fetch specific products from Shopify API
+      try {
+        const idsQuery = cleanProductIds.map(id => `ids=${id}`).join('&');
+        const apiUrl = `https://${shop}/admin/api/2024-04/products.json?${idsQuery}&status=any`;
+        
+        console.log(`[${requestId}] Calling Shopify API: ${apiUrl}`);
+        
+        const shopifyResponse = await fetch(apiUrl, {
+          headers: {
+            'X-Shopify-Access-Token': shopData.access_token,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (!shopifyResponse.ok) {
+          throw new Error(`Shopify API error: ${shopifyResponse.status} ${shopifyResponse.statusText}`);
+        }
+        
+        const shopifyData = await shopifyResponse.json();
+        let products = shopifyData.products;
+        
+        console.log(`[${requestId}] Shopify API returned ${products?.length || 0} products`);
+        
+        if (!products || !Array.isArray(products)) {
+          console.error(`[${requestId}] Invalid product data returned:`, products);
+          products = [];
+        }
+        
+        // Transform the products to match our expected format
+        products = products.map((product: any) => {
+          // Process all images
+          const images = product.images && product.images.length > 0 ? 
+            product.images.map((img: any) => img.src) : [];
+          
+          // Get featured image
+          const featuredImage = product.image?.src || (images.length > 0 ? images[0] : '/placeholder.svg');
+          
+          // Process variants
+          const variants = product.variants && product.variants.length > 0 ?
+            product.variants.map((variant: any) => ({
+              id: variant.id,
+              title: variant.title,
+              price: variant.price,
+              available: variant.inventory_quantity > 0 || variant.inventory_policy === 'continue'
+            })) : [];
+          
+          return {
+            id: product.id,
+            title: product.title,
+            handle: product.handle,
+            created_at: product.created_at,
+            updated_at: product.updated_at,
+            published_at: product.published_at,
+            status: product.status,
+            tags: product.tags,
+            price: product.variants && product.variants.length > 0 ? product.variants[0].price : '0',
+            images: images,
+            featuredImage: featuredImage,
+            variants: variants
+          };
+        });
+        
+        console.log(`[${requestId}] Transformed ${products.length} products`);
+        
+        return new Response(JSON.stringify({
+          success: true,
+          products,
+          count: products.length,
+          cached: false,
+          specificIds: true
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      } catch (error) {
+        console.error(`[${requestId}] Error fetching specific products from Shopify:`, error);
+        
+        return new Response(JSON.stringify({
+          success: false,
+          message: `Error fetching specific products: ${error.message}`,
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    }
+
+    // Regular flow for all products (existing code)
     // Try to fetch products from cache if not forcing refresh
     if (!forceRefresh) {
       const { data: cachedProducts, error: cacheError } = await supabase
@@ -145,15 +297,8 @@ serve(async (req: Request) => {
     
     // Fetch products from Shopify API
     try {
-      let apiUrl;
-      if (productIds && productIds.length > 0) {
-        // Fetch specific products by IDs
-        const idsQuery = productIds.map(id => `ids=${id}`).join('&');
-        apiUrl = `https://${shop}/admin/api/2024-04/products.json?${idsQuery}&status=any`;
-      } else {
-        // Fetch all active products
-        apiUrl = `https://${shop}/admin/api/2024-04/products.json?limit=250&status=active`;
-      }
+      // Fetch all active products
+      const apiUrl = `https://${shop}/admin/api/2024-04/products.json?limit=250&status=active`;
       
       const shopifyResponse = await fetch(apiUrl, {
         headers: {
@@ -181,7 +326,7 @@ serve(async (req: Request) => {
           product.images.map((img: any) => img.src) : [];
         
         // Get featured image
-        const featuredImage = product.image?.src || (images.length > 0 ? images[0] : null);
+        const featuredImage = product.image?.src || (images.length > 0 ? images[0] : '/placeholder.svg');
         
         // Process variants
         const variants = product.variants && product.variants.length > 0 ?
@@ -208,21 +353,26 @@ serve(async (req: Request) => {
         };
       });
       
-      // Cache products in Supabase
-      const { error: cacheInsertError } = await supabase
-        .from('shopify_cached_products')
-        .upsert({
-          shop,
-          products,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'shop'
-        });
-        
-      if (cacheInsertError) {
-        console.error(`[${requestId}] Error caching products:`, cacheInsertError);
-      } else {
-        console.log(`[${requestId}] Successfully cached ${products.length} products for ${shop}`);
+      // Cache products in Supabase - with better error handling
+      try {
+        const { error: cacheInsertError } = await supabase
+          .from('shopify_cached_products')
+          .upsert({
+            shop,
+            products,
+            updated_at: new Date().toISOString()
+          }, {
+            onConflict: 'shop'
+          });
+          
+        if (cacheInsertError) {
+          console.error(`[${requestId}] Error caching products:`, cacheInsertError);
+        } else {
+          console.log(`[${requestId}] Successfully cached ${products.length} products for ${shop}`);
+        }
+      } catch (cacheError) {
+        console.error(`[${requestId}] Cache operation failed:`, cacheError);
+        // Continue anyway, caching is not critical
       }
       
       // Filter out test products unless explicitly included
@@ -266,17 +416,20 @@ serve(async (req: Request) => {
 // Helper function to generate mock products
 function generateMockProducts() {
   return Array.from({ length: 5 }, (_, i) => ({
-    id: `gid://shopify/Product/${1000000 + i}`,
-    title: `Mock Product ${i + 1}${i < 2 ? " (This is sample data)" : ""}`,
+    id: `${1000000 + i}`,
+    title: `منتج تجريبي ${i + 1}${i < 2 ? " (هذه بيانات تجريبية)" : ""}`,
     handle: `mock-product-${i + 1}`,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     published_at: new Date().toISOString(),
     status: 'active',
-    images: [`https://via.placeholder.com/500x500.png?text=Mock+Product+${i+1}`],
+    tags: 'test-product',
+    price: `${Math.floor(10 + Math.random() * 90)}.99`,
+    images: [`https://via.placeholder.com/500x500.png?text=منتج+تجريبي+${i+1}`],
+    featuredImage: `https://via.placeholder.com/500x500.png?text=منتج+تجريبي+${i+1}`,
     variants: [
       {
-        id: `gid://shopify/ProductVariant/${2000000 + i}`,
+        id: `${2000000 + i}`,
         price: `${Math.floor(10 + Math.random() * 90)}.99`,
         title: 'Default Title',
         available: true

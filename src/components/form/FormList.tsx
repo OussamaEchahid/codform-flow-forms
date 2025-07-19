@@ -69,8 +69,13 @@ const FormList: React.FC<FormListProps> = ({
   // Fetch associated products for each form
   useEffect(() => {
     const fetchProductAssociations = async () => {
-      if (!forms.length) return;
+      if (!forms.length || offlineMode) {
+        console.log('Skipping product fetch - no forms or offline mode', { formsCount: forms.length, offlineMode });
+        setEnhancedForms(forms);
+        return;
+      }
       
+      console.log('Starting product association fetch for', forms.length, 'forms');
       setIsLoadingProducts(true);
       
       try {
@@ -86,6 +91,8 @@ const FormList: React.FC<FormListProps> = ({
           return;
         }
         
+        console.log('Product settings fetched:', productSettings);
+        
         // Group product IDs by form ID
         const productsByForm = productSettings?.reduce((acc, setting) => {
           if (!acc[setting.form_id]) {
@@ -95,12 +102,18 @@ const FormList: React.FC<FormListProps> = ({
           return acc;
         }, {} as Record<string, string[]>) || {};
         
-        // Fetch product details for all product IDs
-        const allProductIds = productSettings?.map(s => s.product_id) || [];
+        console.log('Products grouped by form:', productsByForm);
+        
+        // Get all unique product IDs
+        const allProductIds = [...new Set(productSettings?.map(s => s.product_id) || [])];
+        
         if (allProductIds.length === 0) {
+          console.log('No product IDs found, using forms as-is');
           setEnhancedForms(forms);
           return;
         }
+        
+        console.log('Fetching details for product IDs:', allProductIds);
         
         const shopId = localStorage.getItem('shopify_store');
         if (!shopId) {
@@ -109,10 +122,12 @@ const FormList: React.FC<FormListProps> = ({
           return;
         }
         
-        // Fetch product details from Shopify API
+        // Fetch product details from Shopify API via our edge function
         const productsMap = new Map<string, { id: string; title: string; image: string }>();
         
         try {
+          console.log('Calling shopify-products edge function with:', { shop: shopId, productIds: allProductIds });
+          
           const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-products`, {
             method: 'POST',
             headers: {
@@ -125,34 +140,74 @@ const FormList: React.FC<FormListProps> = ({
             })
           });
           
+          console.log('Edge function response status:', response.status);
+          
           if (response.ok) {
             const data = await response.json();
+            console.log('Edge function response data:', data);
+            
             if (data.success && data.products) {
               data.products.forEach((product: any) => {
+                const productId = String(product.id).replace('gid://shopify/Product/', '');
+                const imageUrl = product.featuredImage || 
+                               (product.images && product.images[0]) || 
+                               '/placeholder.svg';
+                
+                console.log('Processing product:', { 
+                  originalId: product.id, 
+                  cleanId: productId, 
+                  title: product.title, 
+                  image: imageUrl 
+                });
+                
+                productsMap.set(productId, {
+                  id: productId,
+                  title: product.title,
+                  image: imageUrl
+                });
+                
+                // Also store with original ID format in case it's needed
                 productsMap.set(product.id, {
                   id: product.id,
                   title: product.title,
-                  image: product.featuredImage || (product.images && product.images[0]) || '/placeholder.svg'
+                  image: imageUrl
                 });
               });
+              
+              console.log('Products map created:', productsMap);
+            } else {
+              console.error('Edge function returned non-success response:', data);
             }
+          } else {
+            console.error('Edge function HTTP error:', response.status, response.statusText);
+            const errorText = await response.text();
+            console.error('Error response body:', errorText);
           }
         } catch (fetchError) {
-          console.error('Error fetching product details:', fetchError);
+          console.error('Error calling edge function:', fetchError);
         }
         
         // Enhance the forms with associated products
         const formsWithProducts = forms.map(form => {
           const productIds = productsByForm[form.id] || [];
-          const associatedProducts = productIds.map(id => productsMap.get(id))
-            .filter(p => p !== undefined) as { id: string; title: string; image: string }[];
-            
+          console.log(`Form ${form.id} has product IDs:`, productIds);
+          
+          const associatedProducts = productIds.map(id => {
+            // Try both original ID and cleaned ID
+            const product = productsMap.get(id) || productsMap.get(String(id).replace('gid://shopify/Product/', ''));
+            console.log(`Looking up product ID ${id}:`, product);
+            return product;
+          }).filter(p => p !== undefined) as { id: string; title: string; image: string }[];
+          
+          console.log(`Form ${form.id} final associated products:`, associatedProducts);
+          
           return {
             ...form,
             associatedProducts
           };
         });
         
+        console.log('Final enhanced forms:', formsWithProducts);
         setEnhancedForms(formsWithProducts);
       } catch (error) {
         console.error('Error enhancing forms with products:', error);
@@ -162,11 +217,7 @@ const FormList: React.FC<FormListProps> = ({
       }
     };
     
-    if (!offlineMode) {
-      fetchProductAssociations();
-    } else {
-      setEnhancedForms(forms);
-    }
+    fetchProductAssociations();
   }, [forms, offlineMode]);
 
   const handlePublishToggle = async (formId: string, currentStatus: boolean) => {
@@ -248,47 +299,80 @@ const FormList: React.FC<FormListProps> = ({
         </div>
       )}
 
+      {/* Loading indicator for products */}
+      {isLoadingProducts && (
+        <div className="col-span-full">
+          <div className="flex items-center justify-center p-4 bg-blue-50 border border-blue-200 rounded-md mb-4">
+            <Loader2 className="h-4 w-4 animate-spin text-blue-600 mr-2" />
+            <span className="text-blue-800">جاري تحميل بيانات المنتجات المرتبطة...</span>
+          </div>
+        </div>
+      )}
+
       {displayForms.map((form) => (
         <Card key={form.id} className="overflow-hidden hover:shadow-md transition-shadow">
           <div className={`h-2 ${form.is_published ? 'bg-green-500' : 'bg-gray-300'}`}></div>
           <CardHeader className="pb-2">
             <div className="flex justify-between items-start">
-              <div>
+              <div className="flex-1">
                 <CardTitle className="text-lg truncate">
                   {form.title}
                 </CardTitle>
                 {/* Display associated products if any */}
-                {(form as any).associatedProducts && (form as any).associatedProducts.length > 0 && (
+                {form.associatedProducts && form.associatedProducts.length > 0 && (
                   <div className="mt-3 p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
                     <div className="flex items-center gap-2 mb-2">
                       <ShoppingBag className="h-4 w-4 text-blue-600" />
-                       <span className="text-sm font-semibold text-blue-800">
-                         مرتبط بـ {(form as any).associatedProducts.length} {(form as any).associatedProducts.length === 1 ? 'منتج' : 'منتجات'}
-                       </span>
-                     </div>
-                     <div className="flex flex-wrap gap-2">
-                       {(form as any).associatedProducts.slice(0, 3).map((product: any) => (
-                        <div key={product.id} className="flex items-center gap-2 bg-white rounded-md p-2 shadow-sm border">
-                          <img 
-                            src={product.image} 
-                            alt={product.title}
-                            className="w-8 h-8 rounded object-cover"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = '/placeholder.svg';
-                            }}
-                          />
-                          <span className="text-xs font-medium text-gray-700 truncate max-w-20">
-                            {product.title}
-                          </span>
-                        </div>
+                      <span className="text-sm font-semibold text-blue-800">
+                        مرتبط بـ {form.associatedProducts.length} {form.associatedProducts.length === 1 ? 'منتج' : 'منتجات'}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {form.associatedProducts.slice(0, 3).map((product) => (
+                        <TooltipProvider key={product.id}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="flex items-center gap-2 bg-white rounded-md p-2 shadow-sm border hover:shadow-md transition-shadow cursor-pointer">
+                                <img 
+                                  src={product.image} 
+                                  alt={product.title}
+                                  className="w-8 h-8 rounded object-cover"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src = '/placeholder.svg';
+                                  }}
+                                />
+                                <span className="text-xs font-medium text-gray-700 truncate max-w-20">
+                                  {product.title}
+                                </span>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="max-w-48 text-center">{product.title}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       ))}
-                       {(form as any).associatedProducts.length > 3 && (
-                         <div className="flex items-center justify-center bg-white rounded-md p-2 shadow-sm border">
-                           <span className="text-xs text-blue-600 font-medium">
-                             +{(form as any).associatedProducts.length - 3}
-                           </span>
-                         </div>
-                       )}
+                      {form.associatedProducts.length > 3 && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="flex items-center justify-center bg-white rounded-md p-2 shadow-sm border hover:shadow-md transition-shadow cursor-pointer">
+                                <span className="text-xs text-blue-600 font-medium">
+                                  +{form.associatedProducts.length - 3}
+                                </span>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <div className="max-w-64">
+                                <p className="font-semibold mb-2">المنتجات الإضافية:</p>
+                                {form.associatedProducts.slice(3).map((product) => (
+                                  <p key={product.id} className="text-sm">{product.title}</p>
+                                ))}
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
                     </div>
                   </div>
                 )}
@@ -317,15 +401,15 @@ const FormList: React.FC<FormListProps> = ({
                       </>
                     )}
                   </DropdownMenuItem>
-                   {(form as any).associatedProducts && (form as any).associatedProducts.length > 0 && (
-                     <>
-                       <DropdownMenuSeparator />
-                       <DropdownMenuItem className="text-blue-600">
-                         <Link className="mr-2 h-4 w-4" />
-                         <span>المنتجات المرتبطة ({(form as any).associatedProducts.length})</span>
-                       </DropdownMenuItem>
-                     </>
-                   )}
+                  {form.associatedProducts && form.associatedProducts.length > 0 && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem className="text-blue-600">
+                        <Link className="mr-2 h-4 w-4" />
+                        <span>المنتجات المرتبطة ({form.associatedProducts.length})</span>
+                      </DropdownMenuItem>
+                    </>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem 
                     onClick={() => setFormToDelete(form.id)}
