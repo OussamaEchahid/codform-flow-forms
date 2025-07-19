@@ -246,27 +246,48 @@ const FormList: React.FC<FormListProps> = ({
                 </CardTitle>
                 {/* Display associated products if any */}
                 {form.associatedProducts && form.associatedProducts.length > 0 && (
-                  <div className="flex items-center gap-1 mt-1 text-xs text-gray-600">
-                    <ShoppingBag className="h-3 w-3" />
+                  <div className="flex items-center gap-1 mt-1">
+                    <div className="flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 rounded-md text-xs">
+                      <ShoppingBag className="h-3 w-3" />
+                      <span className="font-medium">
+                        {form.associatedProducts.length} {form.associatedProducts.length === 1 ? 'منتج مرتبط' : 'منتجات مرتبطة'}
+                      </span>
+                    </div>
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <span>
-                            {form.associatedProducts.length} {form.associatedProducts.length === 1 ? 'منتج' : 'منتجات'}
-                          </span>
+                          <div className="cursor-help">
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {form.associatedProducts.slice(0, 2).map(product => (
+                                <span key={product.id} className="text-[10px] bg-gray-100 text-gray-600 px-1 py-0.5 rounded max-w-[80px] truncate">
+                                  {product.title}
+                                </span>
+                              ))}
+                              {form.associatedProducts.length > 2 && (
+                                <span className="text-[10px] bg-gray-100 text-gray-600 px-1 py-0.5 rounded">
+                                  +{form.associatedProducts.length - 2}
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </TooltipTrigger>
                         <TooltipContent>
                           <div className="max-w-xs">
-                            <p className="font-bold mb-1">المنتجات المرتبطة:</p>
+                            <p className="font-bold mb-1">جميع المنتجات المرتبطة:</p>
                             <ul className="list-disc list-inside space-y-1">
                               {form.associatedProducts.map(product => (
-                                <li key={product.id}>{product.title}</li>
+                                <li key={product.id} className="text-sm">{product.title}</li>
                               ))}
                             </ul>
                           </div>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
+                  </div>
+                )}
+                {(!form.associatedProducts || form.associatedProducts.length === 0) && (
+                  <div className="flex items-center gap-1 mt-1">
+                    <span className="text-xs text-gray-400 bg-gray-50 px-2 py-1 rounded">غير مرتبط بمنتجات</span>
                   </div>
                 )}
               </div>
