@@ -28,7 +28,7 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
   
   // Apply styles from field settings - USE DYNAMIC VALUES FROM FIELD.STYLE
   const fieldStyle = field.style || {};
-  const textColor = fieldStyle.color || '#000000';
+  const textColor = fieldStyle.color || 'hsl(var(--foreground))';
   const fontSize = fieldStyle.fontSize || '1.5rem';
   const fontWeight = fieldStyle.fontWeight || '700';
   const fontFamily = fieldStyle.fontFamily || 'Cairo, Tajawal, Arial, sans-serif';

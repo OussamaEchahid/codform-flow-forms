@@ -295,6 +295,39 @@ const FormList: React.FC<FormListProps> = ({
     }
   };
 
+  const handleRemoveProduct = async (formId: string, productId: string) => {
+    try {
+      const { error } = await supabase
+        .from('shopify_product_settings')
+        .delete()
+        .eq('form_id', formId)
+        .eq('product_id', productId);
+
+      if (error) {
+        console.error('❌ خطأ في إزالة المنتج:', error);
+        toast.error('فشل في إزالة المنتج من النموذج');
+        return;
+      }
+
+      toast.success('تم إزالة المنتج من النموذج بنجاح');
+      
+      // Update enhanced forms locally
+      setEnhancedForms(prevForms => 
+        prevForms.map(form => 
+          form.id === formId 
+            ? {
+                ...form,
+                associatedProducts: form.associatedProducts?.filter(p => p.id !== productId) || []
+              }
+            : form
+        )
+      );
+    } catch (error) {
+      console.error('❌ خطأ في إزالة المنتج:', error);
+      toast.error('فشل في إزالة المنتج من النموذج');
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center p-12">
@@ -402,15 +435,24 @@ const FormList: React.FC<FormListProps> = ({
                                     (e.target as HTMLImageElement).src = '/placeholder.svg';
                                   }}
                                 />
-                                <div className="flex flex-col">
-                                  <span className="text-xs font-medium text-gray-700 truncate max-w-20">
-                                    {product.title}
-                                  </span>
-                                  <span className="text-xs text-gray-500">
-                                    ID: {product.id}
-                                  </span>
-                                </div>
-                                <ExternalLink className="h-3 w-3 text-gray-400" />
+                                 <div className="flex flex-col">
+                                   <span className="text-xs font-medium text-gray-700 truncate max-w-20">
+                                     {product.title}
+                                   </span>
+                                   <span className="text-xs text-gray-500">
+                                     ID: {product.id}
+                                   </span>
+                                 </div>
+                                 <button
+                                   onClick={(e) => {
+                                     e.stopPropagation();
+                                     handleRemoveProduct(form.id, product.id);
+                                   }}
+                                   className="h-5 w-5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full flex items-center justify-center transition-colors"
+                                   title="إزالة المنتج من النموذج"
+                                 >
+                                   <Trash className="h-3 w-3" />
+                                 </button>
                               </div>
                             </TooltipTrigger>
                             <TooltipContent>
