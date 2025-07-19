@@ -1,6 +1,8 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { FormData } from '@/lib/hooks/useFormTemplates';
+import { FormStep } from '@/lib/form-utils';
+import { FormStyle } from '@/hooks/useFormStore';
 import { toast } from 'sonner';
 
 export class FormManagementService {
@@ -68,6 +70,8 @@ export class FormManagementService {
       // Transform data to match FormData interface
       const formattedData = data.map(form => ({
         ...form,
+        data: Array.isArray(form.data) ? form.data as unknown as FormStep[] : [],
+        style: (form.style as unknown as FormStyle) || undefined,
         isPublished: form.is_published
       }));
       
@@ -110,6 +114,8 @@ export class FormManagementService {
       // Transform data
       const updatedForm: FormData = {
         ...data,
+        data: Array.isArray(data.data) ? data.data as unknown as FormStep[] : [],
+        style: (data.style as unknown as FormStyle) || undefined,
         isPublished: data.is_published
       };
       
@@ -211,6 +217,8 @@ export class FormManagementService {
       // Transform data
       const updatedForm: FormData = {
         ...data,
+        data: Array.isArray(data.data) ? data.data as unknown as FormStep[] : [],
+        style: (data.style as unknown as FormStyle) || undefined,
         isPublished: data.is_published
       };
       
@@ -256,6 +264,8 @@ export class FormManagementService {
       // Format data for form state
       const formData: FormData = {
         ...data,
+        data: Array.isArray(data.data) ? data.data as unknown as FormStep[] : [],
+        style: (data.style as unknown as FormStyle) || undefined,
         isPublished: data.is_published
       };
       
