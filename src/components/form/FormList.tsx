@@ -328,6 +328,11 @@ const FormList: React.FC<FormListProps> = ({
     }
   };
 
+  const handleManageProducts = (formId: string) => {
+    // Navigate to Shopify product settings for this form
+    window.open(`/shopify-products?form=${formId}`, '_blank');
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center p-12">
@@ -504,6 +509,10 @@ const FormList: React.FC<FormListProps> = ({
                   <DropdownMenuItem onClick={() => onSelectForm(form.id)} disabled={isCurrentlyOperating}>
                     <Edit className="mr-2 h-4 w-4" />
                     <span>تعديل</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleManageProducts(form.id)} disabled={isCurrentlyOperating}>
+                    <ShoppingBag className="mr-2 h-4 w-4" />
+                    <span>إدارة المنتجات</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem 
                     onClick={() => handlePublishToggle(form.id, form.is_published)} 
