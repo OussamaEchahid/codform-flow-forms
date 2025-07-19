@@ -260,7 +260,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
       label: language === 'ar' ? 'نموذج جديد' : 'New Form',
       helpText: language === 'ar' ? 'نموذج جديد' : 'New Form',
       style: {
-        color: '#ffffff',
+        color: '#000000',
         textAlign: (language === 'ar' ? 'right' : 'left') as 'right' | 'left',
         fontWeight: 'bold',
         fontSize: '24px',

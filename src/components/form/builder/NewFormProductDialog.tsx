@@ -110,7 +110,7 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
       label: currentTexts.title,
       helpText: currentTexts.title,
       style: {
-        color: '#ffffff',
+        color: '#000000',
         textAlign: (lang === 'ar' ? 'right' : 'left') as 'right' | 'left',
         fontWeight: 'bold',
         fontSize: '24px',
