@@ -1,8 +1,9 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AppSidebar from '@/components/layout/AppSidebar';
 import { useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Table,
   TableBody,
@@ -112,6 +113,8 @@ const OrdersList = () => {
   const { user, shopifyConnected, shop } = useAuth();
   const { language } = useI18n();
   const [searchTerm, setSearchTerm] = useState('');
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
   
   // Allow access if either authenticated with user or connected with Shopify
   const hasAccess = !!user || shopifyConnected;
@@ -120,6 +123,31 @@ const OrdersList = () => {
   const localStorageConnected = localStorage.getItem('shopify_connected') === 'true';
   const actualHasAccess = hasAccess || localStorageConnected;
   const actualShop = shop || localStorage.getItem('shopify_store');
+
+  // Fetch orders from database
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('orders-management', {
+          body: { action: 'list-orders' }
+        });
+
+        if (error) {
+          console.error('Error fetching orders:', error);
+        } else {
+          setOrders(data?.orders || []);
+        }
+      } catch (error) {
+        console.error('Error fetching orders:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (actualHasAccess) {
+      fetchOrders();
+    }
+  }, [actualHasAccess]);
 
   if (!actualHasAccess) {
     return (
@@ -163,18 +191,21 @@ const OrdersList = () => {
     }
   };
 
+  // Use real orders or sample data as fallback
+  const ordersData = orders.length > 0 ? orders : sampleOrders;
+
   // Filter orders based on search term
-  const filteredOrders = sampleOrders.filter(order => 
-    order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    order.phone.includes(searchTerm)
+  const filteredOrders = ordersData.filter(order => 
+    (order.customer_name || order.customerName || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+    (order.order_number || order.id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (order.customer_phone || order.phone || '').includes(searchTerm)
   );
 
   // Summary counts for status cards
-  const pendingCount = sampleOrders.filter(order => order.status === 'pending').length;
-  const processingCount = sampleOrders.filter(order => order.status === 'processing').length;
-  const deliveredCount = sampleOrders.filter(order => order.status === 'delivered').length;
-  const cancelledCount = sampleOrders.filter(order => order.status === 'cancelled').length;
+  const pendingCount = ordersData.filter(order => order.status === 'pending').length;
+  const processingCount = ordersData.filter(order => order.status === 'processing').length;
+  const deliveredCount = ordersData.filter(order => order.status === 'delivered').length;
+  const cancelledCount = ordersData.filter(order => order.status === 'cancelled').length;
 
   return (
     <div className="flex min-h-screen bg-[#F8F9FB]">
@@ -326,12 +357,12 @@ const OrdersList = () => {
                 {filteredOrders.length > 0 ? (
                   filteredOrders.map((order) => (
                     <TableRow key={order.id} className="hover:bg-muted/30">
-                      <TableCell className="font-medium">{order.id}</TableCell>
-                      <TableCell>{order.customerName}</TableCell>
-                      <TableCell>{order.phone}</TableCell>
-                      <TableCell>{new Date(order.date).toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US')}</TableCell>
-                      <TableCell className="text-center">{order.items}</TableCell>
-                      <TableCell className="font-medium">{order.total}</TableCell>
+                      <TableCell className="font-medium">{order.order_number || order.id}</TableCell>
+                      <TableCell>{order.customer_name || order.customerName}</TableCell>
+                      <TableCell>{order.customer_phone || order.phone}</TableCell>
+                      <TableCell>{new Date(order.created_at || order.date).toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US')}</TableCell>
+                      <TableCell className="text-center">{Array.isArray(order.items) ? order.items.length : order.items || 0}</TableCell>
+                      <TableCell className="font-medium">{order.total_amount ? `${order.total_amount} ${order.currency}` : order.total}</TableCell>
                       <TableCell>{getStatusBadge(order.status)}</TableCell>
                       <TableCell>
                         <div className="flex justify-end gap-2">

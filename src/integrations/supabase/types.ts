@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      abandoned_carts: {
+        Row: {
+          cart_items: Json | null
+          created_at: string
+          currency: string | null
+          customer_email: string | null
+          customer_phone: string | null
+          form_id: string | null
+          id: string
+          last_activity: string | null
+          recovery_attempts: number | null
+          shop_id: string | null
+          total_value: number | null
+          updated_at: string
+        }
+        Insert: {
+          cart_items?: Json | null
+          created_at?: string
+          currency?: string | null
+          customer_email?: string | null
+          customer_phone?: string | null
+          form_id?: string | null
+          id?: string
+          last_activity?: string | null
+          recovery_attempts?: number | null
+          shop_id?: string | null
+          total_value?: number | null
+          updated_at?: string
+        }
+        Update: {
+          cart_items?: Json | null
+          created_at?: string
+          currency?: string | null
+          customer_email?: string | null
+          customer_phone?: string | null
+          form_id?: string | null
+          id?: string
+          last_activity?: string | null
+          recovery_attempts?: number | null
+          shop_id?: string | null
+          total_value?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       form_submissions: {
         Row: {
           created_at: string
@@ -82,6 +127,99 @@ export type Database = {
           title?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      google_sheets_configs: {
+        Row: {
+          created_at: string
+          enabled: boolean | null
+          id: string
+          sheet_id: string
+          sheet_name: string | null
+          shop_id: string | null
+          sync_orders: boolean | null
+          sync_submissions: boolean | null
+          updated_at: string
+          webhook_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean | null
+          id?: string
+          sheet_id: string
+          sheet_name?: string | null
+          shop_id?: string | null
+          sync_orders?: boolean | null
+          sync_submissions?: boolean | null
+          updated_at?: string
+          webhook_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean | null
+          id?: string
+          sheet_id?: string
+          sheet_name?: string | null
+          shop_id?: string | null
+          sync_orders?: boolean | null
+          sync_submissions?: boolean | null
+          updated_at?: string
+          webhook_url?: string | null
+        }
+        Relationships: []
+      }
+      orders: {
+        Row: {
+          billing_address: Json | null
+          created_at: string
+          currency: string | null
+          customer_email: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          form_id: string | null
+          id: string
+          items: Json | null
+          order_number: string
+          shipping_address: Json | null
+          shop_id: string | null
+          status: string | null
+          total_amount: number | null
+          updated_at: string
+        }
+        Insert: {
+          billing_address?: Json | null
+          created_at?: string
+          currency?: string | null
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          form_id?: string | null
+          id?: string
+          items?: Json | null
+          order_number: string
+          shipping_address?: Json | null
+          shop_id?: string | null
+          status?: string | null
+          total_amount?: number | null
+          updated_at?: string
+        }
+        Update: {
+          billing_address?: Json | null
+          created_at?: string
+          currency?: string | null
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          form_id?: string | null
+          id?: string
+          items?: Json | null
+          order_number?: string
+          shipping_address?: Json | null
+          shop_id?: string | null
+          status?: string | null
+          total_amount?: number | null
+          updated_at?: string
         }
         Relationships: []
       }

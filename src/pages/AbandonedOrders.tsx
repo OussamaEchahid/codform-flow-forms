@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AppSidebar from '@/components/layout/AppSidebar';
 import { useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Table,
   TableBody,
@@ -53,6 +54,8 @@ const AbandonedOrders = () => {
   const { user, shopifyConnected, shop } = useAuth();
   const { language } = useI18n();
   const [searchTerm, setSearchTerm] = useState('');
+  const [abandonedCarts, setAbandonedCarts] = useState([]);
+  const [loading, setLoading] = useState(true);
   
   // Allow access if either authenticated with user or connected with Shopify
   const hasAccess = !!user || shopifyConnected;
@@ -61,6 +64,31 @@ const AbandonedOrders = () => {
   const localStorageConnected = localStorage.getItem('shopify_connected') === 'true';
   const actualHasAccess = hasAccess || localStorageConnected;
   const actualShop = shop || localStorage.getItem('shopify_store');
+
+  // Fetch abandoned carts from database
+  useEffect(() => {
+    const fetchAbandonedCarts = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('abandoned-carts', {
+          body: { action: 'list-abandoned-carts' }
+        });
+
+        if (error) {
+          console.error('Error fetching abandoned carts:', error);
+        } else {
+          setAbandonedCarts(data?.carts || []);
+        }
+      } catch (error) {
+        console.error('Error fetching abandoned carts:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (actualHasAccess) {
+      fetchAbandonedCarts();
+    }
+  }, [actualHasAccess]);
 
   if (!actualHasAccess) {
     return (
@@ -92,10 +120,13 @@ const AbandonedOrders = () => {
     }
   };
 
+  // Use real data or fallback to sample data
+  const cartsData = abandonedCarts.length > 0 ? abandonedCarts : sampleAbandonedCarts;
+
   // Filter abandoned carts based on search term
-  const filteredCarts = sampleAbandonedCarts.filter(cart => 
-    cart.email.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    cart.id.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredCarts = cartsData.filter(cart => 
+    (cart.customer_email || cart.email || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+    (cart.id || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -143,7 +174,7 @@ const AbandonedOrders = () => {
               <p className="text-sm text-gray-500">
                 {language === 'ar' ? 'مجموع السلال المتروكة' : 'Total Abandoned Carts'}
               </p>
-              <h3 className="text-xl font-semibold">{sampleAbandonedCarts.length}</h3>
+              <h3 className="text-xl font-semibold">{cartsData.length}</h3>
             </div>
           </div>
           <div className="bg-white p-4 rounded-lg shadow flex items-center">
@@ -165,7 +196,7 @@ const AbandonedOrders = () => {
               <p className="text-sm text-gray-500">
                 {language === 'ar' ? 'فرص الاسترداد' : 'Recovery Opportunities'}
               </p>
-              <h3 className="text-xl font-semibold">{sampleAbandonedCarts.length}</h3>
+              <h3 className="text-xl font-semibold">{cartsData.length}</h3>
             </div>
           </div>
         </div>
@@ -197,14 +228,14 @@ const AbandonedOrders = () => {
                   filteredCarts.map((cart) => (
                     <TableRow key={cart.id} className="hover:bg-muted/30">
                       <TableCell className="font-medium">{cart.id}</TableCell>
-                      <TableCell>{cart.email}</TableCell>
+                      <TableCell>{cart.customer_email || cart.email}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className="bg-gray-50">
-                          {getTimeSince(cart.lastActivity)} {language === 'ar' ? 'مضت' : 'ago'}
+                          {getTimeSince(cart.last_activity || cart.lastActivity)} {language === 'ar' ? 'مضت' : 'ago'}
                         </Badge>
                       </TableCell>
-                      <TableCell>{cart.cartValue}</TableCell>
-                      <TableCell>{cart.items}</TableCell>
+                      <TableCell>{cart.total_value ? `${cart.total_value} ${cart.currency}` : cart.cartValue}</TableCell>
+                      <TableCell>{Array.isArray(cart.cart_items) ? cart.cart_items.length : cart.items}</TableCell>
                       <TableCell>
                         <Button variant="default" size="sm" className="bg-purple-600 hover:bg-purple-700">
                           {language === 'ar' ? 'استرداد' : 'Recover'}
