@@ -260,7 +260,7 @@ export const useFormTemplates = () => {
         fontSize: '24px',
         descriptionColor: '#000000',
         descriptionFontSize: '14px',
-        backgroundColor: '#ffffff',
+        backgroundColor: 'transparent',
       }
     });
     
