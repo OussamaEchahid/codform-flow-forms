@@ -194,6 +194,16 @@ export const createEmptyField = (type: string): FormField => {
   
   // Add default properties based on field type
   switch (type) {
+    case 'form-title':
+      field.label = 'عنوان النموذج';
+      field.style = {
+        color: '#000000', // أسود بدلاً من الأبيض
+        backgroundColor: 'transparent',
+        textAlign: 'center' as 'center',
+        fontSize: '24px',
+        fontWeight: 'bold'
+      };
+      break;
     case 'submit':
       field.label = 'Submit Form';
       field.style = {
