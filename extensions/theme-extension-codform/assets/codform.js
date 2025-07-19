@@ -223,6 +223,9 @@
     input.placeholder = field.placeholder || field.label || "";
     input.required = field.required || false;
     
+    // Set input name for form data collection
+    input.name = field.label || field.placeholder || `field_${Date.now()}`;
+    
     // INPUT USES THE SAME UNIFIED FONT SIZE
     input.style.cssText = `
       width: 100%;
@@ -276,6 +279,9 @@
     textarea.required = field.required || false;
     textarea.rows = 4;
     
+    // Set textarea name for form data collection
+    textarea.name = field.label || field.placeholder || `field_${Date.now()}`;
+    
     // TEXTAREA USES THE SAME UNIFIED FONT SIZE
     textarea.style.cssText = `
       width: 100%;
@@ -293,7 +299,7 @@
     return wrapper;
   }
   
-  // Create submit button
+  // Create submit button with form submission handling
   function createSubmitButton(field, primaryColor, defaultFontSize) {
     const wrapper = document.createElement("div");
     wrapper.style.cssText = "margin-bottom: 16px; width: 100%;";
@@ -323,6 +329,84 @@
     
     button.addEventListener('mouseenter', () => button.style.opacity = '0.9');
     button.addEventListener('mouseleave', () => button.style.opacity = '1');
+    
+    // Add form submission handler
+    button.addEventListener('click', async function(e) {
+      e.preventDefault();
+      
+      // Disable button during submission
+      button.disabled = true;
+      button.textContent = 'جاري الإرسال...';
+      
+      try {
+        // Collect form data
+        const form = button.closest('form');
+        const formData = new FormData(form);
+        const data = {};
+        
+        // Convert FormData to object
+        for (let [key, value] of formData.entries()) {
+          data[key] = value;
+        }
+        
+        // Get all input elements and collect their values
+        const inputs = form.querySelectorAll('input, textarea, select');
+        inputs.forEach(input => {
+          if (input.name || input.placeholder) {
+            const key = input.name || input.placeholder;
+            data[key] = input.value;
+          }
+        });
+        
+        // Get form ID from URL or form attributes
+        const urlParams = new URLSearchParams(window.location.search);
+        const formId = urlParams.get('form_id') || form.dataset.formId;
+        
+        if (!formId) {
+          throw new Error('معرف النموذج غير موجود');
+        }
+        
+        // Submit data
+        const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/api-submissions?formId=${formId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M'
+          },
+          body: JSON.stringify({
+            formData: data,
+            shopDomain: window.location.hostname
+          })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          // Show success message
+          button.textContent = 'تم الإرسال بنجاح!';
+          button.style.backgroundColor = '#10b981';
+          
+          // Redirect to thank you page after 2 seconds
+          setTimeout(() => {
+            window.location.href = result.redirect || '/thank-you';
+          }, 2000);
+        } else {
+          throw new Error(result.error || 'حدث خطأ أثناء الإرسال');
+        }
+        
+      } catch (error) {
+        console.error('Form submission error:', error);
+        button.textContent = 'حدث خطأ - أعد المحاولة';
+        button.style.backgroundColor = '#ef4444';
+        button.disabled = false;
+        
+        // Reset button after 3 seconds
+        setTimeout(() => {
+          button.textContent = field.label || "إرسال";
+          button.style.backgroundColor = buttonBg;
+        }, 3000);
+      }
+    });
     
     wrapper.appendChild(button);
     return wrapper;

@@ -21,6 +21,7 @@ import AbandonedOrders from '@/pages/AbandonedOrders';
 import OrdersChannels from '@/pages/OrdersChannels';
 import FormBuilderPage from '@/pages/FormBuilderPage';
 import Auth from '@/pages/Auth';
+import ThankYou from '@/pages/ThankYou';
 
 export const routes: RouteObject[] = [
   {
@@ -103,6 +104,10 @@ export const routes: RouteObject[] = [
   {
     path: '/shopify-sync',
     Component: ShopifySync,
+  },
+  {
+    path: '/thank-you',
+    Component: ThankYou,
   },
   {
     path: '*',

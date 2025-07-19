@@ -35,28 +35,79 @@ serve(async (req: Request) => {
     const shopDomain = requestData.shopDomain || '';
     
     // Store submission in database
-    const { data, error } = await supabase
+    const { data: submissionData, error: submissionError } = await supabase
       .from('form_submissions')
       .insert({
         form_id: formId,
         shop_id: shopDomain,
         data: requestData,
         status: 'submitted'
-      });
+      })
+      .select()
+      .single();
 
-    if (error) {
-      console.error('Error storing submission:', error);
+    if (submissionError) {
+      console.error('Error storing submission:', submissionError);
       return new Response(
-        JSON.stringify({ error: 'Failed to store submission', details: error }),
+        JSON.stringify({ error: 'Failed to store submission', details: submissionError }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
 
-    // Return success
+    // Create order from form submission
+    try {
+      const formData = requestData.formData || requestData;
+      
+      // Extract customer information
+      const customerName = formData.name || formData.customerName || formData['الاسم'] || 'غير محدد';
+      const customerEmail = formData.email || formData.customerEmail || formData['البريد الإلكتروني'] || '';
+      const customerPhone = formData.phone || formData.customerPhone || formData['رقم الهاتف'] || '';
+      
+      // Calculate total (can be enhanced based on form data)
+      const totalAmount = formData.total || formData.amount || 0;
+      
+      // Generate order number
+      const orderNumber = `ORD-${Date.now()}`;
+      
+      // Create order
+      const { data: orderData, error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          order_number: orderNumber,
+          customer_name: customerName,
+          customer_email: customerEmail,
+          customer_phone: customerPhone,
+          total_amount: totalAmount,
+          currency: 'SAR',
+          status: 'pending',
+          items: formData.items || [],
+          shipping_address: formData.shippingAddress || {},
+          billing_address: formData.billingAddress || {},
+          form_id: formId,
+          shop_id: shopDomain
+        })
+        .select()
+        .single();
+
+      if (orderError) {
+        console.error('Error creating order:', orderError);
+        // Continue even if order creation fails, as submission was successful
+      } else {
+        console.log('Order created successfully:', orderData.order_number);
+      }
+
+    } catch (orderCreationError) {
+      console.error('Error in order creation process:', orderCreationError);
+      // Continue even if order creation fails
+    }
+
+    // Return success with redirect URL
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: 'Submission received successfully' 
+        message: 'تم إرسال طلبكم بنجاح',
+        submissionId: submissionData.id,
+        redirect: '/thank-you'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
