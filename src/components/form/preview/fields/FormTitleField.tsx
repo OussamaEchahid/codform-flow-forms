@@ -28,7 +28,8 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
   
   // Apply styles from field settings - USE DYNAMIC VALUES FROM FIELD.STYLE
   const fieldStyle = field.style || {};
-  const textColor = fieldStyle.color || 'hsl(var(--foreground))';
+  // FIXED: استخدام اللون الأسود كافتراضي بدلاً من hsl(var(--foreground))
+  const textColor = fieldStyle.color || '#000000';
   const fontSize = fieldStyle.fontSize || '1.5rem';
   const fontWeight = fieldStyle.fontWeight || '700';
   const fontFamily = fieldStyle.fontFamily || 'Cairo, Tajawal, Arial, sans-serif';
@@ -42,7 +43,7 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
   const paddingLeft = fieldStyle.paddingLeft || '0px';
   const paddingRight = fieldStyle.paddingRight || '0px';
 
-  // Clean title style with proper centering
+  // Clean title style with proper centering and BLACK default color
   const titleStyle: React.CSSProperties = {
     color: textColor,
     fontSize: fontSize,
@@ -63,13 +64,14 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
     border: 'none',
   };
 
-  console.log('FormTitleField CENTERED RENDERING:', {
+  console.log('FormTitleField - FIXED BLACK COLOR:', {
     titleText,
-    textColor,
+    textColor: textColor, // يجب أن يكون #000000 للنماذج الجديدة
     fontSize,
     fontWeight,
     textAlign: 'center',
-    fieldStyle: fieldStyle
+    fieldStyle: fieldStyle,
+    isDefaultBlackColor: textColor === '#000000'
   });
 
   return (
@@ -80,6 +82,7 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
       data-field-id={field.id}
       data-text-align="center"
       data-clean-title="true"
+      data-text-color={textColor}
     >
       {titleText}
     </div>

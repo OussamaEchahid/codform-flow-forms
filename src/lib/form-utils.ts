@@ -196,13 +196,16 @@ export const createEmptyField = (type: string): FormField => {
   switch (type) {
     case 'form-title':
       field.label = 'عنوان النموذج';
+      field.content = 'عنوان النموذج'; // إضافة content أيضاً
       field.style = {
-        color: '#000000', // أسود بدلاً من الأبيض
+        color: '#000000', // FIXED: أسود مضمون للنماذج الجديدة
         backgroundColor: 'transparent',
         textAlign: 'center' as 'center',
         fontSize: '24px',
-        fontWeight: 'bold'
+        fontWeight: 'bold',
+        fontFamily: 'Cairo, Tajawal, Arial, sans-serif'
       };
+      console.log('Creating form-title field with BLACK color:', field.style.color);
       break;
     case 'submit':
       field.label = 'Submit Form';
@@ -221,8 +224,35 @@ export const createEmptyField = (type: string): FormField => {
   return field;
 };
 
+// Helper function to ensure new forms always have black titles
+export const ensureBlackTitleForNewForm = (steps: FormStep[]): FormStep[] => {
+  return steps.map(step => ({
+    ...step,
+    fields: step.fields.map(field => {
+      if (field.type === 'form-title') {
+        console.log('Ensuring BLACK color for form-title field:', field.id);
+        return {
+          ...field,
+          style: {
+            ...field.style,
+            color: '#000000', // Force black color
+            backgroundColor: 'transparent',
+            textAlign: 'center' as 'center',
+            fontSize: field.style?.fontSize || '24px',
+            fontWeight: field.style?.fontWeight || 'bold',
+            fontFamily: field.style?.fontFamily || 'Cairo, Tajawal, Arial, sans-serif'
+          }
+        };
+      }
+      return field;
+    })
+  }));
+};
+
+// Updated createDefaultForm to use the helper
 export const createDefaultForm = (): FormStep[] => {
-  return [
+  console.log('Creating new default form with GUARANTEED BLACK title');
+  const defaultSteps = [
     {
       id: '1',
       title: 'Step 1',
@@ -233,6 +263,8 @@ export const createDefaultForm = (): FormStep[] => {
       ]
     }
   ];
+  
+  return ensureBlackTitleForNewForm(defaultSteps);
 };
 
 // Add basic form templates
