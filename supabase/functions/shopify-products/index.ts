@@ -22,6 +22,7 @@ interface RequestParams {
   forceRefresh?: boolean;
   includeTestProducts?: boolean;
   accessToken?: string;
+  productIds?: string[];
 }
 
 serve(async (req: Request) => {
@@ -40,15 +41,17 @@ serve(async (req: Request) => {
     let forceRefresh = url.searchParams.get('forceRefresh') === 'true';
     let includeTestProducts = url.searchParams.get('includeTestProducts') === 'true';
     let accessToken: string | undefined = undefined;
+    let productIds: string[] | undefined = undefined;
     
     // If not in query params, try to get from request body
-    if (!shop) {
+    if (!shop || req.method === 'POST') {
       try {
         const body = await req.json() as RequestParams;
-        shop = body.shop;
+        shop = body.shop || shop;
         forceRefresh = body.forceRefresh || false;
         includeTestProducts = body.includeTestProducts || false;
-        accessToken = body.accessToken; // Allow passing access token directly for testing
+        accessToken = body.accessToken;
+        productIds = body.productIds;
       } catch (err) {
         console.error(`[${requestId}] Error parsing request body:`, err);
       }
@@ -142,8 +145,17 @@ serve(async (req: Request) => {
     
     // Fetch products from Shopify API
     try {
-      // Make sure to use the latest API version for best compatibility
-      const shopifyResponse = await fetch(`https://${shop}/admin/api/2024-04/products.json?limit=250&status=active`, {
+      let apiUrl;
+      if (productIds && productIds.length > 0) {
+        // Fetch specific products by IDs
+        const idsQuery = productIds.map(id => `ids=${id}`).join('&');
+        apiUrl = `https://${shop}/admin/api/2024-04/products.json?${idsQuery}&status=any`;
+      } else {
+        // Fetch all active products
+        apiUrl = `https://${shop}/admin/api/2024-04/products.json?limit=250&status=active`;
+      }
+      
+      const shopifyResponse = await fetch(apiUrl, {
         headers: {
           'X-Shopify-Access-Token': accessToken,
           'Content-Type': 'application/json'
@@ -168,6 +180,9 @@ serve(async (req: Request) => {
         const images = product.images && product.images.length > 0 ? 
           product.images.map((img: any) => img.src) : [];
         
+        // Get featured image
+        const featuredImage = product.image?.src || (images.length > 0 ? images[0] : null);
+        
         // Process variants
         const variants = product.variants && product.variants.length > 0 ?
           product.variants.map((variant: any) => ({
@@ -188,6 +203,7 @@ serve(async (req: Request) => {
           tags: product.tags,
           price: product.variants && product.variants.length > 0 ? product.variants[0].price : '0',
           images: images,
+          featuredImage: featuredImage,
           variants: variants
         };
       });

@@ -82,6 +82,7 @@ const FormList: React.FC<FormListProps> = ({
           
         if (error) {
           console.error('Error fetching product settings:', error);
+          setEnhancedForms(forms);
           return;
         }
         
@@ -97,41 +98,54 @@ const FormList: React.FC<FormListProps> = ({
         // Fetch product details for all product IDs
         const allProductIds = productSettings?.map(s => s.product_id) || [];
         if (allProductIds.length === 0) {
-          // No products to fetch, just set the forms as is
           setEnhancedForms(forms);
           return;
         }
         
-        // Fetch product details from cached products table
         const shopId = localStorage.getItem('shopify_store');
         if (!shopId) {
           console.error('No shop ID found in localStorage');
+          setEnhancedForms(forms);
           return;
         }
         
-        // Skip cached products query since table doesn't exist
-        const cachedProducts = null;
-          
-        // Map the products to forms
-        const productsMap = new Map<string, { id: string; title: string }>();
+        // Fetch product details from Shopify API
+        const productsMap = new Map<string, { id: string; title: string; image: string }>();
         
-        if (cachedProducts?.products) {
-          const shopifyProducts = cachedProducts.products as ShopifyProduct[];
-          shopifyProducts.forEach(product => {
-            if (allProductIds.includes(product.id)) {
-              productsMap.set(product.id, { 
-                id: product.id,
-                title: product.title
+        try {
+          const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-products`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M`
+            },
+            body: JSON.stringify({
+              shop: shopId,
+              productIds: allProductIds
+            })
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.products) {
+              data.products.forEach((product: any) => {
+                productsMap.set(product.id, {
+                  id: product.id,
+                  title: product.title,
+                  image: product.featuredImage || (product.images && product.images[0]) || '/placeholder.svg'
+                });
               });
             }
-          });
+          }
+        } catch (fetchError) {
+          console.error('Error fetching product details:', fetchError);
         }
         
         // Enhance the forms with associated products
         const formsWithProducts = forms.map(form => {
           const productIds = productsByForm[form.id] || [];
           const associatedProducts = productIds.map(id => productsMap.get(id))
-            .filter(p => p !== undefined) as { id: string; title: string }[];
+            .filter(p => p !== undefined) as { id: string; title: string; image: string }[];
             
           return {
             ...form,
@@ -142,7 +156,7 @@ const FormList: React.FC<FormListProps> = ({
         setEnhancedForms(formsWithProducts);
       } catch (error) {
         console.error('Error enhancing forms with products:', error);
-        setEnhancedForms(forms); // Fallback to original forms
+        setEnhancedForms(forms);
       } finally {
         setIsLoadingProducts(false);
       }
@@ -151,7 +165,6 @@ const FormList: React.FC<FormListProps> = ({
     if (!offlineMode) {
       fetchProductAssociations();
     } else {
-      // In offline mode, just use the forms as is
       setEnhancedForms(forms);
     }
   }, [forms, offlineMode]);
@@ -246,22 +259,34 @@ const FormList: React.FC<FormListProps> = ({
                 </CardTitle>
                 {/* Display associated products if any */}
                 {form.associatedProducts && form.associatedProducts.length > 0 && (
-                  <div className="mt-2 p-2 bg-blue-50 rounded-md border border-blue-200">
-                    <div className="flex items-center gap-2 mb-1">
+                  <div className="mt-3 p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
+                    <div className="flex items-center gap-2 mb-2">
                       <ShoppingBag className="h-4 w-4 text-blue-600" />
-                      <span className="text-sm font-medium text-blue-800">
+                      <span className="text-sm font-semibold text-blue-800">
                         مرتبط بـ {form.associatedProducts.length} {form.associatedProducts.length === 1 ? 'منتج' : 'منتجات'}
                       </span>
                     </div>
-                    <div className="space-y-1">
-                      {form.associatedProducts.slice(0, 2).map(product => (
-                        <div key={product.id} className="text-xs text-blue-700 truncate">
-                          • {product.title}
+                    <div className="flex flex-wrap gap-2">
+                      {form.associatedProducts.slice(0, 3).map(product => (
+                        <div key={product.id} className="flex items-center gap-2 bg-white rounded-md p-2 shadow-sm border">
+                          <img 
+                            src={product.image} 
+                            alt={product.title}
+                            className="w-8 h-8 rounded object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = '/placeholder.svg';
+                            }}
+                          />
+                          <span className="text-xs font-medium text-gray-700 truncate max-w-20">
+                            {product.title}
+                          </span>
                         </div>
                       ))}
-                      {form.associatedProducts.length > 2 && (
-                        <div className="text-xs text-blue-600 italic">
-                          و {form.associatedProducts.length - 2} منتجات أخرى...
+                      {form.associatedProducts.length > 3 && (
+                        <div className="flex items-center justify-center bg-white rounded-md p-2 shadow-sm border">
+                          <span className="text-xs text-blue-600 font-medium">
+                            +{form.associatedProducts.length - 3}
+                          </span>
                         </div>
                       )}
                     </div>

@@ -20,6 +20,7 @@ export interface FormData {
   associatedProducts?: Array<{
     id: string;
     title: string;
+    image: string;
   }>;
 }
 
