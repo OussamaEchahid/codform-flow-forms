@@ -333,6 +333,7 @@
     // Add form submission handler
     button.addEventListener('click', async function(e) {
       e.preventDefault();
+      console.log('🚀 Form submission started...');
       
       // Disable button during submission
       button.disabled = true;
@@ -358,15 +359,21 @@
           }
         });
         
-        // Get form ID from URL or form attributes
+        // Get form ID from URL, form attributes, or use a default
         const urlParams = new URLSearchParams(window.location.search);
-        const formId = urlParams.get('form_id') || form.dataset.formId;
+        let formId = urlParams.get('form_id') || form.dataset.formId;
         
+        // If no form ID found, try to get it from window/global variables or use default
         if (!formId) {
-          throw new Error('معرف النموذج غير موجود');
+          formId = window.codformId || window.CODFORM_FORM_ID || 'default-form';
+          console.log('🔧 استخدام معرف النموذج الافتراضي:', formId);
         }
         
+        console.log('📋 Form data collected:', data);
+        console.log('🆔 Using form ID:', formId);
+        
         // Submit data
+        console.log('🌐 Sending request to API...');
         const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/api-submissions?formId=${formId}`, {
           method: 'POST',
           headers: {
@@ -380,6 +387,7 @@
         });
         
         const result = await response.json();
+        console.log('📝 Response received:', result);
         
         if (result.success) {
           // Show success message
@@ -395,7 +403,12 @@
         }
         
       } catch (error) {
-        console.error('Form submission error:', error);
+        console.error('❌ Form submission error:', error);
+        console.error('❌ Error details:', {
+          message: error.message,
+          stack: error.stack,
+          name: error.name
+        });
         button.textContent = 'حدث خطأ - أعد المحاولة';
         button.style.backgroundColor = '#ef4444';
         button.disabled = false;

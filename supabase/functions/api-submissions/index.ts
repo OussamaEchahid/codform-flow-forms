@@ -32,17 +32,25 @@ serve(async (req: Request) => {
 
     // Parse request body
     const requestData = await req.json();
+    console.log('📝 Request data received:', JSON.stringify(requestData, null, 2));
+    
     const shopDomain = requestData.shopDomain || '';
+    console.log('🏪 Shop domain:', shopDomain);
     
     // Store submission in database
+    console.log('💾 Storing submission with formId:', formId, 'shopDomain:', shopDomain);
+    
+    const submissionRecord = {
+      form_id: formId,
+      shop_id: shopDomain,
+      data: requestData
+    };
+    
+    console.log('📋 Submission record:', JSON.stringify(submissionRecord, null, 2));
+    
     const { data: submissionData, error: submissionError } = await supabase
       .from('form_submissions')
-      .insert({
-        form_id: formId,
-        shop_id: shopDomain,
-        data: requestData,
-        status: 'submitted'
-      })
+      .insert(submissionRecord)
       .select()
       .single();
 
