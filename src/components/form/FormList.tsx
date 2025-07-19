@@ -44,6 +44,14 @@ interface FormListProps {
   retryCount?: number;
 }
 
+interface EnhancedFormData extends FormData {
+  associatedProducts?: Array<{
+    id: string;
+    title: string;
+    image: string;
+  }>;
+}
+
 const FormList: React.FC<FormListProps> = ({ 
   forms, 
   isLoading, 
@@ -54,7 +62,7 @@ const FormList: React.FC<FormListProps> = ({
 }) => {
   const [formToDelete, setFormToDelete] = useState<string | null>(null);
   const { publishForm, deleteForm } = useFormTemplates();
-  const [enhancedForms, setEnhancedForms] = useState<FormData[]>([]);
+  const [enhancedForms, setEnhancedForms] = useState<EnhancedFormData[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
   const [retryAttempts, setRetryAttempts] = useState(0);
 
@@ -122,7 +130,7 @@ const FormList: React.FC<FormListProps> = ({
         }
         
         // Fetch product details from Shopify API via our edge function
-        const productsMap = new Map<string, { id: string; title: string; image: string; handle?: string }>();
+        const productsMap = new Map<string, { id: string; title: string; image: string }>();
         
         try {
           console.log('🚀 استدعاء edge function مع:', { shop: shopId, productIds: allProductIds });
@@ -166,15 +174,13 @@ const FormList: React.FC<FormListProps> = ({
                   originalId, 
                   cleanId, 
                   title: product.title, 
-                  image: imageUrl,
-                  handle: product.handle
+                  image: imageUrl
                 });
                 
                 const productData = {
                   id: cleanId,
                   title: product.title || `منتج ${cleanId}`,
-                  image: imageUrl,
-                  handle: product.handle || ''
+                  image: imageUrl
                 };
                 
                 // حفظ البيانات بكلا المعرفين
@@ -205,8 +211,7 @@ const FormList: React.FC<FormListProps> = ({
               return {
                 id: String(id).replace('gid://shopify/Product/', ''),
                 title: `منتج ${String(id).replace('gid://shopify/Product/', '')}`,
-                image: '/placeholder.svg',
-                handle: ''
+                image: '/placeholder.svg'
               };
             }
             return product;
@@ -322,7 +327,9 @@ const FormList: React.FC<FormListProps> = ({
         </div>
       )}
 
-      {displayForms.map((form) => (
+      {displayForms.map((form) => {
+        console.log('🎨 عرض النموذج:', form.id, 'منتجات مرتبطة:', form.associatedProducts?.length || 0);
+        return (
         <Card key={form.id} className="overflow-hidden hover:shadow-md transition-shadow">
           <div className={`h-2 ${form.is_published ? 'bg-green-500' : 'bg-gray-300'}`}></div>
           <CardHeader className="pb-2">
@@ -465,7 +472,8 @@ const FormList: React.FC<FormListProps> = ({
             </Button>
           </CardFooter>
         </Card>
-      ))}
+        );
+      })}
 
       <AlertDialog open={!!formToDelete} onOpenChange={(open) => !open && setFormToDelete(null)}>
         <AlertDialogContent>
