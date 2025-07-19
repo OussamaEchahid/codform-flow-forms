@@ -17,12 +17,13 @@ import {
   TableRow 
 } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Plus, Trash2, Edit, Copy, FileCheck, Eye, ShoppingCart, Package, RefreshCw, CloudOff } from 'lucide-react';
+import { Plus, Trash2, Edit, Copy, FileCheck, Eye, ShoppingCart, Package, RefreshCw, CloudOff, ShoppingBag } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import NewFormProductDialog from './NewFormProductDialog';
+import ProductManagementModal from '../ProductManagementModal';
 
 interface FormBuilderDashboardProps {
   initialForms?: any[];
@@ -49,6 +50,10 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
   const [formList, setFormList] = useState(initialForms.length > 0 ? initialForms : forms);
   const [isInitialized, setIsInitialized] = useState(false);
   const [isNewFormDialogOpen, setIsNewFormDialogOpen] = useState(false);
+  
+  // Product management modal state
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const [selectedFormForProducts, setSelectedFormForProducts] = useState<{ id: string; title: string } | null>(null);
   
   // Fetch forms data only once on initial load or when forceRefresh changes
   const initializeData = useCallback(async () => {
@@ -168,6 +173,20 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
       onRetryConnection();
       toast.info(language === 'ar' ? 'جاري محاولة الاتصال بالخادم...' : 'Attempting to connect to server...');
     }
+  };
+
+  const handleManageProducts = (formId: string, formTitle: string) => {
+    console.log('🔍 تم النقر على زر إدارة المنتجات:', { formId, formTitle });
+    setSelectedFormForProducts({ id: formId, title: formTitle });
+    setIsProductModalOpen(true);
+    console.log('✅ تم فتح المودال بنجاح');
+  };
+
+  const handleCloseProductModal = () => {
+    setIsProductModalOpen(false);
+    setSelectedFormForProducts(null);
+    // Refresh product counts after closing modal
+    fetchProductCounts();
   };
   
   if (isLoading) {
@@ -312,6 +331,15 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
                       <Button
                         variant="ghost"
                         size="icon"
+                        onClick={() => handleManageProducts(form.id, form.title)}
+                        title={language === 'ar' ? 'إدارة المنتجات' : 'Manage Products'}
+                      >
+                        <ShoppingBag size={16} />
+                      </Button>
+                      
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         asChild
                       >
                         <Link to={`/form-builder/${form.id}`}>
@@ -388,6 +416,16 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
         open={isNewFormDialogOpen} 
         onClose={() => setIsNewFormDialogOpen(false)} 
       />
+
+      {/* Product Management Modal */}
+      {selectedFormForProducts && (
+        <ProductManagementModal
+          isOpen={isProductModalOpen}
+          onClose={handleCloseProductModal}
+          formId={selectedFormForProducts.id}
+          formTitle={selectedFormForProducts.title}
+        />
+      )}
     </div>
   );
 };
