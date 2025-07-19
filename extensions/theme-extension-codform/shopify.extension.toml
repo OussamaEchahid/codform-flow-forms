@@ -10,7 +10,8 @@ key = "settings"
 [[blocks]]
 name = "نموذج الدفع عند الاستلام"
 handle = "codform_form"
-type = "app"
+type = "product"
+target = "section"
 
 [settings]
 # Global extension settings
