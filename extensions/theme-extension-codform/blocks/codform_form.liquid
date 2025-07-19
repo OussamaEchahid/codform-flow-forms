@@ -496,9 +496,15 @@ function createTextarea(field, direction, primaryColor, formStyle = {}) {
     label.className = "block mb-2";
     label.textContent = field.label;
 
+    // تحويل حجم الخط من rem إلى px للـ label إذا لزم الأمر - إصلاح حقل العنوان
+    let labelFontSize = fieldStyle.labelFontSize || formStyles.fontSize || '16px';
+    if (labelFontSize.includes('rem')) {
+      labelFontSize = (parseFloat(labelFontSize) * 16) + 'px';
+    }
+    
     label.style.cssText = `
       color: ${fieldStyle.labelColor || '#333333'};
-      font-size: ${fieldStyle.labelFontSize || formStyles.fontSize || '16px'};
+      font-size: ${labelFontSize};
       font-weight: ${fieldStyle.labelFontWeight || '600'};
       font-family: 'Cairo', sans-serif;
       margin-bottom: 8px;

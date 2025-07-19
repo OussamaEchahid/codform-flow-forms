@@ -254,13 +254,13 @@ export const useFormTemplates = () => {
       label: language === 'ar' ? 'نموذج جديد' : 'New Form',
       helpText: language === 'ar' ? 'نموذج جديد' : 'New Form',
       style: {
-        color: '#ffffff',
+        color: '#000000',
         textAlign: language === 'ar' ? 'right' : 'left',
         fontWeight: 'bold',
         fontSize: '24px',
-        descriptionColor: '#ffffff',
+        descriptionColor: '#000000',
         descriptionFontSize: '14px',
-        backgroundColor: '#9b87f5',
+        backgroundColor: '#ffffff',
       }
     });
     
