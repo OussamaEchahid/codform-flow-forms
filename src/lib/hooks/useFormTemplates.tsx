@@ -82,91 +82,6 @@ export const useFormTemplates = () => {
     }
   }, []);
 
-  // Create a default form for new shops with English language
-  const createDefaultFormForShop = async (shopId: string) => {
-    try {
-      const defaultFormId = uuidv4();
-      const defaultFormData = {
-        id: defaultFormId,
-        title: 'Customer Order Form',
-        description: 'Default customer information form',
-        data: [{ 
-          id: '1', 
-          title: 'Customer Information',
-          fields: [
-            {
-              type: 'form-title',
-              id: uuidv4(),
-              label: 'Customer Order Form',
-              helpText: 'Please fill out your information',
-              style: {
-                color: '#000000',
-                textAlign: 'left',
-                fontWeight: 'bold',
-                fontSize: '24px',
-                descriptionColor: '#000000',
-                descriptionFontSize: '14px',
-                backgroundColor: 'transparent',
-              }
-            },
-            {
-              type: 'text',
-              id: uuidv4(),
-              label: 'Full Name',
-              placeholder: 'Enter your full name',
-              required: true,
-              icon: 'user',
-            },
-            {
-              type: 'phone',
-              id: uuidv4(),
-              label: 'Phone Number',
-              placeholder: 'Enter your phone number',
-              required: true,
-              icon: 'phone',
-            },
-            {
-              type: 'textarea',
-              id: uuidv4(),
-              label: 'Address',
-              placeholder: 'Enter your full address',
-              required: true,
-            },
-            {
-              type: 'submit',
-              id: uuidv4(),
-              label: 'Submit Order',
-              style: {
-                backgroundColor: '#9b87f5',
-                color: '#ffffff',
-                fontSize: '18px',
-                animation: true,
-                animationType: 'pulse',
-              },
-            }
-          ]
-        }],
-        is_published: false,
-        shop_id: shopId,
-        user_id: user?.id || 'anonymous'
-      };
-
-      const { error } = await supabase
-        .from('forms')
-        .insert(defaultFormData);
-
-      if (error) {
-        console.error('Error creating default form:', error);
-        return null;
-      }
-
-      return defaultFormData;
-    } catch (error) {
-      console.error('Error creating default form for shop:', error);
-      return null;
-    }
-  };
-
   // Fetch all forms with retry logic
   const fetchForms = async () => {
     try {
@@ -212,18 +127,6 @@ export const useFormTemplates = () => {
           ...form,
           isPublished: form.is_published
         }));
-
-        // If no forms exist for this shop, create a default one
-        if (formattedData.length === 0) {
-          console.log('No forms found for shop, creating default form');
-          const defaultForm = await createDefaultFormForShop(shopId);
-          if (defaultForm) {
-            formattedData.push({
-              ...defaultForm,
-              isPublished: defaultForm.is_published
-            });
-          }
-        }
         
         // Cache forms for offline use
         localStorage.setItem('cached_forms', JSON.stringify(formattedData));
@@ -650,33 +553,22 @@ export const useFormTemplates = () => {
     try {
       setIsLoading(true);
       
-      // Step 1: Remove all product associations first with retry
+      // Step 1: First remove product associations (disable rather than delete) with retry
       try {
-        // First disable all product associations
-        const { error: productError } = await fetchWithRetry(async () => {
-          return await supabase
-            .from('shopify_product_settings')
-            .delete()
-            .eq('form_id', formId);
+        // Make a request to the DELETE endpoint with retry logic
+        await fetchWithRetry(async () => {
+          const response = await fetch(`/api/shopify/product-settings?formId=${formId}`, {
+            method: 'DELETE',
+          });
+          
+          if (!response.ok) {
+            throw new Error('Failed to remove product associations');
+          }
+          
+          return { ok: true };
         });
-        
-        if (productError) {
-          console.warn('Error removing product associations:', productError);
-        }
-        
-        // Also remove form insertion settings
-        const { error: insertionError } = await fetchWithRetry(async () => {
-          return await supabase
-            .from('shopify_form_insertion')
-            .delete()
-            .eq('form_id', formId);
-        });
-        
-        if (insertionError) {
-          console.warn('Error removing form insertion settings:', insertionError);
-        }
       } catch (error) {
-        console.warn('Error removing form associations:', error);
+        console.warn('Error removing product associations:', error);
         // Continue with deletion even if this step fails
       }
       
@@ -691,7 +583,14 @@ export const useFormTemplates = () => {
         
         if (error) {
           console.error('Error deleting form:', error);
-          toast.error('خطأ في حذف النموذج');
+          
+          // If error contains foreign key constraint message, try to show a more helpful error
+          if (error.message?.includes('foreign key constraint')) {
+            toast.error('لا يمكن حذف هذا النموذج لأنه مرتبط بمنتجات. قم بإلغاء ارتباط المنتجات أولاً.');
+          } else {
+            toast.error('خطأ في حذف النموذج');
+          }
+          
           setIsLoading(false);
           return false;
         }
