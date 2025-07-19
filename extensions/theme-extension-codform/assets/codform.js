@@ -453,4 +453,265 @@
   console.log("✅ renderCodform function exposed globally:", typeof window?.renderCodform);
   console.log("🎯 Codform JS loaded successfully");
   
+  // ========= SHOPIFY FORM INTEGRATION =========
+  // This section handles existing forms in Shopify pages
+  console.log("🔍 Setting up Shopify form integration...");
+  
+  // Function to setup form submission for existing buttons
+  function setupShopifyFormSubmission() {
+    console.log("🎯 Looking for existing submit buttons...");
+    
+    // Find all potential submit buttons on the page
+    const allButtons = document.querySelectorAll(`
+      button[type="submit"],
+      input[type="submit"],
+      button:not([type]),
+      .btn,
+      .button,
+      [class*="submit"],
+      [class*="order"],
+      [class*="checkout"]
+    `.replace(/\s+/g, ''));
+    
+    console.log(`🔍 Found ${allButtons.length} potential buttons`);
+    
+    // Filter buttons that likely are submit/order buttons
+    const submitButtons = Array.from(allButtons).filter(btn => {
+      const text = (btn.textContent || btn.value || '').toLowerCase().trim();
+      const className = btn.className.toLowerCase();
+      
+      // Check for submit-related text in Arabic and English
+      const hasSubmitText = text.includes('submit') || text.includes('order') || 
+                           text.includes('add to cart') || text.includes('buy') ||
+                           text.includes('إرسال') || text.includes('طلب') ||
+                           text.includes('شراء') || text.includes('اطلب');
+      
+      // Check for submit-related classes
+      const hasSubmitClass = className.includes('submit') || className.includes('order') ||
+                             className.includes('checkout') || className.includes('btn-primary');
+      
+      return hasSubmitText || hasSubmitClass || btn.type === 'submit';
+    });
+    
+    console.log(`🎯 Found ${submitButtons.length} submit buttons:`, submitButtons.map(btn => ({
+      text: btn.textContent?.trim(),
+      type: btn.type,
+      className: btn.className
+    })));
+    
+    // Setup each submit button
+    submitButtons.forEach((button, index) => {
+      console.log(`🔧 Setting up submit button ${index + 1}:`, {
+        text: button.textContent?.trim(),
+        type: button.type,
+        tag: button.tagName
+      });
+      
+      setupShopifyButtonHandler(button);
+    });
+    
+    return submitButtons.length;
+  }
+  
+  // Function to setup individual button handler
+  function setupShopifyButtonHandler(button) {
+    // Check if already has our handler
+    if (button.dataset.codformHandled) {
+      console.log("⚠️ Button already has handler, skipping");
+      return;
+    }
+    
+    // Mark as handled
+    button.dataset.codformHandled = 'true';
+    
+    // Store original click handler
+    const originalOnClick = button.onclick;
+    
+    // Add our click handler
+    button.addEventListener('click', async function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      console.log('🚀 Shopify form submission started...');
+      
+      // Store original button state
+      const originalText = button.textContent || button.value;
+      const originalDisabled = button.disabled;
+      const originalBg = button.style.backgroundColor;
+      
+      // Disable button during submission
+      button.disabled = true;
+      if (button.textContent) {
+        button.textContent = 'جاري الإرسال...';
+      } else if (button.value) {
+        button.value = 'جاري الإرسال...';
+      }
+      
+      try {
+        // Find the form this button belongs to
+        const form = button.closest('form') || document.querySelector('form') || button.parentElement;
+        
+        console.log('📝 Found form:', form ? 'Yes' : 'No');
+        
+        // Collect form data
+        const data = {};
+        
+        if (form) {
+          // Get data from form inputs
+          const inputs = form.querySelectorAll('input, textarea, select');
+          console.log(`📋 Found ${inputs.length} form inputs`);
+          
+          inputs.forEach(input => {
+            if (input.name && input.value) {
+              data[input.name] = input.value;
+            } else if (input.placeholder && input.value) {
+              data[input.placeholder] = input.value;
+            } else if (input.id && input.value) {
+              data[input.id] = input.value;
+            }
+            
+            console.log(`📝 Input: ${input.name || input.placeholder || input.id} = ${input.value}`);
+          });
+        } else {
+          // If no form found, try to get inputs from the page
+          const pageInputs = document.querySelectorAll('input, textarea, select');
+          console.log(`📋 No form found, checking ${pageInputs.length} page inputs`);
+          
+          pageInputs.forEach(input => {
+            if (input.value && input.value.trim()) {
+              const key = input.name || input.placeholder || input.id || input.type;
+              data[key] = input.value;
+              console.log(`📝 Page input: ${key} = ${input.value}`);
+            }
+          });
+        }
+        
+        // Get form ID from various sources
+        const urlParams = new URLSearchParams(window.location.search);
+        let formId = urlParams.get('form_id') || 
+                    form?.dataset?.formId || 
+                    button.dataset.formId ||
+                    window.codformId || 
+                    window.CODFORM_FORM_ID || 
+                    'shopify-form';
+        
+        console.log('🆔 Using form ID:', formId);
+        console.log('📋 Collected data:', data);
+        
+        // Add shop domain and product info
+        const submissionData = {
+          formData: data,
+          shopDomain: window.location.hostname,
+          productUrl: window.location.href,
+          timestamp: new Date().toISOString()
+        };
+        
+        console.log('🌐 Sending request to API...');
+        
+        // Submit to our API
+        const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/api-submissions?formId=${formId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M'
+          },
+          body: JSON.stringify(submissionData)
+        });
+        
+        const result = await response.json();
+        console.log('📝 API Response:', result);
+        
+        if (result.success) {
+          // Show success message
+          if (button.textContent) {
+            button.textContent = 'تم الإرسال بنجاح!';
+          } else if (button.value) {
+            button.value = 'تم الإرسال بنجاح!';
+          }
+          button.style.backgroundColor = '#10b981';
+          
+          // Redirect to thank you page
+          setTimeout(() => {
+            const thankYouUrl = result.redirect || '/pages/thank-you' || '#';
+            console.log('🔄 Redirecting to:', thankYouUrl);
+            window.location.href = thankYouUrl;
+          }, 1500);
+          
+        } else {
+          throw new Error(result.error || 'فشل في الإرسال');
+        }
+        
+      } catch (error) {
+        console.error('❌ Form submission error:', error);
+        
+        // Show error state
+        if (button.textContent) {
+          button.textContent = 'حدث خطأ - أعد المحاولة';
+        } else if (button.value) {
+          button.value = 'حدث خطأ - أعد المحاولة';
+        }
+        button.style.backgroundColor = '#ef4444';
+        
+        // Reset button after 3 seconds
+        setTimeout(() => {
+          if (button.textContent) {
+            button.textContent = originalText;
+          } else if (button.value) {
+            button.value = originalText;
+          }
+          button.style.backgroundColor = originalBg;
+          button.disabled = originalDisabled;
+        }, 3000);
+      }
+    });
+    
+    console.log('✅ Handler attached to button');
+  }
+  
+  // Initialize Shopify integration when page loads
+  function initializeShopifyIntegration() {
+    console.log('🎯 Initializing Shopify integration...');
+    
+    const setupCount = setupShopifyFormSubmission();
+    console.log(`✅ Shopify integration setup complete. Found ${setupCount} submit buttons.`);
+    
+    // Also setup a mutation observer to catch dynamically added buttons
+    const observer = new MutationObserver((mutations) => {
+      let shouldRecheck = false;
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+          mutation.addedNodes.forEach((node) => {
+            if (node.nodeType === 1) { // Element node
+              const hasButtons = node.querySelectorAll && node.querySelectorAll('button, input[type="submit"]').length > 0;
+              if (hasButtons || node.tagName === 'BUTTON' || (node.tagName === 'INPUT' && node.type === 'submit')) {
+                shouldRecheck = true;
+              }
+            }
+          });
+        }
+      });
+      
+      if (shouldRecheck) {
+        console.log('🔄 New buttons detected, re-scanning...');
+        setTimeout(setupShopifyFormSubmission, 500);
+      }
+    });
+    
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+  }
+  
+  // Run integration immediately and after DOM loads
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeShopifyIntegration);
+  } else {
+    initializeShopifyIntegration();
+  }
+  
+  // Also try again after a delay to catch late-loading content
+  setTimeout(initializeShopifyIntegration, 1000);
+  setTimeout(initializeShopifyIntegration, 3000);
+  
 })();
