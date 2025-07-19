@@ -362,18 +362,13 @@ const FormList: React.FC<FormListProps> = ({
                                     ID: {product.id}
                                   </span>
                                 </div>
-                                {product.handle && (
-                                  <ExternalLink className="h-3 w-3 text-gray-400" />
-                                )}
+                                <ExternalLink className="h-3 w-3 text-gray-400" />
                               </div>
                             </TooltipTrigger>
                             <TooltipContent>
                               <div className="max-w-48 text-center">
                                 <p className="font-semibold">{product.title}</p>
                                 <p className="text-xs text-gray-500">معرف المنتج: {product.id}</p>
-                                {product.handle && (
-                                  <p className="text-xs text-blue-600">اسم المنتج: {product.handle}</p>
-                                )}
                               </div>
                             </TooltipContent>
                           </Tooltip>
