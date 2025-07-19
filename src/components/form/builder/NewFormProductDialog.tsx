@@ -189,6 +189,11 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
   
   // Handle creating a new form with the selected products
   const handleCreateForm = async () => {
+    // منع الإنشاءات المتكررة
+    if (isCreating) {
+      console.log('Already creating a form, preventing duplicate creation');
+      return;
+    }
     
     setIsCreating(true);
     

@@ -120,9 +120,12 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
   
   const handleDeleteForm = async (formId: string) => {
     try {
-      await deleteForm(formId);
-      // Using toast from sonner correctly
-      toast.success(language === 'ar' ? 'تم حذف النموذج بنجاح' : 'Form deleted successfully');
+      const success = await deleteForm(formId);
+      if (success) {
+        // Update local form list immediately
+        setFormList(prevForms => prevForms.filter(form => form.id !== formId));
+        toast.success(language === 'ar' ? 'تم حذف النموذج بنجاح' : 'Form deleted successfully');
+      }
     } catch (error) {
       console.error('Error deleting form:', error);
       toast.error(language === 'ar' ? 'فشل حذف النموذج' : 'Failed to delete form');

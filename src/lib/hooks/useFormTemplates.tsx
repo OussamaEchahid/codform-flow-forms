@@ -512,27 +512,35 @@ export const useFormTemplates = () => {
           return false;
         }
         
-        // Update local state
+        // Update local state immediately
+        setForms(prevForms => prevForms.map(form => 
+          form.id === formId ? { ...form, isPublished: publish, is_published: publish } : form
+        ));
+        
+        // Update local cache
         const updatedForms = forms.map(form => 
           form.id === formId ? { ...form, isPublished: publish, is_published: publish } : form
         );
-        setForms(updatedForms);
-        
-        // Update local cache
         localStorage.setItem('cached_forms', JSON.stringify(updatedForms));
         
-        toast.success(publish ? 'تم نشر النموذج بنجاح' : 'تم إلغاء نشر النموذج');
+        toast.success(publish ? 'تم نشر النموذج بنجاح' : 'تم إلغاء نشر النموذج بنجاح');
+        
+        // Reset offline mode if we succeed
+        if (offlineMode) {
+          setOfflineMode(false);
+        }
       } catch (error) {
         console.error('Failed to publish form after retries:', error);
         toast.warning('فشل الاتصال بالخادم، تم تحديث الحالة محليًا فقط');
         
         // Update local state even if server sync fails
+        setForms(prevForms => prevForms.map(form => 
+          form.id === formId ? { ...form, isPublished: publish, is_published: publish } : form
+        ));
+        
         const updatedForms = forms.map(form => 
           form.id === formId ? { ...form, isPublished: publish, is_published: publish } : form
         );
-        setForms(updatedForms);
-        
-        // Update local cache
         localStorage.setItem('cached_forms', JSON.stringify(updatedForms));
         
         // Set offline mode
@@ -554,22 +562,21 @@ export const useFormTemplates = () => {
     try {
       setIsLoading(true);
       
-      // Step 1: First remove product associations (disable rather than delete) with retry
+      // Step 1: First remove product associations
       try {
-        // Make a request to the DELETE endpoint with retry logic
-        await fetchWithRetry(async () => {
-          const response = await fetch(`/api/shopify/product-settings?formId=${formId}`, {
-            method: 'DELETE',
-          });
-          
-          if (!response.ok) {
-            throw new Error('Failed to remove product associations');
-          }
-          
-          return { ok: true };
+        const { error: assocError } = await fetchWithRetry(async () => {
+          return await supabase
+            .from('shopify_product_settings')
+            .delete()
+            .eq('form_id', formId);
         });
+        
+        if (assocError) {
+          console.warn('Error removing product associations:', assocError);
+          // Continue with deletion even if this step fails
+        }
       } catch (error) {
-        console.warn('Error removing product associations:', error);
+        console.warn('Failed to remove product associations:', error);
         // Continue with deletion even if this step fails
       }
       
@@ -584,14 +591,7 @@ export const useFormTemplates = () => {
         
         if (error) {
           console.error('Error deleting form:', error);
-          
-          // If error contains foreign key constraint message, try to show a more helpful error
-          if (error.message?.includes('foreign key constraint')) {
-            toast.error('لا يمكن حذف هذا النموذج لأنه مرتبط بمنتجات. قم بإلغاء ارتباط المنتجات أولاً.');
-          } else {
-            toast.error('خطأ في حذف النموذج');
-          }
-          
+          toast.error('خطأ في حذف النموذج من قاعدة البيانات');
           setIsLoading(false);
           return false;
         }
@@ -603,17 +603,17 @@ export const useFormTemplates = () => {
         }
       } catch (error) {
         console.error('Failed to delete form after retries:', error);
-        toast.warning('فشل الاتصال بالخادم، تم حذف النموذج محليًا فقط');
+        toast.warning('فشل الاتصال بالخادم، سيتم حذف النموذج محليًا فقط');
         
         // Set offline mode
         setOfflineMode(true);
       }
       
-      // Step 3: Update local state
-      const updatedForms = forms.filter(form => form.id !== formId);
-      setForms(updatedForms);
+      // Step 3: Update local state immediately
+      setForms(prevForms => prevForms.filter(form => form.id !== formId));
       
       // Update local cache
+      const updatedForms = forms.filter(form => form.id !== formId);
       localStorage.setItem('cached_forms', JSON.stringify(updatedForms));
       
       toast.success('تم حذف النموذج بنجاح');
@@ -632,12 +632,18 @@ export const useFormTemplates = () => {
     try {
       setIsLoading(true);
       
-      // If formId is undefined or 'new', we're creating a new form
-      if (!formId || formId === 'new') {
-        console.log('No form ID provided or ID is "new", creating a new form');
-        const newForm = await createDefaultForm();
+      // If formId is undefined, return null - do NOT create a new form here
+      if (!formId) {
+        console.log('No form ID provided');
         setIsLoading(false);
-        return newForm;
+        return null;
+      }
+      
+      // If formId is 'new', redirect to the proper form creation flow
+      if (formId === 'new') {
+        console.log('Form ID is "new" - this should be handled by the UI, not here');
+        setIsLoading(false);
+        return null;
       }
       
       // Check local cache first
