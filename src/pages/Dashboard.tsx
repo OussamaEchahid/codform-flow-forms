@@ -48,11 +48,11 @@ const Dashboard = () => {
     }
   }, [searchParams, language]);
 
-  // إنشاء بيانات عشوائية للرسوم البيانية
+  // إنشاء بيانات فارغة للرسوم البيانية
   const sampleData = Array.from({ length: 31 }, (_, i) => ({
     date: `${i + 1}/4`,
-    orders: Math.floor(Math.random() * 10),
-    revenue: Math.floor(Math.random() * 1000),
+    orders: 0,
+    revenue: 0,
   }));
 
   // التوجيه إلى صفحة Shopify
@@ -118,7 +118,7 @@ const Dashboard = () => {
                 </div>
                 <div>
                   <p className="text-gray-600 mb-1">Orders</p>
-                  <h3 className="text-3xl font-bold">24</h3>
+                  <h3 className="text-3xl font-bold">0</h3>
                 </div>
               </div>
             </Card>
@@ -130,7 +130,7 @@ const Dashboard = () => {
                 </div>
                 <div>
                   <p className="text-gray-600 mb-1">AOV</p>
-                  <h3 className="text-3xl font-bold">230 <span className="text-sm text-gray-500">MAD</span></h3>
+                  <h3 className="text-3xl font-bold">0 <span className="text-sm text-gray-500">MAD</span></h3>
                 </div>
               </div>
             </Card>
@@ -142,7 +142,7 @@ const Dashboard = () => {
                 </div>
                 <div>
                   <p className="text-gray-600 mb-1">Revenue</p>
-                  <h3 className="text-3xl font-bold">5,520 <span className="text-sm text-gray-500">MAD</span></h3>
+                  <h3 className="text-3xl font-bold">0 <span className="text-sm text-gray-500">MAD</span></h3>
                 </div>
               </div>
             </Card>

@@ -22,33 +22,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
-// Sample abandoned carts data
-const sampleAbandonedCarts = [
-  {
-    id: 'CART-001',
-    email: 'ahmed@example.com',
-    lastActivity: '2025-05-14T14:30:00',
-    cartValue: '230 SAR',
-    items: 2,
-    recoveryAttempts: 0
-  },
-  {
-    id: 'CART-002',
-    email: 'sara@example.com',
-    lastActivity: '2025-05-14T10:15:00',
-    cartValue: '450 SAR',
-    items: 3,
-    recoveryAttempts: 1
-  },
-  {
-    id: 'CART-003',
-    email: 'khalid@example.com',
-    lastActivity: '2025-05-13T18:45:00',
-    cartValue: '120 SAR',
-    items: 1,
-    recoveryAttempts: 2
-  }
-];
+// بيانات فارغة للطلبات المتروكة (سيتم استبدالها ببيانات حقيقية)
+const sampleAbandonedCarts = [];
 
 const AbandonedOrders = () => {
   const { user, shopifyConnected, shop } = useAuth();
@@ -185,7 +160,7 @@ const AbandonedOrders = () => {
               <p className="text-sm text-gray-500">
                 {language === 'ar' ? 'معدل التخلي' : 'Abandonment Rate'}
               </p>
-              <h3 className="text-xl font-semibold">68.4%</h3>
+              <h3 className="text-xl font-semibold">0%</h3>
             </div>
           </div>
           <div className="bg-white p-4 rounded-lg shadow flex items-center">

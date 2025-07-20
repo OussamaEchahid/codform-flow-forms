@@ -31,83 +31,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
-// Enhanced sample orders data with more professional details
-const sampleOrders = [
-  {
-    id: 'ORD-001',
-    customerName: 'أحمد محمد',
-    phone: '+966 50 123 4567',
-    date: '2025-05-14',
-    status: 'pending',
-    total: '320 SAR',
-    paymentMethod: 'COD',
-    items: 3,
-    address: 'الرياض، حي النزهة',
-    products: [
-      { name: 'سماعات بلوتوث', quantity: 1, price: '150 SAR' },
-      { name: 'حافظة هاتف', quantity: 2, price: '85 SAR' }
-    ]
-  },
-  {
-    id: 'ORD-002',
-    customerName: 'سارة عبدالله',
-    phone: '+966 55 234 5678',
-    date: '2025-05-14',
-    status: 'processing',
-    total: '145 SAR',
-    paymentMethod: 'COD',
-    items: 1,
-    address: 'جدة، حي الروضة',
-    products: [
-      { name: 'ساعة ذكية', quantity: 1, price: '145 SAR' }
-    ]
-  },
-  {
-    id: 'ORD-003',
-    customerName: 'فيصل العتيبي',
-    phone: '+966 54 345 6789',
-    date: '2025-05-13',
-    status: 'delivered',
-    total: '560 SAR',
-    paymentMethod: 'COD',
-    items: 4,
-    address: 'الدمام، حي الشاطئ',
-    products: [
-      { name: 'جهاز لوحي', quantity: 1, price: '450 SAR' },
-      { name: 'حافظة جهاز', quantity: 1, price: '60 SAR' },
-      { name: 'واقي شاشة', quantity: 2, price: '25 SAR' }
-    ]
-  },
-  {
-    id: 'ORD-004',
-    customerName: 'نورة الشمري',
-    phone: '+966 56 456 7890',
-    date: '2025-05-13',
-    status: 'cancelled',
-    total: '99 SAR',
-    paymentMethod: 'COD',
-    items: 1,
-    address: 'المدينة المنورة، حي القبلتين',
-    products: [
-      { name: 'شاحن سريع', quantity: 1, price: '99 SAR' }
-    ]
-  },
-  {
-    id: 'ORD-005',
-    customerName: 'خالد الدوسري',
-    phone: '+966 50 567 8901',
-    date: '2025-05-12',
-    status: 'delivered',
-    total: '275 SAR',
-    paymentMethod: 'COD',
-    items: 2,
-    address: 'الرياض، حي الملز',
-    products: [
-      { name: 'سماعات سلكية', quantity: 1, price: '120 SAR' },
-      { name: 'مسكة هاتف', quantity: 1, price: '155 SAR' }
-    ]
-  },
-];
+// بيانات فارغة للطلبات (سيتم استبدالها ببيانات حقيقية من قاعدة البيانات)
+const sampleOrders = [];
 
 const OrdersList = () => {
   const { user, shopifyConnected, shop } = useAuth();
