@@ -84,14 +84,47 @@ const QuantityOffers = () => {
   const loadProducts = async () => {
     setLoading(true);
     try {
-      // In a real implementation, this would fetch from Shopify
-      // For now, we'll use mock data
+      // Get active shop from local storage
+      const activeShop = localStorage.getItem('ACTIVE_STORE_KEY');
+      if (!activeShop) {
+        toast.error('No active Shopify store found');
+        return;
+      }
+
+      // Fetch products from Shopify API
+      const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-products`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M`
+        },
+        body: JSON.stringify({ 
+          shop: activeShop,
+          action: 'products' 
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.products) {
+          setProducts(data.products);
+        }
+      } else {
+        console.error('Failed to fetch products:', response.statusText);
+        // Fallback to mock data if API fails
+        setProducts([
+          { id: '1', title: 'Product 1', handle: 'product-1', images: [{ url: '/placeholder.svg' }] },
+          { id: '2', title: 'Product 2', handle: 'product-2', images: [{ url: '/placeholder.svg' }] }
+        ]);
+      }
+    } catch (error) {
+      console.error('Error loading products:', error);
+      toast.error('Failed to load products');
+      // Fallback to mock data
       setProducts([
         { id: '1', title: 'Product 1', handle: 'product-1', images: [{ url: '/placeholder.svg' }] },
         { id: '2', title: 'Product 2', handle: 'product-2', images: [{ url: '/placeholder.svg' }] }
       ]);
-    } catch (error) {
-      toast.error('Failed to load products');
     }
     setLoading(false);
   };
