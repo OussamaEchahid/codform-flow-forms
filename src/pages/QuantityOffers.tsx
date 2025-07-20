@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Trash2, Package, FileText, Settings, Eye } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { supabase } from '@/integrations/supabase/client';
+import { useShopify } from '@/hooks/useShopify';
 import { toast } from 'sonner';
 import QuantityOffersPreview from '@/components/quantity-offers/QuantityOffersPreview';
 
@@ -55,8 +56,8 @@ interface QuantityOfferData {
 
 const QuantityOffers = () => {
   const { t } = useI18n();
+  const { products: shopifyProducts, loadProducts, isLoading: shopifyLoading, isConnected } = useShopify();
   const [currentStep, setCurrentStep] = useState<'product' | 'form' | 'settings'>('product');
-  const [products, setProducts] = useState<Product[]>([]);
   const [forms, setForms] = useState<Form[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedForm, setSelectedForm] = useState<Form | null>(null);
@@ -77,114 +78,12 @@ const QuantityOffers = () => {
   });
 
   useEffect(() => {
-    // Wait a bit for the connection manager to sync, then load data
-    const initializeData = async () => {
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+    loadForms();
+    // Load products using the useShopify hook when connected
+    if (isConnected) {
       loadProducts();
-      loadForms();
-    };
-    
-    initializeData();
-  }, []);
-
-  const loadProducts = async () => {
-    setLoading(true);
-    try {
-      // Get active shop from multiple sources to ensure we have it
-      let activeShop = localStorage.getItem('ACTIVE_STORE_KEY');
-      
-      // If not in localStorage, try to get from connection manager
-      if (!activeShop) {
-        // Check if connection manager has set it
-        await new Promise(resolve => setTimeout(resolve, 500));
-        activeShop = localStorage.getItem('ACTIVE_STORE_KEY');
-      }
-      
-      console.log('🔍 Loading products for shop:', activeShop);
-      
-      if (!activeShop) {
-        console.error('❌ No active shop found');
-        toast.error('No active Shopify store found. Please connect your store first.');
-        setLoading(false);
-        return;
-      }
-
-      console.log('🛍️ Fetching products for shop:', activeShop);
-      
-      // Get shop data and access token from database
-      const { data: shopifyStores, error: shopError } = await supabase
-        .from('shopify_stores')
-        .select('*')
-        .eq('shop', activeShop)
-        .eq('is_active', true);
-
-      if (shopError) {
-        console.error('❌ Database error:', shopError);
-        toast.error('Error connecting to database');
-        setLoading(false);
-        return;
-      }
-
-      if (!shopifyStores || shopifyStores.length === 0) {
-        console.error('❌ No shop data found in database');
-        toast.error('Shop not found in database. Please reconnect your store.');
-        setLoading(false);
-        return;
-      }
-
-      const shopData = shopifyStores[0];
-      if (!shopData.access_token) {
-        console.error('❌ No access token found for shop');
-        toast.error('Shop access token missing. Please reconnect your store.');
-        setLoading(false);
-        return;
-      }
-
-      console.log('✅ Shop data found, making Shopify API call...');
-
-      // Make direct Shopify API call
-      const shopifyUrl = `https://${activeShop}/admin/api/2023-10/products.json?limit=50`;
-      const shopifyResponse = await fetch(shopifyUrl, {
-        headers: {
-          'X-Shopify-Access-Token': shopData.access_token,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!shopifyResponse.ok) {
-        console.error('❌ Shopify API error:', shopifyResponse.status, shopifyResponse.statusText);
-        const errorText = await shopifyResponse.text();
-        console.error('Error details:', errorText);
-        toast.error(`Shopify API error: ${shopifyResponse.status}`);
-        setLoading(false);
-        return;
-      }
-
-      const data = await shopifyResponse.json();
-      console.log('✅ Shopify API response:', data);
-      
-      if (data.products && data.products.length > 0) {
-        const formattedProducts = data.products.map((product: any) => ({
-          id: product.id.toString(),
-          title: product.title,
-          handle: product.handle,
-          images: product.images?.map((img: any) => ({ url: img.src })) || [{ url: '/placeholder.svg' }]
-        }));
-        
-        console.log('✅ Formatted products:', formattedProducts.length, 'products loaded');
-        setProducts(formattedProducts);
-        toast.success(`${formattedProducts.length} products loaded successfully`);
-      } else {
-        console.log('⚠️ No products found in Shopify store');
-        setProducts([]);
-        toast.info('No products found in your Shopify store');
-      }
-    } catch (error) {
-      console.error('❌ Error loading products:', error);
-      toast.error('Failed to load products: ' + (error as Error).message);
     }
-    setLoading(false);
-  };
+  }, [isConnected, loadProducts]);
 
   const loadForms = async () => {
     try {
@@ -199,6 +98,14 @@ const QuantityOffers = () => {
       toast.error('Failed to load forms');
     }
   };
+
+  // Convert Shopify products to our format
+  const products = shopifyProducts.map(product => ({
+    id: product.id,
+    title: product.title,
+    handle: product.handle,
+    images: product.images?.map(img => ({ url: typeof img === 'string' ? img : img.src })) || [{ url: '/placeholder.svg' }]
+  }));
 
   const handleProductSelect = (product: Product) => {
     setSelectedProduct(product);
@@ -319,7 +226,13 @@ const QuantityOffers = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {loading ? (
+              {!isConnected ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Package className="mx-auto h-12 w-12 mb-4 opacity-50" />
+                  <p>Shopify store not connected</p>
+                  <p className="text-sm">Please connect your Shopify store first</p>
+                </div>
+              ) : shopifyLoading ? (
                 <div className="text-center py-8">
                   <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                   <p className="mt-2 text-muted-foreground">Loading products from Shopify...</p>
@@ -328,7 +241,7 @@ const QuantityOffers = () => {
                 <div className="text-center py-8 text-muted-foreground">
                   <Package className="mx-auto h-12 w-12 mb-4 opacity-50" />
                   <p>No products found in your Shopify store</p>
-                  <Button onClick={loadProducts} variant="outline" className="mt-4">
+                  <Button onClick={() => loadProducts()} variant="outline" className="mt-4">
                     Retry Loading Products
                   </Button>
                 </div>
