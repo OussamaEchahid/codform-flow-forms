@@ -131,8 +131,8 @@
     }
   }
   
-  // دالة معالجة إرسال النموذج
-  function handleFormSubmit(formElement) {
+  // دالة معالجة إرسال النموذج المُحدثة
+  function handleFormSubmit() {
     console.log("🎯 RADICAL FIX - Form submit handler called");
     
     if (formSubmitted) {
@@ -142,13 +142,26 @@
     
     formSubmitted = true;
     
-    // جمع بيانات النموذج
-    const formData = new FormData(formElement);
+    // جمع البيانات من الحقول مباشرة بدون FormData
+    const container = document.getElementById('codform-form-' + blockId);
+    if (!container) {
+      console.error("❌ Form container not found!");
+      return;
+    }
+    
+    const inputs = container.querySelectorAll('input, textarea, select');
     const data = {};
     
-    for (let [key, value] of formData.entries()) {
-      data[key] = value;
-    }
+    inputs.forEach(input => {
+      const key = input.name || input.id;
+      const value = input.type === 'checkbox' || input.type === 'radio' 
+        ? (input.checked ? input.value : '') 
+        : input.value;
+      
+      if (key && value) {
+        data[key] = value;
+      }
+    });
     
     console.log("📝 Form data collected:", data);
     
@@ -242,43 +255,9 @@
       // البحث عن النموذج الأصلي
       const formElement = button.closest('.codform-form') || button.closest('form');
       
-      if (formElement) {
-        console.log("📝 Form element found, proceeding with submission");
-        handleFormSubmit(formElement);
-      } else {
-        console.error("❌ Form element not found!");
-        
-        // كخطة بديلة، جمع البيانات من الحقول مباشرة
-        const container = document.getElementById('codform-form-' + blockId);
-        if (container) {
-          const inputs = container.querySelectorAll('input, textarea, select');
-          const data = {};
-          
-          inputs.forEach(input => {
-            if (input.name && input.value) {
-              data[input.name] = input.value;
-            }
-          });
-          
-          console.log("📝 Fallback data collection:", data);
-          
-          if (Object.keys(data).length > 0) {
-            const shopDomain = window.location.hostname;
-            submitToAPI(data, shopDomain)
-              .then(result => {
-                console.log("✅ Fallback submission successful:", result);
-                showSuccess();
-              })
-              .catch(error => {
-                console.error("❌ Fallback submission failed:", error);
-                showError();
-              });
-          } else {
-            console.error("❌ No data to submit");
-            showError();
-          }
-        }
-      }
+      // استدعاء معالج الإرسال بدون تمرير formElement
+      console.log("📝 Proceeding with direct submission");
+      handleFormSubmit();
     });
 
     // تأثيرات الماوس
