@@ -18,6 +18,9 @@ export interface FormData {
   shop_id?: string;
   created_at?: string;
   style?: FormStyle;
+  country?: string;
+  currency?: string;
+  phone_prefix?: string;
   associatedProducts?: Array<{
     id: string;
     title: string;

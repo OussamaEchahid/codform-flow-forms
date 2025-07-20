@@ -11,7 +11,9 @@ import FormElementEditor from '@/components/form/builder/FormElementEditor';
 import FormElementList from '@/components/form/builder/FormElementList';
 import FormPreviewPanel from '@/components/form/builder/FormPreviewPanel';
 import FormTemplatesDialog from '@/components/form/FormTemplatesDialog';
+import FormSettingsTab from '@/components/form/builder/FormSettingsTab';
 import { useShopify } from '@/hooks/useShopify';
+import { COUNTRIES, getCountryByCode } from '@/lib/constants/countries-currencies';
 import { 
   Dialog, 
   DialogContent,
@@ -116,6 +118,11 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
   const [formDescription, setFormDescription] = useState(language === 'ar' ? 'نموذج جديد' : 'New Form');
   const [currentPreviewStep, setCurrentPreviewStep] = useState(1);
   const [currentFormId, setCurrentFormId] = useState<string | undefined>(initialFormId);
+  
+  // Form settings state
+  const [formCountry, setFormCountry] = useState('SA');
+  const [formCurrency, setFormCurrency] = useState('SAR');
+  const [formPhonePrefix, setFormPhonePrefix] = useState('+966');
 
   // إنشاء نموذج افتراضي جديد مع الحقول المطلوبة
   const createDefaultForm = (): FormField[] => {
@@ -338,6 +345,11 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
             setFormTitle(formData.title);
             setFormDescription(formData.description || '');
             
+            // Load form settings
+            setFormCountry(formData.country || 'SA');
+            setFormCurrency(formData.currency || 'SAR');
+            setFormPhonePrefix(formData.phone_prefix || '+966');
+            
             // Load form elements
             let loadedElements = formData.data?.flatMap(step => step.fields) || [];
             
@@ -461,7 +473,10 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
         description: formDescription,
         data: [formStep],
         shop_id: activeShopId,
-        style: formStyle
+        style: formStyle,
+        country: formCountry,
+        currency: formCurrency,
+        phone_prefix: formPhonePrefix
       };
       
       console.log("Saving form with data:", formData);
@@ -492,6 +507,9 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
             data: [formStep] as any,
             shop_id: activeShopId,
             style: formStyle as any,
+            country: formCountry,
+            currency: formCurrency,
+            phone_prefix: formPhonePrefix,
             updated_at: new Date().toISOString()
           })
           .eq('id', currentFormId);
@@ -809,6 +827,21 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
     handleElementUpdate(index, updatedElement);
   };
 
+  // Handlers for form settings
+  const handleCountryChange = (country: string) => {
+    setFormCountry(country);
+    const countryData = getCountryByCode(country);
+    if (countryData) {
+      setFormPhonePrefix(countryData.phonePrefix);
+    }
+    setHasUnsavedChanges(true);
+  };
+
+  const handleCurrencyChange = (currency: string) => {
+    setFormCurrency(currency);
+    setHasUnsavedChanges(true);
+  };
+
   // Empty implementation since we removed title customization
   const handleTitleUpdate = (title: string, description: string, style: any) => {
     // This function is no longer needed but we keep it to avoid breaking changes in other components
@@ -878,19 +911,50 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
           </DndContext>
         </div>
         
-        <div className="col-span-4 border-l bg-white p-6">
-          <FormPreviewPanel
-            formTitle={formTitle}
-            formDescription={formDescription}
-            currentStep={currentPreviewStep}
-            totalSteps={1}
-            formStyle={formStyle}
-            fields={formElements}
-            onPreviousStep={() => setCurrentPreviewStep(prev => Math.max(prev - 1, 1))}
-            onNextStep={() => setCurrentPreviewStep(prev => Math.min(prev + 1, 1))}
-            refreshKey={refreshKey}
-            onStyleChange={handleStyleChange}
-          />
+        <div className="col-span-4 border-l bg-white">
+          <Tabs defaultValue="preview" className="h-full flex flex-col">
+            <div className="border-b p-4">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="preview">
+                  {language === 'ar' ? 'معاينة' : 'Preview'}
+                </TabsTrigger>
+                <TabsTrigger value="settings">
+                  {language === 'ar' ? 'الإعدادات' : 'Settings'}
+                </TabsTrigger>
+              </TabsList>
+            </div>
+            
+            <TabsContent value="preview" className="flex-1 p-6 mt-0">
+              <FormPreviewPanel
+                formTitle={formTitle}
+                formDescription={formDescription}
+                currentStep={currentPreviewStep}
+                totalSteps={1}
+                formStyle={formStyle}
+                fields={formElements}
+                onPreviousStep={() => setCurrentPreviewStep(prev => Math.max(prev - 1, 1))}
+                onNextStep={() => setCurrentPreviewStep(prev => Math.min(prev + 1, 1))}
+                refreshKey={refreshKey}
+                onStyleChange={handleStyleChange}
+                formCountry={formCountry}
+                formPhonePrefix={formPhonePrefix}
+              />
+            </TabsContent>
+            
+            <TabsContent value="settings" className="flex-1 p-6 mt-0 overflow-y-auto">
+              <FormSettingsTab
+                formTitle={formTitle}
+                formDescription={formDescription}
+                country={formCountry}
+                currency={formCurrency}
+                phonePrefix={formPhonePrefix}
+                onTitleChange={setFormTitle}
+                onDescriptionChange={setFormDescription}
+                onCountryChange={handleCountryChange}
+                onCurrencyChange={handleCurrencyChange}
+              />
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
       

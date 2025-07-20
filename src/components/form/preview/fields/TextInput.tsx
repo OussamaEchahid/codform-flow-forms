@@ -24,9 +24,11 @@ interface TextInputProps {
     fontSize?: string;
     formDirection?: 'ltr' | 'rtl';
   };
+  formCountry?: string;
+  formPhonePrefix?: string;
 }
 
-const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
+const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = 'SA', formPhonePrefix = '+966' }) => {
   const { language } = useI18n();
   const fieldStyle = field.style || {};
   
@@ -91,7 +93,12 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle }) => {
   };
   
   const labelText = field.label || (language === 'ar' ? 'حقل نصي' : 'Text field');
-  const placeholderText = field.placeholder || '';
+  let placeholderText = field.placeholder || '';
+  
+  // Add phone prefix to phone field placeholder if not already present
+  if (field.type === 'phone' && placeholderText && !placeholderText.includes('+')) {
+    placeholderText = `${formPhonePrefix} ${placeholderText}`;
+  }
 
   const getInputType = () => {
     const originalType = field.type;

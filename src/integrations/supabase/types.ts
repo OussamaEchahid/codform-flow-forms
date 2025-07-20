@@ -88,11 +88,14 @@ export type Database = {
       }
       forms: {
         Row: {
+          country: string | null
           created_at: string
+          currency: string | null
           data: Json
           description: string | null
           id: string
           is_published: boolean
+          phone_prefix: string | null
           shop_id: string | null
           style: Json | null
           title: string
@@ -100,11 +103,14 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          country?: string | null
           created_at?: string
+          currency?: string | null
           data?: Json
           description?: string | null
           id?: string
           is_published?: boolean
+          phone_prefix?: string | null
           shop_id?: string | null
           style?: Json | null
           title: string
@@ -112,11 +118,14 @@ export type Database = {
           user_id: string
         }
         Update: {
+          country?: string | null
           created_at?: string
+          currency?: string | null
           data?: Json
           description?: string | null
           id?: string
           is_published?: boolean
+          phone_prefix?: string | null
           shop_id?: string | null
           style?: Json | null
           title?: string

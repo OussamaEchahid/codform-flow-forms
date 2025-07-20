@@ -22,6 +22,8 @@ interface FormFieldProps {
     fontSize?: string;
     buttonStyle?: string;
   };
+  formCountry?: string;
+  formPhonePrefix?: string;
 }
 
 // Define animation styles for consistency
@@ -129,7 +131,7 @@ const deepCloneField = (field: FormFieldType): FormFieldType => {
 };
 
 // Improved FormField component with better stability during drag and drop
-const FormField = memo(({ field, formStyle }: FormFieldProps) => {
+const FormField = memo(({ field, formStyle, formCountry = 'SA', formPhonePrefix = '+966' }: FormFieldProps) => {
   // Validate field data
   if (!field || !field.type || !field.id) {
     console.warn('Invalid field:', field);
@@ -239,7 +241,12 @@ const FormField = memo(({ field, formStyle }: FormFieldProps) => {
   if (!isSupported) {
     return (
       <div className={`${marginClass} p-3 border border-yellow-300 bg-yellow-50 rounded-md`} key={fieldKey} {...dataAttributes}>
-        <Component field={normalizedField} formStyle={formStyle} />
+        <Component 
+          field={normalizedField} 
+          formStyle={formStyle} 
+          formCountry={formCountry}
+          formPhonePrefix={formPhonePrefix}
+        />
         <div className="mt-2 text-xs text-yellow-600 bg-yellow-100 p-2 rounded">
           {normalizedField.label ? `حقل "${normalizedField.label}"` : 'هذا الحقل'} غير مدعوم بشكل كامل في واجهة المتجر
         </div>
@@ -250,7 +257,12 @@ const FormField = memo(({ field, formStyle }: FormFieldProps) => {
   return (
     <div className={marginClass} key={fieldKey} {...dataAttributes}>
       <style>{animationStyles}</style>
-      <Component field={normalizedField} formStyle={formStyle} />
+      <Component 
+        field={normalizedField} 
+        formStyle={formStyle} 
+        formCountry={formCountry}
+        formPhonePrefix={formPhonePrefix}
+      />
     </div>
   );
 }, 

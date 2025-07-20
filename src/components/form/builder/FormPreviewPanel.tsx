@@ -35,6 +35,8 @@ interface FormPreviewPanelProps {
   onNextStep?: () => void;
   refreshKey: number;
   onStyleChange?: (style: FormStyle) => void;
+  formCountry?: string;
+  formPhonePrefix?: string;
 }
 
 const deepCloneFields = (fields: FormField[]): FormField[] => {
@@ -59,7 +61,9 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   onPreviousStep,
   onNextStep,
   refreshKey,
-  onStyleChange
+  onStyleChange,
+  formCountry = 'SA',
+  formPhonePrefix = '+966'
 }) => {
   const { language } = useI18n();
   
