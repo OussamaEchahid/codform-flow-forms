@@ -100,7 +100,9 @@
     console.log("📡 RADICAL FIX - Submitting to API:", { formData, shopDomain });
     
     try {
-      const apiUrl = `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/api-submissions`;
+      // إضافة formId إلى URL كما يتطلب API
+      const formId = blockId || 'default-form';
+      const apiUrl = `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/api-submissions?formId=${formId}`;
       
       const response = await fetch(apiUrl, {
         method: 'POST',
