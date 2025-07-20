@@ -186,13 +186,50 @@ serve(async (req: Request) => {
 
       const shopifyResult = await shopifyResponse.json();
       console.log('📦 Shopify order response:', JSON.stringify(shopifyResult, null, 2));
+      console.log('🔍 Shopify response status:', shopifyResponse.status);
+      console.log('🔍 Shopify response headers:', Object.fromEntries(shopifyResponse.headers.entries()));
 
       let shopifyOrderId = null;
       if (shopifyResponse.ok && shopifyResult.order) {
         shopifyOrderId = shopifyResult.order.id;
         console.log('✅ Shopify order created successfully:', shopifyOrderId);
       } else {
-        console.error('❌ Failed to create Shopify order:', shopifyResult);
+        console.error('❌ Failed to create Shopify order. Status:', shopifyResponse.status);
+        console.error('❌ Error details:', JSON.stringify(shopifyResult, null, 2));
+        
+        // Try with a simpler order structure
+        console.log('🔄 Trying with simplified order...');
+        const simpleOrderData = {
+          order: {
+            financial_status: 'pending',
+            note: `Order from form submission: ${formId}`,
+            tags: 'form-submission',
+            line_items: [
+              {
+                title: 'Form Order',
+                quantity: 1,
+                price: '100.00'
+              }
+            ]
+          }
+        };
+        
+        const retryResponse = await fetch(`https://${shopDomain}/admin/api/2025-01/orders.json`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Shopify-Access-Token': shopData.access_token
+          },
+          body: JSON.stringify(simpleOrderData)
+        });
+        
+        const retryResult = await retryResponse.json();
+        console.log('🔄 Retry response:', JSON.stringify(retryResult, null, 2));
+        
+        if (retryResponse.ok && retryResult.order) {
+          shopifyOrderId = retryResult.order.id;
+          console.log('✅ Simplified Shopify order created successfully:', shopifyOrderId);
+        }
       }
 
       // Generate order number
