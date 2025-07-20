@@ -119,10 +119,10 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
   const [currentPreviewStep, setCurrentPreviewStep] = useState(1);
   const [currentFormId, setCurrentFormId] = useState<string | undefined>(initialFormId);
   
-  // Form settings state - تصحيح الإعدادات الافتراضية
-  const [formCountry, setFormCountry] = useState('MA'); // تغيير من SA إلى MA
-  const [formCurrency, setFormCurrency] = useState('MAD');
-  const [formPhonePrefix, setFormPhonePrefix] = useState('+212'); // تغيير من +966 إلى +212
+  // Form settings state - حفظ الإعدادات من النموذج الحالي
+  const [formCountry, setFormCountry] = useState('SA');
+  const [formCurrency, setFormCurrency] = useState('SAR');
+  const [formPhonePrefix, setFormPhonePrefix] = useState('+966');
 
   // إنشاء نموذج افتراضي جديد مع الحقول المطلوبة
   const createDefaultForm = (): FormField[] => {

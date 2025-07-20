@@ -163,7 +163,7 @@ function createShopifyOrderData(customer: any, formId: string, formSettings: any
   const nameParts = customer.name ? customer.name.split(' ') : ['Customer'];
   const firstName = nameParts[0] || 'Customer';
   const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : 'Order'; // Always provide a last name
-  const currency = formSettings.currency || 'MAD'; // تغيير الافتراضي إلى MAD
+  const currency = formSettings.currency || 'SAR'; // استخدام العملة من إعدادات النموذج
   
   console.log(`💰 استخدام العملة: ${currency} من إعدادات النموذج`);
   
