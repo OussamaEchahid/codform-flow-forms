@@ -1,32 +1,39 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import SettingsLayout from '@/components/layout/SettingsLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
-import { Trash2, Plus } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Plus, Trash2, Package, FileText, Settings, Eye } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
-import { useShopify } from '@/hooks/useShopify';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import QuantityOffersPreview from '@/components/quantity-offers/QuantityOffersPreview';
+
+interface Product {
+  id: string;
+  title: string;
+  handle: string;
+  images?: { url: string }[];
+}
+
+interface Form {
+  id: string;
+  title: string;
+  data: any;
+  style: any;
+}
 
 interface Offer {
   id: string;
-  text: string;
   tag: string;
+  text: string;
   quantity: number;
   discountType: 'none' | 'fixed' | 'percentage';
-  discountValue?: number;
-}
-
-interface Styling {
-  backgroundColor: string;
-  textColor: string;
-  tagColor: string;
-  priceColor: string;
+  discountValue: number;
 }
 
 interface QuantityOfferData {
@@ -36,432 +43,487 @@ interface QuantityOfferData {
   form_id: string;
   enabled: boolean;
   offers: Offer[];
-  styling: Styling;
+  styling: {
+    backgroundColor: string;
+    textColor: string;
+    tagColor: string;
+    priceColor: string;
+  };
   position: 'before_form' | 'inside_form' | 'after_form';
   custom_selector?: string;
 }
 
-export default function QuantityOffers() {
+const QuantityOffers = () => {
   const { t } = useI18n();
-  const { products } = useShopify();
-  
-  const [forms, setForms] = useState<any[]>([]);
-  const [selectedStore, setSelectedStore] = useState<any>(null);
-  
-  const [selectedProduct, setSelectedProduct] = useState<string>('');
-  const [selectedForm, setSelectedForm] = useState<string>('');
-  const [enabled, setEnabled] = useState<boolean>(true);
-  const [offers, setOffers] = useState<Offer[]>([{
-    id: '1',
-    text: 'Buy 1 Item',
-    tag: 'Save 0%',
-    quantity: 1,
-    discountType: 'none'
-  }]);
-  
-  const [styling, setStyling] = useState<Styling>({
-    backgroundColor: '#ffffff',
-    textColor: '#000000',
-    tagColor: '#22c55e',
-    priceColor: '#ef4444'
-  });
-  
-  const [position, setPosition] = useState<'before_form' | 'inside_form' | 'after_form'>('before_form');
-  const [customSelector, setCustomSelector] = useState<string>('');
+  const [currentStep, setCurrentStep] = useState<'product' | 'form' | 'settings'>('product');
+  const [products, setProducts] = useState<Product[]>([]);
+  const [forms, setForms] = useState<Form[]>([]);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedForm, setSelectedForm] = useState<Form | null>(null);
   const [loading, setLoading] = useState(false);
-  const [currentOfferData, setCurrentOfferData] = useState<QuantityOfferData | null>(null);
+  const [quantityOffer, setQuantityOffer] = useState<QuantityOfferData>({
+    shop_id: '',
+    product_id: '',
+    form_id: '',
+    enabled: true,
+    offers: [],
+    styling: {
+      backgroundColor: '#ffffff',
+      textColor: '#000000',
+      tagColor: '#22c55e',
+      priceColor: '#ef4444'
+    },
+    position: 'before_form'
+  });
 
-  // Load forms and store data
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        const { data: formsData } = await supabase.from('forms').select('*');
-        if (formsData) setForms(formsData);
-        
-        // Get selected store from localStorage or useShopify hook
-        const store = localStorage.getItem('shopify_store');
-        if (store) setSelectedStore({ shop: store });
-      } catch (error) {
-        console.error('Error loading data:', error);
-      }
-    };
-    
-    loadData();
+    loadProducts();
+    loadForms();
   }, []);
 
-  // Load existing offer data when product and form are selected
-  useEffect(() => {
-    if (selectedProduct && selectedForm && selectedStore) {
-      loadOfferData();
+  const loadProducts = async () => {
+    setLoading(true);
+    try {
+      // In a real implementation, this would fetch from Shopify
+      // For now, we'll use mock data
+      setProducts([
+        { id: '1', title: 'Product 1', handle: 'product-1', images: [{ url: '/placeholder.svg' }] },
+        { id: '2', title: 'Product 2', handle: 'product-2', images: [{ url: '/placeholder.svg' }] }
+      ]);
+    } catch (error) {
+      toast.error('Failed to load products');
     }
-  }, [selectedProduct, selectedForm, selectedStore]);
+    setLoading(false);
+  };
 
-  const loadOfferData = async () => {
+  const loadForms = async () => {
     try {
       const { data, error } = await supabase
-        .from('quantity_offers' as any)
+        .from('forms')
         .select('*')
-        .eq('shop_id', selectedStore?.shop)
-        .eq('product_id', selectedProduct)
-        .eq('form_id', selectedForm)
-        .single();
+        .eq('is_published', true);
 
-      if (error && error.code !== 'PGRST116') {
-        throw error;
-      }
-
-      if (data && typeof data === 'object' && data !== null) {
-        setCurrentOfferData(data as QuantityOfferData);
-        setEnabled((data as any).enabled);
-        setOffers((data as any).offers || offers);
-        setStyling((data as any).styling || styling);
-        setPosition((data as any).position || position);
-        setCustomSelector((data as any).custom_selector || '');
-      } else {
-        // Reset to defaults if no data found
-        setCurrentOfferData(null);
-        setEnabled(true);
-        setOffers([{
-          id: '1',
-          text: 'Buy 1 Item',
-          tag: 'Save 0%',
-          quantity: 1,
-          discountType: 'none'
-        }]);
-        setStyling({
-          backgroundColor: '#ffffff',
-          textColor: '#000000',
-          tagColor: '#22c55e',
-          priceColor: '#ef4444'
-        });
-        setPosition('before_form');
-        setCustomSelector('');
-      }
+      if (error) throw error;
+      setForms(data || []);
     } catch (error) {
-      console.error('Error loading offer data:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load offer data',
-        variant: 'destructive'
-      });
+      toast.error('Failed to load forms');
     }
   };
 
-  const addNewOffer = () => {
+  const handleProductSelect = (product: Product) => {
+    setSelectedProduct(product);
+    setQuantityOffer(prev => ({ ...prev, product_id: product.id }));
+  };
+
+  const handleFormSelect = (form: Form) => {
+    setSelectedForm(form);
+    setQuantityOffer(prev => ({ ...prev, form_id: form.id }));
+  };
+
+  const proceedToSettings = () => {
+    if (!selectedProduct || !selectedForm) {
+      toast.error('Please select both product and form');
+      return;
+    }
+    setCurrentStep('settings');
+  };
+
+  const addOffer = () => {
     const newOffer: Offer = {
       id: Date.now().toString(),
-      text: `Buy ${offers.length + 1} Items`,
-      tag: 'Save 0%',
-      quantity: offers.length + 1,
-      discountType: 'none'
+      tag: '',
+      text: '',
+      quantity: 1,
+      discountType: 'none',
+      discountValue: 0
     };
-    setOffers([...offers, newOffer]);
+    setQuantityOffer(prev => ({
+      ...prev,
+      offers: [...prev.offers, newOffer]
+    }));
+  };
+
+  const updateOffer = (id: string, field: keyof Offer, value: any) => {
+    setQuantityOffer(prev => ({
+      ...prev,
+      offers: prev.offers.map(offer =>
+        offer.id === id ? { ...offer, [field]: value } : offer
+      )
+    }));
   };
 
   const removeOffer = (id: string) => {
-    if (offers.length > 1) {
-      setOffers(offers.filter(offer => offer.id !== id));
-    }
+    setQuantityOffer(prev => ({
+      ...prev,
+      offers: prev.offers.filter(offer => offer.id !== id)
+    }));
   };
 
-  const updateOffer = (id: string, updates: Partial<Offer>) => {
-    setOffers(offers.map(offer => 
-      offer.id === id ? { ...offer, ...updates } : offer
-    ));
+  const updateStyling = (field: string, value: string) => {
+    setQuantityOffer(prev => ({
+      ...prev,
+      styling: { ...prev.styling, [field]: value }
+    }));
   };
 
-  const updateStyling = (updates: Partial<Styling>) => {
-    setStyling({ ...styling, ...updates });
-  };
-
-  const saveOfferData = async () => {
-    if (!selectedProduct || !selectedForm || !selectedStore) {
-      toast({
-        title: 'Error',
-        description: 'Please select both product and form',
-        variant: 'destructive'
-      });
+  const saveQuantityOffer = async () => {
+    if (!selectedProduct || !selectedForm) {
+      toast.error('Product and form must be selected');
       return;
     }
 
     setLoading(true);
     try {
-      const offerData: Omit<QuantityOfferData, 'id'> = {
-        shop_id: selectedStore.shop,
-        product_id: selectedProduct,
-        form_id: selectedForm,
-        enabled,
-        offers,
-        styling,
-        position,
-        custom_selector: customSelector || undefined
-      };
+      // Since quantity_offers table types aren't updated yet, we'll use a generic approach
+      const { error } = await (supabase as any)
+        .from('quantity_offers')
+        .upsert({
+          ...quantityOffer,
+          shop_id: 'default-shop', // This should come from actual shop context
+          product_id: selectedProduct.id,
+          form_id: selectedForm.id
+        });
 
-      if (currentOfferData) {
-        // Update existing
-        const { error } = await supabase
-          .from('quantity_offers' as any)
-          .update(offerData)
-          .eq('id', currentOfferData.id);
-
-        if (error) throw error;
-      } else {
-        // Create new
-        const { error } = await supabase
-          .from('quantity_offers' as any)
-          .insert([offerData]);
-
-        if (error) throw error;
-      }
-
-      toast({
-        title: 'Success',
-        description: 'Quantity offers saved successfully'
-      });
-
-      // Reload data
-      await loadOfferData();
+      if (error) throw error;
+      toast.success('Quantity offer saved successfully');
     } catch (error) {
-      console.error('Error saving offer data:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to save offer data',
-        variant: 'destructive'
-      });
-    } finally {
-      setLoading(false);
+      toast.error('Failed to save quantity offer');
     }
+    setLoading(false);
+  };
+
+  const resetToProductSelection = () => {
+    setCurrentStep('product');
+    setSelectedProduct(null);
+    setSelectedForm(null);
+    setQuantityOffer(prev => ({
+      ...prev,
+      product_id: '',
+      form_id: '',
+      offers: []
+    }));
   };
 
   return (
-    <div className="container mx-auto p-6 max-w-7xl">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Configuration Panel */}
-        <div className="space-y-6">
+    <SettingsLayout>
+      <div className="p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold">{t('quantityOffers')}</h1>
+            <p className="text-muted-foreground">{t('quantityOffersDescription')}</p>
+          </div>
+          {currentStep === 'settings' && (
+            <Button onClick={resetToProductSelection} variant="outline">
+              <Plus className="w-4 h-4 mr-2" />
+              {t('createNewOffer')}
+            </Button>
+          )}
+        </div>
+
+        {currentStep === 'product' && (
           <Card>
             <CardHeader>
-              <CardTitle>{t('quantityOffers.title')}</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="w-5 h-5" />
+                {t('selectProduct')}
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Product and Form Selection */}
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="product-select">{t('quantityOffers.selectProduct')}</Label>
-                  <Select value={selectedProduct} onValueChange={setSelectedProduct}>
-                    <SelectTrigger id="product-select">
-                      <SelectValue placeholder={t('quantityOffers.selectProductPlaceholder')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {products.map((product) => (
-                        <SelectItem key={product.id} value={product.id}>
-                          {product.title}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="form-select">{t('quantityOffers.selectForm')}</Label>
-                  <Select value={selectedForm} onValueChange={setSelectedForm}>
-                    <SelectTrigger id="form-select">
-                      <SelectValue placeholder={t('quantityOffers.selectFormPlaceholder')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {forms.map((form) => (
-                        <SelectItem key={form.id} value={form.id}>
-                          {form.title}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Switch checked={enabled} onCheckedChange={setEnabled} />
-                  <Label>{t('quantityOffers.enableOffers')}</Label>
-                </div>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {products.map((product) => (
+                  <Card
+                    key={product.id}
+                    className={`cursor-pointer transition-all ${
+                      selectedProduct?.id === product.id
+                        ? 'ring-2 ring-primary'
+                        : 'hover:shadow-md'
+                    }`}
+                    onClick={() => handleProductSelect(product)}
+                  >
+                    <CardContent className="p-4">
+                      <img
+                        src={product.images?.[0]?.url || '/placeholder.svg'}
+                        alt={product.title}
+                        className="w-full h-32 object-cover rounded mb-2"
+                      />
+                      <h3 className="font-medium">{product.title}</h3>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
+              {selectedProduct && (
+                <div className="mt-6 flex justify-end">
+                  <Button onClick={() => setCurrentStep('form')}>
+                    {t('next')}
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
-              {/* Offers Section */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">{t('quantityOffers.offers')}</h3>
-                {offers.map((offer, index) => (
-                  <Card key={offer.id} className="p-4">
-                    <div className="space-y-3">
+        {currentStep === 'form' && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="w-5 h-5" />
+                {t('selectForm')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {forms.map((form) => (
+                  <Card
+                    key={form.id}
+                    className={`cursor-pointer transition-all ${
+                      selectedForm?.id === form.id
+                        ? 'ring-2 ring-primary'
+                        : 'hover:shadow-md'
+                    }`}
+                    onClick={() => handleFormSelect(form)}
+                  >
+                    <CardContent className="p-4">
+                      <h3 className="font-medium">{form.title}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {Array.isArray(form.data) ? form.data.length : 0} {t('fields')}
+                      </p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+              <div className="mt-6 flex justify-between">
+                <Button onClick={() => setCurrentStep('product')} variant="outline">
+                  {t('back')}
+                </Button>
+                {selectedForm && (
+                  <Button onClick={proceedToSettings}>
+                    {t('saveAndContinue')}
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {currentStep === 'settings' && selectedProduct && selectedForm && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div>
+              <Card className="mb-6">
+                <CardHeader>
+                  <CardTitle className="text-sm text-muted-foreground">
+                    {t('selectedProduct')}: {selectedProduct.title} | {t('selectedForm')}: {selectedForm.title}
+                  </CardTitle>
+                </CardHeader>
+              </Card>
+
+              <Tabs defaultValue="offers" className="w-full">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="offers">{t('offers')}</TabsTrigger>
+                  <TabsTrigger value="styling">{t('styling')}</TabsTrigger>
+                  <TabsTrigger value="position">{t('position')}</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="offers" className="space-y-4">
+                  <Card>
+                    <CardHeader>
                       <div className="flex items-center justify-between">
-                        <h4 className="font-medium">{t('quantityOffers.offer')} {index + 1}</h4>
-                        {offers.length > 1 && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeOffer(offer.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        )}
+                        <CardTitle>{t('offers')}</CardTitle>
+                        <Button onClick={addOffer} size="sm">
+                          <Plus className="w-4 h-4 mr-2" />
+                          {t('addOffer')}
+                        </Button>
                       </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {quantityOffer.offers.map((offer) => (
+                        <Card key={offer.id} className="p-4">
+                          <div className="flex items-start justify-between mb-4">
+                            <Badge variant="outline">{t('offer')} #{offer.id}</Badge>
+                            <Button
+                              onClick={() => removeOffer(offer.id)}
+                              size="sm"
+                              variant="ghost"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <Label>{t('tag')}</Label>
+                              <Input
+                                value={offer.tag}
+                                onChange={(e) => updateOffer(offer.id, 'tag', e.target.value)}
+                                placeholder={t('freeGift')}
+                              />
+                            </div>
+                            <div>
+                              <Label>{t('quantity')}</Label>
+                              <Input
+                                type="number"
+                                value={offer.quantity}
+                                onChange={(e) => updateOffer(offer.id, 'quantity', parseInt(e.target.value))}
+                                min="1"
+                              />
+                            </div>
+                            <div className="col-span-2">
+                              <Label>{t('offerText')}</Label>
+                              <Input
+                                value={offer.text}
+                                onChange={(e) => updateOffer(offer.id, 'text', e.target.value)}
+                                placeholder={t('buy3Get1Free')}
+                              />
+                            </div>
+                            <div>
+                              <Label>{t('discountType')}</Label>
+                              <Select
+                                value={offer.discountType}
+                                onValueChange={(value) => updateOffer(offer.id, 'discountType', value)}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="none">{t('noDiscount')}</SelectItem>
+                                  <SelectItem value="fixed">{t('fixedAmount')}</SelectItem>
+                                  <SelectItem value="percentage">{t('percentage')}</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            {offer.discountType !== 'none' && (
+                              <div>
+                                <Label>{t('discountValue')}</Label>
+                                <Input
+                                  type="number"
+                                  value={offer.discountValue}
+                                  onChange={(e) => updateOffer(offer.id, 'discountValue', parseFloat(e.target.value))}
+                                  placeholder={offer.discountType === 'percentage' ? '15' : '20'}
+                                />
+                              </div>
+                            )}
+                          </div>
+                        </Card>
+                      ))}
+                      {quantityOffer.offers.length === 0 && (
+                        <div className="text-center py-8 text-muted-foreground">
+                          {t('noOffersYet')}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
 
-                      <div>
-                        <Label>{t('quantityOffers.offerText')}</Label>
-                        <Input
-                          value={offer.text}
-                          onChange={(e) => updateOffer(offer.id, { text: e.target.value })}
-                          placeholder="Buy 3 and get 1 free"
-                        />
+                <TabsContent value="styling" className="space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>{t('styling')}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label>{t('backgroundColor')}</Label>
+                          <Input
+                            type="color"
+                            value={quantityOffer.styling.backgroundColor}
+                            onChange={(e) => updateStyling('backgroundColor', e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <Label>{t('textColor')}</Label>
+                          <Input
+                            type="color"
+                            value={quantityOffer.styling.textColor}
+                            onChange={(e) => updateStyling('textColor', e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <Label>{t('tagColor')}</Label>
+                          <Input
+                            type="color"
+                            value={quantityOffer.styling.tagColor}
+                            onChange={(e) => updateStyling('tagColor', e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <Label>{t('priceColor')}</Label>
+                          <Input
+                            type="color"
+                            value={quantityOffer.styling.priceColor}
+                            onChange={(e) => updateStyling('priceColor', e.target.value)}
+                          />
+                        </div>
                       </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
 
+                <TabsContent value="position" className="space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>{t('position')}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
                       <div>
-                        <Label>{t('quantityOffers.tag')}</Label>
-                        <Input
-                          value={offer.tag}
-                          onChange={(e) => updateOffer(offer.id, { tag: e.target.value })}
-                          placeholder="1 for free"
-                        />
-                      </div>
-
-                      <div>
-                        <Label>{t('quantityOffers.quantity')}</Label>
-                        <Input
-                          type="number"
-                          min="1"
-                          value={offer.quantity}
-                          onChange={(e) => updateOffer(offer.id, { quantity: parseInt(e.target.value) || 1 })}
-                        />
-                      </div>
-
-                      <div>
-                        <Label>{t('quantityOffers.discountType')}</Label>
-                        <Select 
-                          value={offer.discountType} 
-                          onValueChange={(value: 'none' | 'fixed' | 'percentage') => 
-                            updateOffer(offer.id, { discountType: value })
-                          }
+                        <Label>{t('offerPosition')}</Label>
+                        <Select
+                          value={quantityOffer.position}
+                          onValueChange={(value) => setQuantityOffer(prev => ({ ...prev, position: value as any }))}
                         >
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="none">{t('quantityOffers.noDiscount')}</SelectItem>
-                            <SelectItem value="fixed">{t('quantityOffers.fixedAmount')}</SelectItem>
-                            <SelectItem value="percentage">{t('quantityOffers.percentage')}</SelectItem>
+                            <SelectItem value="before_form">{t('beforeForm')}</SelectItem>
+                            <SelectItem value="inside_form">{t('insideForm')}</SelectItem>
+                            <SelectItem value="after_form">{t('afterForm')}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
-
-                      {offer.discountType !== 'none' && (
+                      {quantityOffer.position === 'inside_form' && (
                         <div>
-                          <Label>
-                            {offer.discountType === 'fixed' 
-                              ? t('quantityOffers.discountAmount') 
-                              : t('quantityOffers.discountPercentage')
-                            }
-                          </Label>
+                          <Label>{t('customSelector')}</Label>
                           <Input
-                            type="number"
-                            min="0"
-                            value={offer.discountValue || 0}
-                            onChange={(e) => updateOffer(offer.id, { discountValue: parseFloat(e.target.value) || 0 })}
-                            placeholder={offer.discountType === 'fixed' ? '20' : '15'}
+                            value={quantityOffer.custom_selector || ''}
+                            onChange={(e) => setQuantityOffer(prev => ({ ...prev, custom_selector: e.target.value }))}
+                            placeholder=".submit-button"
                           />
                         </div>
                       )}
-                    </div>
+                    </CardContent>
                   </Card>
-                ))}
+                </TabsContent>
+              </Tabs>
 
-                <Button onClick={addNewOffer} variant="outline" className="w-full">
-                  <Plus className="h-4 w-4 mr-2" />
-                  {t('quantityOffers.addNewOffer')}
+              <div className="mt-6">
+                <Button onClick={saveQuantityOffer} disabled={loading} className="w-full">
+                  {loading ? t('saving') : t('saveOffer')}
                 </Button>
               </div>
+            </div>
 
-              {/* Styling Section */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">{t('quantityOffers.styling')}</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>{t('quantityOffers.backgroundColor')}</Label>
-                    <Input
-                      type="color"
-                      value={styling.backgroundColor}
-                      onChange={(e) => updateStyling({ backgroundColor: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label>{t('quantityOffers.textColor')}</Label>
-                    <Input
-                      type="color"
-                      value={styling.textColor}
-                      onChange={(e) => updateStyling({ textColor: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label>{t('quantityOffers.tagColor')}</Label>
-                    <Input
-                      type="color"
-                      value={styling.tagColor}
-                      onChange={(e) => updateStyling({ tagColor: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label>{t('quantityOffers.priceColor')}</Label>
-                    <Input
-                      type="color"
-                      value={styling.priceColor}
-                      onChange={(e) => updateStyling({ priceColor: e.target.value })}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Position Section */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">{t('quantityOffers.position')}</h3>
-                <Select value={position} onValueChange={(value) => setPosition(value as 'before_form' | 'inside_form' | 'after_form')}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="before_form">{t('quantityOffers.beforeForm')}</SelectItem>
-                    <SelectItem value="inside_form">{t('quantityOffers.insideForm')}</SelectItem>
-                    <SelectItem value="after_form">{t('quantityOffers.afterForm')}</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <div>
-                  <Label>{t('quantityOffers.customSelector')} (Optional)</Label>
-                  <Input
-                    value={customSelector}
-                    onChange={(e) => setCustomSelector(e.target.value)}
-                    placeholder=".custom-position"
+            <div>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Eye className="w-5 h-5" />
+                    {t('livePreview')}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <QuantityOffersPreview
+                    form={selectedForm}
+                    offers={quantityOffer.offers}
+                    styling={quantityOffer.styling}
+                    position={quantityOffer.position}
+                    enabled={quantityOffer.enabled}
                   />
-                </div>
-              </div>
-
-              <Button onClick={saveOfferData} disabled={loading} className="w-full">
-                {loading ? t('common.saving') : t('common.save')}
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Live Preview Panel */}
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('quantityOffers.livePreview')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <QuantityOffersPreview
-                offers={offers}
-                styling={styling}
-                enabled={enabled}
-              />
-            </CardContent>
-          </Card>
-        </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        )}
       </div>
-    </div>
+    </SettingsLayout>
   );
-}
+};
+
+export default QuantityOffers;

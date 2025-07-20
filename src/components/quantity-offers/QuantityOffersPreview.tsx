@@ -18,15 +18,19 @@ interface Styling {
 }
 
 interface QuantityOffersPreviewProps {
+  form?: any;
   offers: Offer[];
   styling: Styling;
-  enabled: boolean;
+  position?: string;
+  enabled?: boolean;
 }
 
 const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
+  form,
   offers,
   styling,
-  enabled
+  position,
+  enabled = true
 }) => {
   if (!enabled) {
     return (

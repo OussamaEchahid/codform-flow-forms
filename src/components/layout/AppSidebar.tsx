@@ -68,7 +68,6 @@ const AppSidebar = () => {
     { title: t('forms'), path: '/forms', icon: FileText },
     { title: t('landingPages'), path: '/landing-pages', icon: ImageIcon },
     { title: t('quickOffers'), path: '/upsells', icon: Gift },
-    { title: t('quantityOffers'), path: '/quantity-offers', icon: Package },
     { title: 'Shopify Products', path: '/shopify-products', icon: ShoppingBag },
     { title: 'اختبار Shopify', path: '/shopify-test', icon: RefreshCcw },
   ];
@@ -83,6 +82,7 @@ const AppSidebar = () => {
   // Settings submenu items
   const settingsSubItems = [
     { title: t('orderSettings'), path: '/settings/orders', icon: Users },
+    { title: t('quantityOffers'), path: '/settings/quantity-offers', icon: Package },
     { title: t('generalSettings'), path: '/settings/general', icon: Settings },
     { title: t('spamSettings'), path: '/settings/spam', icon: Shield },
     { title: t('plansSettings'), path: '/settings/plans', icon: Crown },

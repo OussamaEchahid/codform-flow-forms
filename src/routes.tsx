@@ -6,6 +6,7 @@ import OrderSettings from '@/pages/OrderSettings';
 import GeneralSettings from '@/pages/GeneralSettings';
 import SpamSettings from '@/pages/SpamSettings';
 import PlansSettings from '@/pages/PlansSettings';
+import QuantityOffers from '@/pages/QuantityOffers';
 import ShopifyRedirect from '@/pages/ShopifyRedirect';
 import Shopify from '@/pages/Shopify';
 import ShopifyConnect from '@/pages/ShopifyConnect';
@@ -88,6 +89,10 @@ export const routes: RouteObject[] = [
   {
     path: '/settings/plans',
     Component: PlansSettings,
+  },
+  {
+    path: '/settings/quantity-offers',
+    Component: QuantityOffers,
   },
   {
     path: '/shopify-redirect',
