@@ -11,7 +11,7 @@ import { useShopify } from '@/hooks/useShopify';
 import { useFormStore } from '@/hooks/useFormStore';
 import { FormField, deepCloneField } from '@/lib/form-utils';
 import FormElementList from './FormElementList';
-import FieldEditor from '../FieldEditor';
+import FormElementEditor from './FormElementEditor';
 import FormPreviewPanel from '../FormPreviewPanel';
 import FormSettingsTab from './FormSettingsTab';
 import FormStylingEditor from './FormStylingEditor';
@@ -34,7 +34,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId, shopId })
   const { user } = useAuth();
   const navigate = useNavigate();
   const { shop, failSafeMode } = useShopify();
-  const { formState, setFormState, updateFormStyle } = useFormStore();
+  const { formData, formStyle, updateFormData, updateFormStyle } = useFormStore();
   
   // Basic form state
   const [formTitle, setFormTitle] = useState('');
@@ -55,12 +55,12 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId, shopId })
 
   // Form creation logic
   useEffect(() => {
-    if (!formState) return;
+    if (!formData) return;
     
-    setFormTitle(formState.title || '');
-    setFormDescription(formState.description || '');
-    setFields(formState.data || []);
-  }, [formState]);
+    setFormTitle(formData.title || '');
+    setFormDescription(formData.description || '');
+    setFields(formData.fields || []);
+  }, [formData]);
 
   // Auto-save functionality
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -80,7 +80,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId, shopId })
     } catch (error) {
       console.error('Auto-save failed:', error);
     }
-  }, [formId, fields, formTitle, formDescription, formState.style, formCountry, formCurrency, formPhonePrefix]);
+  }, [formId, fields, formTitle, formDescription, formStyle, formCountry, formCurrency, formPhonePrefix]);
 
   useEffect(() => {
     if (autoSaveTimeoutRef.current) {
@@ -96,7 +96,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId, shopId })
         clearTimeout(autoSaveTimeoutRef.current);
       }
     };
-  }, [debouncedAutoSave, fields, formTitle, formDescription, formState.style, formCountry, formCurrency, formPhonePrefix]);
+  }, [debouncedAutoSave, fields, formTitle, formDescription, formStyle, formCountry, formCurrency, formPhonePrefix]);
 
   const loadForm = async () => {
     if (!formId || formId === 'new') return;
@@ -126,9 +126,9 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId, shopId })
         setFormDescription(form.description || '');
         
         // تحميل إعدادات النموذج بالقيم الافتراضية الصحيحة
-        const loadedCountry = 'MA';
-        const loadedCurrency = 'MAD';
-        const loadedPhonePrefix = '+212';
+        const loadedCountry = form.country || 'SA';
+        const loadedCurrency = form.currency || (loadedCountry === 'MA' ? 'MAD' : 'SAR');
+        const loadedPhonePrefix = form.phone_prefix || (loadedCountry === 'MA' ? '+212' : '+966');
         
         console.log('Loading form settings:', { 
           country: loadedCountry, 
@@ -149,20 +149,15 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId, shopId })
           setFields(processedFields);
         }
         
-        // تحميل الأنماط - مع التأكد من النوع الصحيح
+        // تحميل الأنماط
         if (form.style) {
-          const parsedStyle = typeof form.style === 'string' ? JSON.parse(form.style) : form.style;
-          updateFormStyle(parsedStyle);
+          updateFormStyle(form.style);
         }
         
-        setFormState({
-          id: form.id,
+        updateFormData({
           title: form.title || '',
           description: form.description || '',
-          data: Array.isArray(form.data) ? form.data : [],
-          isPublished: form.is_published,
-          shop_id: form.shop_id,
-          style: form.style ? (typeof form.style === 'string' ? JSON.parse(form.style) : form.style) : undefined
+          fields: form.data || []
         });
         
         console.log('Form loaded successfully with currency:', loadedCurrency);
@@ -199,8 +194,11 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId, shopId })
       const formDataToSave = {
         title: formTitle,
         description: formDescription,
-        data: fields as any,
-        style: formState.style as any,
+        data: fields,
+        style: formStyle,
+        country: countryToSave,
+        currency: currencyToSave,
+        phone_prefix: phonePrefixToSave,
         shop_id: shopId || shop,
         updated_at: new Date().toISOString()
       };
@@ -321,22 +319,18 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId, shopId })
 
             <TabsContent value="elements" className="space-y-4">
               <FormElementList
-                onAddElement={(type: string) => {
-                  const newField: FormField = {
-                    id: `field-${Date.now()}`,
-                    type,
-                    label: type === 'form-title' ? 'Form Title' : `New ${type}`,
-                    placeholder: '',
-                    required: false
-                  };
-                  addField(newField);
-                }}
+                onAddField={addField}
+                selectedField={selectedField}
+                onSelectField={setSelectedField}
+                fields={fields}
+                onMoveField={moveField}
+                onDeleteField={deleteField}
               />
               
               {selectedField && (
-                <FieldEditor
+                <FormElementEditor
                   field={selectedField}
-                  onSave={updateField}
+                  onUpdateField={updateField}
                   onClose={() => setSelectedField(null)}
                 />
               )}
@@ -345,11 +339,11 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId, shopId })
             <TabsContent value="settings">
               <FormSettingsTab
                 formTitle={formTitle}
-                onTitleChange={setFormTitle}
+                setFormTitle={setFormTitle}
                 formDescription={formDescription}
-                onDescriptionChange={setFormDescription}
-                country={formCountry}
-                onCountryChange={(country) => {
+                setFormDescription={setFormDescription}
+                formCountry={formCountry}
+                setFormCountry={(country) => {
                   setFormCountry(country);
                   // تحديث العملة ومفتاح الهاتف تلقائياً عند تغيير البلد
                   if (country === 'MA') {
@@ -360,22 +354,28 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId, shopId })
                     setFormPhonePrefix('+966');
                   }
                 }}
-                currency={formCurrency}
-                onCurrencyChange={setFormCurrency}
-                phonePrefix={formPhonePrefix}
+                formCurrency={formCurrency}
+                setFormCurrency={setFormCurrency}
+                formPhonePrefix={formPhonePrefix}
+                setFormPhonePrefix={setFormPhonePrefix}
+                onSave={saveForm}
+                isSaving={isSaving}
               />
             </TabsContent>
 
             <TabsContent value="styling">
               <FormStylingEditor
-                formStyle={formState.style}
+                formStyle={formStyle}
                 onStyleChange={updateFormStyle}
+                onSave={saveForm}
+                isSaving={isSaving}
               />
             </TabsContent>
 
             <TabsContent value="shopify">
               <ShopifyIntegration
                 formId={formId}
+                shopId={shopId || shop || ''}
                 onSave={saveForm}
               />
             </TabsContent>
@@ -384,20 +384,17 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ formId, shopId })
 
         <div className="lg:sticky lg:top-4">
           <FormPreviewPanel
+            formId={formId}
             formTitle={formTitle}
             formDescription={formDescription}
             currentStep={currentStep}
             totalSteps={totalSteps}
-            formStyle={formState.style || {
-              primaryColor: '#9b87f5',
-              borderRadius: '1.5rem',
-              fontSize: '16px',
-              buttonStyle: 'rounded'
-            }}
+            formStyle={formStyle}
             fields={fields}
             onPreviousStep={() => setCurrentStep(Math.max(1, currentStep - 1))}
             onNextStep={() => setCurrentStep(Math.min(totalSteps, currentStep + 1))}
             refreshKey={refreshKey}
+            onStyleChange={updateFormStyle}
             formCountry={formCountry}
             formPhonePrefix={formPhonePrefix}
           />
