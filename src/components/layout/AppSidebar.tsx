@@ -15,7 +15,10 @@ import {
   ChevronDown,
   ListOrdered,
   AlertTriangle,
-  Layers
+  Layers,
+  Users,
+  Shield,
+  Crown
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
@@ -40,9 +43,12 @@ const AppSidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // State for the Orders collapsible menu
+  // State for collapsible menus
   const [isOrdersOpen, setIsOrdersOpen] = useState(
     location.pathname.startsWith('/orders')
+  );
+  const [isSettingsOpen, setIsSettingsOpen] = useState(
+    location.pathname.startsWith('/settings')
   );
 
   const handleLogout = async () => {
@@ -55,14 +61,13 @@ const AppSidebar = () => {
     }
   };
 
-  // Reordered navigation items - Orders now comes right after Forms
+  // Main navigation items (excluding settings as it has submenu)
   const mainNavItems = [
     { title: t('dashboard'), path: '/dashboard', icon: LayoutDashboard },
     { title: t('forms'), path: '/forms', icon: FileText },
     { title: t('landingPages'), path: '/landing-pages', icon: ImageIcon },
     { title: t('quickOffers'), path: '/upsells', icon: Gift },
     { title: t('quantityOffers'), path: '/quantity-offers', icon: BarChart },
-    { title: t('settings'), path: '/settings', icon: Settings },
     { title: 'Shopify Products', path: '/shopify-products', icon: ShoppingBag },
     { title: 'اختبار Shopify', path: '/shopify-test', icon: RefreshCcw },
   ];
@@ -72,6 +77,14 @@ const AppSidebar = () => {
     { title: language === 'ar' ? 'قائمة الطلبات' : 'Orders List', path: '/orders/list', icon: ListOrdered },
     { title: language === 'ar' ? 'الطلبات المتروكة' : 'Abandoned Orders', path: '/orders/abandoned', icon: AlertTriangle },
     { title: language === 'ar' ? 'قنوات الطلبات' : 'Orders Channels', path: '/orders/channels', icon: Layers },
+  ];
+
+  // Settings submenu items
+  const settingsSubItems = [
+    { title: 'Order settings', path: '/settings/orders', icon: Users },
+    { title: 'General Settings', path: '/settings/general', icon: Settings },
+    { title: 'Block spam', path: '/settings/spam', icon: Shield },
+    { title: 'Plans', path: '/settings/plans', icon: Crown },
   ];
 
   return (
@@ -195,8 +208,81 @@ const AppSidebar = () => {
               </Collapsible>
             </li>
             
-            {/* Remaining navigation items */}
-            {mainNavItems.slice(2).map((item) => (
+            {/* Other navigation items before Settings */}
+            {mainNavItems.slice(2, 5).map((item) => (
+              <li key={item.path}>
+                <NavLink
+                  to={item.path}
+                  className={({ isActive }) =>
+                    cn(
+                      'flex items-center gap-3 px-4 py-2 rounded-lg transition-colors',
+                      isActive
+                        ? 'bg-[#2A2E36] text-[#9b87f5]'
+                        : 'text-gray-400 hover:bg-[#2A2E36] hover:text-[#9b87f5]'
+                    )
+                  }
+                >
+                  <item.icon size={20} />
+                  <span>{item.title}</span>
+                </NavLink>
+              </li>
+            ))}
+            
+            {/* Settings Menu with Submenu */}
+            <li>
+              <Collapsible 
+                open={isSettingsOpen} 
+                onOpenChange={setIsSettingsOpen}
+                className="w-full"
+              >
+                <CollapsibleTrigger asChild>
+                  <div
+                    className={cn(
+                      'flex items-center justify-between w-full cursor-pointer px-4 py-2 rounded-lg transition-colors',
+                      (location.pathname === '/settings' || location.pathname.startsWith('/settings/'))
+                        ? 'bg-[#2A2E36] text-[#9b87f5]'
+                        : 'text-gray-400 hover:bg-[#2A2E36] hover:text-[#9b87f5]'
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Settings size={20} />
+                      <span>Settings</span>
+                    </div>
+                    <ChevronDown 
+                      size={16} 
+                      className={cn(
+                        'transition-transform duration-200',
+                        isSettingsOpen && 'transform rotate-180'
+                      )}
+                    />
+                  </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="pt-2 pl-6 ml-2 border-l border-[#2A2E36]">
+                    {settingsSubItems.map((subItem) => (
+                      <NavLink
+                        key={subItem.path}
+                        to={subItem.path}
+                        className={({ isActive }) =>
+                          cn(
+                            'flex items-center gap-3 px-4 py-2 rounded-lg transition-colors mb-1',
+                            isActive
+                              ? 'bg-[#2A2E36] text-[#9b87f5]'
+                              : 'text-gray-400 hover:bg-[#2A2E36] hover:text-[#9b87f5]'
+                          )
+                        }
+                      >
+                        <subItem.icon size={16} />
+                        <span className="text-sm">{subItem.title}</span>
+                      </NavLink>
+                    ))}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            </li>
+            
+            {/* Remaining navigation items after Settings */}
+            {mainNavItems.slice(5).map((item) => (
               <li key={item.path}>
                 <NavLink
                   to={item.path}
