@@ -137,7 +137,7 @@ serve(async (req: Request) => {
           financial_status: 'pending',
           fulfillment_status: null,
           currency: 'SAR',
-          total_price: '100.00', // Default price, can be customized
+          total_price: '0.00', // Free order from form submission
           customer: {
             first_name: customerName.split(' ')[0] || customerName,
             last_name: customerName.split(' ').slice(1).join(' ') || '',
@@ -160,13 +160,13 @@ serve(async (req: Request) => {
             country: 'SA',
             phone: customerPhone
           },
-          line_items: [
-            {
-              title: 'Form Order',
-              quantity: 1,
-              price: '100.00'
-            }
-          ],
+           line_items: [
+             {
+               title: 'Form Order',
+               quantity: 1,
+               price: '0.00'
+             }
+           ],
           note: `Order created from form submission. Form ID: ${formId}`,
           tags: 'form-submission'
         }
@@ -197,18 +197,26 @@ serve(async (req: Request) => {
         console.error('❌ Failed to create Shopify order. Status:', shopifyResponse.status);
         console.error('❌ Error details:', JSON.stringify(shopifyResult, null, 2));
         
-        // Try with a simpler order structure
+        // Try with a simpler order structure but include customer info
         console.log('🔄 Trying with simplified order...');
         const simpleOrderData = {
           order: {
             financial_status: 'pending',
-            note: `Order from form submission: ${formId}`,
+            note: `Order from form submission: ${formId}. Customer: ${customerName}, Phone: ${customerPhone}, Email: ${customerEmail}, City: ${customerCity}, Address: ${customerAddress}`,
             tags: 'form-submission',
+            email: customerEmail || '',
+            phone: customerPhone || '',
+            customer: customerName ? {
+              first_name: customerName.split(' ')[0] || customerName,
+              last_name: customerName.split(' ').slice(1).join(' ') || '',
+              email: customerEmail || '',
+              phone: customerPhone || ''
+            } : undefined,
             line_items: [
               {
                 title: 'Form Order',
                 quantity: 1,
-                price: '100.00'
+                price: '0.00'
               }
             ]
           }
@@ -252,10 +260,10 @@ serve(async (req: Request) => {
         customer_name: customerName,
         customer_email: customerEmail,
         customer_phone: customerPhone,
-        total_amount: 100.00,
+        total_amount: 0.00,
         currency: 'SAR',
         status: 'pending',
-        items: [{ title: 'Form Order', quantity: 1, price: '100.00' }],
+        items: [{ title: 'Form Order', quantity: 1, price: '0.00' }],
         shipping_address: { address: customerAddress, city: customerCity },
         billing_address: { address: customerAddress, city: customerCity },
         form_id: formId, // Use the original formId from request
