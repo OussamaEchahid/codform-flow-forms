@@ -82,7 +82,6 @@ const AppSidebar = () => {
   // Settings submenu items
   const settingsSubItems = [
     { title: t('orderSettings'), path: '/settings/orders', icon: Users },
-    { title: t('quantityOffers'), path: '/settings/quantity-offers', icon: Package },
     { title: t('generalSettings'), path: '/settings/general', icon: Settings },
     { title: t('spamSettings'), path: '/settings/spam', icon: Shield },
     { title: t('plansSettings'), path: '/settings/plans', icon: Crown },
@@ -207,6 +206,24 @@ const AppSidebar = () => {
                   </div>
                 </CollapsibleContent>
               </Collapsible>
+            </li>
+            
+            {/* Quantity Offers - positioned after Orders */}
+            <li>
+              <NavLink
+                to="/quantity-offers"
+                className={({ isActive }) =>
+                  cn(
+                    'flex items-center gap-3 px-4 py-2 rounded-lg transition-colors',
+                    isActive
+                      ? 'bg-[#2A2E36] text-[#9b87f5]'
+                      : 'text-gray-400 hover:bg-[#2A2E36] hover:text-[#9b87f5]'
+                  )
+                }
+              >
+                <Package size={20} />
+                <span>{t('quantityOffers')}</span>
+              </NavLink>
             </li>
             
             {/* Other navigation items before Settings */}
