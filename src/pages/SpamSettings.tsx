@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Save, Plus, Trash2, Shield } from "lucide-react";
 import SettingsLayout from "@/components/layout/SettingsLayout";
+import { useI18n } from "@/lib/i18n";
 
 interface BlockedIP {
   id: number;
@@ -14,6 +15,7 @@ interface BlockedIP {
 }
 
 const SpamSettings = () => {
+  const { t } = useI18n();
   const [newIP, setNewIP] = useState("");
   const [blockedIPs, setBlockedIPs] = useState<BlockedIP[]>([
     { id: 1, ip: "192.168.1.100", date: "2024-01-15" },
@@ -44,91 +46,91 @@ const SpamSettings = () => {
     <SettingsLayout>
       <div className="container mx-auto p-6 space-y-6">
         <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Shield className="h-8 w-8" />
-            حظر السبام
-          </h1>
-          <p className="text-muted-foreground">إدارة قائمة الحظر لمنع الزوار المزعجين</p>
+          <div>
+            <h1 className="text-3xl font-bold flex items-center gap-2">
+              <Shield className="h-8 w-8" />
+              {t('spamSettings')}
+            </h1>
+            <p className="text-muted-foreground">{t('spamSettingsDescription')}</p>
+          </div>
+          <Button onClick={handleSave} className="flex items-center gap-2">
+            <Save className="h-4 w-4" />
+            {t('saveSettings')}
+          </Button>
         </div>
-        <Button onClick={handleSave} className="flex items-center gap-2">
-          <Save className="h-4 w-4" />
-          حفظ الإعدادات
-        </Button>
-      </div>
 
-      <div className="grid gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>حظر عنوان IP</CardTitle>
-            <CardDescription>أضف عناوين IP لمنعها من الوصول إلى التطبيق</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex gap-4">
-              <div className="flex-1 space-y-2">
-                <Label htmlFor="new-ip">عنوان IP</Label>
-                <Input
-                  id="new-ip"
-                  type="text"
-                  placeholder="192.168.1.1"
-                  value={newIP}
-                  onChange={(e) => setNewIP(e.target.value)}
-                  pattern="^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$"
-                />
+        <div className="grid gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>{t('blockIP')}</CardTitle>
+              <CardDescription>{t('blockIP')}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex gap-4">
+                <div className="flex-1 space-y-2">
+                  <Label htmlFor="new-ip">{t('ipAddress')}</Label>
+                  <Input
+                    id="new-ip"
+                    type="text"
+                    placeholder="192.168.1.1"
+                    value={newIP}
+                    onChange={(e) => setNewIP(e.target.value)}
+                    pattern="^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$"
+                  />
+                </div>
+                <div className="flex items-end">
+                  <Button onClick={addBlockedIP} className="flex items-center gap-2">
+                    <Plus className="h-4 w-4" />
+                    {t('blockIP')}
+                  </Button>
+                </div>
               </div>
-              <div className="flex items-end">
-                <Button onClick={addBlockedIP} className="flex items-center gap-2">
-                  <Plus className="h-4 w-4" />
-                  حظر IP
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>قائمة العناوين المحظورة</CardTitle>
-            <CardDescription>جميع عناوين IP المحظورة حالياً</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {blockedIPs.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                لا توجد عناوين IP محظورة
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>تاريخ الحظر</TableHead>
-                    <TableHead>عنوان IP</TableHead>
-                    <TableHead>الإجراءات</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {blockedIPs.map((blockedIP) => (
-                    <TableRow key={blockedIP.id}>
-                      <TableCell>{blockedIP.date}</TableCell>
-                      <TableCell className="font-mono">{blockedIP.ip}</TableCell>
-                      <TableCell>
-                        <Button 
-                          variant="destructive" 
-                          size="sm" 
-                          onClick={() => removeBlockedIP(blockedIP.id)}
-                          className="flex items-center gap-2"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          إزالة الحظر
-                        </Button>
-                      </TableCell>
+          <Card>
+            <CardHeader>
+              <CardTitle>{t('blockedIPsList')}</CardTitle>
+              <CardDescription>{t('blockedIPsList')}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {blockedIPs.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  {t('noBlockedIPs')}
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{t('blockDate')}</TableHead>
+                      <TableHead>{t('ipAddress')}</TableHead>
+                      <TableHead>{t('actions')}</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+                  </TableHeader>
+                  <TableBody>
+                    {blockedIPs.map((blockedIP) => (
+                      <TableRow key={blockedIP.id}>
+                        <TableCell>{blockedIP.date}</TableCell>
+                        <TableCell className="font-mono">{blockedIP.ip}</TableCell>
+                        <TableCell>
+                          <Button 
+                            variant="destructive" 
+                            size="sm" 
+                            onClick={() => removeBlockedIP(blockedIP.id)}
+                            className="flex items-center gap-2"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            {t('removeBlock')}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </SettingsLayout>
   );

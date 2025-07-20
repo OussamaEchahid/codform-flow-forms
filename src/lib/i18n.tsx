@@ -72,7 +72,69 @@ const translations = {
     
     // Success messages
     success_title: 'Thank You',
-    success_message: 'Your request has been submitted successfully. We will contact you soon.'
+    success_message: 'Your request has been submitted successfully. We will contact you soon.',
+    
+    // Settings translations
+    orderSettings: 'Order Settings',
+    generalSettings: 'General Settings',
+    spamSettings: 'Block Spam',
+    plansSettings: 'Plans',
+    settingsDescription: 'Manage application settings and features',
+    orderSettingsDescription: 'Manage post-order creation settings',
+    generalSettingsDescription: 'Manage general application settings',
+    spamSettingsDescription: 'Manage block list to prevent annoying visitors',
+    plansSettingsDescription: 'Manage subscription plans and upgrades',
+    
+    // Order Settings
+    postOrderAction: 'Post-Order Action',
+    postOrderActionDescription: 'Choose what happens after successful order creation',
+    redirectToPage: 'Redirect to Page',
+    redirectEnabled: 'Enable Redirect',
+    thankYouPageUrl: 'Thank You Page URL',
+    popupSettings: 'Popup Settings',
+    popupTitle: 'Title',
+    popupMessage: 'Message',
+    popupSettingsDescription: 'Customize the popup that appears after order creation',
+    
+    // General Settings
+    shopifySettings: 'Shopify Settings',
+    shopifySettingsDescription: 'Customize Shopify integration',
+    showShopifyButton: 'Show Shopify Purchase Button',
+    orderPaymentStatus: 'Order Payment Status',
+    dailyOrderLimit: 'Daily Order Limit Per Visitor',
+    outOfStockMessage: 'Out of Stock Message',
+    shippingByTotal: 'Shipping by Order Total',
+    shippingRatesDescription: 'Setup shipping rates by price ranges',
+    
+    // Spam Settings
+    blockIP: 'Block IP Address',
+    blockedIPsList: 'Blocked IPs List',
+    ipAddress: 'IP Address',
+    blockDate: 'Block Date',
+    actions: 'Actions',
+    removeBlock: 'Remove Block',
+    noBlockedIPs: 'No blocked IP addresses',
+    
+    // Plans Settings
+    currentPlan: 'Current',
+    mostPopular: 'Most Popular',
+    basicPlan: 'Basic Plan',
+    advancedPlan: 'Advanced Plan',
+    professionalPlan: 'Professional Plan',
+    upgradeNow: 'Upgrade Now',
+    contactUs: 'Contact Us',
+    currentSubscription: 'Current Subscription Information',
+    formsUsed: 'Forms Used',
+    ordersThisMonth: 'Orders This Month',
+    storageUsed: 'Storage Used',
+    renewalDate: 'Renewal Date',
+    
+    // Common
+    addRate: 'Add Rate',
+    minAmount: 'Minimum Amount',
+    maxAmount: 'Maximum Amount',
+    shippingCost: 'Shipping Cost',
+    saveSettings: 'Save Settings'
   },
   ar: {
     dashboard: 'لوحة التحكم',
@@ -125,7 +187,69 @@ const translations = {
     
     // Success messages
     success_title: 'شكراً لك',
-    success_message: 'تم إرسال طلبك بنجاح. سنتواصل معك قريبًا.'
+    success_message: 'تم إرسال طلبك بنجاح. سنتواصل معك قريبًا.',
+    
+    // Settings translations
+    orderSettings: 'إعدادات الطلب',
+    generalSettings: 'الإعدادات العامة',
+    spamSettings: 'حظر السبام',
+    plansSettings: 'الخطط',
+    settingsDescription: 'إدارة إعدادات التطبيق والوظائف',
+    orderSettingsDescription: 'إدارة إعدادات ما بعد إنشاء الطلب',
+    generalSettingsDescription: 'إدارة الإعدادات العامة للتطبيق',
+    spamSettingsDescription: 'إدارة قائمة الحظر لمنع الزوار المزعجين',
+    plansSettingsDescription: 'إدارة خطط الاشتراك والترقية',
+    
+    // Order Settings
+    postOrderAction: 'الإجراء بعد إنشاء الطلب',
+    postOrderActionDescription: 'اختر ما يحدث بعد إنشاء الطلب بنجاح',
+    redirectToPage: 'إعادة التوجيه إلى صفحة',
+    redirectEnabled: 'تفعيل إعادة التوجيه',
+    thankYouPageUrl: 'رابط صفحة الشكر',
+    popupSettings: 'إعدادات النافذة المنبثقة',
+    popupTitle: 'العنوان',
+    popupMessage: 'الرسالة',
+    popupSettingsDescription: 'تخصيص النافذة المنبثقة التي تظهر بعد إنشاء الطلب',
+    
+    // General Settings
+    shopifySettings: 'إعدادات Shopify',
+    shopifySettingsDescription: 'تخصيص التكامل مع Shopify',
+    showShopifyButton: 'إظهار زر الشراء عبر Shopify',
+    orderPaymentStatus: 'حالة دفع الطلب',
+    dailyOrderLimit: 'الحد الأقصى للطلبات اليومية لكل زائر',
+    outOfStockMessage: 'رسالة عند نفاد المخزون',
+    shippingByTotal: 'الشحن حسب السعر الإجمالي للطلب',
+    shippingRatesDescription: 'إعداد أسعار الشحن حسب نطاقات الأسعار',
+    
+    // Spam Settings
+    blockIP: 'حظر عنوان IP',
+    blockedIPsList: 'قائمة العناوين المحظورة',
+    ipAddress: 'عنوان IP',
+    blockDate: 'تاريخ الحظر',
+    actions: 'الإجراءات',
+    removeBlock: 'إزالة الحظر',
+    noBlockedIPs: 'لا توجد عناوين IP محظورة',
+    
+    // Plans Settings
+    currentPlan: 'الحالية',
+    mostPopular: 'الأكثر شعبية',
+    basicPlan: 'الخطة الأساسية',
+    advancedPlan: 'الخطة المتقدمة',
+    professionalPlan: 'الخطة الاحترافية',
+    upgradeNow: 'ترقية الآن',
+    contactUs: 'اتصل بنا',
+    currentSubscription: 'معلومات الاشتراك الحالي',
+    formsUsed: 'النماذج المستخدمة',
+    ordersThisMonth: 'الطلبات هذا الشهر',
+    storageUsed: 'التخزين المستخدم',
+    renewalDate: 'تاريخ التجديد',
+    
+    // Common
+    addRate: 'إضافة سعر',
+    minAmount: 'الحد الأدنى',
+    maxAmount: 'الحد الأقصى',
+    shippingCost: 'تكلفة الشحن',
+    saveSettings: 'حفظ الإعدادات'
   }
 };
 

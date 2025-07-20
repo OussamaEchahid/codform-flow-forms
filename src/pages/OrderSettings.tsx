@@ -8,8 +8,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Save } from "lucide-react";
 import SettingsLayout from "@/components/layout/SettingsLayout";
+import { useI18n } from "@/lib/i18n";
 
 const OrderSettings = () => {
+  const { t } = useI18n();
   const [postOrderAction, setPostOrderAction] = useState("redirect");
   const [redirectEnabled, setRedirectEnabled] = useState(true);
   const [thankYouPageUrl, setThankYouPageUrl] = useState("");
@@ -25,58 +27,58 @@ const OrderSettings = () => {
     <SettingsLayout>
       <div className="container mx-auto p-6 space-y-6">
         <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">إعدادات الطلب</h1>
-          <p className="text-muted-foreground">إدارة إعدادات ما بعد إنشاء الطلب</p>
+          <div>
+            <h1 className="text-3xl font-bold">{t('orderSettings')}</h1>
+            <p className="text-muted-foreground">{t('orderSettingsDescription')}</p>
+          </div>
+          <Button onClick={handleSave} className="flex items-center gap-2">
+            <Save className="h-4 w-4" />
+            {t('saveSettings')}
+          </Button>
         </div>
-        <Button onClick={handleSave} className="flex items-center gap-2">
-          <Save className="h-4 w-4" />
-          حفظ الإعدادات
-        </Button>
-      </div>
 
       <div className="grid gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>الإجراء بعد إنشاء الطلب</CardTitle>
-            <CardDescription>اختر ما يحدث بعد إنشاء الطلب بنجاح</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="post-order-action">الإجراء</Label>
-              <Select value={postOrderAction} onValueChange={setPostOrderAction}>
-                <SelectTrigger>
-                  <SelectValue placeholder="اختر الإجراء" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="redirect">إعادة التوجيه</SelectItem>
-                  <SelectItem value="popup">نافذة منبثقة</SelectItem>
-                  <SelectItem value="stay">البقاء في الصفحة</SelectItem>
-                </SelectContent>
+          <Card>
+            <CardHeader>
+              <CardTitle>{t('postOrderAction')}</CardTitle>
+              <CardDescription>{t('postOrderActionDescription')}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="post-order-action">{t('postOrderAction')}</Label>
+                <Select value={postOrderAction} onValueChange={setPostOrderAction}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={t('postOrderAction')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="redirect">إعادة التوجيه</SelectItem>
+                    <SelectItem value="popup">نافذة منبثقة</SelectItem>
+                    <SelectItem value="stay">البقاء في الصفحة</SelectItem>
+                  </SelectContent>
               </Select>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>إعدادات إعادة التوجيه</CardTitle>
-            <CardDescription>تخصيص إعادة التوجيه بعد إنشاء الطلب</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>{t('redirectToPage')}</CardTitle>
+              <CardDescription>{t('redirectToPage')}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
             <div className="flex items-center space-x-2">
-              <Switch 
-                id="redirect-enabled" 
-                checked={redirectEnabled} 
-                onCheckedChange={setRedirectEnabled}
-              />
-              <Label htmlFor="redirect-enabled">تفعيل إعادة التوجيه</Label>
+                <Switch 
+                  id="redirect-enabled" 
+                  checked={redirectEnabled} 
+                  onCheckedChange={setRedirectEnabled}
+                />
+                <Label htmlFor="redirect-enabled">{t('redirectEnabled')}</Label>
             </div>
             
             {redirectEnabled && (
-              <div className="space-y-2">
-                <Label htmlFor="thank-you-url">رابط صفحة الشكر</Label>
-                <Input
+                <div className="space-y-2">
+                  <Label htmlFor="thank-you-url">{t('thankYouPageUrl')}</Label>
+                  <Input
                   id="thank-you-url"
                   type="url"
                   placeholder="https://example.com/thank-you"
@@ -88,15 +90,15 @@ const OrderSettings = () => {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>إعدادات النافذة المنبثقة</CardTitle>
-            <CardDescription>تخصيص النافذة المنبثقة التي تظهر بعد إنشاء الطلب</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="popup-title">العنوان</Label>
-              <Input
+          <Card>
+            <CardHeader>
+              <CardTitle>{t('popupSettings')}</CardTitle>
+              <CardDescription>{t('popupSettingsDescription')}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="popup-title">{t('popupTitle')}</Label>
+                <Input
                 id="popup-title"
                 placeholder="تم إنشاء طلبك بنجاح!"
                 value={popupTitle}
@@ -104,9 +106,9 @@ const OrderSettings = () => {
               />
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="popup-message">الرسالة</Label>
-              <Textarea
+              <div className="space-y-2">
+                <Label htmlFor="popup-message">{t('popupMessage')}</Label>
+                <Textarea
                 id="popup-message"
                 placeholder="شكراً لك على طلبك. سنتواصل معك قريباً..."
                 value={popupMessage}

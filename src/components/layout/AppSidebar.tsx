@@ -81,10 +81,10 @@ const AppSidebar = () => {
 
   // Settings submenu items
   const settingsSubItems = [
-    { title: 'Order settings', path: '/settings/orders', icon: Users },
-    { title: 'General Settings', path: '/settings/general', icon: Settings },
-    { title: 'Block spam', path: '/settings/spam', icon: Shield },
-    { title: 'Plans', path: '/settings/plans', icon: Crown },
+    { title: t('orderSettings'), path: '/settings/orders', icon: Users },
+    { title: t('generalSettings'), path: '/settings/general', icon: Settings },
+    { title: t('spamSettings'), path: '/settings/spam', icon: Shield },
+    { title: t('plansSettings'), path: '/settings/plans', icon: Crown },
   ];
 
   return (
@@ -246,7 +246,7 @@ const AppSidebar = () => {
                   >
                     <div className="flex items-center gap-3">
                       <Settings size={20} />
-                      <span>Settings</span>
+                      <span>{t('settings')}</span>
                     </div>
                     <ChevronDown 
                       size={16} 
