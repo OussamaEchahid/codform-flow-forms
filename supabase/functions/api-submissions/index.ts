@@ -9,55 +9,53 @@ const corsHeaders = {
 
 // تحسين دالة تنسيق رقم الهاتف لدعم دول مختلفة
 function validateAndFormatPhone(phone: string, formPhonePrefix: string = '+966'): string {
-  if (!phone) return formPhonePrefix + '500000000'; // رقم افتراضي بناءً على كود الدولة
+  console.log(`📞 تنسيق رقم الهاتف: ${phone} مع المفتاح: ${formPhonePrefix}`);
+  
+  if (!phone) {
+    const defaultPhone = formPhonePrefix + '500000000';
+    console.log(`📞 استخدام رقم افتراضي: ${defaultPhone}`);
+    return defaultPhone;
+  }
   
   // تنظيف رقم الهاتف
-  let cleanPhone = phone.replace(/[\s\-\(\)\.]/g, '');
+  let cleanPhone = phone.toString().replace(/[\s\-\(\)\.]/g, '');
   cleanPhone = cleanPhone.replace(/[^\d+]/g, '');
   
-  // استخراج كود الدولة من formPhonePrefix
-  const countryCode = formPhonePrefix.replace('+', '');
+  console.log(`📞 رقم منظف: ${cleanPhone}`);
   
   // معالجة الأرقام بناءً على كود الدولة المحدد
-  if (formPhonePrefix === '+966') {
+  if (formPhonePrefix === '+212') {
+    // معالجة الأرقام المغربية
+    if (cleanPhone.startsWith('00212')) {
+      cleanPhone = '+212' + cleanPhone.substring(5);
+    } else if (cleanPhone.startsWith('212') && !cleanPhone.startsWith('+212')) {
+      cleanPhone = '+212' + cleanPhone.substring(3);
+    } else if (cleanPhone.startsWith('0') && !cleanPhone.startsWith('00')) {
+      cleanPhone = '+212' + cleanPhone.substring(1);
+    } else if (!cleanPhone.startsWith('+212') && !cleanPhone.startsWith('+')) {
+      cleanPhone = '+212' + cleanPhone;
+    }
+  } else if (formPhonePrefix === '+966') {
     // معالجة الأرقام السعودية
     if (cleanPhone.startsWith('00966')) {
       cleanPhone = '+966' + cleanPhone.substring(5);
-    } else if (cleanPhone.startsWith('966')) {
+    } else if (cleanPhone.startsWith('966') && !cleanPhone.startsWith('+966')) {
       cleanPhone = '+966' + cleanPhone.substring(3);
     } else if (cleanPhone.startsWith('05') || cleanPhone.startsWith('01')) {
       cleanPhone = '+966' + cleanPhone.substring(1);
     } else if (cleanPhone.startsWith('5') && cleanPhone.length === 9) {
       cleanPhone = '+966' + cleanPhone;
     } else if (!cleanPhone.startsWith('+966') && !cleanPhone.startsWith('+')) {
-      if (cleanPhone.length >= 9) {
-        cleanPhone = '+966' + cleanPhone;
-      } else {
-        cleanPhone = '+966500000000';
-      }
-    }
-  } else if (formPhonePrefix === '+212') {
-    // معالجة الأرقام المغربية
-    if (cleanPhone.startsWith('00212')) {
-      cleanPhone = '+212' + cleanPhone.substring(5);
-    } else if (cleanPhone.startsWith('212')) {
-      cleanPhone = '+212' + cleanPhone.substring(3);
-    } else if (cleanPhone.startsWith('0')) {
-      cleanPhone = '+212' + cleanPhone.substring(1);
-    } else if (!cleanPhone.startsWith('+212') && !cleanPhone.startsWith('+')) {
-      if (cleanPhone.length >= 9) {
-        cleanPhone = '+212' + cleanPhone;
-      } else {
-        cleanPhone = '+2126' + '00000000'; // رقم افتراضي مغربي
-      }
+      cleanPhone = '+966' + cleanPhone;
     }
   } else {
     // معالجة عامة للدول الأخرى
+    const countryCode = formPhonePrefix.replace('+', '');
     if (cleanPhone.startsWith('00' + countryCode)) {
       cleanPhone = formPhonePrefix + cleanPhone.substring(2 + countryCode.length);
-    } else if (cleanPhone.startsWith(countryCode)) {
+    } else if (cleanPhone.startsWith(countryCode) && !cleanPhone.startsWith(formPhonePrefix)) {
       cleanPhone = formPhonePrefix + cleanPhone.substring(countryCode.length);
-    } else if (cleanPhone.startsWith('0')) {
+    } else if (cleanPhone.startsWith('0') && !cleanPhone.startsWith('00')) {
       cleanPhone = formPhonePrefix + cleanPhone.substring(1);
     } else if (!cleanPhone.startsWith(formPhonePrefix) && !cleanPhone.startsWith('+')) {
       cleanPhone = formPhonePrefix + cleanPhone;
@@ -65,10 +63,13 @@ function validateAndFormatPhone(phone: string, formPhonePrefix: string = '+966')
   }
   
   // التحقق من صحة التنسيق النهائي
-  if (cleanPhone.length < 10 || !cleanPhone.startsWith(formPhonePrefix)) {
-    return formPhonePrefix + '500000000'; // رقم افتراضي صحيح
+  if (!cleanPhone.startsWith(formPhonePrefix)) {
+    const fallbackPhone = formPhonePrefix + '500000000';
+    console.log(`📞 استخدام رقم احتياطي: ${fallbackPhone}`);
+    return fallbackPhone;
   }
   
+  console.log(`📞 رقم نهائي: ${cleanPhone}`);
   return cleanPhone;
 }
 
@@ -132,6 +133,7 @@ function extractCustomerData(formData: any, formSettings: any = {}): {
   
   // استخدام كود الدولة من إعدادات النموذج
   const formPhonePrefix = formSettings.phone_prefix || '+966';
+  console.log(`📞 استخدام مفتاح من النموذج: ${formPhonePrefix}`);
   phone = validateAndFormatPhone(phone, formPhonePrefix);
   
   console.log('✅ Extracted customer data:', { name, email, phone, city, address });

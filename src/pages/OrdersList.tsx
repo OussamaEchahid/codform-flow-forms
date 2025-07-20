@@ -371,7 +371,12 @@ const OrdersList = () => {
                       <TableCell>{order.customer_phone || order.phone}</TableCell>
                       <TableCell>{new Date(order.created_at || order.date).toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US')}</TableCell>
                       <TableCell className="text-center">{Array.isArray(order.items) ? order.items.length : order.items || 0}</TableCell>
-                      <TableCell className="font-medium">{order.total_amount ? `${order.total_amount} ${order.currency}` : order.total}</TableCell>
+                      <TableCell className="font-medium">
+                        {order.total_amount ? 
+                          `${order.total_amount} ${order.currency || 'SAR'}` : 
+                          (order.total || '0 SAR')
+                        }
+                      </TableCell>
                       <TableCell>{getStatusBadge(order.status)}</TableCell>
                       <TableCell>
                         <div className="flex justify-end gap-2">
