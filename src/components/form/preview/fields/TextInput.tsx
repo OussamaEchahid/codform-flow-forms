@@ -95,9 +95,11 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
   const labelText = field.label || (language === 'ar' ? 'حقل نصي' : 'Text field');
   let placeholderText = field.placeholder || '';
   
-  // Add phone prefix to phone field placeholder if not already present
+  // استخدام كود الدولة الصحيح من إعدادات النموذج
   if (field.type === 'phone' && placeholderText && !placeholderText.includes('+')) {
-    placeholderText = `${formPhonePrefix} ${placeholderText}`;
+    // استخدام formPhonePrefix من إعدادات النموذج بدلاً من القيمة الافتراضية
+    const actualPhonePrefix = formPhonePrefix || '+966';
+    placeholderText = `${actualPhonePrefix} ${placeholderText}`;
   }
 
   const getInputType = () => {

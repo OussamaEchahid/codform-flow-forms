@@ -35,6 +35,8 @@ interface FormPreviewPanelProps {
   onPreviousStep?: () => void;
   onNextStep?: () => void;
   refreshKey: number;
+  formCountry?: string;
+  formPhonePrefix?: string;
 }
 
 const deepCloneFields = (fields: FormField[]): FormField[] => {
@@ -58,7 +60,9 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   fields,
   onPreviousStep,
   onNextStep,
-  refreshKey
+  refreshKey,
+  formCountry,
+  formPhonePrefix
 }) => {
   const { language } = useI18n();
   const { updateFormStyle } = useFormStore();
@@ -83,6 +87,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   
   const processedFields = useMemo(() => {
     console.log("Processing fields for preview, original count:", fields?.length || 0);
+    console.log("Form country:", formCountry, "Phone prefix:", formPhonePrefix);
     
     const clonedFields = deepCloneFields(fields);
     
@@ -99,7 +104,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           fontSize: '18px',
           animation: true,
           animationType: 'pulse',
-          borderRadius: '1.5rem', // توحيد مع المتجر
+          borderRadius: '1.5rem',
         },
       };
       clonedFields.push(submitButton);
@@ -126,12 +131,12 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     
     console.log("Final processed fields count:", clonedFields.length);
     return clonedFields;
-  }, [fields, language, formStyle.primaryColor, formStyle.backgroundColor, formStyle.borderRadius, formStyle.formDirection]);
+  }, [fields, language, formStyle.primaryColor, formStyle.backgroundColor, formStyle.borderRadius, formStyle.formDirection, formCountry, formPhonePrefix]);
 
   const previewFormStyle = {
     ...formStyle,
     backgroundColor: formStyle.backgroundColor || '#ffffff',
-    borderRadius: '1.5rem', // توحيد مع المتجر
+    borderRadius: '1.5rem',
     borderColor: formStyle.borderColor || '#9b87f5',
     borderWidth: formStyle.borderWidth || '2px',
   };
@@ -142,7 +147,6 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
         <h3 className={`text-lg font-medium ${language === 'ar' ? 'text-right' : ''}`}>
           {language === 'ar' ? 'معاينة مباشرة' : 'Live Preview'}
         </h3>
-        {/* زر تغيير الاتجاه فوق المعاينة */}
         <Button 
           variant="outline" 
           size="sm" 
@@ -160,7 +164,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           backgroundColor: '#f8fafc',
           border: '1px solid #e2e8f0'
         }}
-        dir={formStyle.formDirection || 'ltr'} // فرض اتجاه النموذج بغض النظر عن لغة الموقع
+        dir={formStyle.formDirection || 'ltr'}
       >
         <FormPreview 
           key={`preview-${internalRefreshKey}`}
@@ -170,6 +174,8 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           totalSteps={totalSteps}
           formStyle={previewFormStyle}
           fields={processedFields}
+          formCountry={formCountry}
+          formPhonePrefix={formPhonePrefix}
         >
           <div></div>
         </FormPreview>
@@ -177,8 +183,8 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
       
       <div className="mt-2 text-xs text-gray-500 p-2 rounded text-center">
         {language === 'ar' 
-          ? 'المعاينة تعكس بدقة كيف سيظهر النموذج في متجر Shopify'
-          : 'This preview accurately reflects how the form will appear in your Shopify store'}
+          ? `المعاينة تستخدم ${formPhonePrefix || '+966'} كرمز للدولة`
+          : `Preview uses ${formPhonePrefix || '+966'} as country code`}
       </div>
     </div>
   );

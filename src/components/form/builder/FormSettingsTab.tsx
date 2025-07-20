@@ -1,9 +1,8 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { useI18n } from '@/lib/i18n';
 import { COUNTRIES, CURRENCIES, getCountryByCode } from '@/lib/constants/countries-currencies';
 
@@ -20,13 +19,9 @@ interface FormSettingsTabProps {
 }
 
 const FormSettingsTab: React.FC<FormSettingsTabProps> = ({
-  formTitle,
-  formDescription,
   country,
   currency,
   phonePrefix,
-  onTitleChange,
-  onDescriptionChange,
   onCountryChange,
   onCurrencyChange,
 }) => {
@@ -42,41 +37,6 @@ const FormSettingsTab: React.FC<FormSettingsTabProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Basic Form Information */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">
-            {language === 'ar' ? 'معلومات النموذج الأساسية' : 'Basic Form Information'}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label htmlFor="form-title">
-              {language === 'ar' ? 'عنوان النموذج' : 'Form Title'}
-            </Label>
-            <Input
-              id="form-title"
-              value={formTitle}
-              onChange={(e) => onTitleChange(e.target.value)}
-              placeholder={language === 'ar' ? 'أدخل عنوان النموذج' : 'Enter form title'}
-            />
-          </div>
-          
-          <div>
-            <Label htmlFor="form-description">
-              {language === 'ar' ? 'وصف النموذج' : 'Form Description'}
-            </Label>
-            <Textarea
-              id="form-description"
-              value={formDescription}
-              onChange={(e) => onDescriptionChange(e.target.value)}
-              placeholder={language === 'ar' ? 'أدخل وصف النموذج (اختياري)' : 'Enter form description (optional)'}
-              rows={3}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Country and Currency Settings */}
       <Card>
         <CardHeader>
@@ -133,18 +93,15 @@ const FormSettingsTab: React.FC<FormSettingsTabProps> = ({
             <Label htmlFor="phone-prefix">
               {language === 'ar' ? 'كود الهاتف' : 'Phone Prefix'}
             </Label>
-            <Input
-              id="phone-prefix"
-              value={phonePrefix}
-              disabled
-              className="bg-gray-50"
-            />
-            <p className="text-sm text-gray-500 mt-1">
-              {language === 'ar' 
-                ? 'يتم تحديث كود الهاتف تلقائياً عند تغيير الدولة' 
-                : 'Phone prefix is automatically updated when country changes'
-              }
-            </p>
+            <div className="p-3 bg-gray-50 rounded-md border">
+              <span className="font-medium">{phonePrefix}</span>
+              <p className="text-sm text-gray-500 mt-1">
+                {language === 'ar' 
+                  ? 'يتم تحديث كود الهاتف تلقائياً عند تغيير الدولة' 
+                  : 'Phone prefix is automatically updated when country changes'
+                }
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -166,8 +123,8 @@ const FormSettingsTab: React.FC<FormSettingsTabProps> = ({
             </p>
             <p>
               {language === 'ar' 
-                ? '• العملاء لن يحتاجوا لإدخال كود الدولة مع رقم الهاتف'
-                : '• Customers won\'t need to enter country code with phone number'
+                ? '• العملاء سيستخدمون كود الدولة المحدد عند إدخال رقم الهاتف'
+                : '• Customers will use the selected country code when entering phone numbers'
               }
             </p>
             <p>

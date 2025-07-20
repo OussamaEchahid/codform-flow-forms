@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
@@ -28,6 +29,8 @@ interface FormPreviewProps {
   };
   fields?: FormField[];
   hideHeader?: boolean;
+  formCountry?: string;
+  formPhonePrefix?: string;
 }
 
 // Improved deep clone function with proper TypeScript support
@@ -69,6 +72,8 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   },
   fields = [],
   hideHeader = false,
+  formCountry = 'SA',
+  formPhonePrefix = '+966'
 }) => {
   const { language } = useI18n();
   
@@ -78,16 +83,15 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   // Log to help debugging
   console.log('FormPreview: Form background color:', formBackgroundColor);
   console.log('FormPreview: Primary color (for titles, etc):', formStyle.primaryColor);
+  console.log('FormPreview: Country and phone prefix:', formCountry, formPhonePrefix);
   
   // Process fields while preserving IDs and ensuring there's no duplication
   const sanitizedFields = useMemo(() => {
     const clonedFields = deepCloneFields(fields);
     
-    // DONT FORCE ANY COLORS - Let field styles be respected as-is
+    // Update all fields with form direction if not specified
     const processedFields = clonedFields.map(field => {
-      // DON'T FORCE BLACK COLOR - preserve field.style.color as-is
       if (field.type === 'form-title') {
-        // Preserve field style completely - don't override anything
         console.log('PRESERVING FIELD STYLE AS-IS:', field.id, field.style);
       }
       
@@ -124,7 +128,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         fontSize: formStyle.fontSize,
         '--form-primary-color': formStyle.primaryColor,
         borderRadius: formStyle.borderRadius,
-        backgroundColor: formBackgroundColor, // Always use the form's background color
+        backgroundColor: formBackgroundColor,
         border: `${formStyle.borderWidth || '2px'} solid ${formStyle.borderColor || '#9b87f5'}`,
         padding: '0',
         display: 'flex',
@@ -199,6 +203,8 @@ const FormPreview: React.FC<FormPreviewProps> = ({
                 key={field.id} 
                 field={field} 
                 formStyle={formStyle}
+                formCountry={formCountry}
+                formPhonePrefix={formPhonePrefix}
               />
             ))}
           </div>

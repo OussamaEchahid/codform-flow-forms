@@ -7,43 +7,72 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Utility functions for data processing
-function validateAndFormatPhone(phone: string): string {
-  if (!phone) return '+966500000000'; // Default Saudi number
+// تحسين دالة تنسيق رقم الهاتف لدعم دول مختلفة
+function validateAndFormatPhone(phone: string, formPhonePrefix: string = '+966'): string {
+  if (!phone) return formPhonePrefix + '500000000'; // رقم افتراضي بناءً على كود الدولة
   
-  // Clean the phone number
+  // تنظيف رقم الهاتف
   let cleanPhone = phone.replace(/[\s\-\(\)\.]/g, '');
-  
-  // Remove any non-digit characters except +
   cleanPhone = cleanPhone.replace(/[^\d+]/g, '');
   
-  // Handle Saudi numbers
-  if (cleanPhone.startsWith('00966')) {
-    cleanPhone = '+966' + cleanPhone.substring(5);
-  } else if (cleanPhone.startsWith('966')) {
-    cleanPhone = '+966' + cleanPhone.substring(3);
-  } else if (cleanPhone.startsWith('05') || cleanPhone.startsWith('01')) {
-    cleanPhone = '+966' + cleanPhone.substring(1);
-  } else if (cleanPhone.startsWith('5') && cleanPhone.length === 9) {
-    cleanPhone = '+966' + cleanPhone;
-  } else if (!cleanPhone.startsWith('+966') && !cleanPhone.startsWith('+')) {
-    // If it's a number without country code, assume Saudi
-    if (cleanPhone.length >= 9) {
+  // استخراج كود الدولة من formPhonePrefix
+  const countryCode = formPhonePrefix.replace('+', '');
+  
+  // معالجة الأرقام بناءً على كود الدولة المحدد
+  if (formPhonePrefix === '+966') {
+    // معالجة الأرقام السعودية
+    if (cleanPhone.startsWith('00966')) {
+      cleanPhone = '+966' + cleanPhone.substring(5);
+    } else if (cleanPhone.startsWith('966')) {
+      cleanPhone = '+966' + cleanPhone.substring(3);
+    } else if (cleanPhone.startsWith('05') || cleanPhone.startsWith('01')) {
+      cleanPhone = '+966' + cleanPhone.substring(1);
+    } else if (cleanPhone.startsWith('5') && cleanPhone.length === 9) {
       cleanPhone = '+966' + cleanPhone;
-    } else {
-      cleanPhone = '+966500000000'; // Default
+    } else if (!cleanPhone.startsWith('+966') && !cleanPhone.startsWith('+')) {
+      if (cleanPhone.length >= 9) {
+        cleanPhone = '+966' + cleanPhone;
+      } else {
+        cleanPhone = '+966500000000';
+      }
+    }
+  } else if (formPhonePrefix === '+212') {
+    // معالجة الأرقام المغربية
+    if (cleanPhone.startsWith('00212')) {
+      cleanPhone = '+212' + cleanPhone.substring(5);
+    } else if (cleanPhone.startsWith('212')) {
+      cleanPhone = '+212' + cleanPhone.substring(3);
+    } else if (cleanPhone.startsWith('0')) {
+      cleanPhone = '+212' + cleanPhone.substring(1);
+    } else if (!cleanPhone.startsWith('+212') && !cleanPhone.startsWith('+')) {
+      if (cleanPhone.length >= 9) {
+        cleanPhone = '+212' + cleanPhone;
+      } else {
+        cleanPhone = '+2126' + '00000000'; // رقم افتراضي مغربي
+      }
+    }
+  } else {
+    // معالجة عامة للدول الأخرى
+    if (cleanPhone.startsWith('00' + countryCode)) {
+      cleanPhone = formPhonePrefix + cleanPhone.substring(2 + countryCode.length);
+    } else if (cleanPhone.startsWith(countryCode)) {
+      cleanPhone = formPhonePrefix + cleanPhone.substring(countryCode.length);
+    } else if (cleanPhone.startsWith('0')) {
+      cleanPhone = formPhonePrefix + cleanPhone.substring(1);
+    } else if (!cleanPhone.startsWith(formPhonePrefix) && !cleanPhone.startsWith('+')) {
+      cleanPhone = formPhonePrefix + cleanPhone;
     }
   }
   
-  // Validate final format
-  if (cleanPhone.length < 13 || !cleanPhone.startsWith('+966')) {
-    return '+966500000000'; // Default valid Saudi number
+  // التحقق من صحة التنسيق النهائي
+  if (cleanPhone.length < 10 || !cleanPhone.startsWith(formPhonePrefix)) {
+    return formPhonePrefix + '500000000'; // رقم افتراضي صحيح
   }
   
   return cleanPhone;
 }
 
-function extractCustomerData(formData: any): {
+function extractCustomerData(formData: any, formSettings: any = {}): {
   name: string;
   email: string;
   phone: string;
@@ -51,6 +80,7 @@ function extractCustomerData(formData: any): {
   address: string;
 } {
   console.log('🔍 Extracting customer data from:', JSON.stringify(formData, null, 2));
+  console.log('📋 Form settings:', JSON.stringify(formSettings, null, 2));
   
   let name = 'عميل غير محدد';
   let email = '';
@@ -100,43 +130,24 @@ function extractCustomerData(formData: any): {
     }
   }
   
-  // Validate and format phone
-  phone = validateAndFormatPhone(phone);
+  // استخدام كود الدولة من إعدادات النموذج
+  const formPhonePrefix = formSettings.phone_prefix || '+966';
+  phone = validateAndFormatPhone(phone, formPhonePrefix);
   
   console.log('✅ Extracted customer data:', { name, email, phone, city, address });
   return { name, email, phone, city, address };
 }
 
-function createMinimalShopifyOrder(customer: any, formId: string) {
-  return {
-    order: {
-      financial_status: 'pending',
-      currency: 'SAR',
-      total_price: '0.00',
-      line_items: [
-        {
-          title: 'طلب من النموذج - Form Order',
-          quantity: 1,
-          price: '0.00'
-        }
-      ],
-      note: `طلب من النموذج - Form submission. ID: ${formId}\nالعميل: ${customer.name}\nالهاتف: ${customer.phone}\nالمدينة: ${customer.city}`,
-      tags: 'form-submission,نموذج',
-      email: customer.email || undefined,
-      phone: customer.phone || undefined
-    }
-  };
-}
-
-function createFullShopifyOrder(customer: any, formId: string) {
+function createShopifyOrderData(customer: any, formId: string, formSettings: any = {}) {
   const firstName = customer.name.split(' ')[0] || customer.name;
   const lastName = customer.name.split(' ').slice(1).join(' ') || '';
+  const currency = formSettings.currency || 'SAR';
   
   return {
     order: {
       financial_status: 'pending',
       fulfillment_status: null,
-      currency: 'SAR',
+      currency: currency,
       total_price: '0.00',
       email: customer.email || undefined,
       phone: customer.phone || undefined,
@@ -150,16 +161,16 @@ function createFullShopifyOrder(customer: any, formId: string) {
         first_name: firstName,
         last_name: lastName,
         address1: customer.address || customer.city,
-        city: customer.city || 'الرياض',
-        country: 'SA',
+        city: customer.city || 'المدينة',
+        country: formSettings.country || 'SA',
         phone: customer.phone || ''
       } : undefined,
       shipping_address: customer.city || customer.address ? {
         first_name: firstName,
         last_name: lastName,
         address1: customer.address || customer.city,
-        city: customer.city || 'الرياض',
-        country: 'SA',
+        city: customer.city || 'المدينة',
+        country: formSettings.country || 'SA',
         phone: customer.phone || ''
       } : undefined,
       line_items: [
@@ -175,13 +186,13 @@ function createFullShopifyOrder(customer: any, formId: string) {
   };
 }
 
-async function createShopifyOrder(shopDomain: string, accessToken: string, customer: any, formId: string): Promise<string | null> {
+async function createShopifyOrder(shopDomain: string, accessToken: string, customer: any, formId: string, formSettings: any = {}): Promise<string | null> {
   console.log('🛒 Starting Shopify order creation process...');
   console.log('📋 Customer data for order:', JSON.stringify(customer, null, 2));
+  console.log('⚙️ Form settings:', JSON.stringify(formSettings, null, 2));
   
-  // Try full order first
-  const fullOrderData = createFullShopifyOrder(customer, formId);
-  console.log('🎯 Creating full Shopify order:', JSON.stringify(fullOrderData, null, 2));
+  const orderData = createShopifyOrderData(customer, formId, formSettings);
+  console.log('🎯 Creating Shopify order:', JSON.stringify(orderData, null, 2));
   
   try {
     const response = await fetch(`https://${shopDomain}/admin/api/2025-01/orders.json`, {
@@ -190,50 +201,22 @@ async function createShopifyOrder(shopDomain: string, accessToken: string, custo
         'Content-Type': 'application/json',
         'X-Shopify-Access-Token': accessToken
       },
-      body: JSON.stringify(fullOrderData)
+      body: JSON.stringify(orderData)
     });
 
     const result = await response.json();
-    console.log('📦 Shopify full order response:', JSON.stringify(result, null, 2));
+    console.log('📦 Shopify order response:', JSON.stringify(result, null, 2));
     console.log('🔍 Response status:', response.status);
 
     if (response.ok && result.order) {
-      console.log('✅ Full Shopify order created successfully:', result.order.id);
+      console.log('✅ Shopify order created successfully:', result.order.id);
       return result.order.id;
     } else {
-      console.log('⚠️ Full order failed, trying minimal order...');
-      console.log('❌ Full order error:', JSON.stringify(result, null, 2));
-    }
-  } catch (error) {
-    console.error('❌ Error with full order:', error);
-  }
-
-  // Try minimal order
-  const minimalOrderData = createMinimalShopifyOrder(customer, formId);
-  console.log('🔄 Creating minimal Shopify order:', JSON.stringify(minimalOrderData, null, 2));
-  
-  try {
-    const response = await fetch(`https://${shopDomain}/admin/api/2025-01/orders.json`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Shopify-Access-Token': accessToken
-      },
-      body: JSON.stringify(minimalOrderData)
-    });
-
-    const result = await response.json();
-    console.log('📦 Shopify minimal order response:', JSON.stringify(result, null, 2));
-    
-    if (response.ok && result.order) {
-      console.log('✅ Minimal Shopify order created successfully:', result.order.id);
-      return result.order.id;
-    } else {
-      console.error('❌ Minimal order also failed:', JSON.stringify(result, null, 2));
+      console.error('❌ Order creation failed:', JSON.stringify(result, null, 2));
       return null;
     }
   } catch (error) {
-    console.error('❌ Error with minimal order:', error);
+    console.error('❌ Error creating Shopify order:', error);
     return null;
   }
 }
@@ -268,6 +251,23 @@ serve(async (req: Request) => {
     const shopDomain = requestData.shopDomain || '';
     console.log('🏪 Shop domain:', shopDomain);
     
+    // Get form settings from database
+    let formSettings = {};
+    try {
+      const { data: formData, error: formError } = await supabase
+        .from('forms')
+        .select('country, currency, phone_prefix')
+        .eq('id', formId)
+        .single();
+        
+      if (!formError && formData) {
+        formSettings = formData;
+        console.log('📋 Retrieved form settings:', JSON.stringify(formSettings, null, 2));
+      }
+    } catch (error) {
+      console.error('⚠️ Could not retrieve form settings:', error);
+    }
+    
     // Store submission in database
     console.log('💾 Storing submission with formId:', formId, 'shopDomain:', shopDomain);
     
@@ -298,8 +298,8 @@ serve(async (req: Request) => {
       const formData = requestData.data || requestData.formData || requestData;
       console.log('📝 Processing form data:', JSON.stringify(formData, null, 2));
       
-      // Extract customer information using enhanced function
-      const customer = extractCustomerData(formData);
+      // Extract customer information using form settings
+      const customer = extractCustomerData(formData, formSettings);
       
       // Get shopify access token
       const { data: shopData, error: shopError } = await supabase
@@ -316,8 +316,8 @@ serve(async (req: Request) => {
 
       console.log('🔑 Found Shopify access token for shop:', shopDomain);
 
-      // Create order in Shopify with improved logic
-      const shopifyOrderId = await createShopifyOrder(shopDomain, shopData.access_token, customer, formId);
+      // Create order in Shopify with form settings
+      const shopifyOrderId = await createShopifyOrder(shopDomain, shopData.access_token, customer, formId, formSettings);
 
       // Generate order number
       const orderNumber = shopifyOrderId ? `SHOP-${shopifyOrderId}` : `ORD-${Date.now()}`;
@@ -328,24 +328,23 @@ serve(async (req: Request) => {
         customerEmail: customer.email,
         customerPhone: customer.phone,
         shopifyOrderId,
-        submissionId: submissionData.id
+        submissionId: submissionData.id,
+        currency: formSettings.currency || 'SAR'
       });
       
-      // Create order in our database
-      console.log('🆔 Using original formId for order:', formId);
-      
+      // Create order in our database with correct currency
       const orderInsertData = {
         order_number: orderNumber,
         customer_name: customer.name,
         customer_email: customer.email,
         customer_phone: customer.phone,
         total_amount: 0.00,
-        currency: 'SAR',
+        currency: formSettings.currency || 'SAR',
         status: 'pending',
         items: [{ title: 'طلب من النموذج - Form Order', quantity: 1, price: '0.00' }],
         shipping_address: { address: customer.address, city: customer.city },
         billing_address: { address: customer.address, city: customer.city },
-        form_id: formId, // Use the original formId from request
+        form_id: formId,
         shop_id: shopDomain,
         shopify_order_id: shopifyOrderId?.toString()
       };
