@@ -2,14 +2,12 @@ import React from 'react';
 import { FormField as FormFieldType } from '@/lib/form-utils';
 import TextInput from './fields/TextInput';
 import SubmitButton from './fields/SubmitButton';
-import FormTitle from './fields/FormTitle';
+import FormTitleField from './fields/FormTitleField';
 import CartItems from './fields/CartItems';
 import CartSummary from './fields/CartSummary';
-import Select from './fields/Select';
-import Checkbox from './fields/Checkbox';
-import Radio from './fields/Radio';
-import TextHTML from './fields/TextHTML';
-import Title from './fields/Title';
+import CheckboxGroup from './fields/CheckboxGroup';
+import RadioGroup from './fields/RadioGroup';
+import HtmlContent from './fields/HtmlContent';
 
 interface FormFieldProps {
   field: FormFieldType;
@@ -44,7 +42,7 @@ const FormField: React.FC<FormFieldProps> = ({
       );
     
     case 'form-title':
-      return <FormTitle field={field} formStyle={formStyle} />;
+      return <FormTitleField field={field} formStyle={formStyle} />;
     
     case 'submit':
       return <SubmitButton field={field} formStyle={formStyle} />;
@@ -55,20 +53,17 @@ const FormField: React.FC<FormFieldProps> = ({
     case 'cart-summary':
       return <CartSummary field={field} formStyle={formStyle} />;
     
-    case 'select':
-      return <Select field={field} formStyle={formStyle} />;
-    
     case 'checkbox':
-      return <Checkbox field={field} formStyle={formStyle} />;
+      return <CheckboxGroup field={field} formStyle={formStyle} />;
     
     case 'radio':
-      return <Radio field={field} formStyle={formStyle} />;
+      return <RadioGroup field={field} formStyle={formStyle} />;
     
     case 'text/html':
-      return <TextHTML field={field} formStyle={formStyle} />;
+      return <HtmlContent field={field} formStyle={formStyle} />;
     
     case 'title':
-      return <Title field={field} formStyle={formStyle} />;
+      return <FormTitleField field={field} formStyle={formStyle} />;
     
     default:
       return (
