@@ -67,9 +67,6 @@ const AppSidebar = () => {
     { title: t('dashboard'), path: '/dashboard', icon: LayoutDashboard },
     { title: t('forms'), path: '/forms', icon: FileText },
     { title: t('landingPages'), path: '/landing-pages', icon: ImageIcon },
-    { title: t('quickOffers'), path: '/upsells', icon: Gift },
-    { title: 'Shopify Products', path: '/shopify-products', icon: ShoppingBag },
-    { title: 'اختبار Shopify', path: '/shopify-test', icon: RefreshCcw },
   ];
   
   // Orders submenu items
@@ -227,7 +224,7 @@ const AppSidebar = () => {
             </li>
             
             {/* Other navigation items before Settings */}
-            {mainNavItems.slice(2, 5).map((item) => (
+            {mainNavItems.slice(2).map((item) => (
               <li key={item.path}>
                 <NavLink
                   to={item.path}
@@ -298,26 +295,6 @@ const AppSidebar = () => {
                 </CollapsibleContent>
               </Collapsible>
             </li>
-            
-            {/* Remaining navigation items after Settings */}
-            {mainNavItems.slice(5).map((item) => (
-              <li key={item.path}>
-                <NavLink
-                  to={item.path}
-                  className={({ isActive }) =>
-                    cn(
-                      'flex items-center gap-3 px-4 py-2 rounded-lg transition-colors',
-                      isActive
-                        ? 'bg-[#2A2E36] text-[#9b87f5]'
-                        : 'text-gray-400 hover:bg-[#2A2E36] hover:text-[#9b87f5]'
-                    )
-                  }
-                >
-                  <item.icon size={20} />
-                  <span>{item.title}</span>
-                </NavLink>
-              </li>
-            ))}
             
             <li>
               <button

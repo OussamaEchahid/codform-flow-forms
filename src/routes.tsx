@@ -27,6 +27,7 @@ import OrdersChannels from '@/pages/OrdersChannels';
 import FormBuilderPage from '@/pages/FormBuilderPage';
 import Auth from '@/pages/Auth';
 import ThankYou from '@/pages/ThankYou';
+import LandingPages from '@/pages/LandingPages';
 
 export const routes: RouteObject[] = [
   {
@@ -41,6 +42,10 @@ export const routes: RouteObject[] = [
   {
     path: '/forms',
     Component: Forms,
+  },
+  {
+    path: '/landing-pages',
+    Component: LandingPages,
   },
   {
     path: '/form-builder',
@@ -113,14 +118,6 @@ export const routes: RouteObject[] = [
   {
     path: '/shopify-callback',
     Component: ShopifyCallback,
-  },
-  {
-    path: '/shopify-test',
-    Component: ShopifyTest,
-  },
-  {
-    path: '/shopify-products',
-    Component: ShopifyProducts, 
   },
   {
     path: '/shopify-view',
