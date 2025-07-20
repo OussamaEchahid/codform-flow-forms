@@ -250,7 +250,8 @@ class ShopifyConnectionService {
   }
   
   private lastCleanupTime = 0;
-  private readonly CLEANUP_COOLDOWN = 60000; // 1 دقيقة
+  private readonly CLEANUP_COOLDOWN = 10 * 60 * 1000; // 10 دقائق (زيادة المدة)
+  private isCleanupInProgress = false;
 
   /**
    * تنظيف رموز placeholder_token من قاعدة البيانات مع تجنب التكرار المفرط
@@ -258,61 +259,33 @@ class ShopifyConnectionService {
   async cleanupPlaceholderTokens(): Promise<void> {
     const now = Date.now();
     
-    // تجنب التنظيف إذا تم تنفيذه مؤخراً
-    if (now - this.lastCleanupTime < this.CLEANUP_COOLDOWN) {
-      console.log('Skipping cleanup - performed recently');
+    // تجنب التنظيف إذا تم تنفيذه مؤخراً أو قيد التنفيذ
+    if (this.isCleanupInProgress || (now - this.lastCleanupTime < this.CLEANUP_COOLDOWN)) {
+      console.log('Skipping cleanup - performed recently or in progress');
       return;
     }
+    
+    this.isCleanupInProgress = true;
     
     try {
       console.log('Cleaning up placeholder tokens from database...');
       this.lastCleanupTime = now;
       
-      // تحديث جميع المتاجر التي لديها placeholder_token
-      const { data: placeholderData, error: placeholderError } = await shopifyStores()
+      // دمج جميع العمليات في استدعاء واحد فقط
+      const { data: cleanedData, error: cleanupError } = await shopifyStores()
         .update({ access_token: null })
-        .eq('access_token', 'placeholder_token')
+        .or('access_token.eq.placeholder_token,access_token.eq.,is_active.eq.false')
         .select();
 
-      if (placeholderError) {
-        console.error('Error cleaning placeholder tokens:', placeholderError);
+      if (cleanupError) {
+        console.error('Error cleaning tokens:', cleanupError);
       } else {
-        console.log(`Cleaned ${placeholderData?.length || 0} placeholder tokens`);
-      }
-
-      // أيضًا قم بتنظيف أي سجلات بـ access_token فارغ
-      const { data: emptyData, error: emptyError } = await shopifyStores()
-        .update({ access_token: null })
-        .eq('access_token', '')
-        .select();
-        
-      if (emptyError) {
-        console.error('Error cleaning empty tokens:', emptyError);
-      } else {
-        console.log(`Cleaned ${emptyData?.length || 0} empty tokens`);
-      }
-      
-      // تنظيف المتاجر غير النشطة من أي رموز
-      const { data: inactiveData, error: inactiveError } = await shopifyStores()
-        .update({ access_token: null })
-        .eq('is_active', false)
-        .select();
-        
-      if (inactiveError) {
-        console.error('Error cleaning inactive store tokens:', inactiveError);
-      } else {
-        console.log(`Cleaned ${inactiveData?.length || 0} inactive store tokens`);
-      }
-
-      // سجل نتائج التنظيف الإجمالية
-      const tokensCleaned = (placeholderData?.length || 0) + (emptyData?.length || 0) + (inactiveData?.length || 0);
-      if (tokensCleaned > 0) {
-        console.log(`Cleaned ${tokensCleaned} invalid tokens from database`);
-      } else {
-        console.log('No invalid tokens found to clean');
+        console.log(`Cleaned ${cleanedData?.length || 0} invalid tokens`);
       }
     } catch (error) {
       console.error('Error in cleanupPlaceholderTokens:', error);
+    } finally {
+      this.isCleanupInProgress = false;
     }
   }
   

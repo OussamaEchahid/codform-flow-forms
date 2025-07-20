@@ -119,10 +119,26 @@ export const useShopify = () => {
     checkConnection();
   }, [shop]);
 
+  // Cache للمنتجات لتجنب الاستدعاءات المتكررة
+  const [lastLoadTime, setLastLoadTime] = useState(0);
+  const CACHE_DURATION = 5 * 60 * 1000; // 5 دقائق
+
   // Load products when connected
   const loadProducts = useCallback(async (forceRefresh = false) => {
     if (!shop) {
       return [];
+    }
+
+    // تحقق من الـ cache
+    const now = Date.now();
+    if (!forceRefresh && products.length > 0 && (now - lastLoadTime) < CACHE_DURATION) {
+      console.log('Using cached products');
+      return products;
+    }
+
+    if (isLoading) {
+      console.log('Already loading products, skipping request');
+      return products;
     }
 
     setIsLoading(true);
@@ -146,7 +162,8 @@ export const useShopify = () => {
           shop, 
           accessToken: token,
           forceRefresh: forceRefresh,
-          includeTestProducts: false // Always filter test products 
+          includeTestProducts: false, // Always filter test products 
+          limit: 25 // تقليل عدد المنتجات المحملة
         }
       });
 
@@ -160,6 +177,7 @@ export const useShopify = () => {
       if (Array.isArray(fetchedProducts)) {
         setAllProducts(fetchedProducts);
         setProducts(fetchedProducts);
+        setLastLoadTime(now);
         
         console.log(`Loaded ${fetchedProducts.length} products from Shopify`);
         
@@ -180,7 +198,7 @@ export const useShopify = () => {
       toast.error('فشل في تحميل المنتجات. يرجى المحاولة مرة أخرى');
       return [];
     }
-  }, [shop]);
+  }, [shop, products, lastLoadTime, isLoading]);
 
   // Test connection
   const testConnection = useCallback(async (withRetry = false) => {

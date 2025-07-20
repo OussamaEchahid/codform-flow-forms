@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { memo } from 'react';
 import { ShopifyProduct } from '@/lib/shopify/types';
 import { Badge } from '@/components/ui/badge';
 
@@ -9,7 +9,7 @@ interface ShopifyProductsListProps {
   selectedProductIds?: string[];
 }
 
-const ShopifyProductsList: React.FC<ShopifyProductsListProps> = ({ 
+const ShopifyProductsList: React.FC<ShopifyProductsListProps> = memo(({ 
   products, 
   onSelectProduct,
   selectedProductIds = []
@@ -106,6 +106,6 @@ const ShopifyProductsList: React.FC<ShopifyProductsListProps> = ({
       )}
     </div>
   );
-};
+});
 
 export default ShopifyProductsList;

@@ -102,16 +102,30 @@ class ShopifyConnectionManager {
     }
   }
   
+  // Cache للمتجر النشط
+  private storeCache: string | null = null;
+  private storeCacheTime = 0;
+  private readonly STORE_CACHE_DURATION = 2 * 60 * 1000; // 2 دقيقة
+
   /**
-   * Gets the active store domain
+   * Gets the active store domain with caching
    * @returns The active store domain or null if none
    */
   public getActiveStore(): string | null {
     try {
+      // تحقق من الـ cache أولاً
+      const now = Date.now();
+      if (this.storeCache && (now - this.storeCacheTime) < this.STORE_CACHE_DURATION) {
+        return this.storeCache;
+      }
+
       // First check the dedicated active store key
       const activeStore = localStorage.getItem(this.ACTIVE_STORE_KEY);
       if (activeStore) {
         console.log('Retrieved active store from ACTIVE_STORE_KEY:', activeStore);
+        // حفظ في الـ cache
+        this.storeCache = activeStore;
+        this.storeCacheTime = now;
         return activeStore;
       }
       
@@ -122,11 +136,16 @@ class ShopifyConnectionManager {
       if (activeFromList) {
         // Update the active store key for next time
         localStorage.setItem(this.ACTIVE_STORE_KEY, activeFromList.domain);
+        // حفظ في الـ cache
+        this.storeCache = activeFromList.domain;
+        this.storeCacheTime = now;
         return activeFromList.domain;
       }
       
       // If there's at least one store, return the first one
       if (stores.length > 0) {
+        this.storeCache = stores[0].domain;
+        this.storeCacheTime = now;
         return stores[0].domain;
       }
       
@@ -135,6 +154,8 @@ class ShopifyConnectionManager {
       if (legacyStore) {
         // Update consistent state by saving to the new format
         this.addOrUpdateStore(legacyStore, true);
+        this.storeCache = legacyStore;
+        this.storeCacheTime = now;
         return legacyStore;
       }
       
