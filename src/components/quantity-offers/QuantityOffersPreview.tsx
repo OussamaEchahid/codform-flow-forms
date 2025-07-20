@@ -74,76 +74,75 @@ const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
     }
 
     return (
-      <div 
-        className="p-4 rounded-lg border mb-4"
-        style={{ 
-          backgroundColor: styling.backgroundColor,
-          color: styling.textColor 
-        }}
-      >
-        <h3 className="text-lg font-semibold mb-4">Choose Your Quantity</h3>
-        
-        <div className="space-y-3">
-          {offers.map((offer, index) => {
-            const totalPrice = calculatePrice(basePrice, offer);
-            const originalPrice = basePrice * offer.quantity;
-            const isDiscounted = offer.discountType !== 'none' && offer.discountValue && offer.discountValue > 0;
-            const isHighlighted = index === 1; // Highlight second offer
+      <div className="space-y-2 mb-4">
+        {offers.map((offer, index) => {
+          const totalPrice = calculatePrice(basePrice, offer);
+          const originalPrice = basePrice * offer.quantity;
+          const isDiscounted = offer.discountType !== 'none' && offer.discountValue && offer.discountValue > 0;
+          const isHighlighted = index === 1; // Highlight second offer
+          
+          // Calculate savings percentage for display
+          let savingsPercentage = 0;
+          if (isDiscounted && offer.discountType === 'percentage') {
+            savingsPercentage = offer.discountValue || 0;
+          } else if (isDiscounted && offer.discountType === 'fixed') {
+            savingsPercentage = Math.round(((offer.discountValue || 0) / originalPrice) * 100);
+          }
 
-            return (
-              <div 
-                key={offer.id}
-                className={`p-3 rounded-lg border-2 flex items-center justify-between ${
-                  isHighlighted ? 'border-green-500' : 'border-gray-200'
-                }`}
-              >
-                <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 bg-gray-200 rounded-lg flex-shrink-0">
-                    <div className="w-full h-full bg-gray-300 rounded-lg"></div>
-                  </div>
-                  
-                  <div>
-                    <div className="font-medium" style={{ color: styling.textColor }}>
-                      {offer.text || `Quantity: ${offer.quantity}`}
-                    </div>
-                    {offer.tag && (
-                      <Badge 
-                        style={{ 
-                          backgroundColor: styling.tagColor,
-                          color: '#ffffff'
-                        }}
-                        className="mt-1"
-                      >
-                        {offer.tag}
-                      </Badge>
-                    )}
-                  </div>
+          return (
+            <div 
+              key={offer.id}
+              className={`p-3 rounded-lg border-2 flex items-center justify-between bg-white ${
+                isHighlighted ? 'border-green-500 bg-green-50' : 'border-gray-200'
+              }`}
+            >
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 bg-gray-100 rounded-lg flex-shrink-0 flex items-center justify-center">
+                  <svg className="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 2L3 7v11a1 1 0 001 1h3a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1h3a1 1 0 001-1V7l-7-5z" clipRule="evenodd" />
+                  </svg>
                 </div>
-
-                <div className="text-right">
-                  {isDiscounted && (
-                    <div className="text-sm line-through text-gray-500">
-                      ${originalPrice.toFixed(2)}
+                
+                <div>
+                  <div className="font-semibold text-gray-800">
+                    {offer.text || `Buy ${offer.quantity} Item${offer.quantity > 1 ? 's' : ''}`}
+                  </div>
+                  {offer.tag && (
+                    <div 
+                      className="inline-block px-2 py-1 rounded text-xs font-medium text-white mt-1"
+                      style={{ backgroundColor: styling.tagColor }}
+                    >
+                      {offer.tag}
                     </div>
                   )}
-                  <div 
-                    className="font-bold text-lg"
-                    style={{ color: styling.priceColor }}
-                  >
-                    ${totalPrice.toFixed(2)}
-                  </div>
+                  {savingsPercentage > 0 && (
+                    <div className="inline-block px-2 py-1 rounded text-xs font-medium text-white bg-green-500 mt-1 ml-2">
+                      Save {savingsPercentage}%
+                    </div>
+                  )}
                 </div>
               </div>
-            );
-          })}
-        </div>
+
+              <div className="text-right">
+                {isDiscounted && (
+                  <div className="text-sm line-through text-gray-400">
+                    ${originalPrice.toFixed(2)}
+                  </div>
+                )}
+                <div className="font-bold text-lg text-gray-800">
+                  ${totalPrice.toFixed(2)}
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
     );
   };
 
   return (
     <div 
-      className="p-6 rounded-lg border max-w-md mx-auto"
+      className="p-6 rounded-lg border-2 border-purple-400 max-w-md mx-auto"
       style={{
         backgroundColor: formStyle.backgroundColor || '#F9FAFB',
         direction: formStyle.formDirection || 'ltr',
