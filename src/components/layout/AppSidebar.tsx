@@ -296,6 +296,24 @@ const AppSidebar = () => {
               </Collapsible>
             </li>
             
+            {/* My Stores */}
+            <li>
+              <NavLink
+                to="/my-stores"
+                className={({ isActive }) =>
+                  cn(
+                    'flex items-center gap-3 px-4 py-2 rounded-lg transition-colors',
+                    isActive
+                      ? 'bg-[#2A2E36] text-[#9b87f5]'
+                      : 'text-gray-400 hover:bg-[#2A2E36] hover:text-[#9b87f5]'
+                  )
+                }
+              >
+                <ShoppingBag size={20} />
+                <span>{language === 'ar' ? 'متاجري' : 'My Stores'}</span>
+              </NavLink>
+            </li>
+            
             <li>
               <button
                 onClick={handleLogout}

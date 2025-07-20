@@ -28,6 +28,7 @@ import FormBuilderPage from '@/pages/FormBuilderPage';
 import Auth from '@/pages/Auth';
 import ThankYou from '@/pages/ThankYou';
 import LandingPages from '@/pages/LandingPages';
+import MyStores from '@/pages/MyStores';
 
 export const routes: RouteObject[] = [
   {
@@ -46,6 +47,10 @@ export const routes: RouteObject[] = [
   {
     path: '/landing-pages',
     Component: LandingPages,
+  },
+  {
+    path: '/my-stores',
+    Component: MyStores,
   },
   {
     path: '/form-builder',
