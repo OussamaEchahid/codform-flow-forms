@@ -7,6 +7,237 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Utility functions for data processing
+function validateAndFormatPhone(phone: string): string {
+  if (!phone) return '+966500000000'; // Default Saudi number
+  
+  // Clean the phone number
+  let cleanPhone = phone.replace(/[\s\-\(\)\.]/g, '');
+  
+  // Remove any non-digit characters except +
+  cleanPhone = cleanPhone.replace(/[^\d+]/g, '');
+  
+  // Handle Saudi numbers
+  if (cleanPhone.startsWith('00966')) {
+    cleanPhone = '+966' + cleanPhone.substring(5);
+  } else if (cleanPhone.startsWith('966')) {
+    cleanPhone = '+966' + cleanPhone.substring(3);
+  } else if (cleanPhone.startsWith('05') || cleanPhone.startsWith('01')) {
+    cleanPhone = '+966' + cleanPhone.substring(1);
+  } else if (cleanPhone.startsWith('5') && cleanPhone.length === 9) {
+    cleanPhone = '+966' + cleanPhone;
+  } else if (!cleanPhone.startsWith('+966') && !cleanPhone.startsWith('+')) {
+    // If it's a number without country code, assume Saudi
+    if (cleanPhone.length >= 9) {
+      cleanPhone = '+966' + cleanPhone;
+    } else {
+      cleanPhone = '+966500000000'; // Default
+    }
+  }
+  
+  // Validate final format
+  if (cleanPhone.length < 13 || !cleanPhone.startsWith('+966')) {
+    return '+966500000000'; // Default valid Saudi number
+  }
+  
+  return cleanPhone;
+}
+
+function extractCustomerData(formData: any): {
+  name: string;
+  email: string;
+  phone: string;
+  city: string;
+  address: string;
+} {
+  console.log('🔍 Extracting customer data from:', JSON.stringify(formData, null, 2));
+  
+  let name = 'عميل غير محدد';
+  let email = '';
+  let phone = '';
+  let city = '';
+  let address = '';
+  
+  // Enhanced extraction logic with Arabic and English support
+  for (const [key, value] of Object.entries(formData)) {
+    const keyLower = key.toLowerCase();
+    const stringValue = String(value || '').trim();
+    
+    if (!stringValue) continue;
+    
+    // Name extraction - more patterns
+    if (keyLower.includes('name') || keyLower.includes('اسم') || 
+        keyLower.includes('text') && !keyLower.includes('area') ||
+        keyLower.includes('customer') || keyLower.includes('عميل')) {
+      if (stringValue.length > 2) { // Avoid single characters
+        name = stringValue;
+      }
+    }
+    // Email extraction
+    else if (keyLower.includes('email') || keyLower.includes('بريد') || 
+             keyLower.includes('mail') || stringValue.includes('@')) {
+      email = stringValue;
+    }
+    // Phone extraction - enhanced patterns
+    else if (keyLower.includes('phone') || keyLower.includes('هاتف') || 
+             keyLower.includes('تليفون') || keyLower.includes('جوال') ||
+             keyLower.includes('mobile') || keyLower.includes('tel') ||
+             /^\+?[\d\s\-\(\)]{8,}$/.test(stringValue)) {
+      phone = stringValue;
+    }
+    // City extraction
+    else if (keyLower.includes('city') || keyLower.includes('مدينة') || 
+             keyLower.includes('المدينة') || keyLower.includes('محافظة')) {
+      city = stringValue;
+    }
+    // Address extraction - enhanced patterns
+    else if (keyLower.includes('address') || keyLower.includes('عنوان') || 
+             keyLower.includes('العنوان') || keyLower.includes('textarea') ||
+             keyLower.includes('location') || keyLower.includes('موقع')) {
+      if (stringValue.length > city.length) { // Prefer longer address
+        address = stringValue;
+      }
+    }
+  }
+  
+  // Validate and format phone
+  phone = validateAndFormatPhone(phone);
+  
+  console.log('✅ Extracted customer data:', { name, email, phone, city, address });
+  return { name, email, phone, city, address };
+}
+
+function createMinimalShopifyOrder(customer: any, formId: string) {
+  return {
+    order: {
+      financial_status: 'pending',
+      currency: 'SAR',
+      total_price: '0.00',
+      line_items: [
+        {
+          title: 'طلب من النموذج - Form Order',
+          quantity: 1,
+          price: '0.00'
+        }
+      ],
+      note: `طلب من النموذج - Form submission. ID: ${formId}\nالعميل: ${customer.name}\nالهاتف: ${customer.phone}\nالمدينة: ${customer.city}`,
+      tags: 'form-submission,نموذج',
+      email: customer.email || undefined,
+      phone: customer.phone || undefined
+    }
+  };
+}
+
+function createFullShopifyOrder(customer: any, formId: string) {
+  const firstName = customer.name.split(' ')[0] || customer.name;
+  const lastName = customer.name.split(' ').slice(1).join(' ') || '';
+  
+  return {
+    order: {
+      financial_status: 'pending',
+      fulfillment_status: null,
+      currency: 'SAR',
+      total_price: '0.00',
+      email: customer.email || undefined,
+      phone: customer.phone || undefined,
+      customer: {
+        first_name: firstName,
+        last_name: lastName,
+        email: customer.email || '',
+        phone: customer.phone || ''
+      },
+      billing_address: customer.city || customer.address ? {
+        first_name: firstName,
+        last_name: lastName,
+        address1: customer.address || customer.city,
+        city: customer.city || 'الرياض',
+        country: 'SA',
+        phone: customer.phone || ''
+      } : undefined,
+      shipping_address: customer.city || customer.address ? {
+        first_name: firstName,
+        last_name: lastName,
+        address1: customer.address || customer.city,
+        city: customer.city || 'الرياض',
+        country: 'SA',
+        phone: customer.phone || ''
+      } : undefined,
+      line_items: [
+        {
+          title: 'طلب من النموذج - Form Order',
+          quantity: 1,
+          price: '0.00'
+        }
+      ],
+      note: `طلب من النموذج - Form submission. ID: ${formId}\nالعميل: ${customer.name}\nالهاتف: ${customer.phone}\nالبريد: ${customer.email}\nالمدينة: ${customer.city}\nالعنوان: ${customer.address}`,
+      tags: 'form-submission,نموذج'
+    }
+  };
+}
+
+async function createShopifyOrder(shopDomain: string, accessToken: string, customer: any, formId: string): Promise<string | null> {
+  console.log('🛒 Starting Shopify order creation process...');
+  console.log('📋 Customer data for order:', JSON.stringify(customer, null, 2));
+  
+  // Try full order first
+  const fullOrderData = createFullShopifyOrder(customer, formId);
+  console.log('🎯 Creating full Shopify order:', JSON.stringify(fullOrderData, null, 2));
+  
+  try {
+    const response = await fetch(`https://${shopDomain}/admin/api/2025-01/orders.json`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Shopify-Access-Token': accessToken
+      },
+      body: JSON.stringify(fullOrderData)
+    });
+
+    const result = await response.json();
+    console.log('📦 Shopify full order response:', JSON.stringify(result, null, 2));
+    console.log('🔍 Response status:', response.status);
+
+    if (response.ok && result.order) {
+      console.log('✅ Full Shopify order created successfully:', result.order.id);
+      return result.order.id;
+    } else {
+      console.log('⚠️ Full order failed, trying minimal order...');
+      console.log('❌ Full order error:', JSON.stringify(result, null, 2));
+    }
+  } catch (error) {
+    console.error('❌ Error with full order:', error);
+  }
+
+  // Try minimal order
+  const minimalOrderData = createMinimalShopifyOrder(customer, formId);
+  console.log('🔄 Creating minimal Shopify order:', JSON.stringify(minimalOrderData, null, 2));
+  
+  try {
+    const response = await fetch(`https://${shopDomain}/admin/api/2025-01/orders.json`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Shopify-Access-Token': accessToken
+      },
+      body: JSON.stringify(minimalOrderData)
+    });
+
+    const result = await response.json();
+    console.log('📦 Shopify minimal order response:', JSON.stringify(result, null, 2));
+    
+    if (response.ok && result.order) {
+      console.log('✅ Minimal Shopify order created successfully:', result.order.id);
+      return result.order.id;
+    } else {
+      console.error('❌ Minimal order also failed:', JSON.stringify(result, null, 2));
+      return null;
+    }
+  } catch (error) {
+    console.error('❌ Error with minimal order:', error);
+    return null;
+  }
+}
+
 serve(async (req: Request) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -67,54 +298,8 @@ serve(async (req: Request) => {
       const formData = requestData.data || requestData.formData || requestData;
       console.log('📝 Processing form data:', JSON.stringify(formData, null, 2));
       
-      // Extract customer information from various field formats
-      let customerName = 'غير محدد';
-      let customerEmail = '';
-      let customerPhone = '';
-      let customerCity = '';
-      let customerAddress = '';
-      
-      // Loop through form data to find customer info
-      for (const [key, value] of Object.entries(formData)) {
-        const keyLower = key.toLowerCase();
-        const stringValue = String(value || '').trim();
-        
-        if (keyLower.includes('text') || keyLower.includes('name') || keyLower.includes('اسم')) {
-          customerName = stringValue || customerName;
-        } else if (keyLower.includes('email') || keyLower.includes('بريد')) {
-          customerEmail = stringValue || customerEmail;
-        } else if (keyLower.includes('phone') || keyLower.includes('هاتف') || keyLower.includes('تليفون')) {
-          customerPhone = stringValue || customerPhone;
-        } else if (keyLower.includes('city') || keyLower.includes('مدينة')) {
-          customerCity = stringValue || customerCity;
-        } else if (keyLower.includes('address') || keyLower.includes('عنوان') || keyLower.includes('textarea')) {
-          customerAddress = stringValue || customerAddress;
-        }
-      }
-      
-      // Fix phone number format for Shopify
-      if (customerPhone) {
-        // Remove any spaces, dashes, or special characters
-        customerPhone = customerPhone.replace(/[\s\-\(\)]/g, '');
-        
-        // If it starts with 0, replace with +966
-        if (customerPhone.startsWith('0')) {
-          customerPhone = '+966' + customerPhone.substring(1);
-        }
-        // If it doesn't start with +, add +966
-        else if (!customerPhone.startsWith('+966') && !customerPhone.startsWith('+')) {
-          customerPhone = '+966' + customerPhone;
-        }
-        
-        // Ensure it's at least 10 digits after +966
-        if (customerPhone.length < 13) {
-          customerPhone = '+966500000000'; // Default valid phone for Saudi Arabia
-        }
-      } else {
-        customerPhone = '+966500000000'; // Default valid phone for Saudi Arabia
-      }
-      
-      console.log('👤 Customer data:', { customerName, customerEmail, customerPhone, customerCity, customerAddress });
+      // Extract customer information using enhanced function
+      const customer = extractCustomerData(formData);
       
       // Get shopify access token
       const { data: shopData, error: shopError } = await supabase
@@ -131,141 +316,35 @@ serve(async (req: Request) => {
 
       console.log('🔑 Found Shopify access token for shop:', shopDomain);
 
-      // Create order in Shopify
-      const shopifyOrderData = {
-        order: {
-          financial_status: 'pending',
-          fulfillment_status: null,
-          currency: 'SAR',
-          total_price: '0.00', // Free order from form submission
-          customer: {
-            first_name: customerName.split(' ')[0] || customerName,
-            last_name: customerName.split(' ').slice(1).join(' ') || '',
-            email: customerEmail,
-            phone: customerPhone
-          },
-          billing_address: {
-            first_name: customerName.split(' ')[0] || customerName,
-            last_name: customerName.split(' ').slice(1).join(' ') || '',
-            address1: customerAddress,
-            city: customerCity,
-            country: 'SA',
-            phone: customerPhone
-          },
-          shipping_address: {
-            first_name: customerName.split(' ')[0] || customerName,
-            last_name: customerName.split(' ').slice(1).join(' ') || '',
-            address1: customerAddress,
-            city: customerCity,
-            country: 'SA',
-            phone: customerPhone
-          },
-           line_items: [
-             {
-               title: 'Form Order',
-               quantity: 1,
-               price: '0.00'
-             }
-           ],
-          note: `Order created from form submission. Form ID: ${formId}`,
-          tags: 'form-submission'
-        }
-      };
-
-      console.log('🛒 Creating Shopify order:', JSON.stringify(shopifyOrderData, null, 2));
-
-      // Send order to Shopify
-      const shopifyResponse = await fetch(`https://${shopDomain}/admin/api/2025-01/orders.json`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Shopify-Access-Token': shopData.access_token
-        },
-        body: JSON.stringify(shopifyOrderData)
-      });
-
-      const shopifyResult = await shopifyResponse.json();
-      console.log('📦 Shopify order response:', JSON.stringify(shopifyResult, null, 2));
-      console.log('🔍 Shopify response status:', shopifyResponse.status);
-      console.log('🔍 Shopify response headers:', Object.fromEntries(shopifyResponse.headers.entries()));
-
-      let shopifyOrderId = null;
-      if (shopifyResponse.ok && shopifyResult.order) {
-        shopifyOrderId = shopifyResult.order.id;
-        console.log('✅ Shopify order created successfully:', shopifyOrderId);
-      } else {
-        console.error('❌ Failed to create Shopify order. Status:', shopifyResponse.status);
-        console.error('❌ Error details:', JSON.stringify(shopifyResult, null, 2));
-        
-        // Try with a simpler order structure but include customer info
-        console.log('🔄 Trying with simplified order...');
-        const simpleOrderData = {
-          order: {
-            financial_status: 'pending',
-            note: `Order from form submission: ${formId}. Customer: ${customerName}, Phone: ${customerPhone}, Email: ${customerEmail}, City: ${customerCity}, Address: ${customerAddress}`,
-            tags: 'form-submission',
-            email: customerEmail || '',
-            phone: customerPhone || '',
-            customer: customerName ? {
-              first_name: customerName.split(' ')[0] || customerName,
-              last_name: customerName.split(' ').slice(1).join(' ') || '',
-              email: customerEmail || '',
-              phone: customerPhone || ''
-            } : undefined,
-            line_items: [
-              {
-                title: 'Form Order',
-                quantity: 1,
-                price: '0.00'
-              }
-            ]
-          }
-        };
-        
-        const retryResponse = await fetch(`https://${shopDomain}/admin/api/2025-01/orders.json`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Shopify-Access-Token': shopData.access_token
-          },
-          body: JSON.stringify(simpleOrderData)
-        });
-        
-        const retryResult = await retryResponse.json();
-        console.log('🔄 Retry response:', JSON.stringify(retryResult, null, 2));
-        
-        if (retryResponse.ok && retryResult.order) {
-          shopifyOrderId = retryResult.order.id;
-          console.log('✅ Simplified Shopify order created successfully:', shopifyOrderId);
-        }
-      }
+      // Create order in Shopify with improved logic
+      const shopifyOrderId = await createShopifyOrder(shopDomain, shopData.access_token, customer, formId);
 
       // Generate order number
       const orderNumber = shopifyOrderId ? `SHOP-${shopifyOrderId}` : `ORD-${Date.now()}`;
       
       console.log('📋 Creating order with data:', {
         orderNumber,
-        customerName,
-        customerEmail,
-        customerPhone,
+        customerName: customer.name,
+        customerEmail: customer.email,
+        customerPhone: customer.phone,
         shopifyOrderId,
         submissionId: submissionData.id
       });
       
-      // Create order in our database - use original formId
+      // Create order in our database
       console.log('🆔 Using original formId for order:', formId);
       
       const orderInsertData = {
         order_number: orderNumber,
-        customer_name: customerName,
-        customer_email: customerEmail,
-        customer_phone: customerPhone,
+        customer_name: customer.name,
+        customer_email: customer.email,
+        customer_phone: customer.phone,
         total_amount: 0.00,
         currency: 'SAR',
         status: 'pending',
-        items: [{ title: 'Form Order', quantity: 1, price: '0.00' }],
-        shipping_address: { address: customerAddress, city: customerCity },
-        billing_address: { address: customerAddress, city: customerCity },
+        items: [{ title: 'طلب من النموذج - Form Order', quantity: 1, price: '0.00' }],
+        shipping_address: { address: customer.address, city: customer.city },
+        billing_address: { address: customer.address, city: customer.city },
         form_id: formId, // Use the original formId from request
         shop_id: shopDomain,
         shopify_order_id: shopifyOrderId?.toString()
