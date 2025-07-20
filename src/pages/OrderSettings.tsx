@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Save } from "lucide-react";
+import SettingsLayout from "@/components/layout/SettingsLayout";
 
 const OrderSettings = () => {
   const [postOrderAction, setPostOrderAction] = useState("redirect");
@@ -21,8 +22,9 @@ const OrderSettings = () => {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <SettingsLayout>
+      <div className="container mx-auto p-6 space-y-6">
+        <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">إعدادات الطلب</h1>
           <p className="text-muted-foreground">إدارة إعدادات ما بعد إنشاء الطلب</p>
@@ -115,7 +117,8 @@ const OrderSettings = () => {
           </CardContent>
         </Card>
       </div>
-    </div>
+      </div>
+    </SettingsLayout>
   );
 };
 

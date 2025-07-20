@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Save, Plus, Trash2, Shield } from "lucide-react";
+import SettingsLayout from "@/components/layout/SettingsLayout";
 
 interface BlockedIP {
   id: number;
@@ -40,8 +41,9 @@ const SpamSettings = () => {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <SettingsLayout>
+      <div className="container mx-auto p-6 space-y-6">
+        <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
             <Shield className="h-8 w-8" />
@@ -127,7 +129,8 @@ const SpamSettings = () => {
           </CardContent>
         </Card>
       </div>
-    </div>
+      </div>
+    </SettingsLayout>
   );
 };
 

@@ -2,11 +2,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Crown, Star, Zap } from "lucide-react";
+import SettingsLayout from "@/components/layout/SettingsLayout";
 
 const PlansSettings = () => {
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <SettingsLayout>
+      <div className="container mx-auto p-6 space-y-6">
+        <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
             <Crown className="h-8 w-8" />
@@ -119,7 +121,8 @@ const PlansSettings = () => {
           </div>
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </SettingsLayout>
   );
 };
 

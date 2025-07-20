@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Save, Plus, Trash2 } from "lucide-react";
+import SettingsLayout from "@/components/layout/SettingsLayout";
 
 interface ShippingRate {
   id: number;
@@ -50,8 +51,9 @@ const GeneralSettings = () => {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <SettingsLayout>
+      <div className="container mx-auto p-6 space-y-6">
+        <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">الإعدادات العامة</h1>
           <p className="text-muted-foreground">إدارة الإعدادات العامة للتطبيق</p>
@@ -199,7 +201,8 @@ const GeneralSettings = () => {
           </CardContent>
         </Card>
       </div>
-    </div>
+      </div>
+    </SettingsLayout>
   );
 };
 
