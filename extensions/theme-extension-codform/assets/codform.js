@@ -175,6 +175,8 @@ console.log('🚀 CODFORM: Loading Shopify submit handler...');
     // Add shop information
     data.shop = window.location.hostname;
     
+    console.log('📊 CODFORM: Collected form data:', JSON.stringify(data, null, 2));
+    
     return data;
   }
   

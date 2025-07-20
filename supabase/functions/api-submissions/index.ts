@@ -62,22 +62,103 @@ serve(async (req: Request) => {
       );
     }
 
-    // Create order from form submission
+    // Create order from form submission and sync with Shopify
     try {
-      const formData = requestData.formData || requestData;
+      const formData = requestData.data || requestData.formData || requestData;
+      console.log('📝 Processing form data:', JSON.stringify(formData, null, 2));
       
       // Extract customer information
-      const customerName = formData.name || formData.customerName || formData['الاسم'] || 'غير محدد';
+      const customerName = formData.name || formData.customerName || formData['Full Name'] || formData['الاسم'] || 'غير محدد';
       const customerEmail = formData.email || formData.customerEmail || formData['البريد الإلكتروني'] || '';
-      const customerPhone = formData.phone || formData.customerPhone || formData['رقم الهاتف'] || '';
+      const customerPhone = formData.phone || formData.customerPhone || formData['Phone Number'] || formData['رقم الهاتف'] || '';
+      const customerCity = formData.city || formData['City'] || formData['المدينة'] || '';
+      const customerAddress = formData.address || formData['Address'] || formData['العنوان'] || '';
       
-      // Calculate total (can be enhanced based on form data)
-      const totalAmount = formData.total || formData.amount || 0;
+      console.log('👤 Customer data:', { customerName, customerEmail, customerPhone, customerCity, customerAddress });
       
+      // Get shopify access token
+      const { data: shopData, error: shopError } = await supabase
+        .from('shopify_stores')
+        .select('access_token')
+        .eq('shop', shopDomain)
+        .eq('is_active', true)
+        .single();
+
+      if (shopError || !shopData?.access_token) {
+        console.error('Error getting Shopify access token:', shopError);
+        throw new Error('Unable to access Shopify store');
+      }
+
+      console.log('🔑 Found Shopify access token for shop:', shopDomain);
+
+      // Create order in Shopify
+      const shopifyOrderData = {
+        order: {
+          financial_status: 'pending',
+          fulfillment_status: null,
+          currency: 'SAR',
+          total_price: '100.00', // Default price, can be customized
+          customer: {
+            first_name: customerName.split(' ')[0] || customerName,
+            last_name: customerName.split(' ').slice(1).join(' ') || '',
+            email: customerEmail,
+            phone: customerPhone
+          },
+          billing_address: {
+            first_name: customerName.split(' ')[0] || customerName,
+            last_name: customerName.split(' ').slice(1).join(' ') || '',
+            address1: customerAddress,
+            city: customerCity,
+            country: 'SA',
+            phone: customerPhone
+          },
+          shipping_address: {
+            first_name: customerName.split(' ')[0] || customerName,
+            last_name: customerName.split(' ').slice(1).join(' ') || '',
+            address1: customerAddress,
+            city: customerCity,
+            country: 'SA',
+            phone: customerPhone
+          },
+          line_items: [
+            {
+              title: 'Form Order',
+              quantity: 1,
+              price: '100.00'
+            }
+          ],
+          note: `Order created from form submission. Form ID: ${formId}`,
+          tags: 'form-submission'
+        }
+      };
+
+      console.log('🛒 Creating Shopify order:', JSON.stringify(shopifyOrderData, null, 2));
+
+      // Send order to Shopify
+      const shopifyResponse = await fetch(`https://${shopDomain}/admin/api/2025-01/orders.json`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Shopify-Access-Token': shopData.access_token
+        },
+        body: JSON.stringify(shopifyOrderData)
+      });
+
+      const shopifyResult = await shopifyResponse.json();
+      console.log('📦 Shopify order response:', JSON.stringify(shopifyResult, null, 2));
+
+      let shopifyOrderId = null;
+      if (shopifyResponse.ok && shopifyResult.order) {
+        shopifyOrderId = shopifyResult.order.id;
+        console.log('✅ Shopify order created successfully:', shopifyOrderId);
+      } else {
+        console.error('❌ Failed to create Shopify order:', shopifyResult);
+      }
+
       // Generate order number
-      const orderNumber = `ORD-${Date.now()}`;
+      const orderNumber = shopifyOrderId ? `SHOP-${shopifyOrderId}` : `ORD-${Date.now()}`;
       
-      // Create order
+      // Create order in our database
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
         .insert({
@@ -85,27 +166,27 @@ serve(async (req: Request) => {
           customer_name: customerName,
           customer_email: customerEmail,
           customer_phone: customerPhone,
-          total_amount: totalAmount,
+          total_amount: 100.00,
           currency: 'SAR',
           status: 'pending',
-          items: formData.items || [],
-          shipping_address: formData.shippingAddress || {},
-          billing_address: formData.billingAddress || {},
+          items: [{ title: 'Form Order', quantity: 1, price: '100.00' }],
+          shipping_address: { address: customerAddress, city: customerCity },
+          billing_address: { address: customerAddress, city: customerCity },
           form_id: formId,
-          shop_id: shopDomain
+          shop_id: shopDomain,
+          shopify_order_id: shopifyOrderId?.toString()
         })
         .select()
         .single();
 
       if (orderError) {
-        console.error('Error creating order:', orderError);
-        // Continue even if order creation fails, as submission was successful
+        console.error('Error creating order in database:', orderError);
       } else {
-        console.log('Order created successfully:', orderData.order_number);
+        console.log('✅ Order created in database:', orderData.order_number);
       }
 
     } catch (orderCreationError) {
-      console.error('Error in order creation process:', orderCreationError);
+      console.error('❌ Error in order creation process:', orderCreationError);
       // Continue even if order creation fails
     }
 
