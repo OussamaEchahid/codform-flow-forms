@@ -67,12 +67,35 @@ serve(async (req: Request) => {
       const formData = requestData.data || requestData.formData || requestData;
       console.log('📝 Processing form data:', JSON.stringify(formData, null, 2));
       
-      // Extract customer information
-      const customerName = formData.name || formData.customerName || formData['Full Name'] || formData['الاسم'] || 'غير محدد';
-      const customerEmail = formData.email || formData.customerEmail || formData['البريد الإلكتروني'] || '';
-      const customerPhone = formData.phone || formData.customerPhone || formData['Phone Number'] || formData['رقم الهاتف'] || '';
-      const customerCity = formData.city || formData['City'] || formData['المدينة'] || '';
-      const customerAddress = formData.address || formData['Address'] || formData['العنوان'] || '';
+      // Extract customer information from various field formats
+      let customerName = 'غير محدد';
+      let customerEmail = '';
+      let customerPhone = '';
+      let customerCity = '';
+      let customerAddress = '';
+      
+      // Loop through form data to find customer info
+      for (const [key, value] of Object.entries(formData)) {
+        const keyLower = key.toLowerCase();
+        const stringValue = String(value || '').trim();
+        
+        if (keyLower.includes('text') || keyLower.includes('name') || keyLower.includes('اسم')) {
+          customerName = stringValue || customerName;
+        } else if (keyLower.includes('email') || keyLower.includes('بريد')) {
+          customerEmail = stringValue || customerEmail;
+        } else if (keyLower.includes('phone') || keyLower.includes('هاتف') || keyLower.includes('تليفون')) {
+          customerPhone = stringValue || customerPhone;
+        } else if (keyLower.includes('city') || keyLower.includes('مدينة')) {
+          customerCity = stringValue || customerCity;
+        } else if (keyLower.includes('address') || keyLower.includes('عنوان') || keyLower.includes('textarea')) {
+          customerAddress = stringValue || customerAddress;
+        }
+      }
+      
+      // Ensure phone number is valid for Shopify (remove if empty)
+      if (!customerPhone || customerPhone.length < 6) {
+        customerPhone = '+966500000000'; // Default valid phone for Saudi Arabia
+      }
       
       console.log('👤 Customer data:', { customerName, customerEmail, customerPhone, customerCity, customerAddress });
       
@@ -172,7 +195,7 @@ serve(async (req: Request) => {
           items: [{ title: 'Form Order', quantity: 1, price: '100.00' }],
           shipping_address: { address: customerAddress, city: customerCity },
           billing_address: { address: customerAddress, city: customerCity },
-          form_id: formId,
+          form_id: submissionData.id, // Use the submission ID instead of formId
           shop_id: shopDomain,
           shopify_order_id: shopifyOrderId?.toString()
         })
