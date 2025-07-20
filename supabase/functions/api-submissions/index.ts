@@ -190,16 +190,8 @@ serve(async (req: Request) => {
         submissionId: submissionData.id
       });
       
-      // Create order in our database - handle form_id as UUID
-      let orderFormId = null;
-      try {
-        // Try to use the submission ID if it's a valid UUID
-        orderFormId = submissionData.id;
-        console.log('🆔 Using submission ID as form_id:', orderFormId);
-      } catch (e) {
-        console.log('⚠️ Submission ID not valid UUID, setting form_id to null');
-        orderFormId = null;
-      }
+      // Create order in our database - use original formId
+      console.log('🆔 Using original formId for order:', formId);
       
       const orderInsertData = {
         order_number: orderNumber,
@@ -212,14 +204,10 @@ serve(async (req: Request) => {
         items: [{ title: 'Form Order', quantity: 1, price: '100.00' }],
         shipping_address: { address: customerAddress, city: customerCity },
         billing_address: { address: customerAddress, city: customerCity },
+        form_id: formId, // Use the original formId from request
         shop_id: shopDomain,
         shopify_order_id: shopifyOrderId?.toString()
       };
-      
-      // Only add form_id if we have a valid UUID
-      if (orderFormId) {
-        orderInsertData.form_id = orderFormId;
-      }
       
       console.log('📝 Order insert data:', JSON.stringify(orderInsertData, null, 2));
       
