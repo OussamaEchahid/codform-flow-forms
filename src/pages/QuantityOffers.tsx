@@ -77,75 +77,111 @@ const QuantityOffers = () => {
   });
 
   useEffect(() => {
-    loadProducts();
-    loadForms();
+    // Wait a bit for the connection manager to sync, then load data
+    const initializeData = async () => {
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+      loadProducts();
+      loadForms();
+    };
+    
+    initializeData();
   }, []);
 
   const loadProducts = async () => {
     setLoading(true);
     try {
-      // Get active shop from local storage
-      const activeShop = localStorage.getItem('ACTIVE_STORE_KEY');
-      console.log('Active shop:', activeShop);
+      // Get active shop from multiple sources to ensure we have it
+      let activeShop = localStorage.getItem('ACTIVE_STORE_KEY');
+      
+      // If not in localStorage, try to get from connection manager
+      if (!activeShop) {
+        // Check if connection manager has set it
+        await new Promise(resolve => setTimeout(resolve, 500));
+        activeShop = localStorage.getItem('ACTIVE_STORE_KEY');
+      }
+      
+      console.log('🔍 Loading products for shop:', activeShop);
       
       if (!activeShop) {
-        toast.error('No active Shopify store found');
+        console.error('❌ No active shop found');
+        toast.error('No active Shopify store found. Please connect your store first.');
         setLoading(false);
         return;
       }
 
-      console.log('Fetching products for shop:', activeShop);
+      console.log('🛍️ Fetching products for shop:', activeShop);
       
-      // Use the same approach as other Shopify API calls in the app
-      const { data: shopifyStores } = await supabase
+      // Get shop data and access token from database
+      const { data: shopifyStores, error: shopError } = await supabase
         .from('shopify_stores')
         .select('*')
         .eq('shop', activeShop)
-        .eq('is_active', true)
-        .single();
+        .eq('is_active', true);
 
-      if (!shopifyStores?.access_token) {
-        console.error('No access token found for shop');
-        toast.error('Shopify store not properly connected');
+      if (shopError) {
+        console.error('❌ Database error:', shopError);
+        toast.error('Error connecting to database');
         setLoading(false);
         return;
       }
 
-      console.log('Found shop data, making API call...');
+      if (!shopifyStores || shopifyStores.length === 0) {
+        console.error('❌ No shop data found in database');
+        toast.error('Shop not found in database. Please reconnect your store.');
+        setLoading(false);
+        return;
+      }
+
+      const shopData = shopifyStores[0];
+      if (!shopData.access_token) {
+        console.error('❌ No access token found for shop');
+        toast.error('Shop access token missing. Please reconnect your store.');
+        setLoading(false);
+        return;
+      }
+
+      console.log('✅ Shop data found, making Shopify API call...');
 
       // Make direct Shopify API call
-      const shopifyResponse = await fetch(`https://${activeShop}/admin/api/2023-10/products.json`, {
+      const shopifyUrl = `https://${activeShop}/admin/api/2023-10/products.json?limit=50`;
+      const shopifyResponse = await fetch(shopifyUrl, {
         headers: {
-          'X-Shopify-Access-Token': shopifyStores.access_token,
+          'X-Shopify-Access-Token': shopData.access_token,
           'Content-Type': 'application/json'
         }
       });
 
-      if (shopifyResponse.ok) {
-        const data = await shopifyResponse.json();
-        console.log('Shopify API response:', data);
+      if (!shopifyResponse.ok) {
+        console.error('❌ Shopify API error:', shopifyResponse.status, shopifyResponse.statusText);
+        const errorText = await shopifyResponse.text();
+        console.error('Error details:', errorText);
+        toast.error(`Shopify API error: ${shopifyResponse.status}`);
+        setLoading(false);
+        return;
+      }
+
+      const data = await shopifyResponse.json();
+      console.log('✅ Shopify API response:', data);
+      
+      if (data.products && data.products.length > 0) {
+        const formattedProducts = data.products.map((product: any) => ({
+          id: product.id.toString(),
+          title: product.title,
+          handle: product.handle,
+          images: product.images?.map((img: any) => ({ url: img.src })) || [{ url: '/placeholder.svg' }]
+        }));
         
-        if (data.products && data.products.length > 0) {
-          const formattedProducts = data.products.map((product: any) => ({
-            id: product.id.toString(),
-            title: product.title,
-            handle: product.handle,
-            images: product.images?.map((img: any) => ({ url: img.src })) || []
-          }));
-          
-          console.log('Formatted products:', formattedProducts);
-          setProducts(formattedProducts);
-        } else {
-          console.log('No products found in response');
-          setProducts([]);
-        }
+        console.log('✅ Formatted products:', formattedProducts.length, 'products loaded');
+        setProducts(formattedProducts);
+        toast.success(`${formattedProducts.length} products loaded successfully`);
       } else {
-        console.error('Shopify API error:', shopifyResponse.status, shopifyResponse.statusText);
-        toast.error('Failed to fetch products from Shopify');
+        console.log('⚠️ No products found in Shopify store');
+        setProducts([]);
+        toast.info('No products found in your Shopify store');
       }
     } catch (error) {
-      console.error('Error loading products:', error);
-      toast.error('Error loading products: ' + (error as Error).message);
+      console.error('❌ Error loading products:', error);
+      toast.error('Failed to load products: ' + (error as Error).message);
     }
     setLoading(false);
   };
@@ -283,28 +319,44 @@ const QuantityOffers = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {products.map((product) => (
-                  <Card
-                    key={product.id}
-                    className={`cursor-pointer transition-all ${
-                      selectedProduct?.id === product.id
-                        ? 'ring-2 ring-primary'
-                        : 'hover:shadow-md'
-                    }`}
-                    onClick={() => handleProductSelect(product)}
-                  >
-                    <CardContent className="p-4">
-                      <img
-                        src={product.images?.[0]?.url || '/placeholder.svg'}
-                        alt={product.title}
-                        className="w-full h-32 object-cover rounded mb-2"
-                      />
-                      <h3 className="font-medium">{product.title}</h3>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+              {loading ? (
+                <div className="text-center py-8">
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  <p className="mt-2 text-muted-foreground">Loading products from Shopify...</p>
+                </div>
+              ) : products.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Package className="mx-auto h-12 w-12 mb-4 opacity-50" />
+                  <p>No products found in your Shopify store</p>
+                  <Button onClick={loadProducts} variant="outline" className="mt-4">
+                    Retry Loading Products
+                  </Button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {products.map((product) => (
+                    <Card
+                      key={product.id}
+                      className={`cursor-pointer transition-all ${
+                        selectedProduct?.id === product.id
+                          ? 'ring-2 ring-primary'
+                          : 'hover:shadow-md'
+                      }`}
+                      onClick={() => handleProductSelect(product)}
+                    >
+                      <CardContent className="p-4">
+                        <img
+                          src={product.images?.[0]?.url || '/placeholder.svg'}
+                          alt={product.title}
+                          className="w-full h-32 object-cover rounded mb-2"
+                        />
+                        <h3 className="font-medium">{product.title}</h3>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+              
               {selectedProduct && (
                 <div className="mt-6 flex justify-end">
                   <Button onClick={() => setCurrentStep('form')}>
