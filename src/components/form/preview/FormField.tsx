@@ -2,6 +2,7 @@
 import React from 'react';
 import { FormField as FormFieldType } from '@/lib/form-utils';
 import TextInput from './fields/TextInput';
+import TextArea from './fields/TextArea'; // إضافة import للمكون TextArea
 import SubmitButton from './fields/SubmitButton';
 import FormTitleField from './fields/FormTitleField';
 import CartItems from './fields/CartItems';
@@ -27,8 +28,8 @@ interface FormFieldProps {
 const FormField: React.FC<FormFieldProps> = ({ 
   field, 
   formStyle = {}, 
-  formCountry = 'SA', 
-  formPhonePrefix = '+966',
+  formCountry = 'MA', 
+  formPhonePrefix = '+212',
   value,
   onChange
 }) => {
@@ -43,13 +44,20 @@ const FormField: React.FC<FormFieldProps> = ({
     case 'text':
     case 'email':
     case 'phone':
-    case 'textarea':
       return (
         <TextInput 
           field={enhancedField} 
           formStyle={formStyle} 
           formCountry={formCountry}
           formPhonePrefix={formPhonePrefix}
+        />
+      );
+    
+    case 'textarea':
+      return (
+        <TextArea 
+          field={enhancedField} 
+          formStyle={formStyle} 
         />
       );
     

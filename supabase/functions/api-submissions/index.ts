@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -8,11 +7,11 @@ const corsHeaders = {
 };
 
 // تحسين دالة تنسيق رقم الهاتف لدعم دول مختلفة
-function validateAndFormatPhone(phone: string, formPhonePrefix: string = '+966'): string {
+function validateAndFormatPhone(phone: string, formPhonePrefix: string = '+212'): string {
   console.log(`📞 تنسيق رقم الهاتف: ${phone} مع المفتاح: ${formPhonePrefix}`);
   
   if (!phone) {
-    const defaultPhone = formPhonePrefix + '500000000';
+    const defaultPhone = formPhonePrefix + '600000000';
     console.log(`📞 استخدام رقم افتراضي: ${defaultPhone}`);
     return defaultPhone;
   }
@@ -86,7 +85,7 @@ function validateAndFormatPhone(phone: string, formPhonePrefix: string = '+966')
   
   // التأكد من أن الرقم يبدأ بالمفتاح الصحيح
   if (!cleanPhone.startsWith(formPhonePrefix)) {
-    cleanPhone = formPhonePrefix + '500000000'; // رقم افتراضي
+    cleanPhone = formPhonePrefix + '600000000'; // رقم افتراضي للمغرب
   }
   
   console.log(`📞 رقم نهائي: ${cleanPhone}`);
@@ -164,7 +163,9 @@ function createShopifyOrderData(customer: any, formId: string, formSettings: any
   const nameParts = customer.name ? customer.name.split(' ') : ['Customer'];
   const firstName = nameParts[0] || 'Customer';
   const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : 'Order'; // Always provide a last name
-  const currency = formSettings.currency || 'SAR';
+  const currency = formSettings.currency || 'MAD'; // تغيير الافتراضي إلى MAD
+  
+  console.log(`💰 استخدام العملة: ${currency} من إعدادات النموذج`);
   
   return {
     order: {
@@ -185,7 +186,7 @@ function createShopifyOrderData(customer: any, formId: string, formSettings: any
         last_name: lastName,
         address1: customer.address || customer.city,
         city: customer.city || 'المدينة',
-        country: formSettings.country || 'SA',
+        country: formSettings.country || 'MA', // تغيير الافتراضي إلى MA
         phone: customer.phone || ''
       } : undefined,
       shipping_address: customer.city || customer.address ? {
@@ -193,7 +194,7 @@ function createShopifyOrderData(customer: any, formId: string, formSettings: any
         last_name: lastName,
         address1: customer.address || customer.city,
         city: customer.city || 'المدينة',
-        country: formSettings.country || 'SA',
+        country: formSettings.country || 'MA', // تغيير الافتراضي إلى MA
         phone: customer.phone || ''
       } : undefined,
       line_items: [
@@ -311,14 +312,20 @@ serve(async (req: Request) => {
       
       if (formData) {
         formSettings = {
-          country: formData.country || 'SA',
-          currency: formData.currency || 'SAR',
-          phone_prefix: formData.phone_prefix || '+966'
+          country: formData.country || 'MA', // تغيير الافتراضي إلى MA
+          currency: formData.currency || 'MAD', // تغيير الافتراضي إلى MAD
+          phone_prefix: formData.phone_prefix || '+212' // تغيير الافتراضي إلى +212
         };
         console.log('📋 Retrieved form settings:', JSON.stringify(formSettings, null, 2));
       }
     } catch (error) {
       console.error('⚠️ Could not retrieve form settings:', error);
+      // استخدام الإعدادات الافتراضية المغربية
+      formSettings = {
+        country: 'MA',
+        currency: 'MAD',
+        phone_prefix: '+212'
+      };
     }
     
     // Store submission in database
@@ -395,7 +402,7 @@ serve(async (req: Request) => {
         customer_email: customer.email,
         customer_phone: customer.phone,
         total_amount: 0.00,
-        currency: formSettings.currency || 'SAR',
+        currency: formSettings.currency || 'MAD', // تأكد من استخدام العملة الصحيحة
         status: 'pending',
         items: [{ title: 'طلب من النموذج - Form Order', quantity: 1, price: '0.00' }],
         shipping_address: { address: customer.address, city: customer.city },

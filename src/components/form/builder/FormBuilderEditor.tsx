@@ -119,10 +119,10 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
   const [currentPreviewStep, setCurrentPreviewStep] = useState(1);
   const [currentFormId, setCurrentFormId] = useState<string | undefined>(initialFormId);
   
-  // Form settings state
-  const [formCountry, setFormCountry] = useState('SA');
+  // Form settings state - تصحيح الإعدادات الافتراضية
+  const [formCountry, setFormCountry] = useState('MA'); // تغيير من SA إلى MA
   const [formCurrency, setFormCurrency] = useState('MAD');
-  const [formPhonePrefix, setFormPhonePrefix] = useState('+966');
+  const [formPhonePrefix, setFormPhonePrefix] = useState('+212'); // تغيير من +966 إلى +212
 
   // إنشاء نموذج افتراضي جديد مع الحقول المطلوبة
   const createDefaultForm = (): FormField[] => {
@@ -349,9 +349,9 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
             setFormDescription(formData.description || '');
             
             // Load form settings
-            setFormCountry(formData.country || 'SA');
+            setFormCountry(formData.country || 'MA');
             setFormCurrency(formData.currency || 'MAD');
-            setFormPhonePrefix(formData.phone_prefix || '+966');
+            setFormPhonePrefix(formData.phone_prefix || '+212');
             
             // Load form elements
             let loadedElements = formData.data?.flatMap(step => step.fields) || [];
