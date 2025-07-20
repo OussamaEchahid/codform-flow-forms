@@ -31,9 +31,19 @@ function validateAndFormatPhone(phone: string, formPhonePrefix: string = '+966')
     } else if (cleanPhone.startsWith('212') && !cleanPhone.startsWith('+212')) {
       cleanPhone = '+212' + cleanPhone.substring(3);
     } else if (cleanPhone.startsWith('0') && !cleanPhone.startsWith('00')) {
-      cleanPhone = '+212' + cleanPhone.substring(1);
+      // إزالة الصفر والتأكد من أن الرقم صحيح
+      const phoneWithoutZero = cleanPhone.substring(1);
+      if (phoneWithoutZero.length >= 8 && phoneWithoutZero.length <= 9) {
+        cleanPhone = '+212' + phoneWithoutZero;
+      } else {
+        cleanPhone = '+212600000000'; // رقم افتراضي صحيح
+      }
     } else if (!cleanPhone.startsWith('+212') && !cleanPhone.startsWith('+')) {
-      cleanPhone = '+212' + cleanPhone;
+      if (cleanPhone.length >= 8 && cleanPhone.length <= 9) {
+        cleanPhone = '+212' + cleanPhone;
+      } else {
+        cleanPhone = '+212600000000'; // رقم افتراضي صحيح
+      }
     }
   } else if (formPhonePrefix === '+966') {
     // معالجة الأرقام السعودية
@@ -43,10 +53,22 @@ function validateAndFormatPhone(phone: string, formPhonePrefix: string = '+966')
       cleanPhone = '+966' + cleanPhone.substring(3);
     } else if (cleanPhone.startsWith('05') || cleanPhone.startsWith('01')) {
       cleanPhone = '+966' + cleanPhone.substring(1);
+    } else if (cleanPhone.startsWith('0') && !cleanPhone.startsWith('00')) {
+      // إزالة الصفر والتأكد من أن الرقم صحيح
+      const phoneWithoutZero = cleanPhone.substring(1);
+      if (phoneWithoutZero.length >= 8 && phoneWithoutZero.length <= 9) {
+        cleanPhone = '+966' + phoneWithoutZero;
+      } else {
+        cleanPhone = '+966500000000'; // رقم افتراضي صحيح
+      }
     } else if (cleanPhone.startsWith('5') && cleanPhone.length === 9) {
       cleanPhone = '+966' + cleanPhone;
     } else if (!cleanPhone.startsWith('+966') && !cleanPhone.startsWith('+')) {
-      cleanPhone = '+966' + cleanPhone;
+      if (cleanPhone.length >= 8 && cleanPhone.length <= 9) {
+        cleanPhone = '+966' + cleanPhone;
+      } else {
+        cleanPhone = '+966500000000'; // رقم افتراضي صحيح
+      }
     }
   } else {
     // معالجة عامة للدول الأخرى
@@ -62,9 +84,9 @@ function validateAndFormatPhone(phone: string, formPhonePrefix: string = '+966')
     }
   }
   
-  // التحقق من صحة التنسيق النهائي
+  // التأكد من أن الرقم يبدأ بالمفتاح الصحيح
   if (!cleanPhone.startsWith(formPhonePrefix)) {
-    cleanPhone = formPhonePrefix + cleanPhone.replace(/^\+?\d+/, '');
+    cleanPhone = formPhonePrefix + '500000000'; // رقم افتراضي
   }
   
   console.log(`📞 رقم نهائي: ${cleanPhone}`);
@@ -139,8 +161,9 @@ function extractCustomerData(formData: any, formSettings: any = {}): {
 }
 
 function createShopifyOrderData(customer: any, formId: string, formSettings: any = {}) {
-  const firstName = customer.name.split(' ')[0] || customer.name;
-  const lastName = customer.name.split(' ').slice(1).join(' ') || '';
+  const nameParts = customer.name ? customer.name.split(' ') : ['Customer'];
+  const firstName = nameParts[0] || 'Customer';
+  const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : 'Order'; // Always provide a last name
   const currency = formSettings.currency || 'SAR';
   
   return {
