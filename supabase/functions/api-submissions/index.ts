@@ -175,12 +175,13 @@ function createShopifyOrderData(customer: any, formId: string, formSettings: any
       total_price: '0.00',
       email: customer.email || undefined,
       phone: customer.phone || undefined,
-      customer: {
-        first_name: firstName,
-        last_name: lastName,
-        email: customer.email || '',
-        phone: customer.phone || ''
-      },
+      // Remove customer object to avoid "phone already taken" error
+      // customer: {
+      //   first_name: firstName,
+      //   last_name: lastName,
+      //   email: customer.email || '',
+      //   phone: customer.phone || ''
+      // },
       billing_address: customer.city || customer.address ? {
         first_name: firstName,
         last_name: lastName,
