@@ -128,14 +128,23 @@ const OrdersList = () => {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const { data, error } = await supabase.functions.invoke('orders-management', {
-          body: { action: 'list-orders' }
-        });
+        // Use orders-management function with GET method
+        const response = await fetch(
+          `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/orders-management?action=list-orders`,
+          {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M`,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
 
-        if (error) {
-          console.error('Error fetching orders:', error);
-        } else {
+        if (response.ok) {
+          const data = await response.json();
           setOrders(data?.orders || []);
+        } else {
+          console.error('Error fetching orders: HTTP', response.status);
         }
       } catch (error) {
         console.error('Error fetching orders:', error);
