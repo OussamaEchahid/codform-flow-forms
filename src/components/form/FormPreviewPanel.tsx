@@ -141,6 +141,9 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     borderWidth: formStyle.borderWidth || '2px',
   };
 
+  // تحديد العملة بناءً على البلد
+  const displayCurrency = formCountry === 'MA' ? 'MAD' : formCountry === 'SA' ? 'SAR' : formPhonePrefix === '+212' ? 'MAD' : 'SAR';
+
   return (
     <div>
       <div className="flex justify-between items-center mb-3">
@@ -183,8 +186,8 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
       
       <div className="mt-2 text-xs text-gray-500 p-2 rounded text-center">
         {language === 'ar' 
-          ? `المعاينة تستخدم ${formPhonePrefix || '+966'} كرمز للدولة`
-          : `Preview uses ${formPhonePrefix || '+966'} as country code`}
+          ? `المعاينة تستخدم ${formPhonePrefix || '+966'} كرمز للدولة والعملة ${displayCurrency}`
+          : `Preview uses ${formPhonePrefix || '+966'} as country code and ${displayCurrency} currency`}
       </div>
     </div>
   );
