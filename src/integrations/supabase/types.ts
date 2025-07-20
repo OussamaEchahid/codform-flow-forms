@@ -230,6 +230,48 @@ export type Database = {
         }
         Relationships: []
       }
+      quantity_offers: {
+        Row: {
+          created_at: string
+          custom_selector: string | null
+          enabled: boolean
+          form_id: string
+          id: string
+          offers: Json
+          position: string
+          product_id: string
+          shop_id: string
+          styling: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          custom_selector?: string | null
+          enabled?: boolean
+          form_id: string
+          id?: string
+          offers?: Json
+          position?: string
+          product_id: string
+          shop_id: string
+          styling?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          custom_selector?: string | null
+          enabled?: boolean
+          form_id?: string
+          id?: string
+          offers?: Json
+          position?: string
+          product_id?: string
+          shop_id?: string
+          styling?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       shopify_form_insertion: {
         Row: {
           block_id: string | null

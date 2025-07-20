@@ -29,6 +29,7 @@ import OrderSettings from "@/pages/OrderSettings";
 import GeneralSettings from "@/pages/GeneralSettings";
 import SpamSettings from "@/pages/SpamSettings";
 import PlansSettings from "@/pages/PlansSettings";
+import QuantityOffers from "@/pages/QuantityOffers";
 
 // Components
 import { Toaster } from "@/components/ui/toaster"; 
@@ -138,10 +139,11 @@ function AppRoutes() {
       {/* إضافة طريق callback بشكل واضح */}
       <Route path="/shopify-callback" element={<ShopifyCallback />} />
       <Route path="/settings" element={<Settings />} />
-      <Route path="/settings/orders" element={<OrderSettings />} />
-      <Route path="/settings/general" element={<GeneralSettings />} />
-      <Route path="/settings/spam" element={<SpamSettings />} />
-      <Route path="/settings/plans" element={<PlansSettings />} />
+              <Route path="/settings/orders" element={<OrderSettings />} />
+              <Route path="/settings/general" element={<GeneralSettings />} />
+              <Route path="/settings/spam" element={<SpamSettings />} />
+              <Route path="/settings/plans" element={<PlansSettings />} />
+              <Route path="/quantity-offers" element={<QuantityOffers />} />
       
       {/* Add direct routes for ShopifyTest and ShopifyProducts */}
       <Route path="/shopify-test" element={<ShopifyTest />} />

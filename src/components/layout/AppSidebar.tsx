@@ -18,7 +18,8 @@ import {
   Layers,
   Users,
   Shield,
-  Crown
+  Crown,
+  Package
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
@@ -67,7 +68,7 @@ const AppSidebar = () => {
     { title: t('forms'), path: '/forms', icon: FileText },
     { title: t('landingPages'), path: '/landing-pages', icon: ImageIcon },
     { title: t('quickOffers'), path: '/upsells', icon: Gift },
-    { title: t('quantityOffers'), path: '/quantity-offers', icon: BarChart },
+    { title: t('quantityOffers'), path: '/quantity-offers', icon: Package },
     { title: 'Shopify Products', path: '/shopify-products', icon: ShoppingBag },
     { title: 'اختبار Shopify', path: '/shopify-test', icon: RefreshCcw },
   ];
