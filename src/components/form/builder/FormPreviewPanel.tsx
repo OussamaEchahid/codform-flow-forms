@@ -6,7 +6,7 @@ import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
 import { ChevronLeft, ChevronRight, Eye, Share2, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
-import FormField as FormFieldComponent from '../preview/FormField';
+import FormFieldComponent from '../preview/FormField';
 import { useShopify } from '@/hooks/useShopify';
 
 interface FormPreviewPanelProps {
