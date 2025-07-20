@@ -86,45 +86,66 @@ const QuantityOffers = () => {
     try {
       // Get active shop from local storage
       const activeShop = localStorage.getItem('ACTIVE_STORE_KEY');
+      console.log('Active shop:', activeShop);
+      
       if (!activeShop) {
         toast.error('No active Shopify store found');
+        setLoading(false);
         return;
       }
 
-      // Fetch products from Shopify API
-      const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-products`, {
-        method: 'POST',
+      console.log('Fetching products for shop:', activeShop);
+      
+      // Use the same approach as other Shopify API calls in the app
+      const { data: shopifyStores } = await supabase
+        .from('shopify_stores')
+        .select('*')
+        .eq('shop', activeShop)
+        .eq('is_active', true)
+        .single();
+
+      if (!shopifyStores?.access_token) {
+        console.error('No access token found for shop');
+        toast.error('Shopify store not properly connected');
+        setLoading(false);
+        return;
+      }
+
+      console.log('Found shop data, making API call...');
+
+      // Make direct Shopify API call
+      const shopifyResponse = await fetch(`https://${activeShop}/admin/api/2023-10/products.json`, {
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M`
-        },
-        body: JSON.stringify({ 
-          shop: activeShop,
-          action: 'products' 
-        })
+          'X-Shopify-Access-Token': shopifyStores.access_token,
+          'Content-Type': 'application/json'
+        }
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data.products) {
-          setProducts(data.products);
+      if (shopifyResponse.ok) {
+        const data = await shopifyResponse.json();
+        console.log('Shopify API response:', data);
+        
+        if (data.products && data.products.length > 0) {
+          const formattedProducts = data.products.map((product: any) => ({
+            id: product.id.toString(),
+            title: product.title,
+            handle: product.handle,
+            images: product.images?.map((img: any) => ({ url: img.src })) || []
+          }));
+          
+          console.log('Formatted products:', formattedProducts);
+          setProducts(formattedProducts);
+        } else {
+          console.log('No products found in response');
+          setProducts([]);
         }
       } else {
-        console.error('Failed to fetch products:', response.statusText);
-        // Fallback to mock data if API fails
-        setProducts([
-          { id: '1', title: 'Product 1', handle: 'product-1', images: [{ url: '/placeholder.svg' }] },
-          { id: '2', title: 'Product 2', handle: 'product-2', images: [{ url: '/placeholder.svg' }] }
-        ]);
+        console.error('Shopify API error:', shopifyResponse.status, shopifyResponse.statusText);
+        toast.error('Failed to fetch products from Shopify');
       }
     } catch (error) {
       console.error('Error loading products:', error);
-      toast.error('Failed to load products');
-      // Fallback to mock data
-      setProducts([
-        { id: '1', title: 'Product 1', handle: 'product-1', images: [{ url: '/placeholder.svg' }] },
-        { id: '2', title: 'Product 2', handle: 'product-2', images: [{ url: '/placeholder.svg' }] }
-      ]);
+      toast.error('Error loading products: ' + (error as Error).message);
     }
     setLoading(false);
   };
