@@ -312,9 +312,9 @@ serve(async (req: Request) => {
       
       if (formData) {
         formSettings = {
-          country: formData.country || 'MA', // تغيير الافتراضي إلى MA
-          currency: formData.currency || 'MAD', // تغيير الافتراضي إلى MAD
-          phone_prefix: formData.phone_prefix || '+212' // تغيير الافتراضي إلى +212
+          country: formData.country || 'SA', // استخدام إعدادات النموذج الفعلية
+          currency: formData.currency || 'SAR', // استخدام إعدادات النموذج الفعلية  
+          phone_prefix: formData.phone_prefix || '+966' // استخدام إعدادات النموذج الفعلية
         };
         console.log('📋 Retrieved form settings:', JSON.stringify(formSettings, null, 2));
       }
