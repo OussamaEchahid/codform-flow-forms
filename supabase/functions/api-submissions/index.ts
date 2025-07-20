@@ -181,31 +181,60 @@ serve(async (req: Request) => {
       // Generate order number
       const orderNumber = shopifyOrderId ? `SHOP-${shopifyOrderId}` : `ORD-${Date.now()}`;
       
-      // Create order in our database
+      console.log('📋 Creating order with data:', {
+        orderNumber,
+        customerName,
+        customerEmail,
+        customerPhone,
+        shopifyOrderId,
+        submissionId: submissionData.id
+      });
+      
+      // Create order in our database - handle form_id as UUID
+      let orderFormId = null;
+      try {
+        // Try to use the submission ID if it's a valid UUID
+        orderFormId = submissionData.id;
+        console.log('🆔 Using submission ID as form_id:', orderFormId);
+      } catch (e) {
+        console.log('⚠️ Submission ID not valid UUID, setting form_id to null');
+        orderFormId = null;
+      }
+      
+      const orderInsertData = {
+        order_number: orderNumber,
+        customer_name: customerName,
+        customer_email: customerEmail,
+        customer_phone: customerPhone,
+        total_amount: 100.00,
+        currency: 'SAR',
+        status: 'pending',
+        items: [{ title: 'Form Order', quantity: 1, price: '100.00' }],
+        shipping_address: { address: customerAddress, city: customerCity },
+        billing_address: { address: customerAddress, city: customerCity },
+        shop_id: shopDomain,
+        shopify_order_id: shopifyOrderId?.toString()
+      };
+      
+      // Only add form_id if we have a valid UUID
+      if (orderFormId) {
+        orderInsertData.form_id = orderFormId;
+      }
+      
+      console.log('📝 Order insert data:', JSON.stringify(orderInsertData, null, 2));
+      
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
-        .insert({
-          order_number: orderNumber,
-          customer_name: customerName,
-          customer_email: customerEmail,
-          customer_phone: customerPhone,
-          total_amount: 100.00,
-          currency: 'SAR',
-          status: 'pending',
-          items: [{ title: 'Form Order', quantity: 1, price: '100.00' }],
-          shipping_address: { address: customerAddress, city: customerCity },
-          billing_address: { address: customerAddress, city: customerCity },
-          form_id: submissionData.id, // Use the submission ID instead of formId
-          shop_id: shopDomain,
-          shopify_order_id: shopifyOrderId?.toString()
-        })
+        .insert(orderInsertData)
         .select()
         .single();
 
       if (orderError) {
-        console.error('Error creating order in database:', orderError);
+        console.error('❌ Error creating order in database:', orderError);
+        console.log('🔍 Order insert data that failed:', JSON.stringify(orderInsertData, null, 2));
       } else {
-        console.log('✅ Order created in database:', orderData.order_number);
+        console.log('✅ Order created in database successfully:', orderData.order_number);
+        console.log('📦 Order details:', JSON.stringify(orderData, null, 2));
       }
 
     } catch (orderCreationError) {
