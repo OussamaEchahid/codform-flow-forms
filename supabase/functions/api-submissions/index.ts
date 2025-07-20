@@ -92,8 +92,25 @@ serve(async (req: Request) => {
         }
       }
       
-      // Ensure phone number is valid for Shopify (remove if empty)
-      if (!customerPhone || customerPhone.length < 6) {
+      // Fix phone number format for Shopify
+      if (customerPhone) {
+        // Remove any spaces, dashes, or special characters
+        customerPhone = customerPhone.replace(/[\s\-\(\)]/g, '');
+        
+        // If it starts with 0, replace with +966
+        if (customerPhone.startsWith('0')) {
+          customerPhone = '+966' + customerPhone.substring(1);
+        }
+        // If it doesn't start with +, add +966
+        else if (!customerPhone.startsWith('+966') && !customerPhone.startsWith('+')) {
+          customerPhone = '+966' + customerPhone;
+        }
+        
+        // Ensure it's at least 10 digits after +966
+        if (customerPhone.length < 13) {
+          customerPhone = '+966500000000'; // Default valid phone for Saudi Arabia
+        }
+      } else {
         customerPhone = '+966500000000'; // Default valid phone for Saudi Arabia
       }
       
