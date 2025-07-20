@@ -64,9 +64,7 @@ function validateAndFormatPhone(phone: string, formPhonePrefix: string = '+966')
   
   // التحقق من صحة التنسيق النهائي
   if (!cleanPhone.startsWith(formPhonePrefix)) {
-    const fallbackPhone = formPhonePrefix + '500000000';
-    console.log(`📞 استخدام رقم احتياطي: ${fallbackPhone}`);
-    return fallbackPhone;
+    cleanPhone = formPhonePrefix + cleanPhone.replace(/^\+?\d+/, '');
   }
   
   console.log(`📞 رقم نهائي: ${cleanPhone}`);
@@ -235,35 +233,65 @@ serve(async (req: Request) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get form ID from query param
-    const url = new URL(req.url);
-    const formId = url.searchParams.get('formId');
-    
-    if (!formId) {
-      return new Response(
-        JSON.stringify({ error: 'Missing required parameter: formId' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      );
-    }
-
     // Parse request body
     const requestData = await req.json();
     console.log('📝 Request data received:', JSON.stringify(requestData, null, 2));
     
+    const formId = requestData.formId || requestData.form_id;
     const shopDomain = requestData.shopDomain || '';
-    console.log('🏪 Shop domain:', shopDomain);
+    const formData = requestData.data || requestData.formData || requestData;
     
-    // Get form settings from database
+    console.log('🏪 Shop domain:', shopDomain);
+    console.log('📋 Form ID:', formId);
+    
+    if (!formId || !shopDomain) {
+      return new Response(
+        JSON.stringify({ error: 'Missing required parameters: formId and shopDomain' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+
+    // Get form settings from database with fallback
     let formSettings = {};
+    let actualFormId = formId;
+    
     try {
-      const { data: formData, error: formError } = await supabase
+      console.log('🔍 Looking up form settings for ID:', formId);
+      
+      // First try to get form by exact ID
+      let { data: formData, error: formError } = await supabase
         .from('forms')
-        .select('country, currency, phone_prefix')
+        .select('id, country, currency, phone_prefix')
         .eq('id', formId)
         .single();
         
-      if (!formError && formData) {
-        formSettings = formData;
+      if (formError || !formData) {
+        console.log('⚠️ Form not found by ID, trying fallback by shop_id:', shopDomain);
+        
+        // Fallback: get the most recent form for this shop
+        const { data: fallbackFormData, error: fallbackError } = await supabase
+          .from('forms')
+          .select('id, country, currency, phone_prefix')
+          .eq('shop_id', shopDomain)
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .single();
+          
+        if (!fallbackError && fallbackFormData) {
+          formData = fallbackFormData;
+          actualFormId = fallbackFormData.id;
+          console.log('✅ Using fallback form:', actualFormId);
+        } else {
+          console.log('⚠️ No fallback form found, using default settings');
+        }
+      }
+      
+      if (formData) {
+        formSettings = {
+          country: formData.country || 'SA',
+          currency: formData.currency || 'SAR',
+          phone_prefix: formData.phone_prefix || '+966'
+        };
         console.log('📋 Retrieved form settings:', JSON.stringify(formSettings, null, 2));
       }
     } catch (error) {
@@ -271,12 +299,16 @@ serve(async (req: Request) => {
     }
     
     // Store submission in database
-    console.log('💾 Storing submission with formId:', formId, 'shopDomain:', shopDomain);
+    console.log('💾 Storing submission with formId:', actualFormId, 'shopDomain:', shopDomain);
     
     const submissionRecord = {
-      form_id: formId,
+      form_id: actualFormId,
       shop_id: shopDomain,
-      data: requestData
+      data: {
+        formId: formId,
+        shopDomain: shopDomain,
+        data: formData
+      }
     };
     
     console.log('📋 Submission record:', JSON.stringify(submissionRecord, null, 2));
@@ -297,7 +329,6 @@ serve(async (req: Request) => {
 
     // Create order from form submission and sync with Shopify
     try {
-      const formData = requestData.data || requestData.formData || requestData;
       console.log('📝 Processing form data:', JSON.stringify(formData, null, 2));
       
       // Extract customer information using form settings
@@ -319,7 +350,7 @@ serve(async (req: Request) => {
       console.log('🔑 Found Shopify access token for shop:', shopDomain);
 
       // Create order in Shopify with form settings
-      const shopifyOrderId = await createShopifyOrder(shopDomain, shopData.access_token, customer, formId, formSettings);
+      const shopifyOrderId = await createShopifyOrder(shopDomain, shopData.access_token, customer, actualFormId, formSettings);
 
       // Generate order number
       const orderNumber = shopifyOrderId ? `SHOP-${shopifyOrderId}` : `ORD-${Date.now()}`;
@@ -334,7 +365,7 @@ serve(async (req: Request) => {
         currency: formSettings.currency || 'SAR'
       });
       
-      // Create order in our database with correct currency
+      // Create order in our database with correct currency and settings
       const orderInsertData = {
         order_number: orderNumber,
         customer_name: customer.name,
@@ -346,7 +377,7 @@ serve(async (req: Request) => {
         items: [{ title: 'طلب من النموذج - Form Order', quantity: 1, price: '0.00' }],
         shipping_address: { address: customer.address, city: customer.city },
         billing_address: { address: customer.address, city: customer.city },
-        form_id: formId,
+        form_id: actualFormId,
         shop_id: shopDomain,
         shopify_order_id: shopifyOrderId?.toString()
       };

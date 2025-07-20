@@ -1,57 +1,32 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import { FormField, deepCloneField } from '@/lib/form-utils';
-import FormPreview from '@/components/form/FormPreview';
-import { useI18n } from '@/lib/i18n';
-import { useFormStore } from '@/hooks/useFormStore';
-import { Button } from '@/components/ui/button';
-import { ArrowLeftRight } from 'lucide-react';
-import { toast } from 'sonner';
 
-interface FormStyle {
-  primaryColor: string;
-  borderRadius: string;
-  fontSize: string;
-  buttonStyle: string;
-  borderColor?: string;
-  borderWidth?: string;
-  backgroundColor?: string;
-  paddingTop?: string;
-  paddingBottom?: string;
-  paddingLeft?: string;
-  paddingRight?: string;
-  formGap?: string;
-  formDirection?: 'ltr' | 'rtl';
-  floatingLabels?: boolean;
-}
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { FormField } from '@/lib/form-utils';
+import { useI18n } from '@/lib/i18n';
+import { ChevronLeft, ChevronRight, Eye, Share2, ExternalLink } from 'lucide-react';
+import { toast } from 'sonner';
+import FormField as FormFieldComponent from '../preview/FormField';
+import { useShopify } from '@/hooks/useShopify';
 
 interface FormPreviewPanelProps {
+  formId?: string;
   formTitle: string;
-  formDescription: string;
+  formDescription?: string;
   currentStep: number;
   totalSteps: number;
-  formStyle: FormStyle;
+  formStyle: any;
   fields: FormField[];
-  onPreviousStep?: () => void;
-  onNextStep?: () => void;
+  onPreviousStep: () => void;
+  onNextStep: () => void;
   refreshKey: number;
-  onStyleChange?: (style: FormStyle) => void;
+  onStyleChange: (style: any) => void;
   formCountry?: string;
   formPhonePrefix?: string;
 }
 
-const deepCloneFields = (fields: FormField[]): FormField[] => {
-  if (!fields) return [];
-  
-  return fields.map(field => {
-    const newField = deepCloneField(field);
-    if (field.style) {
-      newField.style = JSON.parse(JSON.stringify(field.style));
-    }
-    return newField;
-  });
-};
-
 const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
+  formId,
   formTitle,
   formDescription,
   currentStep,
@@ -66,138 +41,139 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   formPhonePrefix = '+966'
 }) => {
   const { language } = useI18n();
-  
-  const [internalRefreshKey, setInternalRefreshKey] = useState(0);
-  
-  useEffect(() => {
-    if (refreshKey > internalRefreshKey) {
-      setInternalRefreshKey(refreshKey);
-    }
-  }, [refreshKey, internalRefreshKey]);
-  
-  // زر تغيير الاتجاه - منفصل عن لغة الموقع
-  const toggleDirection = () => {
-    const currentDirection = formStyle.formDirection || 'ltr';
-    const newDirection: 'ltr' | 'rtl' = currentDirection === 'rtl' ? 'ltr' : 'rtl';
-    
-    const newFormStyle: FormStyle = {
-      ...formStyle,
-      formDirection: newDirection
-    };
-    
-    if (onStyleChange) {
-      onStyleChange(newFormStyle);
-    }
-    
-    toast.success(language === 'ar' 
-      ? `تم تغيير الاتجاه إلى ${newDirection === 'rtl' ? 'يمين-يسار' : 'يسار-يمين'}` 
-      : `Direction changed to ${newDirection.toUpperCase()}`);
-  };
-  
-  const processedFields = useMemo(() => {
-    console.log("Processing fields for preview, original count:", fields?.length || 0);
-    
-    const clonedFields = deepCloneFields(fields);
-    
-    const hasSubmitButton = clonedFields.some(field => field.type === 'submit');
-    
-    if (!hasSubmitButton) {
-      const submitButton: FormField = {
-        type: 'submit',
-        id: `submit-stable`,
-        label: language === 'ar' ? 'إرسال الطلب' : 'Submit Order',
-        style: {
-          backgroundColor: formStyle.primaryColor || '#9b87f5',
-          color: '#ffffff',
-          fontSize: '18px',
-          animation: true,
-          animationType: 'pulse',
-          borderRadius: '1.5rem',
-        },
-      };
-      clonedFields.push(submitButton);
-    }
-    
-    // تطبيق اتجاه النموذج بغض النظر عن لغة الموقع
-    if (formStyle.formDirection) {
-      return clonedFields.map(field => {
-        if (field.style?.textAlign) return field;
-        
-        if (['text', 'textarea', 'email', 'phone'].includes(field.type)) {
-          return {
-            ...field,
-            style: {
-              ...field.style,
-              textAlign: (formStyle.formDirection === 'rtl' ? 'right' : 'left') as 'right' | 'left'
-            }
-          };
-        }
-        
-        return field;
-      });
-    }
-    
-    console.log("Final processed fields count:", clonedFields.length);
-    return clonedFields;
-  }, [fields, language, formStyle.primaryColor, formStyle.backgroundColor, formStyle.borderRadius, formStyle.formDirection]);
+  const { shop } = useShopify();
+  const [formData, setFormData] = useState<Record<string, any>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const previewFormStyle = {
-    ...formStyle,
-    backgroundColor: formStyle.backgroundColor || '#ffffff',
-    borderRadius: '1.5rem',
-    borderColor: formStyle.borderColor || '#9b87f5',
-    borderWidth: formStyle.borderWidth || '2px',
+  // Handle form submission
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formId || !shop) {
+      toast.error(language === 'ar' ? 'معلومات النموذج غير مكتملة' : 'Form information incomplete');
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    try {
+      console.log('🚀 Submitting form with ID:', formId, 'to shop:', shop);
+      console.log('📝 Form data:', formData);
+      
+      // Call the submission API with correct form ID
+      const response = await fetch('/api/submissions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          formId: formId,
+          shopDomain: shop,
+          data: formData
+        })
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        toast.success(language === 'ar' ? 'تم إرسال الطلب بنجاح' : 'Order submitted successfully');
+        setFormData({});
+      } else {
+        toast.error(result.error || (language === 'ar' ? 'فشل في إرسال الطلب' : 'Failed to submit order'));
+      }
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      toast.error(language === 'ar' ? 'خطأ في إرسال الطلب' : 'Error submitting order');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Handle input change
+  const handleInputChange = (fieldId: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      [fieldId]: value
+    }));
+  };
+
+  // Generate form URL for sharing
+  const generateFormUrl = () => {
+    if (!formId || !shop) return '';
+    return `${window.location.origin}/form/${formId}?shop=${shop}`;
+  };
+
+  // Copy form URL to clipboard
+  const copyFormUrl = () => {
+    const url = generateFormUrl();
+    if (url) {
+      navigator.clipboard.writeText(url);
+      toast.success(language === 'ar' ? 'تم نسخ الرابط' : 'URL copied to clipboard');
+    }
   };
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-3">
-        <h3 className={`text-lg font-medium ${language === 'ar' ? 'text-right' : ''}`}>
-          {language === 'ar' ? 'معاينة مباشرة' : 'Live Preview'}
-        </h3>
-        
-        {/* زر تغيير الاتجاه فوق المعاينة */}
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={toggleDirection}
-          className="bg-white shadow-md border-2 border-blue-200 hover:border-blue-400 transition-all flex items-center gap-2"
-        >
-          <ArrowLeftRight className="w-4 h-4" />
-          <span className="text-sm font-medium">
-            {language === 'ar' ? 'تغيير الاتجاه' : 'Toggle Direction'}: {formStyle.formDirection?.toUpperCase() || 'LTR'}
-          </span>
-        </Button>
-      </div>
+    <Card className="h-full">
+      <CardHeader className="border-b">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Eye className="w-5 h-5 text-gray-600" />
+            <h3 className="text-lg font-semibold">
+              {language === 'ar' ? 'معاينة النموذج' : 'Form Preview'}
+            </h3>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={copyFormUrl}
+              className="flex items-center space-x-1"
+            >
+              <Share2 className="w-4 h-4" />
+              <span>{language === 'ar' ? 'نسخ الرابط' : 'Copy URL'}</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.open(generateFormUrl(), '_blank')}
+              className="flex items-center space-x-1"
+            >
+              <ExternalLink className="w-4 h-4" />
+              <span>{language === 'ar' ? 'فتح' : 'Open'}</span>
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
       
-      <div 
-        className="rounded-xl p-6 shadow-sm"
-        style={{
-          backgroundColor: '#f8fafc',
-          border: '1px solid #e2e8f0'
-        }}
-        dir={formStyle.formDirection || 'ltr'}
-      >
-        <FormPreview 
-          key={`preview-${internalRefreshKey}`}
-          formTitle=""
-          formDescription=""
-          currentStep={currentStep}
-          totalSteps={totalSteps}
-          formStyle={previewFormStyle}
-          fields={processedFields}
-        >
-          <div></div>
-        </FormPreview>
-      </div>
-      
-      <div className="mt-2 text-xs text-gray-500 p-2 rounded text-center">
-        {language === 'ar' 
-          ? 'المعاينة تعكس بدقة كيف سيظهر النموذج في متجر Shopify'
-          : 'This preview accurately reflects how the form will appear in your Shopify store'}
-      </div>
-    </div>
+      <CardContent className="flex-1 p-6">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div
+            className="max-w-md mx-auto p-6 rounded-lg shadow-sm"
+            style={{
+              backgroundColor: formStyle.backgroundColor || '#ffffff',
+              borderRadius: formStyle.borderRadius || '8px',
+              border: `${formStyle.borderWidth || '1px'} solid ${formStyle.borderColor || '#e5e7eb'}`,
+              direction: formStyle.formDirection || 'ltr',
+              gap: formStyle.formGap || '16px'
+            }}
+          >
+            {fields.map((field, index) => (
+              <div key={`${field.id}-${refreshKey}`} className="mb-4">
+                <FormFieldComponent
+                  field={field}
+                  formStyle={formStyle}
+                  formCountry={formCountry}
+                  formPhonePrefix={formPhonePrefix}
+                  value={formData[field.id]}
+                  onChange={(value) => handleInputChange(field.id, value)}
+                />
+              </div>
+            ))}
+          </div>
+        </form>
+      </CardContent>
+    </Card>
   );
 };
 
-export default React.memo(FormPreviewPanel);
+export default FormPreviewPanel;

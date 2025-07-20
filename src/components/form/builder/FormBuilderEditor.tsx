@@ -228,6 +228,9 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
     return elements;
   };
 
+  // Get the actual form ID from params or props
+  const actualFormId = initialFormId || params.formId;
+  
   // تهيئة نموذج جديد إذا لم يتم تقديم معرف نموذج - تم تحسينه للأداء
   const initializeNewForm = async () => {
     try {
@@ -328,7 +331,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
   useEffect(() => {
     const loadFormData = async () => {
       setIsLoading(true);
-      const id = initialFormId || params.formId;
+      const id = actualFormId;
       
       if (id) {
         setCurrentFormId(id);
@@ -438,7 +441,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
     };
     
     loadFormData();
-  }, [initialFormId, params.formId]);
+  }, [actualFormId]);
 
   useEffect(() => {
     setRefreshKey(prev => prev + 1);
@@ -926,6 +929,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
             
             <TabsContent value="preview" className="flex-1 p-6 mt-0">
               <FormPreviewPanel
+                formId={actualFormId}
                 formTitle={formTitle}
                 formDescription={formDescription}
                 currentStep={currentPreviewStep}

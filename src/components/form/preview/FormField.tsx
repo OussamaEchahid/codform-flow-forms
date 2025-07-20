@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { FormField as FormFieldType } from '@/lib/form-utils';
 import TextInput from './fields/TextInput';
@@ -19,14 +20,25 @@ interface FormFieldProps {
   };
   formCountry?: string;
   formPhonePrefix?: string;
+  value?: any;
+  onChange?: (value: any) => void;
 }
 
 const FormField: React.FC<FormFieldProps> = ({ 
   field, 
   formStyle = {}, 
   formCountry = 'SA', 
-  formPhonePrefix = '+966' 
+  formPhonePrefix = '+966',
+  value,
+  onChange
 }) => {
+  // Create enhanced field with value and onChange
+  const enhancedField = {
+    ...field,
+    value,
+    onChange
+  };
+
   switch (field.type) {
     case 'text':
     case 'email':
@@ -34,7 +46,7 @@ const FormField: React.FC<FormFieldProps> = ({
     case 'textarea':
       return (
         <TextInput 
-          field={field} 
+          field={enhancedField} 
           formStyle={formStyle} 
           formCountry={formCountry}
           formPhonePrefix={formPhonePrefix}
@@ -42,28 +54,28 @@ const FormField: React.FC<FormFieldProps> = ({
       );
     
     case 'form-title':
-      return <FormTitleField field={field} formStyle={formStyle} />;
+      return <FormTitleField field={enhancedField} formStyle={formStyle} />;
     
     case 'submit':
-      return <SubmitButton field={field} formStyle={formStyle} />;
+      return <SubmitButton field={enhancedField} formStyle={formStyle} />;
     
     case 'cart-items':
-      return <CartItems field={field} formStyle={formStyle} />;
+      return <CartItems field={enhancedField} formStyle={formStyle} />;
     
     case 'cart-summary':
-      return <CartSummary field={field} formStyle={formStyle} />;
+      return <CartSummary field={enhancedField} formStyle={formStyle} />;
     
     case 'checkbox':
-      return <CheckboxGroup field={field} formStyle={formStyle} />;
+      return <CheckboxGroup field={enhancedField} formStyle={formStyle} />;
     
     case 'radio':
-      return <RadioGroup field={field} formStyle={formStyle} />;
+      return <RadioGroup field={enhancedField} formStyle={formStyle} />;
     
     case 'text/html':
-      return <HtmlContent field={field} formStyle={formStyle} />;
+      return <HtmlContent field={enhancedField} formStyle={formStyle} />;
     
     case 'title':
-      return <FormTitleField field={field} formStyle={formStyle} />;
+      return <FormTitleField field={enhancedField} formStyle={formStyle} />;
     
     default:
       return (
