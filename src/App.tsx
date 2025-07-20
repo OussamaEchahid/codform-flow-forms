@@ -22,14 +22,14 @@ import ShopifyConnect from "@/pages/ShopifyConnect";
 import Auth from "@/pages/Auth";
 import ShopifyCallback from "@/pages/api/shopify-callback";
 import ShopifyStores from "@/pages/ShopifyStores";
-import ShopifyTest from "@/pages/ShopifyTest";
-import ShopifyProducts from "@/pages/ShopifyProducts";
 import Settings from "@/pages/Settings";
 import OrderSettings from "@/pages/OrderSettings";
 import GeneralSettings from "@/pages/GeneralSettings";
 import SpamSettings from "@/pages/SpamSettings";
 import PlansSettings from "@/pages/PlansSettings";
 import QuantityOffers from "@/pages/QuantityOffers";
+import LandingPages from "@/pages/LandingPages";
+import MyStores from "@/pages/MyStores";
 
 // Components
 import { Toaster } from "@/components/ui/toaster"; 
@@ -145,10 +145,6 @@ function AppRoutes() {
               <Route path="/settings/plans" element={<PlansSettings />} />
               <Route path="/quantity-offers" element={<QuantityOffers />} />
       
-      {/* Add direct routes for ShopifyTest and ShopifyProducts */}
-      <Route path="/shopify-test" element={<ShopifyTest />} />
-      <Route path="/shopify-products" element={<ShopifyProducts />} />
-      
       {/* المسارات المحمية التي تتطلب مصادقة لكن بشكل أكثر تساهلاً */}
       <Route element={<ProtectedRoute requireAuth={true} />}>
         <Route path="/dashboard" element={<Dashboard />} />
@@ -158,6 +154,8 @@ function AppRoutes() {
         <Route path="/orders/list" element={<OrdersList />} />
         <Route path="/orders/abandoned" element={<AbandonedOrders />} />
         <Route path="/orders/channels" element={<OrdersChannels />} />
+        <Route path="/landing-pages" element={<LandingPages />} />
+        <Route path="/my-stores" element={<MyStores />} />
       </Route>
       
       {/* المسارات التي لا تتطلب المصادقة بشكل صارم ولكن تستخدم حالة المصادقة إذا كانت متاحة */}
