@@ -186,7 +186,7 @@ function createShopifyOrderData(customer: any, formId: string, formSettings: any
         last_name: lastName,
         address1: customer.address || customer.city,
         city: customer.city || 'المدينة',
-        country: formSettings.country || 'MA', // تغيير الافتراضي إلى MA
+        country: formSettings.country || 'SA', // استخدام البلد من إعدادات النموذج
         phone: customer.phone || ''
       } : undefined,
       shipping_address: customer.city || customer.address ? {
@@ -194,7 +194,7 @@ function createShopifyOrderData(customer: any, formId: string, formSettings: any
         last_name: lastName,
         address1: customer.address || customer.city,
         city: customer.city || 'المدينة',
-        country: formSettings.country || 'MA', // تغيير الافتراضي إلى MA
+        country: formSettings.country || 'SA', // استخدام البلد من إعدادات النموذج
         phone: customer.phone || ''
       } : undefined,
       line_items: [
