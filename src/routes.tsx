@@ -2,6 +2,10 @@
 import { RouteObject } from "react-router-dom";
 import FormBuilderDashboard from '@/components/form/builder/FormBuilderDashboard';
 import Settings from '@/pages/Settings';
+import OrderSettings from '@/pages/settings/OrderSettings';
+import GeneralSettings from '@/pages/settings/GeneralSettings';
+import SpamSettings from '@/pages/settings/SpamSettings';
+import PlansSettings from '@/pages/settings/PlansSettings';
 import ShopifyRedirect from '@/pages/ShopifyRedirect';
 import Shopify from '@/pages/Shopify';
 import ShopifyConnect from '@/pages/ShopifyConnect';
@@ -68,6 +72,22 @@ export const routes: RouteObject[] = [
   {
     path: '/settings',
     Component: Settings,
+  },
+  {
+    path: '/settings/orders',
+    Component: OrderSettings,
+  },
+  {
+    path: '/settings/general',
+    Component: GeneralSettings,
+  },
+  {
+    path: '/settings/spam',
+    Component: SpamSettings,
+  },
+  {
+    path: '/settings/plans',
+    Component: PlansSettings,
   },
   {
     path: '/shopify-redirect',
