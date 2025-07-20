@@ -23,13 +23,7 @@ const ShopifyConnection = () => {
 
   // Check existing connection on mount
   useEffect(() => {
-    // Clean placeholder tokens on component mount
-    shopifyConnectionService.cleanupPlaceholderTokens()
-      .then(() => checkConnectionStatus())
-      .catch(error => {
-        console.error("Error cleaning placeholder tokens:", error);
-        checkConnectionStatus();
-      });
+    checkConnectionStatus();
   }, []);
 
   // Check connection status - single source of truth
@@ -158,10 +152,6 @@ const ShopifyConnection = () => {
     setConnectionError(null);
     
     try {
-      // Force cleanup of any existing placeholder tokens
-      await shopifyConnectionService.cleanupPlaceholderTokens();
-      console.log('Placeholder tokens cleaned before connection');
-      
       // Initiate OAuth flow
       const { data, error } = await shopifySupabase.functions.invoke('shopify-auth', {
         body: { shop: normalizedShopDomain, clean: true }

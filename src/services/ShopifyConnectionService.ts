@@ -249,12 +249,24 @@ class ShopifyConnectionService {
       .catch(error => console.error('Error cleaning placeholder tokens during reset:', error));
   }
   
+  private lastCleanupTime = 0;
+  private readonly CLEANUP_COOLDOWN = 60000; // 1 دقيقة
+
   /**
-   * تنظيف رموز placeholder_token من قاعدة البيانات
+   * تنظيف رموز placeholder_token من قاعدة البيانات مع تجنب التكرار المفرط
    */
   async cleanupPlaceholderTokens(): Promise<void> {
+    const now = Date.now();
+    
+    // تجنب التنظيف إذا تم تنفيذه مؤخراً
+    if (now - this.lastCleanupTime < this.CLEANUP_COOLDOWN) {
+      console.log('Skipping cleanup - performed recently');
+      return;
+    }
+    
     try {
       console.log('Cleaning up placeholder tokens from database...');
+      this.lastCleanupTime = now;
       
       // تحديث جميع المتاجر التي لديها placeholder_token
       const { data: placeholderData, error: placeholderError } = await shopifyStores()

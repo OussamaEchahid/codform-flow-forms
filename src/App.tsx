@@ -100,11 +100,17 @@ const ProtectedRoute = ({ requireAuth = true }: { requireAuth?: boolean }) => {
 function AppRoutes() {
   const [readyForNavigation, setReadyForNavigation] = useState(false);
   
-  // Clean placeholder tokens on app start
+  // Clean placeholder tokens on app start (once only)
   useEffect(() => {
-    shopifyConnectionService.cleanupPlaceholderTokens()
-      .then(() => console.log("Cleaned placeholder tokens on app start"))
-      .catch(err => console.error("Error cleaning placeholder tokens:", err));
+    const hasRun = sessionStorage.getItem('cleanup_on_start');
+    if (!hasRun) {
+      shopifyConnectionService.cleanupPlaceholderTokens()
+        .then(() => {
+          console.log("Cleaned placeholder tokens on app start");
+          sessionStorage.setItem('cleanup_on_start', 'true');
+        })
+        .catch(err => console.error("Error cleaning placeholder tokens:", err));
+    }
   }, []);
   
   // Check for saved redirects
@@ -159,11 +165,7 @@ function App() {
     // Attempt to validate the connection state with retry logic
     const validateConnection = async () => {
       try {
-        // First clean any placeholder tokens
-        await shopifyConnectionService.cleanupPlaceholderTokens();
-        console.log("Placeholder tokens cleaned up on startup");
-        
-        // Then validate connection
+        // Validate connection without excessive cleanup
         shopifyConnectionManager.validateConnectionState();
         console.log("Connection validated successfully");
       } catch (error) {
