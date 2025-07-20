@@ -392,7 +392,7 @@ serve(async (req: Request) => {
         customerPhone: customer.phone,
         shopifyOrderId,
         submissionId: submissionData.id,
-        currency: formSettings.currency || 'SAR'
+        currency: formSettings.currency || 'USD' // سيتم استخدام العملة من النموذج
       });
       
       // Create order in our database with correct currency and settings
@@ -402,7 +402,7 @@ serve(async (req: Request) => {
         customer_email: customer.email,
         customer_phone: customer.phone,
         total_amount: 0.00,
-        currency: formSettings.currency || 'MAD', // تأكد من استخدام العملة الصحيحة
+        currency: formSettings.currency || 'USD', // سيتم استخدام العملة من النموذج
         status: 'pending',
         items: [{ title: 'طلب من النموذج - Form Order', quantity: 1, price: '0.00' }],
         shipping_address: { address: customer.address, city: customer.city },
