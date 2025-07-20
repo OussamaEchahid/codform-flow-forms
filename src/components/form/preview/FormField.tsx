@@ -2,7 +2,6 @@
 import React from 'react';
 import { FormField as FormFieldType } from '@/lib/form-utils';
 import TextInput from './fields/TextInput';
-import TextArea from './fields/TextArea';
 import SubmitButton from './fields/SubmitButton';
 import FormTitleField from './fields/FormTitleField';
 import CartItems from './fields/CartItems';
@@ -44,6 +43,7 @@ const FormField: React.FC<FormFieldProps> = ({
     case 'text':
     case 'email':
     case 'phone':
+    case 'textarea':
       return (
         <TextInput 
           field={enhancedField} 
@@ -52,9 +52,6 @@ const FormField: React.FC<FormFieldProps> = ({
           formPhonePrefix={formPhonePrefix}
         />
       );
-    
-    case 'textarea':
-      return <TextArea field={enhancedField} formStyle={formStyle} />;
     
     case 'form-title':
       return <FormTitleField field={enhancedField} formStyle={formStyle} />;

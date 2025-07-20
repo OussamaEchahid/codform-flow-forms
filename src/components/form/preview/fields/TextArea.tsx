@@ -25,8 +25,8 @@ const TextArea: React.FC<TextAreaProps> = ({ field, formStyle }) => {
   const inputBorderRadius = fieldStyle.borderRadius || formStyle.borderRadius || '0.5rem';
   const inputBorderWidth = fieldStyle.borderWidth || '1px';
   
-  // Set default rows - زيادة الصفوف لجعل الحقل أكبر
-  const rows = field.rows || 6;
+  // Set default rows
+  const rows = field.rows || 4;
   
   return (
     <div className="mb-4">
@@ -70,15 +70,14 @@ const TextArea: React.FC<TextAreaProps> = ({ field, formStyle }) => {
           borderRadius: inputBorderRadius,
           borderWidth: inputBorderWidth,
           borderStyle: 'solid',
-          paddingTop: '12px',
-          paddingBottom: '12px',
+          paddingTop: '10px',
+          paddingBottom: '10px',
           paddingLeft: '12px',
           paddingRight: '12px',
           boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
           width: '100%',
-          minHeight: '160px', // زيادة الحد الأدنى للارتفاع
-          lineHeight: 1.5,
-          resize: 'vertical' // السماح بتغيير الحجم عمودياً فقط
+          minHeight: '120px',
+          lineHeight: 1.5
         }}
         required={field.required}
       />
