@@ -53,10 +53,19 @@ const Dashboard = () => {
     const shopParam = searchParams.get("shop");
     
     if (connectedParam === "true" && shopParam) {
-      // حفظ المتجر في localStorage
+      // حفظ المتجر في localStorage وتحديث المتجر النشط
       localStorage.setItem('shopify_store', shopParam);
       localStorage.setItem('shopify_connected', 'true');
       localStorage.setItem('shopify_connection_success', 'true');
+      localStorage.setItem('shopify_active_store', shopParam); // مهم: تحديث المتجر النشط
+      
+      // تحديث connection manager للمتجر الجديد
+      import('@/lib/shopify/connection-manager').then(({ shopifyConnectionManager }) => {
+        console.log(`🔄 Switching to new active store: ${shopParam}`);
+        shopifyConnectionManager.clearAllStores(); // مسح جميع المتاجر القديمة
+        shopifyConnectionManager.addOrUpdateStore(shopParam, true, true); // إضافة المتجر الجديد كنشط
+        console.log(`✅ Updated connection manager with new store: ${shopParam}`);
+      });
       
       const message = language === 'ar' 
         ? `🎉 تم ربط متجرك بنجاح! أهلاً بك في CODmagnet` 
@@ -79,6 +88,11 @@ const Dashboard = () => {
         setIsFirstVisit(true);
         localStorage.setItem(firstVisitKey, 'false');
       }
+      
+      // إعادة تحميل الصفحة لضمان التحديث الكامل
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     }
     
     // التحقق من معلمات URL للتوجيه من شوبيفاي (الكود القديم للتوافق)
