@@ -53,19 +53,15 @@ const Dashboard = () => {
     const shopParam = searchParams.get("shop");
     
     if (connectedParam === "true" && shopParam) {
-      // حفظ المتجر في localStorage وتحديث المتجر النشط
-      localStorage.setItem('shopify_store', shopParam);
-      localStorage.setItem('shopify_connected', 'true');
-      localStorage.setItem('shopify_connection_success', 'true');
-      localStorage.setItem('shopify_active_store', shopParam); // مهم: تحديث المتجر النشط
-      
-      // تحديث connection manager للمتجر الجديد
+      // استخدام setActiveStore لضمان مسح جميع البيانات القديمة
       import('@/lib/shopify/connection-manager').then(({ shopifyConnectionManager }) => {
-        console.log(`🔄 Switching to new active store: ${shopParam}`);
-        shopifyConnectionManager.clearAllStores(); // مسح جميع المتاجر القديمة
-        shopifyConnectionManager.addOrUpdateStore(shopParam, true, true); // إضافة المتجر الجديد كنشط
+        console.log(`🔄 Setting new active store from callback: ${shopParam}`);
+        shopifyConnectionManager.setActiveStore(shopParam); // هذا سيمسح كل شيء ويعين المتجر الجديد
         console.log(`✅ Updated connection manager with new store: ${shopParam}`);
       });
+      
+      // إضافة علامة نجاح الاتصال
+      localStorage.setItem('shopify_connection_success', 'true');
       
       const message = language === 'ar' 
         ? `🎉 تم ربط متجرك بنجاح! أهلاً بك في CODmagnet` 

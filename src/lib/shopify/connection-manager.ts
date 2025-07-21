@@ -189,23 +189,42 @@ class ShopifyConnectionManager {
       
       console.log(`🔄 Setting active store to: ${cleanedDomain}`);
       
-      // Clear cache immediately
+      // مسح جميع الكاش والبيانات المخزنة فوراً
       this.storeCache = null;
       this.storeCacheTime = 0;
       
-      // Clear all existing localStorage items to avoid conflicts
-      localStorage.removeItem(this.ACTIVE_STORE_KEY);
-      localStorage.removeItem('shopify_store');
-      localStorage.removeItem('shopify_connected');
+      // مسح جميع المفاتيح المتعلقة بالمتاجر من localStorage
+      const keysToRemove = [
+        this.ACTIVE_STORE_KEY,
+        'shopify_store',
+        'shopify_connected',
+        'shopify_temp_store',
+        'shopify_connecting',
+        'shopify_connection_success'
+      ];
       
-      // Set the new active store
-      this.addOrUpdateStore(cleanedDomain, true);
+      keysToRemove.forEach(key => {
+        localStorage.removeItem(key);
+        console.log(`🗑️ Removed localStorage key: ${key}`);
+      });
       
-      // Force update cache with new value
+      // مسح جميع المتاجر القديمة
+      this.clearAllStores();
+      
+      // إضافة المتجر الجديد كالوحيد والنشط
+      this.addOrUpdateStore(cleanedDomain, true, true);
+      
+      // تحديث الكاش فوراً
       this.storeCache = cleanedDomain;
       this.storeCacheTime = Date.now();
       
-      console.log(`✅ Active store set to: ${cleanedDomain}`);
+      // التأكد من تحديث جميع المفاتيح
+      localStorage.setItem(this.ACTIVE_STORE_KEY, cleanedDomain);
+      localStorage.setItem('shopify_store', cleanedDomain);
+      localStorage.setItem('shopify_connected', 'true');
+      
+      console.log(`✅ Active store forcefully set to: ${cleanedDomain}`);
+      console.log(`✅ All localStorage keys updated for: ${cleanedDomain}`);
     } catch (error) {
       console.error('Error in setActiveStore:', error);
       this.recordError('setActiveStore', error);
