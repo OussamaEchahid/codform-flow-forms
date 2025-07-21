@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import AppSidebar from '@/components/layout/AppSidebar';
@@ -9,36 +8,40 @@ import { ShoppingCart, Target, DollarSign, AlertCircle } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { shopifyConnected, shop } = useAuth();
-  const { t, language } = useI18n();
+  const {
+    shopifyConnected,
+    shop
+  } = useAuth();
+  const {
+    t,
+    language
+  } = useI18n();
   const [searchParams] = useSearchParams();
   const [isFirstVisit, setIsFirstVisit] = useState(false);
-  
   useEffect(() => {
     // التحقق من معلمات URL للتوجيه من شوبيفاي
     const shopifyConnectedParam = searchParams.get("shopify_connected");
     const shopParam = searchParams.get("shop");
     const authSuccess = searchParams.get("auth_success");
-    
-    console.log("Dashboard params:", { shopifyConnectedParam, shopParam, authSuccess });
-    
+    console.log("Dashboard params:", {
+      shopifyConnectedParam,
+      shopParam,
+      authSuccess
+    });
+
     // عرض رسالة نجاح إذا كانت هناك معلمات اتصال جديدة
     if (shopifyConnectedParam === "true" && shopParam) {
-      const message = language === 'ar'
-        ? `تم الاتصال بمتجر ${shopParam} بنجاح`
-        : `Successfully connected to store ${shopParam}`;
-        
+      const message = language === 'ar' ? `تم الاتصال بمتجر ${shopParam} بنجاح` : `Successfully connected to store ${shopParam}`;
       toast.success(message);
-      
+
       // إزالة معلمات URL من العنوان
       if (window.history.replaceState) {
         const newUrl = window.location.pathname;
         window.history.replaceState({}, document.title, newUrl);
       }
-      
+
       // تعيين علامة الزيارة الأولى
       const firstVisitKey = `first_visit_${shopParam}`;
       if (!localStorage.getItem(firstVisitKey)) {
@@ -49,35 +52,32 @@ const Dashboard = () => {
   }, [searchParams, language]);
 
   // إنشاء بيانات فارغة للرسوم البيانية
-  const sampleData = Array.from({ length: 31 }, (_, i) => ({
+  const sampleData = Array.from({
+    length: 31
+  }, (_, i) => ({
     date: `${i + 1}/4`,
     orders: 0,
-    revenue: 0,
+    revenue: 0
   }));
 
   // التوجيه إلى صفحة Shopify
   const handleConnectShopify = () => {
     navigate('/shopify');
   };
-
-  return (
-    <div className="flex min-h-screen bg-[#F8F9FB]">
+  return <div className="flex min-h-screen bg-[#F8F9FB]">
       <AppSidebar />
       
       <main className="flex-1 p-8">
         <div className="max-w-[1400px] mx-auto">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold mb-2">CODFORM</h1>
+            <h1 className="text-3xl font-bold mb-2">CODMAGNET</h1>
             <p className="text-gray-600">The Best Performing Cash On Delivery Form in Shopify</p>
-            {shop && (
-              <p className="text-sm text-purple-600 mt-1">
+            {shop && <p className="text-sm text-purple-600 mt-1">
                 {language === 'ar' ? `متصل بمتجر: ${shop}` : `Connected to store: ${shop}`}
-              </p>
-            )}
+              </p>}
           </div>
 
-          {isFirstVisit && (
-            <Card className="p-6 mb-8 border-purple-300 border-2 bg-purple-50">
+          {isFirstVisit && <Card className="p-6 mb-8 border-purple-300 border-2 bg-purple-50">
               <div className="flex items-start gap-4">
                 <div className="p-3 rounded-lg bg-purple-100">
                   <AlertCircle className="w-6 h-6 text-purple-600" />
@@ -90,11 +90,9 @@ const Dashboard = () => {
                   </Button>
                 </div>
               </div>
-            </Card>
-          )}
+            </Card>}
 
-          {!shopifyConnected && (
-            <Card className="p-6 mb-8 border-yellow-300 border-2 bg-yellow-50">
+          {!shopifyConnected && <Card className="p-6 mb-8 border-yellow-300 border-2 bg-yellow-50">
               <div className="flex items-start gap-4">
                 <div className="p-3 rounded-lg bg-yellow-100">
                   <AlertCircle className="w-6 h-6 text-yellow-600" />
@@ -107,8 +105,7 @@ const Dashboard = () => {
                   </Button>
                 </div>
               </div>
-            </Card>
-          )}
+            </Card>}
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <Card className="p-6 hover:shadow-lg transition-all duration-300">
@@ -181,8 +178,6 @@ const Dashboard = () => {
           </div>
         </div>
       </main>
-    </div>
-  );
+    </div>;
 };
-
 export default Dashboard;
