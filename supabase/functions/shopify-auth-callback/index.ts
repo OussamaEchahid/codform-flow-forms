@@ -292,6 +292,10 @@ serve(async (req) => {
     } catch (error) {
       console.error("❌ Error processing callback:", error);
       
+      console.log("🚨 Full request URL:", req.url);
+      console.log("🚨 URL object:", url);
+      console.log("🚨 Search params:", Array.from(url.searchParams.entries()));
+      
       // إنشاء HTML للخطأ
       return new Response(`
         <!DOCTYPE html>
