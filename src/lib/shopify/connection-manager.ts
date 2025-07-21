@@ -116,6 +116,7 @@ class ShopifyConnectionManager {
       // تحقق من الـ cache أولاً
       const now = Date.now();
       if (this.storeCache && (now - this.storeCacheTime) < this.STORE_CACHE_DURATION) {
+        console.log('Retrieved active store from cache:', this.storeCache);
         return this.storeCache;
       }
 
@@ -127,19 +128,25 @@ class ShopifyConnectionManager {
         this.storeCache = activeStore;
         this.storeCacheTime = now;
         return activeStore;
+      } else {
+        console.log('No active store found in ACTIVE_STORE_KEY, checking stores list...');
       }
       
       // Fall back to checking store list
       const stores = this.getAllStores();
+      console.log('All stores in localStorage:', stores);
       const activeFromList = stores.find(s => s.isActive);
       
       if (activeFromList) {
+        console.log('Found active store from list:', activeFromList.domain);
         // Update the active store key for next time
         localStorage.setItem(this.ACTIVE_STORE_KEY, activeFromList.domain);
         // حفظ في الـ cache
         this.storeCache = activeFromList.domain;
         this.storeCacheTime = now;
         return activeFromList.domain;
+      } else {
+        console.log('No active store found in stores list');
       }
       
       // If there's at least one store, return the first one

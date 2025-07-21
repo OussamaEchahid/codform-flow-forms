@@ -114,6 +114,12 @@ async function getAccessToken(shop: string, code: string): Promise<any> {
       throw new Error("Access token missing in Shopify response");
     }
     
+    // التحقق من أن الرمز ليس فارغًا أو قصيرًا جداً
+    if (typeof responseData.access_token !== 'string' || responseData.access_token.length < 10) {
+      console.error("Invalid access token format:", responseData.access_token);
+      throw new Error("Invalid access token format received from Shopify");
+    }
+    
     // تحديد نوع الرمز (دائم أو مؤقت)
     let tokenType = 'offline';
     if (responseData.expires_in) {
@@ -233,10 +239,26 @@ async function updateShopData(shop: string, tokenData: any): Promise<void> {
       
       if (insertError) {
         console.error(`[CALLBACK] Error storing token: ${JSON.stringify(insertError)}`);
+        console.error(`[CALLBACK] Insert error details:`, {
+          message: insertError.message,
+          details: insertError.details,
+          hint: insertError.hint,
+          code: insertError.code
+        });
         throw new Error(`Failed to store the access token: ${insertError.message || "Unknown error"}`);
       }
       
-      console.log(`[CALLBACK] Successfully created new store record for ${shop}. New record ID:`, insertData?.[0]?.id);
+      if (!insertData || insertData.length === 0) {
+        console.error(`[CALLBACK] No data returned from insert operation for ${shop}`);
+        throw new Error(`Failed to create store record: No data returned`);
+      }
+      
+      console.log(`[CALLBACK] Successfully created new store record for ${shop}. New record:`, {
+        id: insertData[0]?.id,
+        shop: insertData[0]?.shop,
+        is_active: insertData[0]?.is_active,
+        created_at: insertData[0]?.created_at
+      });
     }
     
     // التحقق من أن البيانات تم حفظها بنجاح
@@ -442,21 +464,40 @@ serve(async (req) => {
     await updateShopData(shop, tokenData);
     console.log(`[${requestId}] Store data updated successfully`);
     
-    // إنشاء استجابة ناجحة
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        shop, 
-        timestamp: Date.now(),
-        request_id: requestId,
-        token_type: tokenData.token_type,
-        has_valid_token: true,
-        redirect_url: `${APP_URL}/dashboard?shopify_connected=true&shop=${encodeURIComponent(shop)}&new_connection=true&timestamp=${Date.now()}`
-      }),
-      { 
+    // إنشاء استجابة ناجحة مع HTML redirect
+    const redirectUrl = `${APP_URL}/dashboard?shopify_connected=true&shop=${encodeURIComponent(shop)}&new_connection=true&timestamp=${Date.now()}`;
+    
+    const successHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+    <title>نجح الاتصال بـ Shopify</title>
+    <meta charset="utf-8">
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f8f9fa; }
+        .success { color: #28a745; margin: 20px 0; }
+        .loading { color: #6c757d; }
+    </style>
+</head>
+<body>
+    <div class="success">
+        <h2>✅ تم ربط متجر ${shop} بنجاح!</h2>
+        <p class="loading">جارٍ إعادة التوجيه...</p>
+    </div>
+    <script>
+        console.log('Store ${shop} connected successfully, redirecting...');
+        setTimeout(() => {
+            window.location.href = '${redirectUrl}';
+        }, 2000);
+    </script>
+</body>
+</html>`;
+    
+    return new Response(successHtml, { 
         status: 200, 
         headers: {
           ...corsHeaders,
+          "Content-Type": "text/html; charset=utf-8",
           "X-Shopify-Auth-Success": "true",
           "X-Request-ID": requestId
         } 

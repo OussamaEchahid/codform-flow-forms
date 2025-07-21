@@ -25,14 +25,29 @@ const Dashboard = () => {
     const shopifyConnectedParam = searchParams.get("shopify_connected");
     const shopParam = searchParams.get("shop");
     const authSuccess = searchParams.get("auth_success");
+    const newConnection = searchParams.get("new_connection");
+    
     console.log("Dashboard params:", {
       shopifyConnectedParam,
       shopParam,
-      authSuccess
+      authSuccess,
+      newConnection
     });
 
     // عرض رسالة نجاح إذا كانت هناك معلمات اتصال جديدة
     if (shopifyConnectedParam === "true" && shopParam) {
+      // حفظ المتجر في localStorage للتأكد من الاتساق
+      console.log(`Saving shop ${shopParam} to localStorage after successful connection`);
+      localStorage.setItem('shopify_store', shopParam);
+      localStorage.setItem('shopify_connected', 'true');
+      localStorage.setItem('shopify_active_store', shopParam);
+      
+      // تحديث معلومات المتجر في connection manager أيضاً
+      import('@/lib/shopify/connection-manager').then(({ shopifyConnectionManager }) => {
+        shopifyConnectionManager.addOrUpdateStore(shopParam, true, true);
+        console.log(`Updated connection manager with store: ${shopParam}`);
+      });
+      
       const message = language === 'ar' ? `تم الاتصال بمتجر ${shopParam} بنجاح` : `Successfully connected to store ${shopParam}`;
       toast.success(message);
 
