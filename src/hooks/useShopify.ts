@@ -210,9 +210,21 @@ export const useShopify = () => {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       
       if (errorMessage.includes('not found')) {
-        toast.error('المتجر غير مربوط بشكل صحيح. يرجى إعادة ربط المتجر');
+        toast.error('المتجر غير مربوط بشكل صحيح. يرجى الذهاب إلى "متاجري" وإعادة ربط المتجر', {
+          duration: 6000,
+          action: {
+            label: 'الذهاب إلى متاجري',
+            onClick: () => window.location.href = '/my-stores'
+          }
+        });
       } else if (errorMessage.includes('access token missing')) {
-        toast.error('رمز الوصول مفقود. يرجى إعادة ربط المتجر');
+        toast.error('رمز الوصول مفقود. يرجى إعادة ربط المتجر في صفحة "متاجري"', {
+          duration: 6000,
+          action: {
+            label: 'الذهاب إلى متاجري',
+            onClick: () => window.location.href = '/my-stores'
+          }
+        });
       } else if (errorMessage.includes('Database error')) {
         toast.error('خطأ في قاعدة البيانات. يرجى المحاولة مرة أخرى');
       } else {

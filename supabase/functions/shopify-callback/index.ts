@@ -144,18 +144,22 @@ async function updateShopData(shop: string, tokenData: any): Promise<void> {
   }
   
   try {
-    console.log(`Creating Supabase client for ${SUPABASE_URL}`);
+    console.log(`[CALLBACK] Creating Supabase client for ${SUPABASE_URL}`);
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
     
     // التحقق من صحة بيانات الرمز قبل التخزين
     if (!tokenData || !tokenData.access_token) {
+      console.error(`[CALLBACK] Invalid token data received for ${shop}:`, tokenData);
       throw new Error("Invalid token data: access_token is required");
     }
     
     // تأكد من أنه ليس رمزًا مؤقتًا
     if (tokenData.access_token === 'placeholder_token') {
+      console.error(`[CALLBACK] Received placeholder token for ${shop}`);
       throw new Error("Cannot store placeholder token");
     }
+    
+    console.log(`[CALLBACK] Valid token data received for ${shop}. Token starts with: ${tokenData.access_token.substring(0, 10)}...`);
     
     // جعل المتاجر الأخرى غير نشطة
     try {
@@ -197,21 +201,22 @@ async function updateShopData(shop: string, tokenData: any): Promise<void> {
     
     if (existingStore) {
       // تحديث السجل الموجود
-      console.log(`Updating existing store record for ${shop}`);
-      const { error: updateError } = await supabase
+      console.log(`[CALLBACK] Updating existing store record for ${shop} (ID: ${existingStore.id})`);
+      const { data: updateData, error: updateError } = await supabase
         .from('shopify_stores')
         .update(storeData)
-        .eq('shop', shop);
+        .eq('shop', shop)
+        .select();
       
       if (updateError) {
-        console.error(`Error updating store: ${JSON.stringify(updateError)}`);
+        console.error(`[CALLBACK] Error updating store: ${JSON.stringify(updateError)}`);
         throw new Error(`Failed to update the store record: ${updateError.message || "Unknown error"}`);
       }
       
-      console.log(`Successfully updated store data for ${shop}`);
+      console.log(`[CALLBACK] Successfully updated store data for ${shop}. Updated record:`, updateData);
     } else {
       // إنشاء سجل جديد
-      console.log(`Creating new store record for ${shop}`);
+      console.log(`[CALLBACK] Creating new store record for ${shop}`);
       
       // أضف حقل created_at للسجلات الجديدة
       const newStoreData = {
@@ -219,16 +224,36 @@ async function updateShopData(shop: string, tokenData: any): Promise<void> {
         created_at: currentTimestamp
       };
       
-      const { error: insertError } = await supabase
+      console.log(`[CALLBACK] Store data to insert:`, { ...newStoreData, access_token: `${newStoreData.access_token.substring(0, 10)}...` });
+      
+      const { data: insertData, error: insertError } = await supabase
         .from('shopify_stores')
-        .insert([newStoreData]);
+        .insert([newStoreData])
+        .select();
       
       if (insertError) {
-        console.error(`Error storing token: ${JSON.stringify(insertError)}`);
+        console.error(`[CALLBACK] Error storing token: ${JSON.stringify(insertError)}`);
         throw new Error(`Failed to store the access token: ${insertError.message || "Unknown error"}`);
       }
       
-      console.log(`Successfully created new store record for ${shop}`);
+      console.log(`[CALLBACK] Successfully created new store record for ${shop}. New record ID:`, insertData?.[0]?.id);
+    }
+    
+    // التحقق من أن البيانات تم حفظها بنجاح
+    const { data: verifyData, error: verifyError } = await supabase
+      .from('shopify_stores')
+      .select('*')
+      .eq('shop', shop)
+      .eq('is_active', true)
+      .maybeSingle();
+    
+    if (verifyError) {
+      console.error(`[CALLBACK] Error verifying saved data: ${JSON.stringify(verifyError)}`);
+    } else if (!verifyData) {
+      console.error(`[CALLBACK] Data verification failed: No active store found for ${shop} after save`);
+      throw new Error(`Failed to verify saved store data for ${shop}`);
+    } else {
+      console.log(`[CALLBACK] Data verification successful for ${shop}. Store is active with valid token.`);
     }
     
     // اختبار الاتصال لتأكيد أن الرمز يعمل
