@@ -7,8 +7,8 @@ const SUPABASE_URL = 'https://trlklwixfeaexhydzaue.supabase.co';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MjcxMTQxOCwiZXhwIjoyMDY4Mjg3NDE4fQ.cXZGpHiwobAzYhKPa1yWL1I1jRjEz-3WDFFvTMNRglU';
 
 // إعدادات تطبيق Shopify
-const SHOPIFY_API_KEY = "753bee2864a0b12f2d87c79b56c86641";
-const SHOPIFY_API_SECRET = "981e7dd45a4951c809f76632d88c800";
+const SHOPIFY_API_KEY = "753bee28b4a0b12f2d87c79b56c86641";
+const SHOPIFY_API_SECRET = "981e7ad45a4951c809f766322d88c800";
 
 console.log("🚀 Shopify Auth Callback Handler Started");
 
