@@ -2,12 +2,14 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import ShopifyConnection from '@/components/shopify/ShopifyConnection';
+import ShopifyAutoDetector from '@/components/shopify/ShopifyAutoDetector';
 import { Button } from '@/components/ui/button';
-import { Loader2, AlertTriangle, RefreshCcw, Store, ExternalLink } from 'lucide-react';
+import { Loader2, AlertTriangle, RefreshCcw, Store, ExternalLink, CheckCircle } from 'lucide-react';
 import { shopifyConnectionService } from '@/services/ShopifyConnectionService';
 import { toast } from 'sonner';
 import { forceCleanShopifyState, cleanupAuthState } from '@/utils/clean-auth-state';
 import { supabase } from '@/integrations/supabase/client';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const ShopifyConnect = () => {
   const navigate = useNavigate();
@@ -15,6 +17,8 @@ const ShopifyConnect = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isResetting, setIsResetting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [autoDetectedShop, setAutoDetectedShop] = useState<string | null>(null);
+  const [shopSaved, setShopSaved] = useState(false);
 
   // تحقق من المعلمات في عنوان URL والربط التلقائي
   useEffect(() => {
@@ -177,6 +181,18 @@ const ShopifyConnect = () => {
     window.open("https://codmagnet.com/shopify-connect", "_blank");
   };
 
+  const handleShopDetected = (shop: string) => {
+    setAutoDetectedShop(shop);
+    console.log('🎯 Shop detected:', shop);
+  };
+
+  const handleShopSaved = (shop: string) => {
+    setShopSaved(true);
+    console.log('💾 Shop saved:', shop);
+    setError(null); // مسح أي أخطاء سابقة
+    toast.success(`تم حفظ متجرك ${shop} بنجاح!`);
+  };
+
   // إذا كان التحميل جاريًا، عرض حالة التحميل
   if (isLoading) {
     return (
@@ -194,7 +210,42 @@ const ShopifyConnect = () => {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50" dir="rtl">
+      {/* Auto Detector Component */}
+      <ShopifyAutoDetector 
+        onShopDetected={handleShopDetected}
+        onShopSaved={handleShopSaved}
+      />
+      
       <div className="w-full max-w-md px-4">
+        {/* Success Message for Auto-Detection */}
+        {shopSaved && autoDetectedShop && (
+          <Alert className="mb-4 border-green-200 bg-green-50">
+            <CheckCircle className="h-4 w-4 text-green-600" />
+            <AlertDescription className="text-green-800">
+              ✅ تم حفظ متجرك <strong>{autoDetectedShop}</strong> بنجاح في قائمة متاجرك!
+              <div className="mt-2">
+                <Button 
+                  size="sm" 
+                  onClick={() => navigate('/my-stores')}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  عرض متاجري
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Auto-Detection Info */}
+        {autoDetectedShop && !shopSaved && (
+          <Alert className="mb-4 border-blue-200 bg-blue-50">
+            <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />
+            <AlertDescription className="text-blue-800">
+              🔍 تم اكتشاف متجرك: <strong>{autoDetectedShop}</strong>
+              <br />جاري حفظه تلقائياً...
+            </AlertDescription>
+          </Alert>
+        )}
         {error && (
           <div className="mb-4 p-4 border border-red-200 bg-red-50 rounded-md">
             <div className="flex items-center">
