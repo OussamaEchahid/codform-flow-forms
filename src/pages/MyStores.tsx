@@ -98,12 +98,8 @@ const MyStores = () => {
 
   // تبديل المتجر النشط (للمتاجر المتصلة بالفعل)
   const handleSwitchStore = (shopDomain: string) => {
-    localStorage.setItem('shopify_store', shopDomain);
-    localStorage.setItem('shopify_active_store', shopDomain);
-    
-    // تحديث connection manager
-    shopifyConnectionManager.clearAllStores();
-    shopifyConnectionManager.addOrUpdateStore(shopDomain, true, true);
+    // استخدام setActiveStore مباشرة
+    shopifyConnectionManager.setActiveStore(shopDomain);
     
     setCurrentStore(shopDomain);
     
