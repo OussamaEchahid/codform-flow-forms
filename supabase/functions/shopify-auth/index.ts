@@ -18,8 +18,8 @@ const scopes = "write_products,read_products,read_orders,write_orders,write_scri
 // عنوان URL للتطبيق المستضاف
 const APP_URL = "https://codmagnet.com";
 
-// عنوان URL لرد المصادقة - يجب أن يكون URL الصحيح المسجل في Shopify
-const CALLBACK_URL = `https://codmagnet.com/api/auth/shopify/callback`;
+// عنوان URL لرد المصادقة - يجب أن يتطابق مع ما هو مسجل في Shopify Partner Dashboard
+const CALLBACK_URL = `https://codmagnet.com/api/auth/shopify/callback/`;
 
 // إعداد عناوين CORS
 const corsHeaders = {
