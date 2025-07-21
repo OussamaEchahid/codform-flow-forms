@@ -16,7 +16,7 @@ import ShopifyProducts from '@/pages/ShopifyProducts';
 import ShopifyProductView from '@/pages/ShopifyProductView';
 import ShopifySync from '@/pages/ShopifySync';
 import Index from '@/pages/Index';
-import ShopifyCallback from '@/pages/api/shopify-callback';
+import ShopifyCallback from '@/pages/ShopifyCallback';
 import NotFound from '@/pages/NotFound'; 
 import Dashboard from '@/pages/Dashboard';
 import Forms from '@/pages/Forms';
