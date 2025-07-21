@@ -5,10 +5,11 @@ import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
+import { shopifySupabase } from '@/lib/shopify/supabase-client';
 import { Store, Check, Trash2, ExternalLink, RefreshCcw, AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ShopifyStore, ShopifyStoreConnection } from "@/lib/shopify/types";
-import { parseShopifyParams } from '@/utils/shopify-helpers'; 
+import { parseShopifyParams } from '@/utils/shopify-helpers';
 
 export const ShopifyStoresManager: React.FC = () => {
   const { shop: activeShop, setShop } = useAuth();
@@ -69,16 +70,68 @@ export const ShopifyStoresManager: React.FC = () => {
   }, [activeShop]);
 
   // Set a store as active
-  const setActiveStore = (storeUrl: string) => {
+  const setActiveStore = async (storeUrl: string) => {
     try {
+      // أولاً، تحقق من وجود المتجر في قاعدة البيانات
+      const { data: dbStore, error } = await shopifySupabase
+        .from('shopify_stores')
+        .select('*')
+        .eq('shop', storeUrl)
+        .maybeSingle();
+      
+      if (error) {
+        console.error('خطأ في فحص المتجر:', error);
+        toast.error(`خطأ في فحص المتجر: ${error.message}`);
+        return;
+      }
+      
+      if (!dbStore) {
+        toast.error(`المتجر ${storeUrl} غير موجود في قاعدة البيانات. يرجى إعادة ربط المتجر.`, {
+          action: {
+            label: 'إعادة ربط المتجر',
+            onClick: () => navigate('/shopify-connect')
+          }
+        });
+        // إزالة المتجر من localStorage
+        shopifyConnectionManager.removeStore(storeUrl);
+        const allStores = shopifyConnectionManager.getAllStores();
+        setStores(allStores);
+        return;
+      }
+      
+      // التحقق من وجود access_token صالح
+      if (!dbStore.access_token || dbStore.access_token === 'null') {
+        toast.error(`رمز الوصول مفقود للمتجر ${storeUrl}. يرجى إعادة ربط المتجر.`, {
+          action: {
+            label: 'إعادة ربط المتجر',
+            onClick: () => navigate('/shopify-connect')
+          }
+        });
+        return;
+      }
+      
+      // إذا كان المتجر موجود وصالح، قم بتعيينه كنشط
       shopifyConnectionManager.setActiveStore(storeUrl);
       if (setShop) {
         setShop(storeUrl);
       }
+      
+      // تحديث حالة المتجر في قاعدة البيانات
+      await shopifySupabase
+        .from('shopify_stores')
+        .update({ is_active: false })
+        .neq('shop', storeUrl);
+        
+      await shopifySupabase
+        .from('shopify_stores')
+        .update({ is_active: true })
+        .eq('shop', storeUrl);
+      
       const allStores = shopifyConnectionManager.getAllStores();
       setStores(allStores);
       toast.success(`تم تعيين ${storeUrl} كمتجر نشط`);
     } catch (error) {
+      console.error('خطأ في تعيين المتجر النشط:', error);
       toast.error(`فشل في تعيين المتجر النشط: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`);
     }
   };
