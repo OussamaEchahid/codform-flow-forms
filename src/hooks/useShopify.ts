@@ -157,12 +157,14 @@ export const useShopify = () => {
 
       if (!tokenData || tokenData.length === 0) {
         console.error(`No store found in database for shop: ${shop}`);
-        throw new Error(`Store ${shop} not found. Please ensure the store is properly connected.`);
+        // إرسال إشارة خاصة لعدم وجود المتجر
+        throw new Error(`STORE_NOT_FOUND:${shop}`);
       }
 
       if (!tokenData[0].access_token) {
         console.error(`Access token missing for shop: ${shop}`);
-        throw new Error(`Access token missing for store ${shop}. Please reconnect the store.`);
+        // إرسال إشارة خاصة لعدم وجود الرمز
+        throw new Error(`TOKEN_MISSING:${shop}`);
       }
 
       const token = tokenData[0].access_token || '';
@@ -209,29 +211,43 @@ export const useShopify = () => {
       
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       
-      if (errorMessage.includes('not found')) {
-        toast.error('المتجر غير مربوط بشكل صحيح. يرجى الذهاب إلى "متاجري" وإعادة ربط المتجر', {
-          duration: 6000,
+      if (errorMessage.startsWith('STORE_NOT_FOUND:')) {
+        const shopName = errorMessage.split(':')[1];
+        toast.error(`المتجر ${shopName} غير موجود في قاعدة البيانات`, {
+          duration: 8000,
           action: {
-            label: 'الذهاب إلى متاجري',
-            onClick: () => window.location.href = '/my-stores'
+            label: 'إعادة ربط المتجر',
+            onClick: () => {
+              // مسح بيانات المتجر القديمة
+              localStorage.removeItem('shopify_store');
+              localStorage.removeItem('shopify_connected');
+              localStorage.removeItem('shopify_active_store');
+              shopifyConnectionManager.clearAllStores();
+              window.location.href = '/shopify-connect';
+            }
           }
         });
-      } else if (errorMessage.includes('access token missing')) {
-        toast.error('رمز الوصول مفقود. يرجى إعادة ربط المتجر في صفحة "متاجري"', {
-          duration: 6000,
+        throw new Error(`STORE_NOT_FOUND:${shopName}`);
+      } else if (errorMessage.startsWith('TOKEN_MISSING:')) {
+        const shopName = errorMessage.split(':')[1];
+        toast.error(`رمز الوصول مفقود للمتجر ${shopName}`, {
+          duration: 8000,
           action: {
-            label: 'الذهاب إلى متاجري',
-            onClick: () => window.location.href = '/my-stores'
+            label: 'إعادة ربط المتجر',
+            onClick: () => {
+              localStorage.removeItem('shopify_store');
+              localStorage.removeItem('shopify_connected');
+              localStorage.removeItem('shopify_active_store');
+              shopifyConnectionManager.clearAllStores();
+              window.location.href = '/shopify-connect';
+            }
           }
         });
-      } else if (errorMessage.includes('Database error')) {
-        toast.error('خطأ في قاعدة البيانات. يرجى المحاولة مرة أخرى');
+        throw new Error(`TOKEN_MISSING:${shopName}`);
       } else {
         toast.error('فشل في تحميل المنتجات. يرجى التحقق من حالة الاتصال بالمتجر');
+        throw error;
       }
-      
-      return [];
     }
   }, [shop, products, lastLoadTime, isLoading]);
 

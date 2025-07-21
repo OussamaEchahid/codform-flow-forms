@@ -1,6 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
+import ShopifyErrorHandler from '@/components/shopify/ShopifyErrorHandler';
 import { 
   AlertCircle, 
   ShoppingBag, 
@@ -252,8 +253,19 @@ const ShopifyProducts = () => {
       toast.success(`تم تحميل ${data.products.length} منتج من Shopify`);
     } catch (err) {
       console.error('Error fetching products:', err);
-      setError(err instanceof Error ? err.message : String(err));
-      toast.error('فشل تحميل المنتجات: ' + (err instanceof Error ? err.message : ''));
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      
+      // تحليل نوع الخطأ وتسويته 
+      if (errorMessage.startsWith('STORE_NOT_FOUND:')) {
+        setError(errorMessage);
+      } else if (errorMessage.startsWith('TOKEN_MISSING:')) {
+        setError(errorMessage);
+        setTokenError(true);
+      } else {
+        setError(errorMessage);
+      }
+      
+      toast.error('فشل تحميل المنتجات: ' + errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -307,6 +319,15 @@ const ShopifyProducts = () => {
       </Card>
     );
   };
+  
+  
+  // معالجة الأخطاء المحددة أولاً
+  if (error && (error.startsWith('STORE_NOT_FOUND:') || error.startsWith('TOKEN_MISSING:'))) {
+    return <ShopifyErrorHandler error={error} onRetry={() => {
+      setError(null);
+      checkConnection();
+    }} />;
+  }
   
   return (
     <div className="container py-6">
