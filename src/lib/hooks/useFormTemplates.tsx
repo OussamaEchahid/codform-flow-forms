@@ -47,8 +47,11 @@ export const useFormTemplates = () => {
 
   // Get current active shop ID from localStorage if not available in context
   const getActiveShopId = () => {
-    return shop || localStorage.getItem('shopify_store');
+    return shop || localStorage.getItem('simple_active_store') || localStorage.getItem('shopify_store');
   };
+
+  // Track current shop to trigger refetch when it changes
+  const [currentShop, setCurrentShop] = useState<string | null>(null);
 
   // Fetch all forms using the service
   const fetchForms = useCallback(async () => {
@@ -87,6 +90,34 @@ export const useFormTemplates = () => {
       setIsLoading(false);
     }
   }, []);
+
+  // Watch for shop changes and refetch forms
+  useEffect(() => {
+    const activeShop = getActiveShopId();
+    
+    if (activeShop !== currentShop) {
+      console.log(`🔄 تغيير المتجر من ${currentShop} إلى ${activeShop} - إعادة جلب النماذج`);
+      setCurrentShop(activeShop);
+      
+      if (activeShop) {
+        // Clear current forms before fetching new ones
+        setForms([]);
+        fetchForms();
+      } else {
+        // No active shop, clear forms
+        setForms([]);
+      }
+    }
+  }, [currentShop, fetchForms]);
+
+  // Initial load
+  useEffect(() => {
+    const activeShop = getActiveShopId();
+    if (activeShop && !currentShop) {
+      setCurrentShop(activeShop);
+      fetchForms();
+    }
+  }, [fetchForms, currentShop]);
 
   // Create a form from template
   const createFormFromTemplate = async (templateId: number) => {

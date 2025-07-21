@@ -41,7 +41,7 @@ export class FormManagementService {
 
   // Get current active shop ID
   private getActiveShopId(): string | null {
-    return localStorage.getItem('shopify_store');
+    return localStorage.getItem('simple_active_store') || localStorage.getItem('shopify_store');
   }
 
   // Fetch all forms from database
