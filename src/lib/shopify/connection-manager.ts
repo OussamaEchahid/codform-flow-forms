@@ -12,7 +12,7 @@ class ShopifyConnectionManager {
   private readonly CONNECTION_TIMESTAMP_KEY = 'shopify_connection_timestamp';
   
   /**
-   * Sets the active store with comprehensive cleanup
+   * Sets the active store with comprehensive cleanup and immediate cache refresh
    * @param domain The store domain to set active
    */
   public setActiveStore(domain: string): void {
@@ -25,8 +25,9 @@ class ShopifyConnectionManager {
       
       console.log(`🔄 Setting active store to: ${cleanedDomain}`);
       
-      // 1. تنظيف شامل لجميع البيانات القديمة
+      // 1. تنظيف شامل لجميع البيانات القديمة مع إزالة الـ cache فوراً
       this.clearActiveStoreCache();
+      this.invalidateCache();
       
       // 2. إزالة جميع المتاجر القديمة من connection manager
       const existingStores = this.getAllStores();
@@ -56,27 +57,40 @@ class ShopifyConnectionManager {
       // 4. حفظ المتاجر المحدثة
       localStorage.setItem(this.STORES_KEY, JSON.stringify(existingStores));
       
-      // 5. تحديد المتجر النشط في جميع المواقع
+      // 5. تحديد المتجر النشط في جميع المواقع بشكل موحد
       localStorage.setItem(this.ACTIVE_STORE_KEY, cleanedDomain);
       localStorage.setItem('shopify_store', cleanedDomain);
       localStorage.setItem('shopify_connected', 'true');
       localStorage.setItem('shopify_active_store', cleanedDomain);
       
-      // 6. تنظيف الـ cache وإعادة تعيينه
+      // 6. تنظيف أي fail-safe mode أو حالات خطأ
+      localStorage.removeItem('shopify_failsafe');
+      localStorage.removeItem('shopify_token_error');
+      
+      // 7. تحديث الـ cache فوراً مع الوقت الجديد
       this.storeCache = cleanedDomain;
       this.storeCacheTime = Date.now();
       
-      // 7. تسجيل النجاح
+      // 8. تسجيل النجاح وتنظيف حالات الخطأ
       localStorage.setItem(this.CONNECTION_TIMESTAMP_KEY, Date.now().toString());
       localStorage.removeItem(this.LAST_ERROR_KEY);
       localStorage.removeItem(this.RECOVERY_ATTEMPT_KEY);
       
-      console.log(`✅ Active store set successfully: ${cleanedDomain}`);
+      console.log(`✅ Active store set successfully and cache updated: ${cleanedDomain}`);
       
     } catch (error) {
       console.error('Error in setActiveStore:', error);
       this.recordError('setActiveStore', error);
     }
+  }
+  
+  /**
+   * Invalidates the cache to force refresh
+   */
+  private invalidateCache(): void {
+    this.storeCache = null;
+    this.storeCacheTime = 0;
+    console.log('🗑️ Store cache invalidated');
   }
   
   /**
@@ -201,26 +215,53 @@ class ShopifyConnectionManager {
   private readonly STORE_CACHE_DURATION = 2 * 60 * 1000; // 2 دقيقة
 
   /**
-   * Gets the active store domain with caching
+   * Gets the active store domain with enhanced consistency checks
    * @returns The active store domain or null if none
    */
   public getActiveStore(): string | null {
     try {
-      // تحقق من الـ cache أولاً
+      // تحقق من الـ cache أولاً، ولكن بفترة أقصر لضمان الدقة
       const now = Date.now();
-      if (this.storeCache && (now - this.storeCacheTime) < this.STORE_CACHE_DURATION) {
-        console.log('Retrieved active store from cache:', this.storeCache);
-        return this.storeCache;
+      const shorterCacheDuration = 30 * 1000; // 30 ثانية فقط
+      
+      if (this.storeCache && (now - this.storeCacheTime) < shorterCacheDuration) {
+        // تحقق إضافي من التطابق مع localStorage
+        const currentActiveStore = localStorage.getItem(this.ACTIVE_STORE_KEY);
+        if (currentActiveStore === this.storeCache) {
+          console.log('Retrieved active store from valid cache:', this.storeCache);
+          return this.storeCache;
+        } else {
+          // إذا لم يتطابق، امسح الـ cache
+          console.log('Cache mismatch detected, invalidating cache');
+          this.invalidateCache();
+        }
       }
 
       // First check the dedicated active store key
       const activeStore = localStorage.getItem(this.ACTIVE_STORE_KEY);
       if (activeStore) {
         console.log('Retrieved active store from ACTIVE_STORE_KEY:', activeStore);
-        // حفظ في الـ cache
-        this.storeCache = activeStore;
-        this.storeCacheTime = now;
-        return activeStore;
+        
+        // تحقق من تطابق هذا مع stores list
+        const stores = this.getAllStores();
+        const activeFromList = stores.find(s => s.isActive && s.domain === activeStore);
+        
+        if (activeFromList) {
+          // كل شيء متطابق، حفظ في الـ cache
+          this.storeCache = activeStore;
+          this.storeCacheTime = now;
+          return activeStore;
+        } else {
+          console.log('Active store key mismatch with stores list, correcting...');
+          // إصلاح التضارب
+          const firstActiveStore = stores.find(s => s.isActive);
+          if (firstActiveStore) {
+            localStorage.setItem(this.ACTIVE_STORE_KEY, firstActiveStore.domain);
+            this.storeCache = firstActiveStore.domain;
+            this.storeCacheTime = now;
+            return firstActiveStore.domain;
+          }
+        }
       } else {
         console.log('No active store found in ACTIVE_STORE_KEY, checking stores list...');
       }
@@ -232,8 +273,10 @@ class ShopifyConnectionManager {
       
       if (activeFromList) {
         console.log('Found active store from list:', activeFromList.domain);
-        // Update the active store key for next time
+        // Update the active store key for consistency
         localStorage.setItem(this.ACTIVE_STORE_KEY, activeFromList.domain);
+        localStorage.setItem('shopify_store', activeFromList.domain);
+        localStorage.setItem('shopify_connected', 'true');
         // حفظ في الـ cache
         this.storeCache = activeFromList.domain;
         this.storeCacheTime = now;
@@ -242,8 +285,15 @@ class ShopifyConnectionManager {
         console.log('No active store found in stores list');
       }
       
-      // If there's at least one store, return the first one
+      // If there's at least one store, activate the first one
       if (stores.length > 0) {
+        console.log('Activating first available store:', stores[0].domain);
+        stores[0].isActive = true;
+        // تحديث القائمة
+        localStorage.setItem(this.STORES_KEY, JSON.stringify(stores));
+        localStorage.setItem(this.ACTIVE_STORE_KEY, stores[0].domain);
+        localStorage.setItem('shopify_store', stores[0].domain);
+        localStorage.setItem('shopify_connected', 'true');
         this.storeCache = stores[0].domain;
         this.storeCacheTime = now;
         return stores[0].domain;
@@ -252,6 +302,7 @@ class ShopifyConnectionManager {
       // Check legacy storage
       const legacyStore = localStorage.getItem('shopify_store');
       if (legacyStore) {
+        console.log('Found legacy store, updating to new format:', legacyStore);
         // Update consistent state by saving to the new format
         this.addOrUpdateStore(legacyStore, true);
         this.storeCache = legacyStore;

@@ -78,7 +78,7 @@ export const useShopify = () => {
     }
   }, [authUser]);
 
-  // Initialize connection state with enhanced verification
+  // Initialize connection state with enhanced verification and fail-safe reset
   useEffect(() => {
     const checkConnection = async () => {
       if (!shop) {
@@ -88,6 +88,11 @@ export const useShopify = () => {
 
       try {
         console.log(`🔍 Checking connection for shop: ${shop}`);
+        
+        // Reset error states at the beginning of check
+        setTokenError(false);
+        setFailSafeMode(false);
+        localStorage.removeItem('shopify_failsafe');
         
         // Try to get token from db with detailed logging
         const { data, error } = await shopifyStores()
@@ -106,13 +111,17 @@ export const useShopify = () => {
 
         if (data && data.length > 0) {
           const storeData = data[0];
-          console.log(`✅ Store ${shop} found in database with token`);
+          console.log(`✅ Store ${shop} found in database`);
           
           if (storeData.access_token && storeData.access_token !== 'null') {
             setAccessToken(storeData.access_token);
             setIsConnected(true);
             setTokenError(false);
-            console.log(`🔑 Valid token set for ${shop}`);
+            setFailSafeMode(false);
+            // إزالة أي fail-safe modes محفوظة
+            localStorage.removeItem('shopify_failsafe');
+            localStorage.removeItem('shopify_token_error');
+            console.log(`🔑 Valid token set for ${shop}, error states cleared`);
           } else {
             console.warn(`⚠️ Store ${shop} exists but token is invalid`);
             setIsConnected(false);

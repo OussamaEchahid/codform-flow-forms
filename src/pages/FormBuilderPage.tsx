@@ -41,8 +41,16 @@ const FormBuilderPage = () => {
   const localStorageConnected = localStorage.getItem('shopify_connected') === 'true';
   const actualHasAccess = hasAccess || localStorageConnected || bypassEnabled;
 
-  // Handle connection issues automatically
+  // Handle connection issues automatically but check if connection is actually working
   useEffect(() => {
+    // إذا كان المتجر متصل فعلياً، لا تظهر رسائل الخطأ
+    if (shopifyConnected && shop) {
+      console.log("Shopify is connected, clearing error states");
+      setBypassEnabled(true);
+      // لا تعرض رسائل خطأ إذا كان الاتصال يعمل
+      return;
+    }
+    
     if (tokenError) {
       console.log("Token error detected, enabling bypass");
       setBypassEnabled(true);
@@ -272,8 +280,8 @@ const FormBuilderPage = () => {
     <div className="flex min-h-screen bg-[#F8F9FB]">
       <AppSidebar />
       
-      {/* Connection issue warning banner */}
-      {(tokenError || failSafeMode) && (
+      {/* Connection issue warning banner - only show if not actually connected */}
+      {(tokenError || failSafeMode) && !shopifyConnected && (
         <div className="absolute top-0 left-0 right-0 z-50 px-4 py-2">
           <Alert variant="warning" className="bg-amber-50 border-amber-200">
             <AlertCircle className="h-4 w-4 text-amber-600" />
