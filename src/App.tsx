@@ -37,6 +37,7 @@ import { toast } from "sonner";
 import { shopifyConnectionManager } from "@/lib/shopify/connection-manager";
 import { shopifyConnectionService } from "@/services/ShopifyConnectionService";
 import { fixShopifyConnectionState } from "@/utils/fix-shopify-state";
+import ShopifyAutoConnector from "@/components/shopify/ShopifyAutoConnector";
 
 // إعداد عميل الاستعلام مع معالجة أفضل للأخطاء
 const queryClient = new QueryClient({
@@ -229,6 +230,7 @@ function App() {
         <TooltipProvider>
           <Router>
             <AuthProvider>
+              <ShopifyAutoConnector />
               <AppRoutes />
               <Toaster />
             </AuthProvider>
