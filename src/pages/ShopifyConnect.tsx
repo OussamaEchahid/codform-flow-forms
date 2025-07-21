@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Loader2, AlertTriangle, RefreshCcw, Store, ExternalLink } from 'lucide-react';
 import { shopifyConnectionService } from '@/services/ShopifyConnectionService';
 import { toast } from 'sonner';
+import { forceCleanShopifyState, cleanupAuthState } from '@/utils/clean-auth-state';
+import { supabase } from '@/integrations/supabase/client';
 
 const ShopifyConnect = () => {
   const navigate = useNavigate();
@@ -82,8 +84,41 @@ const ShopifyConnect = () => {
     }
   };
 
+  // إصلاح شامل للحالة
+  const handleCompleteFix = async () => {
+    try {
+      setIsResetting(true);
+      
+      // تنظيف شامل للحالة المحلية
+      cleanupAuthState();
+      
+      // تنظيف المتاجر من قاعدة البيانات
+      const { data, error } = await supabase.functions.invoke('clean-shopify-stores', {
+        body: { action: 'clean_all' }
+      });
+      
+      if (error) {
+        console.error('Error cleaning stores:', error);
+        toast.error('فشل في تنظيف المتاجر من قاعدة البيانات');
+      } else {
+        console.log('All stores cleaned successfully');
+        toast.success('تم تنظيف جميع المتاجر بنجاح');
+      }
+      
+      // إعادة تحميل الصفحة
+      setTimeout(() => {
+        window.location.href = '/shopify-connect';
+      }, 1500);
+      
+    } catch (error) {
+      console.error('Error in complete fix:', error);
+      toast.error('فشل في الإصلاح الشامل');
+      setIsResetting(false);
+    }
+  };
+
   const handleExternalOpen = () => {
-    window.open("https://codform-flow-forms.lovable.app/shopify-connect", "_blank");
+    window.open("https://codmagnet.com/shopify-connect", "_blank");
   };
 
   // إذا كان التحميل جاريًا، عرض حالة التحميل
@@ -151,6 +186,37 @@ const ShopifyConnect = () => {
             >
               <ExternalLink className="mr-2 h-4 w-4" />
               فتح في نافذة جديدة
+            </Button>
+          </div>
+        </div>
+        
+        {/* زر الإصلاح الشامل */}
+        <div className="mb-4 p-4 border border-orange-200 bg-orange-50 rounded-md">
+          <div className="flex items-center">
+            <AlertTriangle className="h-5 w-5 text-orange-500 ml-2" />
+            <p className="text-orange-700 font-medium">إصلاح شامل للاتصال</p>
+          </div>
+          <p className="mt-2 text-sm text-orange-600">
+            إذا كان لديك مشاكل في اتصال المتاجر أو متاجر قديمة عالقة، استخدم هذا الخيار لتنظيف شامل.
+          </p>
+          <div className="mt-2">
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleCompleteFix}
+              disabled={isResetting}
+            >
+              {isResetting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  جاري التنظيف...
+                </>
+              ) : (
+                <>
+                  <RefreshCcw className="mr-2 h-4 w-4" />
+                  إصلاح شامل - حذف جميع المتاجر
+                </>
+              )}
             </Button>
           </div>
         </div>

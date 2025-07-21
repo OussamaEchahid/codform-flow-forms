@@ -16,10 +16,10 @@ const SHOPIFY_API_KEY = Deno.env.get("SHOPIFY_API_KEY") || "7e4608874bbcc38afa19
 const scopes = "write_products,read_products,read_orders,write_orders,write_script_tags,read_themes,write_themes,read_content,write_content";
 
 // عنوان URL للتطبيق المستضاف
-const APP_URL = "https://codform-flow-forms.lovable.app";
+const APP_URL = "https://codmagnet.com";
 
-// عنوان URL لرد المصادقة
-const CALLBACK_URL = `${APP_URL}/shopify-callback`;
+// عنوان URL لرد المصادقة - يجب أن يكون Supabase function
+const CALLBACK_URL = `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-auth-callback`;
 
 // إعداد عناوين CORS
 const corsHeaders = {

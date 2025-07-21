@@ -240,15 +240,15 @@ serve(async (req) => {
         
         // التحويل إلى الداشبورد
         setTimeout(() => {
-          window.top.location.href = 'https://codform-flow-forms.lovable.app/dashboard';
+          window.top.location.href = 'https://codmagnet.com/dashboard';
         }, 2000);
         
         // في حالة فشل التحويل التلقائي
         setTimeout(() => {
           if (window.top) {
-            window.top.location.href = 'https://codform-flow-forms.lovable.app/dashboard';
+            window.top.location.href = 'https://codmagnet.com/dashboard';
           } else {
-            window.location.href = 'https://codform-flow-forms.lovable.app/dashboard';
+            window.location.href = 'https://codmagnet.com/dashboard';
           }
         }, 5000);
       </script>
@@ -306,10 +306,10 @@ serve(async (req) => {
       <div class="container">
         <div class="error">❌ حدث خطأ أثناء ربط المتجر</div>
         <p>الخطأ: ${error.message}</p>
-        <button onclick="window.top.location.href='https://codform-flow-forms.lovable.app/shopify'">
+        <button onclick="window.top.location.href='https://codmagnet.com/shopify'">
           المحاولة مرة أخرى
         </button>
-        <button onclick="window.top.location.href='https://codform-flow-forms.lovable.app/dashboard'">
+        <button onclick="window.top.location.href='https://codmagnet.com/dashboard'">
           العودة للداشبورد
         </button>
       </div>
