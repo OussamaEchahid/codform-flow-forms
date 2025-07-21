@@ -1,7 +1,8 @@
 
 import React, { useContext } from 'react';
+import { simpleShopifyConnectionManager } from '@/lib/shopify/simple-connection-manager';
 
-// تحديث واجهة السياق لدعم المتاجر المتعددة والمستخدم
+// تحديث واجهة السياق لدعم النظام المبسط
 export interface AuthContextType {
   shopifyConnected: boolean;
   shop?: string | null;
@@ -21,24 +22,29 @@ export const AuthContext = React.createContext<AuthContextType>({
   shops: null
 });
 
-// هوك للوصول إلى سياق المصادقة
+// هوك للوصول إلى سياق المصادقة مع النظام المبسط
 export const useAuth = () => {
   const context = useContext(AuthContext);
   
-  // Fallback check if context is missing information
-  const activeStore = localStorage.getItem('shopify_store');
-  const isConnected = localStorage.getItem('shopify_connected') === 'true';
+  // استخدام النظام المبسط كمصدر للحقيقة
+  const activeStore = simpleShopifyConnectionManager.getActiveStore();
+  const isConnected = simpleShopifyConnectionManager.isConnected();
   
-  // If context says not connected but localStorage says yes,
-  // use localStorage as source of truth
-  if (!context.shopifyConnected && isConnected && activeStore) {
+  // إذا كان المدير المبسط يقول أن هناك اتصال، استخدم هذه المعلومات
+  if (isConnected && activeStore) {
     return {
       ...context,
       shopifyConnected: true,
       shop: activeStore,
-      shops: context.shops || [activeStore]
+      shops: [activeStore] // قائمة مبسطة تحتوي على المتجر النشط فقط
     };
   }
   
-  return context;
+  // إذا لم يكن هناك اتصال في المدير المبسط، استخدم السياق كما هو
+  return {
+    ...context,
+    shopifyConnected: false,
+    shop: null,
+    shops: null
+  };
 };

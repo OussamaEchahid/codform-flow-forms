@@ -8,81 +8,30 @@ import { ShoppingCart, Target, DollarSign, AlertCircle } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
+import { useSimpleShopify } from '@/hooks/useSimpleShopify';
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const {
-    shopifyConnected,
-    shop
-  } = useAuth();
-  const {
-    t,
-    language
-  } = useI18n();
+  const { shopifyConnected } = useAuth();
+  const { t, language } = useI18n();
   const [searchParams] = useSearchParams();
   const [isFirstVisit, setIsFirstVisit] = useState(false);
   
+  // استخدام النظام المبسط
+  const { activeStore, isConnected, switchToStore } = useSimpleShopify();
+  
   useEffect(() => {
-    // التحقق من معلمات URL للتوجيه من شوبيفاي (النسخة الجديدة)
+    // التحقق من معلمات URL للتوجيه من شوبيفاي
     const connectedParam = searchParams.get("connected");
     const shopParam = searchParams.get("shop");
     
     if (connectedParam === "true" && shopParam) {
       console.log('🎉 New connection detected:', shopParam);
       
-      // تحديث المتجر النشط في connection manager
-      shopifyConnectionManager.setActiveStore(shopParam);
+      // استخدام النظام المبسط
+      const success = switchToStore(shopParam);
       
-      const message = language === 'ar' 
-        ? `🎉 تم ربط متجرك بنجاح! أهلاً بك في CODmagnet` 
-        : `🎉 Store connected successfully! Welcome to CODmagnet`;
-      
-      toast.success(message, {
-        duration: 5000,
-        position: 'top-center'
-      });
-
-      // إزالة معلمات URL من العنوان
-      if (window.history.replaceState) {
-        const newUrl = window.location.pathname;
-        window.history.replaceState({}, document.title, newUrl);
-      }
-      
-      // تعيين علامة الزيارة الأولى
-      const firstVisitKey = `first_visit_${shopParam}`;
-      if (!localStorage.getItem(firstVisitKey)) {
-        setIsFirstVisit(true);
-        localStorage.setItem(firstVisitKey, 'false');
-      }
-      
-      // لا نعيد تحميل الصفحة - فقط نحدث الحالة
-      return;
-    }
-    
-    // التحقق من معلمات URL للتوجيه من شوبيفاي (النسخة القديمة للتوافق)
-    const shopifyConnectedParam = searchParams.get("shopify_connected");
-    const oldShopParam = searchParams.get("shop");
-    
-    if (shopifyConnectedParam === "true" && oldShopParam) {
-      console.log('🎉 Legacy connection detected:', oldShopParam);
-      
-      // تحديث المتجر النشط في connection manager
-      shopifyConnectionManager.setActiveStore(oldShopParam);
-
-      // إزالة معلمات URL من العنوان
-      if (window.history.replaceState) {
-        const newUrl = window.location.pathname;
-        window.history.replaceState({}, '', newUrl);
-      }
-    }
-    
-    // التحقق من localStorage للاتصال الناجح (للتوافق مع النسخ القديمة)
-    const connectionSuccess = localStorage.getItem('shopify_connection_success');
-    
-    if (connectionSuccess === 'true') {
-      const connectedShop = localStorage.getItem('shopify_store');
-      if (connectedShop) {
+      if (success) {
         const message = language === 'ar' 
           ? `🎉 تم ربط متجرك بنجاح! أهلاً بك في CODmagnet` 
           : `🎉 Store connected successfully! Welcome to CODmagnet`;
@@ -91,19 +40,24 @@ const Dashboard = () => {
           duration: 5000,
           position: 'top-center'
         });
-        
-        // إزالة العلامة حتى لا تظهر مرة أخرى
-        localStorage.removeItem('shopify_connection_success');
+
+        // إزالة معلمات URL من العنوان
+        if (window.history.replaceState) {
+          const newUrl = window.location.pathname;
+          window.history.replaceState({}, document.title, newUrl);
+        }
         
         // تعيين علامة الزيارة الأولى
-        const firstVisitKey = `first_visit_${connectedShop}`;
+        const firstVisitKey = `first_visit_${shopParam}`;
         if (!localStorage.getItem(firstVisitKey)) {
           setIsFirstVisit(true);
           localStorage.setItem(firstVisitKey, 'false');
         }
       }
+      
+      return;
     }
-  }, [searchParams, language]);
+  }, [searchParams, language, switchToStore]);
 
   // إنشاء بيانات فارغة للرسوم البيانية
   const sampleData = Array.from({
@@ -128,8 +82,8 @@ const Dashboard = () => {
           <div className="mb-8">
             <h1 className="text-3xl font-bold mb-2">CODMAGNET</h1>
             <p className="text-gray-600">The Best Performing Cash On Delivery Form in Shopify</p>
-            {shop && <p className="text-sm text-purple-600 mt-1">
-                {language === 'ar' ? `متصل بمتجر: ${shop}` : `Connected to store: ${shop}`}
+            {activeStore && <p className="text-sm text-purple-600 mt-1">
+                {language === 'ar' ? `متصل بمتجر: ${activeStore}` : `Connected to store: ${activeStore}`}
               </p>}
           </div>
 
@@ -148,7 +102,7 @@ const Dashboard = () => {
               </div>
             </Card>}
 
-          {!shopifyConnected && <Card className="p-6 mb-8 border-yellow-300 border-2 bg-yellow-50">
+          {!isConnected && <Card className="p-6 mb-8 border-yellow-300 border-2 bg-yellow-50">
               <div className="flex items-start gap-4">
                 <div className="p-3 rounded-lg bg-yellow-100">
                   <AlertCircle className="w-6 h-6 text-yellow-600" />
