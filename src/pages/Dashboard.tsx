@@ -48,15 +48,48 @@ const Dashboard = () => {
       }
     }
     
-    // التحقق من معلمات URL للتوجيه من شوبيفاي (الكود القديم للتوافق)
-    const shopifyConnectedParam = searchParams.get("shopify_connected");
+    // التحقق من معلمات URL للتوجيه من شوبيفاي (الكود الجديد)
+    const connectedParam = searchParams.get("connected");
     const shopParam = searchParams.get("shop");
     
-    if (shopifyConnectedParam === "true" && shopParam) {
-      // حفظ المتجر في localStorage للتأكد من الاتساق
+    if (connectedParam === "true" && shopParam) {
+      // حفظ المتجر في localStorage
       localStorage.setItem('shopify_store', shopParam);
       localStorage.setItem('shopify_connected', 'true');
-      localStorage.setItem('shopify_active_store', shopParam);
+      localStorage.setItem('shopify_connection_success', 'true');
+      
+      const message = language === 'ar' 
+        ? `🎉 تم ربط متجرك بنجاح! أهلاً بك في CODmagnet` 
+        : `🎉 Store connected successfully! Welcome to CODmagnet`;
+      
+      toast.success(message, {
+        duration: 5000,
+        position: 'top-center'
+      });
+
+      // إزالة معلمات URL من العنوان
+      if (window.history.replaceState) {
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, newUrl);
+      }
+      
+      // تعيين علامة الزيارة الأولى
+      const firstVisitKey = `first_visit_${shopParam}`;
+      if (!localStorage.getItem(firstVisitKey)) {
+        setIsFirstVisit(true);
+        localStorage.setItem(firstVisitKey, 'false');
+      }
+    }
+    
+    // التحقق من معلمات URL للتوجيه من شوبيفاي (الكود القديم للتوافق)
+    const shopifyConnectedParam = searchParams.get("shopify_connected");
+    const oldShopParam = searchParams.get("shop");
+    
+    if (shopifyConnectedParam === "true" && oldShopParam) {
+      // حفظ المتجر في localStorage للتأكد من الاتساق
+      localStorage.setItem('shopify_store', oldShopParam);
+      localStorage.setItem('shopify_connected', 'true');
+      localStorage.setItem('shopify_active_store', oldShopParam);
       
       // تحديث معلومات المتجر في connection manager أيضاً
       import('@/lib/shopify/connection-manager').then(({ shopifyConnectionManager }) => {

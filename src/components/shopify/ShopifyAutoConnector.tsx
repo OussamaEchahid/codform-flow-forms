@@ -29,6 +29,20 @@ const ShopifyAutoConnector: React.FC<ShopifyAutoConnectorProps> = ({ onConnected
         }
         
         console.log('🔍 Shop detected:', normalizedShop);
+        
+        // فحص إذا كان هذا المتجر متصل بالفعل
+        const connectedShop = localStorage.getItem('shopify_store');
+        const isConnected = localStorage.getItem('shopify_connected') === 'true';
+        
+        if (isConnected && connectedShop === normalizedShop) {
+          console.log('✅ Shop already connected, skipping dialog');
+          // تنظيف URL بدون إظهار النافذة
+          const newUrl = window.location.pathname;
+          window.history.replaceState({}, '', newUrl);
+          return;
+        }
+        
+        // إظهار النافذة فقط إذا لم يكن متصل
         setDetectedShop(normalizedShop);
         setShowDialog(true);
         

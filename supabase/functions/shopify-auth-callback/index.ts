@@ -183,32 +183,11 @@ serve(async (req) => {
       console.log("💾 Saving shop data to database...");
       await saveShopData(cleanedShop, tokenData);
       
-      // إعادة توجيه إلى التطبيق مع معلمة نجاح
-      const redirectUrl = `https://codmagnet.com/dashboard?shopify_connected=true&shop=${encodeURIComponent(cleanedShop)}`;
-      
-      return new Response(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="UTF-8">
-          <title>Redirecting...</title>
-        </head>
-        <body>
-          <script>
-            // حفظ معلومات المتجر في localStorage
-            localStorage.setItem('shopify_store', '${cleanedShop}');
-            localStorage.setItem('shopify_connected', 'true');
-            localStorage.setItem('shopify_last_connected', Date.now().toString());
-            localStorage.setItem('shopify_connection_success', 'true');
-            
-            // إعادة توجيه فورية
-            window.location.href = '${redirectUrl}';
-          </script>
-        </body>
-        </html>
-      `, {
+      // إعادة توجيه JavaScript فوري بدون HTML
+      return new Response(``, {
+        status: 302,
         headers: { 
-          "Content-Type": "text/html; charset=utf-8",
+          "Location": `https://codmagnet.com/dashboard?connected=true&shop=${encodeURIComponent(cleanedShop)}`,
           "Cache-Control": "no-store, no-cache, must-revalidate",
           "Pragma": "no-cache"
         }
