@@ -83,6 +83,9 @@ verify_jwt = false
 [functions.clean-shopify-stores]
 verify_jwt = false
 
+[functions.save-detected-shop]
+verify_jwt = false
+
 [functions.shopify-auth-callback]
 verify_jwt = false
 access_control_allow_origin = "https://codmagnet.com"

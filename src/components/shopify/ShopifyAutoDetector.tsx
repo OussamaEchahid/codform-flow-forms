@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { shopifyStores } from '@/lib/shopify/supabase-client';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
 
@@ -16,6 +17,10 @@ const ShopifyAutoDetector: React.FC<ShopifyAutoDetectorProps> = ({
   const [detectedShop, setDetectedShop] = useState<string | null>(null);
 
   useEffect(() => {
+    console.log('🚀 ShopifyAutoDetector mounted!');
+    console.log('🔍 Current URL:', window.location.href);
+    console.log('🔍 Search params:', window.location.search);
+    
     const detectAndSaveShop = async () => {
       if (isProcessing) return;
 
@@ -23,7 +28,16 @@ const ShopifyAutoDetector: React.FC<ShopifyAutoDetectorProps> = ({
       const urlParams = new URLSearchParams(window.location.search);
       const shopParam = urlParams.get('shop');
       
-      if (!shopParam) return;
+      console.log('🔍 URL Parameters check:', {
+        shopParam,
+        allParams: Object.fromEntries(urlParams.entries()),
+        href: window.location.href
+      });
+      
+      if (!shopParam) {
+        console.log('❌ No shop parameter found in URL');
+        return;
+      }
 
       setIsProcessing(true);
       
@@ -40,67 +54,25 @@ const ShopifyAutoDetector: React.FC<ShopifyAutoDetectorProps> = ({
         // إبلاغ المكون الأب
         onShopDetected?.(normalizedShop);
 
-        // فحص إذا كان المتجر موجود مسبقاً
-        const { data: existing, error: checkError } = await shopifyStores()
-          .select('shop, is_active, access_token')
-          .eq('shop', normalizedShop)
-          .maybeSingle();
+        // استخدام edge function للحفظ المضمون
+        console.log('💾 Calling save-detected-shop function...');
+        
+        try {
+          const { data, error } = await supabase.functions.invoke('save-detected-shop', {
+            body: { shop: normalizedShop }
+          });
 
-        if (checkError) {
-          console.error('❌ Error checking existing shop:', checkError);
-          throw checkError;
-        }
-
-        if (existing) {
-          console.log('ℹ️ Shop already exists:', normalizedShop);
-          
-          // تفعيل المتجر الموجود
-          const { error: updateError } = await shopifyStores()
-            .update({ 
-              is_active: true, 
-              updated_at: new Date().toISOString() 
-            })
-            .eq('shop', normalizedShop);
-
-          if (updateError) {
-            console.error('❌ Error activating existing shop:', updateError);
-          } else {
-            console.log('✅ Existing shop activated:', normalizedShop);
-            
-            // تحديث connection manager
-            shopifyConnectionManager.addOrUpdateStore(normalizedShop, true);
-            
-            // إبلاغ المكون الأب
-            onShopSaved?.(normalizedShop);
-            
-            toast({
-              title: "تم تفعيل المتجر",
-              description: `تم تفعيل ${normalizedShop} بنجاح`,
-            });
-          }
-        } else {
-          console.log('💾 Saving new shop to database:', normalizedShop);
-          
-          // إضافة المتجر الجديد
-          const { data: newShop, error: insertError } = await shopifyStores()
-            .insert({
-              shop: normalizedShop,
-              is_active: true,
-              access_token: null, // سيتم إضافته بعد OAuth إذا نجح
-              scope: null,
-              token_type: 'Bearer',
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            })
-            .select()
-            .single();
-
-          if (insertError) {
-            console.error('❌ Error saving new shop:', insertError);
-            throw insertError;
+          if (error) {
+            console.error('❌ Edge function error:', error);
+            throw error;
           }
 
-          console.log('✅ New shop saved successfully:', newShop);
+          if (!data || !data.success) {
+            console.error('❌ Edge function failed:', data);
+            throw new Error(data?.error || 'فشل في حفظ المتجر');
+          }
+
+          console.log('✅ Shop saved via edge function:', data);
           
           // تحديث connection manager
           shopifyConnectionManager.addOrUpdateStore(normalizedShop, true);
@@ -109,9 +81,46 @@ const ShopifyAutoDetector: React.FC<ShopifyAutoDetectorProps> = ({
           onShopSaved?.(normalizedShop);
           
           toast({
-            title: "تم حفظ المتجر",
-            description: `تم حفظ ${normalizedShop} بنجاح في قائمة متاجرك`,
+            title: data.action === 'created' ? "تم حفظ المتجر" : "تم تفعيل المتجر",
+            description: `${normalizedShop} - ${data.message}`,
           });
+
+        } catch (edgeFunctionError) {
+          console.error('❌ Edge function failed, trying direct database:', edgeFunctionError);
+          
+          // Fallback: المحاولة المباشرة مع قاعدة البيانات
+          try {
+            const { data: existing, error: checkError } = await shopifyStores()
+              .select('shop, is_active')
+              .eq('shop', normalizedShop)
+              .maybeSingle();
+
+            if (!checkError && existing) {
+              await shopifyStores()
+                .update({ is_active: true, updated_at: new Date().toISOString() })
+                .eq('shop', normalizedShop);
+            } else if (!checkError) {
+              await shopifyStores()
+                .insert({
+                  shop: normalizedShop,
+                  is_active: true,
+                  access_token: null,
+                  scope: null,
+                  token_type: 'Bearer'
+                });
+            }
+            
+            shopifyConnectionManager.addOrUpdateStore(normalizedShop, true);
+            onShopSaved?.(normalizedShop);
+            
+            toast({
+              title: "تم حفظ المتجر",
+              description: `تم حفظ ${normalizedShop} بنجاح`,
+            });
+          } catch (fallbackError) {
+            console.error('❌ Fallback also failed:', fallbackError);
+            throw fallbackError;
+          }
         }
 
         // تنظيف URL من parameters
@@ -130,10 +139,10 @@ const ShopifyAutoDetector: React.FC<ShopifyAutoDetectorProps> = ({
       }
     };
 
-    // تأخير بسيط للتأكد من تحميل كل شيء
-    const timer = setTimeout(detectAndSaveShop, 500);
+    // تشغيل فوري
+    console.log('🎯 Starting detectAndSaveShop...');
+    detectAndSaveShop();
     
-    return () => clearTimeout(timer);
   }, []); // يتم تشغيله مرة واحدة فقط
 
   // هذا المكون لا يحتاج UI
