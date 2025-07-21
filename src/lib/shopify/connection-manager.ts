@@ -1,4 +1,3 @@
-
 // Enhanced implementation of the ShopifyConnectionManager class
 // We're adding more robust error handling and cleaning up session state
 
@@ -12,6 +11,100 @@ class ShopifyConnectionManager {
   private readonly RECOVERY_ATTEMPT_KEY = 'shopify_recovery_attempt';
   private readonly CONNECTION_TIMESTAMP_KEY = 'shopify_connection_timestamp';
   
+  /**
+   * Sets the active store with comprehensive cleanup
+   * @param domain The store domain to set active
+   */
+  public setActiveStore(domain: string): void {
+    try {
+      const cleanedDomain = cleanShopifyDomain(domain);
+      if (!cleanedDomain) {
+        console.error('Invalid domain provided to setActiveStore');
+        return;
+      }
+      
+      console.log(`🔄 Setting active store to: ${cleanedDomain}`);
+      
+      // 1. تنظيف شامل لجميع البيانات القديمة
+      this.clearActiveStoreCache();
+      
+      // 2. إزالة جميع المتاجر القديمة من connection manager
+      const existingStores = this.getAllStores();
+      existingStores.forEach(store => {
+        if (store.domain !== cleanedDomain) {
+          store.isActive = false;
+        }
+      });
+      
+      // 3. البحث عن المتجر في القائمة الموجودة أو إنشاؤه
+      let targetStore = existingStores.find(s => s.domain === cleanedDomain);
+      const currentTimestamp = new Date().toISOString();
+      
+      if (targetStore) {
+        targetStore.isActive = true;
+        targetStore.lastConnected = currentTimestamp;
+      } else {
+        targetStore = {
+          domain: cleanedDomain,
+          shop: cleanedDomain,
+          isActive: true,
+          lastConnected: currentTimestamp
+        };
+        existingStores.push(targetStore);
+      }
+      
+      // 4. حفظ المتاجر المحدثة
+      localStorage.setItem(this.STORES_KEY, JSON.stringify(existingStores));
+      
+      // 5. تحديد المتجر النشط في جميع المواقع
+      localStorage.setItem(this.ACTIVE_STORE_KEY, cleanedDomain);
+      localStorage.setItem('shopify_store', cleanedDomain);
+      localStorage.setItem('shopify_connected', 'true');
+      localStorage.setItem('shopify_active_store', cleanedDomain);
+      
+      // 6. تنظيف الـ cache وإعادة تعيينه
+      this.storeCache = cleanedDomain;
+      this.storeCacheTime = Date.now();
+      
+      // 7. تسجيل النجاح
+      localStorage.setItem(this.CONNECTION_TIMESTAMP_KEY, Date.now().toString());
+      localStorage.removeItem(this.LAST_ERROR_KEY);
+      localStorage.removeItem(this.RECOVERY_ATTEMPT_KEY);
+      
+      console.log(`✅ Active store set successfully: ${cleanedDomain}`);
+      
+    } catch (error) {
+      console.error('Error in setActiveStore:', error);
+      this.recordError('setActiveStore', error);
+    }
+  }
+  
+  /**
+   * Clears active store cache completely
+   */
+  private clearActiveStoreCache(): void {
+    try {
+      // مسح الـ cache
+      this.storeCache = null;
+      this.storeCacheTime = 0;
+      
+      // مسح جميع مفاتيح localStorage المتعلقة بالمتجر النشط
+      localStorage.removeItem('shopify_store');
+      localStorage.removeItem('shopify_connected');
+      localStorage.removeItem('shopify_active_store');
+      localStorage.removeItem('shopify_temp_store');
+      localStorage.removeItem('shopify_connecting');
+      localStorage.removeItem('shopify_connection_success');
+      
+      // مسح مفاتيح connection manager
+      localStorage.removeItem(this.ACTIVE_STORE_KEY);
+      
+      console.log('🧹 Active store cache cleared completely');
+    } catch (error) {
+      console.error('Error clearing active store cache:', error);
+    }
+  }
+
   /**
    * Adds or updates a store in the connection manager
    * @param domain The store domain
@@ -171,22 +264,6 @@ class ShopifyConnectionManager {
       console.error('Error in getActiveStore:', error);
       this.recordError('getActiveStore', error);
       return null;
-    }
-  }
-  
-  /**
-   * Sets the active store
-   * @param domain The store domain to set active
-   */
-  public setActiveStore(domain: string): void {
-    try {
-      const cleanedDomain = cleanShopifyDomain(domain);
-      if (!cleanedDomain) return;
-      
-      this.addOrUpdateStore(cleanedDomain, true);
-    } catch (error) {
-      console.error('Error in setActiveStore:', error);
-      this.recordError('setActiveStore', error);
     }
   }
   

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -6,6 +7,7 @@ import { Store, CheckCircle, AlertCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { shopifyStores } from '@/lib/shopify/supabase-client';
 import { supabase } from '@/integrations/supabase/client';
+import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
 
 interface ShopifyAutoConnectorProps {
   onConnected?: (shop: string) => void;
@@ -30,19 +32,42 @@ const ShopifyAutoConnector: React.FC<ShopifyAutoConnectorProps> = ({ onConnected
         
         console.log('🔍 Shop detected:', normalizedShop);
         
-        // فحص إذا كان هذا المتجر متصل بالفعل
-        const connectedShop = localStorage.getItem('shopify_store');
-        const isConnected = localStorage.getItem('shopify_connected') === 'true';
+        // فحص إذا كان هذا المتجر هو النشط حالياً من connection manager
+        const currentActiveStore = shopifyConnectionManager.getActiveStore();
+        console.log('🔍 Current active store from connection manager:', currentActiveStore);
         
-        if (isConnected && connectedShop === normalizedShop) {
-          console.log('✅ Shop already connected, skipping dialog');
+        if (currentActiveStore === normalizedShop) {
+          console.log('✅ Shop already active, skipping dialog');
           // تنظيف URL بدون إظهار النافذة
           const newUrl = window.location.pathname;
           window.history.replaceState({}, '', newUrl);
           return;
         }
         
-        // إظهار النافذة فقط إذا لم يكن متصل
+        // فحص إذا كان المتجر موجود في قائمة المتاجر المحفوظة
+        const allStores = shopifyConnectionManager.getAllStores();
+        const existingStore = allStores.find(store => store.shop === normalizedShop || store.domain === normalizedShop);
+        
+        if (existingStore) {
+          console.log('🔄 Store exists, switching to it directly');
+          shopifyConnectionManager.setActiveStore(normalizedShop);
+          
+          toast({
+            title: "تم التبديل بنجاح",
+            description: `تم التبديل إلى متجر ${normalizedShop}`,
+          });
+          
+          // تنظيف URL
+          const newUrl = window.location.pathname;
+          window.history.replaceState({}, '', newUrl);
+          
+          if (onConnected) {
+            onConnected(normalizedShop);
+          }
+          return;
+        }
+        
+        // إظهار النافذة فقط للمتاجر الجديدة غير المتصلة
         setDetectedShop(normalizedShop);
         setShowDialog(true);
         
@@ -53,7 +78,7 @@ const ShopifyAutoConnector: React.FC<ShopifyAutoConnectorProps> = ({ onConnected
     };
 
     detectShop();
-  }, []);
+  }, [onConnected]);
 
   const handleConnect = async () => {
     if (!detectedShop) return;
@@ -101,9 +126,8 @@ const ShopifyAutoConnector: React.FC<ShopifyAutoConnectorProps> = ({ onConnected
         const authUrl = data.redirect || data.authUrl;
         console.log('🔄 Redirecting to Shopify auth:', authUrl);
         
-        // حفظ المتجر في localStorage قبل إعادة التوجيه
-        localStorage.setItem('shopify_store', detectedShop);
-        localStorage.setItem('shopify_connecting', 'true');
+        // تحديد المتجر الجديد كنشط قبل إعادة التوجيه
+        shopifyConnectionManager.setActiveStore(detectedShop);
         
         // إعادة توجيه مباشرة
         window.location.href = authUrl;

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -39,9 +40,8 @@ const MyStores = () => {
 
         setStores(data || []);
         
-        // تحديد المتجر النشط الحالي
-        const activeStore = localStorage.getItem('shopify_store') || 
-                          shopifyConnectionManager.getActiveStore();
+        // تحديد المتجر النشط الحالي من connection manager
+        const activeStore = shopifyConnectionManager.getActiveStore();
         setCurrentStore(activeStore);
         
       } catch (error) {
@@ -74,9 +74,8 @@ const MyStores = () => {
         const authUrl = data.redirect || data.authUrl;
         console.log('🔄 Redirecting to Shopify auth:', authUrl);
         
-        // حفظ المتجر في localStorage قبل إعادة التوجيه
-        localStorage.setItem('shopify_store', shopDomain);
-        localStorage.setItem('shopify_connecting', 'true');
+        // تحديد المتجر كنشط قبل إعادة التوجيه
+        shopifyConnectionManager.setActiveStore(shopDomain);
         
         // إعادة توجيه
         window.location.href = authUrl;
@@ -98,24 +97,35 @@ const MyStores = () => {
 
   // تبديل المتجر النشط (للمتاجر المتصلة بالفعل)
   const handleSwitchStore = (shopDomain: string) => {
-    localStorage.setItem('shopify_store', shopDomain);
-    localStorage.setItem('shopify_active_store', shopDomain);
-    
-    // تحديث connection manager
-    shopifyConnectionManager.clearAllStores();
-    shopifyConnectionManager.addOrUpdateStore(shopDomain, true, true);
-    
-    setCurrentStore(shopDomain);
-    
-    toast({
-      title: "تم التبديل",
-      description: `تم التبديل إلى متجر ${shopDomain}`,
-    });
-    
-    // إعادة تحميل الصفحة للتأكد من التحديث
-    setTimeout(() => {
-      window.location.reload();
-    }, 500);
+    try {
+      console.log(`🔄 Switching to store: ${shopDomain}`);
+      
+      // استخدام setActiveStore المحسن لتبديل المتجر
+      shopifyConnectionManager.setActiveStore(shopDomain);
+      
+      // تحديث الحالة المحلية
+      setCurrentStore(shopDomain);
+      
+      toast({
+        title: "تم التبديل",
+        description: `تم التبديل إلى متجر ${shopDomain}`,
+      });
+      
+      console.log(`✅ Successfully switched to store: ${shopDomain}`);
+      
+      // إعادة تحميل الصفحة بعد فترة قصيرة للتأكد من التحديث
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+      
+    } catch (error) {
+      console.error('❌ Error switching store:', error);
+      toast({
+        title: "خطأ في التبديل",
+        description: `فشل في التبديل إلى متجر ${shopDomain}`,
+        variant: "destructive"
+      });
+    }
   };
 
   return (

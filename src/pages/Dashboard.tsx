@@ -8,6 +8,8 @@ import { ShoppingCart, Target, DollarSign, AlertCircle } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const {
@@ -20,8 +22,62 @@ const Dashboard = () => {
   } = useI18n();
   const [searchParams] = useSearchParams();
   const [isFirstVisit, setIsFirstVisit] = useState(false);
+  
   useEffect(() => {
-    // التحقق من localStorage للاتصال الناجح
+    // التحقق من معلمات URL للتوجيه من شوبيفاي (النسخة الجديدة)
+    const connectedParam = searchParams.get("connected");
+    const shopParam = searchParams.get("shop");
+    
+    if (connectedParam === "true" && shopParam) {
+      console.log('🎉 New connection detected:', shopParam);
+      
+      // تحديث المتجر النشط في connection manager
+      shopifyConnectionManager.setActiveStore(shopParam);
+      
+      const message = language === 'ar' 
+        ? `🎉 تم ربط متجرك بنجاح! أهلاً بك في CODmagnet` 
+        : `🎉 Store connected successfully! Welcome to CODmagnet`;
+      
+      toast.success(message, {
+        duration: 5000,
+        position: 'top-center'
+      });
+
+      // إزالة معلمات URL من العنوان
+      if (window.history.replaceState) {
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, newUrl);
+      }
+      
+      // تعيين علامة الزيارة الأولى
+      const firstVisitKey = `first_visit_${shopParam}`;
+      if (!localStorage.getItem(firstVisitKey)) {
+        setIsFirstVisit(true);
+        localStorage.setItem(firstVisitKey, 'false');
+      }
+      
+      // لا نعيد تحميل الصفحة - فقط نحدث الحالة
+      return;
+    }
+    
+    // التحقق من معلمات URL للتوجيه من شوبيفاي (النسخة القديمة للتوافق)
+    const shopifyConnectedParam = searchParams.get("shopify_connected");
+    const oldShopParam = searchParams.get("shop");
+    
+    if (shopifyConnectedParam === "true" && oldShopParam) {
+      console.log('🎉 Legacy connection detected:', oldShopParam);
+      
+      // تحديث المتجر النشط في connection manager
+      shopifyConnectionManager.setActiveStore(oldShopParam);
+
+      // إزالة معلمات URL من العنوان
+      if (window.history.replaceState) {
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, '', newUrl);
+      }
+    }
+    
+    // التحقق من localStorage للاتصال الناجح (للتوافق مع النسخ القديمة)
     const connectionSuccess = localStorage.getItem('shopify_connection_success');
     
     if (connectionSuccess === 'true') {
@@ -47,75 +103,6 @@ const Dashboard = () => {
         }
       }
     }
-    
-    // التحقق من معلمات URL للتوجيه من شوبيفاي (الكود الجديد)
-    const connectedParam = searchParams.get("connected");
-    const shopParam = searchParams.get("shop");
-    
-    if (connectedParam === "true" && shopParam) {
-      // حفظ المتجر في localStorage وتحديث المتجر النشط
-      localStorage.setItem('shopify_store', shopParam);
-      localStorage.setItem('shopify_connected', 'true');
-      localStorage.setItem('shopify_connection_success', 'true');
-      localStorage.setItem('shopify_active_store', shopParam); // مهم: تحديث المتجر النشط
-      
-      // تحديث connection manager للمتجر الجديد
-      import('@/lib/shopify/connection-manager').then(({ shopifyConnectionManager }) => {
-        console.log(`🔄 Switching to new active store: ${shopParam}`);
-        shopifyConnectionManager.clearAllStores(); // مسح جميع المتاجر القديمة
-        shopifyConnectionManager.addOrUpdateStore(shopParam, true, true); // إضافة المتجر الجديد كنشط
-        console.log(`✅ Updated connection manager with new store: ${shopParam}`);
-      });
-      
-      const message = language === 'ar' 
-        ? `🎉 تم ربط متجرك بنجاح! أهلاً بك في CODmagnet` 
-        : `🎉 Store connected successfully! Welcome to CODmagnet`;
-      
-      toast.success(message, {
-        duration: 5000,
-        position: 'top-center'
-      });
-
-      // إزالة معلمات URL من العنوان
-      if (window.history.replaceState) {
-        const newUrl = window.location.pathname;
-        window.history.replaceState({}, document.title, newUrl);
-      }
-      
-      // تعيين علامة الزيارة الأولى
-      const firstVisitKey = `first_visit_${shopParam}`;
-      if (!localStorage.getItem(firstVisitKey)) {
-        setIsFirstVisit(true);
-        localStorage.setItem(firstVisitKey, 'false');
-      }
-      
-      // إعادة تحميل الصفحة لضمان التحديث الكامل
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
-    }
-    
-    // التحقق من معلمات URL للتوجيه من شوبيفاي (الكود القديم للتوافق)
-    const shopifyConnectedParam = searchParams.get("shopify_connected");
-    const oldShopParam = searchParams.get("shop");
-    
-    if (shopifyConnectedParam === "true" && oldShopParam) {
-      // حفظ المتجر في localStorage للتأكد من الاتساق
-      localStorage.setItem('shopify_store', oldShopParam);
-      localStorage.setItem('shopify_connected', 'true');
-      localStorage.setItem('shopify_active_store', oldShopParam);
-      
-      // تحديث معلومات المتجر في connection manager أيضاً
-      import('@/lib/shopify/connection-manager').then(({ shopifyConnectionManager }) => {
-        shopifyConnectionManager.addOrUpdateStore(shopParam, true, true);
-      });
-
-      // إزالة معلمات URL من العنوان
-      if (window.history.replaceState) {
-        const newUrl = window.location.pathname;
-        window.history.replaceState({}, document.title, newUrl);
-      }
-    }
   }, [searchParams, language]);
 
   // إنشاء بيانات فارغة للرسوم البيانية
@@ -131,7 +118,9 @@ const Dashboard = () => {
   const handleConnectShopify = () => {
     navigate('/shopify');
   };
-  return <div className="flex min-h-screen bg-[#F8F9FB]">
+  
+  return (
+    <div className="flex min-h-screen bg-[#F8F9FB]">
       <AppSidebar />
       
       <main className="flex-1 p-8">
@@ -245,6 +234,8 @@ const Dashboard = () => {
           </div>
         </div>
       </main>
-    </div>;
+    </div>
+  );
 };
+
 export default Dashboard;
