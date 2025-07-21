@@ -150,8 +150,19 @@ export const useShopify = () => {
         .order('updated_at', { ascending: false })
         .limit(1);
 
-      if (tokenError || !tokenData || tokenData.length === 0) {
-        throw new Error('Token not found');
+      if (tokenError) {
+        console.error('Error fetching token:', tokenError);
+        throw new Error(`Database error: ${tokenError.message}`);
+      }
+
+      if (!tokenData || tokenData.length === 0) {
+        console.error(`No store found in database for shop: ${shop}`);
+        throw new Error(`Store ${shop} not found. Please ensure the store is properly connected.`);
+      }
+
+      if (!tokenData[0].access_token) {
+        console.error(`Access token missing for shop: ${shop}`);
+        throw new Error(`Access token missing for store ${shop}. Please reconnect the store.`);
       }
 
       const token = tokenData[0].access_token || '';
@@ -195,7 +206,19 @@ export const useShopify = () => {
       console.error('Error loading products:', error);
       setIsLoading(false);
       setTokenError(true);
-      toast.error('فشل في تحميل المنتجات. يرجى المحاولة مرة أخرى');
+      
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      if (errorMessage.includes('not found')) {
+        toast.error('المتجر غير مربوط بشكل صحيح. يرجى إعادة ربط المتجر');
+      } else if (errorMessage.includes('access token missing')) {
+        toast.error('رمز الوصول مفقود. يرجى إعادة ربط المتجر');
+      } else if (errorMessage.includes('Database error')) {
+        toast.error('خطأ في قاعدة البيانات. يرجى المحاولة مرة أخرى');
+      } else {
+        toast.error('فشل في تحميل المنتجات. يرجى التحقق من حالة الاتصال بالمتجر');
+      }
+      
       return [];
     }
   }, [shop, products, lastLoadTime, isLoading]);

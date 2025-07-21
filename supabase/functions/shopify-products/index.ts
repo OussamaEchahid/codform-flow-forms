@@ -84,8 +84,30 @@ serve(async (req: Request) => {
         .eq('shop', shop)
         .single();
       
-      if (shopError || !shopData || !shopData.access_token) {
-        console.error(`[${requestId}] ❌ خطأ في جلب رمز الوصول للمتجر:`, shopError);
+      if (shopError) {
+        console.error(`[${requestId}] ❌ خطأ في قاعدة البيانات:`, shopError);
+        return new Response(JSON.stringify({
+          success: false,
+          message: `Database error: ${shopError.message}`,
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      if (!shopData) {
+        console.error(`[${requestId}] ❌ لم يتم العثور على المتجر: ${shop}`);
+        return new Response(JSON.stringify({
+          success: false,
+          message: `Store ${shop} not found. Please ensure the store is properly connected.`,
+        }), {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      if (!shopData.access_token) {
+        console.error(`[${requestId}] ❌ رمز الوصول مفقود للمتجر: ${shop}`);
         
         // Generate mock products for specific IDs if this is a dev store
         if (shop.includes('myshopify.com')) {
@@ -279,8 +301,30 @@ serve(async (req: Request) => {
         .eq('shop', shop)
         .single();
       
-      if (shopError || !shopData || !shopData.access_token) {
-        console.error(`[${requestId}] ❌ خطأ في جلب رمز الوصول للمتجر:`, shopError);
+      if (shopError) {
+        console.error(`[${requestId}] ❌ خطأ في قاعدة البيانات:`, shopError);
+        return new Response(JSON.stringify({
+          success: false,
+          message: `Database error: ${shopError.message}`,
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      if (!shopData) {
+        console.error(`[${requestId}] ❌ لم يتم العثور على المتجر: ${shop}`);
+        return new Response(JSON.stringify({
+          success: false,
+          message: `Store ${shop} not found. Please ensure the store is properly connected.`,
+        }), {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      if (!shopData.access_token) {
+        console.error(`[${requestId}] ❌ رمز الوصول مفقود للمتجر: ${shop}`);
         
         // Generate mock products only if this is a dev store
         if (shop.includes('myshopify.com')) {
