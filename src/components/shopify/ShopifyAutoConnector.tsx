@@ -6,7 +6,6 @@ import { Store, CheckCircle, AlertCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { shopifyStores } from '@/lib/shopify/supabase-client';
 import { supabase } from '@/integrations/supabase/client';
-import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
 
 interface ShopifyAutoConnectorProps {
   onConnected?: (shop: string) => void;
@@ -31,11 +30,12 @@ const ShopifyAutoConnector: React.FC<ShopifyAutoConnectorProps> = ({ onConnected
         
         console.log('🔍 Shop detected:', normalizedShop);
         
-        // فحص إذا كان هذا المتجر هو النشط حالياً من connection manager
-        const currentActiveShop = shopifyConnectionManager.getActiveStore();
+        // فحص إذا كان هذا المتجر متصل بالفعل
+        const connectedShop = localStorage.getItem('shopify_store');
+        const isConnected = localStorage.getItem('shopify_connected') === 'true';
         
-        if (currentActiveShop === normalizedShop) {
-          console.log('✅ Shop already active, skipping dialog');
+        if (isConnected && connectedShop === normalizedShop) {
+          console.log('✅ Shop already connected, skipping dialog');
           // تنظيف URL بدون إظهار النافذة
           const newUrl = window.location.pathname;
           window.history.replaceState({}, '', newUrl);
@@ -64,11 +64,7 @@ const ShopifyAutoConnector: React.FC<ShopifyAutoConnectorProps> = ({ onConnected
     try {
       console.log('🔗 Starting connection process for:', detectedShop);
       
-      // 1. تعيين المتجر الجديد كنشط في connection manager (مسح القديم)
-      console.log(`🔄 Setting ${detectedShop} as the only active store...`);
-      shopifyConnectionManager.setActiveStore(detectedShop);
-      
-      // 2. حفظ/تفعيل المتجر في قاعدة البيانات
+      // 1. حفظ/تفعيل المتجر في قاعدة البيانات
       const { data: existing } = await shopifyStores()
         .select('*')
         .eq('shop', detectedShop)
@@ -91,7 +87,7 @@ const ShopifyAutoConnector: React.FC<ShopifyAutoConnectorProps> = ({ onConnected
         console.log('✅ Store saved:', detectedShop);
       }
 
-      // 3. بدء عملية المصادقة مع Shopify
+      // 2. بدء عملية المصادقة مع Shopify
       console.log('🚀 Starting Shopify OAuth...');
       const { data, error } = await supabase.functions.invoke('shopify-auth', {
         body: { shop: detectedShop }
@@ -105,7 +101,11 @@ const ShopifyAutoConnector: React.FC<ShopifyAutoConnectorProps> = ({ onConnected
         const authUrl = data.redirect || data.authUrl;
         console.log('🔄 Redirecting to Shopify auth:', authUrl);
         
-        // إعادة توجيه مباشرة (localStorage محدث مسبقاً)
+        // حفظ المتجر في localStorage قبل إعادة التوجيه
+        localStorage.setItem('shopify_store', detectedShop);
+        localStorage.setItem('shopify_connecting', 'true');
+        
+        // إعادة توجيه مباشرة
         window.location.href = authUrl;
       } else {
         throw new Error('No auth URL received');
