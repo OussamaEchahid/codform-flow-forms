@@ -27,7 +27,7 @@ scopes = "write_products,read_products,read_orders,write_orders,write_script_tag
 
 [auth]
 redirect_urls = [
-  "https://codform-flow-forms.lovable.app/shopify-callback"
+  "https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-auth-callback"
 ]
 
 [pos]
