@@ -13,7 +13,7 @@ console.log("🚀 Shopify Auth Edge Function initialized");
 const SHOPIFY_API_KEY = "753bee2864a0b12f2d87c79b56c86641";
 
 // صلاحيات التطبيق
-const scopes = "read_content,read_orders";
+const scopes = "write_products,read_products,read_orders,write_orders,write_script_tags,read_themes,write_themes,read_content,write_content";
 
 // عنوان URL لرد المصادقة - يشير مباشرة إلى Edge Function
 const CALLBACK_URL = `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-auth-callback`;
