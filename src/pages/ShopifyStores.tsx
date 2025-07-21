@@ -10,6 +10,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 const ShopifyStores: React.FC = () => {
   const { language } = useI18n();
   const navigate = useNavigate();
+  
+  // الحصول على اسم المتجر من localStorage
+  const shop = localStorage.getItem('shopify_store') || 'astrem.myshopify.com';
 
   return (
     <div className="flex min-h-screen bg-[#F8F9FB]" dir={language === 'ar' ? 'rtl' : 'ltr'}>
@@ -39,7 +42,7 @@ const ShopifyStores: React.FC = () => {
             </TabsContent>
             
             <TabsContent value="token" className="space-y-8">
-              <ShopifyTokenUpdater />
+              <ShopifyTokenUpdater shop={shop || 'astrem.myshopify.com'} />
               
               <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg mt-4">
                 <h3 className="font-medium text-amber-800 mb-2">تعليمات إنشاء رمز وصول Admin API</h3>

@@ -437,7 +437,7 @@ const ShopifyTest: React.FC = () => {
               <CardDescription>قم بتحديث رمز الوصول لمتجر Shopify مباشرة في قاعدة البيانات</CardDescription>
             </CardHeader>
             <CardContent>
-              <ShopifyTokenUpdater />
+              <ShopifyTokenUpdater shop={shop || 'astrem.myshopify.com'} />
             </CardContent>
           </Card>
         )}

@@ -161,10 +161,41 @@ export const useShopify = () => {
         throw new Error(`STORE_NOT_FOUND:${shop}`);
       }
 
-      if (!tokenData[0].access_token) {
+      if (!tokenData[0].access_token || tokenData[0].access_token === 'null') {
         console.error(`Access token missing for shop: ${shop}`);
-        // إرسال إشارة خاصة لعدم وجود الرمز
-        throw new Error(`TOKEN_MISSING:${shop}`);
+        // محاولة استعادة التوكن من localStorage كحل مؤقت
+        const storedToken = localStorage.getItem(`shopify_token_${shop}`);
+        if (storedToken && storedToken !== 'null') {
+          console.log('Found stored token, trying to restore it...');
+          try {
+            // محاولة استعادة التوكن في قاعدة البيانات
+            const { error: updateError } = await shopifyStores()
+              .update({ access_token: storedToken, is_active: true })
+              .eq('shop', shop);
+            
+            if (!updateError) {
+              console.log('Token restored successfully');
+              // إعادة تحميل البيانات
+              const { data: updatedData } = await shopifyStores()
+                .select('*')
+                .eq('shop', shop)
+                .order('updated_at', { ascending: false })
+                .limit(1);
+              
+              if (updatedData && updatedData[0]?.access_token) {
+                tokenData[0].access_token = updatedData[0].access_token;
+                toast.success('تم استعادة اتصال المتجر بنجاح');
+              }
+            }
+          } catch (e) {
+            console.warn('Failed to restore token:', e);
+          }
+        }
+        
+        if (!tokenData[0].access_token || tokenData[0].access_token === 'null') {
+          // إرسال إشارة خاصة لعدم وجود الرمز
+          throw new Error(`TOKEN_MISSING:${shop}`);
+        }
       }
 
       const token = tokenData[0].access_token || '';

@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import ShopifyErrorHandler from '@/components/shopify/ShopifyErrorHandler';
+import ShopifyTokenUpdater from '@/components/shopify/ShopifyTokenUpdater';
 import { 
   AlertCircle, 
   ShoppingBag, 
