@@ -161,7 +161,7 @@ const ShopifyConnection = () => {
 
       // بناء OAuth URL بشكل مباشر - الطريقة الحديثة
       const scopes = 'write_products,read_products,read_orders,write_orders,write_script_tags,read_themes,write_themes,read_content,write_content';
-      const redirectUri = 'https://codform-flow-forms.lovable.app/shopify-callback';
+      const redirectUri = 'https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-auth-callback';
       const clientId = '7e4608874bbcc38afa1953948da28407';
       
       const oauthUrl = `https://${normalizedShopDomain}/admin/oauth/authorize?` +
