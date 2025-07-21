@@ -98,29 +98,6 @@ const MyStores = () => {
         </p>
       </div>
 
-      {/* زر إضافة سريع للمتجر من URL */}
-      {urlShop && (
-        <Alert className="mb-6 border-blue-200 bg-blue-50">
-          <Zap className="h-4 w-4 text-blue-600" />
-          <AlertDescription className="text-blue-800">
-            <div className="flex items-center justify-between">
-              <div>
-                <strong>متجر جديد مكتشف:</strong> {urlShop}
-                <br />
-                <span className="text-sm">اضغط لإضافته إلى قائمة متاجرك فوراً</span>
-              </div>
-              <Button 
-                onClick={handleAddFromUrl}
-                disabled={isAdding}
-                className="bg-blue-600 hover:bg-blue-700"
-                size="sm"
-              >
-                {isAdding ? 'جاري الحفظ...' : 'إضافة فوراً'}
-              </Button>
-            </div>
-          </AlertDescription>
-        </Alert>
-      )}
 
       <ShopifyStoresManager />
     </div>

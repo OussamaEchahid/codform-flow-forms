@@ -83,15 +83,16 @@ const ShopifyAutoConnector: React.FC<ShopifyAutoConnectorProps> = ({ onConnected
         throw new Error(`Auth error: ${error.message}`);
       }
 
-      if (data?.authUrl) {
-        console.log('🔄 Redirecting to Shopify auth:', data.authUrl);
+      if (data?.redirect || data?.authUrl) {
+        const authUrl = data.redirect || data.authUrl;
+        console.log('🔄 Redirecting to Shopify auth:', authUrl);
         
         // حفظ المتجر في localStorage قبل إعادة التوجيه
         localStorage.setItem('shopify_store', detectedShop);
         localStorage.setItem('shopify_connecting', 'true');
         
         // إعادة توجيه مباشرة
-        window.location.href = data.authUrl;
+        window.location.href = authUrl;
       } else {
         throw new Error('No auth URL received');
       }
