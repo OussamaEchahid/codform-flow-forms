@@ -3,7 +3,7 @@
 
 client_id = "7e4608874bbcc38afa1953948da28407"
 name = "CODFORM - COD Forms"
-handle = "codform-flow-forms"
+handle = "cod-magnet"
 application_url = "https://codform-flow-forms.lovable.app"
 embedded = false
 
