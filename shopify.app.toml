@@ -1,6 +1,6 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
-client_id = "CLIENT_ID_الجديد_هنا"
+client_id = "753bee2864a0b12f2d87c79b56c86641"
 name = "CODFORM - COD Forms"
 handle = "codform-flow-forms"
 application_url = "https://codmagnet.com"
@@ -21,7 +21,7 @@ api_version = "2025-04"
   uri = "/webhooks/app/scopes_update"
 
 [access_scopes]
-scopes = "write_products,read_products,read_orders,write_orders,write_script_tags,read_themes,write_themes,read_content,write_content"
+scopes = "read_content,read_orders"
 
 [auth]
 redirect_urls = [

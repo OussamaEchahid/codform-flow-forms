@@ -10,10 +10,10 @@ const SUPABASE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("
 console.log("🚀 Shopify Auth Edge Function initialized");
 
 // إعدادات تطبيق Shopify
-const SHOPIFY_API_KEY = "7e4608874bbcc38afa1953948da28407";
+const SHOPIFY_API_KEY = "753bee2864a0b12f2d87c79b56c86641";
 
 // صلاحيات التطبيق
-const scopes = "write_products,read_products,read_orders,write_orders,write_script_tags,read_themes,write_themes,read_content,write_content";
+const scopes = "read_content,read_orders";
 
 // عنوان URL لرد المصادقة - يشير مباشرة إلى Edge Function
 const CALLBACK_URL = `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-auth-callback`;

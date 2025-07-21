@@ -1,7 +1,7 @@
 
 app:
   directory: ./
-  api_key: "7e4608874bbcc38afa1953948da28407"
+  api_key: "753bee2864a0b12f2d87c79b56c86641"
   force_cli_home: true
 
 build:
