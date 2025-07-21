@@ -152,29 +152,40 @@ const ShopifyConnection = () => {
     setConnectionError(null);
     
     try {
-      // Initiate OAuth flow
-      const { data, error } = await shopifySupabase.functions.invoke('shopify-auth', {
-        body: { shop: normalizedShopDomain, clean: true }
-      });
+      console.log(`Starting modern OAuth flow for ${normalizedShopDomain}`);
+
+      // إنشاء state parameter للأمان
+      const state = crypto.randomUUID();
+      localStorage.setItem('shopify_oauth_state', state);
+      localStorage.setItem('shopify_connecting_shop', normalizedShopDomain);
+
+      // بناء OAuth URL بشكل مباشر - الطريقة الحديثة
+      const scopes = 'write_products,read_products,read_orders,write_orders,write_script_tags,read_themes,write_themes,read_content,write_content';
+      const redirectUri = 'https://codform-flow-forms.lovable.app/shopify-callback';
+      const clientId = '7e4608874bbcc38afa1953948da28407';
       
-      if (error) {
-        throw new Error(`فشل في بدء عملية الاتصال: ${error.message}`);
-      }
+      const oauthUrl = `https://${normalizedShopDomain}/admin/oauth/authorize?` +
+        `client_id=${clientId}&` +
+        `scope=${encodeURIComponent(scopes)}&` +
+        `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+        `state=${state}&` +
+        `grant_options[]=value`;
+
+      console.log('OAuth URL built:', oauthUrl);
       
-      if (!data || !data.redirect) {
-        throw new Error('لم يتم استلام رابط إعادة التوجيه');
-      }
+      // إعداد toast للمتابعة
+      toast.info('سيتم فتح نافذة Shopify للموافقة على الربط', { duration: 3000 });
+
+      // التوجيه المباشر إلى OAuth - طريقة حديثة وآمنة
+      setTimeout(() => {
+        window.location.href = oauthUrl;
+      }, 1000);
       
-      // Store connecting shop temporarily
-      localStorage.setItem('shopify_temp_store', normalizedShopDomain);
-      
-      // Redirect to Shopify OAuth
-      window.location.href = data.redirect;
     } catch (error) {
-      console.error('Error connecting store:', error);
-      setConnectionError(error instanceof Error ? error.message : 'حدث خطأ غير متوقع');
+      console.error('خطأ في بدء OAuth:', error);
+      setConnectionError(error instanceof Error ? error.message : 'خطأ في بدء الاتصال');
       setIsConnecting(false);
-      toast.error('فشل في الاتصال بالمتجر');
+      toast.error('فشل في بدء عملية الربط');
     }
   };
 

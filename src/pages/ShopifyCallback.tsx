@@ -35,6 +35,15 @@ const ShopifyCallback = () => {
           throw new Error('معلمات OAuth غير صحيحة');
         }
 
+        // التحقق من state parameter
+        const storedState = localStorage.getItem('shopify_oauth_state');
+        if (state && storedState && state !== storedState) {
+          throw new Error('State parameter مختلف - محاولة هجوم محتملة');
+        }
+
+        // تنظيف state
+        localStorage.removeItem('shopify_oauth_state');
+
         setShop(shopParam);
         setMessage('جاري تأكيد الاتصال مع Shopify...');
 
@@ -66,6 +75,11 @@ const ShopifyCallback = () => {
         localStorage.setItem('shopify_store', shopParam);
         localStorage.setItem('shopify_connected', 'true');
         localStorage.setItem('shopify_active_store', shopParam);
+        
+        // حفظ التوكن كنسخة احتياطية
+        if (data.access_token) {
+          localStorage.setItem(`shopify_token_${shopParam}`, data.access_token);
+        }
 
         setStatus('success');
         setMessage('تم الاتصال بنجاح! سيتم توجيهك إلى لوحة التحكم...');
