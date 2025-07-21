@@ -80,10 +80,10 @@ const QuantityOffers = () => {
   useEffect(() => {
     loadForms();
     // Load products using the useSimpleShopify hook when connected
-    if (isConnected) {
+    if (isConnected && activeStore) {
       loadProducts();
     }
-  }, [isConnected, activeStore, loadProducts]);
+  }, [isConnected, activeStore]); // إزالة loadProducts من dependencies لمنع infinite loop
 
   const loadForms = async () => {
     try {
