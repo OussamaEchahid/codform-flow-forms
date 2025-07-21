@@ -9,6 +9,7 @@ import Templates from '@/components/home/Templates';
 import Pricing from '@/components/home/Pricing';
 import CTA from '@/components/home/CTA';
 import { Link } from 'react-router-dom';
+import { fixShopifyConnectionState } from '@/utils/fix-shopify-state';
 
 const Index = () => {
   return (
@@ -26,9 +27,18 @@ const Index = () => {
                 <p className="text-gray-700 mb-6 text-right">
                   صمم نموذج الدفع عند الاستلام الخاص بك باستخدام منشئ النماذج السهل والمرن
                 </p>
-                <div className="flex justify-end">
+                <div className="flex flex-col gap-3 items-end">
                   <Button asChild>
                     <Link to="/form-builder">ابدأ في تصميم النموذج</Link>
+                  </Button>
+                  
+                  {/* زر إصلاح مشكلة الاتصال */}
+                  <Button 
+                    variant="outline"
+                    onClick={fixShopifyConnectionState}
+                    className="text-sm"
+                  >
+                    🔧 إصلاح مشكلة اتصال Shopify
                   </Button>
                 </div>
               </div>

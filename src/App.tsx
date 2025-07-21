@@ -35,7 +35,8 @@ import MyStores from "@/pages/MyStores";
 import { Toaster } from "@/components/ui/toaster"; 
 import { toast } from "sonner"; 
 import { shopifyConnectionManager } from "@/lib/shopify/connection-manager";
-import { shopifyConnectionService } from "@/services/ShopifyConnectionService"; 
+import { shopifyConnectionService } from "@/services/ShopifyConnectionService";
+import { fixShopifyConnectionState } from "@/utils/fix-shopify-state";
 
 // إعداد عميل الاستعلام مع معالجة أفضل للأخطاء
 const queryClient = new QueryClient({
@@ -170,24 +171,52 @@ function App() {
   React.useEffect(() => {
     console.log("App mounted, cleaning tokens and validating connection");
     
+    // تحقق من وجود أخطاء STORE_NOT_FOUND وأصلحها
+    const detectAndFixConnectionIssues = () => {
+      const activeStore = shopifyConnectionManager.getActiveStore();
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlShop = urlParams.get('shop');
+      
+      console.log('Current connection state:', {
+        activeStore,
+        urlShop,
+        localStorage: {
+          shopify_store: localStorage.getItem('shopify_store'),
+          shopify_connected: localStorage.getItem('shopify_connected')
+        }
+      });
+      
+      // إذا كان هناك متجر مختلف في URL، استخدمه
+      if (urlShop && urlShop !== activeStore) {
+        console.log(`URL shop (${urlShop}) differs from active store (${activeStore}), updating...`);
+        shopifyConnectionManager.clearAllStores();
+        shopifyConnectionManager.addOrUpdateStore(urlShop, true, true);
+        window.location.reload();
+        return;
+      }
+      
+      // إذا كان لا يوجد متجر نشط، امسح كل شيء وأعد التوجيه
+      if (!activeStore) {
+        console.log('No active store found, clearing state and redirecting to connect');
+        fixShopifyConnectionState();
+        return;
+      }
+    };
+    
     // Attempt to validate the connection state with retry logic
     const validateConnection = async () => {
       try {
+        detectAndFixConnectionIssues();
+        
         // Validate connection without excessive cleanup
         shopifyConnectionManager.validateConnectionState();
         console.log("Connection validated successfully");
       } catch (error) {
         console.error("Error validating connection:", error);
         
-        // If validation fails, retry after a delay
-        setTimeout(() => {
-          try {
-            console.log("Retrying connection validation...");
-            shopifyConnectionManager.validateConnectionState();
-          } catch (retryError) {
-            console.error("Retry validation failed:", retryError);
-          }
-        }, 2000);
+        // If validation fails, clear everything and retry
+        console.log("Validation failed, attempting fix...");
+        fixShopifyConnectionState();
       }
     };
     
