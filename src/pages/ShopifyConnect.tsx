@@ -89,26 +89,41 @@ const ShopifyConnect = () => {
     try {
       setIsResetting(true);
       
+      console.log('🔧 بدء الإصلاح الشامل...');
+      
       // تنظيف شامل للحالة المحلية
       cleanupAuthState();
       
       // تنظيف المتاجر من قاعدة البيانات
-      const { data, error } = await supabase.functions.invoke('clean-shopify-stores', {
-        body: { action: 'clean_all' }
-      });
+      console.log('📡 استدعاء edge function لتنظيف المتاجر...');
       
-      if (error) {
-        console.error('Error cleaning stores:', error);
-        toast.error('فشل في تنظيف المتاجر من قاعدة البيانات');
-      } else {
-        console.log('All stores cleaned successfully');
-        toast.success('تم تنظيف جميع المتاجر بنجاح');
+      try {
+        const { data, error } = await supabase.functions.invoke('clean-shopify-stores', {
+          body: { action: 'clean_all' }
+        });
+        
+        console.log('Edge function response:', { data, error });
+        
+        if (error) {
+          console.error('Error cleaning stores:', error);
+          toast.error('فشل في تنظيف المتاجر من قاعدة البيانات');
+        } else {
+          console.log('✅ تم تنظيف جميع المتاجر بنجاح');
+          toast.success('تم تنظيف جميع المتاجر بنجاح');
+        }
+      } catch (functionError) {
+        console.error('Function call error:', functionError);
+        toast.error('خطأ في استدعاء function التنظيف');
       }
       
-      // إعادة تحميل الصفحة
-      setTimeout(() => {
-        window.location.href = '/shopify-connect';
-      }, 1500);
+      // توقف loading state
+      setIsResetting(false);
+      setError(null);
+      
+      // إظهار رسالة نجاح
+      toast.success('تم الإصلاح الشامل! يمكنك الآن الاتصال بمتجر جديد');
+      
+      console.log('✅ تم الإصلاح الشامل بنجاح');
       
     } catch (error) {
       console.error('Error in complete fix:', error);

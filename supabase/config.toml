@@ -79,3 +79,9 @@ verify_jwt = false
 
 [functions.update-shopify-token]
 verify_jwt = false
+
+[functions.clean-shopify-stores]
+verify_jwt = false
+
+[functions.shopify-auth-callback]
+verify_jwt = false
