@@ -1,23 +1,16 @@
+
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // إعدادات Supabase
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || 'https://trlklwixfeaexhydzaue.supabase.co';
+const SUPABASE_URL = 'https://trlklwixfeaexhydzaue.supabase.co';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MjcxMTQxOCwiZXhwIjoyMDY4Mjg3NDE4fQ.cXZGpHiwobAzYhKPa1yWL1I1jRjEz-3WDFFvTMNRglU';
 
 // إعدادات تطبيق Shopify
 const SHOPIFY_API_KEY = "7e4608874bbcc38afa1953948da28407";
 const SHOPIFY_API_SECRET = "18221d830a86da52082e0d06c0d32ba3";
 
-console.log("🚀 Shopify Auth Callback Edge Function initialized");
-
-// إعداد عناوين CORS
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Content-Type": "application/json",
-};
+console.log("🚀 Shopify Auth Callback Handler Started");
 
 // دالة لتنظيف نطاق المتجر
 function cleanShopDomain(shop: string): string {
@@ -40,7 +33,6 @@ function cleanShopDomain(shop: string): string {
     }
   }
   
-  console.log(`🧹 Cleaned shop domain: ${shop} -> ${cleanedShop}`);
   return cleanedShop;
 }
 
@@ -75,102 +67,93 @@ async function getAccessToken(shop: string, code: string): Promise<any> {
   return data;
 }
 
-// دالة لحفظ بيانات المتجر مع إعادة المحاولة
-async function saveShopData(shop: string, tokenData: any, maxRetries = 5): Promise<void> {
+// دالة لحفظ بيانات المتجر
+async function saveShopData(shop: string, tokenData: any): Promise<void> {
+  console.log(`💾 Saving shop data for: ${shop}`);
+  
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
   
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      console.log(`💾 Saving shop data (attempt ${attempt}/${maxRetries})`);
-      
-      // حذف أي بيانات قديمة للمتجر أولاً
-      const { error: deleteError } = await supabase
-        .from('shopify_stores')
-        .delete()
-        .eq('shop', shop);
-      
-      if (deleteError) {
-        console.warn(`⚠️ Warning deleting old shop data:`, deleteError);
-      }
-      
-      // إدراج البيانات الجديدة
-      const { data, error } = await supabase
-        .from('shopify_stores')
-        .insert({
-          shop: shop,
-          access_token: tokenData.access_token,
-          scope: tokenData.scope,
-          token_type: tokenData.token_type || 'Bearer',
-          is_active: true,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .select()
-        .single();
-      
-      if (error) {
-        console.error(`❌ Database error (attempt ${attempt}):`, error);
-        if (attempt === maxRetries) {
-          throw new Error(`فشل في حفظ بيانات المتجر: ${error.message}`);
-        }
-        // انتظار قبل إعادة المحاولة
-        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
-        continue;
-      }
-      
-      console.log(`✅ Shop data saved successfully:`, data);
-      return;
-      
-    } catch (error) {
-      console.error(`❌ Error saving shop data (attempt ${attempt}):`, error);
-      if (attempt === maxRetries) {
-        throw error;
-      }
-      await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+  try {
+    // حذف أي بيانات قديمة للمتجر أولاً
+    const { error: deleteError } = await supabase
+      .from('shopify_stores')
+      .delete()
+      .eq('shop', shop);
+    
+    if (deleteError) {
+      console.warn(`⚠️ Warning deleting old shop data:`, deleteError);
     }
+    
+    // إدراج البيانات الجديدة
+    const { data, error } = await supabase
+      .from('shopify_stores')
+      .insert({
+        shop: shop,
+        access_token: tokenData.access_token,
+        scope: tokenData.scope,
+        token_type: tokenData.token_type || 'Bearer',
+        is_active: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+    
+    if (error) {
+      console.error(`❌ Database error:`, error);
+      throw new Error(`فشل في حفظ بيانات المتجر: ${error.message}`);
+    }
+    
+    console.log(`✅ Shop data saved successfully:`, data);
+    
+    // التحقق من حفظ البيانات
+    const { data: verifyData, error: verifyError } = await supabase
+      .from('shopify_stores')
+      .select('*')
+      .eq('shop', shop)
+      .eq('is_active', true)
+      .single();
+    
+    if (verifyError || !verifyData) {
+      throw new Error('فشل في التحقق من حفظ البيانات');
+    }
+    
+    console.log(`✅ Shop verification successful:`, verifyData);
+    
+  } catch (error) {
+    console.error(`❌ Error saving shop data:`, error);
+    throw error;
   }
 }
 
 serve(async (req) => {
-  console.log("🚀 Shopify Auth Callback Handler Started");
-
-  // التعامل مع طلبات CORS
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders, status: 200 });
-  }
+  console.log("📞 Callback received:", req.url);
 
   try {
-    // قراءة معلمات الطلب
+    // قراءة معلمات الطلب من URL
     const url = new URL(req.url);
-    let shop = url.searchParams.get("shop");
-    let code = url.searchParams.get("code");
-    let state = url.searchParams.get("state");
+    const shop = url.searchParams.get("shop");
+    const code = url.searchParams.get("code");
+    const state = url.searchParams.get("state");
     
-    // إذا لم توجد المعلمات في URL، جرب body
-    if (!shop || !code) {
-      if (req.method === "POST") {
-        try {
-          const body = await req.json();
-          shop = body.shop || shop;
-          code = body.code || code;
-          state = body.state || state;
-        } catch (e) {
-          console.error("Error parsing request body:", e);
-        }
-      }
-    }
-    
-    console.log("📝 Callback parameters:", { shop, code, state, hasCode: !!code });
+    console.log("📝 Callback parameters:", { shop, code: !!code, state });
 
     if (!shop || !code) {
       console.error("❌ Missing required parameters");
-      const errorHtml = `
+      return new Response(`
         <!DOCTYPE html>
-        <html>
-        <head><title>خطأ في المعلمات</title></head>
-        <body style="font-family: Arial; text-align: center; padding: 50px;">
-          <h1 style="color: red;">خطأ في المعلمات</h1>
-          <p>المعلمات المطلوبة غير موجودة</p>
+        <html lang="ar" dir="rtl">
+        <head>
+          <meta charset="UTF-8">
+          <title>خطأ في المعلمات</title>
+          <style>
+            body { font-family: Arial; text-align: center; padding: 50px; background: #fee; }
+            h1 { color: #d00; }
+          </style>
+        </head>
+        <body>
+          <h1>❌ خطأ في المعلمات</h1>
+          <p>المعلمات المطلوبة غير موجودة: shop=${shop}, code=${!!code}</p>
           <script>
             setTimeout(() => {
               window.location.href = 'https://codmagnet.com/shopify-connect';
@@ -178,10 +161,7 @@ serve(async (req) => {
           </script>
         </body>
         </html>
-      `;
-      return new Response(errorHtml, {
-        headers: { "Content-Type": "text/html; charset=utf-8" }
-      });
+      `, { headers: { "Content-Type": "text/html; charset=utf-8" } });
     }
 
     // تنظيف اسم المتجر
@@ -206,7 +186,7 @@ serve(async (req) => {
       console.log("✅ Shop data saved successfully");
 
       // إنشاء HTML للنجاح مع إعادة توجيه تلقائية
-      const successHtml = `
+      return new Response(`
         <!DOCTYPE html>
         <html lang="ar" dir="rtl">
         <head>
@@ -274,7 +254,7 @@ serve(async (req) => {
             <div class="shop-name">${cleanedShop}</div>
             <p>يمكنك الآن استخدام جميع ميزات التطبيق مع متجرك</p>
             <div class="countdown">
-              سيتم إعادة توجيهك إلى لوحة التحكم خلال <span id="countdown">5</span> ثواني
+              سيتم إعادة توجيهك إلى لوحة التحكم خلال <span id="countdown">3</span> ثواني
             </div>
           </div>
           
@@ -287,7 +267,7 @@ serve(async (req) => {
             localStorage.setItem('shopify_last_connected', Date.now().toString());
             
             // عد تنازلي وإعادة توجيه
-            let timeLeft = 5;
+            let timeLeft = 3;
             const countdownElement = document.getElementById('countdown');
             
             const timer = setInterval(() => {
@@ -301,9 +281,7 @@ serve(async (req) => {
           </script>
         </body>
         </html>
-      `;
-
-      return new Response(successHtml, {
+      `, {
         headers: { 
           "Content-Type": "text/html; charset=utf-8",
           "Cache-Control": "no-store, no-cache, must-revalidate",
@@ -315,7 +293,7 @@ serve(async (req) => {
       console.error("❌ Error processing callback:", error);
       
       // إنشاء HTML للخطأ
-      const errorHtml = `
+      return new Response(`
         <!DOCTYPE html>
         <html lang="ar" dir="rtl">
         <head>
@@ -383,7 +361,7 @@ serve(async (req) => {
             <div class="error-details">${error instanceof Error ? error.message : 'خطأ غير معروف'}</div>
             <p>يرجى المحاولة مرة أخرى</p>
             <div class="countdown">
-              سيتم إعادة توجيهك إلى صفحة الاتصال خلال <span id="countdown">5</span> ثواني
+              سيتم إعادة توجيهك إلى صفحة الاتصال خلال <span id="countdown">3</span> ثواني
             </div>
           </div>
           
@@ -391,7 +369,7 @@ serve(async (req) => {
             console.error('❌ Shopify connection failed:', '${error instanceof Error ? error.message : 'Unknown error'}');
             
             // عد تنازلي وإعادة توجيه
-            let timeLeft = 5;
+            let timeLeft = 3;
             const countdownElement = document.getElementById('countdown');
             
             const timer = setInterval(() => {
@@ -405,9 +383,7 @@ serve(async (req) => {
           </script>
         </body>
         </html>
-      `;
-
-      return new Response(errorHtml, {
+      `, {
         headers: { 
           "Content-Type": "text/html; charset=utf-8",
           "Cache-Control": "no-store, no-cache, must-revalidate",
@@ -419,7 +395,7 @@ serve(async (req) => {
   } catch (error) {
     console.error("❌ Fatal error in callback handler:", error);
     
-    const fatalErrorHtml = `
+    return new Response(`
       <!DOCTYPE html>
       <html>
       <head><title>خطأ خطير</title></head>
@@ -433,10 +409,6 @@ serve(async (req) => {
         </script>
       </body>
       </html>
-    `;
-
-    return new Response(fatalErrorHtml, {
-      headers: { "Content-Type": "text/html; charset=utf-8" }
-    });
+    `, { headers: { "Content-Type": "text/html; charset=utf-8" } });
   }
 });
