@@ -6,6 +6,7 @@ import { Store, CheckCircle, AlertCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { shopifyStores } from '@/lib/shopify/supabase-client';
 import { supabase } from '@/integrations/supabase/client';
+import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
 
 interface ShopifyAutoConnectorProps {
   onConnected?: (shop: string) => void;
@@ -30,12 +31,11 @@ const ShopifyAutoConnector: React.FC<ShopifyAutoConnectorProps> = ({ onConnected
         
         console.log('🔍 Shop detected:', normalizedShop);
         
-        // فحص إذا كان هذا المتجر متصل بالفعل
-        const connectedShop = localStorage.getItem('shopify_store');
-        const isConnected = localStorage.getItem('shopify_connected') === 'true';
+        // فحص إذا كان هذا المتجر هو النشط حالياً من connection manager
+        const currentActiveShop = shopifyConnectionManager.getActiveStore();
         
-        if (isConnected && connectedShop === normalizedShop) {
-          console.log('✅ Shop already connected, skipping dialog');
+        if (currentActiveShop === normalizedShop) {
+          console.log('✅ Shop already active, skipping dialog');
           // تنظيف URL بدون إظهار النافذة
           const newUrl = window.location.pathname;
           window.history.replaceState({}, '', newUrl);

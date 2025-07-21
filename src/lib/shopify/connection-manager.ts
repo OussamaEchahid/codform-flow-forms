@@ -92,6 +92,10 @@ class ShopifyConnectionManager {
         localStorage.setItem(this.ACTIVE_STORE_KEY, cleanedDomain);
         localStorage.setItem('shopify_store', cleanedDomain);
         localStorage.setItem('shopify_connected', 'true');
+        
+        // Clear cache to force refresh
+        this.storeCache = null;
+        this.storeCacheTime = 0;
       }
       
       // Save stores
