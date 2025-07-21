@@ -183,101 +183,26 @@ serve(async (req) => {
       console.log("💾 Saving shop data to database...");
       await saveShopData(cleanedShop, tokenData);
       
-      console.log("✅ Shop data saved successfully");
-
-      // إنشاء HTML للنجاح مع إعادة توجيه تلقائية
+      // إعادة توجيه إلى التطبيق مع معلمة نجاح
+      const redirectUrl = `https://codmagnet.com/dashboard?shopify_connected=true&shop=${encodeURIComponent(cleanedShop)}`;
+      
       return new Response(`
         <!DOCTYPE html>
-        <html lang="ar" dir="rtl">
+        <html>
         <head>
           <meta charset="UTF-8">
-          <title>تم الاتصال بنجاح</title>
-          <style>
-            body {
-              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-              background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-              margin: 0;
-              padding: 0;
-              min-height: 100vh;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-            }
-            .container {
-              background: white;
-              border-radius: 12px;
-              padding: 3rem;
-              box-shadow: 0 25px 50px rgba(0,0,0,0.15);
-              text-align: center;
-              max-width: 500px;
-              width: 90%;
-            }
-            .success-icon {
-              font-size: 4rem;
-              color: #10b981;
-              margin-bottom: 1rem;
-            }
-            h1 {
-              color: #1f2937;
-              margin-bottom: 1rem;
-              font-size: 2rem;
-            }
-            p {
-              color: #6b7280;
-              line-height: 1.6;
-              font-size: 1.1rem;
-            }
-            .shop-name {
-              background: #f0fdf4;
-              border: 1px solid #bbf7d0;
-              border-radius: 8px;
-              padding: 1rem;
-              margin: 1rem 0;
-              font-weight: bold;
-              color: #166534;
-            }
-            .countdown {
-              background: #f9fafb;
-              border-radius: 8px;
-              padding: 1rem;
-              margin-top: 2rem;
-              font-size: 0.875rem;
-              color: #374151;
-            }
-          </style>
+          <title>Redirecting...</title>
         </head>
         <body>
-          <div class="container">
-            <div class="success-icon">✅</div>
-            <h1>تم الاتصال بنجاح!</h1>
-            <p>تم ربط متجرك بالتطبيق بنجاح</p>
-            <div class="shop-name">${cleanedShop}</div>
-            <p>يمكنك الآن استخدام جميع ميزات التطبيق مع متجرك</p>
-            <div class="countdown">
-              سيتم إعادة توجيهك إلى لوحة التحكم خلال <span id="countdown">3</span> ثواني
-            </div>
-          </div>
-          
           <script>
-            console.log('✅ Shopify store connected successfully: ${cleanedShop}');
-            
             // حفظ معلومات المتجر في localStorage
             localStorage.setItem('shopify_store', '${cleanedShop}');
             localStorage.setItem('shopify_connected', 'true');
             localStorage.setItem('shopify_last_connected', Date.now().toString());
+            localStorage.setItem('shopify_connection_success', 'true');
             
-            // عد تنازلي وإعادة توجيه
-            let timeLeft = 3;
-            const countdownElement = document.getElementById('countdown');
-            
-            const timer = setInterval(() => {
-              timeLeft--;
-              countdownElement.textContent = timeLeft;
-              if (timeLeft <= 0) {
-                clearInterval(timer);
-                window.location.href = 'https://codmagnet.com/dashboard';
-              }
-            }, 1000);
+            // إعادة توجيه فورية
+            window.location.href = '${redirectUrl}';
           </script>
         </body>
         </html>

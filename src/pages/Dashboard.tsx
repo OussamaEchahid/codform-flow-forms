@@ -21,23 +21,39 @@ const Dashboard = () => {
   const [searchParams] = useSearchParams();
   const [isFirstVisit, setIsFirstVisit] = useState(false);
   useEffect(() => {
-    // التحقق من معلمات URL للتوجيه من شوبيفاي
+    // التحقق من localStorage للاتصال الناجح
+    const connectionSuccess = localStorage.getItem('shopify_connection_success');
+    
+    if (connectionSuccess === 'true') {
+      const connectedShop = localStorage.getItem('shopify_store');
+      if (connectedShop) {
+        const message = language === 'ar' 
+          ? `🎉 تم ربط متجرك بنجاح! أهلاً بك في CODmagnet` 
+          : `🎉 Store connected successfully! Welcome to CODmagnet`;
+        
+        toast.success(message, {
+          duration: 5000,
+          position: 'top-center'
+        });
+        
+        // إزالة العلامة حتى لا تظهر مرة أخرى
+        localStorage.removeItem('shopify_connection_success');
+        
+        // تعيين علامة الزيارة الأولى
+        const firstVisitKey = `first_visit_${connectedShop}`;
+        if (!localStorage.getItem(firstVisitKey)) {
+          setIsFirstVisit(true);
+          localStorage.setItem(firstVisitKey, 'false');
+        }
+      }
+    }
+    
+    // التحقق من معلمات URL للتوجيه من شوبيفاي (الكود القديم للتوافق)
     const shopifyConnectedParam = searchParams.get("shopify_connected");
     const shopParam = searchParams.get("shop");
-    const authSuccess = searchParams.get("auth_success");
-    const newConnection = searchParams.get("new_connection");
     
-    console.log("Dashboard params:", {
-      shopifyConnectedParam,
-      shopParam,
-      authSuccess,
-      newConnection
-    });
-
-    // عرض رسالة نجاح إذا كانت هناك معلمات اتصال جديدة
     if (shopifyConnectedParam === "true" && shopParam) {
       // حفظ المتجر في localStorage للتأكد من الاتساق
-      console.log(`Saving shop ${shopParam} to localStorage after successful connection`);
       localStorage.setItem('shopify_store', shopParam);
       localStorage.setItem('shopify_connected', 'true');
       localStorage.setItem('shopify_active_store', shopParam);
@@ -45,23 +61,12 @@ const Dashboard = () => {
       // تحديث معلومات المتجر في connection manager أيضاً
       import('@/lib/shopify/connection-manager').then(({ shopifyConnectionManager }) => {
         shopifyConnectionManager.addOrUpdateStore(shopParam, true, true);
-        console.log(`Updated connection manager with store: ${shopParam}`);
       });
-      
-      const message = language === 'ar' ? `تم الاتصال بمتجر ${shopParam} بنجاح` : `Successfully connected to store ${shopParam}`;
-      toast.success(message);
 
       // إزالة معلمات URL من العنوان
       if (window.history.replaceState) {
         const newUrl = window.location.pathname;
         window.history.replaceState({}, document.title, newUrl);
-      }
-
-      // تعيين علامة الزيارة الأولى
-      const firstVisitKey = `first_visit_${shopParam}`;
-      if (!localStorage.getItem(firstVisitKey)) {
-        setIsFirstVisit(true);
-        localStorage.setItem(firstVisitKey, 'false');
       }
     }
   }, [searchParams, language]);
