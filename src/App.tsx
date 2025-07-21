@@ -20,7 +20,7 @@ import ShopifyRedirect from "@/pages/ShopifyRedirect";
 import Shopify from "@/pages/Shopify";
 import ShopifyConnect from "@/pages/ShopifyConnect";
 import Auth from "@/pages/Auth";
-import ShopifyCallback from "@/pages/api/shopify-callback";
+import ShopifyCallback from "@/pages/ShopifyCallback";
 import ShopifyStores from "@/pages/ShopifyStores";
 import Settings from "@/pages/Settings";
 import OrderSettings from "@/pages/OrderSettings";
