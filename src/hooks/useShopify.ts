@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { ShopifyProduct, ShopifyUser } from '@/lib/shopify/types';
 import { shopifyStores, shopifySupabase } from '@/lib/shopify/supabase-client';
@@ -79,7 +78,7 @@ export const useShopify = () => {
     }
   }, [authUser]);
 
-  // Initialize connection state
+  // Initialize connection state with enhanced verification
   useEffect(() => {
     const checkConnection = async () => {
       if (!shop) {
@@ -88,29 +87,45 @@ export const useShopify = () => {
       }
 
       try {
-        // Try to get token from db
+        console.log(`🔍 Checking connection for shop: ${shop}`);
+        
+        // Try to get token from db with detailed logging
         const { data, error } = await shopifyStores()
           .select('*')
           .eq('shop', shop)
+          .eq('is_active', true)
           .order('updated_at', { ascending: false })
           .limit(1);
 
         if (error) {
-          console.error('Error fetching token:', error);
+          console.error(`❌ Error fetching token for ${shop}:`, error);
           setIsConnected(false);
           setTokenError(true);
           return;
         }
 
         if (data && data.length > 0) {
-          setAccessToken(data[0].access_token || '');
-          setIsConnected(true);
+          const storeData = data[0];
+          console.log(`✅ Store ${shop} found in database with token`);
+          
+          if (storeData.access_token && storeData.access_token !== 'null') {
+            setAccessToken(storeData.access_token);
+            setIsConnected(true);
+            setTokenError(false);
+            console.log(`🔑 Valid token set for ${shop}`);
+          } else {
+            console.warn(`⚠️ Store ${shop} exists but token is invalid`);
+            setIsConnected(false);
+            setTokenError(true);
+          }
           return;
         }
 
+        console.warn(`⚠️ No active store found for ${shop}`);
         setIsConnected(false);
+        setTokenError(true);
       } catch (error) {
-        console.error('Error in checkConnection:', error);
+        console.error(`❌ Error in checkConnection for ${shop}:`, error);
         setIsConnected(false);
         setTokenError(true);
       }
@@ -123,82 +138,77 @@ export const useShopify = () => {
   const [lastLoadTime, setLastLoadTime] = useState(0);
   const CACHE_DURATION = 5 * 60 * 1000; // 5 دقائق
 
-  // Load products when connected
+  // Enhanced loadProducts with better error handling
   const loadProducts = useCallback(async (forceRefresh = false) => {
     if (!shop) {
+      console.warn('No shop provided to loadProducts');
       return [];
     }
 
-    // تحقق من الـ cache
+    // Check cache first
     const now = Date.now();
     if (!forceRefresh && products.length > 0 && (now - lastLoadTime) < CACHE_DURATION) {
-      console.log('Using cached products');
+      console.log(`📦 Using cached products for ${shop}`);
       return products;
     }
 
     if (isLoading) {
-      console.log('Already loading products, skipping request');
+      console.log(`⏳ Already loading products for ${shop}, skipping request`);
       return products;
     }
 
     setIsLoading(true);
     try {
-      // Get token
+      console.log(`🔄 Loading products for shop: ${shop}`);
+      
+      // Get token with enhanced error handling
       const { data: tokenData, error: tokenError } = await shopifyStores()
         .select('*')
         .eq('shop', shop)
+        .eq('is_active', true)
         .order('updated_at', { ascending: false })
         .limit(1);
 
       if (tokenError) {
-        console.error('Error fetching token:', tokenError);
+        console.error(`❌ Token fetch error for ${shop}:`, tokenError);
         throw new Error(`Database error: ${tokenError.message}`);
       }
 
       if (!tokenData || tokenData.length === 0) {
-        console.error(`No store found in database for shop: ${shop}`);
-        // إرسال إشارة خاصة لعدم وجود المتجر
+        console.error(`❌ No store found in database for shop: ${shop}`);
         throw new Error(`STORE_NOT_FOUND:${shop}`);
       }
 
-      if (!tokenData[0].access_token || tokenData[0].access_token === 'null') {
-        console.error(`Access token missing for shop: ${shop}`);
-        // محاولة استعادة التوكن من localStorage كحل مؤقت
+      const storeRecord = tokenData[0];
+      if (!storeRecord.access_token || storeRecord.access_token === 'null') {
+        console.error(`❌ Access token missing for shop: ${shop}`);
+        
+        // Try to restore from localStorage
         const storedToken = localStorage.getItem(`shopify_token_${shop}`);
         if (storedToken && storedToken !== 'null') {
-          console.log('Found stored token, trying to restore it...');
+          console.log(`🔄 Attempting to restore token for ${shop}`);
           try {
-            // محاولة استعادة التوكن في قاعدة البيانات
             const { error: updateError } = await shopifyStores()
               .update({ access_token: storedToken, is_active: true })
               .eq('shop', shop);
             
             if (!updateError) {
-              console.log('Token restored successfully');
-              // إعادة تحميل البيانات
-              const { data: updatedData } = await shopifyStores()
-                .select('*')
-                .eq('shop', shop)
-                .order('updated_at', { ascending: false })
-                .limit(1);
-              
-              if (updatedData && updatedData[0]?.access_token) {
-                tokenData[0].access_token = updatedData[0].access_token;
-                toast.success('تم استعادة اتصال المتجر بنجاح');
-              }
+              console.log(`✅ Token restored for ${shop}`);
+              storeRecord.access_token = storedToken;
+              toast.success(`تم استعادة اتصال المتجر ${shop} بنجاح`);
             }
           } catch (e) {
-            console.warn('Failed to restore token:', e);
+            console.warn(`⚠️ Failed to restore token for ${shop}:`, e);
           }
         }
         
-        if (!tokenData[0].access_token || tokenData[0].access_token === 'null') {
-          // إرسال إشارة خاصة لعدم وجود الرمز
+        if (!storeRecord.access_token || storeRecord.access_token === 'null') {
           throw new Error(`TOKEN_MISSING:${shop}`);
         }
       }
 
-      const token = tokenData[0].access_token || '';
+      const token = storeRecord.access_token;
+      console.log(`📡 Fetching products for ${shop} with valid token`);
       
       // Fetch products using edge function
       const { data, error } = await shopifySupabase.functions.invoke('shopify-products', {
@@ -206,16 +216,16 @@ export const useShopify = () => {
           shop, 
           accessToken: token,
           forceRefresh: forceRefresh,
-          includeTestProducts: false, // Always filter test products 
-          limit: 25 // تقليل عدد المنتجات المحملة
+          includeTestProducts: false,
+          limit: 25
         }
       });
 
       if (error) {
+        console.error(`❌ Products fetch error for ${shop}:`, error);
         throw error;
       }
 
-      // Store all products
       const fetchedProducts = data?.products || [];
       
       if (Array.isArray(fetchedProducts)) {
@@ -223,20 +233,20 @@ export const useShopify = () => {
         setProducts(fetchedProducts);
         setLastLoadTime(now);
         
-        console.log(`Loaded ${fetchedProducts.length} products from Shopify`);
+        console.log(`✅ Loaded ${fetchedProducts.length} products for ${shop}`);
         
         if (fetchedProducts.length === 0) {
-          console.warn('No products returned from Shopify API');
+          console.warn(`⚠️ No products returned for ${shop}`);
         }
       } else {
-        console.error('Invalid product data returned:', fetchedProducts);
+        console.error(`❌ Invalid product data for ${shop}:`, fetchedProducts);
         throw new Error('Invalid product data structure returned');
       }
       
       setIsLoading(false);
       return fetchedProducts;
     } catch (error) {
-      console.error('Error loading products:', error);
+      console.error(`❌ Error loading products for ${shop}:`, error);
       setIsLoading(false);
       setTokenError(true);
       
@@ -249,7 +259,6 @@ export const useShopify = () => {
           action: {
             label: 'إعادة ربط المتجر',
             onClick: () => {
-              // مسح بيانات المتجر القديمة
               localStorage.removeItem('shopify_store');
               localStorage.removeItem('shopify_connected');
               localStorage.removeItem('shopify_active_store');
@@ -276,7 +285,7 @@ export const useShopify = () => {
         });
         throw new Error(`TOKEN_MISSING:${shopName}`);
       } else {
-        toast.error('فشل في تحميل المنتجات. يرجى التحقق من حالة الاتصال بالمتجر');
+        toast.error(`فشل في تحميل المنتجات للمتجر ${shop}. يرجى التحقق من حالة الاتصال`);
         throw error;
       }
     }
@@ -608,7 +617,7 @@ export const useShopify = () => {
     testConnection,
     refreshConnection,
     syncForm,
-    syncFormWithShopify, // Alias for compatibility
+    syncFormWithShopify,
     resyncPendingForms,
     emergencyReset,
     getDefaultForm,

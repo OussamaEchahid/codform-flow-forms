@@ -1,357 +1,360 @@
-import React, { useEffect, useState } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/lib/auth';
-import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
+import React, { useState, useEffect, useCallback } from 'react';
 import { shopifySupabase } from '@/lib/shopify/supabase-client';
-import { Store, Check, Trash2, ExternalLink, RefreshCcw, AlertTriangle } from 'lucide-react';
+import { ShopifyStore } from '@/lib/shopify/types';
+import { AlertCircle, CheckCircle, Loader2, Package, Play, RefreshCw, Store } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ShopifyStore, ShopifyStoreConnection } from "@/lib/shopify/types";
-import { parseShopifyParams } from '@/utils/shopify-helpers';
+import { toast } from 'sonner';
+import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
 
-export const ShopifyStoresManager: React.FC = () => {
-  const { shop: activeShop, setShop } = useAuth();
-  const navigate = useNavigate();
-  const [stores, setStores] = useState<ShopifyStoreConnection[]>([]);
-  const [diagnosticInfo, setDiagnosticInfo] = useState<any>(null);
-  const [showDiagnostics, setShowDiagnostics] = useState(false);
+interface ShopifyStoresManagerProps {
+  // Add any props here
+}
 
-  // Load stores on component mount
-  useEffect(() => {
-    const loadStores = () => {
-      const allStores = shopifyConnectionManager.getAllStores();
-      setStores(allStores);
-      
-      // Update diagnostic information
-      const { shopDomain } = parseShopifyParams();
-      const lastUrlShop = shopifyConnectionManager.getLastUrlShop();
-      
-      setDiagnosticInfo({
-        activeShopFromContext: activeShop,
-        activeStoreFromManager: shopifyConnectionManager.getActiveStore(),
-        shopFromCurrentUrl: shopDomain,
-        lastUrlShop: lastUrlShop,
-        localStorageData: {
-          shopify_store: localStorage.getItem('shopify_store'),
-          shopify_connected: localStorage.getItem('shopify_connected'),
-          shopify_temp_store: localStorage.getItem('shopify_temp_store'),
-          shopify_emergency_mode: localStorage.getItem('shopify_emergency_mode'),
-          shopify_active_store: localStorage.getItem('shopify_active_store'),
-          shopify_last_url_shop: localStorage.getItem('shopify_last_url_shop'),
-          shopify_connected_stores: localStorage.getItem('shopify_connected_stores')
-        },
-        window: {
-          location: window.location.href,
-          searchParams: Object.fromEntries(new URLSearchParams(window.location.search).entries()),
-        }
-      });
-    };
-    
-    loadStores();
-    
-    // Add event listener for storage changes
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'shopify_connected_stores' || 
-          e.key === 'shopify_active_store' ||
-          e.key === 'shopify_store' ||
-          e.key === 'shopify_connected' ||
-          e.key === 'shopify_last_url_shop') {
-        loadStores();
-      }
-    };
-    
-    window.addEventListener('storage', handleStorageChange);
-    
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-    };
-  }, [activeShop]);
+const ShopifyStoresManager = () => {
+  const [stores, setStores] = useState<ShopifyStore[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isActivating, setIsActivating] = useState<string | null>(null);
+  const [verificationStatus, setVerificationStatus] = useState<{[key: string]: 'verifying' | 'verified' | 'failed'}>({});
 
-  // Set a store as active
-  const setActiveStore = async (storeUrl: string) => {
+  // Load stores from database
+  const loadStores = useCallback(async () => {
     try {
-      // أولاً، تحقق من وجود المتجر في قاعدة البيانات
-      const { data: dbStore, error } = await shopifySupabase
+      setIsLoading(true);
+      setError(null);
+      console.log('🔄 Loading stores from database...');
+      
+      const { data, error } = await shopifySupabase
         .from('shopify_stores')
         .select('*')
-        .eq('shop', storeUrl)
-        .maybeSingle();
-      
+        .order('updated_at', { ascending: false });
+
       if (error) {
-        console.error('خطأ في فحص المتجر:', error);
-        toast.error(`خطأ في فحص المتجر: ${error.message}`);
-        return;
+        console.error('❌ Error loading stores:', error);
+        throw error;
       }
-      
-      if (!dbStore) {
-        toast.error(`المتجر ${storeUrl} غير موجود في قاعدة البيانات. يرجى إعادة ربط المتجر.`, {
-          action: {
-            label: 'إعادة ربط المتجر',
-            onClick: () => navigate('/shopify-connect')
+
+      const storesWithConnectionStatus = await Promise.all(
+        (data || []).map(async (store) => {
+          const hasValidToken = store.access_token && store.access_token !== 'null';
+          let connectionStatus: 'connected' | 'disconnected' | 'error' = 'disconnected';
+          
+          if (hasValidToken) {
+            try {
+              // Quick connection test
+              const testResponse = await fetch(`https://${store.shop}/admin/api/2023-07/shop.json`, {
+                headers: {
+                  'X-Shopify-Access-Token': store.access_token,
+                  'Content-Type': 'application/json'
+                }
+              });
+              
+              connectionStatus = testResponse.ok ? 'connected' : 'error';
+            } catch (e) {
+              connectionStatus = 'error';
+            }
           }
-        });
-        // إزالة المتجر من localStorage
-        shopifyConnectionManager.removeStore(storeUrl);
-        const allStores = shopifyConnectionManager.getAllStores();
-        setStores(allStores);
-        return;
-      }
-      
-      // التحقق من وجود access_token صالح
-      if (!dbStore.access_token || dbStore.access_token === 'null') {
-        toast.error(`رمز الوصول مفقود للمتجر ${storeUrl}. يرجى إعادة ربط المتجر.`, {
-          action: {
-            label: 'إعادة ربط المتجر',
-            onClick: () => navigate('/shopify-connect')
+          
+          return {
+            ...store,
+            connectionStatus,
+            hasValidToken
+          };
+        })
+      );
+
+      setStores(storesWithConnectionStatus);
+      console.log(`✅ Loaded ${storesWithConnectionStatus.length} stores`);
+    } catch (error) {
+      console.error('❌ Error in loadStores:', error);
+      setError(error instanceof Error ? error.message : 'Unknown error');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Verify store in database with retries
+  const verifyStoreWithRetries = async (shop: string, maxRetries = 5): Promise<boolean> => {
+    console.log(`🔍 Starting verification for ${shop}`);
+    setVerificationStatus(prev => ({ ...prev, [shop]: 'verifying' }));
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`🔄 Verification attempt ${attempt}/${maxRetries} for ${shop}`);
+        
+        const { data, error } = await shopifySupabase
+          .from('shopify_stores')
+          .select('*')
+          .eq('shop', shop)
+          .eq('is_active', true)
+          .maybeSingle();
+
+        if (error) {
+          console.error(`❌ Verification error for ${shop}:`, error);
+          if (attempt === maxRetries) {
+            setVerificationStatus(prev => ({ ...prev, [shop]: 'failed' }));
+            return false;
           }
-        });
-        return;
+          continue;
+        }
+
+        if (data && data.access_token && data.access_token !== 'null') {
+          console.log(`✅ Store ${shop} verified successfully`);
+          setVerificationStatus(prev => ({ ...prev, [shop]: 'verified' }));
+          return true;
+        }
+
+        console.log(`⏳ Store ${shop} not yet verified, waiting...`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      } catch (error) {
+        console.error(`❌ Verification attempt ${attempt} failed for ${shop}:`, error);
+        if (attempt === maxRetries) {
+          setVerificationStatus(prev => ({ ...prev, [shop]: 'failed' }));
+          return false;
+        }
+      }
+    }
+    
+    setVerificationStatus(prev => ({ ...prev, [shop]: 'failed' }));
+    return false;
+  };
+
+  // Activate store with enhanced verification
+  const activateStore = async (shop: string) => {
+    try {
+      setIsActivating(shop);
+      console.log(`🔄 Activating store: ${shop}`);
+      
+      // First, verify the store exists in database
+      const isVerified = await verifyStoreWithRetries(shop);
+      
+      if (!isVerified) {
+        throw new Error(`المتجر ${shop} غير موجود في قاعدة البيانات أو لا يحتوي على رمز صالح`);
       }
       
-      // إذا كان المتجر موجود وصالح، قم بتعيينه كنشط
-      shopifyConnectionManager.setActiveStore(storeUrl);
-      if (setShop) {
-        setShop(storeUrl);
-      }
+      // Update connection manager
+      shopifyConnectionManager.addOrUpdateStore(shop, true, true);
       
-      // تحديث حالة المتجر في قاعدة البيانات
+      // Update localStorage
+      localStorage.setItem('shopify_store', shop);
+      localStorage.setItem('shopify_connected', 'true');
+      localStorage.setItem('shopify_active_store', shop);
+      
+      // Deactivate other stores in database
       await shopifySupabase
         .from('shopify_stores')
         .update({ is_active: false })
-        .neq('shop', storeUrl);
-        
+        .neq('shop', shop);
+      
+      // Activate the selected store
       await shopifySupabase
         .from('shopify_stores')
         .update({ is_active: true })
-        .eq('shop', storeUrl);
+        .eq('shop', shop);
       
-      const allStores = shopifyConnectionManager.getAllStores();
-      setStores(allStores);
-      toast.success(`تم تعيين ${storeUrl} كمتجر نشط`);
+      console.log(`✅ Store ${shop} activated successfully`);
+      
+      // Reload stores to update UI
+      await loadStores();
+      
+      toast.success(`تم تفعيل المتجر ${shop} بنجاح`);
     } catch (error) {
-      console.error('خطأ في تعيين المتجر النشط:', error);
-      toast.error(`فشل في تعيين المتجر النشط: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`);
-    }
-  };
-
-  // Remove a store
-  const removeStore = (storeUrl: string) => {
-    if (window.confirm(`هل أنت متأكد من رغبتك في إزالة متجر ${storeUrl}؟`)) {
-      try {
-        shopifyConnectionManager.removeStore(storeUrl);
-        const allStores = shopifyConnectionManager.getAllStores();
-        setStores(allStores);
-        toast.success(`��م إزالة متجر ${storeUrl} بنجاح`);
-      } catch (error) {
-        toast.error(`فشل في إزالة المتجر: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`);
-      }
-    }
-  };
-
-  // Navigate to Shopify page to add a new store
-  const addNewStore = () => {
-    navigate('/shopify');
-  };
-
-  // Open store in a new tab
-  const openStoreAdmin = (storeUrl: string) => {
-    window.open(`https://${storeUrl}/admin`, '_blank');
-  };
-  
-  // Refresh store list
-  const refreshStores = () => {
-    const allStores = shopifyConnectionManager.getAllStores();
-    setStores(allStores);
-    toast.success('تم تحديث قائمة المتاجر');
-  };
-  
-  // Clear all stores except active one
-  const clearAllExceptActive = () => {
-    if (window.confirm('هل أنت متأكد من رغبتك في مسح جميع المتاجر غير النشطة؟')) {
-      try {
-        if (activeShop) {
-          shopifyConnectionManager.clearAllStoresExcept(activeShop);
-          refreshStores();
-          toast.success('تم مسح جميع المتاجر غير النشطة');
-        }
-      } catch (error) {
-        toast.error(`فشل في مسح المتاجر: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`);
-      }
-    }
-  };
-  
-  // Clear all stores
-  const clearAllStores = () => {
-    if (window.confirm('تحذير: سيؤدي هذا الإجراء إلى مسح جميع المتاجر المتصلة. هل أنت متأكد؟')) {
-      try {
-        shopifyConnectionManager.clearAllStores();
-        refreshStores();
-        toast.success('تم مسح جميع المتاجر');
-        navigate('/shopify');
-      } catch (error) {
-        toast.error(`فشل في مسح المتاجر: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`);
-      }
-    }
-  };
-
-  // Format date to human-readable format
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return 'غير معروف';
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('ar-SA', { 
-        year: 'numeric', 
-        month: 'short', 
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
+      console.error(`❌ Error activating store ${shop}:`, error);
+      toast.error(error instanceof Error ? error.message : 'فشل في تفعيل المتجر');
+    } finally {
+      setIsActivating(null);
+      setVerificationStatus(prev => {
+        const newStatus = { ...prev };
+        delete newStatus[shop];
+        return newStatus;
       });
-    } catch (e) {
-      return dateString;
     }
   };
+
+  // Function to delete a store
+  const deleteStore = async (shop: string) => {
+    try {
+      if (!window.confirm(`هل أنت متأكد أنك تريد حذف المتجر ${shop}؟`)) {
+        return;
+      }
+
+      setIsLoading(true);
+      console.log(`🗑️ Deleting store: ${shop}`);
+
+      // Delete the store from the database
+      const { error } = await shopifySupabase
+        .from('shopify_stores')
+        .delete()
+        .eq('shop', shop);
+
+      if (error) {
+        console.error(`❌ Error deleting store ${shop}:`, error);
+        throw error;
+      }
+
+      console.log(`✅ Store ${shop} deleted successfully`);
+
+      // Reload stores to update UI
+      await loadStores();
+
+      toast.success(`تم حذف المتجر ${shop} بنجاح`);
+    } catch (error) {
+      console.error(`❌ Error in deleteStore:`, error);
+      toast.error(error instanceof Error ? error.message : 'فشل في حذف المتجر');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadStores();
+  }, [loadStores]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">جاري تحميل المتاجر...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+        <div className="flex items-center gap-2 text-red-700">
+          <AlertCircle className="h-5 w-5" />
+          <span>خطأ في تحميل المتاجر: {error}</span>
+        </div>
+        <Button 
+          onClick={loadStores} 
+          variant="outline" 
+          className="mt-2"
+        >
+          إعادة المحاولة
+        </Button>
+      </div>
+    );
+  }
 
   return (
-    <Card className="border rounded-lg shadow-sm overflow-hidden">
-      <CardHeader className="bg-slate-50 pb-4">
-        <CardTitle className="text-xl flex items-center justify-between">
-          <div className="flex items-center">
-            <Store className="h-5 w-5 mr-2" />
-            متاجر Shopify المتصلة
-          </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="ml-2">
-              {stores.length} متجر
-            </Badge>
-            <Button 
-              size="sm" 
-              variant="ghost"
-              onClick={() => setShowDiagnostics(!showDiagnostics)}
-              title="عرض معلومات التشخيص"
-            >
-              <AlertTriangle className="h-4 w-4" />
-            </Button>
-          </div>
-        </CardTitle>
-        
-        {/* عرض معلومات التشخيص */}
-        {showDiagnostics && diagnosticInfo && (
-          <div className="mt-2 p-3 bg-slate-100 text-xs rounded-md">
-            <h4 className="font-bold mb-2">معلومات التشخيص:</h4>
-            <div className="overflow-auto max-h-40">
-              <pre className="text-xs whitespace-pre-wrap" dir="ltr">
-                {JSON.stringify(diagnosticInfo, null, 2)}
-              </pre>
-            </div>
-          </div>
-        )}
-      </CardHeader>
-      <CardContent className="p-0">
-        {stores.length === 0 ? (
-          <div className="p-6 text-center">
-            <p className="text-gray-500 mb-4">لا توجد متاجر متصلة حاليًا</p>
-            <Button onClick={addNewStore}>إضافة متجر جديد</Button>
-          </div>
-        ) : (
-          <div>
-            <div className="overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-slate-50">
-                  <tr>
-                    <th className="text-right py-3 px-4 font-medium text-gray-700">المتجر</th>
-                    <th className="text-right py-3 px-4 font-medium text-gray-700">تاريخ الاتصال</th>
-                    <th className="text-center py-3 px-4 font-medium text-gray-700">الإجراءات</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {stores.map((store, index) => (
-                    <tr key={store.domain} className={`${index % 2 === 0 ? 'bg-white' : 'bg-slate-50'} ${store.isActive ? 'bg-green-50' : ''}`}>
-                      <td className="py-3 px-4">
-                        <div className="flex items-center">
-                          {store.isActive && <Check className="h-4 w-4 text-green-500 mr-2" />}
-                          <span className={store.isActive ? 'font-medium' : ''}>{store.domain}</span>
-                          {store.isActive && <Badge className="mr-2 bg-green-100 text-green-800 border-green-200 ml-2">نشط</Badge>}
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-gray-700">
-                        {formatDate(store.lastConnected)}
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="flex justify-center space-x-2">
-                          {!store.isActive && (
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => setActiveStore(store.domain)}
-                              title="تعيين كمتجر نشط"
-                            >
-                              تفعيل
-                            </Button>
-                          )}
-                          
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => openStoreAdmin(store.domain)}
-                            title="فتح إدارة المتجر"
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                          </Button>
-                          
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            onClick={() => removeStore(store.domain)}
-                            title="إزالة المتجر"
-                            disabled={stores.length === 1}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="p-4 border-t flex flex-col gap-2">
-              <Button onClick={addNewStore} className="w-full">إضافة متجر جديد</Button>
-              
-              <div className="grid grid-cols-2 gap-2">
-                <Button 
-                  variant="outline" 
-                  onClick={refreshStores}
-                  className="flex items-center justify-center"
-                  title="تحديث قائمة المتاجر"
-                >
-                  <RefreshCcw className="h-4 w-4 mr-2" /> تحديث
-                </Button>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold">إدارة المتاجر</h2>
+        <Button onClick={loadStores} variant="outline" size="sm">
+          <RefreshCw className="h-4 w-4 mr-2" />
+          تحديث
+        </Button>
+      </div>
+
+      {stores.length === 0 ? (
+        <div className="text-center p-8 bg-gray-50 rounded-lg">
+          <Store className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-600">لا توجد متاجر مرتبطة</p>
+          <Button 
+            onClick={() => window.location.href = '/shopify-connect'} 
+            className="mt-4"
+          >
+            ربط متجر جديد
+          </Button>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {stores.map((store) => (
+            <Card key={store.id} className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <Store className="h-8 w-8 text-blue-500" />
+                    {store.is_active && (
+                      <CheckCircle className="h-4 w-4 text-green-500 absolute -top-1 -right-1" />
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">{store.shop}</h3>
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <span>الحالة:</span>
+                      <Badge 
+                        variant={store.is_active ? "default" : "secondary"}
+                        className={`${
+                          store.is_active ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
+                        }`}
+                      >
+                        {store.is_active ? "نشط" : "غير نشط"}
+                      </Badge>
+                      <Badge 
+                        variant="outline"
+                        className={`${
+                          store.connectionStatus === 'connected' ? "border-green-500 text-green-700" :
+                          store.connectionStatus === 'error' ? "border-red-500 text-red-700" :
+                          "border-gray-500 text-gray-700"
+                        }`}
+                      >
+                        {store.connectionStatus === 'connected' ? "متصل" :
+                         store.connectionStatus === 'error' ? "خطأ في الاتصال" :
+                         "غير متصل"}
+                      </Badge>
+                      
+                      {verificationStatus[store.shop] && (
+                        <Badge variant="outline" className="border-blue-500 text-blue-700">
+                          {verificationStatus[store.shop] === 'verifying' ? 'جاري التحقق...' :
+                           verificationStatus[store.shop] === 'verified' ? 'تم التحقق' :
+                           'فشل التحقق'}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </div>
                 
-                <Button 
-                  variant="outline" 
-                  onClick={clearAllExceptActive}
-                  className="text-orange-600 hover:bg-orange-50"
-                  title="مسح جميع المتاجر غير النشطة"
-                >
-                  مسح غير النشطة
-                </Button>
+                <div className="flex items-center gap-2">
+                  {!store.is_active && (
+                    <Button
+                      onClick={() => activateStore(store.shop)}
+                      disabled={isActivating === store.shop}
+                      size="sm"
+                    >
+                      {isActivating === store.shop ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <Play className="h-4 w-4 mr-2" />
+                      )}
+                      تفعيل
+                    </Button>
+                  )}
+                  
+                  <Button 
+                    onClick={() => window.location.href = `/shopify-products?shop=${store.shop}`}
+                    variant="outline"
+                    size="sm"
+                  >
+                    <Package className="h-4 w-4 mr-2" />
+                    المنتجات
+                  </Button>
+                  
+                  <Button
+                    onClick={() => deleteStore(store.shop)}
+                    variant="destructive"
+                    size="sm"
+                  >
+                    حذف
+                  </Button>
+                </div>
               </div>
               
-              <Button 
-                variant="outline" 
-                onClick={clearAllStores}
-                className="text-red-600 hover:bg-red-50 mt-2"
-                title="مسح جميع المتاجر"
-              >
-                مسح جميع المتاجر
-              </Button>
-            </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+              <div className="mt-3 pt-3 border-t text-sm text-gray-500">
+                <div className="flex justify-between">
+                  <span>تاريخ الإنشاء: {new Date(store.created_at).toLocaleDateString('ar-SA')}</span>
+                  <span>آخر تحديث: {new Date(store.updated_at).toLocaleDateString('ar-SA')}</span>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
   );
 };
+
+export default ShopifyStoresManager;
