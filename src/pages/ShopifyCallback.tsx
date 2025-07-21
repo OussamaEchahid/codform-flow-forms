@@ -48,7 +48,7 @@ const ShopifyCallback = () => {
         setMessage('جاري تأكيد الاتصال مع Shopify...');
 
         // استدعاء edge function للمعالجة
-        console.log('Calling shopify-callback edge function...');
+        console.log(`🚀 Calling shopify-callback edge function for shop: ${shopParam}`);
         const { data, error } = await shopifySupabase.functions.invoke('shopify-callback', {
           body: {
             shop: shopParam,
@@ -59,17 +59,39 @@ const ShopifyCallback = () => {
           }
         });
 
+        console.log('📥 Edge function response:', { data, error });
+
         if (error) {
-          console.error('Edge function error:', error);
+          console.error('❌ Edge function error:', error);
           throw new Error(`خطأ في edge function: ${error.message}`);
         }
 
-        if (!data || !data.success) {
-          console.error('Invalid response from edge function:', data);
+        if (!data || data.success === false) {
+          console.error('❌ Invalid response from edge function:', data);
           throw new Error(data?.error || 'فشل في تأكيد الاتصال');
         }
 
-        console.log('Callback successful:', data);
+        if (!data.access_token) {
+          console.error('❌ No access token in response:', data);
+          throw new Error('لم يتم استلام رمز الوصول');
+        }
+
+        console.log('✅ Callback successful, verifying database...');
+        
+        // التحقق من وجود المتجر في قاعدة البيانات
+        const { data: dbStore, error: dbError } = await shopifySupabase
+          .from('shopify_stores')
+          .select('*')
+          .eq('shop', shopParam)
+          .eq('is_active', true)
+          .maybeSingle();
+        
+        if (dbError || !dbStore) {
+          console.error('❌ Store verification failed:', dbError);
+          throw new Error('فشل في التحقق من حفظ المتجر في قاعدة البيانات');
+        }
+        
+        console.log('✅ Store verified in database:', dbStore);
 
         // حفظ بيانات الاتصال في localStorage
         localStorage.setItem('shopify_store', shopParam);

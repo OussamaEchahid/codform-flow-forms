@@ -464,40 +464,43 @@ serve(async (req) => {
     await updateShopData(shop, tokenData);
     console.log(`[${requestId}] Store data updated successfully`);
     
-    // إنشاء استجابة ناجحة مع HTML redirect
-    const redirectUrl = `${APP_URL}/dashboard?shopify_connected=true&shop=${encodeURIComponent(shop)}&new_connection=true&timestamp=${Date.now()}`;
+    // التحقق النهائي من أن المتجر تم حفظه بنجاح
+    console.log(`[${requestId}] Verifying final store status in database...`);
+    const { data: finalVerification, error: verifyError } = await createClient(SUPABASE_URL, SUPABASE_KEY)
+      .from('shopify_stores')
+      .select('shop, access_token, is_active')
+      .eq('shop', shop)
+      .eq('is_active', true)
+      .maybeSingle();
     
-    const successHtml = `
-<!DOCTYPE html>
-<html>
-<head>
-    <title>نجح الاتصال بـ Shopify</title>
-    <meta charset="utf-8">
-    <style>
-        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f8f9fa; }
-        .success { color: #28a745; margin: 20px 0; }
-        .loading { color: #6c757d; }
-    </style>
-</head>
-<body>
-    <div class="success">
-        <h2>✅ تم ربط متجر ${shop} بنجاح!</h2>
-        <p class="loading">جارٍ إعادة التوجيه...</p>
-    </div>
-    <script>
-        console.log('Store ${shop} connected successfully, redirecting...');
-        setTimeout(() => {
-            window.location.href = '${redirectUrl}';
-        }, 2000);
-    </script>
-</body>
-</html>`;
+    if (verifyError || !finalVerification || !finalVerification.access_token) {
+      console.error(`[${requestId}] Final verification failed:`, verifyError || 'Store not found');
+      throw new Error('فشل التحقق النهائي من حفظ المتجر');
+    }
     
-    return new Response(successHtml, { 
+    console.log(`[${requestId}] ✅ Final verification successful - store ${shop} is properly saved`);
+    
+    // إرجاع استجابة JSON ناجحة
+    const successResponse = {
+      success: true,
+      access_token: tokenData.access_token,
+      shop: shop,
+      message: `تم ربط المتجر ${shop} بنجاح`,
+      debug: {
+        requestId,
+        timestamp: new Date().toISOString(),
+        tokenType: tokenData.token_type || 'offline',
+        databaseVerified: true
+      }
+    };
+    
+    console.log(`[${requestId}] 🎉 SUCCESS: Returning successful response for ${shop}`);
+    
+    return new Response(JSON.stringify(successResponse), { 
         status: 200, 
         headers: {
           ...corsHeaders,
-          "Content-Type": "text/html; charset=utf-8",
+          "Content-Type": "application/json",
           "X-Shopify-Auth-Success": "true",
           "X-Request-ID": requestId
         } 
