@@ -33,12 +33,7 @@ redirect_urls = [
 [pos]
 embedded = false
 
-# FIXED: Changed extensions from object to array format using double brackets [[]]
-[[extensions]]
-type = "theme_app_extension"
-handle = "theme-extension-codform"
-
-[[extensions]]
-type = "ui_extension"
-handle = "admin-action-extension"
+# Extensions are configured in their individual files:
+# - extensions/theme-extension-codform/shopify.extension.toml
+# - extensions/admin-action-extension/shopify.extension.toml
 
