@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Trash2, Package, FileText, Settings, Eye } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { supabase } from '@/integrations/supabase/client';
-import { useShopify } from '@/hooks/useShopify';
+import { useSimpleShopify } from '@/hooks/useSimpleShopify';
 import { toast } from 'sonner';
 import QuantityOffersPreview from '@/components/quantity-offers/QuantityOffersPreview';
 
@@ -56,7 +56,7 @@ interface QuantityOfferData {
 
 const QuantityOffers = () => {
   const { t } = useI18n();
-  const { products: shopifyProducts, loadProducts, isLoading: shopifyLoading, isConnected } = useShopify();
+  const { products: shopifyProducts, loadProducts, loading: shopifyLoading, isConnected, activeStore } = useSimpleShopify();
   const [currentStep, setCurrentStep] = useState<'product' | 'form' | 'settings'>('product');
   const [forms, setForms] = useState<Form[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -79,22 +79,36 @@ const QuantityOffers = () => {
 
   useEffect(() => {
     loadForms();
-    // Load products using the useShopify hook when connected
+    // Load products using the useSimpleShopify hook when connected
     if (isConnected) {
       loadProducts();
     }
-  }, [isConnected, loadProducts]);
+  }, [isConnected, activeStore, loadProducts]);
 
   const loadForms = async () => {
     try {
+      const activeShop = activeStore || localStorage.getItem('simple_active_store');
+      
+      if (!activeShop) {
+        console.log('🚫 لا يوجد متجر نشط - لن يتم تحميل النماذج');
+        setForms([]);
+        return;
+      }
+
+      console.log(`📋 تحميل النماذج للمتجر النشط: ${activeShop}`);
+      
       const { data, error } = await supabase
         .from('forms')
         .select('*')
-        .eq('is_published', true);
+        .eq('is_published', true)
+        .eq('shop_id', activeShop);
 
       if (error) throw error;
+      
+      console.log(`✅ تم تحميل ${data?.length || 0} نموذج للمتجر: ${activeShop}`);
       setForms(data || []);
     } catch (error) {
+      console.error('❌ خطأ في تحميل النماذج:', error);
       toast.error('Failed to load forms');
     }
   };
@@ -176,7 +190,7 @@ const QuantityOffers = () => {
         .from('quantity_offers')
         .upsert({
           ...quantityOffer,
-          shop_id: 'default-shop', // This should come from actual shop context
+          shop_id: activeStore || localStorage.getItem('simple_active_store') || '',
           product_id: selectedProduct.id,
           form_id: selectedForm.id
         });
