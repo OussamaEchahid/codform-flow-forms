@@ -34,22 +34,6 @@ const ShopifyConnect = () => {
         if (shopParam) {
           localStorage.setItem('shopify_last_url_shop', shopParam);
           console.log('Shop parameter detected in URL:', shopParam);
-          
-          // تحقق من صحة المتجر المخزن
-          try {
-            await shopifyConnectionService.syncStoreToDatabase(shopParam, undefined, false);
-            console.log("Store synced to database:", shopParam);
-          } catch (syncError) {
-            console.error("Error syncing store:", syncError);
-          }
-        }
-        
-        // تنظيف رموز placeholder من قاعدة البيانات
-        try {
-          await shopifyConnectionService.cleanupPlaceholderTokens();
-          console.log('Placeholder tokens cleaned on page load');
-        } catch (cleanupError) {
-          console.error("Error cleaning placeholder tokens:", cleanupError);
         }
         
         setError(null);
@@ -63,10 +47,10 @@ const ShopifyConnect = () => {
 
     checkParams();
     
-    // التأكد من أن الصفحة مرئية بالفعل - إصلاح محتمل للمشكلة
+    // التأكد من أن الصفحة مرئية بالفعل
     document.title = "الاتصال بمتجر Shopify";
     
-  }, [location.search]);
+  }, []); // إزالة location.search من dependency array لمنع إعادة التحميل
   
   // Reset connection state
   const handleReset = async () => {
