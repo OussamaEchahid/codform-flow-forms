@@ -93,10 +93,19 @@ serve(async (req) => {
     }
 
     if (req.method === 'GET' && action === 'list-orders') {
-      const { data, error } = await supabase
+      const shopId = url.searchParams.get('shop_id');
+      
+      let query = supabase
         .from('orders')
         .select('*')
         .order('created_at', { ascending: false });
+
+      // Filter by shop_id if provided
+      if (shopId) {
+        query = query.eq('shop_id', shopId);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error('Error fetching orders:', error);

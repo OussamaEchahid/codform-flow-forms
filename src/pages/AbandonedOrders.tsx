@@ -44,8 +44,19 @@ const AbandonedOrders = () => {
   useEffect(() => {
     const fetchAbandonedCarts = async () => {
       try {
+        // Only fetch if we have a shop
+        if (!actualShop) {
+          console.log('No shop available, skipping abandoned carts fetch');
+          setAbandonedCarts([]);
+          setLoading(false);
+          return;
+        }
+
         const { data, error } = await supabase.functions.invoke('abandoned-carts', {
-          body: { action: 'list-abandoned-carts' }
+          body: { 
+            action: 'list-abandoned-carts',
+            shop_id: actualShop
+          }
         });
 
         if (error) {
@@ -60,10 +71,13 @@ const AbandonedOrders = () => {
       }
     };
 
-    if (actualHasAccess) {
+    if (actualHasAccess && actualShop) {
       fetchAbandonedCarts();
+    } else if (actualHasAccess && !actualShop) {
+      setAbandonedCarts([]);
+      setLoading(false);
     }
-  }, [actualHasAccess]);
+  }, [actualHasAccess, actualShop]);
 
   if (!actualHasAccess) {
     return (

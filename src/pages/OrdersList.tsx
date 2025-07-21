@@ -53,9 +53,17 @@ const OrdersList = () => {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        // Use orders-management function with GET method
+        // Only fetch orders if we have a shop
+        if (!actualShop) {
+          console.log('No shop available, skipping orders fetch');
+          setOrders([]);
+          setLoading(false);
+          return;
+        }
+
+        // Use orders-management function with GET method and shop_id filter
         const response = await fetch(
-          `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/orders-management?action=list-orders`,
+          `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/orders-management?action=list-orders&shop_id=${encodeURIComponent(actualShop)}`,
           {
             method: 'GET',
             headers: {
@@ -78,10 +86,13 @@ const OrdersList = () => {
       }
     };
 
-    if (actualHasAccess) {
+    if (actualHasAccess && actualShop) {
       fetchOrders();
+    } else if (actualHasAccess && !actualShop) {
+      setOrders([]);
+      setLoading(false);
     }
-  }, [actualHasAccess]);
+  }, [actualHasAccess, actualShop]);
 
   if (!actualHasAccess) {
     return (

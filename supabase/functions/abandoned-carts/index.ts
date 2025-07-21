@@ -59,11 +59,27 @@ serve(async (req) => {
       );
     }
 
-    if (req.method === 'GET' && action === 'list-abandoned-carts') {
-      const { data, error } = await supabase
+    if ((req.method === 'GET' || req.method === 'POST') && action === 'list-abandoned-carts') {
+      // Handle both URL params and body data
+      let shopId;
+      if (req.method === 'GET') {
+        shopId = url.searchParams.get('shop_id');
+      } else {
+        const body = await req.json();
+        shopId = body.shop_id;
+      }
+
+      let query = supabase
         .from('abandoned_carts')
         .select('*')
         .order('last_activity', { ascending: false });
+
+      // Filter by shop_id if provided
+      if (shopId) {
+        query = query.eq('shop_id', shopId);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error('Error fetching abandoned carts:', error);
