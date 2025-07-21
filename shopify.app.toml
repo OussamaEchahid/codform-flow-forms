@@ -1,9 +1,9 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
-client_id = "7e4608874bbcc38afa1953948da28407"
+client_id = "CLIENT_ID_الجديد_هنا"
 name = "CODFORM - COD Forms"
 handle = "codform-flow-forms"
-application_url = "https://codform-flow-forms.lovable.app"
+application_url = "https://bdd609f7-47cd-46ca-b52a-70c677d421c9.lovableproject.com"
 embedded = false
 
 [build]
