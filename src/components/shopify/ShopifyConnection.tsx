@@ -37,14 +37,70 @@ const ShopifyConnection = () => {
       setShopDomain(normalizedShop);
       console.log('🔍 Auto-detected shop from URL:', normalizedShop);
       
-      // إذا لم يكن هناك اتصال نشط، ابدأ الاتصال التلقائي
-      if (!isConnected) {
-        console.log('🚀 Starting auto-connect for detected shop');
-        // سنبدأ الاتصال تلقائياً بعد تحديد النطاق
-        setTimeout(() => {
-          connectStore();
-        }, 1000);
-      }
+      // حفظ المتجر الجديد في قاعدة البيانات مع fallback
+      const saveDetectedShop = async () => {
+        try {
+          console.log('💾 Saving detected shop to database:', normalizedShop);
+          
+          // التحقق أولاً من وجود المتجر
+          const { data: existing, error: checkError } = await shopifyStores()
+            .select('*')
+            .eq('shop', normalizedShop)
+            .single();
+            
+          if (checkError && checkError.code !== 'PGRST116') {
+            console.error('❌ Error checking existing shop:', checkError);
+            throw checkError;
+          }
+          
+          if (!existing) {
+            // إضافة المتجر الجديد
+            const { data, error } = await shopifyStores()
+              .insert({
+                shop: normalizedShop,
+                is_active: true,
+                access_token: null, // سيتم تحديثه بعد OAuth
+                scope: null,
+                token_type: 'Bearer'
+              });
+              
+            if (error) {
+              console.error('❌ Error saving detected shop:', error);
+            } else {
+              console.log('✅ Detected shop saved successfully:', normalizedShop);
+              // إعادة فحص حالة الاتصال
+              setTimeout(() => {
+                checkConnectionStatus();
+              }, 500);
+            }
+          } else {
+            console.log('ℹ️ Shop already exists in database:', normalizedShop);
+            // تفعيل المتجر الموجود
+            const { error } = await shopifyStores()
+              .update({ is_active: true, updated_at: new Date().toISOString() })
+              .eq('shop', normalizedShop);
+              
+            if (error) {
+              console.error('❌ Error activating existing shop:', error);
+            } else {
+              console.log('✅ Existing shop activated:', normalizedShop);
+            }
+          }
+        } catch (error) {
+          console.error('❌ Error in saveDetectedShop:', error);
+        }
+      };
+      
+      // حفظ المتجر أولاً ثم بدء الاتصال
+      saveDetectedShop().then(() => {
+        // إذا لم يكن هناك اتصال نشط، ابدأ الاتصال التلقائي
+        if (!isConnected) {
+          console.log('🚀 Starting auto-connect for detected shop');
+          setTimeout(() => {
+            connectStore();
+          }, 1500);
+        }
+      });
     }
   }, [shopDomain, isConnected]);
 
