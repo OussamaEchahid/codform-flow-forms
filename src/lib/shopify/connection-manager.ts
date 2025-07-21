@@ -187,7 +187,25 @@ class ShopifyConnectionManager {
       const cleanedDomain = cleanShopifyDomain(domain);
       if (!cleanedDomain) return;
       
+      console.log(`🔄 Setting active store to: ${cleanedDomain}`);
+      
+      // Clear cache immediately
+      this.storeCache = null;
+      this.storeCacheTime = 0;
+      
+      // Clear all existing localStorage items to avoid conflicts
+      localStorage.removeItem(this.ACTIVE_STORE_KEY);
+      localStorage.removeItem('shopify_store');
+      localStorage.removeItem('shopify_connected');
+      
+      // Set the new active store
       this.addOrUpdateStore(cleanedDomain, true);
+      
+      // Force update cache with new value
+      this.storeCache = cleanedDomain;
+      this.storeCacheTime = Date.now();
+      
+      console.log(`✅ Active store set to: ${cleanedDomain}`);
     } catch (error) {
       console.error('Error in setActiveStore:', error);
       this.recordError('setActiveStore', error);
