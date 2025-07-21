@@ -26,31 +26,23 @@ const ShopifyConnection = () => {
     checkConnectionStatus();
   }, []);
 
-  // Check connection status - single source of truth
+  // Check connection status
   const checkConnectionStatus = async () => {
     setIsCheckingStatus(true);
     setConnectionError(null);
     
     try {
-      // Check local storage first for quick UI feedback
-      const storedShop = localStorage.getItem('shopify_store');
-      const storedConnected = localStorage.getItem('shopify_connected') === 'true';
+      console.log('🔍 Checking connection status...');
       
-      if (!storedShop) {
-        setIsConnected(false);
-        setIsCheckingStatus(false);
-        return;
-      }
-      
-      // Verify against database
+      // Check database for active stores
       const { data, error } = await shopifyStores()
         .select('*')
-        .eq('shop', storedShop)
+        .eq('is_active', true)
         .order('updated_at', { ascending: false })
         .limit(1);
         
       if (error) {
-        console.error('Error fetching store data:', error);
+        console.error('❌ Error fetching store data:', error);
         setConnectionError('خطأ في التحقق من حالة الاتصال');
         setIsConnected(false);
         setIsCheckingStatus(false);
@@ -58,38 +50,36 @@ const ShopifyConnection = () => {
       }
       
       if (data && data.length > 0) {
-        setConnectedShop(storedShop);
+        const store = data[0];
+        console.log('✅ Found active store:', store.shop);
+        setConnectedShop(store.shop);
         
-        // Only test if there's a valid token and it's not the placeholder
-        if (data[0].access_token && data[0].access_token !== 'placeholder_token') {
-          // Test token validity
-          const isValid = await testToken(storedShop, data[0].access_token);
+        // Update localStorage
+        localStorage.setItem('shopify_store', store.shop);
+        localStorage.setItem('shopify_connected', 'true');
+        
+        // Test token validity
+        if (store.access_token && store.access_token !== 'placeholder_token') {
+          const isValid = await testToken(store.shop, store.access_token);
           setIsConnected(isValid);
           
           if (!isValid) {
-            // If token is invalid, mark as disconnected and offer reconnection
-            localStorage.setItem('shopify_connected', 'false');
             setConnectionError('رمز الوصول غير صالح - يرجى إعادة الاتصال');
+            localStorage.setItem('shopify_connected', 'false');
           }
         } else {
-          // If token is placeholder or missing, set as disconnected
           setIsConnected(false);
           setConnectionError('رمز الوصول غير موجود - يرجى الاتصال');
           localStorage.setItem('shopify_connected', 'false');
-          
-          // Clean up placeholder tokens
-          if (data[0].access_token === 'placeholder_token') {
-            await shopifyConnectionService.cleanupPlaceholderTokens();
-          }
         }
       } else {
-        // No store found in database
+        console.log('ℹ️ No active stores found');
         setIsConnected(false);
         localStorage.removeItem('shopify_store');
         localStorage.removeItem('shopify_connected');
       }
     } catch (error) {
-      console.error('Error checking connection status:', error);
+      console.error('❌ Error checking connection status:', error);
       setConnectionError('حدث خطأ أثناء التحقق من حالة الاتصال');
       setIsConnected(false);
     } finally {
@@ -109,13 +99,13 @@ const ShopifyConnection = () => {
       });
       
       if (error) {
-        console.error('Error testing token:', error);
+        console.error('❌ Error testing token:', error);
         return false;
       }
       
       return data?.success || false;
     } catch (error) {
-      console.error('Error testing token:', error);
+      console.error('❌ Error testing token:', error);
       return false;
     }
   };
@@ -123,7 +113,11 @@ const ShopifyConnection = () => {
   // Connect to Shopify store via OAuth
   const connectStore = async () => {
     if (!shopDomain.trim()) {
-      toast.error('يرجى إدخال نطاق المتجر');
+      toast({
+        title: "خطأ",
+        description: "يرجى إدخال نطاق المتجر",
+        variant: "destructive"
+      });
       return;
     }
     
@@ -136,7 +130,7 @@ const ShopifyConnection = () => {
         const url = new URL(normalizedShopDomain);
         normalizedShopDomain = url.hostname;
       } catch (error) {
-        console.error('Invalid URL format', error);
+        console.error('❌ Invalid URL format', error);
       }
     }
     
@@ -145,21 +139,18 @@ const ShopifyConnection = () => {
       normalizedShopDomain = `${normalizedShopDomain}.myshopify.com`;
     }
     
-    // Save for recovery
-    localStorage.setItem('shopify_last_url_shop', normalizedShopDomain);
-    
     setIsConnecting(true);
     setConnectionError(null);
     
     try {
-      console.log(`Starting modern OAuth flow for ${normalizedShopDomain}`);
+      console.log(`🚀 Starting OAuth flow for ${normalizedShopDomain}`);
 
       // إنشاء state parameter للأمان
       const state = crypto.randomUUID();
       localStorage.setItem('shopify_oauth_state', state);
       localStorage.setItem('shopify_connecting_shop', normalizedShopDomain);
 
-      // بناء OAuth URL بشكل مباشر - الطريقة الحديثة
+      // بناء OAuth URL - يشير مباشرة إلى Edge Function
       const scopes = 'write_products,read_products,read_orders,write_orders,write_script_tags,read_themes,write_themes,read_content,write_content';
       const redirectUri = 'https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-auth-callback';
       const clientId = '7e4608874bbcc38afa1953948da28407';
@@ -171,33 +162,40 @@ const ShopifyConnection = () => {
         `state=${state}&` +
         `grant_options[]=value`;
 
-      console.log('OAuth URL built:', oauthUrl);
+      console.log('🔗 OAuth URL:', oauthUrl);
       
-      // إعداد toast للمتابعة
-      toast.info('سيتم فتح نافذة Shopify للموافقة على الربط', { duration: 3000 });
+      toast({
+        title: "جاري التوجيه",
+        description: "سيتم فتح نافذة Shopify للموافقة على الربط",
+      });
 
-      // التوجيه المباشر إلى OAuth - طريقة حديثة وآمنة
+      // التوجيه المباشر إلى OAuth
       setTimeout(() => {
         window.location.href = oauthUrl;
       }, 1000);
       
     } catch (error) {
-      console.error('خطأ في بدء OAuth:', error);
+      console.error('❌ Error in OAuth flow:', error);
       setConnectionError(error instanceof Error ? error.message : 'خطأ في بدء الاتصال');
       setIsConnecting(false);
-      toast.error('فشل في بدء عملية الربط');
+      toast({
+        title: "خطأ",
+        description: "فشل في بدء عملية الربط",
+        variant: "destructive"
+      });
     }
   };
 
-  // Reconnect store - reinitiate OAuth flow
+  // Reconnect store
   const reconnectStore = async () => {
     if (!connectedShop) {
-      toast.error('لا يوجد متجر متصل للإعادة الاتصال');
+      toast({
+        title: "خطأ",
+        description: "لا يوجد متجر متصل للإعادة الاتصال",
+        variant: "destructive"
+      });
       return;
     }
-    
-    // Clean placeholder tokens before reconnection
-    await shopifyConnectionService.cleanupPlaceholderTokens();
     
     setShopDomain(connectedShop);
     await connectStore();
@@ -220,16 +218,25 @@ const ShopifyConnection = () => {
           .eq('shop', connectedShop);
       }
       
-      // Complete reset
-      shopifyConnectionService.completeConnectionReset();
+      // Clear localStorage
+      localStorage.removeItem('shopify_store');
+      localStorage.removeItem('shopify_connected');
+      localStorage.removeItem('shopify_active_store');
       
       setIsConnected(false);
       setConnectedShop(null);
       
-      toast.success('تم قطع الاتصال بنجاح');
+      toast({
+        title: "نجح",
+        description: "تم قطع الاتصال بنجاح",
+      });
     } catch (error) {
-      console.error('Error disconnecting store:', error);
-      toast.error('فشل في قطع الاتصال');
+      console.error('❌ Error disconnecting store:', error);
+      toast({
+        title: "خطأ",
+        description: "فشل في قطع الاتصال",
+        variant: "destructive"
+      });
     }
   };
 
@@ -237,14 +244,35 @@ const ShopifyConnection = () => {
   const forceReset = async () => {
     try {
       setIsResetting(true);
-      await shopifyConnectionService.forceResetConnection();
-      toast.success('تم إعادة تعيين الاتصال بنجاح');
       
-      // Force browser reload to clear any cached state
-      window.location.reload();
+      // Clear all localStorage items
+      localStorage.removeItem('shopify_store');
+      localStorage.removeItem('shopify_connected');
+      localStorage.removeItem('shopify_active_store');
+      localStorage.removeItem('shopify_oauth_state');
+      localStorage.removeItem('shopify_connecting_shop');
+      
+      // Reset state
+      setIsConnected(false);
+      setConnectedShop(null);
+      setConnectionError(null);
+      
+      toast({
+        title: "نجح",
+        description: "تم إعادة تعيين الاتصال بنجاح",
+      });
+      
+      // Refresh page
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     } catch (error) {
-      console.error('Error during force reset:', error);
-      toast.error('فشل في إعادة تعيين الاتصال');
+      console.error('❌ Error during force reset:', error);
+      toast({
+        title: "خطأ",
+        description: "فشل في إعادة تعيين الاتصال",
+        variant: "destructive"
+      });
     } finally {
       setIsResetting(false);
     }
@@ -302,7 +330,7 @@ const ShopifyConnection = () => {
     );
   }
 
-  // Render connect state with error if exists
+  // Render connect state
   return (
     <Card>
       <CardHeader>
@@ -336,7 +364,7 @@ const ShopifyConnection = () => {
         {/* Emergency reset button */}
         <div className="mt-6 border-t pt-4">
           <p className="text-xs text-muted-foreground mb-2">
-            إذا كنت تواجه مشاكل مستمرة في الاتصال، يمكنك إعادة تعيين حالة الاتصال بالكامل:
+            إذا كنت تواجه مشاكل مستمرة في الاتصال، يمكنك إعادة تعيين حالة الاتصال:
           </p>
           <Button 
             variant="outline" 

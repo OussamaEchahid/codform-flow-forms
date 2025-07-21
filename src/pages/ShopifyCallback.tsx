@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, CheckCircle, AlertCircle, Clock } from 'lucide-react';
-import { shopifySupabase } from '@/lib/shopify/supabase-client';
+import { shopifyStores } from '@/lib/shopify/supabase-client';
 import { toast } from 'sonner';
 
 const ShopifyCallback = () => {
@@ -16,16 +16,15 @@ const ShopifyCallback = () => {
   const [verificationAttempts, setVerificationAttempts] = useState(0);
   const [debugInfo, setDebugInfo] = useState<any>({});
 
-  const MAX_VERIFICATION_ATTEMPTS = 10;
-  const VERIFICATION_INTERVAL = 2000; // 2 seconds
+  const MAX_VERIFICATION_ATTEMPTS = 15;
+  const VERIFICATION_INTERVAL = 2000;
 
   // دالة للتحقق من وجود المتجر في قاعدة البيانات
   const verifyStoreInDatabase = async (shopParam: string): Promise<boolean> => {
     try {
       console.log(`🔍 Verifying store ${shopParam} in database (attempt ${verificationAttempts + 1})`);
       
-      const { data, error } = await shopifySupabase
-        .from('shopify_stores')
+      const { data, error } = await shopifyStores()
         .select('*')
         .eq('shop', shopParam)
         .eq('is_active', true)
@@ -36,7 +35,7 @@ const ShopifyCallback = () => {
         return false;
       }
       
-      if (data && data.access_token) {
+      if (data && data.access_token && data.access_token !== 'placeholder_token') {
         console.log(`✅ Store ${shopParam} found in database with valid token`);
         return true;
       }
@@ -49,39 +48,8 @@ const ShopifyCallback = () => {
     }
   };
 
-  // دالة لحفظ المتجر كبديل احتياطي
-  const fallbackSaveStore = async (shopParam: string, tokenData: any): Promise<boolean> => {
-    try {
-      console.log(`🆘 Attempting fallback save for ${shopParam}`);
-      
-      const { data, error } = await shopifySupabase
-        .from('shopify_stores')
-        .upsert({
-          shop: shopParam,
-          access_token: tokenData.access_token,
-          scope: tokenData.scope || '',
-          token_type: tokenData.token_type || 'offline',
-          is_active: true,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .select();
-      
-      if (error) {
-        console.error(`❌ Fallback save failed:`, error);
-        return false;
-      }
-      
-      console.log(`✅ Fallback save successful for ${shopParam}`);
-      return true;
-    } catch (error) {
-      console.error(`❌ Fallback save exception:`, error);
-      return false;
-    }
-  };
-
   // دالة التحقق المستمر
-  const startVerificationLoop = async (shopParam: string, tokenData?: any) => {
+  const startVerificationLoop = async (shopParam: string) => {
     setStatus('waiting');
     setMessage('جاري التحقق من حفظ المتجر في قاعدة البيانات...');
     
@@ -114,12 +82,6 @@ const ShopifyCallback = () => {
         return;
       }
       
-      // إذا وصلنا لنصف المحاولات، جرب الحفظ الاحتياطي
-      if (currentAttempt === Math.floor(MAX_VERIFICATION_ATTEMPTS / 2) && tokenData) {
-        console.log(`🆘 Halfway through attempts, trying fallback save`);
-        await fallbackSaveStore(shopParam, tokenData);
-      }
-      
       // إذا انتهت المحاولات
       if (currentAttempt >= MAX_VERIFICATION_ATTEMPTS) {
         clearInterval(checkInterval);
@@ -137,7 +99,6 @@ const ShopifyCallback = () => {
         const shopParam = searchParams.get('shop');
         const code = searchParams.get('code');
         const hmac = searchParams.get('hmac');
-        const timestamp = searchParams.get('timestamp');
         const state = searchParams.get('state');
 
         console.log(`🚀 Callback started for shop: ${shopParam}`);
@@ -150,42 +111,22 @@ const ShopifyCallback = () => {
           userAgent: navigator.userAgent
         });
 
-        if (!shopParam || !code) {
-          throw new Error('معلمات OAuth غير صحيحة');
+        if (!shopParam) {
+          throw new Error('معامل shop مطلوب');
+        }
+
+        if (!code) {
+          throw new Error('معامل code مطلوب');
         }
 
         setShop(shopParam);
-        setMessage('جاري تأكيد الاتصال مع Shopify...');
+        setMessage('تم استلام callback من Shopify، جاري التحقق من العملية...');
 
-        // استدعاء edge function
-        console.log(`📡 Calling shopify-callback edge function for shop: ${shopParam}`);
-        
-        const { data, error } = await shopifySupabase.functions.invoke('shopify-callback', {
-          body: {
-            shop: shopParam,
-            code,
-            hmac: hmac || '',
-            timestamp: timestamp || '',
-            state: state || ''
-          }
-        });
-
-        console.log(`📥 Edge function response:`, { data, error });
-
-        if (error) {
-          console.error(`❌ Edge function error:`, error);
-          throw new Error(`خطأ في edge function: ${error.message}`);
-        }
-
-        if (!data || data.success === false) {
-          console.error(`❌ Invalid response:`, data);
-          throw new Error(data?.error || 'فشل في تأكيد الاتصال');
-        }
-
-        console.log(`✅ Edge function successful, starting verification loop`);
+        console.log(`✅ Callback received for shop: ${shopParam}`);
+        console.log(`📡 Edge Function should have processed this automatically`);
         
         // بدء حلقة التحقق المستمر
-        await startVerificationLoop(shopParam, data);
+        await startVerificationLoop(shopParam);
 
       } catch (error) {
         console.error(`❌ Callback error:`, error);

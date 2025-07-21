@@ -1,16 +1,12 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { shopifySupabase } from '@/lib/shopify/supabase-client';
 import { ShopifyStore } from '@/lib/shopify/types';
-import { AlertCircle, CheckCircle, Loader2, Package, Play, RefreshCw, Store } from 'lucide-react';
+import { AlertCircle, CheckCircle, Loader2, Package, Play, RefreshCw, Store, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
-
-interface ShopifyStoresManagerProps {
-  // Add any props here
-}
 
 const ShopifyStoresManager = () => {
   const [stores, setStores] = useState<ShopifyStore[]>([]);
@@ -38,7 +34,7 @@ const ShopifyStoresManager = () => {
 
       const storesWithConnectionStatus = await Promise.all(
         (data || []).map(async (store) => {
-          const hasValidToken = store.access_token && store.access_token !== 'null';
+          const hasValidToken = store.access_token && store.access_token !== 'null' && store.access_token !== 'placeholder_token';
           let connectionStatus: 'connected' | 'disconnected' | 'error' = 'disconnected';
           
           if (hasValidToken) {
@@ -100,7 +96,7 @@ const ShopifyStoresManager = () => {
           continue;
         }
 
-        if (data && data.access_token && data.access_token !== 'null') {
+        if (data && data.access_token && data.access_token !== 'null' && data.access_token !== 'placeholder_token') {
           console.log(`✅ Store ${shop} verified successfully`);
           setVerificationStatus(prev => ({ ...prev, [shop]: 'verified' }));
           return true;
@@ -121,7 +117,7 @@ const ShopifyStoresManager = () => {
     return false;
   };
 
-  // Activate store with enhanced verification
+  // Activate store
   const activateStore = async (shop: string) => {
     try {
       setIsActivating(shop);
@@ -133,9 +129,6 @@ const ShopifyStoresManager = () => {
       if (!isVerified) {
         throw new Error(`المتجر ${shop} غير موجود في قاعدة البيانات أو لا يحتوي على رمز صالح`);
       }
-      
-      // Update connection manager
-      shopifyConnectionManager.addOrUpdateStore(shop, true, true);
       
       // Update localStorage
       localStorage.setItem('shopify_store', shop);
@@ -173,7 +166,7 @@ const ShopifyStoresManager = () => {
     }
   };
 
-  // Function to delete a store
+  // Delete store
   const deleteStore = async (shop: string) => {
     try {
       if (!window.confirm(`هل أنت متأكد أنك تريد حذف المتجر ${shop}؟`)) {
@@ -194,11 +187,16 @@ const ShopifyStoresManager = () => {
         throw error;
       }
 
+      // If this was the active store, clear localStorage
+      const activeStore = localStorage.getItem('shopify_store');
+      if (activeStore === shop) {
+        localStorage.removeItem('shopify_store');
+        localStorage.removeItem('shopify_connected');
+        localStorage.removeItem('shopify_active_store');
+      }
+
       console.log(`✅ Store ${shop} deleted successfully`);
-
-      // Reload stores to update UI
       await loadStores();
-
       toast.success(`تم حذف المتجر ${shop} بنجاح`);
     } catch (error) {
       console.error(`❌ Error in deleteStore:`, error);
@@ -338,6 +336,7 @@ const ShopifyStoresManager = () => {
                     variant="destructive"
                     size="sm"
                   >
+                    <Trash2 className="h-4 w-4 mr-2" />
                     حذف
                   </Button>
                 </div>

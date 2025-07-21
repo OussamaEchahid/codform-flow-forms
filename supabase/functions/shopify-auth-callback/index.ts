@@ -1,6 +1,6 @@
+
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { createHmac } from "https://deno.land/std@0.177.0/node/crypto.ts";
 
 // إعدادات Supabase
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || 'https://trlklwixfeaexhydzaue.supabase.co';
@@ -10,7 +10,7 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || '
 const SHOPIFY_API_KEY = "7e4608874bbcc38afa1953948da28407";
 const SHOPIFY_API_SECRET = "18221d830a86da52082e0d06c0d32ba3";
 
-console.log("🚀 Shopify Auth Callback initialized");
+console.log("🚀 Shopify Auth Callback Edge Function initialized");
 
 // إعداد عناوين CORS
 const corsHeaders = {
