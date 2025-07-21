@@ -85,3 +85,4 @@ verify_jwt = false
 
 [functions.shopify-auth-callback]
 verify_jwt = false
+access_control_allow_origin = "https://codmagnet.com"
