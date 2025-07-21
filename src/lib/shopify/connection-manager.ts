@@ -12,7 +12,69 @@ class ShopifyConnectionManager {
   private readonly CONNECTION_TIMESTAMP_KEY = 'shopify_connection_timestamp';
   
   /**
-   * Sets the active store with comprehensive cleanup and immediate cache refresh
+   * قطع الاتصال نهائياً من المتجر الحالي
+   */
+  public disconnectCurrentStore(): void {
+    try {
+      console.log('🔌 Disconnecting from all stores completely...');
+      
+      // 1. مسح جميع البيانات من localStorage
+      this.clearAllStoreData();
+      
+      // 2. مسح الـ cache
+      this.invalidateCache();
+      
+      // 3. إعادة تعيين الحالة
+      this.storeCache = null;
+      this.storeCacheTime = 0;
+      
+      console.log('✅ Complete disconnection successful');
+      
+    } catch (error) {
+      console.error('Error in disconnectCurrentStore:', error);
+    }
+  }
+
+  /**
+   * تنظيف شامل لجميع بيانات المتاجر
+   */
+  private clearAllStoreData(): void {
+    try {
+      // مسح مفاتيح connection manager
+      localStorage.removeItem(this.STORES_KEY);
+      localStorage.removeItem(this.ACTIVE_STORE_KEY);
+      localStorage.removeItem(this.URL_SHOP_KEY);
+      localStorage.removeItem(this.CONNECTION_TIMESTAMP_KEY);
+      localStorage.removeItem(this.LAST_ERROR_KEY);
+      localStorage.removeItem(this.RECOVERY_ATTEMPT_KEY);
+      
+      // مسح مفاتيح legacy
+      localStorage.removeItem('shopify_store');
+      localStorage.removeItem('shopify_connected');
+      localStorage.removeItem('shopify_active_store');
+      localStorage.removeItem('shopify_temp_store');
+      localStorage.removeItem('shopify_connecting');
+      localStorage.removeItem('shopify_connection_success');
+      
+      // مسح حالات الخطأ
+      localStorage.removeItem('shopify_failsafe');
+      localStorage.removeItem('shopify_token_error');
+      
+      // مسح أي بيانات أخرى متعلقة بـ Shopify
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('shopify_') && !key.includes('user') && !key.includes('settings')) {
+          localStorage.removeItem(key);
+        }
+      });
+      
+      console.log('🧹 All store data cleared');
+    } catch (error) {
+      console.error('Error clearing all store data:', error);
+    }
+  }
+
+  /**
+   * Sets the active store with complete disconnection from previous store
    * @param domain The store domain to set active
    */
   public setActiveStore(domain: string): void {
@@ -25,58 +87,35 @@ class ShopifyConnectionManager {
       
       console.log(`🔄 Setting active store to: ${cleanedDomain}`);
       
-      // 1. تنظيف شامل لجميع البيانات القديمة مع إزالة الـ cache فوراً
-      this.clearActiveStoreCache();
-      this.invalidateCache();
+      // 1. قطع الاتصال نهائياً من المتجر السابق
+      this.disconnectCurrentStore();
       
-      // 2. إزالة جميع المتاجر القديمة من connection manager
-      const existingStores = this.getAllStores();
-      existingStores.forEach(store => {
-        if (store.domain !== cleanedDomain) {
-          store.isActive = false;
-        }
-      });
-      
-      // 3. البحث عن المتجر في القائمة الموجودة أو إنشاؤه
-      let targetStore = existingStores.find(s => s.domain === cleanedDomain);
+      // 2. إنشاء اتصال جديد بالمتجر المطلوب
       const currentTimestamp = new Date().toISOString();
+      const newStore = {
+        domain: cleanedDomain,
+        shop: cleanedDomain,
+        isActive: true,
+        lastConnected: currentTimestamp
+      };
       
-      if (targetStore) {
-        targetStore.isActive = true;
-        targetStore.lastConnected = currentTimestamp;
-      } else {
-        targetStore = {
-          domain: cleanedDomain,
-          shop: cleanedDomain,
-          isActive: true,
-          lastConnected: currentTimestamp
-        };
-        existingStores.push(targetStore);
-      }
+      // 3. حفظ المتجر الجديد كالوحيد
+      localStorage.setItem(this.STORES_KEY, JSON.stringify([newStore]));
       
-      // 4. حفظ المتاجر المحدثة
-      localStorage.setItem(this.STORES_KEY, JSON.stringify(existingStores));
-      
-      // 5. تحديد المتجر النشط في جميع المواقع بشكل موحد
+      // 4. تحديد المتجر النشط في جميع المواقع
       localStorage.setItem(this.ACTIVE_STORE_KEY, cleanedDomain);
       localStorage.setItem('shopify_store', cleanedDomain);
       localStorage.setItem('shopify_connected', 'true');
       localStorage.setItem('shopify_active_store', cleanedDomain);
       
-      // 6. تنظيف أي fail-safe mode أو حالات خطأ
-      localStorage.removeItem('shopify_failsafe');
-      localStorage.removeItem('shopify_token_error');
-      
-      // 7. تحديث الـ cache فوراً مع الوقت الجديد
+      // 5. تحديث الـ cache
       this.storeCache = cleanedDomain;
       this.storeCacheTime = Date.now();
       
-      // 8. تسجيل النجاح وتنظيف حالات الخطأ
+      // 6. تسجيل النجاح
       localStorage.setItem(this.CONNECTION_TIMESTAMP_KEY, Date.now().toString());
-      localStorage.removeItem(this.LAST_ERROR_KEY);
-      localStorage.removeItem(this.RECOVERY_ATTEMPT_KEY);
       
-      console.log(`✅ Active store set successfully and cache updated: ${cleanedDomain}`);
+      console.log(`✅ Active store set successfully: ${cleanedDomain}`);
       
     } catch (error) {
       console.error('Error in setActiveStore:', error);

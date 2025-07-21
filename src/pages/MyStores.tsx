@@ -95,12 +95,45 @@ const MyStores = () => {
     }
   };
 
+  // قطع الاتصال نهائياً من المتجر الحالي
+  const handleDisconnectCurrent = () => {
+    try {
+      console.log('🔌 Disconnecting from current store completely...');
+      
+      // قطع الاتصال نهائياً
+      shopifyConnectionManager.disconnectCurrentStore();
+      
+      // تحديث الحالة المحلية
+      setCurrentStore(null);
+      
+      toast({
+        title: "تم قطع الاتصال",
+        description: "تم قطع الاتصال من جميع المتاجر بنجاح",
+      });
+      
+      console.log('✅ Successfully disconnected from all stores');
+      
+      // إعادة تحميل الصفحة للتأكد من التحديث
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+      
+    } catch (error) {
+      console.error('❌ Error disconnecting:', error);
+      toast({
+        title: "خطأ في قطع الاتصال",
+        description: "فشل في قطع الاتصال",
+        variant: "destructive"
+      });
+    }
+  };
+
   // تبديل المتجر النشط (للمتاجر المتصلة بالفعل)
   const handleSwitchStore = (shopDomain: string) => {
     try {
       console.log(`🔄 Switching to store: ${shopDomain}`);
       
-      // استخدام setActiveStore المحسن لتبديل المتجر
+      // استخدام setActiveStore الجديد الذي يقطع الاتصال أولاً
       shopifyConnectionManager.setActiveStore(shopDomain);
       
       // تحديث الحالة المحلية
@@ -141,12 +174,29 @@ const MyStores = () => {
         </p>
       </div>
 
-      {/* عرض المتجر النشط الحالي */}
-      {currentStore && (
+      {/* عرض المتجر النشط الحالي مع خيار قطع الاتصال */}
+      {currentStore ? (
         <Alert className="mb-6 border-green-200 bg-green-50">
           <CheckCircle className="h-4 w-4 text-green-600" />
-          <AlertDescription className="text-green-800">
-            <strong>المتجر النشط حالياً:</strong> {currentStore}
+          <AlertDescription className="text-green-800 flex items-center justify-between">
+            <span>
+              <strong>المتجر النشط حالياً:</strong> {currentStore}
+            </span>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleDisconnectCurrent}
+              className="text-red-600 border-red-300 hover:bg-red-50"
+            >
+              قطع الاتصال
+            </Button>
+          </AlertDescription>
+        </Alert>
+      ) : (
+        <Alert className="mb-6 border-amber-200 bg-amber-50">
+          <AlertCircle className="h-4 w-4 text-amber-600" />
+          <AlertDescription className="text-amber-800">
+            <strong>لا يوجد متجر نشط حالياً.</strong> يرجى اختيار متجر أو ربط متجر جديد.
           </AlertDescription>
         </Alert>
       )}
