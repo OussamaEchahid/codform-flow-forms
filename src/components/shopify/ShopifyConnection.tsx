@@ -24,6 +24,30 @@ const ShopifyConnection = () => {
     checkConnectionStatus();
   }, []);
 
+  // Auto-detect shop from URL parameters
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const shopParam = urlParams.get('shop');
+    
+    if (shopParam && !shopDomain) {
+      let normalizedShop = shopParam.trim().toLowerCase();
+      if (!normalizedShop.includes('.myshopify.com')) {
+        normalizedShop = `${normalizedShop}.myshopify.com`;
+      }
+      setShopDomain(normalizedShop);
+      console.log('🔍 Auto-detected shop from URL:', normalizedShop);
+      
+      // إذا لم يكن هناك اتصال نشط، ابدأ الاتصال التلقائي
+      if (!isConnected) {
+        console.log('🚀 Starting auto-connect for detected shop');
+        // سنبدأ الاتصال تلقائياً بعد تحديد النطاق
+        setTimeout(() => {
+          connectStore();
+        }, 1000);
+      }
+    }
+  }, [shopDomain, isConnected]);
+
   // Check connection status
   const checkConnectionStatus = async () => {
     setIsCheckingStatus(true);

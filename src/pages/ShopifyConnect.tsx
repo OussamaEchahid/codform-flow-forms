@@ -16,36 +16,93 @@ const ShopifyConnect = () => {
   const [isResetting, setIsResetting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // تحقق من المعلمات في عنوان URL والتخزين المحلي
+  // تحقق من المعلمات في عنوان URL والربط التلقائي
   useEffect(() => {
     console.log("ShopifyConnect component mounted");
     
-    const checkParams = async () => {
+    const autoConnectShop = async () => {
       try {
         setIsLoading(true);
         
         // تحقق من وجود معلمات في URL
         const urlParams = new URLSearchParams(window.location.search);
         const shopParam = urlParams.get('shop');
+        const embeddedParam = urlParams.get('embedded');
+        const hostParam = urlParams.get('host');
         
-        console.log("URL params check:", { shopParam, fullUrl: window.location.href });
+        console.log("🔍 URL params check:", { 
+          shopParam, 
+          embeddedParam, 
+          hostParam,
+          fullUrl: window.location.href 
+        });
         
-        // حفظ معلمات المتجر في التخزين المحلي إذا كانت موجودة
+        // إذا كان هناك shop parameter، ابدأ الربط التلقائي
         if (shopParam) {
-          localStorage.setItem('shopify_last_url_shop', shopParam);
-          console.log('Shop parameter detected in URL:', shopParam);
+          console.log('🚀 Auto-connecting to shop:', shopParam);
+          
+          // تنظيف المعرف وإضافة .myshopify.com إذا لزم الأمر
+          let normalizedShop = shopParam.trim().toLowerCase();
+          if (!normalizedShop.includes('.myshopify.com')) {
+            normalizedShop = `${normalizedShop}.myshopify.com`;
+          }
+          
+          // حفظ في localStorage للمراجع المستقبلية
+          localStorage.setItem('shopify_last_url_shop', normalizedShop);
+          
+          // ابدأ عملية الربط التلقائي
+          try {
+            console.log(`🔗 Starting automatic OAuth for: ${normalizedShop}`);
+            
+            // استدعاء edge function للمصادقة
+            const { data, error } = await supabase.functions.invoke('shopify-auth', {
+              body: { shop: normalizedShop }
+            });
+
+            if (error) {
+              console.error('❌ Auto-connect error:', error);
+              setError(`خطأ في الربط التلقائي: ${error.message}`);
+              setIsLoading(false);
+              return;
+            }
+
+            if (!data || !data.success) {
+              console.error('❌ Auto-connect failed:', data);
+              setError(data?.error || 'فشل في الربط التلقائي');
+              setIsLoading(false);
+              return;
+            }
+
+            console.log('✅ Auto-connect redirect URL:', data.redirect);
+            
+            // إعادة توجيه فورية إلى Shopify OAuth
+            window.location.href = data.redirect;
+            return; // منع باقي التنفيذ
+            
+          } catch (connectError) {
+            console.error('❌ Error in auto-connect:', connectError);
+            setError('حدث خطأ أثناء الربط التلقائي');
+          }
+        }
+        
+        // تنظيف رموز placeholder من قاعدة البيانات إذا لم يكن هناك shop parameter
+        try {
+          await shopifyConnectionService.cleanupPlaceholderTokens();
+          console.log('🧹 Placeholder tokens cleaned on page load');
+        } catch (cleanupError) {
+          console.error("Error cleaning placeholder tokens:", cleanupError);
         }
         
         setError(null);
       } catch (error) {
-        console.error('Error in checkParams:', error);
+        console.error('Error in autoConnectShop:', error);
         setError('حدث خطأ أثناء التحقق من المعلمات');
       } finally {
         setIsLoading(false);
       }
     };
 
-    checkParams();
+    autoConnectShop();
     
     // التأكد من أن الصفحة مرئية بالفعل
     document.title = "الاتصال بمتجر Shopify";
