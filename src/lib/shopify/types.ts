@@ -7,6 +7,7 @@ export interface ShopifyStore {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  connectionStatus?: 'connected' | 'error' | 'disconnected';
 }
 
 export interface ShopifyStoreConnection {

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink, Plus, Settings } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
-import { ShopifyStoresManager } from '@/components/shopify/ShopifyStoresManager';
+import ShopifyStoresManager from '@/components/shopify/ShopifyStoresManager';
 
 const MyStores = () => {
   const { language } = useI18n();
