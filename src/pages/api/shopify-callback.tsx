@@ -21,6 +21,84 @@ const ShopifyCallback = () => {
   const [processingComplete, setProcessingComplete] = useState(false);
   const [directNavigationTriggered, setDirectNavigationTriggered] = useState(false);
 
+  // دالة للتحقق من وجود المتجر في قاعدة البيانات
+  const verifyStoreInDatabase = async (shopParam: string): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase
+        .from('shopify_stores')
+        .select('shop')
+        .eq('shop', shopParam)
+        .maybeSingle();
+      
+      if (error) {
+        console.error(`❌ Error verifying store ${shopParam}:`, error);
+        return false;
+      }
+      
+      const exists = !!data;
+      console.log(`🔍 Store ${shopParam} exists in database: ${exists}`);
+      return exists;
+    } catch (error) {
+      console.error(`❌ Exception verifying store ${shopParam}:`, error);
+      return false;
+    }
+  };
+
+  // دالة لحفظ المتجر كبديل احتياطي
+  const fallbackSaveStore = async (shopParam: string, tokenData: any): Promise<boolean> => {
+    try {
+      console.log(`🆘 Attempting fallback save for ${shopParam}`);
+      
+      const { data, error } = await supabase
+        .from('shopify_stores')
+        .upsert({
+          shop: shopParam,
+          access_token: tokenData.access_token,
+          scope: tokenData.scope || '',
+          token_type: tokenData.token_type || 'offline',
+          is_active: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select();
+      
+      if (error) {
+        console.error(`❌ Fallback save failed:`, error);
+        return false;
+      }
+      
+      console.log(`✅ Fallback save successful for ${shopParam}`);
+      return true;
+    } catch (error) {
+      console.error(`❌ Fallback save exception:`, error);
+      return false;
+    }
+  };
+
+  // دالة التحقق المستمر
+  const startVerificationLoop = async (shopParam: string): Promise<void> => {
+    const MAX_ATTEMPTS = 10;
+    const DELAY_MS = 2000;
+    
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      console.log(`🔄 Verification attempt ${attempt}/${MAX_ATTEMPTS} for ${shopParam}`);
+      
+      const isStoreVerified = await verifyStoreInDatabase(shopParam);
+      
+      if (isStoreVerified) {
+        console.log(`✅ Store ${shopParam} verified in database on attempt ${attempt}`);
+        return;
+      }
+      
+      if (attempt < MAX_ATTEMPTS) {
+        console.log(`⏳ Waiting ${DELAY_MS}ms before next verification attempt...`);
+        await new Promise(resolve => setTimeout(resolve, DELAY_MS));
+      }
+    }
+    
+    console.warn(`⚠️ Store ${shopParam} not found in database after ${MAX_ATTEMPTS} attempts`);
+  };
+
   const processCallback = async (params: URLSearchParams) => {
     try {
       const code = params.get('code');
@@ -116,6 +194,35 @@ const ShopifyCallback = () => {
       // Update connection manager
       shopifyConnectionManager.addOrUpdateStore(shop, true, true);
       shopifyConnectionManager.resetLoopDetection();
+      
+      // استدعاء Edge Function لحفظ البيانات في قاعدة البيانات
+      console.log(`🔗 Calling shopify-callback Edge Function for ${shop}`);
+      try {
+        const edgeFunctionUrl = `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-callback?shop=${encodeURIComponent(shop)}&code=${encodeURIComponent(code)}&hmac=${encodeURIComponent(hmac)}&state=${encodeURIComponent(state || "")}&timestamp=${encodeURIComponent(params.get("timestamp") || "")}`;
+        
+        const callbackResponse = await fetch(edgeFunctionUrl, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M'
+          }
+        });
+        
+        const callbackData = await callbackResponse.json();
+        console.log('✅ Edge Function response:', callbackData);
+        
+        if (!callbackResponse.ok) {
+          console.error('❌ Edge Function failed:', callbackData);
+          // محاولة حفظ البيانات كبديل احتياطي
+          await fallbackSaveStore(shop, { access_token: code });
+        } else {
+          // انتظار حتى يتم التأكد من حفظ المتجر في قاعدة البيانات
+          await startVerificationLoop(shop);
+        }
+      } catch (error) {
+        console.error('❌ Error calling Edge Function:', error);
+        // رغم فشل Edge Function، سنستمر بحفظ البيانات محلياً
+      }
       
       // Double check that data was saved correctly
       const verifyStore = localStorage.getItem('shopify_store');
