@@ -191,7 +191,8 @@ serve(async (req: Request) => {
             .eq('shop_id', shop)
             .eq('is_published', true)
             .order('updated_at', { ascending: false })
-            .maybeSingle();
+            .limit(1)
+            .single();
         });
         
         const defaultForm = queryResult.data;
