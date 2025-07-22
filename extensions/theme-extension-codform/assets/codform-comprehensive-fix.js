@@ -271,29 +271,20 @@
       wrapper.appendChild(offerElement);
     });
 
-    // إضافة العناصر للحاوي
+    // إضافة العناصر للحاوي لكن إخفاؤها في البداية
     offersContainer.appendChild(wrapper);
     
-    // التأكد من الرؤية النهائية مع تأثير ظهور
-    offersContainer.style.opacity = '0';
-    offersContainer.style.transform = 'translateY(20px)';
-    
-    setTimeout(() => {
-      offersContainer.style.transition = 'all 0.5s ease-out';
-      offersContainer.style.opacity = '1';
-      offersContainer.style.transform = 'translateY(0)';
-    }, 100);
+    // إخفاء العروض تماماً حتى يكتمل تحميل النموذج
+    offersContainer.style.cssText += `
+      opacity: 0 !important;
+      visibility: hidden !important;
+      transform: translateY(20px);
+      transition: all 0.5s ease-out;
+    `;
 
-    console.log("✅ COMPREHENSIVE FIX v4.0 - Quantity offers displayed successfully inside form!");
-    console.log("✅ Container final state:", {
-      id: offersContainer.id,
-      display: offersContainer.style.display,
-      visibility: offersContainer.style.visibility,
-      opacity: offersContainer.style.opacity,
-      children: offersContainer.children.length
-    });
+    console.log("✅ Offers rendered but hidden, waiting for form completion");
 
-    return true;
+    return offersContainer;
   }
 
   // دالة تحميل البيانات من API محسنة ونهائية
@@ -336,13 +327,21 @@
       if (data.quantity_offers && data.quantity_offers.offers && data.quantity_offers.offers.length > 0) {
         console.log("🎁 Processing quantity offers with", data.quantity_offers.offers.length, "offers");
         
-        // عرض العروض داخل النموذج
-        const offersDisplayed = displayQuantityOffers(data.quantity_offers, blockId, productId);
+        // عرض العروض داخل النموذج وإرجاع الحاوي
+        const offersContainer = displayQuantityOffers(data.quantity_offers, blockId, productId);
         
-        if (offersDisplayed) {
-          console.log("🎉 Quantity offers displayed successfully inside form!");
+        if (offersContainer) {
+          console.log("🎉 Offers container created successfully, now showing with smooth animation");
+          
+          // إظهار العروض بعد تأخير قصير لضمان استقرار النموذج
+          setTimeout(() => {
+            offersContainer.style.opacity = '1';
+            offersContainer.style.visibility = 'visible';
+            offersContainer.style.transform = 'translateY(0)';
+            console.log("✅ Offers now visible with smooth animation");
+          }, 300);
         } else {
-          console.warn("⚠️ Failed to display quantity offers");
+          console.warn("⚠️ Failed to create offers container");
         }
       } else {
         console.log("ℹ️ No quantity offers found or offers array is empty");
