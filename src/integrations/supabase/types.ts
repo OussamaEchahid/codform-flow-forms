@@ -270,7 +270,15 @@ export type Database = {
           styling?: Json
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "quantity_offers_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "forms"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       shopify_form_insertion: {
         Row: {
