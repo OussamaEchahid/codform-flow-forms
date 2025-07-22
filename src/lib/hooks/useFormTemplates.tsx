@@ -357,13 +357,8 @@ export const useFormTemplates = () => {
       const updatedForm = await formManagementService.toggleFormPublication(formId, publish);
       
       if (updatedForm) {
-        // Update local state immediately with fresh data from database
-        setForms(prevForms => 
-          prevForms.map(form => 
-            form.id === formId ? updatedForm : form
-          )
-        );
-        
+        // Re-fetch all forms from database to ensure consistency
+        await fetchForms();
         return true;
       }
       
