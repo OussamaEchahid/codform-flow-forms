@@ -111,7 +111,7 @@ const QuantityOffersManager: React.FC = () => {
     try {
       console.log('🔗 Loading products for form:', formId, 'store:', currentStore);
       
-      // Get products associated with this form - بدون فلتر enabled
+      // Get products associated with this form
       const { data: settings, error: settingsError } = await supabase
         .from('shopify_product_settings')
         .select('product_id, enabled')
@@ -145,13 +145,19 @@ const QuantityOffersManager: React.FC = () => {
 
       const allProducts = productsData?.products || [];
       console.log('📦 All Shopify products fetched:', allProducts.length);
+      console.log('📦 Sample product IDs from Shopify:', allProducts.slice(0, 3).map((p: any) => ({ id: p.id, title: p.title })));
       
-      const associatedProductIds = settings.map(s => s.product_id);
-      console.log('🔗 Associated product IDs:', associatedProductIds);
+      const associatedProductIds = settings.map(s => String(s.product_id));
+      console.log('🔗 Associated product IDs (as strings):', associatedProductIds);
       
-      // Filter products that are associated with this form - Convert IDs to strings for comparison
+      // Filter products that are associated with this form
       const formProducts = allProducts
-        .filter((product: any) => associatedProductIds.includes(String(product.id)))
+        .filter((product: any) => {
+          const productIdStr = String(product.id);
+          const isAssociated = associatedProductIds.includes(productIdStr);
+          console.log(`🔍 Product ${productIdStr} (${product.title}) - Associated: ${isAssociated}`);
+          return isAssociated;
+        })
         .map((product: any) => ({
           product_id: String(product.id),
           product_title: product.title,
