@@ -431,9 +431,12 @@
       if (data.quantity_offers && data.quantity_offers.offers && data.quantity_offers.offers.length > 0) {
         console.log("🎁 Processing quantity offers with", data.quantity_offers.offers.length, "offers");
         
-        // منع التكرار - حذف أي عروض موجودة في الصفحة كاملة
-        const existingOffers = document.querySelectorAll('.quantity-offers-list, .codform-quantity-offers-wrapper, .quantity-offer-item');
-        existingOffers.forEach(offer => offer.remove());
+        // منع التكرار - حذف أي عروض موجودة في الصفحة كاملة بجميع الأصناف المحتملة
+        const existingOffers = document.querySelectorAll('.quantity-offers-list, .codform-quantity-offers-wrapper, .quantity-offer-item, .quantity-offers-before, .quantity-offers-after, .quantity-offers-inside, [class*="quantity-offer"]');
+        existingOffers.forEach(offer => {
+          console.log("🗑️ Removing existing offer element:", offer.className);
+          offer.remove();
+        });
         
         // تنظيف جميع الحاويات أولا لتجنب العرض المزدوج
         const containers = [
