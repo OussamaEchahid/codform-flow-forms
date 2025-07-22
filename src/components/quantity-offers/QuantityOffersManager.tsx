@@ -22,6 +22,10 @@ interface ProductAssociation {
   product_title: string;
   form_id: string;
   form_title: string;
+  product_price?: number;
+  product_compare_at_price?: number;
+  product_image?: string;
+  product_currency?: string;
 }
 
 interface QuantityOffer {
@@ -176,7 +180,11 @@ const QuantityOffersManager: React.FC = () => {
           product_id: String(product.id),
           product_title: product.title,
           form_id: formId,
-          form_title: forms.find(f => f.id === formId)?.title || ''
+          form_title: forms.find(f => f.id === formId)?.title || '',
+          product_price: product.variants?.[0]?.price ? parseFloat(product.variants[0].price) : undefined,
+          product_compare_at_price: product.variants?.[0]?.compare_at_price ? parseFloat(product.variants[0].compare_at_price) : undefined,
+          product_image: typeof product.image === 'string' ? product.image : product.image?.src,
+          product_currency: 'SAR'
         }));
 
       console.log('✅ Associated products mapped:', formProducts.length, formProducts);
@@ -571,20 +579,16 @@ const QuantityOffersManager: React.FC = () => {
                           priceColor: '#ef4444'
                         }}
                         productData={(() => {
-                          const product = productsData[offer.product_id];
+                          const product = associatedProducts.find(p => p.product_id === offer.product_id);
                           console.log('🔍 Product data for offer:', offer.product_id, product);
                           if (!product) return undefined;
                           
-                          const price = product.variants?.[0]?.price || product.price;
-                          const compareAtPrice = product.variants?.[0]?.compare_at_price || product.compare_at_price;
-                          const image = product.images?.[0]?.src || product.image?.src || product.image;
-                          
                           return {
-                            price: price ? parseFloat(String(price)) : undefined,
-                            compareAtPrice: compareAtPrice ? parseFloat(String(compareAtPrice)) : undefined,
-                            title: product.title,
-                            image: image,
-                            currency: 'SAR'
+                            price: product.product_price || 100,
+                            compareAtPrice: product.product_compare_at_price,
+                            title: product.product_title,
+                            image: product.product_image,
+                            currency: product.product_currency || 'SAR'
                           };
                         })()}
                         currency="SAR"
