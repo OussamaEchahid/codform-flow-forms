@@ -27,6 +27,7 @@ interface Form {
   title: string;
   data: any;
   style: any;
+  currency: string;
 }
 
 interface Offer {
@@ -120,7 +121,13 @@ const QuantityOffers = () => {
       }
       
       console.log(`✅ Loaded ${data?.length || 0} forms for store: ${activeShop}`);
-      setForms(data || []);
+      setForms((data || []).map(form => ({
+        id: form.id,
+        title: form.title,
+        data: form.data,
+        style: form.style,
+        currency: (form as any).currency || 'USD'
+      })));
     } catch (error) {
       console.error('❌ Error loading forms:', error);
       toast.error('Failed to load forms');
@@ -917,7 +924,7 @@ const QuantityOffers = () => {
                       price: parseFloat(selectedProduct.price) || 0,
                       title: selectedProduct.title,
                       image: selectedProduct.images?.[0]?.url,
-                      currency: selectedForm?.data?.settings?.currency || 'USD'
+                      currency: selectedForm?.currency || 'USD'
                     } : undefined}
                   />
                 </CardContent>
