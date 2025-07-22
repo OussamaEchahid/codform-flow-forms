@@ -45,6 +45,14 @@ const QuantityOffersDisplay: React.FC<QuantityOffersDisplayProps> = ({
   const productTitle = productData?.title || 'المنتج';
   const productImage = productData?.image;
   const displayCurrency = productData?.currency || currency;
+  
+  console.log('🎯 QuantityOffersDisplay - Product Data:', {
+    realPrice,
+    productTitle,
+    productImage,
+    displayCurrency,
+    productData
+  });
   const calculatePrice = (offer: Offer) => {
     if (offer.discountType === 'none' || !offer.discountValue) {
       return realPrice * offer.quantity;

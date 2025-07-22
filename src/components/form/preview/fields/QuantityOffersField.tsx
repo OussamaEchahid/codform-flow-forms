@@ -48,6 +48,16 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
   const productTitle = productData?.title || 'المنتج';
   const productImage = productData?.image;
   const displayCurrency = productData?.currency || currency;
+  
+  console.log('🎯 QuantityOffersField - Product Data:', {
+    realPrice,
+    productTitle,
+    productImage,
+    displayCurrency,
+    productData,
+    productId,
+    formId
+  });
   const [offers, setOffers] = useState<Offer[]>([]);
   const [styling, setStyling] = useState<Styling>({
     backgroundColor: '#ffffff',

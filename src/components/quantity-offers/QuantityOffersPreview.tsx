@@ -50,6 +50,14 @@ const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
   const productTitle = productData?.title || 'المنتج';
   const productImage = productData?.image;
   const displayCurrency = productData?.currency || currency;
+  
+  console.log('🎯 QuantityOffersPreview - Product Data:', {
+    realPrice,
+    productTitle,
+    productImage,
+    displayCurrency,
+    productData
+  });
   if (!enabled || !form) {
     return (
       <div className="p-4 border-2 border-dashed border-gray-300 rounded-lg text-center text-gray-500">

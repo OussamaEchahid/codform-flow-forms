@@ -562,25 +562,33 @@ const QuantityOffersManager: React.FC = () => {
                    {/* Enhanced Live Preview */}
                    <div className="bg-gray-50 p-4 rounded-lg border">
                      <h4 className="text-sm font-medium mb-3 text-gray-600">معاينة مباشرة:</h4>
-                     <QuantityOffersDisplay 
-                       offers={offer.offers || []} 
-                       styling={offer.styling || {
-                         backgroundColor: '#ffffff',
-                         textColor: '#000000',
-                         tagColor: '#22c55e',
-                         priceColor: '#ef4444'
-                       }}
-                       productData={productsData[offer.product_id] ? {
-                         price: productsData[offer.product_id].variants?.[0]?.price ? parseFloat(productsData[offer.product_id].variants[0].price) : undefined,
-                         compareAtPrice: productsData[offer.product_id].variants?.[0]?.compare_at_price ? parseFloat(productsData[offer.product_id].variants[0].compare_at_price) : undefined,
-                         title: productsData[offer.product_id].title,
-                         image: typeof productsData[offer.product_id].image === 'string' 
-                           ? productsData[offer.product_id].image 
-                           : productsData[offer.product_id].image?.src,
-                         currency: 'SAR'
-                       } : undefined}
-                       currency="SAR"
-                     />
+                      <QuantityOffersDisplay 
+                        offers={offer.offers || []} 
+                        styling={offer.styling || {
+                          backgroundColor: '#ffffff',
+                          textColor: '#000000',
+                          tagColor: '#22c55e',
+                          priceColor: '#ef4444'
+                        }}
+                        productData={(() => {
+                          const product = productsData[offer.product_id];
+                          console.log('🔍 Product data for offer:', offer.product_id, product);
+                          if (!product) return undefined;
+                          
+                          const price = product.variants?.[0]?.price || product.price;
+                          const compareAtPrice = product.variants?.[0]?.compare_at_price || product.compare_at_price;
+                          const image = product.images?.[0]?.src || product.image?.src || product.image;
+                          
+                          return {
+                            price: price ? parseFloat(String(price)) : undefined,
+                            compareAtPrice: compareAtPrice ? parseFloat(String(compareAtPrice)) : undefined,
+                            title: product.title,
+                            image: image,
+                            currency: 'SAR'
+                          };
+                        })()}
+                        currency="SAR"
+                      />
                    </div>
                 </div>
               ))}
