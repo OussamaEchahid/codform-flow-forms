@@ -7,8 +7,9 @@ window.CodformQuantityOffers = (function() {
   'use strict';
 
   // دالة عرض quantity offers
-  function displayQuantityOffers(quantityOffers, blockId, productId, formCurrency = 'SAR') {
+  function displayQuantityOffers(quantityOffers, blockId, productId, formCurrency = 'SAR', productData = null) {
     console.log("🎁 QUANTITY OFFERS FIX - Displaying quantity offers:", quantityOffers);
+    console.log("💰 Product data received:", productData);
     
     if (!quantityOffers) {
       console.log("❌ No quantity offers data provided");
@@ -46,6 +47,26 @@ window.CodformQuantityOffers = (function() {
     console.log(`🎨 Using styling:`, styling);
     console.log(`🔢 Rendering ${offers.length} offers`);
 
+    // الحصول على بيانات المنتج من window.meta أو productData
+    let realPrice = null;
+    let productImage = null;
+    let actualCurrency = formCurrency;
+    
+    if (productData && productData.price) {
+      realPrice = productData.price;
+      productImage = productData.image;
+      actualCurrency = productData.currency || formCurrency;
+    } else if (window.meta && window.meta.product) {
+      realPrice = window.meta.product.price_min / 100; // Shopify uses cents
+      productImage = window.meta.product.featured_image;
+      // محاولة الحصول على العملة من شوبيفاي
+      if (window.Shopify && window.Shopify.currency && window.Shopify.currency.active) {
+        actualCurrency = window.Shopify.currency.active;
+      }
+    }
+
+    console.log("💰 Real price detected:", realPrice, "Currency:", actualCurrency);
+
     offers.forEach((offer, index) => {
       console.log(`🎁 Processing offer ${index + 1}:`, offer);
       
@@ -78,12 +99,27 @@ window.CodformQuantityOffers = (function() {
         this.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
       });
 
+      // إضافة صورة المنتج إذا كانت متوفرة
+      if (productImage) {
+        const imageElement = document.createElement('img');
+        imageElement.src = productImage;
+        imageElement.style.cssText = `
+          width: 50px;
+          height: 50px;
+          object-fit: cover;
+          border-radius: 8px;
+          margin-left: 12px;
+        `;
+        offerElement.appendChild(imageElement);
+      }
+
       const textContent = document.createElement('div');
       textContent.style.cssText = `
         display: flex;
         align-items: center;
         flex-wrap: wrap;
         gap: 10px;
+        flex: 1;
       `;
       
       const tagSpan = document.createElement('span');
@@ -113,17 +149,26 @@ window.CodformQuantityOffers = (function() {
         min-width: 80px;
       `;
       
-      if (offer.discountType && offer.discountType !== 'none' && offer.discountValue > 0) {
-        const currencySymbol = formCurrency === 'MAD' ? 'د.م' : formCurrency === 'SAR' ? 'ر.س' : formCurrency;
-        const savings = offer.discountType === 'percentage' ? 
-          `${offer.discountValue}% خصم` : 
-          `${offer.discountValue} ${currencySymbol} خصم`;
+      // عرض السعر الحقيقي مع الخصم
+      if (realPrice && offer.discountType && offer.discountType !== 'none' && offer.discountValue > 0) {
+        const currencySymbol = actualCurrency === 'MAD' ? 'د.م' : actualCurrency === 'SAR' ? 'ر.س' : actualCurrency;
+        
+        let discountedPrice = realPrice;
+        if (offer.discountType === 'percentage') {
+          discountedPrice = realPrice - (realPrice * offer.discountValue / 100);
+        } else if (offer.discountType === 'fixed') {
+          discountedPrice = realPrice - offer.discountValue;
+        }
         
         priceContent.style.color = styling.priceColor;
         priceContent.innerHTML = `
-          <div style="font-size: 14px; opacity: 0.8;">وفر</div>
-          <div>${savings}</div>
+          <div style="font-size: 12px; opacity: 0.6; text-decoration: line-through;">${realPrice.toFixed(2)} ${currencySymbol}</div>
+          <div style="font-size: 16px; font-weight: bold;">${discountedPrice.toFixed(2)} ${currencySymbol}</div>
         `;
+      } else if (realPrice) {
+        const currencySymbol = actualCurrency === 'MAD' ? 'د.م' : actualCurrency === 'SAR' ? 'ر.س' : actualCurrency;
+        priceContent.style.color = styling.tagColor;
+        priceContent.innerHTML = `${realPrice.toFixed(2)} ${currencySymbol}`;
       } else {
         priceContent.textContent = 'عرض خاص';
         priceContent.style.color = styling.tagColor;
@@ -171,7 +216,29 @@ window.CodformQuantityOffers = (function() {
       
       if (data.quantity_offers) {
         const formCurrency = data.form?.currency || 'SAR';
-        displayQuantityOffers(data.quantity_offers, blockId, productId, formCurrency);
+        
+        // الحصول على بيانات المنتج من شوبيفاي
+        let realPrice = null;
+        let productImage = null;
+        let actualCurrency = formCurrency;
+        
+        if (window.meta && window.meta.product) {
+          realPrice = window.meta.product.price_min / 100; // Shopify uses cents
+          productImage = window.meta.product.featured_image;
+          // محاولة الحصول على العملة من شوبيفاي
+          if (window.Shopify && window.Shopify.currency && window.Shopify.currency.active) {
+            actualCurrency = window.Shopify.currency.active;
+          }
+        }
+        
+        // تجميع بيانات المنتج الحقيقية
+        const productData = {
+          price: realPrice,
+          currency: actualCurrency,
+          image: productImage
+        };
+        
+        displayQuantityOffers(data.quantity_offers, blockId, productId, formCurrency, productData);
         return { success: true, offers: data.quantity_offers };
       } else {
         console.log("ℹ️ No quantity offers found for this product");
