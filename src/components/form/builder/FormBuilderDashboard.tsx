@@ -282,9 +282,72 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
             <TableBody>
               {filteredForms.length > 0 ? (
                 filteredForms.map((form) => (
-                  <TableRow key={form.id}>
-                    <TableCell className={`font-medium ${language === 'ar' ? 'text-right' : ''}`}>
-                      {form.title}
+                   <TableRow key={form.id}>
+                     <TableCell className={`font-medium ${language === 'ar' ? 'text-right' : ''}`}>
+                       <div 
+                         className="group cursor-pointer hover:bg-gray-50 p-2 rounded transition-colors flex items-center gap-2"
+                         onClick={async (e) => {
+                           e.stopPropagation();
+                           const titleElement = e.currentTarget;
+                           const currentTitle = form.title;
+                           
+                           // Create input element
+                           const input = document.createElement('input');
+                           input.type = 'text';
+                           input.value = currentTitle;
+                           input.className = 'text-sm font-medium bg-white border-2 border-primary rounded px-2 py-1 w-full focus:outline-none focus:ring-2 focus:ring-primary/20';
+                           
+                           // Handle save on blur and enter
+                           const saveTitle = async () => {
+                             const newTitle = input.value.trim();
+                             if (newTitle && newTitle !== currentTitle) {
+                               try {
+                                 const { error } = await supabase
+                                   .from('forms')
+                                   .update({ title: newTitle })
+                                   .eq('id', form.id);
+                                 
+                                 if (error) {
+                                   console.error('خطأ في تحديث العنوان:', error);
+                                   toast.error(language === 'ar' ? 'فشل في تحديث عنوان النموذج' : 'Failed to update form title');
+                                 } else {
+                                   toast.success(language === 'ar' ? 'تم تحديث عنوان النموذج بنجاح' : 'Form title updated successfully');
+                                   // Update local state
+                                   setFormList(prevForms => 
+                                     prevForms.map(f => 
+                                       f.id === form.id ? { ...f, title: newTitle } : f
+                                     )
+                                   );
+                                 }
+                               } catch (error) {
+                                 console.error('خطأ في تحديث العنوان:', error);
+                                 toast.error(language === 'ar' ? 'فشل في تحديث عنوان النموذج' : 'Failed to update form title');
+                               }
+                             }
+                             titleElement.style.display = 'flex';
+                             input.remove();
+                           };
+                           
+                           input.addEventListener('blur', saveTitle);
+                           input.addEventListener('keydown', (e) => {
+                             if (e.key === 'Enter') {
+                               saveTitle();
+                             } else if (e.key === 'Escape') {
+                               titleElement.style.display = 'flex';
+                               input.remove();
+                             }
+                           });
+                           
+                           // Replace title with input
+                           titleElement.style.display = 'none';
+                           titleElement.parentNode?.insertBefore(input, titleElement.nextSibling);
+                           input.focus();
+                           input.select();
+                         }}
+                       >
+                         <span className="flex-1">{form.title}</span>
+                         <Edit className="h-4 w-4 text-gray-400 group-hover:text-primary transition-colors opacity-0 group-hover:opacity-100" />
+                       </div>
                     </TableCell>
                     <TableCell className={language === 'ar' ? 'text-right' : ''}>
                       {formatDate(form.created_at)}
