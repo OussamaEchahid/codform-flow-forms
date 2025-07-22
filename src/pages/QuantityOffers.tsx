@@ -71,6 +71,7 @@ const QuantityOffers = () => {
   const [associatedProducts, setAssociatedProducts] = useState<AssociatedProduct[]>([]);
   const [loading, setLoading] = useState(false);
   const [existingOffers, setExistingOffers] = useState<any[]>([]);
+  const [associatedProductIds, setAssociatedProductIds] = useState<string[]>([]);
   const [quantityOffer, setQuantityOffer] = useState<QuantityOfferData>({
     shop_id: '',
     product_id: '',
@@ -153,16 +154,47 @@ const QuantityOffers = () => {
   };
 
   // Convert Shopify products to our format
-  const products = shopifyProducts.map(product => ({
+  const allProducts = shopifyProducts.map(product => ({
     id: product.id,
     title: product.title,
     handle: product.handle,
     images: product.images?.map(img => ({ url: typeof img === 'string' ? img : img.src })) || [{ url: '/placeholder.svg' }]
   }));
 
+  // Get products associated with the selected form only
+  const products = selectedForm ? allProducts.filter(product => 
+    associatedProductIds.includes(product.id)
+  ) : allProducts;
+
+  // Load products associated with a specific form from shopify_product_settings table
+  const loadFormProducts = async (formId: string) => {
+    try {
+      console.log(`🔍 Loading products associated with form: ${formId}`);
+      
+      const { data, error } = await supabase
+        .from('shopify_product_settings')
+        .select('product_id')
+        .eq('form_id', formId)
+        .eq('shop_id', activeStore || localStorage.getItem('simple_active_store') || '');
+
+      if (error) {
+        console.warn('Error loading form products:', error);
+        setAssociatedProductIds([]);
+        return;
+      }
+      
+      const productIds = (data || []).map((setting: any) => setting.product_id);
+      console.log(`📦 Found ${productIds.length} products associated with form:`, productIds);
+      setAssociatedProductIds(productIds);
+    } catch (error) {
+      console.error('Error loading form products:', error);
+      setAssociatedProductIds([]);
+    }
+  };
+
   const loadAssociatedProducts = async (formId: string) => {
     try {
-      console.log(`🔍 Loading associated products for form: ${formId}`);
+      console.log(`🔍 Loading existing quantity offers for form: ${formId}`);
       
       const { data, error } = await (supabase as any)
         .from('quantity_offers')
@@ -171,14 +203,14 @@ const QuantityOffers = () => {
         .eq('shop_id', activeStore || localStorage.getItem('simple_active_store') || '');
 
       if (error) {
-        console.warn('Error loading associated products:', error);
+        console.warn('Error loading existing quantity offers:', error);
         setAssociatedProducts([]);
         return;
       }
       
       // Map the data to include product information
       const associatedProductsList: AssociatedProduct[] = (data || []).map((offer: any) => {
-        const product = products.find(p => p.id === offer.product_id);
+        const product = allProducts.find(p => p.id === offer.product_id);
         return {
           productId: offer.product_id,
           productTitle: product?.title || `Product ${offer.product_id}`,
@@ -187,10 +219,10 @@ const QuantityOffers = () => {
         };
       });
       
-      console.log(`📦 Found ${associatedProductsList.length} associated products:`, associatedProductsList);
+      console.log(`📦 Found ${associatedProductsList.length} existing quantity offers:`, associatedProductsList);
       setAssociatedProducts(associatedProductsList);
     } catch (error) {
-      console.error('Error loading associated products:', error);
+      console.error('Error loading existing quantity offers:', error);
       setAssociatedProducts([]);
     }
   };
@@ -200,16 +232,18 @@ const QuantityOffers = () => {
     setSelectedForm(form);
     setQuantityOffer(prev => ({ ...prev, form_id: form.id }));
     
-    // Load associated products for this form
+    // Load products associated with this form from shopify_product_settings
+    await loadFormProducts(form.id);
+    // Load existing quantity offers for this form
     await loadAssociatedProducts(form.id);
     setCurrentStep('product');
   };
 
   const handleProductSelect = (product: Product) => {
-    // Check if this product is already associated with the selected form
-    const isAssociated = associatedProducts.some(ap => ap.productId === product.id);
-    if (isAssociated) {
-      toast.error(`المنتج "${product.title}" مرتبط بالفعل بهذا النموذج. اختر منتجاً آخر.`);
+    // Check if this product already has a quantity offer for the selected form
+    const hasExistingOffer = associatedProducts.some(ap => ap.productId === product.id);
+    if (hasExistingOffer) {
+      toast.error(`المنتج "${product.title}" لديه بالفعل عرض كمية لهذا النموذج. يمكنك تعديل العرض الموجود أو اختيار منتج آخر.`);
       return;
     }
     
@@ -340,6 +374,7 @@ const QuantityOffers = () => {
     setSelectedProduct(null);
     setSelectedForm(null);
     setAssociatedProducts([]);
+    setAssociatedProductIds([]);
     setQuantityOffer({
       shop_id: '',
       product_id: '',
@@ -365,7 +400,7 @@ const QuantityOffers = () => {
     }
     
     // Find the product
-    const product = products.find(p => p.id === offer.product_id);
+    const product = allProducts.find(p => p.id === offer.product_id);
     if (product) {
       setSelectedProduct(product);
     }
@@ -425,8 +460,8 @@ const QuantityOffers = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {existingOffers.map((offer) => {
-                  const product = products.find(p => p.id === offer.product_id);
+                 {existingOffers.map((offer) => {
+                   const product = allProducts.find(p => p.id === offer.product_id);
                   return (
                     <div key={offer.id} className="flex items-center justify-between p-4 border rounded-lg hover:shadow-sm transition-shadow">
                       <div className="flex-1">
@@ -584,14 +619,25 @@ const QuantityOffers = () => {
                   <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                   <p className="mt-2 text-muted-foreground">جاري تحميل المنتجات من Shopify...</p>
                 </div>
-              ) : products.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Package className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                  <p>لا توجد منتجات في متجر Shopify</p>
-                  <Button onClick={() => loadProducts()} variant="outline" className="mt-4">
-                    إعادة تحميل المنتجات
-                  </Button>
-                </div>
+               ) : products.length === 0 ? (
+                 <div className="text-center py-8 text-muted-foreground">
+                   <Package className="mx-auto h-12 w-12 mb-4 opacity-50" />
+                   <p>
+                     {selectedForm ? 
+                       'لا توجد منتجات مرتبطة بهذا النموذج' : 
+                       'لا توجد منتجات في متجر Shopify'
+                     }
+                   </p>
+                   {selectedForm ? (
+                     <p className="text-sm mt-2">
+                       قم بربط المنتجات بهذا النموذج من صفحة النماذج أولاً
+                     </p>
+                   ) : (
+                     <Button onClick={() => loadProducts()} variant="outline" className="mt-4">
+                       إعادة تحميل المنتجات
+                     </Button>
+                   )}
+                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {products.map((product) => {
