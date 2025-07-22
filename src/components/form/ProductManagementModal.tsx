@@ -118,6 +118,34 @@ const ProductManagementModal: React.FC<ProductManagementModalProps> = ({
       const shopId = cleanShopId(rawShopId);
       console.log(`🔗 ربط المنتج ${productId} بالمتجر: ${shopId}`);
 
+      // التحقق من الوجود المسبق أولاً
+      const { data: existingSettings, error: checkError } = await supabase
+        .from('shopify_product_settings')
+        .select('id, form_id')
+        .eq('shop_id', shopId)
+        .eq('product_id', productId);
+
+      if (checkError) {
+        console.error('❌ خطأ في التحقق من الوجود المسبق:', checkError);
+        toast.error('خطأ في التحقق من البيانات');
+        return;
+      }
+
+      console.log('🔍 الإعدادات الموجودة:', existingSettings);
+
+      if (existingSettings && existingSettings.length > 0) {
+        // إذا كان المنتج مرتبط بنفس النموذج
+        if (existingSettings.some(setting => setting.form_id === formId)) {
+          toast.error('هذا المنتج مرتبط بالفعل بهذا النموذج');
+          setLinkedProducts(prev => new Set([...prev, productId]));
+          return;
+        }
+        // إذا كان المنتج مرتبط بنموذج آخر
+        toast.error('هذا المنتج مرتبط بالفعل بنموذج آخر في هذا المتجر');
+        return;
+      }
+
+      // محاولة الإدراج
       const { error } = await supabase
         .from('shopify_product_settings')
         .insert({
@@ -128,15 +156,20 @@ const ProductManagementModal: React.FC<ProductManagementModalProps> = ({
         });
 
       if (error) {
-        console.error('خطأ في ربط المنتج:', error);
-        toast.error('فشل في ربط المنتج بالنموذج');
+        console.error('❌ خطأ في ربط المنتج:', error);
+        if (error.code === '23505') {
+          toast.error('هذا المنتج مرتبط بالفعل. يرجى تحديث الصفحة والمحاولة مرة أخرى.');
+        } else {
+          toast.error('فشل في ربط المنتج بالنموذج: ' + error.message);
+        }
         return;
       }
 
+      console.log('✅ تم ربط المنتج بنجاح');
       setLinkedProducts(prev => new Set([...prev, productId]));
       toast.success('تم ربط المنتج بالنموذج بنجاح');
     } catch (error) {
-      console.error('خطأ في ربط المنتج:', error);
+      console.error('❌ خطأ في ربط المنتج:', error);
       toast.error('فشل في ربط المنتج بالنموذج');
     } finally {
       setIsOperating(null);

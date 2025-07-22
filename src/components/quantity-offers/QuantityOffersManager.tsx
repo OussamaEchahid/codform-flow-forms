@@ -53,8 +53,24 @@ const QuantityOffersManager: React.FC = () => {
 
   // Get consistent active store
   const getConsistentActiveStore = (): string | null => {
-    const store = activeStore || getActiveShopId();
-    console.log('🏪 Using consistent active store:', store);
+    // أولوية للـ activeStore من useSimpleShopify إذا كان موجود
+    let store = activeStore;
+    
+    // إذا لم يكن موجود، جرب getActiveShopId
+    if (!store) {
+      store = getActiveShopId();
+    }
+    
+    // تنظيف وتصحيح shop_id إذا لزم الأمر
+    if (store) {
+      store = store.trim();
+      // التأكد من أنه يحتوي على .myshopify.com
+      if (!store.includes('.myshopify.com')) {
+        store = store.replace(/\.myshopify\.com.*$/, '') + '.myshopify.com';
+      }
+    }
+    
+    console.log('🏪 Using consistent active store:', store, 'from activeStore:', activeStore);
     return store;
   };
 
