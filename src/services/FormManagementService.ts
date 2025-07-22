@@ -46,19 +46,7 @@ export class FormManagementService {
                        localStorage.getItem('active_shop');
     
     console.log('🏪 Active shop ID from localStorage:', activeStore);
-    
-    if (!activeStore) {
-      console.warn('⚠️ No active store found in localStorage');
-      return null;
-    }
-    
-    // Clean the domain if it contains protocol or .myshopify.com
-    let cleanDomain = activeStore.replace(/^https?:\/\//, '');
-    cleanDomain = cleanDomain.replace(/\.myshopify\.com$/, '');
-    console.log('🧹 Cleaned shop domain:', cleanDomain);
-    
-    // Return the original if cleaning resulted in empty string
-    return cleanDomain || activeStore;
+    return activeStore;
   }
 
   // Fetch all forms from database
