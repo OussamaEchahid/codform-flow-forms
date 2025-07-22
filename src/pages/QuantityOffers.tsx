@@ -144,10 +144,15 @@ const QuantityOffers = () => {
         .eq('form_id', formId)
         .eq('shop_id', activeStore || localStorage.getItem('simple_active_store') || '');
 
-      if (error) throw error;
+      if (error) {
+        console.warn('Error loading associated products:', error);
+        setAssociatedProducts([]);
+        return;
+      }
       
       const productIds = data?.map((item: any) => item.product_id) || [];
       setAssociatedProducts(productIds);
+      console.log(`📦 Found ${productIds.length} associated products for form ${formId}`);
     } catch (error) {
       console.error('Error loading associated products:', error);
       setAssociatedProducts([]);
@@ -206,23 +211,42 @@ const QuantityOffers = () => {
       return;
     }
 
+    // التحقق من وجود عرض مسبق للمنتج والنموذج
+    const isAssociated = associatedProducts.includes(selectedProduct.id);
+    if (isAssociated && !quantityOffer.id) {
+      toast.error('This product is already associated with this form. Please choose a different product or form.');
+      return;
+    }
+
     setLoading(true);
     try {
-      // Since quantity_offers table types aren't updated yet, we'll use a generic approach
-      const { error } = await (supabase as any)
+      const offerData = {
+        ...quantityOffer,
+        shop_id: activeStore || localStorage.getItem('simple_active_store') || '',
+        product_id: selectedProduct.id,
+        form_id: selectedForm.id
+      };
+
+      console.log('💾 Saving quantity offer:', offerData);
+
+      const { data, error } = await (supabase as any)
         .from('quantity_offers')
-        .upsert({
-          ...quantityOffer,
-          shop_id: activeStore || localStorage.getItem('simple_active_store') || '',
-          product_id: selectedProduct.id,
-          form_id: selectedForm.id
-        });
+        .upsert(offerData, {
+          onConflict: quantityOffer.id ? 'id' : undefined
+        })
+        .select();
 
       if (error) throw error;
+      
+      console.log('✅ Quantity offer saved:', data);
       toast.success('Quantity offer saved successfully');
+      
+      // إعادة تعيين النموذج والانتقال لعرض القائمة
+      resetToFormSelection();
       loadExistingOffers(); // Reload the list after saving
     } catch (error) {
-      toast.error('Failed to save quantity offer');
+      console.error('❌ Error saving quantity offer:', error);
+      toast.error('Failed to save quantity offer: ' + (error as any)?.message || 'Unknown error');
     }
     setLoading(false);
   };
@@ -303,20 +327,20 @@ const QuantityOffers = () => {
                 {existingOffers.map((offer) => (
                   <div key={offer.id} className="flex items-center justify-between p-4 border rounded-lg hover:shadow-sm transition-shadow">
                     <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h4 className="font-medium">{offer.forms?.title || 'Unknown Form'}</h4>
-                        <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          offer.enabled ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
-                        }`}>
-                          {offer.enabled ? 'Active' : 'Disabled'}
-                        </div>
+                    <div className="flex items-center gap-3 mb-2">
+                      <h4 className="font-medium">{offer.forms?.title || 'Unknown Form'}</h4>
+                      <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        offer.enabled ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
+                      }`}>
+                        {offer.enabled ? 'نشط' : 'معطل'}
                       </div>
-                      <p className="text-sm text-muted-foreground mb-1">
-                        Product ID: <span className="font-mono text-xs">{offer.product_id}</span>
-                      </p>
-                      <p className="text-sm text-muted-foreground mb-1">
-                        {offer.offers?.length || 0} offers configured • Position: {offer.position}
-                      </p>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-1">
+                      معرف المنتج: <span className="font-mono text-xs">{offer.product_id}</span>
+                    </p>
+                    <p className="text-sm text-muted-foreground mb-1">
+                      {offer.offers?.length || 0} عرض مُهيأ • الموضع: {offer.position === 'before_form' ? 'قبل النموذج' : offer.position === 'after_form' ? 'بعد النموذج' : 'داخل النموذج'}
+                    </p>
                       {offer.offers && offer.offers.length > 0 && (
                         <div className="flex flex-wrap gap-2 mt-2">
                           {offer.offers.slice(0, 3).map((singleOffer: any, idx: number) => (
@@ -354,27 +378,27 @@ const QuantityOffers = () => {
                           setCurrentStep('settings');
                         }}
                       >
-                        Edit
+                        تعديل
                       </Button>
                       <Button
                         variant="destructive"
                         size="sm"
                         onClick={async () => {
-                          if (confirm('Are you sure you want to delete this offer?')) {
+                          if (confirm('هل أنت متأكد من حذف هذا العرض؟')) {
                             try {
                               await (supabase as any)
                                 .from('quantity_offers')
                                 .delete()
                                 .eq('id', offer.id);
-                              toast.success('Offer deleted successfully');
+                              toast.success('تم حذف العرض بنجاح');
                               loadExistingOffers();
                             } catch (error) {
-                              toast.error('Failed to delete offer');
+                              toast.error('فشل في حذف العرض');
                             }
                           }
                         }}
                       >
-                        Delete
+                        حذف
                       </Button>
                     </div>
                   </div>

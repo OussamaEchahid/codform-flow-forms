@@ -56,6 +56,12 @@
 <!-- تحميل script التشخيص -->
 {{ 'codform-debug.js' | asset_url | script_tag }}
 
+<!-- تحميل script العروض -->
+{{ 'codform-quantity-offers.js' | asset_url | script_tag }}
+
+<!-- تحميل الحل الشامل -->
+{{ 'codform-comprehensive-fix.js' | asset_url | script_tag }}
+
 <!-- تحميل خط Cairo لضمان تطابق الخطوط -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -897,6 +903,12 @@
     
     setTimeout(() => {
       fetchAndRenderForm();
+      // تحميل العروض الكمية مع الحل الشامل
+      setTimeout(() => {
+        if (window.CodformComprehensiveFix) {
+          window.CodformComprehensiveFix.loadData(blockId);
+        }
+      }, 1000);
     }, 500);
     
     function fetchAndRenderForm() {
