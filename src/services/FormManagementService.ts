@@ -4,6 +4,7 @@ import { FormData } from '@/lib/hooks/useFormTemplates';
 import { FormStep } from '@/lib/form-utils';
 import { FormStyle } from '@/hooks/useFormStore';
 import { toast } from 'sonner';
+import { getActiveShopId } from '@/utils/shop-utils';
 
 export class FormManagementService {
   private static instance: FormManagementService;
@@ -39,27 +40,17 @@ export class FormManagementService {
     throw lastError;
   }
 
-  // Get current active shop ID
-  private getActiveShopId(): string | null {
-    const activeStore = localStorage.getItem('simple_active_store') || 
-                       localStorage.getItem('shopify_store') ||
-                       localStorage.getItem('active_shop');
-    
-    console.log('🏪 Active shop ID from localStorage:', activeStore);
-    return activeStore;
-  }
-
   // Fetch all forms from database
   async fetchForms(): Promise<FormData[]> {
-    const shopId = this.getActiveShopId();
+    const shopId = getActiveShopId();
     
     if (!shopId) {
-      console.error('No active shop ID found');
+      console.error('❌ No active shop ID found in FormManagementService');
       throw new Error('لم يتم العثور على متجر نشط');
     }
 
     try {
-      console.log('🔍 Fetching forms for shop:', shopId);
+      console.log(`🔍 FormManagementService: Fetching forms for shop: ${shopId}`);
       
       const { data, error } = await this.fetchWithRetry(async () => {
         return await supabase
@@ -74,7 +65,7 @@ export class FormManagementService {
         throw new Error('خطأ في جلب النماذج');
       }
       
-      console.log(`✅ Found ${data?.length || 0} forms for shop: ${shopId}`);
+      console.log(`✅ FormManagementService: Found ${data?.length || 0} forms for shop: ${shopId}`);
       
       // Transform data to match FormData interface
       const formattedData = data.map(form => ({
@@ -96,7 +87,8 @@ export class FormManagementService {
 
   // Publish or unpublish a form
   async toggleFormPublication(formId: string, publish: boolean): Promise<FormData | null> {
-    console.log(`🔄 ${publish ? 'نشر' : 'إلغاء نشر'} النموذج:`, formId);
+    const shopId = getActiveShopId();
+    console.log(`🔄 FormManagementService: ${publish ? 'نشر' : 'إلغاء نشر'} النموذج: ${formId} في المتجر: ${shopId}`);
     
     try {
       // Update form in database first
@@ -105,6 +97,7 @@ export class FormManagementService {
           .from('forms')
           .update({ is_published: publish })
           .eq('id', formId)
+          .eq('shop_id', shopId) // Add shop_id filter for safety
           .select('*')
           .single();
       });
@@ -118,7 +111,7 @@ export class FormManagementService {
         throw new Error('لم يتم العثور على النموذج');
       }
       
-      console.log(`✅ تم ${publish ? 'نشر' : 'إلغاء نشر'} النموذج بنجاح في قاعدة البيانات`);
+      console.log(`✅ FormManagementService: تم ${publish ? 'نشر' : 'إلغاء نشر'} النموذج بنجاح في قاعدة البيانات`);
       
       // Transform data
       const updatedForm: FormData = {
@@ -140,7 +133,8 @@ export class FormManagementService {
 
   // Delete a form completely
   async deleteForm(formId: string): Promise<boolean> {
-    console.log('🗑️ بدء عملية حذف النموذج:', formId);
+    const shopId = getActiveShopId();
+    console.log(`🗑️ FormManagementService: بدء عملية حذف النموذج: ${formId} في المتجر: ${shopId}`);
     
     try {
       // Step 1: Delete product associations first
@@ -150,7 +144,8 @@ export class FormManagementService {
           return await supabase
             .from('shopify_product_settings')
             .delete()
-            .eq('form_id', formId);
+            .eq('form_id', formId)
+            .eq('shop_id', shopId); // Add shop_id filter for safety
         });
         
         if (assocError) {
@@ -171,6 +166,7 @@ export class FormManagementService {
           .from('forms')
           .delete()
           .eq('id', formId)
+          .eq('shop_id', shopId) // Add shop_id filter for safety
           .select('*');
       });
       
@@ -183,7 +179,7 @@ export class FormManagementService {
         throw new Error('النموذج غير موجود أو تم حذفه مسبقاً');
       }
       
-      console.log('✅ تم حذف النموذج بنجاح من قاعدة البيانات');
+      console.log(`✅ FormManagementService: تم حذف النموذج بنجاح من قاعدة البيانات للمتجر ${shopId}`);
       
       toast.success('تم حذف النموذج بنجاح');
       return true;
@@ -196,6 +192,8 @@ export class FormManagementService {
 
   // Save form changes
   async saveForm(formId: string, formData: Partial<FormData>): Promise<FormData | null> {
+    const shopId = getActiveShopId();
+    
     try {
       // Convert isPublished to is_published for database
       const dbData: any = { ...formData };
@@ -204,12 +202,15 @@ export class FormManagementService {
         delete dbData.isPublished;
       }
       
+      console.log(`💾 FormManagementService: Saving form ${formId} for shop ${shopId}`);
+      
       // Update form in Supabase
       const { data, error } = await this.fetchWithRetry(async () => {
         return await supabase
           .from('forms')
           .update(dbData)
           .eq('id', formId)
+          .eq('shop_id', shopId) // Add shop_id filter for safety
           .select('*')
           .single();
       });
@@ -245,6 +246,8 @@ export class FormManagementService {
       return null;
     }
     
+    const shopId = getActiveShopId();
+    
     // Validate UUID format
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(formId)) {
@@ -253,11 +256,14 @@ export class FormManagementService {
     }
     
     try {
+      console.log(`📖 FormManagementService: Loading form ${formId} for shop ${shopId}`);
+      
       const { data, error } = await this.fetchWithRetry(async () => {
         return await supabase
           .from('forms')
           .select('*')
           .eq('id', formId)
+          .eq('shop_id', shopId) // Add shop_id filter for safety
           .single();
       });
       

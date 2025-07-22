@@ -1,33 +1,21 @@
-// نظام إدارة المتاجر المبسط
-// لا cache، لا recovery، لا تعقيدات - فقط storage بسيط
 
-import { cleanShopifyDomain } from './types';
+import { cleanShopDomain } from './types';
+import { setActiveShop, getActiveShopId, getActiveShopInfo } from '@/utils/shop-utils';
 
 class SimpleShopifyConnectionManager {
-  private readonly ACTIVE_STORE_KEY = 'simple_active_store';
-  
   /**
-   * تحديد المتجر النشط
+   * Set the active store using centralized utility
    */
   public setActiveStore(domain: string): void {
     try {
-      const cleanedDomain = cleanShopifyDomain(domain);
+      const cleanedDomain = cleanShopDomain(domain);
       if (!cleanedDomain) {
         console.error('Invalid domain provided');
         return;
       }
       
-      console.log(`🔄 Setting active store: ${cleanedDomain}`);
-      
-      // مسح جميع البيانات القديمة
-      this.clearAllData();
-      
-      // تحديد المتجر الجديد
-      localStorage.setItem(this.ACTIVE_STORE_KEY, cleanedDomain);
-      localStorage.setItem('shopify_store', cleanedDomain);
-      localStorage.setItem('shopify_connected', 'true');
-      
-      console.log(`✅ Active store set: ${cleanedDomain}`);
+      console.log(`🔄 SimpleShopifyConnectionManager: Setting active store: ${cleanedDomain}`);
+      setActiveShop(cleanedDomain);
       
     } catch (error) {
       console.error('Error setting active store:', error);
@@ -35,11 +23,11 @@ class SimpleShopifyConnectionManager {
   }
   
   /**
-   * الحصول على المتجر النشط
+   * Get the active store using centralized utility
    */
   public getActiveStore(): string | null {
     try {
-      return localStorage.getItem(this.ACTIVE_STORE_KEY);
+      return getActiveShopId();
     } catch (error) {
       console.error('Error getting active store:', error);
       return null;
@@ -47,7 +35,7 @@ class SimpleShopifyConnectionManager {
   }
   
   /**
-   * التحقق من وجود اتصال
+   * Check if connected using centralized utility
    */
   public isConnected(): boolean {
     const activeStore = this.getActiveStore();
@@ -56,11 +44,11 @@ class SimpleShopifyConnectionManager {
   }
   
   /**
-   * قطع الاتصال نهائياً
+   * Disconnect completely
    */
   public disconnect(): void {
     try {
-      console.log('🔌 Disconnecting from all stores...');
+      console.log('🔌 SimpleShopifyConnectionManager: Disconnecting from all stores...');
       this.clearAllData();
       console.log('✅ Disconnected successfully');
     } catch (error) {
@@ -69,15 +57,16 @@ class SimpleShopifyConnectionManager {
   }
   
   /**
-   * مسح جميع البيانات
+   * Clear all data
    */
   private clearAllData(): void {
     try {
-      // قائمة بجميع مفاتيح Shopify
+      // List of all Shopify keys
       const shopifyKeys = [
-        this.ACTIVE_STORE_KEY,
+        'simple_active_store',
         'shopify_store',
         'shopify_connected',
+        'active_shop',
         'shopify_active_store',
         'shopify_stores',
         'shopify_connected_stores',
@@ -92,12 +81,12 @@ class SimpleShopifyConnectionManager {
         'shopify_recovery_attempt'
       ];
       
-      // مسح المفاتيح المحددة
+      // Clear specified keys
       shopifyKeys.forEach(key => {
         localStorage.removeItem(key);
       });
       
-      // مسح أي مفاتيح أخرى تبدأ بـ shopify_
+      // Clear any other keys that start with shopify_
       Object.keys(localStorage).forEach(key => {
         if (key.startsWith('shopify_') && 
             !key.includes('user') && 
@@ -112,15 +101,18 @@ class SimpleShopifyConnectionManager {
   }
   
   /**
-   * الحصول على معلومات التصحيح
+   * Get debug information
    */
   public getDebugInfo(): any {
+    const shopInfo = getActiveShopInfo();
     return {
-      activeStore: this.getActiveStore(),
+      activeStore: shopInfo.shopId,
+      source: shopInfo.source,
       isConnected: this.isConnected(),
       localStorageData: {
-        simple_active_store: localStorage.getItem(this.ACTIVE_STORE_KEY),
+        simple_active_store: localStorage.getItem('simple_active_store'),
         shopify_store: localStorage.getItem('shopify_store'),
+        active_shop: localStorage.getItem('active_shop'),
         shopify_connected: localStorage.getItem('shopify_connected')
       }
     };

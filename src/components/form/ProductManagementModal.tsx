@@ -13,6 +13,7 @@ import { Loader2, ShoppingBag, Link, Unlink, Image } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { ShopifyProduct } from '@/lib/shopify/types';
+import { getActiveShopId } from '@/utils/shop-utils';
 
 interface ProductManagementModalProps {
   isOpen: boolean;
@@ -41,11 +42,14 @@ const ProductManagementModal: React.FC<ProductManagementModalProps> = ({
   const fetchProductsAndLinks = async () => {
     setIsLoading(true);
     try {
-      const shopId = localStorage.getItem('shopify_store');
+      const shopId = getActiveShopId();
       if (!shopId) {
         toast.error('لم يتم العثور على معرف المتجر');
+        console.error('❌ No active shop found when fetching products');
         return;
       }
+
+      console.log(`🔍 Fetching products for shop: ${shopId}, form: ${formId}`);
 
       // Fetch all products from Shopify
       const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-products`, {
@@ -78,6 +82,7 @@ const ProductManagementModal: React.FC<ProductManagementModalProps> = ({
             };
           });
           setProducts(transformedProducts);
+          console.log(`✅ Loaded ${transformedProducts.length} products for shop: ${shopId}`);
         }
       }
 
@@ -85,13 +90,15 @@ const ProductManagementModal: React.FC<ProductManagementModalProps> = ({
       const { data: linkedData, error: linkedError } = await supabase
         .from('shopify_product_settings')
         .select('product_id')
-        .eq('form_id', formId);
+        .eq('form_id', formId)
+        .eq('shop_id', shopId); // Add shop_id filter to ensure we only get links for this shop
 
       if (linkedError) {
         console.error('خطأ في جلب المنتجات المرتبطة:', linkedError);
       } else {
         const linkedIds = new Set(linkedData.map(item => item.product_id));
         setLinkedProducts(linkedIds);
+        console.log(`✅ Found ${linkedIds.size} linked products for form ${formId} in shop ${shopId}`);
       }
     } catch (error) {
       console.error('خطأ في جلب البيانات:', error);
@@ -104,11 +111,13 @@ const ProductManagementModal: React.FC<ProductManagementModalProps> = ({
   const handleLinkProduct = async (productId: string) => {
     setIsOperating(productId);
     try {
-      const shopId = localStorage.getItem('shopify_store');
+      const shopId = getActiveShopId();
       if (!shopId) {
         toast.error('لم يتم العثور على معرف المتجر');
         return;
       }
+
+      console.log(`🔗 Linking product ${productId} to form ${formId} in shop ${shopId}`);
 
       const { error } = await supabase
         .from('shopify_product_settings')
@@ -127,6 +136,7 @@ const ProductManagementModal: React.FC<ProductManagementModalProps> = ({
 
       setLinkedProducts(prev => new Set([...prev, productId]));
       toast.success('تم ربط المنتج بالنموذج بنجاح');
+      console.log(`✅ Successfully linked product ${productId} to form ${formId} in shop ${shopId}`);
     } catch (error) {
       console.error('خطأ في ربط المنتج:', error);
       toast.error('فشل في ربط المنتج بالنموذج');
@@ -138,11 +148,20 @@ const ProductManagementModal: React.FC<ProductManagementModalProps> = ({
   const handleUnlinkProduct = async (productId: string) => {
     setIsOperating(productId);
     try {
+      const shopId = getActiveShopId();
+      if (!shopId) {
+        toast.error('لم يتم العثور على معرف المتجر');
+        return;
+      }
+
+      console.log(`🔓 Unlinking product ${productId} from form ${formId} in shop ${shopId}`);
+
       const { error } = await supabase
         .from('shopify_product_settings')
         .delete()
         .eq('form_id', formId)
-        .eq('product_id', productId);
+        .eq('product_id', productId)
+        .eq('shop_id', shopId); // Add shop_id filter for safety
 
       if (error) {
         console.error('خطأ في إلغاء ربط المنتج:', error);
@@ -156,6 +175,7 @@ const ProductManagementModal: React.FC<ProductManagementModalProps> = ({
         return newSet;
       });
       toast.success('تم إلغاء ربط المنتج من النموذج بنجاح');
+      console.log(`✅ Successfully unlinked product ${productId} from form ${formId} in shop ${shopId}`);
     } catch (error) {
       console.error('خطأ في إلغاء ربط المنتج:', error);
       toast.error('فشل في إلغاء ربط المنتج من النموذج');
