@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -57,7 +56,6 @@ const QuantityOffersManager: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [storeData, setStoreData] = useState<{currency?: string}>({});
 
-  // Get consistent active store
   const getConsistentActiveStore = (): string | null => {
     if (activeStore) {
       console.log('🏪 Using activeStore directly:', activeStore);
@@ -69,7 +67,6 @@ const QuantityOffersManager: React.FC = () => {
     return fallbackStore;
   };
 
-  // Load store data to get currency
   const loadStoreData = async () => {
     const currentStore = getConsistentActiveStore();
     if (!currentStore) return;
@@ -90,7 +87,6 @@ const QuantityOffersManager: React.FC = () => {
     }
   };
 
-  // Enhanced load forms function
   const loadForms = async () => {
     const currentStore = getConsistentActiveStore();
     if (!currentStore) {
@@ -123,7 +119,6 @@ const QuantityOffersManager: React.FC = () => {
     }
   };
 
-  // Load associated products for selected form with complete data
   const loadFormProducts = async (formId: string) => {
     const currentStore = getConsistentActiveStore();
     if (!currentStore || !formId) {
@@ -136,7 +131,6 @@ const QuantityOffersManager: React.FC = () => {
     try {
       console.log('🔗 Loading products for form:', formId, 'store:', currentStore);
       
-      // Get products associated with this form
       const { data: settings, error: settingsError } = await supabase
         .from('shopify_product_settings')
         .select('product_id')
@@ -157,7 +151,6 @@ const QuantityOffersManager: React.FC = () => {
         return;
       }
 
-      // Get complete product details from Shopify with enhanced data
       console.log('📡 Fetching complete product details from Shopify for store:', currentStore);
       const { data: productsData, error: productsError } = await supabase.functions.invoke('shopify-products', {
         body: { 
@@ -179,13 +172,11 @@ const QuantityOffersManager: React.FC = () => {
       console.log('📦 All Shopify products fetched:', allProducts.length);
       console.log('💰 Store currency:', storeCurrency);
       
-      // Update store data
       setStoreData({ currency: storeCurrency });
       
       const associatedProductIds = settings.map(s => String(s.product_id));
       console.log('🔗 Associated product IDs (as strings):', associatedProductIds);
       
-      // Filter and map products with complete data
       const formProducts = allProducts
         .filter((product: any) => {
           const productIdStr = String(product.id);
@@ -202,12 +193,10 @@ const QuantityOffersManager: React.FC = () => {
           return isAssociated;
         })
         .map((product: any) => {
-          // Get the best variant price (first variant or lowest price)
           const variant = product.variants?.[0];
           const price = variant?.price ? parseFloat(variant.price) : undefined;
           const compareAtPrice = variant?.compare_at_price ? parseFloat(variant.compare_at_price) : undefined;
           
-          // Get the best image URL
           let imageUrl = null;
           if (product.image) {
             imageUrl = typeof product.image === 'string' ? product.image : product.image.src;
@@ -234,7 +223,6 @@ const QuantityOffersManager: React.FC = () => {
       console.log('✅ Associated products mapped with complete data:', formProducts.length, formProducts);
       setAssociatedProducts(formProducts);
 
-      // Load existing quantity offers for this form
       await loadQuantityOffers(formId);
       
     } catch (error) {
@@ -246,7 +234,6 @@ const QuantityOffersManager: React.FC = () => {
     }
   };
 
-  // Load quantity offers for form
   const loadQuantityOffers = async (formId: string) => {
     const currentStore = getConsistentActiveStore();
     if (!currentStore || !formId) {
@@ -268,7 +255,6 @@ const QuantityOffersManager: React.FC = () => {
         throw error;
       }
 
-      // Enrich with product and form titles
       const enrichedOffers = data?.map(offer => ({
         ...offer,
         product_title: associatedProducts.find(p => p.product_id === offer.product_id)?.product_title || 'منتج غير معروف',
@@ -303,7 +289,6 @@ const QuantityOffersManager: React.FC = () => {
     }
   }, [selectedFormId]);
 
-  // Force refresh function
   const forceRefresh = async () => {
     setRefreshing(true);
     try {
@@ -326,7 +311,6 @@ const QuantityOffersManager: React.FC = () => {
       return;
     }
     
-    // Check if offer already exists for this product and form
     const existingOffer = quantityOffers.find(
       offer => offer.product_id === selectedProductId && offer.form_id === selectedFormId
     );
@@ -407,7 +391,6 @@ const QuantityOffersManager: React.FC = () => {
         toast.success('تم تحديث عرض الكمية بنجاح');
       }
       
-      // Reload quantity offers
       await loadQuantityOffers(selectedFormId);
       
       setEditingOffer(null);
@@ -476,7 +459,7 @@ const QuantityOffersManager: React.FC = () => {
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Gift className="h-5 w-5" />
-              إدارة عروض الكمية - محسن مع البيانات الحقيقية
+              إدارة عروض الكمية - مع البيانات الحقيقية
             </CardTitle>
             <Button 
               onClick={forceRefresh} 
@@ -490,7 +473,6 @@ const QuantityOffersManager: React.FC = () => {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Enhanced Debug Info */}
           <div className="text-xs text-muted-foreground bg-blue-50 p-3 rounded border">
             <div className="grid grid-cols-2 gap-2">
               <div>المتجر النشط: <strong>{currentStore}</strong></div>
@@ -502,7 +484,6 @@ const QuantityOffersManager: React.FC = () => {
             </div>
           </div>
 
-          {/* Form Selection */}
           <div>
             <label className="text-sm font-medium mb-2 block">اختيار النموذج</label>
             <Select value={selectedFormId} onValueChange={setSelectedFormId}>
@@ -519,7 +500,6 @@ const QuantityOffersManager: React.FC = () => {
             </Select>
           </div>
 
-          {/* Product Selection and Create Button */}
           {selectedFormId && associatedProducts.length > 0 && (
             <div className="flex gap-2">
               <div className="flex-1">
@@ -551,23 +531,17 @@ const QuantityOffersManager: React.FC = () => {
             </div>
           )}
 
-          {/* No products message */}
           {selectedFormId && associatedProducts.length === 0 && !loading && (
             <Alert>
               <Package className="h-4 w-4" />
               <AlertDescription>
                 لا توجد منتجات مرتبطة بهذا النموذج. يرجى ربط منتجات أولاً من صفحة إدارة النماذج.
-                <br />
-                <span className="text-xs text-muted-foreground">
-                  تأكد من أن المنتجات مرتبطة في shopify_product_settings للنموذج: {selectedFormId}
-                </span>
               </AlertDescription>
             </Alert>
           )}
         </CardContent>
       </Card>
 
-      {/* Loading */}
       {loading && (
         <div className="flex items-center justify-center py-8">
           <Loader2 className="h-6 w-6 animate-spin" />
@@ -575,7 +549,6 @@ const QuantityOffersManager: React.FC = () => {
         </div>
       )}
 
-      {/* Existing Quantity Offers with Enhanced Display */}
       {quantityOffers.length > 0 && (
         <Card>
           <CardHeader>
@@ -585,6 +558,8 @@ const QuantityOffersManager: React.FC = () => {
             <div className="space-y-6">
               {quantityOffers.map(offer => {
                 const associatedProduct = associatedProducts.find(p => p.product_id === offer.product_id);
+                
+                console.log('🔍 Rendering offer for product:', offer.product_id, 'found product data:', associatedProduct);
                 
                 return (
                   <div key={offer.id} className="border rounded-lg p-4 space-y-4">
@@ -622,7 +597,6 @@ const QuantityOffersManager: React.FC = () => {
                       </div>
                     </div>
                     
-                    {/* Live Preview with Real Product Data */}
                     <div className="bg-gray-50 p-4 rounded-lg border">
                       <h4 className="text-sm font-medium mb-3 text-gray-600">معاينة مباشرة مع البيانات الحقيقية:</h4>
                       <QuantityOffersDisplay 
@@ -642,11 +616,15 @@ const QuantityOffersManager: React.FC = () => {
                         } : undefined}
                         currency={storeData.currency || 'SAR'}
                       />
-                      {associatedProduct && (
-                        <div className="mt-3 text-xs text-gray-600 bg-green-50 p-2 rounded">
-                          <strong>بيانات المنتج الحقيقية:</strong> {associatedProduct.product_title} - 
+                      {associatedProduct ? (
+                        <div className="mt-3 text-xs text-green-600 bg-green-50 p-2 rounded">
+                          <strong>✅ بيانات المنتج الحقيقية:</strong> {associatedProduct.product_title} - 
                           السعر: {associatedProduct.product_price?.toFixed(2) || 'غير محدد'} {associatedProduct.product_currency}
                           {associatedProduct.product_image && ' - يتضمن صورة'}
+                        </div>
+                      ) : (
+                        <div className="mt-3 text-xs text-red-600 bg-red-50 p-2 rounded">
+                          <strong>⚠️ تحذير:</strong> لا توجد بيانات منتج حقيقية
                         </div>
                       )}
                     </div>

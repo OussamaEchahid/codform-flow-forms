@@ -28,7 +28,7 @@ interface ProductData {
 interface QuantityOffersDisplayProps {
   offers: Offer[];
   styling: Styling;
-  basePrice?: number; // Keep for backward compatibility but won't use
+  basePrice?: number;
   productData?: ProductData;
   currency?: string;
 }
@@ -36,29 +36,21 @@ interface QuantityOffersDisplayProps {
 const QuantityOffersDisplay: React.FC<QuantityOffersDisplayProps> = ({ 
   offers, 
   styling, 
-  basePrice, // Not used anymore
+  basePrice,
   productData,
   currency = 'SAR'
 }) => {
-  // Use REAL product data - no more default values
-  const realPrice = productData?.price;
-  const productTitle = productData?.title || 'المنتج';
-  const productImage = productData?.image;
-  const displayCurrency = productData?.currency || currency;
-  
-  console.log('🎯 QuantityOffersDisplay - Real Product Data:', {
-    realPrice,
-    productTitle,
-    productImage,
-    displayCurrency,
+  console.log('🎯 QuantityOffersDisplay received:', {
+    offers: offers?.length,
     productData,
-    hasPrice: !!realPrice,
-    hasImage: !!productImage
+    hasPrice: !!productData?.price,
+    hasImage: !!productData?.image,
+    currency: productData?.currency || currency
   });
 
-  // If no real price data is available, show a message instead of fake data
-  if (!realPrice) {
-    console.log('⚠️ No real price data available for product');
+  // إذا لم تكن هناك بيانات منتج حقيقية، عرض رسالة تحذيرية
+  if (!productData?.price) {
+    console.log('⚠️ No real product data available');
     return (
       <div className="p-4 border-2 border-dashed border-yellow-300 rounded-lg text-center text-yellow-600 bg-yellow-50">
         <p className="text-sm font-medium">لا توجد بيانات سعر حقيقية للمنتج</p>
@@ -66,6 +58,18 @@ const QuantityOffersDisplay: React.FC<QuantityOffersDisplayProps> = ({
       </div>
     );
   }
+
+  const realPrice = productData.price;
+  const productTitle = productData.title || 'المنتج';
+  const productImage = productData.image;
+  const displayCurrency = productData.currency || currency;
+  
+  console.log('✅ Using real product data:', {
+    realPrice,
+    productTitle,
+    productImage: !!productImage,
+    displayCurrency
+  });
   
   const calculatePrice = (offer: Offer) => {
     if (offer.discountType === 'none' || !offer.discountValue) {
