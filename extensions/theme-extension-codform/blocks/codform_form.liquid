@@ -381,17 +381,29 @@ document.addEventListener('DOMContentLoaded', function() {
 
       // تحويل البيانات إذا كانت بالتنسيق الجديد
       if (formData.fields && !formData.data) {
-        console.log("🔄 Converting new format to expected format");
-        formData.data = [{
-          id: "1",
-          title: "Main Step",
-          fields: formData.fields
-        }];
+        console.log("🔄 Converting new format to expected format. Original fields:", formData.fields);
+        formData = {
+          ...formData,
+          data: [{
+            id: "1",
+            title: "Main Step",
+            fields: formData.fields
+          }]
+        };
+        console.log("✅ Conversion completed. New data:", formData.data);
       }
 
       if (!formData.data || !Array.isArray(formData.data) || formData.data.length === 0) {
-        console.error("❌ Invalid form data structure:", formData);
+        console.error("❌ Invalid form data structure after conversion:", JSON.stringify(formData, null, 2));
         container.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">خطأ في تحميل النموذج - بنية البيانات غير صحيحة</div>';
+        return false;
+      }
+
+      // التحقق من وجود حقول في البيانات
+      const firstStep = formData.data[0];
+      if (!firstStep || !firstStep.fields || !Array.isArray(firstStep.fields)) {
+        console.error("❌ No valid fields found in first step:", firstStep);
+        container.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">خطأ في تحميل النموذج - لا توجد حقول صحيحة</div>';
         return false;
       }
 
@@ -1024,10 +1036,11 @@ document.addEventListener('DOMContentLoaded', function() {
               
               // تحويل البيانات من التنسيق الجديد إلى التنسيق المتوقع
               let formData = data.form;
-              console.log("🔄 Converting form data format. Original:", formData);
+              console.log("🔄 Processing API response. Original form data:", JSON.stringify(formData, null, 2));
               
               // إذا كانت البيانات بالتنسيق الجديد (fields مباشرة)
               if (formData.fields && !formData.data) {
+                console.log("🔄 Converting API response from new format to expected format");
                 formData = {
                   ...formData,
                   data: [{
@@ -1036,7 +1049,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     fields: formData.fields
                   }]
                 };
-                console.log("✅ Converted to expected format:", formData);
+                // حذف الـ fields القديمة لتجنب التضارب
+                delete formData.fields;
+                console.log("✅ Converted API response to expected format:", JSON.stringify(formData, null, 2));
               }
               
               renderFormData(formData);
@@ -1267,8 +1282,12 @@ document.addEventListener('DOMContentLoaded', function() {
           }
           console.log("✅ RADICAL FIX - Form rendered successfully");
         } else {
-        console.log("❌ Form rendering failed. Form data was:", formData);
-        showErrorMessage("فشل في عرض النموذج");
+        console.log("❌ Form rendering failed. Detailed analysis:");
+        console.log("- Form data provided:", JSON.stringify(formData, null, 2));
+        console.log("- Container ID:", containerId);
+        console.log("- Container exists:", !!document.getElementById(containerId));
+        
+        showErrorMessage("فشل في عرض النموذج - يرجى المحاولة مرة أخرى");
         }
         
       } catch (error) {
