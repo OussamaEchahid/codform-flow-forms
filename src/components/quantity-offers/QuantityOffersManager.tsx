@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -54,20 +55,39 @@ const QuantityOffersManager: React.FC = () => {
   const [selectedProductId, setSelectedProductId] = useState<string>('');
   const { activeStore } = useSimpleShopify();
   const [refreshing, setRefreshing] = useState(false);
-  const [productsData, setProductsData] = useState<{[key: string]: any}>({});
+  const [storeData, setStoreData] = useState<{currency?: string}>({});
 
   // Get consistent active store
   const getConsistentActiveStore = (): string | null => {
-    // استخدم activeStore مباشرة إذا كان موجود
     if (activeStore) {
       console.log('🏪 Using activeStore directly:', activeStore);
       return activeStore;
     }
     
-    // استخدم getActiveShopId كخيار ثاني
     const fallbackStore = getActiveShopId();
     console.log('🏪 Using fallback store:', fallbackStore);
     return fallbackStore;
+  };
+
+  // Load store data to get currency
+  const loadStoreData = async () => {
+    const currentStore = getConsistentActiveStore();
+    if (!currentStore) return;
+    
+    try {
+      const { data: shopData, error } = await supabase.functions.invoke('shopify-products', {
+        body: { shop: currentStore, includeStoreInfo: true }
+      });
+
+      if (shopData?.store) {
+        setStoreData({
+          currency: shopData.store.currency || 'SAR'
+        });
+        console.log('💰 Store currency loaded:', shopData.store.currency);
+      }
+    } catch (error) {
+      console.error('❌ Error loading store data:', error);
+    }
   };
 
   // Enhanced load forms function
@@ -103,7 +123,7 @@ const QuantityOffersManager: React.FC = () => {
     }
   };
 
-  // Load associated products for selected form
+  // Load associated products for selected form with complete data
   const loadFormProducts = async (formId: string) => {
     const currentStore = getConsistentActiveStore();
     if (!currentStore || !formId) {
@@ -116,7 +136,7 @@ const QuantityOffersManager: React.FC = () => {
     try {
       console.log('🔗 Loading products for form:', formId, 'store:', currentStore);
       
-      // Get products associated with this form - No filter on enabled status
+      // Get products associated with this form
       const { data: settings, error: settingsError } = await supabase
         .from('shopify_product_settings')
         .select('product_id')
@@ -137,10 +157,15 @@ const QuantityOffersManager: React.FC = () => {
         return;
       }
 
-      // Get product details from Shopify
-      console.log('📡 Fetching product details from Shopify for store:', currentStore);
+      // Get complete product details from Shopify with enhanced data
+      console.log('📡 Fetching complete product details from Shopify for store:', currentStore);
       const { data: productsData, error: productsError } = await supabase.functions.invoke('shopify-products', {
-        body: { shop: currentStore }
+        body: { 
+          shop: currentStore,
+          includeVariants: true,
+          includeImages: true,
+          includeStoreInfo: true
+        }
       });
 
       if (productsError) {
@@ -149,45 +174,64 @@ const QuantityOffersManager: React.FC = () => {
       }
 
       const allProducts = productsData?.products || [];
-      console.log('📦 All Shopify products fetched:', allProducts.length);
-      console.log('📦 Sample product IDs from Shopify:', allProducts.slice(0, 3).map((p: any) => ({ id: p.id, title: p.title })));
+      const storeCurrency = productsData?.store?.currency || storeData.currency || 'SAR';
       
-      // Store products data for later use
-      const productsMap: {[key: string]: any} = {};
-      allProducts.forEach((product: any) => {
-        productsMap[String(product.id)] = product;
-      });
-      setProductsData(productsMap);
+      console.log('📦 All Shopify products fetched:', allProducts.length);
+      console.log('💰 Store currency:', storeCurrency);
+      
+      // Update store data
+      setStoreData({ currency: storeCurrency });
       
       const associatedProductIds = settings.map(s => String(s.product_id));
       console.log('🔗 Associated product IDs (as strings):', associatedProductIds);
       
-      // Filter products that are associated with this form
-      console.log('🔍 Checking each product against associated IDs...');
+      // Filter and map products with complete data
       const formProducts = allProducts
         .filter((product: any) => {
-          // Try different ID formats to match Shopify's inconsistent ID formatting
           const productIdStr = String(product.id);
           const productIdNum = Number(productIdStr);
           const isAssociated = 
             associatedProductIds.includes(productIdStr) || 
             associatedProductIds.some(id => Number(id) === productIdNum);
           
-          console.log(`🔍 Product ${productIdStr} (${product.title}) - Associated: ${isAssociated}`);
+          console.log(`🔍 Product ${productIdStr} (${product.title}) - Associated: ${isAssociated}`, {
+            price: product.variants?.[0]?.price,
+            image: product.image,
+            variants: product.variants?.length
+          });
           return isAssociated;
         })
-        .map((product: any) => ({
-          product_id: String(product.id),
-          product_title: product.title,
-          form_id: formId,
-          form_title: forms.find(f => f.id === formId)?.title || '',
-          product_price: product.variants?.[0]?.price ? parseFloat(product.variants[0].price) : undefined,
-          product_compare_at_price: product.variants?.[0]?.compare_at_price ? parseFloat(product.variants[0].compare_at_price) : undefined,
-          product_image: typeof product.image === 'string' ? product.image : product.image?.src,
-          product_currency: 'SAR'
-        }));
+        .map((product: any) => {
+          // Get the best variant price (first variant or lowest price)
+          const variant = product.variants?.[0];
+          const price = variant?.price ? parseFloat(variant.price) : undefined;
+          const compareAtPrice = variant?.compare_at_price ? parseFloat(variant.compare_at_price) : undefined;
+          
+          // Get the best image URL
+          let imageUrl = null;
+          if (product.image) {
+            imageUrl = typeof product.image === 'string' ? product.image : product.image.src;
+          } else if (product.images && product.images.length > 0) {
+            const firstImage = product.images[0];
+            imageUrl = typeof firstImage === 'string' ? firstImage : firstImage.src;
+          }
 
-      console.log('✅ Associated products mapped:', formProducts.length, formProducts);
+          const productData = {
+            product_id: String(product.id),
+            product_title: product.title,
+            form_id: formId,
+            form_title: forms.find(f => f.id === formId)?.title || '',
+            product_price: price,
+            product_compare_at_price: compareAtPrice,
+            product_image: imageUrl,
+            product_currency: storeCurrency
+          };
+
+          console.log('📦 Mapped product data:', productData);
+          return productData;
+        });
+
+      console.log('✅ Associated products mapped with complete data:', formProducts.length, formProducts);
       setAssociatedProducts(formProducts);
 
       // Load existing quantity offers for this form
@@ -244,6 +288,7 @@ const QuantityOffersManager: React.FC = () => {
     const currentStore = getConsistentActiveStore();
     if (currentStore) {
       console.log('🔄 Active store changed, reloading forms:', currentStore);
+      loadStoreData();
       loadForms();
     }
   }, [activeStore]);
@@ -262,6 +307,7 @@ const QuantityOffersManager: React.FC = () => {
   const forceRefresh = async () => {
     setRefreshing(true);
     try {
+      await loadStoreData();
       await loadForms();
       if (selectedFormId) {
         await loadFormProducts(selectedFormId);
@@ -430,7 +476,7 @@ const QuantityOffersManager: React.FC = () => {
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Gift className="h-5 w-5" />
-              إدارة عروض الكمية - محسن
+              إدارة عروض الكمية - محسن مع البيانات الحقيقية
             </CardTitle>
             <Button 
               onClick={forceRefresh} 
@@ -448,9 +494,11 @@ const QuantityOffersManager: React.FC = () => {
           <div className="text-xs text-muted-foreground bg-blue-50 p-3 rounded border">
             <div className="grid grid-cols-2 gap-2">
               <div>المتجر النشط: <strong>{currentStore}</strong></div>
+              <div>عملة المتجر: <strong>{storeData.currency || 'غير محدد'}</strong></div>
               <div>النماذج: <strong>{forms.length}</strong></div>
               <div>المنتجات المرتبطة: <strong>{associatedProducts.length}</strong></div>
               <div>العروض النشطة: <strong>{quantityOffers.length}</strong></div>
+              <div>منتجات بأسعار: <strong>{associatedProducts.filter(p => p.product_price).length}</strong></div>
             </div>
           </div>
 
@@ -483,7 +531,8 @@ const QuantityOffersManager: React.FC = () => {
                   <SelectContent>
                     {associatedProducts.map(product => (
                       <SelectItem key={product.product_id} value={product.product_id}>
-                        {product.product_title}
+                        {product.product_title} 
+                        {product.product_price && ` - ${product.product_price.toFixed(2)} ${product.product_currency}`}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -530,46 +579,52 @@ const QuantityOffersManager: React.FC = () => {
       {quantityOffers.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>عروض الكمية الحالية - معاينة محسنة</CardTitle>
+            <CardTitle>عروض الكمية الحالية - مع البيانات الحقيقية</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
-              {quantityOffers.map(offer => (
-                <div key={offer.id} className="border rounded-lg p-4 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-medium">{offer.product_title}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {Array.isArray(offer.offers) ? offer.offers.length : 0} عروض • موضع: {
-                          offer.position === 'before_form' ? 'قبل النموذج' :
-                          offer.position === 'inside_form' ? 'داخل النموذج' : 'بعد النموذج'
-                        }
-                      </p>
+              {quantityOffers.map(offer => {
+                const associatedProduct = associatedProducts.find(p => p.product_id === offer.product_id);
+                
+                return (
+                  <div key={offer.id} className="border rounded-lg p-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-medium">{offer.product_title}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {Array.isArray(offer.offers) ? offer.offers.length : 0} عروض • موضع: {
+                            offer.position === 'before_form' ? 'قبل النموذج' :
+                            offer.position === 'inside_form' ? 'داخل النموذج' : 'بعد النموذج'
+                          }
+                          {associatedProduct?.product_price && (
+                            <> • السعر: {associatedProduct.product_price.toFixed(2)} {associatedProduct.product_currency}</>
+                          )}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={offer.enabled ? 'default' : 'secondary'}>
+                          {offer.enabled ? 'مفعل' : 'معطل'}
+                        </Badge>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setEditingOffer(offer)}
+                        >
+                          تعديل
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDeleteOffer(offer.id)}
+                        >
+                          حذف
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={offer.enabled ? 'default' : 'secondary'}>
-                        {offer.enabled ? 'مفعل' : 'معطل'}
-                      </Badge>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setEditingOffer(offer)}
-                      >
-                        تعديل
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDeleteOffer(offer.id)}
-                      >
-                        حذف
-                      </Button>
-                    </div>
-                  </div>
-                  
-                   {/* Enhanced Live Preview */}
-                   <div className="bg-gray-50 p-4 rounded-lg border">
-                     <h4 className="text-sm font-medium mb-3 text-gray-600">معاينة مباشرة:</h4>
+                    
+                    {/* Live Preview with Real Product Data */}
+                    <div className="bg-gray-50 p-4 rounded-lg border">
+                      <h4 className="text-sm font-medium mb-3 text-gray-600">معاينة مباشرة مع البيانات الحقيقية:</h4>
                       <QuantityOffersDisplay 
                         offers={offer.offers || []} 
                         styling={offer.styling || {
@@ -578,24 +633,26 @@ const QuantityOffersManager: React.FC = () => {
                           tagColor: '#22c55e',
                           priceColor: '#ef4444'
                         }}
-                        productData={(() => {
-                          const product = associatedProducts.find(p => p.product_id === offer.product_id);
-                          console.log('🔍 Product data for offer:', offer.product_id, product);
-                          if (!product) return undefined;
-                          
-                          return {
-                            price: product.product_price || 100,
-                            compareAtPrice: product.product_compare_at_price,
-                            title: product.product_title,
-                            image: product.product_image,
-                            currency: product.product_currency || 'SAR'
-                          };
-                        })()}
-                        currency="SAR"
+                        productData={associatedProduct ? {
+                          price: associatedProduct.product_price,
+                          compareAtPrice: associatedProduct.product_compare_at_price,
+                          title: associatedProduct.product_title,
+                          image: associatedProduct.product_image,
+                          currency: associatedProduct.product_currency || storeData.currency || 'SAR'
+                        } : undefined}
+                        currency={storeData.currency || 'SAR'}
                       />
-                   </div>
-                </div>
-              ))}
+                      {associatedProduct && (
+                        <div className="mt-3 text-xs text-gray-600 bg-green-50 p-2 rounded">
+                          <strong>بيانات المنتج الحقيقية:</strong> {associatedProduct.product_title} - 
+                          السعر: {associatedProduct.product_price?.toFixed(2) || 'غير محدد'} {associatedProduct.product_currency}
+                          {associatedProduct.product_image && ' - يتضمن صورة'}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </CardContent>
         </Card>

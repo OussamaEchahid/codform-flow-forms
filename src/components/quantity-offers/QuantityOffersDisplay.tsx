@@ -28,7 +28,7 @@ interface ProductData {
 interface QuantityOffersDisplayProps {
   offers: Offer[];
   styling: Styling;
-  basePrice?: number;
+  basePrice?: number; // Keep for backward compatibility but won't use
   productData?: ProductData;
   currency?: string;
 }
@@ -36,23 +36,37 @@ interface QuantityOffersDisplayProps {
 const QuantityOffersDisplay: React.FC<QuantityOffersDisplayProps> = ({ 
   offers, 
   styling, 
-  basePrice = 100,
+  basePrice, // Not used anymore
   productData,
   currency = 'SAR'
 }) => {
-  // استخراج البيانات الحقيقية للمنتج
-  const realPrice = productData?.price || basePrice;
+  // Use REAL product data - no more default values
+  const realPrice = productData?.price;
   const productTitle = productData?.title || 'المنتج';
   const productImage = productData?.image;
   const displayCurrency = productData?.currency || currency;
   
-  console.log('🎯 QuantityOffersDisplay - Product Data:', {
+  console.log('🎯 QuantityOffersDisplay - Real Product Data:', {
     realPrice,
     productTitle,
     productImage,
     displayCurrency,
-    productData
+    productData,
+    hasPrice: !!realPrice,
+    hasImage: !!productImage
   });
+
+  // If no real price data is available, show a message instead of fake data
+  if (!realPrice) {
+    console.log('⚠️ No real price data available for product');
+    return (
+      <div className="p-4 border-2 border-dashed border-yellow-300 rounded-lg text-center text-yellow-600 bg-yellow-50">
+        <p className="text-sm font-medium">لا توجد بيانات سعر حقيقية للمنتج</p>
+        <p className="text-xs mt-1">يرجى التأكد من ربط المنتج بشكل صحيح</p>
+      </div>
+    );
+  }
+  
   const calculatePrice = (offer: Offer) => {
     if (offer.discountType === 'none' || !offer.discountValue) {
       return realPrice * offer.quantity;
@@ -71,7 +85,11 @@ const QuantityOffersDisplay: React.FC<QuantityOffersDisplayProps> = ({
   };
 
   if (!offers || offers.length === 0) {
-    return null;
+    return (
+      <div className="p-4 border-2 border-dashed border-gray-300 rounded-lg text-center text-gray-500">
+        <p className="text-sm">لا توجد عروض كمية محددة</p>
+      </div>
+    );
   }
 
   return (
@@ -106,12 +124,21 @@ const QuantityOffersDisplay: React.FC<QuantityOffersDisplayProps> = ({
                     src={productImage} 
                     alt={productTitle}
                     className="w-full h-full object-cover rounded-lg"
+                    onError={(e) => {
+                      console.log('❌ Image failed to load:', productImage);
+                      e.currentTarget.style.display = 'none';
+                      e.currentTarget.nextElementSibling!.style.display = 'flex';
+                    }}
                   />
-                ) : (
-                  <svg className="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 2L3 7v11a1 1 0 001 1h3a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1h3a1 1 0 001-1V7l-7-5z" clipRule="evenodd" />
-                  </svg>
-                )}
+                ) : null}
+                <svg 
+                  className="w-8 h-8 text-gray-400" 
+                  fill="currentColor" 
+                  viewBox="0 0 20 20"
+                  style={{ display: productImage ? 'none' : 'block' }}
+                >
+                  <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                </svg>
               </div>
               
               <div>

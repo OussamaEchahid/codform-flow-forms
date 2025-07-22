@@ -1,6 +1,6 @@
+
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Badge } from '@/components/ui/badge';
 
 interface Offer {
   id: string;
@@ -43,8 +43,8 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
   productData,
   currency = 'SAR'
 }) => {
-  // استخراج البيانات الحقيقية للمنتج
-  const realPrice = productData?.price || 100;
+  // Use REAL product data - no default values
+  const realPrice = productData?.price;
   const productTitle = productData?.title || 'المنتج';
   const productImage = productData?.image;
   const displayCurrency = productData?.currency || currency;
@@ -56,8 +56,10 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
     displayCurrency,
     productData,
     productId,
-    formId
+    formId,
+    hasPrice: !!realPrice
   });
+
   const [offers, setOffers] = useState<Offer[]>([]);
   const [styling, setStyling] = useState<Styling>({
     backgroundColor: '#ffffff',
@@ -97,6 +99,8 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
   }, [productId, formId]);
 
   const calculatePrice = (offer: Offer) => {
+    if (!realPrice) return 0;
+    
     if (offer.discountType === 'none' || !offer.discountValue) {
       return realPrice * offer.quantity;
     }
@@ -113,7 +117,7 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
     return realPrice * offer.quantity;
   };
 
-  if (loading || offers.length === 0) {
+  if (loading || offers.length === 0 || !realPrice) {
     return null;
   }
 
@@ -147,12 +151,21 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
                     src={productImage} 
                     alt={productTitle}
                     className="w-full h-full object-cover rounded-lg"
+                    onError={(e) => {
+                      console.log('❌ Image failed to load:', productImage);
+                      e.currentTarget.style.display = 'none';
+                      e.currentTarget.nextElementSibling!.style.display = 'block';
+                    }}
                   />
-                ) : (
-                  <svg className="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 2L3 7v11a1 1 0 001 1h3a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1h3a1 1 0 001-1V7l-7-5z" clipRule="evenodd" />
-                  </svg>
-                )}
+                ) : null}
+                <svg 
+                  className="w-8 h-8 text-gray-400" 
+                  fill="currentColor" 
+                  viewBox="0 0 20 20"
+                  style={{ display: productImage ? 'none' : 'block' }}
+                >
+                  <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                </svg>
               </div>
               
               <div>

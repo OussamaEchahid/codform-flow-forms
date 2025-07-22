@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Plus, Trash2, Palette, Eye } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Palette, Eye, Loader2 } from 'lucide-react';
 import QuantityOffersDisplay from './QuantityOffersDisplay';
 import { useSimpleShopify } from '@/hooks/useSimpleShopify';
 import { supabase } from '@/integrations/supabase/client';
@@ -62,36 +62,71 @@ const QuantityOffersEditor: React.FC<Props> = ({ offer, isCreating, onSave, onCa
     tag: 'وفر أكثر'
   });
 
-  // جلب بيانات المنتج الحقيقية
+  // جلب بيانات المنتج الحقيقية مع تحسينات
   React.useEffect(() => {
     const loadProductData = async () => {
       if (!activeStore || !currentOffer.product_id) return;
       
       setLoadingProduct(true);
       try {
+        console.log('📡 Loading product data for:', currentOffer.product_id, 'from store:', activeStore);
+        
         const { data: productsData, error } = await supabase.functions.invoke('shopify-products', {
-          body: { shop: activeStore }
+          body: { 
+            shop: activeStore,
+            includeVariants: true,
+            includeImages: true,
+            includeStoreInfo: true
+          }
         });
 
         if (error) {
-          console.error('Error fetching product data:', error);
+          console.error('❌ Error fetching product data:', error);
           return;
         }
 
         const allProducts = productsData?.products || [];
+        const storeCurrency = productsData?.store?.currency || 'SAR';
         const product = allProducts.find((p: any) => String(p.id) === String(currentOffer.product_id));
         
+        console.log('🔍 Found product:', product?.title, {
+          price: product?.variants?.[0]?.price,
+          image: product?.image,
+          currency: storeCurrency
+        });
+        
         if (product) {
-          setProductData({
-            price: product.variants?.[0]?.price ? parseFloat(product.variants[0].price) : undefined,
-            compareAtPrice: product.variants?.[0]?.compare_at_price ? parseFloat(product.variants[0].compare_at_price) : undefined,
+          // Get the best variant and image data
+          const variant = product.variants?.[0];
+          const price = variant?.price ? parseFloat(variant.price) : undefined;
+          const compareAtPrice = variant?.compare_at_price ? parseFloat(variant.compare_at_price) : undefined;
+          
+          // Get the best image URL
+          let imageUrl = null;
+          if (product.image) {
+            imageUrl = typeof product.image === 'string' ? product.image : product.image.src;
+          } else if (product.images && product.images.length > 0) {
+            const firstImage = product.images[0];
+            imageUrl = typeof firstImage === 'string' ? firstImage : firstImage.src;
+          }
+
+          const productDataToSet = {
+            price: price,
+            compareAtPrice: compareAtPrice,
             title: product.title,
-            image: typeof product.image === 'string' ? product.image : product.image?.src,
-            currency: 'SAR'
-          });
+            image: imageUrl,
+            currency: storeCurrency
+          };
+
+          console.log('✅ Setting product data:', productDataToSet);
+          setProductData(productDataToSet);
+        } else {
+          console.log('❌ Product not found in API response');
+          setProductData(null);
         }
       } catch (error) {
-        console.error('Error loading product data:', error);
+        console.error('❌ Error loading product data:', error);
+        setProductData(null);
       } finally {
         setLoadingProduct(false);
       }
@@ -313,19 +348,20 @@ const QuantityOffersEditor: React.FC<Props> = ({ offer, isCreating, onSave, onCa
         </CardContent>
       </Card>
 
-      {/* Live Preview */}
+      {/* Enhanced Live Preview with Real Data */}
       {currentOffer.offers.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Eye className="h-5 w-5" />
-              معاينة مباشرة مع السعر الحقيقي
+              معاينة مباشرة مع البيانات الحقيقية
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="bg-gray-50 p-4 rounded-lg border">
               {loadingProduct ? (
                 <div className="text-center py-4 text-gray-500">
+                  <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
                   جاري تحميل بيانات المنتج...
                 </div>
               ) : (
@@ -345,14 +381,18 @@ const QuantityOffersEditor: React.FC<Props> = ({ offer, isCreating, onSave, onCa
                     priceColor: '#ef4444'
                   }}
                   productData={productData || undefined}
-                  currency="SAR"
+                  currency={productData?.currency || 'SAR'}
                 />
               )}
-              {productData && (
-                <div className="mt-3 text-xs text-gray-600 bg-blue-50 p-2 rounded">
-                  <strong>بيانات المنتج الحقيقية:</strong> {productData.title} - 
+              {productData ? (
+                <div className="mt-3 text-xs text-gray-600 bg-green-50 p-2 rounded">
+                  <strong>✅ بيانات المنتج الحقيقية:</strong> {productData.title} - 
                   السعر: {productData.price?.toFixed(2) || 'غير محدد'} {productData.currency}
-                  {productData.image && ' - يتضمن صورة'}
+                  {productData.image && ' - يتضمن صورة حقيقية'}
+                </div>
+              ) : (
+                <div className="mt-3 text-xs text-red-600 bg-red-50 p-2 rounded">
+                  <strong>⚠️ تحذير:</strong> لا توجد بيانات منتج حقيقية متاحة
                 </div>
               )}
             </div>
