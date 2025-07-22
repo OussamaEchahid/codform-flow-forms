@@ -905,6 +905,12 @@ const QuantityOffers = () => {
                     styling={quantityOffer.styling}
                     position={quantityOffer.position}
                     enabled={quantityOffer.enabled}
+                    productData={selectedProduct ? {
+                      price: 150, // سعر تجريبي للاختبار
+                      title: selectedProduct.title,
+                      image: selectedProduct.images?.[0]?.url,
+                      currency: 'SAR'
+                    } : undefined}
                   />
                 </CardContent>
               </Card>
