@@ -239,9 +239,12 @@ const QuantityOffers = () => {
 
   React.useEffect(() => {
     if (activeStore || localStorage.getItem('simple_active_store')) {
+      console.log('Loading existing offers for store:', activeStore || localStorage.getItem('simple_active_store'));
       loadExistingOffers();
     }
   }, [activeStore]);
+
+  console.log('Current existing offers:', existingOffers);
 
   return (
     <SettingsLayout>

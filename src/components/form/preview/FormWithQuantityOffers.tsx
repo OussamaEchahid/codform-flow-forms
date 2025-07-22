@@ -44,7 +44,9 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
 
   useEffect(() => {
     const loadQuantityOffers = async () => {
+      console.log('Loading quantity offers for productId:', productId, 'formId:', formId);
       if (!productId || !formId) {
+        console.log('Missing productId or formId, skipping load');
         setLoading(false);
         return;
       }
@@ -58,7 +60,10 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
           .eq('enabled', true);
 
         if (data && !error) {
+          console.log('Loaded quantity offers:', data);
           setQuantityOffers(data);
+        } else if (error) {
+          console.error('Error loading quantity offers:', error);
         }
       } catch (error) {
         console.error('Error loading quantity offers:', error);
