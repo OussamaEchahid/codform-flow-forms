@@ -21,9 +21,18 @@
       return false;
     }
 
+    // حذف العنصر المكرر الذي يستخدم .quantity-offers-list
+    const duplicateOffers = document.querySelectorAll('.quantity-offers-list');
+    if (duplicateOffers.length > 0) {
+      console.log(`🗑️ Removing ${duplicateOffers.length} duplicate .quantity-offers-list elements`);
+      duplicateOffers.forEach(element => {
+        element.remove();
+      });
+    }
+
     // منع التكرار - فحص وحذف أي عروض موجودة مسبقاً في الصفحة
     const existingOffers = document.querySelectorAll(
-      '.quantity-offers-list, .codform-quantity-offers-wrapper, .quantity-offer-item, [class*="quantity-offer"]'
+      '.codform-quantity-offers-wrapper, .quantity-offer-item, [class*="quantity-offer"]'
     );
     
     if (existingOffers.length > 0) {
