@@ -972,11 +972,13 @@ const QuantityOffers = () => {
                     position={quantityOffer.position}
                     enabled={quantityOffer.enabled}
                     productData={selectedProduct ? {
-                      price: convertCurrency(
-                        parseFloat(selectedProduct.price) || 0,
-                        storeCurrency, // عملة المنتج الحقيقية من متجر Shopify
-                        selectedForm?.currency || 'USD'
-                      ),
+                      price: (() => {
+                        const originalPrice = parseFloat(selectedProduct.price) || 0;
+                        const formCurrency = selectedForm?.currency || 'USD';
+                        const convertedPrice = convertCurrency(originalPrice, storeCurrency, formCurrency);
+                        console.log(`🔄 Currency conversion: ${originalPrice} ${storeCurrency} → ${convertedPrice} ${formCurrency}`);
+                        return convertedPrice;
+                      })(),
                       title: selectedProduct.title,
                       image: selectedProduct.images?.[0]?.url,
                       currency: selectedForm?.currency || 'USD'
