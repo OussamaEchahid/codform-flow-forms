@@ -58,6 +58,7 @@ serve(async (req) => {
       console.log(`[${requestId}] 🔎 Checking product-specific settings...`);
       
       try {
+        // Fix: Use proper query to get single record
         const { data, error } = await supabase
           .from('shopify_product_settings')
           .select(`
@@ -68,15 +69,17 @@ serve(async (req) => {
           .eq('shop_id', shop)
           .eq('product_id', product)
           .eq('enabled', true)
-          .single();
+          .limit(1); // Add limit to prevent multiple rows
 
         if (error) {
           console.log(`[${requestId}] Product settings error:`, error.message);
           return { found: false, error: error.message };
         }
 
-        if (data && data.forms) {
-          return { found: true, formId: data.form_id, formData: data.forms };
+        // Check if we have data and it's an array with at least one item
+        if (data && data.length > 0 && data[0].forms) {
+          const setting = data[0];
+          return { found: true, formId: setting.form_id, formData: setting.forms };
         }
 
         return { found: false };
@@ -127,16 +130,17 @@ serve(async (req) => {
           .eq('product_id', product)
           .eq('form_id', formId)
           .eq('enabled', true)
-          .single();
+          .limit(1); // Add limit to prevent multiple rows
 
         if (error) {
           console.log(`[${requestId}] ℹ️ No quantity offers configured for this product`);
           return null;
         }
 
-        if (data) {
-          console.log(`[${requestId}] ✅ Found quantity offers:`, JSON.stringify(data, null, 2));
-          return data;
+        // Fix: Check if data is array and has items
+        if (data && data.length > 0) {
+          console.log(`[${requestId}] ✅ Found quantity offers:`, JSON.stringify(data[0], null, 2));
+          return data[0];
         }
 
         return null;
