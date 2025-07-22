@@ -318,10 +318,12 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
         }
       }
       
-      // Navigate to the form editor
+      // Navigate to the form editor and refresh forms list
       toast.success(language === 'ar' ? 'تم إنشاء النموذج بنجاح' : 'Form created successfully');
       onClose();
-      navigate(`/form-builder/${newFormId}`);
+      
+      // Force refresh the current page to show the new form
+      window.location.reload();
     } catch (error) {
       console.error("Error in form creation process:", error);
       toast.error(language === 'ar' ? 'خطأ في إنشاء النموذج' : 'Error creating form');
