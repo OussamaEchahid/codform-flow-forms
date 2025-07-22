@@ -5,33 +5,21 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useI18n } from '@/lib/i18n';
 import { COUNTRIES, CURRENCIES, getCountryByCode } from '@/lib/constants/countries-currencies';
+import { useFormStore } from '@/hooks/useFormStore';
 
-interface FormSettingsTabProps {
-  formTitle: string;
-  formDescription: string;
-  country: string;
-  currency: string;
-  phonePrefix: string;
-  onTitleChange: (title: string) => void;
-  onDescriptionChange: (description: string) => void;
-  onCountryChange: (country: string) => void;
-  onCurrencyChange: (currency: string) => void;
-}
+interface FormSettingsTabProps {}
 
-const FormSettingsTab: React.FC<FormSettingsTabProps> = ({
-  country,
-  currency,
-  phonePrefix,
-  onCountryChange,
-  onCurrencyChange,
-}) => {
+const FormSettingsTab: React.FC<FormSettingsTabProps> = () => {
   const { language } = useI18n();
+  const { country, currency, phonePrefix, setCountry, setCurrency, setPhonePrefix } = useFormStore();
 
   const handleCountryChange = (newCountry: string) => {
+    setCountry(newCountry);
+    
+    // Update the currency when country changes
     const countryData = getCountryByCode(newCountry);
-    onCountryChange(newCountry);
-    if (countryData) {
-      onCurrencyChange(countryData.currency);
+    if (countryData && countryData.currency !== (currency || 'SAR')) {
+      setCurrency(countryData.currency);
     }
   };
 
@@ -49,7 +37,7 @@ const FormSettingsTab: React.FC<FormSettingsTabProps> = ({
             <Label htmlFor="country-select">
               {language === 'ar' ? 'الدولة' : 'Country'}
             </Label>
-            <Select value={country} onValueChange={handleCountryChange}>
+            <Select value={country || 'SA'} onValueChange={handleCountryChange}>
               <SelectTrigger>
                 <SelectValue placeholder={language === 'ar' ? 'اختر الدولة' : 'Select country'} />
               </SelectTrigger>
@@ -71,7 +59,7 @@ const FormSettingsTab: React.FC<FormSettingsTabProps> = ({
             <Label htmlFor="currency-select">
               {language === 'ar' ? 'العملة' : 'Currency'}
             </Label>
-            <Select value={currency} onValueChange={onCurrencyChange}>
+            <Select value={currency || 'SAR'} onValueChange={setCurrency}>
               <SelectTrigger>
                 <SelectValue placeholder={language === 'ar' ? 'اختر العملة' : 'Select currency'} />
               </SelectTrigger>

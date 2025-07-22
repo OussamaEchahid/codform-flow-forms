@@ -13,6 +13,7 @@ export interface FormData {
   data: FormStep[];
   style?: FormStyle;
   isPublished: boolean;
+  is_published?: boolean; // For database compatibility
   shop_id?: string;
   user_id?: string;
   created_at?: string;
@@ -20,6 +21,11 @@ export interface FormData {
   country?: string;
   currency?: string;
   phone_prefix?: string;
+  associatedProducts?: Array<{
+    id: string;
+    title: string;
+    image: string;
+  }>;
 }
 
 export const useFormTemplates = () => {
@@ -114,13 +120,109 @@ export const useFormTemplates = () => {
     setForms(prevForms => prevForms.filter(form => form.id !== formId));
   };
 
+  const saveForm = async (formId: string, formData: Partial<FormData>) => {
+    const shopId = getCurrentShopId();
+    if (!shopId) {
+      console.error('❌ useFormTemplates: No active shop ID found for save');
+      return false;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('forms')
+        .update({
+          title: formData.title,
+          description: formData.description,
+          data: formData.data as any
+        })
+        .eq('id', formId)
+        .eq('shop_id', shopId);
+
+      if (error) throw error;
+      
+      // Update local state
+      if (formData.title || formData.description || formData.data) {
+        setForms(prevForms => 
+          prevForms.map(form => 
+            form.id === formId ? { ...form, ...formData } : form
+          )
+        );
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('❌ useFormTemplates: Error saving form:', error);
+      return false;
+    }
+  };
+
+  const publishForm = async (formId: string, isPublished: boolean) => {
+    const shopId = getCurrentShopId();
+    if (!shopId) {
+      console.error('❌ useFormTemplates: No active shop ID found for publish');
+      return false;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('forms')
+        .update({ is_published: isPublished })
+        .eq('id', formId)
+        .eq('shop_id', shopId);
+
+      if (error) throw error;
+      
+      // Update local state
+      setForms(prevForms => 
+        prevForms.map(form => 
+          form.id === formId ? { ...form, isPublished } : form
+        )
+      );
+      
+      return true;
+    } catch (error) {
+      console.error('❌ useFormTemplates: Error publishing form:', error);
+      return false;
+    }
+  };
+
+  const deleteForm = async (formId: string) => {
+    const shopId = getCurrentShopId();
+    if (!shopId) {
+      console.error('❌ useFormTemplates: No active shop ID found for delete');
+      return false;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('forms')
+        .delete()
+        .eq('id', formId)
+        .eq('shop_id', shopId);
+
+      if (error) throw error;
+      
+      // Update local state
+      removeForm(formId);
+      
+      return true;
+    } catch (error) {
+      console.error('❌ useFormTemplates: Error deleting form:', error);
+      return false;
+    }
+  };
+
   return {
     forms,
     isLoading,
     error,
     refetch: fetchForms,
+    fetchForms,
     addForm,
     updateForm,
-    removeForm
+    removeForm,
+    saveForm,
+    publishForm,
+    deleteForm
   };
 };

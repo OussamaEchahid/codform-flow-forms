@@ -1,5 +1,5 @@
 
-import { cleanShopDomain } from './types';
+import { cleanShopifyDomain } from './types';
 import { setActiveShop, getActiveShopId, getActiveShopInfo } from '@/utils/shop-utils';
 
 class SimpleShopifyConnectionManager {
@@ -8,7 +8,7 @@ class SimpleShopifyConnectionManager {
    */
   public setActiveStore(domain: string): void {
     try {
-      const cleanedDomain = cleanShopDomain(domain);
+      const cleanedDomain = cleanShopifyDomain(domain);
       if (!cleanedDomain) {
         console.error('Invalid domain provided');
         return;

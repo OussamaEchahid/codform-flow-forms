@@ -90,7 +90,7 @@ const FormBuilderPage = () => {
           <FormBuilderDashboard />
         ) : (
           formId && formId !== 'new' && (
-            <FormBuilderEditor formId={formId} shopId={activeStore || ''} />
+            <FormBuilderEditor />
           )
         )}
       </div>
