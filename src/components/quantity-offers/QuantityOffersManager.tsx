@@ -26,10 +26,13 @@ interface QuantityOffer {
   id: string;
   product_id: string;
   form_id: string;
-  offers: any[];
+  offers: any;
   styling: any;
   position: string;
   enabled: boolean;
+  custom_selector?: string | null;
+  created_at?: string;
+  updated_at?: string;
   product_title?: string;
   form_title?: string;
 }
@@ -399,7 +402,7 @@ const QuantityOffersManager: React.FC = () => {
                     <div>
                       <h3 className="font-medium">{offer.product_title}</h3>
                       <p className="text-sm text-muted-foreground">
-                        {offer.offers.length} عروض • موضع: {
+                        {Array.isArray(offer.offers) ? offer.offers.length : 0} عروض • موضع: {
                           offer.position === 'before_form' ? 'قبل النموذج' :
                           offer.position === 'inside_form' ? 'داخل النموذج' : 'بعد النموذج'
                         }

@@ -174,6 +174,49 @@ export interface Database {
         };
         Relationships: [];
       };
+
+      quantity_offers: {
+        Row: {
+          id: string;
+          form_id: string;
+          product_id: string;
+          shop_id: string;
+          offers: Json;
+          styling: Json;
+          position: string;
+          enabled: boolean;
+          custom_selector: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          form_id: string;
+          product_id: string;
+          shop_id: string;
+          offers: Json;
+          styling: Json;
+          position?: string;
+          enabled?: boolean;
+          custom_selector?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          form_id?: string;
+          product_id?: string;
+          shop_id?: string;
+          offers?: Json;
+          styling?: Json;
+          position?: string;
+          enabled?: boolean;
+          custom_selector?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {};
     Functions: {
