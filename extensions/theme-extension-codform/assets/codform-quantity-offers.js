@@ -7,7 +7,7 @@ window.CodformQuantityOffers = (function() {
   'use strict';
 
   // دالة عرض quantity offers
-  function displayQuantityOffers(quantityOffers, blockId, productId, formCurrency = 'SAR') {
+  function displayQuantityOffers(quantityOffers, blockId, productId) {
     console.log("🎁 QUANTITY OFFERS FIX - Displaying quantity offers:", quantityOffers);
     
     if (!quantityOffers) {
@@ -114,10 +114,9 @@ window.CodformQuantityOffers = (function() {
       `;
       
       if (offer.discountType && offer.discountType !== 'none' && offer.discountValue > 0) {
-        const currencySymbol = formCurrency === 'MAD' ? 'د.م' : formCurrency === 'SAR' ? 'ر.س' : formCurrency;
         const savings = offer.discountType === 'percentage' ? 
           `${offer.discountValue}% خصم` : 
-          `${offer.discountValue} ${currencySymbol} خصم`;
+          `${offer.discountValue} ر.س خصم`;
         
         priceContent.style.color = styling.priceColor;
         priceContent.innerHTML = `
@@ -170,8 +169,7 @@ window.CodformQuantityOffers = (function() {
       console.log("📦 QUANTITY OFFERS FIX - API Response:", data);
       
       if (data.quantity_offers) {
-        const formCurrency = data.form?.currency || 'SAR';
-        displayQuantityOffers(data.quantity_offers, blockId, productId, formCurrency);
+        displayQuantityOffers(data.quantity_offers, blockId, productId);
         return { success: true, offers: data.quantity_offers };
       } else {
         console.log("ℹ️ No quantity offers found for this product");
