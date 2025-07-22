@@ -71,10 +71,7 @@
       return false;
     }
 
-    // فرض عرض العروض داخل النموذج - أولوية inside_form أولاً
-    console.log(`🔍 Forcing inside form placement for better positioning`);
-    
-    // البحث عن الحاوي بأولوية داخل النموذج أولاً
+    // البحث عن الحاوي بأولوية داخل النموذج أولاً - مع فرض إنشاء الحاوي إذا لم يكن موجوداً
     const prioritizedSelectors = [
       `quantity-offers-inside-${blockId}`,  // أولوية عالية
       `quantity-offers-before-${blockId}`,  // أولوية متوسطة
@@ -84,23 +81,27 @@
     let container = null;
     let selectedPosition = null;
     
-    // تنظيف جميع الحاويات أولاً لمنع التكرار
-    prioritizedSelectors.forEach(selector => {
-      const cont = document.getElementById(selector);
-      if (cont) {
-        cont.innerHTML = '';
-        cont.style.display = 'none';
-      }
-    });
-    
     // اختيار أول حاوي متاح بحسب الأولوية
     for (const selector of prioritizedSelectors) {
       const potentialContainer = document.getElementById(selector);
       if (potentialContainer) {
-        console.log(`✅ Selected container with priority: ${selector}`);
+        console.log(`✅ Found container: ${selector}`);
         container = potentialContainer;
         selectedPosition = selector;
         break;
+      }
+    }
+    
+    // إنشاء حاوي مؤقت إذا لم يتم العثور على أي حاوي
+    if (!container) {
+      console.log("⚠️ No quantity offers container found, creating temporary container");
+      const formContainer = document.getElementById(`codform-container-${blockId}`);
+      if (formContainer) {
+        container = document.createElement('div');
+        container.id = `quantity-offers-inside-${blockId}`;
+        // إدراج الحاوي في بداية النموذج
+        formContainer.insertBefore(container, formContainer.firstChild);
+        selectedPosition = `quantity-offers-inside-${blockId}`;
       }
     }
     
