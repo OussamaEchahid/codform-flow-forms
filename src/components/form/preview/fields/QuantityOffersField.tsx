@@ -154,7 +154,8 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
                     onError={(e) => {
                       console.log('❌ Image failed to load:', productImage);
                       e.currentTarget.style.display = 'none';
-                      e.currentTarget.nextElementSibling!.style.display = 'block';
+                      const nextElement = e.currentTarget.nextElementSibling as HTMLElement;
+                      if (nextElement) nextElement.style.display = 'block';
                     }}
                   />
                 ) : null}
