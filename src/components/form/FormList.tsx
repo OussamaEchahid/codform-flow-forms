@@ -432,67 +432,82 @@ const FormList: React.FC<FormListProps> = ({
             <CardHeader className="pb-2">
               <div className="flex justify-between items-start">
                 <div className="flex-1">
-                   <div className="group">
-                     <div className="flex items-center gap-2">
-                       <CardTitle className="text-lg truncate group-hover:bg-gray-50 px-2 py-1 rounded transition-colors cursor-text">
-                         {form.title}
-                       </CardTitle>
-                       <button 
-                         className="text-xs text-gray-500 hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity"
-                         onClick={(e) => {
-                           e.stopPropagation();
-                           const titleElement = e.currentTarget.previousElementSibling as HTMLElement;
-                           const input = document.createElement('input');
-                           input.type = 'text';
-                           input.value = form.title;
-                           input.className = 'text-lg font-semibold bg-white border border-primary rounded px-2 py-1 w-full';
-                           input.addEventListener('blur', async () => {
-                             const newTitle = input.value.trim();
-                             if (newTitle && newTitle !== form.title) {
-                               try {
-                                 const { error } = await supabase
-                                   .from('forms')
-                                   .update({ title: newTitle })
-                                   .eq('id', form.id);
-                                 
-                                 if (error) {
-                                   console.error('خطأ في تحديث العنوان:', error);
-                                   toast.error('فشل في تحديث عنوان النموذج');
-                                 } else {
-                                   toast.success('تم تحديث عنوان النموذج بنجاح');
-                                   // Update local state
-                                   setEnhancedForms(prevForms => 
-                                     prevForms.map(f => 
-                                       f.id === form.id ? { ...f, title: newTitle } : f
-                                     )
-                                   );
-                                 }
-                               } catch (error) {
-                                 console.error('خطأ في تحديث العنوان:', error);
-                                 toast.error('فشل في تحديث عنوان النموذج');
-                               }
-                             }
-                             titleElement.style.display = 'block';
-                             input.remove();
-                           });
-                           input.addEventListener('keydown', (e) => {
-                             if (e.key === 'Enter') {
-                               input.blur();
-                             } else if (e.key === 'Escape') {
-                               titleElement.style.display = 'block';
-                               input.remove();
-                             }
-                           });
-                           titleElement.style.display = 'none';
-                           titleElement.parentNode?.insertBefore(input, titleElement.nextSibling);
-                           input.focus();
-                           input.select();
-                         }}
-                       >
-                         تحرير
-                       </button>
-                     </div>
-                   </div>
+                    <div className="group">
+                      <div className="flex items-center gap-2">
+                        <CardTitle 
+                          className="text-lg truncate flex-1 cursor-pointer hover:text-primary transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const titleElement = e.currentTarget;
+                            const currentTitle = form.title;
+                            
+                            // Create input element
+                            const input = document.createElement('input');
+                            input.type = 'text';
+                            input.value = currentTitle;
+                            input.className = 'text-lg font-semibold bg-white border-2 border-primary rounded-md px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-primary/20';
+                            
+                            // Handle save on blur and enter
+                            const saveTitle = async () => {
+                              const newTitle = input.value.trim();
+                              if (newTitle && newTitle !== currentTitle) {
+                                try {
+                                  const { error } = await supabase
+                                    .from('forms')
+                                    .update({ title: newTitle })
+                                    .eq('id', form.id);
+                                  
+                                  if (error) {
+                                    console.error('خطأ في تحديث العنوان:', error);
+                                    toast.error('فشل في تحديث عنوان النموذج');
+                                  } else {
+                                    toast.success('تم تحديث عنوان النموذج بنجاح');
+                                    // Update local state
+                                    setEnhancedForms(prevForms => 
+                                      prevForms.map(f => 
+                                        f.id === form.id ? { ...f, title: newTitle } : f
+                                      )
+                                    );
+                                  }
+                                } catch (error) {
+                                  console.error('خطأ في تحديث العنوان:', error);
+                                  toast.error('فشل في تحديث عنوان النموذج');
+                                }
+                              }
+                              titleElement.style.display = 'block';
+                              input.remove();
+                            };
+                            
+                            input.addEventListener('blur', saveTitle);
+                            input.addEventListener('keydown', (e) => {
+                              if (e.key === 'Enter') {
+                                saveTitle();
+                              } else if (e.key === 'Escape') {
+                                titleElement.style.display = 'block';
+                                input.remove();
+                              }
+                            });
+                            
+                            // Replace title with input
+                            titleElement.style.display = 'none';
+                            titleElement.parentNode?.insertBefore(input, titleElement.nextSibling);
+                            input.focus();
+                            input.select();
+                          }}
+                        >
+                          {form.title}
+                        </CardTitle>
+                        <Edit 
+                          className="h-4 w-4 text-gray-400 group-hover:text-primary transition-colors cursor-pointer opacity-0 group-hover:opacity-100" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // Trigger the same edit functionality as clicking the title
+                            const titleElement = e.currentTarget.previousElementSibling as HTMLElement;
+                            titleElement.click();
+                          }}
+                        />
+                      </div>
+                    </div>
                    {/* Display associated products if any */}
                   {form.associatedProducts && form.associatedProducts.length > 0 && (
                     <div className="mt-3 p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
