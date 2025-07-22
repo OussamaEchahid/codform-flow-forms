@@ -432,9 +432,60 @@ const FormList: React.FC<FormListProps> = ({
             <CardHeader className="pb-2">
               <div className="flex justify-between items-start">
                 <div className="flex-1">
-                  <CardTitle className="text-lg truncate">
-                    {form.title}
-                  </CardTitle>
+                   <div className="group">
+                     <CardTitle className="text-lg truncate group-hover:hidden">
+                       {form.title}
+                     </CardTitle>
+                     <div className="hidden group-hover:flex items-center gap-2">
+                       <input
+                         type="text"
+                         value={form.title}
+                         onChange={(e) => {
+                           const newTitle = e.target.value;
+                           // Update the form title immediately in the local state
+                           setEnhancedForms(prevForms => 
+                             prevForms.map(f => 
+                               f.id === form.id ? { ...f, title: newTitle } : f
+                             )
+                           );
+                         }}
+                         onBlur={async (e) => {
+                           const newTitle = e.target.value.trim();
+                           if (newTitle && newTitle !== form.title) {
+                             try {
+                               const { error } = await supabase
+                                 .from('forms')
+                                 .update({ title: newTitle })
+                                 .eq('id', form.id);
+                               
+                               if (error) {
+                                 console.error('خطأ في تحديث العنوان:', error);
+                                 toast.error('فشل في تحديث عنوان النموذج');
+                                 // Revert the change
+                                 setEnhancedForms(prevForms => 
+                                   prevForms.map(f => 
+                                     f.id === form.id ? { ...f, title: form.title } : f
+                                   )
+                                 );
+                               } else {
+                                 toast.success('تم تحديث عنوان النموذج بنجاح');
+                               }
+                             } catch (error) {
+                               console.error('خطأ في تحديث العنوان:', error);
+                               toast.error('فشل في تحديث عنوان النموذج');
+                             }
+                           }
+                         }}
+                         onKeyDown={(e) => {
+                           if (e.key === 'Enter') {
+                             e.currentTarget.blur();
+                           }
+                         }}
+                         className="text-lg font-semibold bg-transparent border-b-2 border-primary focus:outline-none focus:border-primary-dark px-1 py-0 w-full"
+                         placeholder="اسم النموذج"
+                       />
+                     </div>
+                   </div>
                   {/* Display associated products if any */}
                   {form.associatedProducts && form.associatedProducts.length > 0 && (
                     <div className="mt-3 p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">

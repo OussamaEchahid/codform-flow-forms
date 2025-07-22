@@ -124,10 +124,33 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId, onSave,
                 ? 'يتم عرض المنتجات المرتبطة بهذا النموذج أدناه. لا يمكن تغيير هذه الارتباطات بعد إنشاء النموذج.' 
                 : 'The products associated with this form are shown below. These associations cannot be changed after form creation.')
             : (language === 'ar' 
-                ? 'اختر المنتجات التي تريد استخدام هذا النموذج معها' 
-                : 'Choose which products should use this form')
+                ? 'اختر المنتجات التي تريد استخدام هذا النموذج معها وأضف عنواناً مميزاً للنموذج' 
+                : 'Choose which products should use this form and add a descriptive title')
           }
         </CardDescription>
+        
+        {/* Form Title Editor for new forms */}
+        {!isReadOnly && formId === 'new' && (
+          <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <h3 className="text-sm font-medium text-blue-800 mb-2">
+              {language === 'ar' ? 'عنوان النموذج' : 'Form Title'}
+            </h3>
+            <input
+              type="text"
+              placeholder={language === 'ar' ? 'أدخل عنواناً مميزاً للنموذج' : 'Enter a descriptive form title'}
+              className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              onChange={(e) => {
+                // Store the title in localStorage or pass to parent
+                localStorage.setItem('new_form_title', e.target.value);
+              }}
+            />
+            <p className="text-xs text-blue-600 mt-1">
+              {language === 'ar' 
+                ? 'هذا العنوان سيساعدك على التمييز بين نماذجك المختلفة' 
+                : 'This title will help you distinguish between your different forms'}
+            </p>
+          </div>
+        )}
       </CardHeader>
 
       <CardContent>
