@@ -62,9 +62,10 @@ const formElementTypes = [
 
 // Add function to get active shop ID
 const getActiveShopId = (): string | null => {
-  // Get from localStorage or any other source
-  return localStorage.getItem('shopify_store') || 
-         localStorage.getItem('shopify_active_store') || 
+  // Get from localStorage - use same order as other files
+  return localStorage.getItem('simple_active_store') || 
+         localStorage.getItem('shopify_store') || 
+         localStorage.getItem('active_shop') ||
          null;
 };
 

@@ -47,7 +47,7 @@ export const useFormTemplates = () => {
 
   // Get current active shop ID from localStorage if not available in context
   const getActiveShopId = () => {
-    return shop || localStorage.getItem('simple_active_store') || localStorage.getItem('shopify_store');
+    return shop || localStorage.getItem('simple_active_store') || localStorage.getItem('shopify_store') || localStorage.getItem('active_shop');
   };
 
   // Track current shop to trigger refetch when it changes
