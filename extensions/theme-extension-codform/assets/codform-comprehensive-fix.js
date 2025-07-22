@@ -404,28 +404,91 @@
     return debugComprehensiveFix(blockId, productId);
   };
 
+  // دالة انتظار اكتمال تحميل النموذج
+  function waitForFormToLoad(container) {
+    return new Promise((resolve) => {
+      // التحقق من وجود عناصر النموذج الأساسية
+      const checkFormReady = () => {
+        const formFields = container.querySelectorAll('input, textarea, select, button');
+        const formContainer = container.querySelector('[class*="form"], form');
+        const hasContent = container.children.length > 0;
+        
+        return formFields.length > 0 && formContainer && hasContent;
+      };
+      
+      if (checkFormReady()) {
+        console.log("✅ Form already loaded");
+        resolve();
+        return;
+      }
+      
+      // مراقبة تغييرات DOM لحين اكتمال تحميل النموذج
+      const observer = new MutationObserver((mutations) => {
+        let formReady = false;
+        
+        mutations.forEach((mutation) => {
+          mutation.addedNodes.forEach((node) => {
+            if (node.nodeType === Node.ELEMENT_NODE) {
+              if (node.matches && (node.matches('input, textarea, select, button') || 
+                  node.querySelector && node.querySelector('input, textarea, select, button'))) {
+                formReady = true;
+              }
+            }
+          });
+        });
+        
+        if (formReady && checkFormReady()) {
+          console.log("✅ Form loading completed, ready for offers");
+          observer.disconnect();
+          // تأخير إضافي قصير لضمان استقرار التخطيط
+          setTimeout(resolve, 200);
+        }
+      });
+      
+      observer.observe(container, {
+        childList: true,
+        subtree: true
+      });
+      
+      // timeout احتياطي
+      setTimeout(() => {
+        console.log("⏰ Form loading timeout, proceeding anyway");
+        observer.disconnect();
+        resolve();
+      }, 3000);
+    });
+  }
+
   // تشغيل تلقائي محسن عند تحميل الصفحة
-  function initializeOffers() {
-    console.log("🔄 COMPREHENSIVE FIX v4.0 - Initializing offers...");
+  async function initializeOffers() {
+    console.log("🔄 COMPREHENSIVE FIX v4.0 - Initializing offers with proper timing...");
     
     const containers = document.querySelectorAll('[id*="codform-container-"]');
     console.log(`Found ${containers.length} form containers`);
     
-    containers.forEach((container, index) => {
+    for (const container of containers) {
       const blockId = container.id.replace('codform-container-', '');
       const productId = container.getAttribute('data-product-id');
       
       if (blockId && productId) {
-        console.log(`🔄 Auto-loading for container ${index + 1}:`, { blockId, productId });
+        console.log(`🔄 Waiting for form to load for container:`, { blockId, productId });
         
-        // تأخير تدريجي لتجنب تحميل متزامن
-        setTimeout(() => {
-          loadFormAndOffers(blockId);
-        }, index * 300 + 500); // تأخير أطول للتأكد من تحميل DOM كاملاً
+        try {
+          // انتظار اكتمال تحميل النموذج أولاً
+          await waitForFormToLoad(container);
+          
+          console.log(`✅ Form loaded, now loading offers for:`, { blockId, productId });
+          
+          // تحميل العروض بعد اكتمال النموذج
+          await loadFormAndOffers(blockId);
+          
+        } catch (error) {
+          console.error(`❌ Error initializing offers for ${blockId}:`, error);
+        }
       } else {
-        console.warn(`⚠️ Missing data for container ${index + 1}:`, { blockId, productId });
+        console.warn(`⚠️ Missing data for container:`, { blockId, productId });
       }
-    });
+    }
   }
 
   // تشغيل التهيئة مع تأخيرات متدرجة لضمان تحميل DOM
