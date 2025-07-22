@@ -8,6 +8,9 @@
   
   console.log("🚀 COMPREHENSIVE FIX - Loading comprehensive handler");
 
+  // تأكد من أن النص موجه لليمين للعربية
+  const isRTL = document.documentElement.dir === 'rtl' || document.body.dir === 'rtl';
+
   // دالة عرض quantity offers محسنة
   function displayQuantityOffers(quantityOffersData, blockId, productId) {
     console.log("🎁 COMPREHENSIVE FIX - Displaying quantity offers:", quantityOffersData);
@@ -112,11 +115,11 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 20px;
+        font-size: 24px;
         font-weight: bold;
         flex-shrink: 0;
       `;
-      iconElement.textContent = '🎁';
+      iconElement.innerHTML = '🎁';
 
       // النص الرئيسي
       const textContainer = document.createElement('div');
@@ -126,16 +129,16 @@
       tagElement.style.cssText = `
         background: ${styling.tagColor};
         color: white;
-        padding: 4px 10px;
+        padding: 6px 12px;
         border-radius: 15px;
-        font-size: 11px;
+        font-size: 12px;
         font-weight: 600;
-        text-transform: uppercase;
         display: inline-block;
-        margin-bottom: 4px;
-        letter-spacing: 0.5px;
+        margin-bottom: 6px;
+        direction: rtl;
+        text-align: center;
       `;
-      tagElement.textContent = offer.tag || `الكمية ${offer.quantity || 1}`;
+      tagElement.textContent = offer.tag || `اشترِ ${offer.quantity || 1} قطعة`;
 
       const textElement = document.createElement('div');
       textElement.style.cssText = `
@@ -143,8 +146,10 @@
         font-weight: 500;
         line-height: 1.4;
         color: ${styling.textColor};
+        direction: rtl;
+        text-align: right;
       `;
-      textElement.textContent = offer.text || `اشترِ ${offer.quantity || 1} قطعة واحصل على عرض خاص`;
+      textElement.textContent = offer.text || `اشترِ ${offer.quantity || 1} قطعة واحصل على خصم مميز`;
 
       textContainer.appendChild(tagElement);
       textContainer.appendChild(textElement);
@@ -327,6 +332,22 @@
   window.debugCodformComprehensive = function(blockId, productId) {
     return debugComprehensiveFix(blockId, productId);
   };
+
+  // تشغيل تلقائي عند تحميل الصفحة
+  document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(() => {
+      const containers = document.querySelectorAll('[id*="codform-container-"]');
+      containers.forEach(container => {
+        const blockId = container.id.replace('codform-container-', '');
+        const productId = container.getAttribute('data-product-id');
+        
+        if (blockId && productId) {
+          console.log("🔄 Auto-loading for container:", blockId);
+          loadFormAndOffers(blockId);
+        }
+      });
+    }, 1000);
+  });
 
   console.log("✅ COMPREHENSIVE FIX - Handler loaded successfully");
 

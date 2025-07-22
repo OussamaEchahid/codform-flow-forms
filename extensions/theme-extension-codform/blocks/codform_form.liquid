@@ -98,6 +98,25 @@
 <!-- Quantity Offers Container - قبل النموذج -->
 <div id="quantity-offers-before-{{ block.id }}" class="quantity-offers-container" style="display: none; margin-bottom: 20px;"></div>
 
+<!-- إضافة تنفيذ Quantity Offers مباشرة بعد تحميل الصفحة -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  setTimeout(() => {
+    if (window.CodformComprehensiveFix && window.CodformComprehensiveFix.loadData) {
+      console.log("🚀 AUTO TRIGGER - Loading quantity offers for block {{ block.id }}");
+      window.CodformComprehensiveFix.loadData("{{ block.id }}");
+    } else {
+      console.log("⚠️ CodformComprehensiveFix not available yet, will retry");
+      setTimeout(() => {
+        if (window.CodformComprehensiveFix && window.CodformComprehensiveFix.loadData) {
+          window.CodformComprehensiveFix.loadData("{{ block.id }}");
+        }
+      }, 2000);
+    }
+  }, 500);
+});
+</script>
+
 <script>
 (function() {
   'use strict';

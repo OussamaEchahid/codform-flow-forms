@@ -211,11 +211,13 @@ const QuantityOffers = () => {
       return;
     }
 
-    // التحقق من وجود عرض مسبق للمنتج والنموذج
-    const isAssociated = associatedProducts.includes(selectedProduct.id);
-    if (isAssociated && !quantityOffer.id) {
-      toast.error('This product is already associated with this form. Please choose a different product or form.');
-      return;
+    // التحقق من وجود عرض مسبق للمنتج والنموذج (فقط عند الإنشاء الجديد)
+    if (!quantityOffer.id) {
+      const isAssociated = associatedProducts.includes(selectedProduct.id);
+      if (isAssociated) {
+        toast.error('هذا المنتج مرتبط بالفعل بهذا النموذج. اختر منتجاً أو نموذجاً آخر.');
+        return;
+      }
     }
 
     setLoading(true);
