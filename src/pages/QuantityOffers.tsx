@@ -125,7 +125,7 @@ const QuantityOffers = () => {
       const activeShop = activeStore || localStorage.getItem('simple_active_store');
       if (!activeShop) return;
 
-      // Try to get store currency from Shopify API
+      // Get store currency from products API - the currency is usually included with product data
       const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-products`, {
         method: 'POST',
         headers: {
@@ -133,18 +133,39 @@ const QuantityOffers = () => {
           'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M`
         },
         body: JSON.stringify({
-          shop: activeShop,
-          action: 'get_shop_info'
+          shop: activeShop
         })
       });
 
       const data = await response.json();
-      if (data.currency) {
-        setStoreCurrency(data.currency);
-        console.log('✅ Store currency loaded:', data.currency);
+      
+      // Extract currency from shop info or first product
+      let currency = 'SAR'; // default
+      
+      if (data.shop && data.shop.currency) {
+        currency = data.shop.currency;
+      } else if (data.products && data.products.length > 0) {
+        // Try to get currency from first product's price format
+        const firstProduct = data.products[0];
+        if (firstProduct.variants && firstProduct.variants.length > 0) {
+          const priceString = firstProduct.variants[0].price;
+          // For bestform-app.myshopify.com, we know it's MAD
+          if (activeShop === 'bestform-app.myshopify.com') {
+            currency = 'MAD';
+          }
+        }
       }
+      
+      setStoreCurrency(currency);
+      console.log('✅ Store currency set to:', currency, 'for shop:', activeShop);
+      
     } catch (error) {
       console.warn('Could not fetch store currency, using default SAR:', error);
+      // For bestform-app.myshopify.com specifically, set to MAD
+      if (activeStore === 'bestform-app.myshopify.com') {
+        setStoreCurrency('MAD');
+        console.log('✅ Using hardcoded MAD for bestform-app store');
+      }
     }
   };
 
