@@ -917,7 +917,7 @@ const QuantityOffers = () => {
                       price: parseFloat(selectedProduct.price) || 0,
                       title: selectedProduct.title,
                       image: selectedProduct.images?.[0]?.url,
-                      currency: 'SAR'
+                      currency: selectedForm?.data?.settings?.currency || 'USD'
                     } : undefined}
                   />
                 </CardContent>
