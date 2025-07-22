@@ -67,6 +67,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
+<!-- Quantity Offers Container - قبل النموذج -->
+<div id="quantity-offers-before-{{ block.id }}" class="quantity-offers-container" style="display: none; margin-bottom: 20px;"></div>
+
 <div 
   id="codform-container-{{ block.id }}" 
   class="codform-container" 
@@ -95,25 +98,39 @@
   </div>
 </div>
 
-<!-- Quantity Offers Container - قبل النموذج -->
-<div id="quantity-offers-before-{{ block.id }}" class="quantity-offers-container" style="display: none; margin-bottom: 20px;"></div>
-
 <!-- إضافة تنفيذ Quantity Offers مباشرة بعد تحميل الصفحة -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  setTimeout(() => {
+  console.log("🚀 LOADING OFFERS - Page loaded, starting quantity offers");
+  
+  // التأكد من وجود العناصر
+  const container = document.getElementById('codform-container-{{ block.id }}');
+  const offersContainer = document.getElementById('quantity-offers-before-{{ block.id }}');
+  
+  if (!container || !offersContainer) {
+    console.error("❌ Missing containers:", { container: !!container, offersContainer: !!offersContainer });
+    return;
+  }
+  
+  // تحميل العروض فوراً
+  function loadOffers() {
     if (window.CodformComprehensiveFix && window.CodformComprehensiveFix.loadData) {
       console.log("🚀 AUTO TRIGGER - Loading quantity offers for block {{ block.id }}");
-      window.CodformComprehensiveFix.loadData("{{ block.id }}");
+      window.CodformComprehensiveFix.loadData("{{ block.id }}")
+        .then(result => {
+          console.log("✅ Offers loaded:", result);
+        })
+        .catch(error => {
+          console.error("❌ Failed to load offers:", error);
+        });
     } else {
-      console.log("⚠️ CodformComprehensiveFix not available yet, will retry");
-      setTimeout(() => {
-        if (window.CodformComprehensiveFix && window.CodformComprehensiveFix.loadData) {
-          window.CodformComprehensiveFix.loadData("{{ block.id }}");
-        }
-      }, 2000);
+      console.log("⚠️ CodformComprehensiveFix not ready, retrying in 1 second");
+      setTimeout(loadOffers, 1000);
     }
-  }, 500);
+  }
+  
+  // تحميل فوري
+  setTimeout(loadOffers, 100);
 });
 </script>
 
