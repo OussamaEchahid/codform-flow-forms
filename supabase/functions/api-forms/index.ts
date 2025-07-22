@@ -131,13 +131,38 @@ serve(async (req) => {
       }
     }
 
+    // Get quantity offers if productId is provided
+    let quantityOffers = [];
+    if (productId) {
+      console.log('Fetching quantity offers for product:', productId);
+      const { data: offersData, error: offersError } = await supabase
+        .from('quantity_offers')
+        .select('*')
+        .eq('product_id', productId)
+        .eq('form_id', formId)
+        .eq('enabled', true);
+
+      if (offersData && !offersError) {
+        quantityOffers = offersData;
+        console.log('Found quantity offers:', quantityOffers.length);
+      } else if (offersError) {
+        console.error('Error fetching quantity offers:', offersError);
+      }
+    }
+
     console.log('Successfully fetched form:', formData.title, 'ID:', formId)
 
     // Transform form data to the expected format, optimizing for size
     const transformedData = transformFormData(formData)
     
+    // Add quantity offers to the response
+    const responseData = {
+      ...transformedData,
+      quantityOffers: quantityOffers
+    };
+    
     // Return the form data with proper caching headers
-    return new Response(JSON.stringify(transformedData), {
+    return new Response(JSON.stringify(responseData), {
       headers: {
         ...corsHeaders,
         'Content-Type': 'application/json',

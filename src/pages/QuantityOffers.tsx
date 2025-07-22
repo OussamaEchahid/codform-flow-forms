@@ -225,9 +225,11 @@ const QuantityOffers = () => {
         .from('quantity_offers')
         .select(`
           *,
-          forms!inner(title)
+          forms(title)
         `)
         .eq('shop_id', activeStore || localStorage.getItem('simple_active_store') || '');
+
+      console.log('Quantity offers data:', data, 'Error:', error);
 
       if (data && !error) {
         setExistingOffers(data);

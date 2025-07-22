@@ -86,6 +86,9 @@
   </div>
 </div>
 
+<!-- Quantity Offers Container - قبل النموذج -->
+<div id="quantity-offers-before-{{ block.id }}" class="quantity-offers-container" style="display: none; margin-bottom: 20px;"></div>
+
 <script>
 (function() {
   'use strict';
@@ -888,7 +891,11 @@
       });
     }
     
-    setTimeout(fetchAndRenderForm, 500);
+    
+    setTimeout(() => {
+      fetchAndRenderForm();
+      fetchAndRenderQuantityOffers(); // تحميل العروض الكمية
+    }, 500);
     
     function fetchAndRenderForm() {
       const productId = container.getAttribute('data-product-id');
@@ -953,6 +960,196 @@
       }
       
       attemptFetch();
+    }
+    
+    // دالة تحميل وعرض العروض الكمية
+    function fetchAndRenderQuantityOffers() {
+      const productId = container.getAttribute('data-product-id');
+      const shop = (typeof Shopify !== 'undefined' && Shopify.shop) ? Shopify.shop : window.location.hostname;
+      
+      if (!productId || !shop) {
+        console.log("⚠️ Missing product ID or shop for quantity offers");
+        return;
+      }
+      
+      console.log("🎯 Fetching quantity offers...", { productId, shop });
+      
+      const apiUrl = `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/api-forms/${blockId}?productId=${encodeURIComponent(productId)}&shop=${encodeURIComponent(shop)}`;
+      
+      fetch(apiUrl, {
+        method: 'GET',
+        mode: 'cors',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log("📦 Quantity offers data received:", data);
+        
+        if (data && data.quantityOffers && data.quantityOffers.length > 0) {
+          renderQuantityOffers(data.quantityOffers);
+        } else {
+          console.log("📦 No quantity offers found for this product");
+        }
+      })
+      .catch(error => {
+        console.error("❌ Error fetching quantity offers:", error);
+      });
+    }
+    
+    // دالة عرض العروض الكمية
+    function renderQuantityOffers(offers) {
+      const beforeContainer = document.getElementById('quantity-offers-before-' + blockId);
+      if (!beforeContainer || offers.length === 0) return;
+      
+      console.log("🎨 Rendering quantity offers:", offers);
+      
+      offers.forEach(offer => {
+        if (offer.position === 'before_form' && offer.enabled && offer.offers.length > 0) {
+          const offersContainer = document.createElement('div');
+          offersContainer.className = 'quantity-offers-list';
+          offersContainer.style.cssText = `
+            margin-bottom: 20px;
+            border-radius: 12px;
+            padding: 16px;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+          `;
+          
+          offer.offers.forEach((singleOffer, index) => {
+            const offerElement = createQuantityOfferElement(singleOffer, offer.styling, index);
+            offersContainer.appendChild(offerElement);
+          });
+          
+          beforeContainer.appendChild(offersContainer);
+          beforeContainer.style.display = 'block';
+        }
+      });
+    }
+    
+    // دالة إنشاء عنصر عرض كمي واحد
+    function createQuantityOfferElement(offer, styling, index) {
+      const isHighlighted = index === 1; // تمييز العرض الثاني
+      const basePrice = 100; // يجب الحصول على سعر المنتج الفعلي
+      
+      let totalPrice = basePrice * offer.quantity;
+      if (offer.discountType === 'fixed' && offer.discountValue) {
+        totalPrice = (basePrice * offer.quantity) - offer.discountValue;
+      } else if (offer.discountType === 'percentage' && offer.discountValue) {
+        totalPrice = (basePrice * offer.quantity) * (1 - offer.discountValue / 100);
+      }
+      
+      const originalPrice = basePrice * offer.quantity;
+      const isDiscounted = offer.discountType !== 'none' && offer.discountValue > 0;
+      
+      const offerDiv = document.createElement('div');
+      offerDiv.className = 'quantity-offer-item';
+      offerDiv.style.cssText = `
+        padding: 12px;
+        margin-bottom: 8px;
+        border-radius: 8px;
+        border: 2px solid ${isHighlighted ? '#22c55e' : '#e5e7eb'};
+        background: ${isHighlighted ? '#f0f9ff' : '#ffffff'};
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      `;
+      
+      // الجانب الأيسر - المعلومات
+      const leftSide = document.createElement('div');
+      leftSide.style.cssText = 'display: flex; align-items: center; gap: 12px;';
+      
+      // أيقونة
+      const icon = document.createElement('div');
+      icon.style.cssText = `
+        width: 40px;
+        height: 40px;
+        background: #f3f4f6;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+      `;
+      icon.textContent = '📦';
+      
+      // النص والعلامة
+      const textContainer = document.createElement('div');
+      
+      const offerText = document.createElement('div');
+      offerText.style.cssText = `
+        font-weight: 600;
+        color: ${styling?.textColor || '#000000'};
+        margin-bottom: 4px;
+      `;
+      offerText.textContent = offer.text || `اشتري ${offer.quantity} قطعة`;
+      
+      if (offer.tag) {
+        const tag = document.createElement('span');
+        tag.style.cssText = `
+          background: ${styling?.tagColor || '#22c55e'};
+          color: white;
+          padding: 2px 8px;
+          border-radius: 4px;
+          font-size: 12px;
+          font-weight: 500;
+        `;
+        tag.textContent = offer.tag;
+        textContainer.appendChild(tag);
+      }
+      
+      textContainer.insertBefore(offerText, textContainer.firstChild);
+      leftSide.appendChild(icon);
+      leftSide.appendChild(textContainer);
+      
+      // الجانب الأيمن - السعر
+      const rightSide = document.createElement('div');
+      rightSide.style.cssText = 'text-align: right;';
+      
+      if (isDiscounted) {
+        const originalPriceElement = document.createElement('div');
+        originalPriceElement.style.cssText = `
+          text-decoration: line-through;
+          color: #9ca3af;
+          font-size: 14px;
+        `;
+        originalPriceElement.textContent = `$${originalPrice.toFixed(2)}`;
+        rightSide.appendChild(originalPriceElement);
+      }
+      
+      const finalPriceElement = document.createElement('div');
+      finalPriceElement.style.cssText = `
+        font-weight: bold;
+        font-size: 18px;
+        color: ${styling?.priceColor || '#ef4444'};
+      `;
+      finalPriceElement.textContent = `$${totalPrice.toFixed(2)}`;
+      rightSide.appendChild(finalPriceElement);
+      
+      offerDiv.appendChild(leftSide);
+      offerDiv.appendChild(rightSide);
+      
+      // إضافة hover effect
+      offerDiv.addEventListener('mouseenter', function() {
+        this.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+        this.style.transform = 'translateY(-2px)';
+      });
+      
+      offerDiv.addEventListener('mouseleave', function() {
+        this.style.boxShadow = 'none';
+        this.style.transform = 'translateY(0)';
+      });
+      
+      return offerDiv;
     }
     
     function renderFormData(formData) {
