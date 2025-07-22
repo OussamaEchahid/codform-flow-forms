@@ -18,6 +18,7 @@ interface Product {
   id: string;
   title: string;
   handle: string;
+  price: string;
   images?: { url: string }[];
 }
 
@@ -158,6 +159,7 @@ const QuantityOffers = () => {
     id: product.id,
     title: product.title,
     handle: product.handle,
+    price: product.price || '0',
     images: product.images?.map(img => ({ url: typeof img === 'string' ? img : img.src })) || [{ url: '/placeholder.svg' }]
   }));
 
@@ -402,7 +404,13 @@ const QuantityOffers = () => {
     // Find the product
     const product = allProducts.find(p => p.id === offer.product_id);
     if (product) {
-      setSelectedProduct(product);
+      setSelectedProduct({
+        id: product.id,
+        title: product.title,
+        handle: product.handle,
+        price: product.price || '0',
+        images: product.images
+      });
     }
     
     // Set the offer data
@@ -906,7 +914,7 @@ const QuantityOffers = () => {
                     position={quantityOffer.position}
                     enabled={quantityOffer.enabled}
                     productData={selectedProduct ? {
-                      price: 150, // سعر تجريبي للاختبار
+                      price: parseFloat(selectedProduct.price) || 0,
                       title: selectedProduct.title,
                       image: selectedProduct.images?.[0]?.url,
                       currency: 'SAR'
