@@ -13,6 +13,7 @@ import { Loader2, ShoppingBag, Link, Unlink, Image } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { ShopifyProduct } from '@/lib/shopify/types';
+import { getActiveShopId, cleanShopId } from '@/utils/shop-utils';
 
 interface ProductManagementModalProps {
   isOpen: boolean;
@@ -41,11 +42,14 @@ const ProductManagementModal: React.FC<ProductManagementModalProps> = ({
   const fetchProductsAndLinks = async () => {
     setIsLoading(true);
     try {
-      const shopId = localStorage.getItem('shopify_store');
-      if (!shopId) {
+      const rawShopId = getActiveShopId();
+      if (!rawShopId) {
         toast.error('لم يتم العثور على معرف المتجر');
         return;
       }
+      
+      const shopId = cleanShopId(rawShopId);
+      console.log(`🔍 جلب المنتجات للمتجر: ${shopId}`);
 
       // Fetch all products from Shopify
       const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-products`, {
@@ -81,11 +85,12 @@ const ProductManagementModal: React.FC<ProductManagementModalProps> = ({
         }
       }
 
-      // Fetch linked products for this form
+      // Fetch linked products for this form AND shop
       const { data: linkedData, error: linkedError } = await supabase
         .from('shopify_product_settings')
         .select('product_id')
-        .eq('form_id', formId);
+        .eq('form_id', formId)
+        .eq('shop_id', shopId);
 
       if (linkedError) {
         console.error('خطأ في جلب المنتجات المرتبطة:', linkedError);
@@ -104,11 +109,14 @@ const ProductManagementModal: React.FC<ProductManagementModalProps> = ({
   const handleLinkProduct = async (productId: string) => {
     setIsOperating(productId);
     try {
-      const shopId = localStorage.getItem('shopify_store');
-      if (!shopId) {
+      const rawShopId = getActiveShopId();
+      if (!rawShopId) {
         toast.error('لم يتم العثور على معرف المتجر');
         return;
       }
+      
+      const shopId = cleanShopId(rawShopId);
+      console.log(`🔗 ربط المنتج ${productId} بالمتجر: ${shopId}`);
 
       const { error } = await supabase
         .from('shopify_product_settings')
@@ -138,11 +146,21 @@ const ProductManagementModal: React.FC<ProductManagementModalProps> = ({
   const handleUnlinkProduct = async (productId: string) => {
     setIsOperating(productId);
     try {
+      const rawShopId = getActiveShopId();
+      if (!rawShopId) {
+        toast.error('لم يتم العثور على معرف المتجر');
+        return;
+      }
+      
+      const shopId = cleanShopId(rawShopId);
+      console.log(`🔗 إلغاء ربط المنتج ${productId} من المتجر: ${shopId}`);
+      
       const { error } = await supabase
         .from('shopify_product_settings')
         .delete()
         .eq('form_id', formId)
-        .eq('product_id', productId);
+        .eq('product_id', productId)
+        .eq('shop_id', shopId);
 
       if (error) {
         console.error('خطأ في إلغاء ربط المنتج:', error);

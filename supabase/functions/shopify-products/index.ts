@@ -24,6 +24,24 @@ interface RequestParams {
   productIds?: string[];
 }
 
+// Clean shop ID function to normalize format and prevent store mixing
+function cleanShopId(shopId: string): string {
+  if (!shopId) return shopId;
+  
+  // Remove protocol and paths
+  let cleaned = shopId
+    .replace(/^https?:\/\//, '')
+    .replace(/^admin\./, '')
+    .split('/')[0];
+  
+  // Ensure it ends with .myshopify.com
+  if (!cleaned.includes('.myshopify.com')) {
+    cleaned = cleaned.replace(/\.myshopify\.com.*$/, '') + '.myshopify.com';
+  }
+  
+  return cleaned;
+}
+
 serve(async (req: Request) => {
   try {
     const requestId = `edge_${Math.random().toString(36).substring(2, 8)}`;
@@ -66,7 +84,10 @@ serve(async (req: Request) => {
       });
     }
 
-    console.log(`[${requestId}] 📊 معالجة الطلب للمتجر: ${shop}, إعادة تحديث: ${forceRefresh}, تضمين منتجات تجريبية: ${includeTestProducts}, معرفات المنتجات: ${productIds}`);
+    // Clean and normalize shop ID to prevent store mixing
+    const originalShop = shop;
+    shop = cleanShopId(shop);
+    console.log(`[${requestId}] 🏪 معالجة الطلب للمتجر: ${shop} (الأصلي: ${originalShop}), إعادة تحديث: ${forceRefresh}, تضمين منتجات تجريبية: ${includeTestProducts}, معرفات المنتجات: ${productIds}`);
 
     // Setup Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
