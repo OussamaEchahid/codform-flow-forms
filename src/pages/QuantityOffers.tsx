@@ -14,6 +14,27 @@ import { useSimpleShopify } from '@/hooks/useSimpleShopify';
 import { toast } from 'sonner';
 import QuantityOffersPreview from '@/components/quantity-offers/QuantityOffersPreview';
 
+// Simple currency conversion rates (you can replace with real API)
+const CURRENCY_RATES: { [key: string]: number } = {
+  'USD': 1,
+  'SAR': 3.75,
+  'AED': 3.67,
+  'MAD': 10.24,
+  'EUR': 0.85,
+  'GBP': 0.76
+};
+
+// Function to convert price between currencies
+const convertCurrency = (amount: number, fromCurrency: string, toCurrency: string): number => {
+  if (fromCurrency === toCurrency) return amount;
+  
+  // Convert to USD first, then to target currency
+  const usdAmount = amount / (CURRENCY_RATES[fromCurrency] || 1);
+  const convertedAmount = usdAmount * (CURRENCY_RATES[toCurrency] || 1);
+  
+  return Math.round(convertedAmount * 100) / 100; // Round to 2 decimal places
+};
+
 interface Product {
   id: string;
   title: string;
@@ -88,14 +109,44 @@ const QuantityOffers = () => {
     },
     position: 'before_form'
   });
+  const [storeCurrency, setStoreCurrency] = useState<string>('SAR');
 
   useEffect(() => {
     loadForms();
     loadExistingOffers();
+    loadStoreCurrency();
     if (isConnected && activeStore) {
       loadProducts();
     }
   }, [isConnected, activeStore]);
+
+  const loadStoreCurrency = async () => {
+    try {
+      const activeShop = activeStore || localStorage.getItem('simple_active_store');
+      if (!activeShop) return;
+
+      // Try to get store currency from Shopify API
+      const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-products`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M`
+        },
+        body: JSON.stringify({
+          shop: activeShop,
+          action: 'get_shop_info'
+        })
+      });
+
+      const data = await response.json();
+      if (data.currency) {
+        setStoreCurrency(data.currency);
+        console.log('✅ Store currency loaded:', data.currency);
+      }
+    } catch (error) {
+      console.warn('Could not fetch store currency, using default SAR:', error);
+    }
+  };
 
   const loadForms = async () => {
     try {
@@ -921,7 +972,11 @@ const QuantityOffers = () => {
                     position={quantityOffer.position}
                     enabled={quantityOffer.enabled}
                     productData={selectedProduct ? {
-                      price: parseFloat(selectedProduct.price) || 0,
+                      price: convertCurrency(
+                        parseFloat(selectedProduct.price) || 0,
+                        storeCurrency, // عملة المنتج الحقيقية من متجر Shopify
+                        selectedForm?.currency || 'USD'
+                      ),
                       title: selectedProduct.title,
                       image: selectedProduct.images?.[0]?.url,
                       currency: selectedForm?.currency || 'USD'
