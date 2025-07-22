@@ -1,35 +1,48 @@
+
 /**
- * CODFORM COMPREHENSIVE FIX - Quantity Offers & Form Handler
- * حل شامل لإصلاح عرض quantity offers وإدارة النماذج
+ * CODFORM COMPREHENSIVE FIX - Enhanced Quantity Offers Handler v3.0
+ * حل شامل محدث لإصلاح عرض quantity offers وإدارة النماذج
  */
 
 (function() {
   'use strict';
   
-  console.log("🚀 COMPREHENSIVE FIX - Loading comprehensive handler v2.0");
+  console.log("🚀 COMPREHENSIVE FIX v3.0 - Loading enhanced comprehensive handler");
 
   // تأكد من أن النص موجه لليمين للعربية
   const isRTL = document.documentElement.dir === 'rtl' || document.body.dir === 'rtl';
 
-  // دالة عرض quantity offers محسنة
+  // دالة عرض quantity offers محسنة ومطورة
   function displayQuantityOffers(quantityOffersData, blockId, productId) {
-    console.log("🎁 COMPREHENSIVE FIX v2.0 - Displaying quantity offers:", quantityOffersData);
+    console.log("🎁 COMPREHENSIVE FIX v3.0 - Displaying quantity offers:", quantityOffersData);
     
     if (!quantityOffersData) {
-      console.log("❌ No quantity offers data");
+      console.log("❌ No quantity offers data provided");
       return false;
     }
 
-    // التحقق من بنية البيانات
+    // التحقق من بنية البيانات المحسنة
     let offers = [];
+    let styling = {
+      backgroundColor: '#ffffff',
+      textColor: '#000000',
+      tagColor: '#22c55e', 
+      priceColor: '#ef4444'
+    };
+    let position = 'before_form';
+
+    // استخراج البيانات بطريقة أكثر مرونة
     if (quantityOffersData.offers && Array.isArray(quantityOffersData.offers)) {
       offers = quantityOffersData.offers;
-      console.log("✅ Found offers in .offers array:", offers.length);
+      styling = quantityOffersData.styling || styling;
+      position = quantityOffersData.position || position;
+      console.log("✅ Found offers in structured data:", offers.length);
     } else if (Array.isArray(quantityOffersData)) {
       offers = quantityOffersData;
       console.log("✅ Found offers as direct array:", offers.length);
     } else {
       console.log("❌ Unexpected data structure:", typeof quantityOffersData);
+      return false;
     }
 
     if (!offers.length) {
@@ -37,91 +50,114 @@
       return false;
     }
 
-    const container = document.getElementById(`quantity-offers-before-${blockId}`);
+    // البحث عن الحاوي بطرق متعددة
+    let container = document.getElementById(`quantity-offers-${position}-${blockId}`);
+    
     if (!container) {
-      console.error("❌ Quantity offers container not found:", `quantity-offers-before-${blockId}`);
-      // البحث عن الحاوي بطرق أخرى
-      const alternativeContainer = document.querySelector(`[id*="quantity-offers"][id*="${blockId}"]`);
-      if (alternativeContainer) {
-        console.log("✅ Found alternative container:", alternativeContainer.id);
-        container = alternativeContainer;
-      } else {
-        return false;
+      console.warn("❌ Primary container not found, searching alternatives...");
+      // البحث بطرق بديلة
+      const alternativeSelectors = [
+        `quantity-offers-before-${blockId}`,
+        `quantity-offers-after-${blockId}`,
+        `quantity-offers-inside-${blockId}`
+      ];
+      
+      for (const selector of alternativeSelectors) {
+        container = document.getElementById(selector);
+        if (container) {
+          console.log("✅ Found alternative container:", selector);
+          break;
+        }
       }
     }
-
-    console.log("✅ Container found, clearing previous content");
-    // مسح المحتوى السابق
-    container.innerHTML = '';
     
-    // التنسيق
-    const styling = quantityOffersData.styling || {
-      backgroundColor: '#ffffff',
-      textColor: '#000000',
-      tagColor: '#22c55e', 
-      priceColor: '#ef4444'
-    };
+    if (!container) {
+      console.error("❌ No quantity offers container found for any position");
+      return false;
+    }
 
-    console.log(`🎨 COMPREHENSIVE FIX - Using styling:`, styling);
-    console.log(`🔢 COMPREHENSIVE FIX - Rendering ${offers.length} offers`);
+    console.log("✅ Container found, clearing and setting up content");
+    
+    // تنظيف الحاوي وإعداده
+    container.innerHTML = '';
+    container.style.cssText = `
+      display: block !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+      margin: 20px 0;
+      position: relative;
+      z-index: 1;
+    `;
 
-    // إنشاء العناصر
+    console.log(`🎨 Using styling:`, styling);
+    console.log(`🔢 Rendering ${offers.length} offers`);
+
+    // إنشاء العناصر المحسنة
     const wrapper = document.createElement('div');
     wrapper.className = 'codform-quantity-offers-wrapper';
     wrapper.style.cssText = `
-      margin-bottom: 20px;
+      font-family: 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      direction: rtl;
+      text-align: right;
+      margin: 0;
       padding: 0;
-      font-family: 'Cairo', system-ui, Arial, sans-serif;
     `;
 
     offers.forEach((offer, index) => {
+      console.log(`🎁 Processing offer ${index + 1}:`, offer);
+      
       const offerElement = document.createElement('div');
       offerElement.className = `codform-quantity-offer-item offer-${index}`;
       offerElement.style.cssText = `
-        background: linear-gradient(135deg, ${styling.backgroundColor}f0, ${styling.backgroundColor});
+        background: ${styling.backgroundColor};
         color: ${styling.textColor};
         border: 2px solid ${styling.tagColor};
-        border-radius: 12px;
-        padding: 16px 20px;
-        margin-bottom: 12px;
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 16px;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         cursor: pointer;
         position: relative;
         overflow: hidden;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
       `;
 
-      // تأثير hover
+      // تأثير hover متقدم
       offerElement.addEventListener('mouseenter', function() {
-        this.style.transform = 'translateY(-3px)';
-        this.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
+        this.style.transform = 'translateY(-4px) scale(1.02)';
+        this.style.boxShadow = '0 16px 48px rgba(0,0,0,0.2)';
         this.style.borderColor = styling.priceColor;
+        this.style.borderWidth = '3px';
       });
 
       offerElement.addEventListener('mouseleave', function() {
-        this.style.transform = 'translateY(0)';
-        this.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+        this.style.transform = 'translateY(0) scale(1)';
+        this.style.boxShadow = '0 8px 32px rgba(0,0,0,0.12)';
         this.style.borderColor = styling.tagColor;
+        this.style.borderWidth = '2px';
       });
 
-      // العنصر الأيسر - النص والعلامة
+      // المحتوى الأيسر
       const leftContent = document.createElement('div');
       leftContent.style.cssText = `
         display: flex;
         align-items: center;
         flex: 1;
-        gap: 12px;
+        gap: 16px;
+        direction: rtl;
       `;
 
-      // أيقونة العرض
+      // أيقونة العرض المحسنة
       const iconElement = document.createElement('div');
       iconElement.style.cssText = `
-        width: 48px;
-        height: 48px;
-        background: ${styling.tagColor};
+        width: 56px;
+        height: 56px;
+        background: linear-gradient(135deg, ${styling.tagColor}, ${styling.priceColor});
         color: white;
         border-radius: 50%;
         display: flex;
@@ -130,36 +166,41 @@
         font-size: 24px;
         font-weight: bold;
         flex-shrink: 0;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.2);
       `;
       iconElement.innerHTML = '🎁';
 
-      // النص الرئيسي
+      // النص الرئيسي المحسن
       const textContainer = document.createElement('div');
-      textContainer.style.cssText = 'flex: 1;';
+      textContainer.style.cssText = `
+        flex: 1;
+        direction: rtl;
+        text-align: right;
+      `;
 
       const tagElement = document.createElement('div');
       tagElement.style.cssText = `
-        background: ${styling.tagColor};
+        background: linear-gradient(135deg, ${styling.tagColor}, ${styling.priceColor});
         color: white;
-        padding: 6px 12px;
-        border-radius: 15px;
-        font-size: 12px;
-        font-weight: 600;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: 700;
         display: inline-block;
-        margin-bottom: 6px;
-        direction: rtl;
-        text-align: center;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
       `;
       tagElement.textContent = offer.tag || `اشترِ ${offer.quantity || 1} قطعة`;
 
       const textElement = document.createElement('div');
       textElement.style.cssText = `
-        font-size: 16px;
-        font-weight: 500;
-        line-height: 1.4;
+        font-size: 18px;
+        font-weight: 600;
+        line-height: 1.5;
         color: ${styling.textColor};
-        direction: rtl;
-        text-align: right;
+        margin-top: 4px;
       `;
       textElement.textContent = offer.text || `اشترِ ${offer.quantity || 1} قطعة واحصل على خصم مميز`;
 
@@ -169,29 +210,37 @@
       leftContent.appendChild(iconElement);
       leftContent.appendChild(textContainer);
 
-      // العنصر الأيمن - السعر/الخصم
+      // المحتوى الأيمن المحسن
       const rightContent = document.createElement('div');
       rightContent.style.cssText = `
         text-align: center;
-        min-width: 90px;
+        min-width: 100px;
         flex-shrink: 0;
       `;
 
       if (offer.discountType && offer.discountType !== 'none' && offer.discountValue > 0) {
+        const discountContainer = document.createElement('div');
+        discountContainer.style.cssText = `
+          background: linear-gradient(135deg, ${styling.priceColor}, #ff6b35);
+          color: white;
+          padding: 12px 16px;
+          border-radius: 16px;
+          box-shadow: 0 4px 16px rgba(255, 107, 53, 0.3);
+        `;
+
         const discountLabel = document.createElement('div');
         discountLabel.style.cssText = `
           font-size: 12px;
-          color: ${styling.textColor};
-          opacity: 0.8;
-          margin-bottom: 2px;
+          opacity: 0.9;
+          margin-bottom: 4px;
+          font-weight: 600;
         `;
-        discountLabel.textContent = 'توفير';
+        discountLabel.textContent = 'وفر';
 
         const discountValue = document.createElement('div');
         discountValue.style.cssText = `
-          font-size: 18px;
-          font-weight: 700;
-          color: ${styling.priceColor};
+          font-size: 24px;
+          font-weight: 900;
           line-height: 1;
         `;
         
@@ -201,17 +250,21 @@
           discountValue.textContent = `${offer.discountValue} ر.س`;
         }
 
-        rightContent.appendChild(discountLabel);
-        rightContent.appendChild(discountValue);
+        discountContainer.appendChild(discountLabel);
+        discountContainer.appendChild(discountValue);
+        rightContent.appendChild(discountContainer);
       } else {
         const specialLabel = document.createElement('div');
         specialLabel.style.cssText = `
-          font-size: 14px;
-          font-weight: 600;
+          font-size: 16px;
+          font-weight: 700;
           color: ${styling.tagColor};
-          padding: 8px 12px;
+          padding: 12px 16px;
           background: ${styling.tagColor}20;
+          border: 2px solid ${styling.tagColor};
           border-radius: 20px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
         `;
         specialLabel.textContent = 'عرض خاص';
         rightContent.appendChild(specialLabel);
@@ -221,47 +274,80 @@
       offerElement.appendChild(leftContent);
       offerElement.appendChild(rightContent);
       wrapper.appendChild(offerElement);
+
+      // إضافة تأثير تمايل خفيف
+      setTimeout(() => {
+        offerElement.style.animation = `gentle-bounce 6s ease-in-out infinite ${index * 0.2}s`;
+      }, index * 100);
     });
 
-    // إضافة العناصر للحاوي
+    // إضافة CSS للأنيميشن
+    if (!document.getElementById('codform-animations')) {
+      const style = document.createElement('style');
+      style.id = 'codform-animations';
+      style.textContent = `
+        @keyframes gentle-bounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-2px); }
+        }
+        
+        .codform-quantity-offers-wrapper {
+          animation: fadeInUp 0.8s ease-out;
+        }
+        
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    // إضافة العناصر للحاوي مع تأثير الظهور
     container.appendChild(wrapper);
-    container.style.display = 'block';
-    container.style.visibility = 'visible';
-    container.style.opacity = '1';
-
-    // تطبيق تأثير الظهور التدريجي
-    wrapper.style.opacity = '0';
-    wrapper.style.transform = 'translateY(20px)';
     
-    setTimeout(() => {
-      wrapper.style.transition = 'all 0.6s ease-out';
-      wrapper.style.opacity = '1';
-      wrapper.style.transform = 'translateY(0)';
-    }, 100);
+    // التأكد من الرؤية النهائية
+    requestAnimationFrame(() => {
+      container.style.display = 'block';
+      container.style.visibility = 'visible';
+      container.style.opacity = '1';
+      
+      console.log("✅ COMPREHENSIVE FIX v3.0 - Quantity offers displayed successfully!");
+      console.log("✅ Container final state:", {
+        display: container.style.display,
+        visibility: container.style.visibility,
+        opacity: container.style.opacity,
+        children: container.children.length
+      });
+    });
 
-    console.log("✅ COMPREHENSIVE FIX v2.0 - Quantity offers displayed successfully");
-    console.log("✅ Container is now visible:", container.style.display, container.style.visibility);
     return true;
   }
 
-  // دالة تحميل البيانات من API
+  // دالة تحميل البيانات من API محسنة
   async function loadFormAndOffers(blockId) {
-    console.log("🔍 COMPREHENSIVE FIX - Loading form and offers for block:", blockId);
+    console.log("🔍 COMPREHENSIVE FIX v3.0 - Loading form and offers for block:", blockId);
     
     try {
       const container = document.getElementById(`codform-container-${blockId}`);
       if (!container) {
-        throw new Error("Container not found");
+        throw new Error(`Container not found: codform-container-${blockId}`);
       }
 
       const productId = container.getAttribute('data-product-id');
       const shop = window.Shopify?.shop || window.location.hostname.replace('www.', '');
 
       if (!productId || !shop) {
-        throw new Error("Missing productId or shop");
+        throw new Error(`Missing data - productId: ${productId}, shop: ${shop}`);
       }
 
-      console.log("📊 COMPREHENSIVE FIX - API Request:", { shop, productId, blockId });
+      console.log("📊 API Request details:", { shop, productId, blockId });
 
       const apiUrl = `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/forms-product?shop=${encodeURIComponent(shop)}&product=${encodeURIComponent(productId)}&blockId=${encodeURIComponent(blockId)}`;
       
@@ -278,30 +364,31 @@
       }
 
       const data = await response.json();
-      console.log("📦 COMPREHENSIVE FIX - API Response:", data);
+      console.log("📦 API Response received:", data);
 
-      // عرض quantity offers
-      if (data.quantity_offers) {
-        console.log("🎁 COMPREHENSIVE FIX v2.0 - Processing quantity offers");
-        console.log("🔍 Offers data structure:", JSON.stringify(data.quantity_offers, null, 2));
+      // عرض quantity offers إذا كانت موجودة
+      if (data.quantity_offers && data.quantity_offers.offers && data.quantity_offers.offers.length > 0) {
+        console.log("🎁 Processing quantity offers with", data.quantity_offers.offers.length, "offers");
+        
         const offersDisplayed = displayQuantityOffers(data.quantity_offers, blockId, productId);
-        if (!offersDisplayed) {
-          console.warn("⚠️ Failed to display quantity offers");
+        
+        if (offersDisplayed) {
+          console.log("🎉 Quantity offers displayed successfully!");
         } else {
-          console.log("🎉 Successfully displayed quantity offers!");
+          console.warn("⚠️ Failed to display quantity offers");
         }
       } else {
-        console.log("ℹ️ COMPREHENSIVE FIX v2.0 - No quantity offers found in response");
+        console.log("ℹ️ No quantity offers found or offers array is empty");
       }
 
       return {
         success: true,
         data: data,
-        hasOffers: !!data.quantity_offers
+        hasOffers: !!(data.quantity_offers && data.quantity_offers.offers && data.quantity_offers.offers.length > 0)
       };
 
     } catch (error) {
-      console.error("❌ COMPREHENSIVE FIX - Error loading data:", error);
+      console.error("❌ COMPREHENSIVE FIX v3.0 - Error loading data:", error);
       return {
         success: false,
         error: error.message
@@ -309,20 +396,25 @@
     }
   }
 
-  // دالة التشخيص للاختبار
+  // دالة التشخيص المطورة
   function debugComprehensiveFix(blockId, productId) {
-    console.log("🔧 COMPREHENSIVE FIX - Debug mode activated");
+    console.log("🔧 COMPREHENSIVE FIX v3.0 - Enhanced debug mode activated");
     
     const container = document.getElementById(`codform-container-${blockId}`);
-    const offersContainer = document.getElementById(`quantity-offers-before-${blockId}`);
+    const offersContainers = [
+      document.getElementById(`quantity-offers-before-${blockId}`),
+      document.getElementById(`quantity-offers-after-${blockId}`),
+      document.getElementById(`quantity-offers-inside-${blockId}`)
+    ];
     
     console.log("🔍 Debug Information:", {
       blockId,
       productId,
       containerExists: !!container,
-      offersContainerExists: !!offersContainer,
+      offersContainersFound: offersContainers.filter(c => c).length,
       shopifyShop: window.Shopify?.shop,
-      hostname: window.location.hostname
+      hostname: window.location.hostname,
+      userAgent: navigator.userAgent
     });
 
     if (productId) {
@@ -339,34 +431,56 @@
     }
   }
 
-  // إتاحة الدوال عالمياً للاستخدام
+  // إتاحة الدوال عالمياً
   window.CodformComprehensiveFix = {
     displayOffers: displayQuantityOffers,
     loadData: loadFormAndOffers,
     debug: debugComprehensiveFix
   };
 
-  // دالة تشخيص عامة
+  // دالة تشخيص عامة محسنة
   window.debugCodformComprehensive = function(blockId, productId) {
     return debugComprehensiveFix(blockId, productId);
   };
 
-  // تشغيل تلقائي عند تحميل الصفحة
-  document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(() => {
-      const containers = document.querySelectorAll('[id*="codform-container-"]');
-      containers.forEach(container => {
-        const blockId = container.id.replace('codform-container-', '');
-        const productId = container.getAttribute('data-product-id');
+  // تشغيل تلقائي محسن عند تحميل الصفحة
+  function initializeOffers() {
+    console.log("🔄 COMPREHENSIVE FIX v3.0 - Initializing offers...");
+    
+    const containers = document.querySelectorAll('[id*="codform-container-"]');
+    console.log(`Found ${containers.length} form containers`);
+    
+    containers.forEach((container, index) => {
+      const blockId = container.id.replace('codform-container-', '');
+      const productId = container.getAttribute('data-product-id');
+      
+      if (blockId && productId) {
+        console.log(`🔄 Auto-loading for container ${index + 1}:`, { blockId, productId });
         
-        if (blockId && productId) {
-          console.log("🔄 Auto-loading for container:", blockId);
+        // تأخير تدريجي لتجنب تحميل متزامن
+        setTimeout(() => {
           loadFormAndOffers(blockId);
-        }
-      });
-    }, 1000);
+        }, index * 200);
+      } else {
+        console.warn(`⚠️ Missing data for container ${index + 1}:`, { blockId, productId });
+      }
+    });
+  }
+
+  // تشغيل التهيئة مع تأخيرات متدرجة
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(initializeOffers, 500);
+    });
+  } else {
+    setTimeout(initializeOffers, 500);
+  }
+
+  // أيضاً عند تحميل النافذة كاملة
+  window.addEventListener('load', () => {
+    setTimeout(initializeOffers, 1000);
   });
 
-  console.log("✅ COMPREHENSIVE FIX - Handler loaded successfully");
+  console.log("✅ COMPREHENSIVE FIX v3.0 - Enhanced handler loaded successfully");
 
 })();

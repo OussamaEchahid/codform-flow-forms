@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Trash2, Package, FileText, Settings, Eye } from 'lucide-react';
+import { Plus, Trash2, Package, FileText, Settings, Eye, AlertCircle } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { supabase } from '@/integrations/supabase/client';
 import { useSimpleShopify } from '@/hooks/useSimpleShopify';
@@ -37,6 +37,13 @@ interface Offer {
   discountValue: number;
 }
 
+interface AssociatedProduct {
+  productId: string;
+  productTitle: string;
+  productImage?: string;
+  offerId: string;
+}
+
 interface QuantityOfferData {
   id?: string;
   shop_id: string;
@@ -61,8 +68,9 @@ const QuantityOffers = () => {
   const [forms, setForms] = useState<Form[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedForm, setSelectedForm] = useState<Form | null>(null);
-  const [associatedProducts, setAssociatedProducts] = useState<string[]>([]);
+  const [associatedProducts, setAssociatedProducts] = useState<AssociatedProduct[]>([]);
   const [loading, setLoading] = useState(false);
+  const [existingOffers, setExistingOffers] = useState<any[]>([]);
   const [quantityOffer, setQuantityOffer] = useState<QuantityOfferData>({
     shop_id: '',
     product_id: '',
@@ -80,23 +88,23 @@ const QuantityOffers = () => {
 
   useEffect(() => {
     loadForms();
-    // Load products using the useSimpleShopify hook when connected
+    loadExistingOffers();
     if (isConnected && activeStore) {
       loadProducts();
     }
-  }, [isConnected, activeStore]); // إزالة loadProducts من dependencies لمنع infinite loop
+  }, [isConnected, activeStore]);
 
   const loadForms = async () => {
     try {
       const activeShop = activeStore || localStorage.getItem('simple_active_store');
       
       if (!activeShop) {
-        console.log('🚫 لا يوجد متجر نشط - لن يتم تحميل النماذج');
+        console.log('🚫 No active store - forms will not be loaded');
         setForms([]);
         return;
       }
 
-      console.log(`📋 تحميل النماذج للمتجر النشط: ${activeShop}`);
+      console.log(`📋 Loading forms for active store: ${activeShop}`);
       
       const { data, error } = await supabase
         .from('forms')
@@ -104,13 +112,43 @@ const QuantityOffers = () => {
         .eq('is_published', true)
         .eq('shop_id', activeShop);
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error loading forms:', error);
+        throw error;
+      }
       
-      console.log(`✅ تم تحميل ${data?.length || 0} نموذج للمتجر: ${activeShop}`);
+      console.log(`✅ Loaded ${data?.length || 0} forms for store: ${activeShop}`);
       setForms(data || []);
     } catch (error) {
-      console.error('❌ خطأ في تحميل النماذج:', error);
+      console.error('❌ Error loading forms:', error);
       toast.error('Failed to load forms');
+    }
+  };
+
+  const loadExistingOffers = async () => {
+    try {
+      const activeShop = activeStore || localStorage.getItem('simple_active_store');
+      if (!activeShop) return;
+
+      console.log('🔍 Loading existing offers for store:', activeShop);
+      
+      const { data, error } = await supabase
+        .from('quantity_offers')
+        .select(`
+          *,
+          forms(title)
+        `)
+        .eq('shop_id', activeShop);
+
+      if (error) {
+        console.error('❌ Error loading existing offers:', error);
+        return;
+      }
+
+      console.log('✅ Loaded existing offers:', data);
+      setExistingOffers(data || []);
+    } catch (error) {
+      console.error('❌ Error loading existing offers:', error);
     }
   };
 
@@ -122,34 +160,13 @@ const QuantityOffers = () => {
     images: product.images?.map(img => ({ url: typeof img === 'string' ? img : img.src })) || [{ url: '/placeholder.svg' }]
   }));
 
-  const handleProductSelect = async (product: Product) => {
-    // التحقق من وجود عرض مسبق قبل السماح بالاختيار
-    if (selectedForm) {
-      const isAssociated = associatedProducts.includes(product.id);
-      if (isAssociated) {
-        toast.error('هذا المنتج مرتبط بالفعل بهذا النموذج. اختر منتجاً آخر.');
-        return;
-      }
-    }
-    
-    setSelectedProduct(product);
-    setQuantityOffer(prev => ({ ...prev, product_id: product.id }));
-  };
-
-  const handleFormSelect = async (form: Form) => {
-    setSelectedForm(form);
-    setQuantityOffer(prev => ({ ...prev, form_id: form.id }));
-    
-    // Load associated products for this form
-    await loadAssociatedProducts(form.id);
-    setCurrentStep('product');
-  };
-
   const loadAssociatedProducts = async (formId: string) => {
     try {
-      const { data, error } = await (supabase as any)
+      console.log(`🔍 Loading associated products for form: ${formId}`);
+      
+      const { data, error } = await supabase
         .from('quantity_offers')
-        .select('product_id')
+        .select('*')
         .eq('form_id', formId)
         .eq('shop_id', activeStore || localStorage.getItem('simple_active_store') || '');
 
@@ -159,13 +176,46 @@ const QuantityOffers = () => {
         return;
       }
       
-      const productIds = data?.map((item: any) => item.product_id) || [];
-      setAssociatedProducts(productIds);
-      console.log(`📦 Found ${productIds.length} associated products for form ${formId}`);
+      // Map the data to include product information
+      const associatedProductsList: AssociatedProduct[] = (data || []).map(offer => {
+        const product = products.find(p => p.id === offer.product_id);
+        return {
+          productId: offer.product_id,
+          productTitle: product?.title || `Product ${offer.product_id}`,
+          productImage: product?.images?.[0]?.url,
+          offerId: offer.id
+        };
+      });
+      
+      console.log(`📦 Found ${associatedProductsList.length} associated products:`, associatedProductsList);
+      setAssociatedProducts(associatedProductsList);
     } catch (error) {
       console.error('Error loading associated products:', error);
       setAssociatedProducts([]);
     }
+  };
+
+  const handleFormSelect = async (form: Form) => {
+    console.log('📋 Form selected:', form.title);
+    setSelectedForm(form);
+    setQuantityOffer(prev => ({ ...prev, form_id: form.id }));
+    
+    // Load associated products for this form
+    await loadAssociatedProducts(form.id);
+    setCurrentStep('product');
+  };
+
+  const handleProductSelect = (product: Product) => {
+    // Check if this product is already associated with the selected form
+    const isAssociated = associatedProducts.some(ap => ap.productId === product.id);
+    if (isAssociated) {
+      toast.error(`المنتج "${product.title}" مرتبط بالفعل بهذا النموذج. اختر منتجاً آخر.`);
+      return;
+    }
+    
+    console.log('📦 Product selected:', product.title);
+    setSelectedProduct(product);
+    setQuantityOffer(prev => ({ ...prev, product_id: product.id }));
   };
 
   const proceedToSettings = () => {
@@ -173,6 +223,8 @@ const QuantityOffers = () => {
       toast.error('Please select both product and form');
       return;
     }
+    
+    console.log('⚙️ Proceeding to settings step');
     setCurrentStep('settings');
   };
 
@@ -189,6 +241,7 @@ const QuantityOffers = () => {
       ...prev,
       offers: [...prev.offers, newOffer]
     }));
+    console.log('➕ Added new offer:', newOffer.id);
   };
 
   const updateOffer = (id: string, field: keyof Offer, value: any) => {
@@ -205,6 +258,7 @@ const QuantityOffers = () => {
       ...prev,
       offers: prev.offers.filter(offer => offer.id !== id)
     }));
+    console.log('🗑️ Removed offer:', id);
   };
 
   const updateStyling = (field: string, value: string) => {
@@ -220,44 +274,63 @@ const QuantityOffers = () => {
       return;
     }
 
-    // التحقق من وجود عرض مسبق للمنتج والنموذج (فقط عند الإنشاء الجديد)
-    if (!quantityOffer.id) {
-      const isAssociated = associatedProducts.includes(selectedProduct.id);
-      if (isAssociated) {
-        toast.error('هذا المنتج مرتبط بالفعل بهذا النموذج. اختر منتجاً أو نموذجاً آخر.');
-        return;
-      }
+    if (quantityOffer.offers.length === 0) {
+      toast.error('يجب إضافة عرض واحد على الأقل');
+      return;
     }
 
     setLoading(true);
     try {
+      const activeShop = activeStore || localStorage.getItem('simple_active_store');
+      if (!activeShop) {
+        throw new Error('No active shop found');
+      }
+
+      // Prepare data for saving
       const offerData = {
-        ...quantityOffer,
-        shop_id: activeStore || localStorage.getItem('simple_active_store') || '',
+        shop_id: activeShop,
         product_id: selectedProduct.id,
-        form_id: selectedForm.id
+        form_id: selectedForm.id,
+        enabled: quantityOffer.enabled,
+        offers: quantityOffer.offers,
+        styling: quantityOffer.styling,
+        position: quantityOffer.position,
+        custom_selector: quantityOffer.custom_selector || null
       };
 
-      console.log('💾 Saving quantity offer:', offerData);
+      console.log('💾 Saving quantity offer data:', offerData);
 
-      const { data, error } = await (supabase as any)
-        .from('quantity_offers')
-        .upsert(offerData, {
-          onConflict: quantityOffer.id ? 'id' : undefined
-        })
-        .select();
+      let result;
+      if (quantityOffer.id) {
+        // Update existing offer
+        result = await supabase
+          .from('quantity_offers')
+          .update(offerData)
+          .eq('id', quantityOffer.id)
+          .select();
+      } else {
+        // Create new offer
+        result = await supabase
+          .from('quantity_offers')
+          .insert([offerData])
+          .select();
+      }
 
-      if (error) throw error;
+      if (result.error) {
+        console.error('❌ Database error:', result.error);
+        throw result.error;
+      }
       
-      console.log('✅ Quantity offer saved:', data);
-      toast.success('Quantity offer saved successfully');
+      console.log('✅ Quantity offer saved successfully:', result.data);
+      toast.success(quantityOffer.id ? 'تم تحديث العرض بنجاح' : 'تم حفظ العرض بنجاح');
       
-      // إعادة تعيين النموذج والانتقال لعرض القائمة
+      // Reset form and reload data
       resetToFormSelection();
-      loadExistingOffers(); // Reload the list after saving
+      await loadExistingOffers();
+      
     } catch (error) {
       console.error('❌ Error saving quantity offer:', error);
-      toast.error('Failed to save quantity offer: ' + (error as any)?.message || 'Unknown error');
+      toast.error('فشل في حفظ العرض: ' + (error as any)?.message || 'خطأ غير معروف');
     }
     setLoading(false);
   };
@@ -267,45 +340,62 @@ const QuantityOffers = () => {
     setSelectedProduct(null);
     setSelectedForm(null);
     setAssociatedProducts([]);
-    setQuantityOffer(prev => ({
-      ...prev,
+    setQuantityOffer({
+      shop_id: '',
       product_id: '',
       form_id: '',
-      offers: []
-    }));
+      enabled: true,
+      offers: [],
+      styling: {
+        backgroundColor: '#ffffff',
+        textColor: '#000000',
+        tagColor: '#22c55e',
+        priceColor: '#ef4444'
+      },
+      position: 'before_form'
+    });
   };
 
-  // Load existing quantity offers
-  const [existingOffers, setExistingOffers] = useState<any[]>([]);
+  const editExistingOffer = async (offer: any) => {
+    // Find the form
+    const form = forms.find(f => f.id === offer.form_id);
+    if (form) {
+      setSelectedForm(form);
+      await loadAssociatedProducts(form.id);
+    }
+    
+    // Find the product
+    const product = products.find(p => p.id === offer.product_id);
+    if (product) {
+      setSelectedProduct(product);
+    }
+    
+    // Set the offer data
+    setQuantityOffer({
+      ...offer,
+      offers: offer.offers || []
+    });
+    setCurrentStep('settings');
+  };
 
-  const loadExistingOffers = async () => {
+  const deleteOffer = async (offerId: string) => {
+    if (!confirm('هل أنت متأكد من حذف هذا العرض؟')) return;
+
     try {
-      const { data, error } = await (supabase as any)
+      const { error } = await supabase
         .from('quantity_offers')
-        .select(`
-          *,
-          forms(title)
-        `)
-        .eq('shop_id', activeStore || localStorage.getItem('simple_active_store') || '');
+        .delete()
+        .eq('id', offerId);
 
-      console.log('Quantity offers data:', data, 'Error:', error);
-
-      if (data && !error) {
-        setExistingOffers(data);
-      }
+      if (error) throw error;
+      
+      toast.success('تم حذف العرض بنجاح');
+      await loadExistingOffers();
     } catch (error) {
-      console.error('Error loading existing offers:', error);
+      console.error('Error deleting offer:', error);
+      toast.error('فشل في حذف العرض');
     }
   };
-
-  React.useEffect(() => {
-    if (activeStore || localStorage.getItem('simple_active_store')) {
-      console.log('Loading existing offers for store:', activeStore || localStorage.getItem('simple_active_store'));
-      loadExistingOffers();
-    }
-  }, [activeStore]);
-
-  console.log('Current existing offers:', existingOffers);
 
   return (
     <SettingsLayout>
@@ -327,146 +417,157 @@ const QuantityOffers = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Package className="w-5 h-5" />
-                Created Quantity Offers ({existingOffers.length})
+                العروض المُنشأة ({existingOffers.length})
               </CardTitle>
               <CardDescription>
-                Manage your existing quantity-based discount offers
+                إدارة عروض الكمية الموجودة
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {existingOffers.map((offer) => (
-                  <div key={offer.id} className="flex items-center justify-between p-4 border rounded-lg hover:shadow-sm transition-shadow">
-                    <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h4 className="font-medium">{offer.forms?.title || 'Unknown Form'}</h4>
-                      <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        offer.enabled ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
-                      }`}>
-                        {offer.enabled ? 'نشط' : 'معطل'}
+                {existingOffers.map((offer) => {
+                  const product = products.find(p => p.id === offer.product_id);
+                  return (
+                    <div key={offer.id} className="flex items-center justify-between p-4 border rounded-lg hover:shadow-sm transition-shadow">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          {product?.images?.[0] && (
+                            <img 
+                              src={product.images[0].url} 
+                              alt={product.title}
+                              className="w-12 h-12 object-cover rounded-lg"
+                            />
+                          )}
+                          <div>
+                            <h4 className="font-medium">{product?.title || `Product ${offer.product_id}`}</h4>
+                            <p className="text-sm text-muted-foreground">
+                              النموذج: {offer.forms?.title || 'Unknown Form'}
+                            </p>
+                          </div>
+                          <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            offer.enabled ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
+                          }`}>
+                            {offer.enabled ? 'نشط' : 'معطل'}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          <span>{offer.offers?.length || 0} عرض مُهيأ</span>
+                          <span>الموضع: {
+                            offer.position === 'before_form' ? 'قبل النموذج' : 
+                            offer.position === 'after_form' ? 'بعد النموذج' : 'داخل النموذج'
+                          }</span>
+                        </div>
+                        {offer.offers && offer.offers.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {offer.offers.slice(0, 3).map((singleOffer: any, idx: number) => (
+                              <div key={idx} className="bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs">
+                                {singleOffer.text || `اشترِ ${singleOffer.quantity} قطعة`}
+                              </div>
+                            ))}
+                            {offer.offers.length > 3 && (
+                              <div className="bg-gray-50 text-gray-600 px-2 py-1 rounded text-xs">
+                                +{offer.offers.length - 3} عرض إضافي
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex gap-2 ml-4">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => editExistingOffer(offer)}
+                        >
+                          تعديل
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => deleteOffer(offer.id)}
+                        >
+                          حذف
+                        </Button>
                       </div>
                     </div>
-                    <p className="text-sm text-muted-foreground mb-1">
-                      معرف المنتج: <span className="font-mono text-xs">{offer.product_id}</span>
-                    </p>
-                    <p className="text-sm text-muted-foreground mb-1">
-                      {offer.offers?.length || 0} عرض مُهيأ • الموضع: {offer.position === 'before_form' ? 'قبل النموذج' : offer.position === 'after_form' ? 'بعد النموذج' : 'داخل النموذج'}
-                    </p>
-                      {offer.offers && offer.offers.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {offer.offers.slice(0, 3).map((singleOffer: any, idx: number) => (
-                            <div key={idx} className="bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs">
-                              {singleOffer.text || `Buy ${singleOffer.quantity}`}
-                            </div>
-                          ))}
-                          {offer.offers.length > 3 && (
-                            <div className="bg-gray-50 text-gray-600 px-2 py-1 rounded text-xs">
-                              +{offer.offers.length - 3} more
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex gap-2 ml-4">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={async () => {
-                          // Load the form details for editing
-                          const form = forms.find(f => f.id === offer.form_id);
-                          if (form) {
-                            setSelectedForm(form);
-                            await loadAssociatedProducts(form.id);
-                          }
-                          
-                          // Find and set the product
-                          const product = products.find(p => p.id === offer.product_id);
-                          if (product) {
-                            setSelectedProduct(product);
-                          }
-                          
-                          setQuantityOffer(offer);
-                          setCurrentStep('settings');
-                        }}
-                      >
-                        تعديل
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={async () => {
-                          if (confirm('هل أنت متأكد من حذف هذا العرض؟')) {
-                            try {
-                              await (supabase as any)
-                                .from('quantity_offers')
-                                .delete()
-                                .eq('id', offer.id);
-                              toast.success('تم حذف العرض بنجاح');
-                              loadExistingOffers();
-                            } catch (error) {
-                              toast.error('فشل في حذف العرض');
-                            }
-                          }
-                        }}
-                      >
-                        حذف
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
         )}
 
+        {/* Form Selection Step */}
         {currentStep === 'form' && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FileText className="w-5 h-5" />
-                {t('selectForm')}
+                الخطوة 1: اختيار النموذج
               </CardTitle>
               <CardDescription>
-                اختر النموذج أولاً لرؤية المنتجات المتاحة والمرتبطة مسبقاً
+                اختر النموذج المراد إضافة عروض الكمية إليه
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {forms.map((form) => (
-                  <Card
-                    key={form.id}
-                    className={`cursor-pointer transition-all ${
-                      selectedForm?.id === form.id
-                        ? 'ring-2 ring-primary'
-                        : 'hover:shadow-md'
-                    }`}
-                    onClick={() => handleFormSelect(form)}
-                  >
-                    <CardContent className="p-4">
-                      <h3 className="font-medium">{form.title}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {Array.isArray(form.data) ? form.data.length : 0} {t('fields')}
-                      </p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+              {forms.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <FileText className="mx-auto h-12 w-12 mb-4 opacity-50" />
+                  <p>لا توجد نماذج منشورة</p>
+                  <p className="text-sm">يرجى إنشاء ونشر نموذج أولاً</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {forms.map((form) => (
+                    <Card
+                      key={form.id}
+                      className="cursor-pointer transition-all hover:shadow-md border-2 hover:border-primary/50"
+                      onClick={() => handleFormSelect(form)}
+                    >
+                      <CardContent className="p-4">
+                        <h3 className="font-medium mb-2">{form.title}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {Array.isArray(form.data) && form.data[0]?.fields ? 
+                            `${form.data[0].fields.length} حقل` : 'نموذج فارغ'}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
 
+        {/* Product Selection Step */}
         {currentStep === 'product' && selectedForm && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Package className="w-5 h-5" />
-                {t('selectProduct')}
+                الخطوة 2: اختيار المنتج
               </CardTitle>
               <CardDescription>
-                النموذج المحدد: <strong>{selectedForm.title}</strong>
+                النموذج المختار: <strong>{selectedForm.title}</strong>
                 {associatedProducts.length > 0 && (
-                  <div className="mt-2 text-sm">
-                    <Badge variant="secondary">{associatedProducts.length} منتج مرتبط مسبقاً</Badge>
+                  <div className="mt-2 p-2 bg-yellow-50 rounded border">
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-yellow-800">
+                          المنتجات المرتبطة مسبقاً بهذا النموذج:
+                        </p>
+                        <div className="mt-1 space-y-1">
+                          {associatedProducts.map(ap => (
+                            <div key={ap.productId} className="flex items-center gap-2 text-sm text-yellow-700">
+                              {ap.productImage && (
+                                <img src={ap.productImage} alt={ap.productTitle} className="w-6 h-6 object-cover rounded" />
+                              )}
+                              <span>{ap.productTitle}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
               </CardDescription>
@@ -475,35 +576,35 @@ const QuantityOffers = () => {
               {!isConnected ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <Package className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                  <p>Shopify store not connected</p>
-                  <p className="text-sm">Please connect your Shopify store first</p>
+                  <p>متجر Shopify غير متصل</p>
+                  <p className="text-sm">يرجى ربط متجر Shopify أولاً</p>
                 </div>
               ) : shopifyLoading ? (
                 <div className="text-center py-8">
                   <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                  <p className="mt-2 text-muted-foreground">Loading products from Shopify...</p>
+                  <p className="mt-2 text-muted-foreground">جاري تحميل المنتجات من Shopify...</p>
                 </div>
               ) : products.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <Package className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                  <p>No products found in your Shopify store</p>
+                  <p>لا توجد منتجات في متجر Shopify</p>
                   <Button onClick={() => loadProducts()} variant="outline" className="mt-4">
-                    Retry Loading Products
+                    إعادة تحميل المنتجات
                   </Button>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {products.map((product) => {
-                    const isAssociated = associatedProducts.includes(product.id);
+                    const isAssociated = associatedProducts.some(ap => ap.productId === product.id);
                     return (
                       <Card
                         key={product.id}
-                        className={`transition-all ${
+                        className={`transition-all border-2 ${
                           isAssociated 
-                            ? 'opacity-50 cursor-not-allowed bg-gray-50'
+                            ? 'opacity-50 cursor-not-allowed bg-gray-50 border-gray-200'
                             : selectedProduct?.id === product.id
-                              ? 'ring-2 ring-primary cursor-pointer'
-                              : 'hover:shadow-md cursor-pointer'
+                              ? 'ring-2 ring-primary cursor-pointer border-primary'
+                              : 'hover:shadow-md cursor-pointer hover:border-primary/50'
                         }`}
                         onClick={() => !isAssociated && handleProductSelect(product)}
                       >
@@ -528,11 +629,11 @@ const QuantityOffers = () => {
               
               <div className="mt-6 flex justify-between">
                 <Button onClick={() => setCurrentStep('form')} variant="outline">
-                  {t('back')}
+                  رجوع
                 </Button>
                 {selectedProduct && (
                   <Button onClick={proceedToSettings}>
-                    {t('next')}
+                    التالي
                   </Button>
                 )}
               </div>
@@ -540,33 +641,36 @@ const QuantityOffers = () => {
           </Card>
         )}
 
-
+        {/* Settings Step */}
         {currentStep === 'settings' && selectedProduct && selectedForm && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div>
               <Card className="mb-6">
                 <CardHeader>
                   <CardTitle className="text-sm text-muted-foreground">
-                    {t('selectedProduct')}: {selectedProduct.title} | {t('selectedForm')}: {selectedForm.title}
+                    الخطوة 3: إعداد العرض
                   </CardTitle>
+                  <CardDescription>
+                    المنتج: {selectedProduct.title} | النموذج: {selectedForm.title}
+                  </CardDescription>
                 </CardHeader>
               </Card>
 
               <Tabs defaultValue="offers" className="w-full">
                 <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="offers">{t('offers')}</TabsTrigger>
-                  <TabsTrigger value="styling">{t('styling')}</TabsTrigger>
-                  <TabsTrigger value="position">{t('position')}</TabsTrigger>
+                  <TabsTrigger value="offers">العروض</TabsTrigger>
+                  <TabsTrigger value="styling">التنسيق</TabsTrigger>
+                  <TabsTrigger value="position">الموضع</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="offers" className="space-y-4">
                   <Card>
                     <CardHeader>
                       <div className="flex items-center justify-between">
-                        <CardTitle>{t('offers')}</CardTitle>
+                        <CardTitle>العروض</CardTitle>
                         <Button onClick={addOffer} size="sm">
                           <Plus className="w-4 h-4 mr-2" />
-                          {t('addOffer')}
+                          إضافة عرض
                         </Button>
                       </div>
                     </CardHeader>
@@ -574,7 +678,7 @@ const QuantityOffers = () => {
                       {quantityOffer.offers.map((offer) => (
                         <Card key={offer.id} className="p-4">
                           <div className="flex items-start justify-between mb-4">
-                            <Badge variant="outline">{t('offer')} #{offer.id}</Badge>
+                            <Badge variant="outline">عرض #{offer.id}</Badge>
                             <Button
                               onClick={() => removeOffer(offer.id)}
                               size="sm"
@@ -585,15 +689,15 @@ const QuantityOffers = () => {
                           </div>
                           <div className="grid grid-cols-2 gap-4">
                             <div>
-                              <Label>{t('tag')}</Label>
+                              <Label>العلامة</Label>
                               <Input
                                 value={offer.tag}
                                 onChange={(e) => updateOffer(offer.id, 'tag', e.target.value)}
-                                placeholder={t('freeGift')}
+                                placeholder="هدية مجانية"
                               />
                             </div>
                             <div>
-                              <Label>{t('quantity')}</Label>
+                              <Label>الكمية</Label>
                               <Input
                                 type="number"
                                 value={offer.quantity}
@@ -602,15 +706,15 @@ const QuantityOffers = () => {
                               />
                             </div>
                             <div className="col-span-2">
-                              <Label>{t('offerText')}</Label>
+                              <Label>نص العرض</Label>
                               <Input
                                 value={offer.text}
                                 onChange={(e) => updateOffer(offer.id, 'text', e.target.value)}
-                                placeholder={t('buy3Get1Free')}
+                                placeholder="اشترِ 3 واحصل على 1 مجاناً"
                               />
                             </div>
                             <div>
-                              <Label>{t('discountType')}</Label>
+                              <Label>نوع الخصم</Label>
                               <Select
                                 value={offer.discountType}
                                 onValueChange={(value) => updateOffer(offer.id, 'discountType', value)}
@@ -619,15 +723,15 @@ const QuantityOffers = () => {
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="none">{t('noDiscount')}</SelectItem>
-                                  <SelectItem value="fixed">{t('fixedAmount')}</SelectItem>
-                                  <SelectItem value="percentage">{t('percentage')}</SelectItem>
+                                  <SelectItem value="none">بدون خصم</SelectItem>
+                                  <SelectItem value="fixed">مبلغ ثابت</SelectItem>
+                                  <SelectItem value="percentage">نسبة مئوية</SelectItem>
                                 </SelectContent>
                               </Select>
                             </div>
                             {offer.discountType !== 'none' && (
                               <div>
-                                <Label>{t('discountValue')}</Label>
+                                <Label>قيمة الخصم</Label>
                                 <Input
                                   type="number"
                                   value={offer.discountValue}
@@ -641,22 +745,23 @@ const QuantityOffers = () => {
                       ))}
                       {quantityOffer.offers.length === 0 && (
                         <div className="text-center py-8 text-muted-foreground">
-                          {t('noOffersYet')}
+                          لا توجد عروض بعد. أضف عرضاً للبدء.
                         </div>
                       )}
                     </CardContent>
                   </Card>
                 </TabsContent>
 
+                
                 <TabsContent value="styling" className="space-y-4">
                   <Card>
                     <CardHeader>
-                      <CardTitle>{t('styling')}</CardTitle>
+                      <CardTitle>التنسيق</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <Label>{t('backgroundColor')}</Label>
+                          <Label>لون الخلفية</Label>
                           <Input
                             type="color"
                             value={quantityOffer.styling.backgroundColor}
@@ -664,7 +769,7 @@ const QuantityOffers = () => {
                           />
                         </div>
                         <div>
-                          <Label>{t('textColor')}</Label>
+                          <Label>لون النص</Label>
                           <Input
                             type="color"
                             value={quantityOffer.styling.textColor}
@@ -672,7 +777,7 @@ const QuantityOffers = () => {
                           />
                         </div>
                         <div>
-                          <Label>{t('tagColor')}</Label>
+                          <Label>لون العلامة</Label>
                           <Input
                             type="color"
                             value={quantityOffer.styling.tagColor}
@@ -680,7 +785,7 @@ const QuantityOffers = () => {
                           />
                         </div>
                         <div>
-                          <Label>{t('priceColor')}</Label>
+                          <Label>لون السعر</Label>
                           <Input
                             type="color"
                             value={quantityOffer.styling.priceColor}
@@ -695,11 +800,11 @@ const QuantityOffers = () => {
                 <TabsContent value="position" className="space-y-4">
                   <Card>
                     <CardHeader>
-                      <CardTitle>{t('position')}</CardTitle>
+                      <CardTitle>الموضع</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div>
-                        <Label>{t('offerPosition')}</Label>
+                        <Label>موضع العرض</Label>
                         <Select
                           value={quantityOffer.position}
                           onValueChange={(value) => setQuantityOffer(prev => ({ ...prev, position: value as any }))}
@@ -708,15 +813,15 @@ const QuantityOffers = () => {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="before_form">{t('beforeForm')}</SelectItem>
-                            <SelectItem value="inside_form">{t('insideForm')}</SelectItem>
-                            <SelectItem value="after_form">{t('afterForm')}</SelectItem>
+                            <SelectItem value="before_form">قبل النموذج</SelectItem>
+                            <SelectItem value="inside_form">داخل النموذج</SelectItem>
+                            <SelectItem value="after_form">بعد النموذج</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                       {quantityOffer.position === 'inside_form' && (
                         <div>
-                          <Label>{t('customSelector')}</Label>
+                          <Label>محدد CSS المخصص</Label>
                           <Input
                             value={quantityOffer.custom_selector || ''}
                             onChange={(e) => setQuantityOffer(prev => ({ ...prev, custom_selector: e.target.value }))}
@@ -729,9 +834,12 @@ const QuantityOffers = () => {
                 </TabsContent>
               </Tabs>
 
-              <div className="mt-6">
-                <Button onClick={saveQuantityOffer} disabled={loading} className="w-full">
-                  {loading ? t('saving') : t('saveOffer')}
+              <div className="mt-6 flex gap-3">
+                <Button onClick={() => setCurrentStep('product')} variant="outline" className="flex-1">
+                  رجوع
+                </Button>
+                <Button onClick={saveQuantityOffer} disabled={loading || quantityOffer.offers.length === 0} className="flex-1">
+                  {loading ? 'جاري الحفظ...' : quantityOffer.id ? 'تحديث العرض' : 'حفظ العرض'}
                 </Button>
               </div>
             </div>
@@ -741,7 +849,7 @@ const QuantityOffers = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Eye className="w-5 h-5" />
-                    {t('livePreview')}
+                    معاينة مباشرة
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
