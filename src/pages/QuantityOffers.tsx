@@ -57,10 +57,11 @@ interface QuantityOfferData {
 const QuantityOffers = () => {
   const { t } = useI18n();
   const { products: shopifyProducts, loadProducts, loading: shopifyLoading, isConnected, activeStore } = useSimpleShopify();
-  const [currentStep, setCurrentStep] = useState<'product' | 'form' | 'settings'>('product');
+  const [currentStep, setCurrentStep] = useState<'form' | 'product' | 'settings'>('form');
   const [forms, setForms] = useState<Form[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedForm, setSelectedForm] = useState<Form | null>(null);
+  const [associatedProducts, setAssociatedProducts] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [quantityOffer, setQuantityOffer] = useState<QuantityOfferData>({
     shop_id: '',
@@ -126,9 +127,31 @@ const QuantityOffers = () => {
     setQuantityOffer(prev => ({ ...prev, product_id: product.id }));
   };
 
-  const handleFormSelect = (form: Form) => {
+  const handleFormSelect = async (form: Form) => {
     setSelectedForm(form);
     setQuantityOffer(prev => ({ ...prev, form_id: form.id }));
+    
+    // Load associated products for this form
+    await loadAssociatedProducts(form.id);
+    setCurrentStep('product');
+  };
+
+  const loadAssociatedProducts = async (formId: string) => {
+    try {
+      const { data, error } = await (supabase as any)
+        .from('quantity_offers')
+        .select('product_id')
+        .eq('form_id', formId)
+        .eq('shop_id', activeStore || localStorage.getItem('simple_active_store') || '');
+
+      if (error) throw error;
+      
+      const productIds = data?.map((item: any) => item.product_id) || [];
+      setAssociatedProducts(productIds);
+    } catch (error) {
+      console.error('Error loading associated products:', error);
+      setAssociatedProducts([]);
+    }
   };
 
   const proceedToSettings = () => {
@@ -204,10 +227,11 @@ const QuantityOffers = () => {
     setLoading(false);
   };
 
-  const resetToProductSelection = () => {
-    setCurrentStep('product');
+  const resetToFormSelection = () => {
+    setCurrentStep('form');
     setSelectedProduct(null);
     setSelectedForm(null);
+    setAssociatedProducts([]);
     setQuantityOffer(prev => ({
       ...prev,
       product_id: '',
@@ -256,7 +280,7 @@ const QuantityOffers = () => {
             <h1 className="text-2xl font-bold">{t('quantityOffers')}</h1>
             <p className="text-muted-foreground">{t('quantityOffersDescription')}</p>
           </div>
-          <Button onClick={resetToProductSelection} variant="outline">
+          <Button onClick={resetToFormSelection} variant="outline">
             <Plus className="w-4 h-4 mr-2" />
             {t('createNewOffer')}
           </Button>
@@ -312,7 +336,20 @@ const QuantityOffers = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => {
+                        onClick={async () => {
+                          // Load the form details for editing
+                          const form = forms.find(f => f.id === offer.form_id);
+                          if (form) {
+                            setSelectedForm(form);
+                            await loadAssociatedProducts(form.id);
+                          }
+                          
+                          // Find and set the product
+                          const product = products.find(p => p.id === offer.product_id);
+                          if (product) {
+                            setSelectedProduct(product);
+                          }
+                          
                           setQuantityOffer(offer);
                           setCurrentStep('settings');
                         }}
@@ -347,13 +384,57 @@ const QuantityOffers = () => {
           </Card>
         )}
 
-        {currentStep === 'product' && (
+        {currentStep === 'form' && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="w-5 h-5" />
+                {t('selectForm')}
+              </CardTitle>
+              <CardDescription>
+                اختر النموذج أولاً لرؤية المنتجات المتاحة والمرتبطة مسبقاً
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {forms.map((form) => (
+                  <Card
+                    key={form.id}
+                    className={`cursor-pointer transition-all ${
+                      selectedForm?.id === form.id
+                        ? 'ring-2 ring-primary'
+                        : 'hover:shadow-md'
+                    }`}
+                    onClick={() => handleFormSelect(form)}
+                  >
+                    <CardContent className="p-4">
+                      <h3 className="font-medium">{form.title}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {Array.isArray(form.data) ? form.data.length : 0} {t('fields')}
+                      </p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {currentStep === 'product' && selectedForm && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Package className="w-5 h-5" />
                 {t('selectProduct')}
               </CardTitle>
+              <CardDescription>
+                النموذج المحدد: <strong>{selectedForm.title}</strong>
+                {associatedProducts.length > 0 && (
+                  <div className="mt-2 text-sm">
+                    <Badge variant="secondary">{associatedProducts.length} منتج مرتبط مسبقاً</Badge>
+                  </div>
+                )}
+              </CardDescription>
             </CardHeader>
             <CardContent>
               {!isConnected ? (
@@ -377,82 +458,53 @@ const QuantityOffers = () => {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {products.map((product) => (
-                    <Card
-                      key={product.id}
-                      className={`cursor-pointer transition-all ${
-                        selectedProduct?.id === product.id
-                          ? 'ring-2 ring-primary'
-                          : 'hover:shadow-md'
-                      }`}
-                      onClick={() => handleProductSelect(product)}
-                    >
-                      <CardContent className="p-4">
-                        <img
-                          src={product.images?.[0]?.url || '/placeholder.svg'}
-                          alt={product.title}
-                          className="w-full h-32 object-cover rounded mb-2"
-                        />
-                        <h3 className="font-medium">{product.title}</h3>
-                      </CardContent>
-                    </Card>
-                  ))}
+                  {products.map((product) => {
+                    const isAssociated = associatedProducts.includes(product.id);
+                    return (
+                      <Card
+                        key={product.id}
+                        className={`transition-all ${
+                          isAssociated 
+                            ? 'opacity-50 cursor-not-allowed bg-gray-50'
+                            : selectedProduct?.id === product.id
+                              ? 'ring-2 ring-primary cursor-pointer'
+                              : 'hover:shadow-md cursor-pointer'
+                        }`}
+                        onClick={() => !isAssociated && handleProductSelect(product)}
+                      >
+                        <CardContent className="p-4">
+                          <img
+                            src={product.images?.[0]?.url || '/placeholder.svg'}
+                            alt={product.title}
+                            className="w-full h-32 object-cover rounded mb-2"
+                          />
+                          <h3 className="font-medium">{product.title}</h3>
+                          {isAssociated && (
+                            <Badge variant="destructive" className="mt-2 text-xs">
+                              مرتبط مسبقاً
+                            </Badge>
+                          )}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </div>
               )}
               
-              {selectedProduct && (
-                <div className="mt-6 flex justify-end">
-                  <Button onClick={() => setCurrentStep('form')}>
-                    {t('next')}
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {currentStep === 'form' && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="w-5 h-5" />
-                {t('selectForm')}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {forms.map((form) => (
-                  <Card
-                    key={form.id}
-                    className={`cursor-pointer transition-all ${
-                      selectedForm?.id === form.id
-                        ? 'ring-2 ring-primary'
-                        : 'hover:shadow-md'
-                    }`}
-                    onClick={() => handleFormSelect(form)}
-                  >
-                    <CardContent className="p-4">
-                      <h3 className="font-medium">{form.title}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {Array.isArray(form.data) ? form.data.length : 0} {t('fields')}
-                      </p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
               <div className="mt-6 flex justify-between">
-                <Button onClick={() => setCurrentStep('product')} variant="outline">
+                <Button onClick={() => setCurrentStep('form')} variant="outline">
                   {t('back')}
                 </Button>
-                {selectedForm && (
+                {selectedProduct && (
                   <Button onClick={proceedToSettings}>
-                    {t('saveAndContinue')}
+                    {t('next')}
                   </Button>
                 )}
               </div>
             </CardContent>
           </Card>
         )}
+
 
         {currentStep === 'settings' && selectedProduct && selectedForm && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
