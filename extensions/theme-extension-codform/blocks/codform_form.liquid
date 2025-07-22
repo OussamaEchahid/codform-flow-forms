@@ -379,22 +379,9 @@ document.addEventListener('DOMContentLoaded', function() {
         return false;
       }
 
-      // تحويل البيانات إذا كانت بالتنسيق الجديد
-      if (formData.fields && !formData.data) {
-        console.log("🔄 Converting new format to expected format. Original fields:", formData.fields);
-        formData = {
-          ...formData,
-          data: [{
-            id: "1",
-            title: "Main Step",
-            fields: formData.fields
-          }]
-        };
-        console.log("✅ Conversion completed. New data:", formData.data);
-      }
-
+      // التحقق من صحة بيانات النموذج
       if (!formData.data || !Array.isArray(formData.data) || formData.data.length === 0) {
-        console.error("❌ Invalid form data structure after conversion:", JSON.stringify(formData, null, 2));
+        console.error("❌ Invalid form data structure:", formData);
         container.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">خطأ في تحميل النموذج - بنية البيانات غير صحيحة</div>';
         return false;
       }
@@ -1034,25 +1021,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 renderQuantityOffers([data.quantity_offers]);
               }
               
-              // تحويل البيانات من التنسيق الجديد إلى التنسيق المتوقع
-              let formData = data.form;
-              console.log("🔄 Processing API response. Original form data:", JSON.stringify(formData, null, 2));
-              
-              // إذا كانت البيانات بالتنسيق الجديد (fields مباشرة)
-              if (formData.fields && !formData.data) {
-                console.log("🔄 Converting API response from new format to expected format");
-                formData = {
-                  ...formData,
-                  data: [{
-                    id: "1",
-                    title: "Main Step", 
-                    fields: formData.fields
-                  }]
-                };
-                // حذف الـ fields القديمة لتجنب التضارب
-                delete formData.fields;
-                console.log("✅ Converted API response to expected format:", JSON.stringify(formData, null, 2));
-              }
+              // استخدام بيانات النموذج مباشرة من API
+              const formData = data.form;
+              console.log("📝 Processing API response. Form data:", formData);
               
               renderFormData(formData);
             } else if (data && data.success === false) {

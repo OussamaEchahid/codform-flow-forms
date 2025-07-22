@@ -222,13 +222,17 @@ serve(async (req) => {
     // Fetch quantity offers for this form and product
     const quantityOffers = await getQuantityOffers(formId);
 
-    // Build response
+    // Build response in expected format
     const response = {
       success: true,
       form: {
         id: formData.id,
         title: formData.title,
-        fields: fields,
+        data: [{
+          id: "1",
+          title: "Main Step",
+          fields: fields
+        }],
         style: formData.style || {},
         shop_id: formData.shop_id,
         country: formData.country || 'SA',
