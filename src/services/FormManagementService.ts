@@ -41,7 +41,21 @@ export class FormManagementService {
 
   // Get current active shop ID
   private getActiveShopId(): string | null {
-    return localStorage.getItem('simple_active_store') || localStorage.getItem('shopify_store');
+    const activeStore = localStorage.getItem('simple_active_store') || 
+                       localStorage.getItem('shopify_store') ||
+                       localStorage.getItem('active_shop');
+    
+    console.log('🏪 Active shop ID from localStorage:', activeStore);
+    
+    // Clean the domain if it contains protocol or .myshopify.com
+    if (activeStore) {
+      let cleanDomain = activeStore.replace(/^https?:\/\//, '');
+      cleanDomain = cleanDomain.replace(/\.myshopify\.com$/, '');
+      console.log('🧹 Cleaned shop domain:', cleanDomain);
+      return cleanDomain;
+    }
+    
+    return null;
   }
 
   // Fetch all forms from database
