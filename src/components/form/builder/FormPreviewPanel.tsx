@@ -8,17 +8,38 @@ import { ChevronLeft, ChevronRight, Eye, Share2, ExternalLink } from 'lucide-rea
 import { toast } from 'sonner';
 import FormFieldComponent from '../preview/FormField';
 import { useShopify } from '@/hooks/useShopify';
-import { useFormStore } from '@/hooks/useFormStore';
 
-interface FormPreviewPanelProps {}
+interface FormPreviewPanelProps {
+  formId?: string;
+  formTitle: string;
+  formDescription?: string;
+  currentStep: number;
+  totalSteps: number;
+  formStyle: any;
+  fields: FormField[];
+  onPreviousStep: () => void;
+  onNextStep: () => void;
+  refreshKey: number;
+  onStyleChange: (style: any) => void;
+  formCountry?: string;
+  formPhonePrefix?: string;
+}
 
-const FormPreviewPanel: React.FC<FormPreviewPanelProps> = () => {
-  const { title: formTitle, description: formDescription, steps, style: formStyle, country, phonePrefix } = useFormStore();
-  const currentStep = 1;
-  const totalSteps = steps.length || 1;
-  const fields = steps.length > 0 ? steps[0].fields : [];
-  const formId = '';
-  const refreshKey = 0;
+const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
+  formId,
+  formTitle,
+  formDescription,
+  currentStep,
+  totalSteps,
+  formStyle,
+  fields,
+  onPreviousStep,
+  onNextStep,
+  refreshKey,
+  onStyleChange,
+  formCountry = 'SA',
+  formPhonePrefix = '+966'
+}) => {
   const { language } = useI18n();
   const { shop } = useShopify();
   const [formData, setFormData] = useState<Record<string, any>>({});
@@ -28,7 +49,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!shop) {
+    if (!formId || !shop) {
       toast.error(language === 'ar' ? 'معلومات النموذج غير مكتملة' : 'Form information incomplete');
       return;
     }
@@ -141,8 +162,8 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = () => {
                 <FormFieldComponent
                   field={field}
                   formStyle={formStyle}
-                  formCountry={country || 'SA'}
-                  formPhonePrefix={phonePrefix || '+966'}
+                  formCountry={formCountry}
+                  formPhonePrefix={formPhonePrefix}
                   value={formData[field.id]}
                   onChange={(value) => handleInputChange(field.id, value)}
                 />

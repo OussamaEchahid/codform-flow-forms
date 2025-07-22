@@ -1,23 +1,23 @@
-
 import { useState, useEffect, useCallback } from 'react';
-import { useShopify } from '@/hooks/useShopify';
+import { useFormStore, FormStyle } from '@/hooks/useFormStore';
+import { useAuth } from '@/lib/auth';
+import { toast } from 'sonner';
+import { FormField, FormStep } from '@/lib/form-utils';
 import { supabase } from '@/integrations/supabase/client';
-import { FormStep } from '@/lib/form-utils';
-import { FormStyle } from '@/hooks/useFormStore';
-import { getActiveShopId } from '@/utils/shop-utils';
+import { v4 as uuidv4 } from 'uuid';
+import { formManagementService } from '@/services/FormManagementService';
 
+// Export FormData interface
 export interface FormData {
   id: string;
   title: string;
   description?: string;
   data: FormStep[];
-  style?: FormStyle;
-  isPublished: boolean;
-  is_published?: boolean; // For database compatibility
+  isPublished?: boolean;
+  is_published?: boolean;
   shop_id?: string;
-  user_id?: string;
   created_at?: string;
-  updated_at?: string;
+  style?: FormStyle;
   country?: string;
   currency?: string;
   phone_prefix?: string;
@@ -28,201 +28,537 @@ export interface FormData {
   }>;
 }
 
-export const useFormTemplates = () => {
-  const [forms, setForms] = useState<FormData[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const { shop } = useShopify();
+export interface FormTemplate {
+  id: number;
+  title: string;
+  description: string;
+  primaryColor: string;
+  data: FormStep[];
+}
 
-  // Get current active shop ID from utils
-  const getCurrentShopId = () => {
-    return shop || getActiveShopId();
+export const useFormTemplates = () => {
+  const { setFormState } = useFormStore();
+  const { user, shop } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  const [forms, setForms] = useState<FormData[]>([]);
+  const [isCreatingForm, setIsCreatingForm] = useState(false);
+  const [offlineMode, setOfflineMode] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+
+  // Get current active shop ID from localStorage if not available in context
+  const getActiveShopId = () => {
+    return shop || localStorage.getItem('simple_active_store') || localStorage.getItem('shopify_store') || localStorage.getItem('active_shop');
   };
 
   // Track current shop to trigger refetch when it changes
-  const [currentShop, setCurrentShop] = useState<string | null>(getCurrentShopId());
+  const [currentShop, setCurrentShop] = useState<string | null>(null);
 
+  // Fetch all forms using the service
   const fetchForms = useCallback(async () => {
-    const shopId = getCurrentShopId();
-    
-    if (!shopId) {
-      console.error('❌ useFormTemplates: No active shop ID found');
-      setError('لم يتم العثور على متجر نشط');
-      setIsLoading(false);
-      return;
-    }
-
     try {
-      console.log(`🔍 useFormTemplates: Fetching forms for shop: ${shopId}`);
       setIsLoading(true);
-      setError(null);
-
-      const { data, error: fetchError } = await supabase
-        .from('forms')
-        .select('*')
-        .eq('shop_id', shopId)
-        .order('created_at', { ascending: false });
-
-      if (fetchError) {
-        console.error('❌ useFormTemplates: Error fetching forms:', fetchError);
-        throw fetchError;
+      setOfflineMode(false);
+      
+      const fetchedForms = await formManagementService.fetchForms();
+      setForms(fetchedForms);
+      setRetryCount(0);
+      
+      console.log(`✅ تم جلب ${fetchedForms.length} نموذج بنجاح`);
+    } catch (error) {
+      console.error('خطأ في جلب النماذج:', error);
+      setOfflineMode(true);
+      setRetryCount(prev => prev + 1);
+      
+      // Try to load cached forms as fallback
+      const cachedForms = localStorage.getItem('cached_forms');
+      if (cachedForms) {
+        try {
+          const parsedForms = JSON.parse(cachedForms);
+          if (Array.isArray(parsedForms) && parsedForms.length > 0) {
+            setForms(parsedForms);
+            toast.warning('جاري استخدام النماذج المخزنة محليًا، قد لا تكون محدثة');
+          }
+        } catch (e) {
+          console.error('Error parsing cached forms:', e);
+        }
       }
-
-      // Transform data to match FormData interface
-      const formattedData: FormData[] = (data || []).map(form => ({
-        ...form,
-        data: Array.isArray(form.data) ? form.data as unknown as FormStep[] : [],
-        style: (form.style as unknown as FormStyle) || undefined,
-        isPublished: form.is_published
-      }));
-
-      console.log(`✅ useFormTemplates: Found ${formattedData.length} forms for shop: ${shopId}`);
-      setForms(formattedData);
-    } catch (err) {
-      console.error('❌ useFormTemplates: Failed to fetch forms:', err);
-      setError(err instanceof Error ? err.message : 'خطأ في جلب النماذج');
+      
+      if (!cachedForms) {
+        toast.error('تعذر الاتصال بالخادم وعدم وجود نماذج مخزنة محليًا');
+      }
     } finally {
       setIsLoading(false);
     }
-  }, [shop]);
+  }, []);
 
-  // Refetch when shop changes
+  // Watch for shop changes and refetch forms
   useEffect(() => {
-    const newShopId = getCurrentShopId();
-    if (newShopId !== currentShop) {
-      console.log(`🔄 useFormTemplates: Shop changed from ${currentShop} to ${newShopId}`);
-      setCurrentShop(newShopId);
+    const activeShop = getActiveShopId();
+    
+    if (activeShop !== currentShop) {
+      console.log(`🔄 تغيير المتجر من ${currentShop} إلى ${activeShop} - إعادة جلب النماذج`);
+      setCurrentShop(activeShop);
+      
+      if (activeShop) {
+        // Clear current forms before fetching new ones
+        setForms([]);
+        fetchForms();
+      } else {
+        // No active shop, clear forms
+        setForms([]);
+      }
+    }
+  }, [currentShop, fetchForms]);
+
+  // Initial load
+  useEffect(() => {
+    const activeShop = getActiveShopId();
+    if (activeShop && !currentShop) {
+      setCurrentShop(activeShop);
       fetchForms();
     }
-  }, [shop, currentShop, fetchForms]);
+  }, [fetchForms, currentShop]);
 
-  // Initial fetch
-  useEffect(() => {
-    fetchForms();
-  }, [fetchForms]);
-
-  const addForm = (newForm: FormData) => {
-    console.log(`➕ useFormTemplates: Adding form ${newForm.id} to local state`);
-    setForms(prevForms => [newForm, ...prevForms]);
-  };
-
-  const updateForm = (updatedForm: FormData) => {
-    console.log(`🔄 useFormTemplates: Updating form ${updatedForm.id} in local state`);
-    setForms(prevForms => 
-      prevForms.map(form => 
-        form.id === updatedForm.id ? updatedForm : form
-      )
-    );
-  };
-
-  const removeForm = (formId: string) => {
-    console.log(`🗑️ useFormTemplates: Removing form ${formId} from local state`);
-    setForms(prevForms => prevForms.filter(form => form.id !== formId));
-  };
-
-  const saveForm = async (formId: string, formData: Partial<FormData>) => {
-    const shopId = getCurrentShopId();
-    if (!shopId) {
-      console.error('❌ useFormTemplates: No active shop ID found for save');
-      return false;
-    }
-
+  // Create a form from template
+  const createFormFromTemplate = async (templateId: number) => {
     try {
-      const { error } = await supabase
-        .from('forms')
-        .update({
-          title: formData.title,
-          description: formData.description,
-          data: formData.data as any
-        })
-        .eq('id', formId)
-        .eq('shop_id', shopId);
-
-      if (error) throw error;
+      setIsLoading(true);
+      const template = formTemplates.find(t => t.id === templateId);
+      const shopId = getActiveShopId();
       
-      // Update local state
-      if (formData.title || formData.description || formData.data) {
-        setForms(prevForms => 
-          prevForms.map(form => 
-            form.id === formId ? { ...form, ...formData } : form
-          )
-        );
+      if (!template) {
+        toast.error('لم يتم العثور على القالب');
+        return null;
       }
       
-      return true;
-    } catch (error) {
-      console.error('❌ useFormTemplates: Error saving form:', error);
-      return false;
-    }
-  };
+      if (!shopId) {
+        console.error('No active shop ID found');
+        toast.error('لم يتم العثور على متجر نشط');
+        return null;
+      }
 
-  const publishForm = async (formId: string, isPublished: boolean) => {
-    const shopId = getCurrentShopId();
-    if (!shopId) {
-      console.error('❌ useFormTemplates: No active shop ID found for publish');
-      return false;
-    }
+      // New form data
+      const newFormId = uuidv4();
+      const formData: FormData = {
+        id: newFormId,
+        title: template.title,
+        description: template.description,
+        data: template.data,
+        isPublished: false,
+        shop_id: shopId,
+      };
 
-    try {
+      // Insert into Supabase
       const { error } = await supabase
         .from('forms')
-        .update({ is_published: isPublished })
-        .eq('id', formId)
-        .eq('shop_id', shopId);
+        .insert({
+          id: newFormId,
+          title: template.title,
+          description: template.description,
+          data: template.data as any,
+          is_published: false,
+          shop_id: shopId,
+          user_id: user?.id || 'anonymous'
+        });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error saving form to database:', error);
+        toast.error('خطأ في حفظ النموذج في قاعدة البيانات');
+        return null;
+      }
+
+      setFormState(formData);
+      toast.success(`تم إنشاء نموذج من قالب ${template.title}`);
       
-      // Update local state
-      setForms(prevForms => 
-        prevForms.map(form => 
-          form.id === formId ? { ...form, isPublished } : form
-        )
-      );
+      // Refresh forms list immediately
+      await fetchForms();
       
-      return true;
+      return formData;
     } catch (error) {
-      console.error('❌ useFormTemplates: Error publishing form:', error);
-      return false;
+      console.error('Error creating form from template', error);
+      toast.error('خطأ في إنشاء نموذج من قالب');
+      return null;
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  // Helper function to create default form fields
+  const createCompleteDefaultFormFields = (language = 'ar'): FormField[] => {
+    const defaultFields: FormField[] = [];
+    
+    // Add form title field
+    defaultFields.push({
+      type: 'form-title',
+      id: uuidv4(),
+      label: language === 'ar' ? 'نموذج جديد' : 'New Form',
+      helpText: language === 'ar' ? 'نموذج جديد' : 'New Form',
+      style: {
+        color: '#000000',
+        textAlign: language === 'ar' ? 'right' : 'left',
+        fontWeight: 'bold',
+        fontSize: '24px',
+        descriptionColor: '#000000',
+        descriptionFontSize: '14px',
+        backgroundColor: 'transparent',
+      }
+    });
+    
+    // Add name field
+    defaultFields.push({
+      type: 'text',
+      id: uuidv4(),
+      label: language === 'ar' ? 'الاسم الكامل' : 'Full name',
+      placeholder: language === 'ar' ? 'أدخل الاسم الكامل' : 'Enter full name',
+      required: true,
+      icon: 'user',
+    });
+    
+    // Add phone field
+    defaultFields.push({
+      type: 'phone',
+      id: uuidv4(),
+      label: language === 'ar' ? 'رقم الهاتف' : 'Phone number',
+      placeholder: language === 'ar' ? 'أدخل رقم الهاتف' : 'Enter phone number',
+      required: true,
+      icon: 'phone',
+    });
+    
+    // Add address field
+    defaultFields.push({
+      type: 'textarea',
+      id: uuidv4(),
+      label: language === 'ar' ? 'العنوان' : 'Address',
+      placeholder: language === 'ar' ? 'أدخل العنوان الكامل' : 'Enter full address',
+      required: true,
+    });
+    
+    // Add submit button
+    defaultFields.push({
+      type: 'submit',
+      id: uuidv4(),
+      label: language === 'ar' ? 'إرسال الطلب' : 'Submit Order',
+      style: {
+        backgroundColor: '#9b87f5',
+        color: '#ffffff',
+        fontSize: '18px',
+        animation: true,
+        animationType: 'pulse',
+      },
+    });
+    
+    return defaultFields;
+  };
+
+  // Create a default form
+  const createDefaultForm = async () => {
+    try {
+      if (isCreatingForm) {
+        console.log('Already creating a form, preventing duplicate creation');
+        return null;
+      }
+      
+      setIsCreatingForm(true);
+      setIsLoading(true);
+      
+      const shopId = getActiveShopId();
+      
+      if (!shopId) {
+        console.error('No active shop ID found');
+        toast.error('لم يتم العثور على متجر نشط');
+        return null;
+      }
+
+      const newFormId = uuidv4();
+      console.log('Creating new form with ID:', newFormId);
+      
+      const currentLanguage = document.documentElement.lang || 'ar';
+      const completeFields = createCompleteDefaultFormFields(currentLanguage);
+      
+      // Prepare the form data
+      const formData: FormData = {
+        id: newFormId,
+        title: currentLanguage === 'ar' ? 'نموذج جديد' : 'New Form',
+        description: currentLanguage === 'ar' ? 'نموذج جديد' : 'New Form',
+        data: [{ 
+          id: '1', 
+          title: 'Main Step',
+          fields: completeFields
+        }],
+        isPublished: false,
+        shop_id: shopId,
+      };
+      
+      // Insert the form into database
+      const { error } = await supabase
+        .from('forms')
+        .insert({
+          id: newFormId,
+          title: formData.title,
+          description: formData.description,
+          data: formData.data as any,
+          is_published: false,
+          shop_id: shopId,
+          user_id: user?.id || 'anonymous'
+        });
+      
+      if (error) {
+        console.error('Error saving form to database:', error);
+        toast.error('خطأ في حفظ النموذج في قاعدة البيانات');
+        return null;
+      }
+
+      setFormState(formData);
+      toast.success('تم إنشاء نموذج جديد');
+      
+      // Refresh forms list immediately
+      await fetchForms();
+      
+      return formData;
+    } catch (error) {
+      console.error('Error creating default form', error);
+      toast.error('خطأ في إنشاء نموذج جديد');
+      return null;
+    } finally {
+      setIsLoading(false);
+      setIsCreatingForm(false);
+    }
+  };
+
+  // Save form changes using the service
+  const saveForm = async (formId: string, formData: Partial<FormData>) => {
+    try {
+      setIsLoading(true);
+      const updatedForm = await formManagementService.saveForm(formId, formData);
+      
+      if (updatedForm) {
+        // Update local state with the fresh data from database
+        setForms(prevForms => 
+          prevForms.map(form => 
+            form.id === formId ? updatedForm : form
+          )
+        );
+        
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Publish or unpublish a form using the service
+  const publishForm = async (formId: string, publish: boolean) => {
+    try {
+      setIsLoading(true);
+      const updatedForm = await formManagementService.toggleFormPublication(formId, publish);
+      
+      if (updatedForm) {
+        // Re-fetch all forms from database to ensure consistency
+        await fetchForms();
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Delete a form using the service
   const deleteForm = async (formId: string) => {
-    const shopId = getCurrentShopId();
-    if (!shopId) {
-      console.error('❌ useFormTemplates: No active shop ID found for delete');
-      return false;
-    }
-
     try {
-      const { error } = await supabase
-        .from('forms')
-        .delete()
-        .eq('id', formId)
-        .eq('shop_id', shopId);
-
-      if (error) throw error;
+      setIsLoading(true);
+      const success = await formManagementService.deleteForm(formId);
       
-      // Update local state
-      removeForm(formId);
+      if (success) {
+        // Remove from local state immediately
+        setForms(prevForms => prevForms.filter(form => form.id !== formId));
+        return true;
+      }
       
-      return true;
-    } catch (error) {
-      console.error('❌ useFormTemplates: Error deleting form:', error);
       return false;
+    } catch (error) {
+      return false;
+    } finally {
+      setIsLoading(false);
     }
   };
-
+  
+  // Load a specific form by ID using the service
+  const loadForm = async (formId: string | undefined) => {
+    try {
+      setIsLoading(true);
+      
+      if (!formId || formId === 'new') {
+        return null;
+      }
+      
+      const formData = await formManagementService.loadForm(formId);
+      
+      if (formData) {
+        setFormState(formData);
+        return formData;
+      }
+      
+      return null;
+    } catch (error) {
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
   return {
     forms,
     isLoading,
-    error,
-    refetch: fetchForms,
+    offlineMode,
+    retryCount,
     fetchForms,
-    addForm,
-    updateForm,
-    removeForm,
+    createFormFromTemplate,
+    createDefaultForm,
     saveForm,
     publishForm,
-    deleteForm
+    deleteForm,
+    loadForm
   };
 };
+
+// Update the template data to use id as string instead of number
+export const formTemplates: FormTemplate[] = [
+  {
+    id: 1,
+    title: 'Cash on Delivery Form',
+    description: 'A simple form to collect customer information for cash on delivery orders.',
+    primaryColor: '#9b87f5',
+    data: [
+      {
+        id: '1', // Changed from number to string
+        title: 'Customer Information',
+        fields: [
+          {
+            id: 'name',
+            type: 'text',
+            label: 'Full Name',
+            required: true,
+            placeholder: 'Enter your full name'
+          },
+          {
+            id: 'phone',
+            type: 'phone',
+            label: 'Phone Number',
+            required: true,
+            placeholder: 'Enter your phone number'
+          },
+          {
+            id: 'address',
+            type: 'textarea',
+            label: 'Address',
+            required: true,
+            placeholder: 'Enter your full address'
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: 2,
+    title: 'Contact Form',
+    description: 'A basic contact form to collect customer inquiries.',
+    primaryColor: '#6adbb8',
+    data: [
+      {
+        id: '1', // Changed from number to string
+        title: 'Contact Details',
+        fields: [
+          {
+            id: 'name',
+            type: 'text',
+            label: 'Your Name',
+            required: true,
+            placeholder: 'Enter your name'
+          },
+          {
+            id: 'email',
+            type: 'text',
+            label: 'Your Email',
+            required: true,
+            placeholder: 'Enter your email address'
+          },
+          {
+            id: 'message',
+            type: 'textarea',
+            label: 'Message',
+            required: true,
+            placeholder: 'Enter your message'
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: 3,
+    title: 'Event Registration Form',
+    description: 'A form to register participants for an event.',
+    primaryColor: '#f0b34c',
+    data: [
+      {
+        id: '1', // Changed from number to string
+        title: 'Personal Information',
+        fields: [
+          {
+            id: 'name',
+            type: 'text',
+            label: 'Full Name',
+            required: true,
+            placeholder: 'Enter your full name'
+          },
+          {
+            id: 'email',
+            type: 'text',
+            label: 'Email Address',
+            required: true,
+            placeholder: 'Enter your email address'
+          },
+          {
+            id: 'phone',
+            type: 'phone',
+            label: 'Phone Number',
+            required: false,
+            placeholder: 'Enter your phone number'
+          }
+        ]
+      },
+      {
+        id: '2', // Changed from number to string
+        title: 'Event Details',
+        fields: [
+          {
+            id: 'event_date',
+            type: 'text',
+            label: 'Event Date',
+            required: true,
+            placeholder: 'Enter the event date'
+          },
+          {
+            id: 'interests',
+            type: 'checkbox',
+            label: 'Areas of Interest',
+            required: false,
+            options: [
+              { value: 'option1', label: 'Option 1' },
+              { value: 'option2', label: 'Option 2' },
+              { value: 'option3', label: 'Option 3' },
+              { value: 'option4', label: 'Option 4' }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+];

@@ -1,10 +1,13 @@
+// نظام إدارة المتاجر المبسط
+// لا cache، لا recovery، لا تعقيدات - فقط storage بسيط
 
 import { cleanShopifyDomain } from './types';
-import { setActiveShop, getActiveShopId, getActiveShopInfo } from '@/utils/shop-utils';
 
 class SimpleShopifyConnectionManager {
+  private readonly ACTIVE_STORE_KEY = 'simple_active_store';
+  
   /**
-   * Set the active store using centralized utility
+   * تحديد المتجر النشط
    */
   public setActiveStore(domain: string): void {
     try {
@@ -14,8 +17,17 @@ class SimpleShopifyConnectionManager {
         return;
       }
       
-      console.log(`🔄 SimpleShopifyConnectionManager: Setting active store: ${cleanedDomain}`);
-      setActiveShop(cleanedDomain);
+      console.log(`🔄 Setting active store: ${cleanedDomain}`);
+      
+      // مسح جميع البيانات القديمة
+      this.clearAllData();
+      
+      // تحديد المتجر الجديد
+      localStorage.setItem(this.ACTIVE_STORE_KEY, cleanedDomain);
+      localStorage.setItem('shopify_store', cleanedDomain);
+      localStorage.setItem('shopify_connected', 'true');
+      
+      console.log(`✅ Active store set: ${cleanedDomain}`);
       
     } catch (error) {
       console.error('Error setting active store:', error);
@@ -23,11 +35,11 @@ class SimpleShopifyConnectionManager {
   }
   
   /**
-   * Get the active store using centralized utility
+   * الحصول على المتجر النشط
    */
   public getActiveStore(): string | null {
     try {
-      return getActiveShopId();
+      return localStorage.getItem(this.ACTIVE_STORE_KEY);
     } catch (error) {
       console.error('Error getting active store:', error);
       return null;
@@ -35,7 +47,7 @@ class SimpleShopifyConnectionManager {
   }
   
   /**
-   * Check if connected using centralized utility
+   * التحقق من وجود اتصال
    */
   public isConnected(): boolean {
     const activeStore = this.getActiveStore();
@@ -44,11 +56,11 @@ class SimpleShopifyConnectionManager {
   }
   
   /**
-   * Disconnect completely
+   * قطع الاتصال نهائياً
    */
   public disconnect(): void {
     try {
-      console.log('🔌 SimpleShopifyConnectionManager: Disconnecting from all stores...');
+      console.log('🔌 Disconnecting from all stores...');
       this.clearAllData();
       console.log('✅ Disconnected successfully');
     } catch (error) {
@@ -57,16 +69,15 @@ class SimpleShopifyConnectionManager {
   }
   
   /**
-   * Clear all data
+   * مسح جميع البيانات
    */
   private clearAllData(): void {
     try {
-      // List of all Shopify keys
+      // قائمة بجميع مفاتيح Shopify
       const shopifyKeys = [
-        'simple_active_store',
+        this.ACTIVE_STORE_KEY,
         'shopify_store',
         'shopify_connected',
-        'active_shop',
         'shopify_active_store',
         'shopify_stores',
         'shopify_connected_stores',
@@ -81,12 +92,12 @@ class SimpleShopifyConnectionManager {
         'shopify_recovery_attempt'
       ];
       
-      // Clear specified keys
+      // مسح المفاتيح المحددة
       shopifyKeys.forEach(key => {
         localStorage.removeItem(key);
       });
       
-      // Clear any other keys that start with shopify_
+      // مسح أي مفاتيح أخرى تبدأ بـ shopify_
       Object.keys(localStorage).forEach(key => {
         if (key.startsWith('shopify_') && 
             !key.includes('user') && 
@@ -101,18 +112,15 @@ class SimpleShopifyConnectionManager {
   }
   
   /**
-   * Get debug information
+   * الحصول على معلومات التصحيح
    */
   public getDebugInfo(): any {
-    const shopInfo = getActiveShopInfo();
     return {
-      activeStore: shopInfo.shopId,
-      source: shopInfo.source,
+      activeStore: this.getActiveStore(),
       isConnected: this.isConnected(),
       localStorageData: {
-        simple_active_store: localStorage.getItem('simple_active_store'),
+        simple_active_store: localStorage.getItem(this.ACTIVE_STORE_KEY),
         shopify_store: localStorage.getItem('shopify_store'),
-        active_shop: localStorage.getItem('active_shop'),
         shopify_connected: localStorage.getItem('shopify_connected')
       }
     };

@@ -19,25 +19,16 @@ export interface FormStyle {
   floatingLabels?: boolean;
 }
 
-export interface FormStep {
-  id: string;
-  title: string;
-  fields: any[];
-}
-
 export interface FormState {
   id: string;
   title: string;
   description?: string;
-  data: FormStep[];
+  data: any[];
   isPublished: boolean;
   shop_id?: string;
   created_at?: string;
   updated_at?: string;
   style?: FormStyle;
-  country?: string;
-  currency?: string;
-  phonePrefix?: string;
 }
 
 interface FormStore {
@@ -47,26 +38,6 @@ interface FormStore {
   
   // Add custom method to update form style to prevent reference issues
   updateFormStyle: (styleUpdates: Partial<FormStyle>) => void;
-  
-  // Individual getters and setters
-  title: string;
-  description?: string;
-  steps: FormStep[];
-  style?: FormStyle;
-  isPublished: boolean;
-  country?: string;
-  currency?: string;
-  phonePrefix?: string;
-  
-  setTitle: (title: string) => void;
-  setDescription: (description: string) => void;
-  setSteps: (steps: FormStep[]) => void;
-  setStyle: (style: FormStyle) => void;
-  setIsPublished: (isPublished: boolean) => void;
-  setCountry: (country: string) => void;
-  setCurrency: (currency: string) => void;
-  setPhonePrefix: (phonePrefix: string) => void;
-  resetForm: () => void;
 }
 
 // Default styles - UNIFIED FONT SIZE DEFAULTS
@@ -98,53 +69,8 @@ const defaultFormState: FormState = {
   style: { ...defaultFormStyle }
 };
 
-export const useFormStore = create<FormStore>((set, get) => ({
+export const useFormStore = create<FormStore>((set) => ({
   formState: {...defaultFormState},
-  
-  // Getters
-  get title() { return get().formState.title; },
-  get description() { return get().formState.description; },
-  get steps() { return get().formState.data; },
-  get style() { return get().formState.style; },
-  get isPublished() { return get().formState.isPublished; },
-  get country() { return get().formState.country; },
-  get currency() { return get().formState.currency; },
-  get phonePrefix() { return get().formState.phonePrefix; },
-  
-  // Setters
-  setTitle: (title) => set((state) => ({
-    formState: { ...state.formState, title }
-  })),
-  
-  setDescription: (description) => set((state) => ({
-    formState: { ...state.formState, description }
-  })),
-  
-  setSteps: (steps) => set((state) => ({
-    formState: { ...state.formState, data: steps }
-  })),
-  
-  setStyle: (style) => set((state) => ({
-    formState: { ...state.formState, style }
-  })),
-  
-  setIsPublished: (isPublished) => set((state) => ({
-    formState: { ...state.formState, isPublished }
-  })),
-  
-  setCountry: (country) => set((state) => ({
-    formState: { ...state.formState, country }
-  })),
-  
-  setCurrency: (currency) => set((state) => ({
-    formState: { ...state.formState, currency }
-  })),
-  
-  setPhonePrefix: (phonePrefix) => set((state) => ({
-    formState: { ...state.formState, phonePrefix }
-  })),
-  
-  resetForm: () => set({ formState: JSON.parse(JSON.stringify(defaultFormState)) }),
   
   setFormState: (form) => set((state) => {
     console.log('setFormState called with:', form);
