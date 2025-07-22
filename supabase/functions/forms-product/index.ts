@@ -106,29 +106,8 @@ serve(async (req) => {
         }
       }
       
-      console.log(`[${requestId}] 🔄 Product has no specific settings, looking for default form for shop ${shop}`);
-      
-      try {
-        const { data, error } = await supabase
-          .from('forms')
-          .select('*')
-          .eq('shop_id', shop)
-          .eq('is_published', true)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
-
-        if (error) {
-          console.log(`[${requestId}] Default form error:`, error.message);
-          return { found: false, error: error.message };
-        }
-
-        console.log(`[${requestId}] ✅ Found default form for product with no specific settings`);
-        return { found: true, formData: data };
-      } catch (error) {
-        console.log(`[${requestId}] Default form exception:`, error);
-        return { found: false, error: (error as Error).message };
-      }
+      console.log(`[${requestId}] 🔄 Product has no specific settings, returning no form`);
+      return { found: false, error: 'No product-specific association and no default forms allowed' };
     }
 
     // Function to fetch quantity offers
@@ -229,7 +208,25 @@ serve(async (req) => {
     }
 
     if (!formData) {
-      throw new Error('No forms found for this shop');
+      console.log(`[${requestId}] ❌ No form found - either no product association or product-specific form is disabled`);
+      const errorResponse = {
+        success: false,
+        error: 'No form configured for this product',
+        debug_info: debug ? {
+          shop,
+          product,
+          blockId,
+          message: 'Either no form is associated with this product, or the associated form is disabled. Please configure a form for this product in the admin panel.'
+        } : undefined
+      };
+      
+      return new Response(JSON.stringify(errorResponse), {
+        status: 404,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+        },
+      });
     }
 
     console.log(`[${requestId}] ✅ Successfully fetched ${productResult.found ? 'product-specific' : 'default'} form`);
