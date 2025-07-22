@@ -59,6 +59,8 @@ export class FormManagementService {
     }
 
     try {
+      console.log('🔍 Fetching forms for shop:', shopId);
+      
       const { data, error } = await this.fetchWithRetry(async () => {
         return await supabase
           .from('forms')
@@ -71,6 +73,8 @@ export class FormManagementService {
         console.error('Error fetching forms:', error);
         throw new Error('خطأ في جلب النماذج');
       }
+      
+      console.log(`✅ Found ${data?.length || 0} forms for shop: ${shopId}`);
       
       // Transform data to match FormData interface
       const formattedData = data.map(form => ({
