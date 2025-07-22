@@ -120,20 +120,19 @@ const QuantityOffersManager: React.FC = () => {
     try {
       console.log('🔗 Loading products for form:', formId, 'store:', currentStore);
       
-      // Get products associated with this form
+      // Get products associated with this form - Remove enabled filter as it might be causing issues
       const { data: settings, error: settingsError } = await supabase
         .from('shopify_product_settings')
         .select('product_id')
         .eq('shop_id', currentStore)
-        .eq('form_id', formId)
-        .eq('enabled', true);
+        .eq('form_id', formId);
 
       if (settingsError) {
         console.error('❌ Error loading product settings:', settingsError);
         throw settingsError;
       }
 
-      console.log('📦 Product settings found:', settings?.length || 0);
+      console.log('📦 Product settings found:', settings?.length || 0, settings);
 
       if (!settings || settings.length === 0) {
         console.log('ℹ️ No products associated with this form');
@@ -159,17 +158,17 @@ const QuantityOffersManager: React.FC = () => {
       const associatedProductIds = settings.map(s => s.product_id);
       console.log('🔗 Associated product IDs:', associatedProductIds);
       
-      // Filter products that are associated with this form
+      // Filter products that are associated with this form - Convert IDs to strings for comparison
       const formProducts = allProducts
-        .filter((product: any) => associatedProductIds.includes(product.id))
+        .filter((product: any) => associatedProductIds.includes(String(product.id)))
         .map((product: any) => ({
-          product_id: product.id,
+          product_id: String(product.id),
           product_title: product.title,
           form_id: formId,
           form_title: forms.find(f => f.id === formId)?.title || ''
         }));
 
-      console.log('✅ Associated products mapped:', formProducts.length);
+      console.log('✅ Associated products mapped:', formProducts.length, formProducts);
       setAssociatedProducts(formProducts);
 
       // Load existing quantity offers for this form

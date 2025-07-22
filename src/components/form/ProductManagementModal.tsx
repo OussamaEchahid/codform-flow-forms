@@ -118,12 +118,13 @@ const ProductManagementModal: React.FC<ProductManagementModalProps> = ({
       const shopId = cleanShopId(rawShopId);
       console.log(`🔗 ربط المنتج ${productId} بالمتجر: ${shopId}`);
 
-      // التحقق من الوجود المسبق أولاً
+      // التحقق من الوجود المسبق - تحقق أدق من نوع البيانات
       const { data: existingSettings, error: checkError } = await supabase
         .from('shopify_product_settings')
-        .select('id, form_id')
+        .select('id, form_id, product_id')
         .eq('shop_id', shopId)
-        .eq('product_id', productId);
+        .eq('product_id', String(productId))
+        .eq('form_id', formId);
 
       if (checkError) {
         console.error('❌ خطأ في التحقق من الوجود المسبق:', checkError);
@@ -131,17 +132,12 @@ const ProductManagementModal: React.FC<ProductManagementModalProps> = ({
         return;
       }
 
-      console.log('🔍 الإعدادات الموجودة:', existingSettings);
+      console.log('🔍 التحقق من الإعدادات الموجودة:', { shopId, productId: String(productId), formId, existingSettings });
 
       if (existingSettings && existingSettings.length > 0) {
-        // إذا كان المنتج مرتبط بنفس النموذج
-        if (existingSettings.some(setting => setting.form_id === formId)) {
-          toast.error('هذا المنتج مرتبط بالفعل بهذا النموذج');
-          setLinkedProducts(prev => new Set([...prev, productId]));
-          return;
-        }
-        // إذا كان المنتج مرتبط بنموذج آخر
-        toast.error('هذا المنتج مرتبط بالفعل بنموذج آخر في هذا المتجر');
+        console.log('⚠️ المنتج مرتبط بالفعل');
+        toast.error('هذا المنتج مرتبط بالفعل بهذا النموذج');
+        setLinkedProducts(prev => new Set([...prev, productId]));
         return;
       }
 
