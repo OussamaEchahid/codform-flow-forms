@@ -162,9 +162,9 @@ const QuantityOffers = () => {
   }));
 
   // Get products associated with the selected form only
-  const products = selectedForm ? allProducts.filter(product => 
+  const products = selectedForm && associatedProductIds.length > 0 ? allProducts.filter(product => 
     associatedProductIds.includes(product.id)
-  ) : allProducts;
+  ) : [];
 
   // Load products associated with a specific form from shopify_product_settings table
   const loadFormProducts = async (formId: string) => {
