@@ -44,28 +44,53 @@
       console.log("❌ Unexpected data structure:", typeof quantityOffersData);
       return false;
     }
+    
+    // تحويل قيمة position للصيغة المناسبة للـ DOM ID
+    const positionMap = {
+      'before_form': 'before',
+      'inside_form': 'inside',
+      'after_form': 'after'
+    };
+    
+    const containerPosition = positionMap[position] || 'before';
 
     if (!offers.length) {
       console.log("❌ No offers found in data");
       return false;
     }
 
-    // البحث عن الحاوي بطرق متعددة
-    let container = document.getElementById(`quantity-offers-${position}-${blockId}`);
+    // البحث عن الحاوي المحدد حسب الموضع
+    console.log(`🔍 Looking for container with position: ${containerPosition} (from ${position})`);
+    let container = document.getElementById(`quantity-offers-${containerPosition}-${blockId}`);
     
+    // إذا لم نجد الحاوي المطلوب، نختار حاوي بديل ونطبع تحذير
     if (!container) {
-      console.warn("❌ Primary container not found, searching alternatives...");
-      // البحث بطرق بديلة
+      console.warn(`❌ Container for position ${containerPosition} not found, searching alternatives...`);
+      
+      // محاولة العثور على حاوي بديل
       const alternativeSelectors = [
         `quantity-offers-before-${blockId}`,
-        `quantity-offers-after-${blockId}`,
-        `quantity-offers-inside-${blockId}`
+        `quantity-offers-inside-${blockId}`,
+        `quantity-offers-after-${blockId}`
       ];
       
       for (const selector of alternativeSelectors) {
-        container = document.getElementById(selector);
-        if (container) {
-          console.log("✅ Found alternative container:", selector);
+        const altContainer = document.getElementById(selector);
+        if (altContainer) {
+          console.log(`✅ Found alternative container: ${selector}`);
+          
+          // حذف أي عروض موجودة في الحاويات الأخرى لتجنب التكرار
+          alternativeSelectors.forEach(otherSelector => {
+            if (otherSelector !== selector) {
+              const otherContainer = document.getElementById(otherSelector);
+              if (otherContainer) {
+                otherContainer.innerHTML = '';
+                otherContainer.style.display = 'none';
+              }
+            }
+          });
+          
+          container = altContainer;
           break;
         }
       }
@@ -370,6 +395,21 @@
       if (data.quantity_offers && data.quantity_offers.offers && data.quantity_offers.offers.length > 0) {
         console.log("🎁 Processing quantity offers with", data.quantity_offers.offers.length, "offers");
         
+        // تنظيف جميع الحاويات أولا لتجنب العرض المزدوج
+        const containers = [
+          document.getElementById(`quantity-offers-before-${blockId}`),
+          document.getElementById(`quantity-offers-inside-${blockId}`),
+          document.getElementById(`quantity-offers-after-${blockId}`)
+        ];
+        
+        containers.forEach(container => {
+          if (container) {
+            container.innerHTML = '';
+            container.style.display = 'none';
+          }
+        });
+        
+        // عرض العروض في الموضع المحدد
         const offersDisplayed = displayQuantityOffers(data.quantity_offers, blockId, productId);
         
         if (offersDisplayed) {
