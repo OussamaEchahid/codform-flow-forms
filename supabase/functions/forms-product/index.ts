@@ -22,14 +22,28 @@ serve(async (req) => {
     
     const url = new URL(req.url);
     const shop = url.searchParams.get('shop');
-    const product = url.searchParams.get('product');
+    let product = url.searchParams.get('product');
     const blockId = url.searchParams.get('blockId');
     const debug = url.searchParams.get('debug') === 'true';
     
     console.log(`[${requestId}] Parameters: shop=${shop}, product=${product}, blockId=${blockId}, debug=${debug}`);
 
-    if (!shop || !product) {
-      throw new Error('Missing required parameters: shop and product');
+    if (!shop) {
+      throw new Error('Missing required parameter: shop');
+    }
+    
+    // Extract product handle from referer URL if product is null
+    if (!product) {
+      const referer = req.headers.get('referer');
+      console.log(`[${requestId}] 🔍 Product is null, checking referer: ${referer}`);
+      
+      if (referer && referer.includes('/products/')) {
+        const matches = referer.match(/\/products\/([^?\/]+)/);
+        if (matches && matches[1]) {
+          product = matches[1];
+          console.log(`[${requestId}] ✅ Extracted product handle from referer: ${product}`);
+        }
+      }
     }
 
     // Initialize Supabase client
@@ -100,6 +114,11 @@ serve(async (req) => {
 
     // Function to fetch quantity offers
     async function getQuantityOffers(formId: string) {
+      if (!product) {
+        console.log(`[${requestId}] ⚠️ No product available, skipping quantity offers`);
+        return null;
+      }
+      
       console.log(`[${requestId}] 🎁 Fetching quantity offers for product ${product} and form ${formId}`);
       
       try {
@@ -157,13 +176,18 @@ serve(async (req) => {
       }
     }
 
-    // Try to get product-specific form first
-    const productResult = await getProductFormSettings();
-    console.log(`[${requestId}] 📋 Product settings result:`, JSON.stringify({
-      found: productResult.found,
-      formId: productResult.formId,
-      error: productResult.error
-    }, null, 2));
+    // Try to get product-specific form first (only if product is available)
+    let productResult = { found: false };
+    if (product) {
+      productResult = await getProductFormSettings();
+      console.log(`[${requestId}] 📋 Product settings result:`, JSON.stringify({
+        found: productResult.found,
+        formId: productResult.formId,
+        error: productResult.error
+      }, null, 2));
+    } else {
+      console.log(`[${requestId}] ⚠️ No product handle available, skipping product-specific form check`);
+    }
 
     let formData = null;
     let formId = null;
@@ -174,7 +198,7 @@ serve(async (req) => {
       formData = productResult.formData;
       formId = productResult.formId;
     } else {
-      console.log(`[${requestId}] ℹ️ No product-specific settings found`);
+      console.log(`[${requestId}] ℹ️ No product-specific settings found, using default form`);
       const defaultResult = await getDefaultForm();
       console.log(`[${requestId}] 📄 Default forms result:`, { found: defaultResult.found, error: defaultResult.error });
       
