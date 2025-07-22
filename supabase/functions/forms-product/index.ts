@@ -260,6 +260,12 @@ serve(async (req) => {
         phone_prefix: formData.phone_prefix || '+966'
       },
       quantity_offers: quantityOffers,
+      product: product ? {
+        id: product,
+        price: 24.95, // Default price, will be overridden by Shopify
+        currency: formData.currency || 'SAR',
+        image: null // Will be filled by frontend from Shopify
+      } : null,
       debug_info: debug ? {
         shop,
         product,

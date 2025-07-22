@@ -153,22 +153,25 @@ window.CodformQuantityOffers = (function() {
       if (realPrice && offer.discountType && offer.discountType !== 'none' && offer.discountValue > 0) {
         const currencySymbol = actualCurrency === 'MAD' ? 'د.م' : actualCurrency === 'SAR' ? 'ر.س' : actualCurrency;
         
-        let discountedPrice = realPrice;
+        let discountedPrice = realPrice * offer.quantity;
         if (offer.discountType === 'percentage') {
-          discountedPrice = realPrice - (realPrice * offer.discountValue / 100);
+          discountedPrice = (realPrice * offer.quantity) - ((realPrice * offer.quantity) * offer.discountValue / 100);
         } else if (offer.discountType === 'fixed') {
-          discountedPrice = realPrice - offer.discountValue;
+          discountedPrice = (realPrice * offer.quantity) - offer.discountValue;
         }
+        
+        const originalPrice = realPrice * offer.quantity;
         
         priceContent.style.color = styling.priceColor;
         priceContent.innerHTML = `
-          <div style="font-size: 12px; opacity: 0.6; text-decoration: line-through;">${realPrice.toFixed(2)} ${currencySymbol}</div>
+          <div style="font-size: 12px; opacity: 0.6; text-decoration: line-through;">${originalPrice.toFixed(2)} ${currencySymbol}</div>
           <div style="font-size: 16px; font-weight: bold;">${discountedPrice.toFixed(2)} ${currencySymbol}</div>
         `;
       } else if (realPrice) {
         const currencySymbol = actualCurrency === 'MAD' ? 'د.م' : actualCurrency === 'SAR' ? 'ر.س' : actualCurrency;
+        const totalPrice = realPrice * offer.quantity;
         priceContent.style.color = styling.tagColor;
-        priceContent.innerHTML = `${realPrice.toFixed(2)} ${currencySymbol}`;
+        priceContent.innerHTML = `${totalPrice.toFixed(2)} ${currencySymbol}`;
       } else {
         priceContent.textContent = 'عرض خاص';
         priceContent.style.color = styling.tagColor;
