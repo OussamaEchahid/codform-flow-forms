@@ -131,41 +131,58 @@
     offers.forEach((offer, index) => {
       console.log(`🎁 Processing offer ${index + 1}:`, offer);
       
+      const isHighlighted = index === 1; // تمييز العرض الثاني
+      
       const offerElement = document.createElement('div');
-      offerElement.className = `codform-quantity-offer-item offer-${index}`;
+      offerElement.className = `codform-quantity-offer-item offer-${index} ${isHighlighted ? 'highlighted' : ''}`;
       offerElement.style.cssText = `
-        background: ${styling.backgroundColor};
-        color: ${styling.textColor};
-        border: 2px solid ${styling.tagColor};
-        border-radius: 16px;
-        padding: 20px;
-        margin-bottom: 16px;
+        background: ${isHighlighted ? '#f0fdf4' : styling.backgroundColor || '#ffffff'};
+        color: ${styling.textColor || '#1f2937'};
+        border: 2px solid ${isHighlighted ? '#22c55e' : '#d1d5db'};
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 8px;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.12);
-        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: ${isHighlighted ? '0 4px 12px rgba(34, 197, 94, 0.15)' : '0 2px 6px rgba(0, 0, 0, 0.08)'};
+        transition: all 0.3s ease;
         cursor: pointer;
         position: relative;
         overflow: hidden;
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
+        direction: rtl;
+        text-align: right;
       `;
 
-      // تأثير hover متقدم
+      // تأثير hover مبسط ومتناسق
       offerElement.addEventListener('mouseenter', function() {
-        this.style.transform = 'translateY(-4px) scale(1.02)';
-        this.style.boxShadow = '0 16px 48px rgba(0,0,0,0.2)';
-        this.style.borderColor = styling.priceColor;
-        this.style.borderWidth = '3px';
+        this.style.transform = 'translateY(-2px)';
+        this.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.12)';
       });
 
       offerElement.addEventListener('mouseleave', function() {
-        this.style.transform = 'translateY(0) scale(1)';
-        this.style.boxShadow = '0 8px 32px rgba(0,0,0,0.12)';
-        this.style.borderColor = styling.tagColor;
-        this.style.borderWidth = '2px';
+        this.style.transform = 'translateY(0)';
+        this.style.boxShadow = isHighlighted ? '0 4px 12px rgba(34, 197, 94, 0.15)' : '0 2px 6px rgba(0, 0, 0, 0.08)';
       });
+
+      // إضافة شارة "الأكثر شعبية" للعرض المميز
+      if (isHighlighted) {
+        const popularBadge = document.createElement('div');
+        popularBadge.style.cssText = `
+          position: absolute;
+          top: 0;
+          right: 0;
+          background: linear-gradient(135deg, #22c55e, #16a34a);
+          color: white;
+          padding: 4px 12px;
+          font-size: 10px;
+          font-weight: 600;
+          border-bottom-left-radius: 8px;
+          z-index: 10;
+        `;
+        popularBadge.textContent = 'الأكثر شعبية';
+        offerElement.appendChild(popularBadge);
+      }
 
       // المحتوى الأيسر
       const leftContent = document.createElement('div');
@@ -173,27 +190,28 @@
         display: flex;
         align-items: center;
         flex: 1;
-        gap: 16px;
+        gap: 15px;
         direction: rtl;
       `;
 
-      // أيقونة العرض المحسنة
+      // أيقونة العرض المطابقة للمعاينة
       const iconElement = document.createElement('div');
       iconElement.style.cssText = `
-        width: 56px;
-        height: 56px;
-        background: linear-gradient(135deg, ${styling.tagColor}, ${styling.priceColor});
-        color: white;
-        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 24px;
-        font-weight: bold;
         flex-shrink: 0;
-        box-shadow: 0 4px 16px rgba(0,0,0,0.2);
       `;
-      iconElement.innerHTML = '🎁';
+      iconElement.innerHTML = `
+        <svg width="26" height="26" fill="#64748b" viewBox="0 0 24 24">
+          <path d="M7 4V2C7 1.45 7.45 1 8 1H16C16.55 1 17 1.45 17 2V4H20C20.55 4 21 4.45 21 5S20.55 6 20 6H19V19C19 20.1 18.1 21 17 21H7C5.9 21 5 20.1 5 19V6H4C3.45 6 3 5.55 3 5S3.45 4 4 4H7ZM9 3V4H15V3H9ZM7 6V19H17V6H7Z"/>
+        </svg>
+      `;
 
       // النص الرئيسي المحسن
       const textContainer = document.createElement('div');
@@ -203,97 +221,115 @@
         text-align: right;
       `;
 
-      const tagElement = document.createElement('div');
-      tagElement.style.cssText = `
-        background: linear-gradient(135deg, ${styling.tagColor}, ${styling.priceColor});
-        color: white;
-        padding: 8px 16px;
-        border-radius: 20px;
-        font-size: 14px;
+      const mainTextElement = document.createElement('div');
+      mainTextElement.style.cssText = `
         font-weight: 700;
-        display: inline-block;
-        margin-bottom: 8px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        color: ${styling.textColor || '#1f2937'};
+        font-size: 15px;
+        margin-bottom: 6px;
+        line-height: 1.3;
       `;
-      tagElement.textContent = offer.tag || `اشترِ ${offer.quantity || 1} قطعة`;
+      mainTextElement.textContent = offer.text || `اشتر ${offer.quantity} واحصل على ${offer.quantity} مجاناً`;
 
-      const textElement = document.createElement('div');
-      textElement.style.cssText = `
-        font-size: 18px;
-        font-weight: 600;
-        line-height: 1.5;
-        color: ${styling.textColor};
-        margin-top: 4px;
+      const badgesContainer = document.createElement('div');
+      badgesContainer.style.cssText = `
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        direction: rtl;
       `;
-      textElement.textContent = offer.text || `اشترِ ${offer.quantity || 1} قطعة واحصل على خصم مميز`;
 
-      textContainer.appendChild(tagElement);
-      textContainer.appendChild(textElement);
+      if (offer.tag) {
+        const tagElement = document.createElement('span');
+        tagElement.style.cssText = `
+          background: ${styling.tagColor || '#22c55e'};
+          color: white;
+          padding: 4px 10px;
+          border-radius: 6px;
+          font-size: 11px;
+          font-weight: 600;
+          display: inline-block;
+        `;
+        tagElement.textContent = offer.tag;
+        badgesContainer.appendChild(tagElement);
+      }
+
+      // حساب نسبة التوفير
+      let savingsPercentage = 0;
+      const basePrice = 100; // سعر افتراضي
+      const originalPrice = basePrice * offer.quantity;
+      
+      if (offer.discountType && offer.discountType !== 'none' && offer.discountValue > 0) {
+        if (offer.discountType === 'percentage') {
+          savingsPercentage = offer.discountValue;
+        } else if (offer.discountType === 'fixed') {
+          savingsPercentage = Math.round((offer.discountValue / originalPrice) * 100);
+        }
+        
+        if (savingsPercentage > 0) {
+          const savingsBadge = document.createElement('span');
+          savingsBadge.style.cssText = `
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            display: inline-block;
+          `;
+          savingsBadge.textContent = `وفر ${savingsPercentage}%`;
+          badgesContainer.appendChild(savingsBadge);
+        }
+      }
+
+      textContainer.appendChild(mainTextElement);
+      textContainer.appendChild(badgesContainer);
 
       leftContent.appendChild(iconElement);
       leftContent.appendChild(textContainer);
 
-      // المحتوى الأيمن المحسن
+      // المحتوى الأيمن - السعر
       const rightContent = document.createElement('div');
       rightContent.style.cssText = `
-        text-align: center;
-        min-width: 100px;
-        flex-shrink: 0;
+        text-align: right;
+        margin-right: 10px;
+        direction: rtl;
       `;
 
-      if (offer.discountType && offer.discountType !== 'none' && offer.discountValue > 0) {
-        const discountContainer = document.createElement('div');
-        discountContainer.style.cssText = `
-          background: linear-gradient(135deg, ${styling.priceColor}, #ff6b35);
-          color: white;
-          padding: 12px 16px;
-          border-radius: 16px;
-          box-shadow: 0 4px 16px rgba(255, 107, 53, 0.3);
-        `;
+      // حساب السعر
+      let totalPrice = basePrice * offer.quantity;
+      const isDiscounted = offer.discountType && offer.discountType !== 'none' && offer.discountValue > 0;
 
-        const discountLabel = document.createElement('div');
-        discountLabel.style.cssText = `
-          font-size: 12px;
-          opacity: 0.9;
-          margin-bottom: 4px;
-          font-weight: 600;
-        `;
-        discountLabel.textContent = 'وفر';
-
-        const discountValue = document.createElement('div');
-        discountValue.style.cssText = `
-          font-size: 24px;
-          font-weight: 900;
-          line-height: 1;
-        `;
-        
-        if (offer.discountType === 'percentage') {
-          discountValue.textContent = `${offer.discountValue}%`;
-        } else {
-          discountValue.textContent = `${offer.discountValue} ر.س`;
+      if (isDiscounted) {
+        if (offer.discountType === 'fixed') {
+          totalPrice = originalPrice - offer.discountValue;
+        } else if (offer.discountType === 'percentage') {
+          const discount = (originalPrice * offer.discountValue) / 100;
+          totalPrice = originalPrice - discount;
         }
 
-        discountContainer.appendChild(discountLabel);
-        discountContainer.appendChild(discountValue);
-        rightContent.appendChild(discountContainer);
-      } else {
-        const specialLabel = document.createElement('div');
-        specialLabel.style.cssText = `
-          font-size: 16px;
-          font-weight: 700;
-          color: ${styling.tagColor};
-          padding: 12px 16px;
-          background: ${styling.tagColor}20;
-          border: 2px solid ${styling.tagColor};
-          border-radius: 20px;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
+        // عرض السعر الأصلي مشطوب
+        const originalPriceElement = document.createElement('div');
+        originalPriceElement.style.cssText = `
+          font-size: 13px;
+          color: #9ca3af;
+          text-decoration: line-through;
+          margin-bottom: 4px;
+          font-weight: 500;
         `;
-        specialLabel.textContent = 'عرض خاص';
-        rightContent.appendChild(specialLabel);
+        originalPriceElement.textContent = `$${originalPrice.toFixed(2)}`;
+        rightContent.appendChild(originalPriceElement);
       }
+
+      const finalPriceElement = document.createElement('div');
+      finalPriceElement.style.cssText = `
+        font-weight: 800;
+        font-size: 18px;
+        color: ${styling.priceColor || '#dc2626'};
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+      `;
+      finalPriceElement.textContent = `$${totalPrice.toFixed(2)}`;
+      rightContent.appendChild(finalPriceElement);
 
       // تجميع العناصر
       offerElement.appendChild(leftContent);
