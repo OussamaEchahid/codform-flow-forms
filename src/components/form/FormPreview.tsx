@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
 import { FormField } from '@/lib/form-utils';
 import FormFieldComponent from './preview/FormField';
+import FormWithQuantityOffers from './preview/FormWithQuantityOffers';
 
 interface FormPreviewProps {
   formTitle: string;
@@ -31,6 +32,8 @@ interface FormPreviewProps {
   hideHeader?: boolean;
   formCountry?: string;
   formPhonePrefix?: string;
+  productId?: string;
+  formId?: string;
 }
 
 // Improved deep clone function with proper TypeScript support
@@ -73,7 +76,9 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   fields = [],
   hideHeader = false,
   formCountry = 'SA',
-  formPhonePrefix = '+966'
+  formPhonePrefix = '+966',
+  productId,
+  formId
 }) => {
   const { language } = useI18n();
   
@@ -197,17 +202,14 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         data-background-color={formBackgroundColor}
       >
         {sanitizedFields.length > 0 ? (
-          <div className="space-y-4" style={{ gap: formStyle.formGap || '16px' }}>
-            {sanitizedFields.map(field => (
-              <FormFieldComponent 
-                key={field.id} 
-                field={field} 
-                formStyle={formStyle}
-                formCountry={formCountry}
-                formPhonePrefix={formPhonePrefix}
-              />
-            ))}
-          </div>
+          <FormWithQuantityOffers
+            fields={sanitizedFields}
+            formStyle={formStyle}
+            formCountry={formCountry}
+            formPhonePrefix={formPhonePrefix}
+            productId={productId}
+            formId={formId}
+          />
         ) : (
           children
         )}

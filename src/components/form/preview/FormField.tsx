@@ -10,6 +10,7 @@ import CartSummary from './fields/CartSummary';
 import CheckboxGroup from './fields/CheckboxGroup';
 import RadioGroup from './fields/RadioGroup';
 import HtmlContent from './fields/HtmlContent';
+import QuantityOffersField from './fields/QuantityOffersField';
 
 interface FormFieldProps {
   field: FormFieldType;
@@ -84,6 +85,9 @@ const FormField: React.FC<FormFieldProps> = ({
     
     case 'title':
       return <FormTitleField field={enhancedField} formStyle={formStyle} />;
+    
+    case 'quantity-offers':
+      return <QuantityOffersField field={enhancedField} formStyle={formStyle} />;
     
     default:
       return (

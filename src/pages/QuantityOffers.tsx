@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import SettingsLayout from '@/components/layout/SettingsLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -197,6 +197,7 @@ const QuantityOffers = () => {
 
       if (error) throw error;
       toast.success('Quantity offer saved successfully');
+      loadExistingOffers(); // Reload the list after saving
     } catch (error) {
       toast.error('Failed to save quantity offer');
     }
@@ -215,6 +216,33 @@ const QuantityOffers = () => {
     }));
   };
 
+  // Load existing quantity offers
+  const [existingOffers, setExistingOffers] = useState<any[]>([]);
+
+  const loadExistingOffers = async () => {
+    try {
+      const { data, error } = await (supabase as any)
+        .from('quantity_offers')
+        .select(`
+          *,
+          forms!inner(title)
+        `)
+        .eq('shop_id', activeStore || localStorage.getItem('simple_active_store') || '');
+
+      if (data && !error) {
+        setExistingOffers(data);
+      }
+    } catch (error) {
+      console.error('Error loading existing offers:', error);
+    }
+  };
+
+  React.useEffect(() => {
+    if (activeStore || localStorage.getItem('simple_active_store')) {
+      loadExistingOffers();
+    }
+  }, [activeStore]);
+
   return (
     <SettingsLayout>
       <div className="p-6">
@@ -223,13 +251,96 @@ const QuantityOffers = () => {
             <h1 className="text-2xl font-bold">{t('quantityOffers')}</h1>
             <p className="text-muted-foreground">{t('quantityOffersDescription')}</p>
           </div>
-          {currentStep === 'settings' && (
-            <Button onClick={resetToProductSelection} variant="outline">
-              <Plus className="w-4 h-4 mr-2" />
-              {t('createNewOffer')}
-            </Button>
-          )}
+          <Button onClick={resetToProductSelection} variant="outline">
+            <Plus className="w-4 h-4 mr-2" />
+            {t('createNewOffer')}
+          </Button>
         </div>
+
+        {/* Existing Offers List */}
+        {existingOffers.length > 0 && (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="w-5 h-5" />
+                Created Quantity Offers ({existingOffers.length})
+              </CardTitle>
+              <CardDescription>
+                Manage your existing quantity-based discount offers
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {existingOffers.map((offer) => (
+                  <div key={offer.id} className="flex items-center justify-between p-4 border rounded-lg hover:shadow-sm transition-shadow">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h4 className="font-medium">{offer.forms?.title || 'Unknown Form'}</h4>
+                        <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          offer.enabled ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          {offer.enabled ? 'Active' : 'Disabled'}
+                        </div>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-1">
+                        Product ID: <span className="font-mono text-xs">{offer.product_id}</span>
+                      </p>
+                      <p className="text-sm text-muted-foreground mb-1">
+                        {offer.offers?.length || 0} offers configured • Position: {offer.position}
+                      </p>
+                      {offer.offers && offer.offers.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {offer.offers.slice(0, 3).map((singleOffer: any, idx: number) => (
+                            <div key={idx} className="bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs">
+                              {singleOffer.text || `Buy ${singleOffer.quantity}`}
+                            </div>
+                          ))}
+                          {offer.offers.length > 3 && (
+                            <div className="bg-gray-50 text-gray-600 px-2 py-1 rounded text-xs">
+                              +{offer.offers.length - 3} more
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex gap-2 ml-4">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setQuantityOffer(offer);
+                          setCurrentStep('settings');
+                        }}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={async () => {
+                          if (confirm('Are you sure you want to delete this offer?')) {
+                            try {
+                              await (supabase as any)
+                                .from('quantity_offers')
+                                .delete()
+                                .eq('id', offer.id);
+                              toast.success('Offer deleted successfully');
+                              loadExistingOffers();
+                            } catch (error) {
+                              toast.error('Failed to delete offer');
+                            }
+                          }
+                        }}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {currentStep === 'product' && (
           <Card>
