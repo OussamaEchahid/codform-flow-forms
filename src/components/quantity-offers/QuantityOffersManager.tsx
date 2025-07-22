@@ -111,10 +111,10 @@ const QuantityOffersManager: React.FC = () => {
     try {
       console.log('🔗 Loading products for form:', formId, 'store:', currentStore);
       
-      // Get products associated with this form
+      // Get products associated with this form - No filter on enabled status
       const { data: settings, error: settingsError } = await supabase
         .from('shopify_product_settings')
-        .select('product_id, enabled')
+        .select('product_id')
         .eq('shop_id', currentStore)
         .eq('form_id', formId);
 
@@ -150,11 +150,17 @@ const QuantityOffersManager: React.FC = () => {
       const associatedProductIds = settings.map(s => String(s.product_id));
       console.log('🔗 Associated product IDs (as strings):', associatedProductIds);
       
-      // Filter products that are associated with this form
+  // Filter products that are associated with this form
+      console.log('🔍 Checking each product against associated IDs...');
       const formProducts = allProducts
         .filter((product: any) => {
+          // Try different ID formats to match Shopify's inconsistent ID formatting
           const productIdStr = String(product.id);
-          const isAssociated = associatedProductIds.includes(productIdStr);
+          const productIdNum = Number(productIdStr);
+          const isAssociated = 
+            associatedProductIds.includes(productIdStr) || 
+            associatedProductIds.some(id => Number(id) === productIdNum);
+          
           console.log(`🔍 Product ${productIdStr} (${product.title}) - Associated: ${isAssociated}`);
           return isAssociated;
         })

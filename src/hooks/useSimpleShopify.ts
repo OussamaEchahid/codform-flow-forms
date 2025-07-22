@@ -131,7 +131,16 @@ export const useSimpleShopify = () => {
         throw error;
       }
 
-      const fetchedProducts = data?.products || [];
+      // التأكد من أن كل معرفات المنتجات هي نصوص (لتسهيل المقارنة لاحقًا)
+      const fetchedProducts = (data?.products || []).map((product: any) => ({
+        ...product,
+        id: String(product.id),
+        variants: (product.variants || []).map((variant: any) => ({
+          ...variant,
+          id: String(variant.id)
+        }))
+      }));
+      
       setProducts(fetchedProducts);
       
       console.log(`✅ Loaded ${fetchedProducts.length} products`);
