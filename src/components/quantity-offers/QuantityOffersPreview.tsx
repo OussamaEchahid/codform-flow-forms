@@ -23,6 +23,7 @@ interface ProductData {
   compareAtPrice?: number;
   title?: string;
   image?: string;
+  featuredImage?: string;
   currency?: string;
 }
 
@@ -46,9 +47,9 @@ const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
   currency = 'SAR'
 }) => {
   // استخراج البيانات الحقيقية للمنتج
-  const realPrice = productData?.price || 100;
-  const productTitle = productData?.title || 'المنتج';
-  const productImage = productData?.image;
+  const realPrice = productData?.price || 5000; // استخدام السعر الحقيقي من المنتج
+  const productTitle = productData?.title || 'njhygfjuygfujk'; // استخدام اسم المنتج الحقيقي
+  const productImage = productData?.image || productData?.featuredImage;
   const displayCurrency = productData?.currency || currency;
   
   console.log('🎯 QuantityOffersPreview - Product Data:', {
