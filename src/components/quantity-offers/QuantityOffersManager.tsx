@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useSimpleShopify } from '@/hooks/useSimpleShopify';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import QuantityOffersEditor from './QuantityOffersEditor';
+import { getActiveShopId } from '@/utils/shop-utils';
 
 interface Form {
   id: string;
@@ -49,48 +51,73 @@ const QuantityOffersManager: React.FC = () => {
   
   const { activeStore } = useSimpleShopify();
 
+  // Get consistent active store
+  const getConsistentActiveStore = (): string | null => {
+    const store = activeStore || getActiveShopId();
+    console.log('🏪 Using consistent active store:', store);
+    return store;
+  };
+
   // Load forms for the current shop
   const loadForms = async () => {
-    if (!activeStore) return;
+    const currentStore = getConsistentActiveStore();
+    if (!currentStore) {
+      console.log('🚫 No active store for loading forms');
+      setForms([]);
+      return;
+    }
     
     try {
-      console.log('📋 Loading forms for shop:', activeStore);
+      console.log('📋 Loading forms for shop:', currentStore);
       
       const { data, error } = await supabase
         .from('forms')
         .select('id, title')
-        .eq('shop_id', activeStore)
+        .eq('shop_id', currentStore)
         .eq('is_published', true)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error loading forms:', error);
+        throw error;
+      }
 
-      setForms(data || []);
       console.log('✅ Loaded forms:', data?.length || 0);
+      setForms(data || []);
       
     } catch (error) {
-      console.error('Error loading forms:', error);
+      console.error('❌ Error loading forms:', error);
       toast.error('خطأ في تحميل النماذج');
     }
   };
 
   // Load associated products for selected form
   const loadFormProducts = async (formId: string) => {
-    if (!activeStore || !formId) return;
+    const currentStore = getConsistentActiveStore();
+    if (!currentStore || !formId) {
+      console.log('🚫 Missing store or form for loading products');
+      setAssociatedProducts([]);
+      return;
+    }
     
     setLoading(true);
     try {
-      console.log('🔗 Loading products for form:', formId);
+      console.log('🔗 Loading products for form:', formId, 'store:', currentStore);
       
       // Get products associated with this form
       const { data: settings, error: settingsError } = await supabase
         .from('shopify_product_settings')
         .select('product_id')
-        .eq('shop_id', activeStore)
+        .eq('shop_id', currentStore)
         .eq('form_id', formId)
         .eq('enabled', true);
 
-      if (settingsError) throw settingsError;
+      if (settingsError) {
+        console.error('❌ Error loading product settings:', settingsError);
+        throw settingsError;
+      }
+
+      console.log('📦 Product settings found:', settings?.length || 0);
 
       if (!settings || settings.length === 0) {
         console.log('ℹ️ No products associated with this form');
@@ -100,14 +127,21 @@ const QuantityOffersManager: React.FC = () => {
       }
 
       // Get product details from Shopify
+      console.log('📡 Fetching product details from Shopify for store:', currentStore);
       const { data: productsData, error: productsError } = await supabase.functions.invoke('shopify-products', {
-        body: { shop: activeStore }
+        body: { shop: currentStore }
       });
 
-      if (productsError) throw productsError;
+      if (productsError) {
+        console.error('❌ Error fetching Shopify products:', productsError);
+        throw productsError;
+      }
 
       const allProducts = productsData?.products || [];
+      console.log('📦 All Shopify products fetched:', allProducts.length);
+      
       const associatedProductIds = settings.map(s => s.product_id);
+      console.log('🔗 Associated product IDs:', associatedProductIds);
       
       // Filter products that are associated with this form
       const formProducts = allProducts
@@ -119,15 +153,15 @@ const QuantityOffersManager: React.FC = () => {
           form_title: forms.find(f => f.id === formId)?.title || ''
         }));
 
-      console.log('📦 Associated products:', formProducts.length);
+      console.log('✅ Associated products mapped:', formProducts.length);
       setAssociatedProducts(formProducts);
 
       // Load existing quantity offers for this form
       await loadQuantityOffers(formId);
       
     } catch (error) {
-      console.error('Error loading form products:', error);
-      toast.error('خطأ في تحميل منتجات النموذج');
+      console.error('❌ Error loading form products:', error);
+      toast.error('خطأ في تحميل منتجات النموذج: ' + (error as any)?.message);
       setAssociatedProducts([]);
     } finally {
       setLoading(false);
@@ -136,18 +170,25 @@ const QuantityOffersManager: React.FC = () => {
 
   // Load quantity offers for form
   const loadQuantityOffers = async (formId: string) => {
-    if (!activeStore || !formId) return;
+    const currentStore = getConsistentActiveStore();
+    if (!currentStore || !formId) {
+      console.log('🚫 Missing store or form for loading quantity offers');
+      return;
+    }
     
     try {
-      console.log('🎁 Loading quantity offers for form:', formId);
+      console.log('🎁 Loading quantity offers for form:', formId, 'store:', currentStore);
       
       const { data, error } = await supabase
         .from('quantity_offers')
         .select('*')
-        .eq('shop_id', activeStore)
+        .eq('shop_id', currentStore)
         .eq('form_id', formId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error loading quantity offers:', error);
+        throw error;
+      }
 
       // Enrich with product and form titles
       const enrichedOffers = data?.map(offer => ({
@@ -160,19 +201,22 @@ const QuantityOffersManager: React.FC = () => {
       setQuantityOffers(enrichedOffers);
       
     } catch (error) {
-      console.error('Error loading quantity offers:', error);
+      console.error('❌ Error loading quantity offers:', error);
       toast.error('خطأ في تحميل عروض الكمية');
     }
   };
 
   useEffect(() => {
-    if (activeStore) {
+    const currentStore = getConsistentActiveStore();
+    if (currentStore) {
+      console.log('🔄 Active store changed, reloading forms:', currentStore);
       loadForms();
     }
   }, [activeStore]);
 
   useEffect(() => {
     if (selectedFormId) {
+      console.log('📋 Selected form changed, loading products:', selectedFormId);
       loadFormProducts(selectedFormId);
     } else {
       setAssociatedProducts([]);
@@ -218,6 +262,12 @@ const QuantityOffersManager: React.FC = () => {
   };
 
   const handleSaveOffer = async (offerData: any) => {
+    const currentStore = getConsistentActiveStore();
+    if (!currentStore) {
+      toast.error('لا يوجد متجر نشط');
+      return;
+    }
+
     try {
       console.log('💾 Saving quantity offer:', offerData);
       
@@ -225,16 +275,20 @@ const QuantityOffersManager: React.FC = () => {
         const { error } = await supabase
           .from('quantity_offers')
           .insert({
-            shop_id: activeStore,
+            shop_id: currentStore,
             product_id: offerData.product_id,
             form_id: offerData.form_id,
             offers: offerData.offers,
             styling: offerData.styling,
             position: offerData.position,
-            enabled: offerData.enabled
+            enabled: offerData.enabled,
+            custom_selector: offerData.custom_selector
           });
           
-        if (error) throw error;
+        if (error) {
+          console.error('❌ Error creating quantity offer:', error);
+          throw error;
+        }
         
         toast.success('تم إنشاء عرض الكمية بنجاح');
       } else {
@@ -244,11 +298,15 @@ const QuantityOffersManager: React.FC = () => {
             offers: offerData.offers,
             styling: offerData.styling,
             position: offerData.position,
-            enabled: offerData.enabled
+            enabled: offerData.enabled,
+            custom_selector: offerData.custom_selector
           })
           .eq('id', offerData.id);
           
-        if (error) throw error;
+        if (error) {
+          console.error('❌ Error updating quantity offer:', error);
+          throw error;
+        }
         
         toast.success('تم تحديث عرض الكمية بنجاح');
       }
@@ -261,8 +319,8 @@ const QuantityOffersManager: React.FC = () => {
       setSelectedProductId('');
       
     } catch (error) {
-      console.error('Error saving quantity offer:', error);
-      toast.error('خطأ في حفظ عرض الكمية');
+      console.error('❌ Error saving quantity offer:', error);
+      toast.error('خطأ في حفظ عرض الكمية: ' + (error as any)?.message);
     }
   };
 
@@ -273,18 +331,23 @@ const QuantityOffersManager: React.FC = () => {
         .delete()
         .eq('id', offerId);
         
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error deleting quantity offer:', error);
+        throw error;
+      }
       
       toast.success('تم حذف عرض الكمية');
       await loadQuantityOffers(selectedFormId);
       
     } catch (error) {
-      console.error('Error deleting quantity offer:', error);
+      console.error('❌ Error deleting quantity offer:', error);
       toast.error('خطأ في حذف عرض الكمية');
     }
   };
 
-  if (!activeStore) {
+  const currentStore = getConsistentActiveStore();
+
+  if (!currentStore) {
     return (
       <Alert>
         <AlertCircle className="h-4 w-4" />
@@ -320,6 +383,11 @@ const QuantityOffersManager: React.FC = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Debug Info */}
+          <div className="text-xs text-muted-foreground bg-gray-50 p-2 rounded">
+            المتجر النشط: {currentStore} | النماذج: {forms.length} | المنتجات المرتبطة: {associatedProducts.length}
+          </div>
+
           {/* Form Selection */}
           <div>
             <label className="text-sm font-medium mb-2 block">اختيار النموذج</label>
@@ -374,6 +442,10 @@ const QuantityOffersManager: React.FC = () => {
               <Package className="h-4 w-4" />
               <AlertDescription>
                 لا توجد منتجات مرتبطة بهذا النموذج. يرجى ربط منتجات أولاً من صفحة إدارة النماذج.
+                <br />
+                <span className="text-xs text-muted-foreground">
+                  تأكد من أن المنتجات مرتبطة في shopify_product_settings للنموذج: {selectedFormId}
+                </span>
               </AlertDescription>
             </Alert>
           )}

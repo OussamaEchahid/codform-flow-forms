@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useSimpleShopify } from '@/hooks/useSimpleShopify';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { getActiveShopId } from '@/utils/shop-utils';
 
 interface Product {
   id: string;
@@ -44,9 +45,17 @@ export function ProductAssociationModal({
   
   const { activeStore } = useSimpleShopify();
 
+  // Get consistent active store
+  const getConsistentActiveStore = (): string | null => {
+    const store = activeStore || getActiveShopId();
+    console.log('🏪 ProductAssociationModal using store:', store);
+    return store;
+  };
+
   // Fetch products and their associations
   const fetchProductsAndAssociations = async () => {
-    if (!activeStore) {
+    const currentStore = getConsistentActiveStore();
+    if (!currentStore) {
       setError('لا يوجد متجر نشط');
       return;
     }
@@ -55,15 +64,15 @@ export function ProductAssociationModal({
     setError(null);
     
     try {
-      console.log('🔍 Fetching products for store:', activeStore);
+      console.log('🔍 Fetching products for store:', currentStore, 'form:', formId);
       
       // Fetch products from Shopify
       const { data: productsData, error: productsError } = await supabase.functions.invoke('shopify-products', {
-        body: { shop: activeStore }
+        body: { shop: currentStore }
       });
 
       if (productsError) {
-        console.error('Error fetching products:', productsError);
+        console.error('❌ Error fetching products:', productsError);
         throw productsError;
       }
 
@@ -76,11 +85,11 @@ export function ProductAssociationModal({
         .from('shopify_product_settings')
         .select('product_id')
         .eq('form_id', formId)
-        .eq('shop_id', activeStore)
+        .eq('shop_id', currentStore)
         .eq('enabled', true);
 
       if (associationsError) {
-        console.error('Error fetching associations:', associationsError);
+        console.error('❌ Error fetching associations:', associationsError);
         throw associationsError;
       }
 
@@ -89,7 +98,7 @@ export function ProductAssociationModal({
       setLinkedProducts(linkedIds);
       
     } catch (error: any) {
-      console.error('Error in fetchProductsAndAssociations:', error);
+      console.error('❌ Error in fetchProductsAndAssociations:', error);
       setError(error.message || 'حدث خطأ في تحميل البيانات');
       toast.error('خطأ في تحميل المنتجات');
     } finally {
@@ -98,76 +107,95 @@ export function ProductAssociationModal({
   };
 
   useEffect(() => {
-    if (isOpen && formId && activeStore) {
+    if (isOpen && formId) {
       fetchProductsAndAssociations();
     }
-  }, [isOpen, formId, activeStore]);
+  }, [isOpen, formId]);
 
-  // Link product to form
+  // Link product to form with improved duplicate handling
   const handleLinkProduct = async (productId: string) => {
-    if (!activeStore) {
+    const currentStore = getConsistentActiveStore();
+    if (!currentStore) {
       toast.error('لا يوجد متجر نشط');
       return;
     }
     
     setOperatingProductId(productId);
     try {
-      console.log('🔗 Linking product:', productId, 'to form:', formId);
+      console.log('🔗 Linking product:', productId, 'to form:', formId, 'store:', currentStore);
       
-      // First check if already linked
-      const { data: existing } = await supabase
+      // First check if already linked to this form
+      const { data: existingForForm, error: checkFormError } = await supabase
         .from('shopify_product_settings')
         .select('id')
-        .eq('shop_id', activeStore)
+        .eq('shop_id', currentStore)
         .eq('product_id', productId)
         .eq('form_id', formId)
-        .single();
+        .maybeSingle();
 
-      if (existing) {
+      if (checkFormError) {
+        console.error('❌ Error checking existing form link:', checkFormError);
+        throw checkFormError;
+      }
+
+      if (existingForForm) {
         toast.error('هذا المنتج مرتبط بالفعل بهذا النموذج');
         return;
       }
 
       // Check if product is linked to another form
-      const { data: otherLink } = await supabase
+      const { data: existingOtherForm, error: checkOtherError } = await supabase
         .from('shopify_product_settings')
-        .select('form_id')
-        .eq('shop_id', activeStore)
+        .select('form_id, forms(title)')
+        .eq('shop_id', currentStore)
         .eq('product_id', productId)
         .eq('enabled', true)
-        .single();
+        .neq('form_id', formId)
+        .maybeSingle();
 
-      if (otherLink && otherLink.form_id !== formId) {
-        toast.error('هذا المنتج مرتبط بنموذج آخر بالفعل');
+      if (checkOtherError) {
+        console.error('❌ Error checking other form links:', checkOtherError);
+        // Don't throw here, continue with linking
+      }
+
+      if (existingOtherForm) {
+        const otherFormTitle = (existingOtherForm as any)?.forms?.title || 'نموذج آخر';
+        toast.error(`هذا المنتج مرتبط بنموذج آخر: ${otherFormTitle}`);
         return;
       }
 
-      // Insert new association
-      const { error } = await supabase
+      // Use upsert to handle potential race conditions
+      const { data, error } = await supabase
         .from('shopify_product_settings')
-        .insert({
-          shop_id: activeStore,
+        .upsert({
+          shop_id: currentStore,
           product_id: productId,
           form_id: formId,
           enabled: true
-        });
+        }, {
+          onConflict: 'shop_id,product_id',
+          ignoreDuplicates: false
+        })
+        .select();
 
       if (error) {
-        console.error('Error linking product:', error);
+        console.error('❌ Error linking product:', error);
+        
+        // Handle specific constraint violations
         if (error.code === '23505') {
-          toast.error('هذا المنتج مرتبط بالفعل');
+          toast.error('هذا المنتج مرتبط بالفعل. يرجى تحديث الصفحة والمحاولة مرة أخرى.');
         } else {
-          throw error;
+          toast.error('خطأ في ربط المنتج: ' + error.message);
         }
         return;
       }
 
-      setLinkedProducts(prev => [...prev, productId]);
-      toast.success('تم ربط المنتج بالنموذج');
-      console.log('✅ Product linked successfully');
+      setLinkedProducts(prev => [...prev.filter(id => id !== productId), productId]);
+      toast.success('تم ربط المنتج بالنموذج بنجاح');
+      console.log('✅ Product linked successfully:', data);
       
     } catch (error: any) {
-      console.error('Error linking product:', error);
+      console.error('❌ Error linking product:', error);
       toast.error('خطأ في ربط المنتج: ' + (error.message || 'خطأ غير معروف'));
     } finally {
       setOperatingProductId(null);
@@ -176,33 +204,34 @@ export function ProductAssociationModal({
 
   // Unlink product from form
   const handleUnlinkProduct = async (productId: string) => {
-    if (!activeStore) {
+    const currentStore = getConsistentActiveStore();
+    if (!currentStore) {
       toast.error('لا يوجد متجر نشط');
       return;
     }
     
     setOperatingProductId(productId);
     try {
-      console.log('🔗 Unlinking product:', productId, 'from form:', formId);
+      console.log('🔗 Unlinking product:', productId, 'from form:', formId, 'store:', currentStore);
       
       const { error } = await supabase
         .from('shopify_product_settings')
         .delete()
-        .eq('shop_id', activeStore)
+        .eq('shop_id', currentStore)
         .eq('product_id', productId)
         .eq('form_id', formId);
 
       if (error) {
-        console.error('Error unlinking product:', error);
+        console.error('❌ Error unlinking product:', error);
         throw error;
       }
 
       setLinkedProducts(prev => prev.filter(id => id !== productId));
-      toast.success('تم إلغاء ربط المنتج');
+      toast.success('تم إلغاء ربط المنتج بنجاح');
       console.log('✅ Product unlinked successfully');
       
     } catch (error: any) {
-      console.error('Error unlinking product:', error);
+      console.error('❌ Error unlinking product:', error);
       toast.error('خطأ في إلغاء ربط المنتج');
     } finally {
       setOperatingProductId(null);
@@ -215,6 +244,8 @@ export function ProductAssociationModal({
     product.handle.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const currentStore = getConsistentActiveStore();
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
@@ -226,6 +257,11 @@ export function ProductAssociationModal({
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Debug Info */}
+          <div className="text-xs text-muted-foreground bg-gray-50 p-2 rounded">
+            المتجر: {currentStore} | المنتجات: {products.length} | المرتبطة: {linkedProducts.length}
+          </div>
+
           {/* Error Alert */}
           {error && (
             <Alert variant="destructive">
