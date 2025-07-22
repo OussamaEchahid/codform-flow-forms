@@ -86,9 +86,27 @@ serve(async (req) => {
       }
     }
 
-    // Function to get default form for shop
+    // Function to get default form for shop - ONLY if product has NO specific settings
     async function getDefaultForm() {
-      console.log(`[${requestId}] 🔄 Trying default form for shop ${shop}`);
+      console.log(`[${requestId}] 🔄 Checking if product has ANY specific settings first...`);
+      
+      // First check if this product has ANY settings (enabled or disabled)
+      if (product) {
+        const { data: anySettings } = await supabase
+          .from('shopify_product_settings')
+          .select('*')
+          .eq('shop_id', shop)
+          .eq('product_id', product)
+          .limit(1);
+
+        // If product has specific settings (even disabled), don't show default form
+        if (anySettings && anySettings.length > 0) {
+          console.log(`[${requestId}] 🚫 Product has specific settings - no default form will be shown`);
+          return { found: false, error: 'Product has specific settings but they are disabled' };
+        }
+      }
+      
+      console.log(`[${requestId}] 🔄 Product has no specific settings, looking for default form for shop ${shop}`);
       
       try {
         const { data, error } = await supabase
@@ -105,6 +123,7 @@ serve(async (req) => {
           return { found: false, error: error.message };
         }
 
+        console.log(`[${requestId}] ✅ Found default form for product with no specific settings`);
         return { found: true, formData: data };
       } catch (error) {
         console.log(`[${requestId}] Default form exception:`, error);

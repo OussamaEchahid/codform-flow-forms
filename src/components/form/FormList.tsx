@@ -34,7 +34,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ShopifyProduct } from '@/lib/shopify/types';
 import { toast } from 'sonner';
-import ProductManagementModal from './ProductManagementModal';
+import { ProductAssociationModal } from './ProductAssociationModal';
 
 interface FormListProps {
   forms: FormData[];
@@ -675,9 +675,9 @@ const FormList: React.FC<FormListProps> = ({
           );
         })}
 
-        {/* Product Management Modal */}
+        {/* Product Association Modal */}
         {selectedFormForProducts && (
-          <ProductManagementModal
+          <ProductAssociationModal
             isOpen={isProductModalOpen}
             onClose={handleCloseProductModal}
             formId={selectedFormForProducts.id}
