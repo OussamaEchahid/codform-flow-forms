@@ -6,7 +6,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Plus, Trash2, Palette } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Palette, Eye } from 'lucide-react';
+import QuantityOffersDisplay from './QuantityOffersDisplay';
+import { useSimpleShopify } from '@/hooks/useSimpleShopify';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Offer {
   quantity: number;
@@ -35,11 +38,22 @@ interface Props {
   onCancel: () => void;
 }
 
+interface ProductData {
+  price?: number;
+  compareAtPrice?: number;
+  title?: string;
+  image?: string;
+  currency?: string;
+}
+
 const QuantityOffersEditor: React.FC<Props> = ({ offer, isCreating, onSave, onCancel }) => {
+  const { activeStore } = useSimpleShopify();
   const [currentOffer, setCurrentOffer] = useState<QuantityOffer>({
     ...offer,
     offers: Array.isArray(offer.offers) ? offer.offers : []
   });
+  const [productData, setProductData] = useState<ProductData | null>(null);
+  const [loadingProduct, setLoadingProduct] = useState(false);
   const [newOffer, setNewOffer] = useState<Offer>({
     quantity: 2,
     title: 'اشتري {quantity} واحصل على خصم {discount}%',
@@ -47,6 +61,44 @@ const QuantityOffersEditor: React.FC<Props> = ({ offer, isCreating, onSave, onCa
     discountType: 'percentage',
     tag: 'وفر أكثر'
   });
+
+  // جلب بيانات المنتج الحقيقية
+  React.useEffect(() => {
+    const loadProductData = async () => {
+      if (!activeStore || !currentOffer.product_id) return;
+      
+      setLoadingProduct(true);
+      try {
+        const { data: productsData, error } = await supabase.functions.invoke('shopify-products', {
+          body: { shop: activeStore }
+        });
+
+        if (error) {
+          console.error('Error fetching product data:', error);
+          return;
+        }
+
+        const allProducts = productsData?.products || [];
+        const product = allProducts.find((p: any) => String(p.id) === String(currentOffer.product_id));
+        
+        if (product) {
+          setProductData({
+            price: product.variants?.[0]?.price ? parseFloat(product.variants[0].price) : undefined,
+            compareAtPrice: product.variants?.[0]?.compare_at_price ? parseFloat(product.variants[0].compare_at_price) : undefined,
+            title: product.title,
+            image: typeof product.image === 'string' ? product.image : product.image?.src,
+            currency: 'SAR'
+          });
+        }
+      } catch (error) {
+        console.error('Error loading product data:', error);
+      } finally {
+        setLoadingProduct(false);
+      }
+    };
+
+    loadProductData();
+  }, [activeStore, currentOffer.product_id]);
 
   const addOffer = () => {
     setCurrentOffer(prev => ({
@@ -260,6 +312,53 @@ const QuantityOffersEditor: React.FC<Props> = ({ offer, isCreating, onSave, onCa
           </div>
         </CardContent>
       </Card>
+
+      {/* Live Preview */}
+      {currentOffer.offers.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Eye className="h-5 w-5" />
+              معاينة مباشرة مع السعر الحقيقي
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="bg-gray-50 p-4 rounded-lg border">
+              {loadingProduct ? (
+                <div className="text-center py-4 text-gray-500">
+                  جاري تحميل بيانات المنتج...
+                </div>
+              ) : (
+                <QuantityOffersDisplay 
+                  offers={currentOffer.offers.map((offer: any) => ({
+                    id: String(Math.random()),
+                    text: offer.title?.replace('{quantity}', offer.quantity)?.replace('{discount}', offer.discount) || `اشتري ${offer.quantity} قطع`,
+                    tag: offer.tag || '',
+                    quantity: offer.quantity || 1,
+                    discountType: offer.discountType === 'percentage' ? 'percentage' : 'fixed',
+                    discountValue: offer.discount || 0
+                  }))}
+                  styling={currentOffer.styling || {
+                    backgroundColor: '#ffffff',
+                    textColor: '#000000',
+                    tagColor: '#22c55e',
+                    priceColor: '#ef4444'
+                  }}
+                  productData={productData || undefined}
+                  currency="SAR"
+                />
+              )}
+              {productData && (
+                <div className="mt-3 text-xs text-gray-600 bg-blue-50 p-2 rounded">
+                  <strong>بيانات المنتج الحقيقية:</strong> {productData.title} - 
+                  السعر: {productData.price?.toFixed(2) || 'غير محدد'} {productData.currency}
+                  {productData.image && ' - يتضمن صورة'}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Styling */}
       <Card>

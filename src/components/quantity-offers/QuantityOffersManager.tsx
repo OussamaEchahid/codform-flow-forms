@@ -50,6 +50,7 @@ const QuantityOffersManager: React.FC = () => {
   const [selectedProductId, setSelectedProductId] = useState<string>('');
   const { activeStore } = useSimpleShopify();
   const [refreshing, setRefreshing] = useState(false);
+  const [productsData, setProductsData] = useState<{[key: string]: any}>({});
 
   // Get consistent active store
   const getConsistentActiveStore = (): string | null => {
@@ -146,6 +147,13 @@ const QuantityOffersManager: React.FC = () => {
       const allProducts = productsData?.products || [];
       console.log('📦 All Shopify products fetched:', allProducts.length);
       console.log('📦 Sample product IDs from Shopify:', allProducts.slice(0, 3).map((p: any) => ({ id: p.id, title: p.title })));
+      
+      // Store products data for later use
+      const productsMap: {[key: string]: any} = {};
+      allProducts.forEach((product: any) => {
+        productsMap[String(product.id)] = product;
+      });
+      setProductsData(productsMap);
       
       const associatedProductIds = settings.map(s => String(s.product_id));
       console.log('🔗 Associated product IDs (as strings):', associatedProductIds);
@@ -551,19 +559,29 @@ const QuantityOffersManager: React.FC = () => {
                     </div>
                   </div>
                   
-                  {/* Enhanced Live Preview */}
-                  <div className="bg-gray-50 p-4 rounded-lg border">
-                    <h4 className="text-sm font-medium mb-3 text-gray-600">معاينة مباشرة:</h4>
-                    <QuantityOffersDisplay 
-                      offers={offer.offers || []} 
-                      styling={offer.styling || {
-                        backgroundColor: '#ffffff',
-                        textColor: '#000000',
-                        tagColor: '#22c55e',
-                        priceColor: '#ef4444'
-                      }} 
-                    />
-                  </div>
+                   {/* Enhanced Live Preview */}
+                   <div className="bg-gray-50 p-4 rounded-lg border">
+                     <h4 className="text-sm font-medium mb-3 text-gray-600">معاينة مباشرة:</h4>
+                     <QuantityOffersDisplay 
+                       offers={offer.offers || []} 
+                       styling={offer.styling || {
+                         backgroundColor: '#ffffff',
+                         textColor: '#000000',
+                         tagColor: '#22c55e',
+                         priceColor: '#ef4444'
+                       }}
+                       productData={productsData[offer.product_id] ? {
+                         price: productsData[offer.product_id].variants?.[0]?.price ? parseFloat(productsData[offer.product_id].variants[0].price) : undefined,
+                         compareAtPrice: productsData[offer.product_id].variants?.[0]?.compare_at_price ? parseFloat(productsData[offer.product_id].variants[0].compare_at_price) : undefined,
+                         title: productsData[offer.product_id].title,
+                         image: typeof productsData[offer.product_id].image === 'string' 
+                           ? productsData[offer.product_id].image 
+                           : productsData[offer.product_id].image?.src,
+                         currency: 'SAR'
+                       } : undefined}
+                       currency="SAR"
+                     />
+                   </div>
                 </div>
               ))}
             </div>

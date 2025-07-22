@@ -18,12 +18,22 @@ interface Styling {
   priceColor: string;
 }
 
+interface ProductData {
+  price?: number;
+  compareAtPrice?: number;
+  title?: string;
+  image?: string;
+  currency?: string;
+}
+
 interface QuantityOffersPreviewProps {
   form?: any;
   offers: Offer[];
   styling: Styling;
   position?: string;
   enabled?: boolean;
+  productData?: ProductData;
+  currency?: string;
 }
 
 const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
@@ -31,8 +41,15 @@ const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
   offers,
   styling,
   position,
-  enabled = true
+  enabled = true,
+  productData,
+  currency = 'SAR'
 }) => {
+  // استخراج البيانات الحقيقية للمنتج
+  const realPrice = productData?.price || 100;
+  const productTitle = productData?.title || 'المنتج';
+  const productImage = productData?.image;
+  const displayCurrency = productData?.currency || currency;
   if (!enabled || !form) {
     return (
       <div className="p-4 border-2 border-dashed border-gray-300 rounded-lg text-center text-gray-500">
@@ -41,24 +58,24 @@ const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
     );
   }
 
-  const calculatePrice = (basePrice: number, offer: Offer) => {
+  const calculatePrice = (offer: Offer) => {
     if (offer.discountType === 'none' || !offer.discountValue) {
-      return basePrice * offer.quantity;
+      return realPrice * offer.quantity;
     }
 
     if (offer.discountType === 'fixed') {
-      return (basePrice * offer.quantity) - offer.discountValue;
+      return (realPrice * offer.quantity) - offer.discountValue;
     }
 
     if (offer.discountType === 'percentage') {
-      const discount = (basePrice * offer.quantity * offer.discountValue) / 100;
-      return (basePrice * offer.quantity) - discount;
+      const discount = (realPrice * offer.quantity * offer.discountValue) / 100;
+      return (realPrice * offer.quantity) - discount;
     }
 
-    return basePrice * offer.quantity;
+    return realPrice * offer.quantity;
   };
 
-  const basePrice = 100; // Mock base price for preview
+  
   const formStyle = form.style || {};
   const formData = Array.isArray(form.data) ? form.data : [];
   const formFields = formData.length > 0 && formData[0]?.fields ? formData[0].fields : [];
@@ -76,8 +93,8 @@ const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
     return (
       <div className="space-y-2 mb-4">
         {offers.map((offer, index) => {
-          const totalPrice = calculatePrice(basePrice, offer);
-          const originalPrice = basePrice * offer.quantity;
+          const totalPrice = calculatePrice(offer);
+          const originalPrice = realPrice * offer.quantity;
           const isDiscounted = offer.discountType !== 'none' && offer.discountValue && offer.discountValue > 0;
           const isHighlighted = index === 1; // Highlight second offer
           
@@ -97,10 +114,18 @@ const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
               }`}
             >
               <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 bg-gray-100 rounded-lg flex-shrink-0 flex items-center justify-center">
-                  <svg className="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 2L3 7v11a1 1 0 001 1h3a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1h3a1 1 0 001-1V7l-7-5z" clipRule="evenodd" />
-                  </svg>
+                <div className="w-12 h-12 bg-gray-100 rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden">
+                  {productImage ? (
+                    <img 
+                      src={productImage} 
+                      alt={productTitle}
+                      className="w-full h-full object-cover rounded-lg"
+                    />
+                  ) : (
+                    <svg className="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 2L3 7v11a1 1 0 001 1h3a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1h3a1 1 0 001-1V7l-7-5z" clipRule="evenodd" />
+                    </svg>
+                  )}
                 </div>
                 
                 <div>
@@ -126,12 +151,17 @@ const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
               <div className="text-right">
                 {isDiscounted && (
                   <div className="text-sm line-through text-gray-400">
-                    ${originalPrice.toFixed(2)}
+                    {originalPrice.toFixed(2)} {displayCurrency}
                   </div>
                 )}
                 <div className="font-bold text-lg text-gray-800">
-                  ${totalPrice.toFixed(2)}
+                  {totalPrice.toFixed(2)} {displayCurrency}
                 </div>
+                {offer.quantity > 1 && (
+                  <div className="text-xs text-gray-500 mt-1">
+                    {realPrice.toFixed(2)} {displayCurrency} × {offer.quantity}
+                  </div>
+                )}
               </div>
             </div>
           );
