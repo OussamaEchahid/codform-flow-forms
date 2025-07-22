@@ -400,21 +400,55 @@ serve(async (req: Request) => {
       style: form?.style || null
     } : undefined;
 
+    // Fetch Quantity Offers for this product and form
+    let quantityOffers = null;
+    if (form && productId) {
+      try {
+        console.log(`[${requestId}] 🎁 Fetching quantity offers for product ${productId} and form ${form.id}`);
+        
+        const { data: offersData, error: offersError } = await queryWithRetry(() => {
+          return supabase
+            .from('quantity_offers')
+            .select('*')
+            .eq('product_id', productId)
+            .eq('form_id', form.id)
+            .eq('enabled', true)
+            .maybeSingle();
+        });
+        
+        if (offersError) {
+          console.log(`[${requestId}] ℹ️ No quantity offers found:`, offersError.message);
+        } else if (offersData) {
+          quantityOffers = offersData;
+          console.log(`[${requestId}] ✅ Found quantity offers:`, quantityOffers);
+        } else {
+          console.log(`[${requestId}] ℹ️ No quantity offers configured for this product`);
+        }
+      } catch (error) {
+        console.error(`[${requestId}] ❌ Error fetching quantity offers:`, error);
+      }
+    }
+
     // Return success response
     if (form) {
       const fieldsWithIcons = form.fields?.filter(field => field && field.icon && field.icon !== 'none') || [];
       console.log(`[${requestId}] 🎉 SUCCESS - Sending form data to client`);
       console.log(`[${requestId}] 📊 Form stats: ${form.fields?.length || 0} fields, ${fieldsWithIcons.length} with icons`);
       
+      const response = {
+        form,
+        quantity_offers: quantityOffers,
+        block_id: actualBlockId,
+        debug: debugInfo,
+        success: true,
+        requestId,
+        timestamp: new Date().toISOString()
+      };
+      
+      console.log(`[${requestId}] 📦 Response includes quantity offers:`, !!quantityOffers);
+      
       return new Response(
-        JSON.stringify({ 
-          form,
-          block_id: actualBlockId,
-          debug: debugInfo,
-          success: true,
-          requestId,
-          timestamp: new Date().toISOString()
-        }),
+        JSON.stringify(response),
         { headers: responseHeaders, status: 200 }
       );
     } else {

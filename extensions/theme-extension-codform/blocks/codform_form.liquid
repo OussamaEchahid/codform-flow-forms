@@ -940,6 +940,12 @@
             console.log("📋 RADICAL FIX - Form data received:", data);
             
             if (data && data.form) {
+              // عرض Quantity Offers إذا كانت موجودة
+              if (data.quantity_offers) {
+                console.log("🎁 Found quantity offers:", data.quantity_offers);
+                renderQuantityOffers([data.quantity_offers]);
+              }
+              
               renderFormData(data.form);
             } else if (data && data.success === false) {
               showErrorMessage(data.message || "لا يوجد نموذج متوفر لهذا المنتج");
