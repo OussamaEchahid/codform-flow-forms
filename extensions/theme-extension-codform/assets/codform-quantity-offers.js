@@ -6,32 +6,6 @@
 window.CodformQuantityOffers = (function() {
   'use strict';
 
-  // دالة للحصول على رمز العملة
-  function getCurrencySymbol(currency) {
-    const currencySymbols = {
-      'SAR': 'ر.س',
-      'MAD': 'د.م',
-      'USD': '$',
-      'EUR': '€',
-      'GBP': '£',
-      'AED': 'د.إ',
-      'EGP': 'ج.م',
-      'KWD': 'د.ك',
-      'QAR': 'ر.ق',
-      'OMR': 'ر.ع',
-      'BHD': 'د.ب',
-      'JOD': 'د.أ',
-      'LBP': 'ل.ل',
-      'SYP': 'ل.س',
-      'IQD': 'د.ع',
-      'YER': 'ر.ي',
-      'LYD': 'د.ل',
-      'TND': 'د.ت',
-      'DZD': 'د.ج'
-    };
-    return currencySymbols[currency] || currency;
-  }
-
   // دالة عرض quantity offers
   function displayQuantityOffers(quantityOffers, blockId, productId) {
     console.log("🎁 QUANTITY OFFERS FIX - Displaying quantity offers:", quantityOffers);
@@ -139,14 +113,10 @@ window.CodformQuantityOffers = (function() {
         min-width: 80px;
       `;
       
-      // استخدام العملة من البيانات المرسلة أو العملة الافتراضية
-      const currency = offer.currency || quantityOffers.currency || 'SAR';
-      const currencySymbol = getCurrencySymbol(currency);
-      
       if (offer.discountType && offer.discountType !== 'none' && offer.discountValue > 0) {
         const savings = offer.discountType === 'percentage' ? 
           `${offer.discountValue}% خصم` : 
-          `${offer.discountValue} ${currencySymbol} خصم`;
+          `${offer.discountValue} ر.س خصم`;
         
         priceContent.style.color = styling.priceColor;
         priceContent.innerHTML = `

@@ -259,10 +259,7 @@ serve(async (req) => {
         currency: formData.currency || 'SAR',
         phone_prefix: formData.phone_prefix || '+966'
       },
-      quantity_offers: quantityOffers ? {
-        ...quantityOffers,
-        currency: formData.currency || 'SAR'
-      } : null,
+      quantity_offers: quantityOffers,
       debug_info: debug ? {
         shop,
         product,
