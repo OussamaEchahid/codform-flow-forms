@@ -372,9 +372,26 @@ document.addEventListener('DOMContentLoaded', function() {
         return false;
       }
 
-      if (!formData || !formData.data) {
-        console.error("❌ Invalid form data:", formData);
-        container.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">خطأ في تحميل النموذج - البيانات غير صحيحة</div>';
+      // التحقق من صحة البيانات مع دعم التنسيقين القديم والجديد
+      if (!formData) {
+        console.error("❌ No form data provided");
+        container.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">خطأ في تحميل النموذج - لا توجد بيانات</div>';
+        return false;
+      }
+
+      // تحويل البيانات إذا كانت بالتنسيق الجديد
+      if (formData.fields && !formData.data) {
+        console.log("🔄 Converting new format to expected format");
+        formData.data = [{
+          id: "1",
+          title: "Main Step",
+          fields: formData.fields
+        }];
+      }
+
+      if (!formData.data || !Array.isArray(formData.data) || formData.data.length === 0) {
+        console.error("❌ Invalid form data structure:", formData);
+        container.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">خطأ في تحميل النموذج - بنية البيانات غير صحيحة</div>';
         return false;
       }
 
@@ -968,7 +985,7 @@ document.addEventListener('DOMContentLoaded', function() {
       
       console.log("📡 RADICAL FIX - Fetching form data...", { productId, shop, blockId });
       
-      const apiUrl = `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/forms-product?shop=${encodeURIComponent(shop)}&productId=${encodeURIComponent(productId)}&blockId=${encodeURIComponent(blockId)}`;
+      const apiUrl = `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/forms-product?shop=${encodeURIComponent(shop)}&product=${encodeURIComponent(productId)}&blockId=${encodeURIComponent(blockId)}`;
       
       const fetchOptions = {
         method: 'GET',
@@ -1005,7 +1022,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 renderQuantityOffers([data.quantity_offers]);
               }
               
-              renderFormData(data.form);
+              // تحويل البيانات من التنسيق الجديد إلى التنسيق المتوقع
+              let formData = data.form;
+              console.log("🔄 Converting form data format. Original:", formData);
+              
+              // إذا كانت البيانات بالتنسيق الجديد (fields مباشرة)
+              if (formData.fields && !formData.data) {
+                formData = {
+                  ...formData,
+                  data: [{
+                    id: "1",
+                    title: "Main Step", 
+                    fields: formData.fields
+                  }]
+                };
+                console.log("✅ Converted to expected format:", formData);
+              }
+              
+              renderFormData(formData);
             } else if (data && data.success === false) {
               showErrorMessage(data.message || "لا يوجد نموذج متوفر لهذا المنتج");
             } else {
@@ -1233,7 +1267,8 @@ document.addEventListener('DOMContentLoaded', function() {
           }
           console.log("✅ RADICAL FIX - Form rendered successfully");
         } else {
-          showErrorMessage("فشل في عرض النموذج");
+        console.log("❌ Form rendering failed. Form data was:", formData);
+        showErrorMessage("فشل في عرض النموذج");
         }
         
       } catch (error) {
