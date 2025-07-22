@@ -131,24 +131,31 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId, onSave,
         
         {/* Form Title Editor for new forms */}
         {!isReadOnly && formId === 'new' && (
-          <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <h3 className="text-sm font-medium text-blue-800 mb-2">
-              {language === 'ar' ? 'عنوان النموذج' : 'Form Title'}
-            </h3>
+          <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 rounded-lg">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+              <h3 className="text-sm font-semibold text-blue-900">
+                {language === 'ar' ? 'عنوان النموذج التعريفي' : 'Form Identification Title'}
+              </h3>
+            </div>
             <input
               type="text"
-              placeholder={language === 'ar' ? 'أدخل عنواناً مميزاً للنموذج' : 'Enter a descriptive form title'}
-              className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              placeholder={language === 'ar' ? 'مثال: نموذج طلب منتج أحذية رياضية' : 'Example: Sports Shoes Order Form'}
+              className="w-full px-4 py-3 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white shadow-sm"
               onChange={(e) => {
                 // Store the title in localStorage or pass to parent
                 localStorage.setItem('new_form_title', e.target.value);
               }}
+              defaultValue={localStorage.getItem('new_form_title') || ''}
             />
-            <p className="text-xs text-blue-600 mt-1">
-              {language === 'ar' 
-                ? 'هذا العنوان سيساعدك على التمييز بين نماذجك المختلفة' 
-                : 'This title will help you distinguish between your different forms'}
-            </p>
+            <div className="mt-2 flex items-start gap-2">
+              <div className="w-4 h-4 mt-0.5 text-blue-500">ℹ️</div>
+              <p className="text-xs text-blue-700 leading-relaxed">
+                {language === 'ar' 
+                  ? 'هذا العنوان يساعدك على التمييز بين نماذجك المختلفة في لوحة التحكم. يمكنك تغييره لاحقاً من قائمة النماذج.' 
+                  : 'This title helps you distinguish between your different forms in the dashboard. You can change it later from the forms list.'}
+              </p>
+            </div>
           </div>
         )}
       </CardHeader>
