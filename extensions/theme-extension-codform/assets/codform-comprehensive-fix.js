@@ -6,14 +6,14 @@
 (function() {
   'use strict';
   
-  console.log("🚀 COMPREHENSIVE FIX - Loading comprehensive handler");
+  console.log("🚀 COMPREHENSIVE FIX - Loading comprehensive handler v2.0");
 
   // تأكد من أن النص موجه لليمين للعربية
   const isRTL = document.documentElement.dir === 'rtl' || document.body.dir === 'rtl';
 
   // دالة عرض quantity offers محسنة
   function displayQuantityOffers(quantityOffersData, blockId, productId) {
-    console.log("🎁 COMPREHENSIVE FIX - Displaying quantity offers:", quantityOffersData);
+    console.log("🎁 COMPREHENSIVE FIX v2.0 - Displaying quantity offers:", quantityOffersData);
     
     if (!quantityOffersData) {
       console.log("❌ No quantity offers data");
@@ -24,8 +24,12 @@
     let offers = [];
     if (quantityOffersData.offers && Array.isArray(quantityOffersData.offers)) {
       offers = quantityOffersData.offers;
+      console.log("✅ Found offers in .offers array:", offers.length);
     } else if (Array.isArray(quantityOffersData)) {
       offers = quantityOffersData;
+      console.log("✅ Found offers as direct array:", offers.length);
+    } else {
+      console.log("❌ Unexpected data structure:", typeof quantityOffersData);
     }
 
     if (!offers.length) {
@@ -36,9 +40,17 @@
     const container = document.getElementById(`quantity-offers-before-${blockId}`);
     if (!container) {
       console.error("❌ Quantity offers container not found:", `quantity-offers-before-${blockId}`);
-      return false;
+      // البحث عن الحاوي بطرق أخرى
+      const alternativeContainer = document.querySelector(`[id*="quantity-offers"][id*="${blockId}"]`);
+      if (alternativeContainer) {
+        console.log("✅ Found alternative container:", alternativeContainer.id);
+        container = alternativeContainer;
+      } else {
+        return false;
+      }
     }
 
+    console.log("✅ Container found, clearing previous content");
     // مسح المحتوى السابق
     container.innerHTML = '';
     
@@ -214,6 +226,8 @@
     // إضافة العناصر للحاوي
     container.appendChild(wrapper);
     container.style.display = 'block';
+    container.style.visibility = 'visible';
+    container.style.opacity = '1';
 
     // تطبيق تأثير الظهور التدريجي
     wrapper.style.opacity = '0';
@@ -225,7 +239,8 @@
       wrapper.style.transform = 'translateY(0)';
     }, 100);
 
-    console.log("✅ COMPREHENSIVE FIX - Quantity offers displayed successfully");
+    console.log("✅ COMPREHENSIVE FIX v2.0 - Quantity offers displayed successfully");
+    console.log("✅ Container is now visible:", container.style.display, container.style.visibility);
     return true;
   }
 
@@ -267,13 +282,16 @@
 
       // عرض quantity offers
       if (data.quantity_offers) {
-        console.log("🎁 COMPREHENSIVE FIX - Processing quantity offers");
+        console.log("🎁 COMPREHENSIVE FIX v2.0 - Processing quantity offers");
+        console.log("🔍 Offers data structure:", JSON.stringify(data.quantity_offers, null, 2));
         const offersDisplayed = displayQuantityOffers(data.quantity_offers, blockId, productId);
         if (!offersDisplayed) {
           console.warn("⚠️ Failed to display quantity offers");
+        } else {
+          console.log("🎉 Successfully displayed quantity offers!");
         }
       } else {
-        console.log("ℹ️ COMPREHENSIVE FIX - No quantity offers found");
+        console.log("ℹ️ COMPREHENSIVE FIX v2.0 - No quantity offers found in response");
       }
 
       return {

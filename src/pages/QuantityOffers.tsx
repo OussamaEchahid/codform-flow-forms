@@ -122,7 +122,16 @@ const QuantityOffers = () => {
     images: product.images?.map(img => ({ url: typeof img === 'string' ? img : img.src })) || [{ url: '/placeholder.svg' }]
   }));
 
-  const handleProductSelect = (product: Product) => {
+  const handleProductSelect = async (product: Product) => {
+    // التحقق من وجود عرض مسبق قبل السماح بالاختيار
+    if (selectedForm) {
+      const isAssociated = associatedProducts.includes(product.id);
+      if (isAssociated) {
+        toast.error('هذا المنتج مرتبط بالفعل بهذا النموذج. اختر منتجاً آخر.');
+        return;
+      }
+    }
+    
     setSelectedProduct(product);
     setQuantityOffer(prev => ({ ...prev, product_id: product.id }));
   };
