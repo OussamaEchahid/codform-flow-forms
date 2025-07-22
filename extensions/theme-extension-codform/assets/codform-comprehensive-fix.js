@@ -12,13 +12,25 @@
   // تأكد من أن النص موجه لليمين للعربية
   const isRTL = document.documentElement.dir === 'rtl' || document.body.dir === 'rtl';
 
-  // دالة عرض quantity offers محسنة ومطورة
+  // دالة عرض quantity offers محسنة ومطورة - مع منع التكرار
   function displayQuantityOffers(quantityOffersData, blockId, productId) {
     console.log("🎁 COMPREHENSIVE FIX v3.0 - Displaying quantity offers:", quantityOffersData);
     
     if (!quantityOffersData) {
       console.log("❌ No quantity offers data provided");
       return false;
+    }
+
+    // منع التكرار - فحص وحذف أي عروض موجودة مسبقاً في الصفحة
+    const existingOffers = document.querySelectorAll(
+      '.quantity-offers-list, .codform-quantity-offers-wrapper, .quantity-offer-item, [class*="quantity-offer"]'
+    );
+    
+    if (existingOffers.length > 0) {
+      console.log(`⚠️ Found ${existingOffers.length} existing offers, removing to prevent duplication`);
+      existingOffers.forEach(element => {
+        element.remove();
+      });
     }
 
     // التحقق من بنية البيانات المحسنة
@@ -45,54 +57,41 @@
       return false;
     }
     
-    // تحويل قيمة position للصيغة المناسبة للـ DOM ID
-    const positionMap = {
-      'before_form': 'before',
-      'inside_form': 'inside',
-      'after_form': 'after'
-    };
-    
-    const containerPosition = positionMap[position] || 'before';
-
     if (!offers.length) {
       console.log("❌ No offers found in data");
       return false;
     }
 
-    // البحث عن الحاوي المحدد حسب الموضع
-    console.log(`🔍 Looking for container with position: ${containerPosition} (from ${position})`);
-    let container = document.getElementById(`quantity-offers-${containerPosition}-${blockId}`);
+    // فرض عرض العروض داخل النموذج - أولوية inside_form أولاً
+    console.log(`🔍 Forcing inside form placement for better positioning`);
     
-    // إذا لم نجد الحاوي المطلوب، نختار حاوي بديل ونطبع تحذير
-    if (!container) {
-      console.warn(`❌ Container for position ${containerPosition} not found, searching alternatives...`);
-      
-      // محاولة العثور على حاوي بديل
-      const alternativeSelectors = [
-        `quantity-offers-before-${blockId}`,
-        `quantity-offers-inside-${blockId}`,
-        `quantity-offers-after-${blockId}`
-      ];
-      
-      for (const selector of alternativeSelectors) {
-        const altContainer = document.getElementById(selector);
-        if (altContainer) {
-          console.log(`✅ Found alternative container: ${selector}`);
-          
-          // حذف أي عروض موجودة في الحاويات الأخرى لتجنب التكرار
-          alternativeSelectors.forEach(otherSelector => {
-            if (otherSelector !== selector) {
-              const otherContainer = document.getElementById(otherSelector);
-              if (otherContainer) {
-                otherContainer.innerHTML = '';
-                otherContainer.style.display = 'none';
-              }
-            }
-          });
-          
-          container = altContainer;
-          break;
-        }
+    // البحث عن الحاوي بأولوية داخل النموذج أولاً
+    const prioritizedSelectors = [
+      `quantity-offers-inside-${blockId}`,  // أولوية عالية
+      `quantity-offers-before-${blockId}`,  // أولوية متوسطة
+      `quantity-offers-after-${blockId}`    // أولوية منخفضة
+    ];
+    
+    let container = null;
+    let selectedPosition = null;
+    
+    // تنظيف جميع الحاويات أولاً لمنع التكرار
+    prioritizedSelectors.forEach(selector => {
+      const cont = document.getElementById(selector);
+      if (cont) {
+        cont.innerHTML = '';
+        cont.style.display = 'none';
+      }
+    });
+    
+    // اختيار أول حاوي متاح بحسب الأولوية
+    for (const selector of prioritizedSelectors) {
+      const potentialContainer = document.getElementById(selector);
+      if (potentialContainer) {
+        console.log(`✅ Selected container with priority: ${selector}`);
+        container = potentialContainer;
+        selectedPosition = selector;
+        break;
       }
     }
     
@@ -427,33 +426,25 @@
       const data = await response.json();
       console.log("📦 API Response received:", data);
 
-      // عرض quantity offers إذا كانت موجودة
+      // عرض quantity offers إذا كانت موجودة - مع حماية من التكرار
       if (data.quantity_offers && data.quantity_offers.offers && data.quantity_offers.offers.length > 0) {
         console.log("🎁 Processing quantity offers with", data.quantity_offers.offers.length, "offers");
         
-        // منع التكرار - حذف أي عروض موجودة في الصفحة كاملة
-        const existingOffers = document.querySelectorAll('.quantity-offers-list, .codform-quantity-offers-wrapper, .quantity-offer-item');
-        existingOffers.forEach(offer => offer.remove());
+        // التأكد من عدم وجود عروض مكررة في الصفحة كاملة قبل البدء
+        const globalExistingOffers = document.querySelectorAll(
+          '.quantity-offers-list, .codform-quantity-offers-wrapper, .quantity-offer-item, [class*="quantity-offer"]'
+        );
         
-        // تنظيف جميع الحاويات أولا لتجنب العرض المزدوج
-        const containers = [
-          document.getElementById(`quantity-offers-before-${blockId}`),
-          document.getElementById(`quantity-offers-inside-${blockId}`),
-          document.getElementById(`quantity-offers-after-${blockId}`)
-        ];
+        if (globalExistingOffers.length > 0) {
+          console.log(`🧹 Removing ${globalExistingOffers.length} existing offers to prevent duplication`);
+          globalExistingOffers.forEach(offer => offer.remove());
+        }
         
-        containers.forEach(container => {
-          if (container) {
-            container.innerHTML = '';
-            container.style.display = 'none';
-          }
-        });
-        
-        // عرض العروض في الموضع المحدد
+        // عرض العروض في الموضع المحدد (ستتولى الدالة اختيار أفضل موضع)
         const offersDisplayed = displayQuantityOffers(data.quantity_offers, blockId, productId);
         
         if (offersDisplayed) {
-          console.log("🎉 Quantity offers displayed successfully!");
+          console.log("🎉 Quantity offers displayed successfully within form!");
         } else {
           console.warn("⚠️ Failed to display quantity offers");
         }
