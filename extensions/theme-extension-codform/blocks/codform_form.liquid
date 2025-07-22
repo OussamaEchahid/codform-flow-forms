@@ -1015,15 +1015,15 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log("📋 RADICAL FIX - Form data received:", data);
             
             if (data && data.form) {
+              // استخدام بيانات النموذج مباشرة من API
+              const formData = data.form;
+              console.log("📝 Processing API response. Form data:", formData);
+              
               // عرض Quantity Offers إذا كانت موجودة
               if (data.quantity_offers) {
                 console.log("🎁 Found quantity offers:", data.quantity_offers);
                 renderQuantityOffers([data.quantity_offers]);
               }
-              
-              // استخدام بيانات النموذج مباشرة من API
-              const formData = data.form;
-              console.log("📝 Processing API response. Form data:", formData);
               
               renderFormData(formData);
             } else if (data && data.success === false) {
