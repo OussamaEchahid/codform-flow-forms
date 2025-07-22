@@ -132,7 +132,7 @@ const QuantityOffers = () => {
 
       console.log('🔍 Loading existing offers for store:', activeShop);
       
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('quantity_offers')
         .select(`
           *,
@@ -164,7 +164,7 @@ const QuantityOffers = () => {
     try {
       console.log(`🔍 Loading associated products for form: ${formId}`);
       
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('quantity_offers')
         .select('*')
         .eq('form_id', formId)
@@ -177,7 +177,7 @@ const QuantityOffers = () => {
       }
       
       // Map the data to include product information
-      const associatedProductsList: AssociatedProduct[] = (data || []).map(offer => {
+      const associatedProductsList: AssociatedProduct[] = (data || []).map((offer: any) => {
         const product = products.find(p => p.id === offer.product_id);
         return {
           productId: offer.product_id,
@@ -303,14 +303,14 @@ const QuantityOffers = () => {
       let result;
       if (quantityOffer.id) {
         // Update existing offer
-        result = await supabase
+        result = await (supabase as any)
           .from('quantity_offers')
           .update(offerData)
           .eq('id', quantityOffer.id)
           .select();
       } else {
         // Create new offer
-        result = await supabase
+        result = await (supabase as any)
           .from('quantity_offers')
           .insert([offerData])
           .select();
@@ -382,7 +382,7 @@ const QuantityOffers = () => {
     if (!confirm('هل أنت متأكد من حذف هذا العرض؟')) return;
 
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('quantity_offers')
         .delete()
         .eq('id', offerId);
