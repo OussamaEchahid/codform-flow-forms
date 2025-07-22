@@ -1,15 +1,15 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Plus, AlertCircle, Package, Gift } from 'lucide-react';
+import { Loader2, Plus, AlertCircle, Package, Gift, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useSimpleShopify } from '@/hooks/useSimpleShopify';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import QuantityOffersEditor from './QuantityOffersEditor';
+import QuantityOffersDisplay from './QuantityOffersDisplay';
 import { getActiveShopId } from '@/utils/shop-utils';
 
 interface Form {
@@ -48,8 +48,8 @@ const QuantityOffersManager: React.FC = () => {
   const [editingOffer, setEditingOffer] = useState<QuantityOffer | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState<string>('');
-  
   const { activeStore } = useSimpleShopify();
+  const [refreshing, setRefreshing] = useState(false);
 
   // Get consistent active store
   const getConsistentActiveStore = (): string | null => {
@@ -65,7 +65,7 @@ const QuantityOffersManager: React.FC = () => {
     return fallbackStore;
   };
 
-  // Load forms for the current shop
+  // Enhanced load forms function
   const loadForms = async () => {
     const currentStore = getConsistentActiveStore();
     if (!currentStore) {
@@ -150,7 +150,7 @@ const QuantityOffersManager: React.FC = () => {
       const associatedProductIds = settings.map(s => String(s.product_id));
       console.log('🔗 Associated product IDs (as strings):', associatedProductIds);
       
-  // Filter products that are associated with this form
+      // Filter products that are associated with this form
       console.log('🔍 Checking each product against associated IDs...');
       const formProducts = allProducts
         .filter((product: any) => {
@@ -241,6 +241,22 @@ const QuantityOffersManager: React.FC = () => {
       setQuantityOffers([]);
     }
   }, [selectedFormId]);
+
+  // Force refresh function
+  const forceRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await loadForms();
+      if (selectedFormId) {
+        await loadFormProducts(selectedFormId);
+      }
+      toast.success('تم التحديث بنجاح');
+    } catch (error) {
+      toast.error('خطأ في التحديث');
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const handleCreateOffer = () => {
     if (!selectedProductId) {
@@ -395,15 +411,31 @@ const QuantityOffersManager: React.FC = () => {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Gift className="h-5 w-5" />
-            إدارة عروض الكمية
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Gift className="h-5 w-5" />
+              إدارة عروض الكمية - محسن
+            </CardTitle>
+            <Button 
+              onClick={forceRefresh} 
+              disabled={refreshing}
+              variant="outline"
+              size="sm"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+              تحديث
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Debug Info */}
-          <div className="text-xs text-muted-foreground bg-gray-50 p-2 rounded">
-            المتجر النشط: {currentStore} | النماذج: {forms.length} | المنتجات المرتبطة: {associatedProducts.length}
+          {/* Enhanced Debug Info */}
+          <div className="text-xs text-muted-foreground bg-blue-50 p-3 rounded border">
+            <div className="grid grid-cols-2 gap-2">
+              <div>المتجر النشط: <strong>{currentStore}</strong></div>
+              <div>النماذج: <strong>{forms.length}</strong></div>
+              <div>المنتجات المرتبطة: <strong>{associatedProducts.length}</strong></div>
+              <div>العروض النشطة: <strong>{quantityOffers.length}</strong></div>
+            </div>
           </div>
 
           {/* Form Selection */}
@@ -478,16 +510,16 @@ const QuantityOffersManager: React.FC = () => {
         </div>
       )}
 
-      {/* Existing Quantity Offers */}
+      {/* Existing Quantity Offers with Enhanced Display */}
       {quantityOffers.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>عروض الكمية الحالية</CardTitle>
+            <CardTitle>عروض الكمية الحالية - معاينة محسنة</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className="space-y-6">
               {quantityOffers.map(offer => (
-                <div key={offer.id} className="border rounded-lg p-4 space-y-3">
+                <div key={offer.id} className="border rounded-lg p-4 space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="font-medium">{offer.product_title}</h3>
@@ -517,6 +549,20 @@ const QuantityOffersManager: React.FC = () => {
                         حذف
                       </Button>
                     </div>
+                  </div>
+                  
+                  {/* Enhanced Live Preview */}
+                  <div className="bg-gray-50 p-4 rounded-lg border">
+                    <h4 className="text-sm font-medium mb-3 text-gray-600">معاينة مباشرة:</h4>
+                    <QuantityOffersDisplay 
+                      offers={offer.offers || []} 
+                      styling={offer.styling || {
+                        backgroundColor: '#ffffff',
+                        textColor: '#000000',
+                        tagColor: '#22c55e',
+                        priceColor: '#ef4444'
+                      }} 
+                    />
                   </div>
                 </div>
               ))}

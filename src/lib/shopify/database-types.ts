@@ -35,6 +35,32 @@ export interface ShopifyFormInsertion {
   updated_at: string;
 }
 
+export interface QuantityOffer {
+  id: string;
+  shop_id: string;
+  product_id: string;
+  form_id: string;
+  offers: Array<{
+    id: string;
+    text: string;
+    tag: string;
+    quantity: number;
+    discountType: 'none' | 'fixed' | 'percentage';
+    discountValue?: number;
+  }>;
+  styling: {
+    backgroundColor: string;
+    textColor: string;
+    tagColor: string;
+    priceColor: string;
+  };
+  position: 'before_form' | 'inside_form' | 'after_form';
+  enabled: boolean;
+  custom_selector?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 // Custom Database type that includes our tables
 export interface Database {
   public: {
@@ -53,6 +79,11 @@ export interface Database {
         Row: ShopifyFormInsertion;
         Insert: Omit<ShopifyFormInsertion, 'id' | 'created_at' | 'updated_at'>;
         Update: Partial<Omit<ShopifyFormInsertion, 'id' | 'created_at' | 'updated_at'>>;
+      };
+      quantity_offers: {
+        Row: QuantityOffer;
+        Insert: Omit<QuantityOffer, 'id' | 'created_at' | 'updated_at'>;
+        Update: Partial<Omit<QuantityOffer, 'id' | 'created_at' | 'updated_at'>>;
       };
     };
     Views: {};
