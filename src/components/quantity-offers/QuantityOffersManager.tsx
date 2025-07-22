@@ -111,10 +111,10 @@ const QuantityOffersManager: React.FC = () => {
     try {
       console.log('🔗 Loading products for form:', formId, 'store:', currentStore);
       
-      // Get products associated with this form - Remove enabled filter as it might be causing issues
+      // Get products associated with this form - بدون فلتر enabled
       const { data: settings, error: settingsError } = await supabase
         .from('shopify_product_settings')
-        .select('product_id')
+        .select('product_id, enabled')
         .eq('shop_id', currentStore)
         .eq('form_id', formId);
 

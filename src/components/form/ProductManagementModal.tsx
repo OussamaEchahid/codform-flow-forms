@@ -118,45 +118,30 @@ const ProductManagementModal: React.FC<ProductManagementModalProps> = ({
       const shopId = cleanShopId(rawShopId);
       console.log(`🔗 ربط المنتج ${productId} بالمتجر: ${shopId}`);
 
-      // التحقق من الوجود المسبق بطريقة أبسط وأوضح
-      const { data: existingSettings, error: checkError } = await supabase
-        .from('shopify_product_settings')
-        .select('*')
-        .eq('shop_id', shopId)
-        .eq('product_id', String(productId))
-        .eq('form_id', formId);
+      // استخدام الدالة المخصصة لربط المنتج مع معالجة أفضل للأخطاء
+      console.log('🔗 محاولة ربط المنتج باستخدام الدالة المخصصة:', {
+        shopId,
+        productId: String(productId),
+        formId
+      });
 
-      if (checkError) {
-        console.error('❌ خطأ في التحقق من الوجود المسبق:', checkError);
-        toast.error('خطأ في التحقق من البيانات');
-        return;
-      }
-
-      console.log('🔍 التحقق من الإعدادات الموجودة:', { shopId, productId: String(productId), formId, existingSettings });
-
-      if (existingSettings && existingSettings.length > 0) {
-        console.log('⚠️ المنتج مرتبط بالفعل');
-        toast.error('هذا المنتج مرتبط بالفعل بهذا النموذج');
-        setLinkedProducts(prev => new Set([...prev, productId]));
-        return;
-      }
-
-      // محاولة الإدراج
-      const { error } = await supabase
-        .from('shopify_product_settings')
-        .insert({
-          form_id: formId,
-          product_id: productId,
-          shop_id: shopId,
-          enabled: true
+      const { data: result, error } = await supabase
+        .rpc('associate_product_with_form', {
+          p_shop_id: shopId,
+          p_product_id: String(productId),
+          p_form_id: formId,
+          p_enabled: true
         });
 
       if (error) {
         console.error('❌ خطأ في ربط المنتج:', error);
-        if (error.code === '23505') {
-          toast.error('هذا المنتج مرتبط بالفعل. يرجى تحديث الصفحة والمحاولة مرة أخرى.');
+        
+        // معالجة خطأ duplicate key
+        if (error.code === '23505' || error.message?.includes('duplicate key')) {
+          toast.error('هذا المنتج مرتبط بالفعل بنموذج آخر');
+          setLinkedProducts(prev => new Set([...prev, productId]));
         } else {
-          toast.error('فشل في ربط المنتج بالنموذج: ' + error.message);
+          toast.error('فشل في ربط المنتج: ' + error.message);
         }
         return;
       }
