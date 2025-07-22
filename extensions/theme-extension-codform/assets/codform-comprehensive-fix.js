@@ -12,9 +12,9 @@
   // تأكد من أن النص موجه لليمين للعربية
   const isRTL = document.documentElement.dir === 'rtl' || document.body.dir === 'rtl';
 
-  // دالة عرض quantity offers محسنة ونهائية - مع ضمان الظهور داخل النموذج
-  function displayQuantityOffers(quantityOffersData, blockId, productId) {
-    console.log("🎁 COMPREHENSIVE FIX v4.0 - Displaying quantity offers:", quantityOffersData);
+  // دالة عرض quantity offers محسنة مع الأسعار الحقيقية
+  function displayQuantityOffers(quantityOffersData, blockId, productId, productData = null) {
+    console.log("🎁 COMPREHENSIVE FIX v4.0 - Displaying quantity offers:", quantityOffersData, "Product data:", productData);
     
     if (!quantityOffersData) {
       console.log("❌ No quantity offers data provided");
@@ -228,8 +228,37 @@
         margin-left: 12px;
       `;
 
-      // حساب السعر
-      const basePrice = 100; // سعر افتراضي
+      // استخراج السعر الحقيقي للمنتج
+      let basePrice = 100; // القيمة الافتراضية
+      let compareAtPrice = null;
+      let productName = 'المنتج';
+      let currency = 'SAR';
+
+      // استخدام بيانات المنتج الحقيقية إذا كانت متوفرة
+      if (productData && productData.product) {
+        const product = productData.product;
+        console.log("💰 Using real product data for offer:", product);
+        
+        // استخراج السعر من بيانات المنتج
+        if (product.variants && product.variants.length > 0) {
+          const variant = product.variants[0];
+          basePrice = parseFloat(variant.price) || basePrice;
+          compareAtPrice = variant.compare_at_price ? parseFloat(variant.compare_at_price) : null;
+        }
+        
+        productName = product.title || productName;
+        
+        // استخراج العملة من المتجر
+        if (productData.shop && productData.shop.currency) {
+          currency = productData.shop.currency;
+        }
+        
+        console.log("💰 Extracted pricing info:", { basePrice, compareAtPrice, productName, currency });
+      } else {
+        console.warn("⚠️ No product data available, using default price");
+      }
+
+      // حساب السعر بالكمية المطلوبة
       let totalPrice = basePrice * offer.quantity;
       const originalPrice = basePrice * offer.quantity;
       const isDiscounted = offer.discountType && offer.discountType !== 'none' && offer.discountValue > 0;
@@ -251,7 +280,7 @@
           text-decoration: line-through;
           margin-bottom: 2px;
         `;
-        originalPriceElement.textContent = `$${originalPrice.toFixed(2)}`;
+        originalPriceElement.textContent = `${originalPrice.toFixed(2)} ${currency}`;
         rightContent.appendChild(originalPriceElement);
       }
 
@@ -262,8 +291,21 @@
         font-size: 18px;
         color: ${styling.priceColor || '#1f2937'};
       `;
-      finalPriceElement.textContent = `$${totalPrice.toFixed(2)}`;
+      finalPriceElement.textContent = `${totalPrice.toFixed(2)} ${currency}`;
       rightContent.appendChild(finalPriceElement);
+
+      // إضافة معلومات إضافية للمنتج إذا كانت متوفرة
+      if (productData && productData.product && offer.quantity > 1) {
+        const unitPriceElement = document.createElement('div');
+        unitPriceElement.className = 'text-xs text-gray-500';
+        unitPriceElement.style.cssText = `
+          font-size: 12px;
+          color: #6b7280;
+          margin-top: 2px;
+        `;
+        unitPriceElement.textContent = `${basePrice.toFixed(2)} ${currency} × ${offer.quantity}`;
+        rightContent.appendChild(unitPriceElement);
+      }
 
       // تجميع العناصر
       offerElement.appendChild(leftContent);
@@ -327,8 +369,8 @@
       if (data.quantity_offers && data.quantity_offers.offers && data.quantity_offers.offers.length > 0) {
         console.log("🎁 Processing quantity offers with", data.quantity_offers.offers.length, "offers");
         
-        // عرض العروض داخل النموذج وإرجاع الحاوي
-        const offersContainer = displayQuantityOffers(data.quantity_offers, blockId, productId);
+        // عرض العروض داخل النموذج مع بيانات المنتج الحقيقية
+        const offersContainer = displayQuantityOffers(data.quantity_offers, blockId, productId, data);
         
         if (offersContainer) {
           console.log("🎉 Offers container created successfully, now showing with smooth animation");
