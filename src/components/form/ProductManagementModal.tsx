@@ -118,10 +118,10 @@ const ProductManagementModal: React.FC<ProductManagementModalProps> = ({
       const shopId = cleanShopId(rawShopId);
       console.log(`🔗 ربط المنتج ${productId} بالمتجر: ${shopId}`);
 
-      // التحقق من الوجود المسبق - تحقق أدق من نوع البيانات
+      // التحقق من الوجود المسبق بطريقة أبسط وأوضح
       const { data: existingSettings, error: checkError } = await supabase
         .from('shopify_product_settings')
-        .select('id, form_id, product_id')
+        .select('*')
         .eq('shop_id', shopId)
         .eq('product_id', String(productId))
         .eq('form_id', formId);
