@@ -167,7 +167,10 @@ window.CodformQuantityOffers = (function() {
       
       // عرض السعر الحقيقي مع الخصم
       if (realPrice && offer.discountType && offer.discountType !== 'none' && offer.discountValue > 0) {
-        const currencySymbol = actualCurrency === 'MAD' ? 'د.م' : actualCurrency === 'SAR' ? 'ر.س' : actualCurrency;
+        const currencySymbol = actualCurrency === 'MAD' ? 'د.م' : 
+                              actualCurrency === 'SAR' ? 'ر.س' : 
+                              actualCurrency === 'USD' ? '$' : 
+                              actualCurrency;
         
         let discountedPrice = realPrice * offer.quantity;
         if (offer.discountType === 'percentage') {
@@ -184,7 +187,10 @@ window.CodformQuantityOffers = (function() {
           <div style="font-size: 16px; font-weight: bold;">${discountedPrice.toFixed(2)} ${currencySymbol}</div>
         `;
       } else if (realPrice) {
-        const currencySymbol = actualCurrency === 'MAD' ? 'د.م' : actualCurrency === 'SAR' ? 'ر.س' : actualCurrency;
+        const currencySymbol = actualCurrency === 'MAD' ? 'د.م' : 
+                              actualCurrency === 'SAR' ? 'ر.س' : 
+                              actualCurrency === 'USD' ? '$' : 
+                              actualCurrency;
         const totalPrice = realPrice * offer.quantity;
         priceContent.style.color = styling.tagColor;
         priceContent.innerHTML = `${totalPrice.toFixed(2)} ${currencySymbol}`;
