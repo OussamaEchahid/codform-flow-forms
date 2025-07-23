@@ -46,47 +46,86 @@ window.CodformQuantityOffers = (function() {
     console.log("✅ FINAL FIX - Comprehensive cleanup completed");
   }
 
-  // دالة البحث عن النموذج الفعلي - نسخة مبسطة ومضمونة
+  // دالة البحث عن النموذج الفعلي - إصلاح جذري للمشكلة
   function findActualFormContainer(blockId) {
-    console.log(`🎯 SIMPLE FIX - Looking for form with blockId: ${blockId}`);
+    console.log(`🎯 RADICAL FIX - Looking for CORRECT form with blockId: ${blockId}`);
     
-    // أولاً: البحث عن النموذج مباشرة
-    const forms = document.getElementsByTagName('form');
-    console.log(`🔍 SIMPLE FIX - Found ${forms.length} forms`);
-    
-    for (let i = 0; i < forms.length; i++) {
-      const form = forms[i];
-      console.log(`📋 SIMPLE FIX - Form ${i}: ID="${form.id}", Class="${form.className}"`);
-      
-      // إذا وجدنا أي نموذج، نستخدمه (للبساطة)
-      if (form.tagName === 'FORM') {
-        console.log(`✅ SIMPLE FIX - Using form ${i}:`, form);
+    // أولاً: البحث عن حاوي النموذج المحدد بـ blockId
+    const specificContainer = document.querySelector(`#codform-container-${blockId}`);
+    if (specificContainer) {
+      console.log(`✅ RADICAL FIX - Found specific container:`, specificContainer);
+      const form = specificContainer.querySelector('form');
+      if (form) {
+        console.log(`✅ RADICAL FIX - Found form inside specific container:`, form);
         return form;
       }
+      console.log(`⚠️ RADICAL FIX - Using specific container as form:`, specificContainer);
+      return specificContainer;
     }
     
-    // ثانياً: البحث في div containers
-    const containers = [
-      document.querySelector(`#codform-container-${blockId}`),
+    // ثانياً: البحث عن النموذج باستخدام data attributes
+    const codformElements = [
+      document.querySelector('[data-codform="true"]'),
       document.querySelector('.codform-form'),
       document.querySelector('[data-codform]')
     ];
     
-    for (let container of containers) {
-      if (container) {
-        console.log(`📦 SIMPLE FIX - Found container:`, container);
-        const form = container.querySelector('form');
+    for (let element of codformElements) {
+      if (element) {
+        console.log(`📦 RADICAL FIX - Found codform element:`, element);
+        if (element.tagName === 'FORM') {
+          console.log(`✅ RADICAL FIX - Element is a form:`, element);
+          return element;
+        }
+        const form = element.querySelector('form');
         if (form) {
-          console.log(`✅ SIMPLE FIX - Form inside container:`, form);
+          console.log(`✅ RADICAL FIX - Found form inside codform element:`, form);
           return form;
         }
-        // إذا لم نجد form، نستخدم الحاوي نفسه
-        console.log(`⚠️ SIMPLE FIX - Using container as form:`, container);
-        return container;
+        console.log(`⚠️ RADICAL FIX - Using codform element as form:`, element);
+        return element;
       }
     }
     
-    console.error(`❌ SIMPLE FIX - No form found`);
+    // ثالثاً: تجنب نماذج السلة والتنقل والبحث
+    const forms = document.getElementsByTagName('form');
+    console.log(`🔍 RADICAL FIX - Found ${forms.length} forms, filtering correct one`);
+    
+    for (let i = 0; i < forms.length; i++) {
+      const form = forms[i];
+      const formId = form.id || '';
+      const formClass = form.className || '';
+      
+      console.log(`📋 RADICAL FIX - Checking Form ${i}: ID="${formId}", Class="${formClass}"`);
+      
+      // تجنب النماذج غير المرغوبة
+      const skipPatterns = [
+        'cart', 'Cart', 'CART',
+        'search', 'Search', 'SEARCH', 
+        'nav', 'Nav', 'NAV',
+        'login', 'Login', 'LOGIN',
+        'newsletter', 'Newsletter',
+        'drawer', 'Drawer', 'DRAWER'
+      ];
+      
+      const shouldSkip = skipPatterns.some(pattern => 
+        formId.includes(pattern) || formClass.includes(pattern)
+      );
+      
+      if (shouldSkip) {
+        console.log(`⚠️ RADICAL FIX - Skipping unwanted form ${i}: ${formId}`);
+        continue;
+      }
+      
+      // البحث عن النموذج الذي يحتوي على حقول الإدخال الفعلية
+      const inputs = form.querySelectorAll('input[type="text"], input[type="email"], input[type="tel"], textarea');
+      if (inputs.length >= 2) {
+        console.log(`✅ RADICAL FIX - Found form with ${inputs.length} input fields:`, form);
+        return form;
+      }
+    }
+    
+    console.error(`❌ RADICAL FIX - No suitable form found`);
     return null;
   }
 
