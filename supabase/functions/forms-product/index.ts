@@ -97,7 +97,8 @@ serve(async (req) => {
       console.log(`[${requestId}] 🔎 Checking product-specific settings...`);
       
       try {
-        const { data, error } = await supabase
+        // First try with exact product identifier
+        let { data, error } = await supabase
           .from('shopify_product_settings')
           .select(`
             form_id,
@@ -108,6 +109,34 @@ serve(async (req) => {
           .eq('product_id', product)
           .eq('enabled', true)
           .limit(1);
+
+        // If no results and product looks like a handle, try to get product ID from Shopify
+        if ((!data || data.length === 0) && isNaN(Number(product))) {
+          console.log(`[${requestId}] 🔄 Product looks like handle, trying to get ID from Shopify`);
+          
+          const realProductData = await getRealProductData(shop, product);
+          if (realProductData && realProductData.id) {
+            // Extract numeric ID from Shopify ID (e.g., "gid://shopify/Product/7597766148198" -> "7597766148198")
+            const productId = realProductData.id.toString().split('/').pop();
+            console.log(`[${requestId}] 🎯 Got product ID: ${productId} for handle: ${product}`);
+            
+            // Try again with the numeric ID
+            const result = await supabase
+              .from('shopify_product_settings')
+              .select(`
+                form_id,
+                enabled,
+                forms(*)
+              `)
+              .eq('shop_id', shop)
+              .eq('product_id', productId)
+              .eq('enabled', true)
+              .limit(1);
+            
+            data = result.data;
+            error = result.error;
+          }
+        }
 
         if (error) {
           console.log(`[${requestId}] Product settings error:`, error.message);
