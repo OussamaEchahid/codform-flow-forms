@@ -46,32 +46,63 @@ window.CodformQuantityOffers = (function() {
     console.log("✅ FINAL FIX - Comprehensive cleanup completed");
   }
 
-  // دالة البحث عن النموذج الفعلي في Shopify
+  // دالة البحث عن النموذج الفعلي في Shopify - إصلاح جذري
   function findActualFormContainer(blockId) {
-    console.log(`🔍 REAL FIX - Looking for actual form container: ${blockId}`);
+    console.log(`🎯 RADICAL FIX - Finding actual form for blockId: ${blockId}`);
     
-    // البحث بطرق متعددة
-    const possibleContainers = [
-      document.getElementById(`codform-container-${blockId}`),
-      document.querySelector(`[id*="${blockId}"]`),
-      document.querySelector('.codform-form'),
-      document.querySelector('form'),
-      document.querySelector('[data-codform]')
-    ];
+    // أولاً: البحث عن النموذج مباشرة في الصفحة
+    const allForms = document.querySelectorAll('form');
+    console.log(`🔍 RADICAL FIX - Found ${allForms.length} forms on page`);
     
-    for (const container of possibleContainers) {
-      if (container) {
-        console.log(`✅ REAL FIX - Found container:`, container);
-        console.log(`📋 REAL FIX - Container tag:`, container.tagName, `ID:`, container.id, `Classes:`, container.className);
-        
-        // البحث عن النموذج الحقيقي داخل الحاوي
-        const actualForm = container.querySelector('form') || container;
-        console.log(`📋 REAL FIX - Using form element:`, actualForm.tagName, actualForm.id || 'no-id');
-        return actualForm;
+    for (let i = 0; i < allForms.length; i++) {
+      const form = allForms[i];
+      console.log(`📋 RADICAL FIX - Form ${i}:`, {
+        id: form.id,
+        className: form.className,
+        innerHTML: form.innerHTML.substring(0, 100) + '...'
+      });
+      
+      // التحقق إذا كان هذا النموذج يحتوي على معرف blockId أو يبدو كنموذج codform
+      if (form.id.includes(blockId) || 
+          form.className.includes('codform') || 
+          form.innerHTML.includes(blockId) ||
+          form.querySelector(`[id*="${blockId}"]`) ||
+          form.querySelector('[data-field-type]')) {
+        console.log(`✅ RADICAL FIX - Found matching form:`, form);
+        return form;
       }
     }
     
-    console.error(`❌ REAL FIX - No container found for blockId: ${blockId}`);
+    // ثانياً: البحث في الحاويات الممكنة
+    const possibleSelectors = [
+      `#codform-container-${blockId}`,
+      `[id*="${blockId}"]`,
+      '.codform-form',
+      '[data-codform]',
+      '.shopify-section'
+    ];
+    
+    for (const selector of possibleSelectors) {
+      const container = document.querySelector(selector);
+      if (container) {
+        console.log(`📦 RADICAL FIX - Found container with selector "${selector}":`, container);
+        
+        // البحث عن form داخل الحاوي
+        const formInside = container.querySelector('form');
+        if (formInside) {
+          console.log(`✅ RADICAL FIX - Found form inside container:`, formInside);
+          return formInside;
+        }
+        
+        // إذا لم نجد form، نستخدم الحاوي نفسه إذا كان يحتوي على حقول
+        if (container.querySelector('input, textarea, select')) {
+          console.log(`✅ RADICAL FIX - Using container as form (has form fields):`, container);
+          return container;
+        }
+      }
+    }
+    
+    console.error(`❌ RADICAL FIX - No suitable form found for blockId: ${blockId}`);
     return null;
   }
 
