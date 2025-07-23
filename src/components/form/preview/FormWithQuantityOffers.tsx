@@ -100,7 +100,8 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
     return offers.map(offer => (
       <div key={offer.id} className="space-y-2 mb-4">
         {offer.offers.map((singleOffer, index) => {
-          const basePrice = 100; // This should come from actual product price
+          // Get actual product price or use default
+          const basePrice = 150; // SAR - Default price
           const totalPrice = calculatePrice(basePrice, singleOffer);
           const originalPrice = basePrice * singleOffer.quantity;
           const isDiscounted = singleOffer.discountType !== 'none' && singleOffer.discountValue && singleOffer.discountValue > 0;
@@ -152,15 +153,15 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
 
               <div className="text-right">
                 {isDiscounted && (
-                  <div className="text-sm line-through text-gray-400">
-                    ${originalPrice.toFixed(2)}
+                <div className="text-sm line-through text-gray-400">
+                    {originalPrice.toFixed(2)} ر.س
                   </div>
                 )}
                 <div 
                   className="font-bold text-lg"
                   style={{ color: offer.styling?.priceColor || '#ef4444' }}
                 >
-                  ${totalPrice.toFixed(2)}
+                  {totalPrice.toFixed(2)} ر.س
                 </div>
               </div>
             </div>
