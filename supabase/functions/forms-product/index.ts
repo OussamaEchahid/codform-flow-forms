@@ -17,14 +17,13 @@ serve(async (req) => {
   }
 
   try {
-    console.log(`[${requestId}] 🎯 PRECISE FIX - Product form request`);
-    
     const url = new URL(req.url);
     const shop = url.searchParams.get('shop');
     let product = url.searchParams.get('product');
     const blockId = url.searchParams.get('blockId');
     
-    console.log(`[${requestId}] Parameters: shop=${shop}, product=${product}, blockId=${blockId}`);
+    // تقليل console logs - فقط المعلومات الأساسية
+    console.log(`[${requestId}] 🎯 API Request: ${shop}/${product}`);
 
     if (!shop) {
       throw new Error('Missing required parameter: shop');
@@ -37,7 +36,6 @@ serve(async (req) => {
         const matches = referer.match(/\/products\/([^?\/]+)/);
         if (matches && matches[1]) {
           product = matches[1];
-          console.log(`[${requestId}] ✅ Extracted product handle: ${product}`);
         }
       }
     }
@@ -49,8 +47,6 @@ serve(async (req) => {
 
     // Function to get real product data from Shopify API
     async function getRealProductData(shopDomain: string, productHandle: string) {
-      console.log(`[${requestId}] 🛍️ Fetching REAL product data`);
-      
       try {
         const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-products`, {
           method: 'POST',
@@ -68,11 +64,6 @@ serve(async (req) => {
           const data = await response.json();
           if (data.success && data.products && data.products.length > 0) {
             const product = data.products[0];
-            console.log(`[${requestId}] ✅ Got real product:`, {
-              title: product.title,
-              price: product.price,
-              currency: product.priceRangeV2?.minVariantPrice?.currencyCode
-            });
             
             return {
               id: product.id,
@@ -84,18 +75,15 @@ serve(async (req) => {
           }
         }
         
-        console.log(`[${requestId}] ❌ Failed to get real product data`);
         return null;
       } catch (error) {
-        console.error(`[${requestId}] Error fetching real product data:`, error);
+        console.error(`[${requestId}] Product fetch error:`, error);
         return null;
       }
     }
 
     // Function to get product-specific form settings
     async function getProductFormSettings() {
-      console.log(`[${requestId}] 🔎 Checking product-specific settings...`);
-      
       try {
         const { data, error } = await supabase
           .from('shopify_product_settings')
@@ -110,7 +98,6 @@ serve(async (req) => {
           .limit(1);
 
         if (error) {
-          console.log(`[${requestId}] Product settings error:`, error.message);
           return { found: false, error: error.message };
         }
 
@@ -121,7 +108,6 @@ serve(async (req) => {
 
         return { found: false };
       } catch (error) {
-        console.log(`[${requestId}] Product settings exception:`, error);
         return { found: false, error: (error as Error).message };
       }
     }
@@ -129,11 +115,8 @@ serve(async (req) => {
     // Function to fetch quantity offers
     async function getQuantityOffers(formId: string) {
       if (!product) {
-        console.log(`[${requestId}] ⚠️ No product available, skipping quantity offers`);
         return null;
       }
-      
-      console.log(`[${requestId}] 🎁 Fetching quantity offers for product ${product}`);
       
       try {
         const { data, error } = await supabase
@@ -146,18 +129,16 @@ serve(async (req) => {
           .limit(1);
 
         if (error) {
-          console.log(`[${requestId}] ℹ️ No quantity offers configured`);
           return null;
         }
 
         if (data && data.length > 0) {
-          console.log(`[${requestId}] ✅ Found ${data[0].offers?.length || 0} quantity offers`);
           return data[0];
         }
 
         return null;
       } catch (error) {
-        console.error(`[${requestId}] Error fetching quantity offers:`, error);
+        console.error(`[${requestId}] Quantity offers error:`, error);
         return null;
       }
     }
@@ -177,10 +158,9 @@ serve(async (req) => {
           fields = formData.data.fields;
         }
 
-        console.log(`[${requestId}] ✅ Extracted ${fields.length} fields`);
         return fields;
       } catch (error) {
-        console.error(`[${requestId}] Error extracting fields:`, error);
+        console.error(`[${requestId}] Fields extraction error:`, error);
         return [];
       }
     }
@@ -190,7 +170,6 @@ serve(async (req) => {
     if (product) {
       productResult = await getProductFormSettings();
     } else {
-      console.log(`[${requestId}] ⚠️ No product handle available`);
       return new Response(JSON.stringify({
         success: false,
         error: 'No product found'
@@ -204,11 +183,9 @@ serve(async (req) => {
     let formId = null;
 
     if (productResult.found && productResult.formData) {
-      console.log(`[${requestId}] 🎯 Found product-specific form`);
       formData = productResult.formData;
       formId = productResult.formId;
     } else {
-      console.log(`[${requestId}] ❌ No form configured for this product`);
       return new Response(JSON.stringify({
         success: false,
         error: 'No form configured for this product'
@@ -254,7 +231,8 @@ serve(async (req) => {
       }
     };
 
-    console.log(`[${requestId}] 🎉 SUCCESS - Form: ${fields.length} fields, Offers: ${!!quantityOffers}, Product: ${!!realProductData}`);
+    // تقليل console logs - فقط النتيجة النهائية
+    console.log(`[${requestId}] ✅ Success: ${fields.length} fields, ${!!quantityOffers ? 'with' : 'no'} offers`);
 
     return new Response(JSON.stringify(response), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
