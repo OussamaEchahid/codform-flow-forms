@@ -57,6 +57,17 @@ window.CodformQuantityOffers = (function() {
       return;
     }
 
+    // البحث عن العنصر الأب الصحيح (div أو section يحتوي على النموذج)
+    let formWrapper = container;
+    while (formWrapper && formWrapper.parentElement) {
+      if (formWrapper.parentElement.classList.contains('shopify-section') || 
+          formWrapper.parentElement.tagName === 'MAIN' ||
+          formWrapper.parentElement.tagName === 'BODY') {
+        break;
+      }
+      formWrapper = formWrapper.parentElement;
+    }
+
     let targetElement = null;
     let insertMethod = 'appendChild';
     let offerContainer = null;
@@ -65,7 +76,7 @@ window.CodformQuantityOffers = (function() {
     switch (position) {
       case 'before_form':
         console.log(`📍 POSITION BASED - Placing BEFORE form`);
-        targetElement = container.parentElement;
+        targetElement = formWrapper.parentElement || document.body;
         insertMethod = 'insertBefore';
         offerContainer = document.createElement('div');
         offerContainer.id = `quantity-offers-before-${blockId}`;
@@ -74,7 +85,7 @@ window.CodformQuantityOffers = (function() {
         
       case 'after_form':
         console.log(`📍 POSITION BASED - Placing AFTER form`);
-        targetElement = container.parentElement;
+        targetElement = formWrapper.parentElement || document.body;
         insertMethod = 'insertAfter';
         offerContainer = document.createElement('div');
         offerContainer.id = `quantity-offers-after-${blockId}`;
@@ -107,13 +118,23 @@ window.CodformQuantityOffers = (function() {
       position: relative;
       z-index: 10;
       width: 100%;
+      background: #f8f9fa;
+      border: 2px solid #e74c3c;
+      border-radius: 8px;
+      padding: 15px;
     `;
 
     // إدراج الحاوي في الموضع المحدد
     if (insertMethod === 'insertBefore') {
-      targetElement.insertBefore(offerContainer, container);
+      console.log(`📍 POSITION BASED - Inserting BEFORE formWrapper:`, formWrapper);
+      targetElement.insertBefore(offerContainer, formWrapper);
     } else if (insertMethod === 'insertAfter') {
-      targetElement.insertBefore(offerContainer, container.nextSibling);
+      console.log(`📍 POSITION BASED - Inserting AFTER formWrapper:`, formWrapper);
+      if (formWrapper.nextSibling) {
+        targetElement.insertBefore(offerContainer, formWrapper.nextSibling);
+      } else {
+        targetElement.appendChild(offerContainer);
+      }
     } else {
       // inside_form - البحث عن الموضع الأنسب داخل النموذج
       const formTitle = container.querySelector('.form-title-field, [data-field-type="form-title"]');
