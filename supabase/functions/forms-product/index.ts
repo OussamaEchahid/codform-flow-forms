@@ -13,20 +13,18 @@ serve(async (req) => {
   
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    console.log("Handling OPTIONS request for CORS preflight");
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log(`[${requestId}] 🎯 LOGICAL FIX - Product form request received`);
+    console.log(`[${requestId}] 🎯 PRECISE FIX - Product form request`);
     
     const url = new URL(req.url);
     const shop = url.searchParams.get('shop');
     let product = url.searchParams.get('product');
     const blockId = url.searchParams.get('blockId');
-    const debug = url.searchParams.get('debug') === 'true';
     
-    console.log(`[${requestId}] Parameters: shop=${shop}, product=${product}, blockId=${blockId}, debug=${debug}`);
+    console.log(`[${requestId}] Parameters: shop=${shop}, product=${product}, blockId=${blockId}`);
 
     if (!shop) {
       throw new Error('Missing required parameter: shop');
@@ -35,13 +33,11 @@ serve(async (req) => {
     // Extract product handle from referer URL if product is null
     if (!product) {
       const referer = req.headers.get('referer');
-      console.log(`[${requestId}] 🔍 Product is null, checking referer: ${referer}`);
-      
       if (referer && referer.includes('/products/')) {
         const matches = referer.match(/\/products\/([^?\/]+)/);
         if (matches && matches[1]) {
           product = matches[1];
-          console.log(`[${requestId}] ✅ Extracted product handle from referer: ${product}`);
+          console.log(`[${requestId}] ✅ Extracted product handle: ${product}`);
         }
       }
     }
@@ -51,14 +47,11 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    console.log(`[${requestId}] 🔍 Fetching form for shop ${shop}, product ${product}`);
-
     // Function to get real product data from Shopify API
     async function getRealProductData(shopDomain: string, productHandle: string) {
-      console.log(`[${requestId}] 🛍️ Fetching REAL product data from Shopify API`);
+      console.log(`[${requestId}] 🛍️ Fetching REAL product data`);
       
       try {
-        // Use the shopify-products function to get real product data
         const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-products`, {
           method: 'POST',
           headers: {
@@ -75,7 +68,11 @@ serve(async (req) => {
           const data = await response.json();
           if (data.success && data.products && data.products.length > 0) {
             const product = data.products[0];
-            console.log(`[${requestId}] ✅ Got real product data:`, product);
+            console.log(`[${requestId}] ✅ Got real product:`, {
+              title: product.title,
+              price: product.price,
+              currency: product.priceRangeV2?.minVariantPrice?.currencyCode
+            });
             
             return {
               id: product.id,
@@ -136,7 +133,7 @@ serve(async (req) => {
         return null;
       }
       
-      console.log(`[${requestId}] 🎁 Fetching quantity offers for product ${product} and form ${formId}`);
+      console.log(`[${requestId}] 🎁 Fetching quantity offers for product ${product}`);
       
       try {
         const { data, error } = await supabase
@@ -149,12 +146,12 @@ serve(async (req) => {
           .limit(1);
 
         if (error) {
-          console.log(`[${requestId}] ℹ️ No quantity offers configured for this product`);
+          console.log(`[${requestId}] ℹ️ No quantity offers configured`);
           return null;
         }
 
         if (data && data.length > 0) {
-          console.log(`[${requestId}] ✅ Found quantity offers:`, JSON.stringify(data[0], null, 2));
+          console.log(`[${requestId}] ✅ Found ${data[0].offers?.length || 0} quantity offers`);
           return data[0];
         }
 
@@ -167,25 +164,20 @@ serve(async (req) => {
 
     // Function to extract form fields
     function extractFormFields(formData: any) {
-      console.log(`[${requestId}] 🔧 Processing form data structure`);
-      
       try {
         let fields: any[] = [];
         
         if (Array.isArray(formData.data)) {
           if (formData.data.length > 0 && formData.data[0].fields) {
-            console.log(`[${requestId}] 📊 Form data is in steps format with ${formData.data.length} steps`);
             fields = formData.data[0].fields;
           } else if (formData.data.length > 0) {
-            console.log(`[${requestId}] 📊 Form data is direct fields array`);
             fields = formData.data;
           }
         } else if (formData.data && formData.data.fields) {
-          console.log(`[${requestId}] 📊 Form data has fields property`);
           fields = formData.data.fields;
         }
 
-        console.log(`[${requestId}] ✅ Successfully extracted ${fields.length} fields`);
+        console.log(`[${requestId}] ✅ Extracted ${fields.length} fields`);
         return fields;
       } catch (error) {
         console.error(`[${requestId}] Error extracting fields:`, error);
@@ -193,34 +185,18 @@ serve(async (req) => {
       }
     }
 
-    // Try to get product-specific form first (only if product is available)
+    // Try to get product-specific form
     let productResult = { found: false };
     if (product) {
       productResult = await getProductFormSettings();
-      console.log(`[${requestId}] 📋 Product settings result:`, JSON.stringify({
-        found: productResult.found,
-        formId: productResult.formId,
-        error: productResult.error
-      }, null, 2));
     } else {
-      console.log(`[${requestId}] ⚠️ No product handle available, returning no form`);
-      const errorResponse = {
+      console.log(`[${requestId}] ⚠️ No product handle available`);
+      return new Response(JSON.stringify({
         success: false,
-        error: 'No product found',
-        debug_info: debug ? {
-          shop,
-          product,
-          blockId,
-          message: 'No product handle could be determined from the request'
-        } : undefined
-      };
-      
-      return new Response(JSON.stringify(errorResponse), {
+        error: 'No product found'
+      }), {
         status: 404,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
@@ -228,42 +204,28 @@ serve(async (req) => {
     let formId = null;
 
     if (productResult.found && productResult.formData) {
-      console.log(`[${requestId}] 🎯 Found product-specific form ID: ${productResult.formId}`);
+      console.log(`[${requestId}] 🎯 Found product-specific form`);
       formData = productResult.formData;
       formId = productResult.formId;
     } else {
       console.log(`[${requestId}] ❌ No form configured for this product`);
-      const errorResponse = {
+      return new Response(JSON.stringify({
         success: false,
-        error: 'No form configured for this product',
-        debug_info: debug ? {
-          shop,
-          product,
-          blockId,
-          message: 'No form is associated with this product. Please configure a form for this product in the admin panel.'
-        } : undefined
-      };
-      
-      return new Response(JSON.stringify(errorResponse), {
+        error: 'No form configured for this product'
+      }), {
         status: 404,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
-
-    console.log(`[${requestId}] ✅ Successfully fetched product-specific form`);
 
     // Extract form fields
     const fields = extractFormFields(formData);
 
-    // Fetch quantity offers for this form and product
+    // Fetch quantity offers
     const quantityOffers = await getQuantityOffers(formId);
 
     // Get REAL product data from Shopify API
     const realProductData = await getRealProductData(shop, product);
-    console.log(`[${requestId}] 💰 Real product data from API:`, realProductData);
 
     // Build response with REAL product data
     const response = {
@@ -289,45 +251,24 @@ serve(async (req) => {
         price: null,
         currency: formData.currency || 'SAR',
         image: null
-      },
-      debug_info: debug ? {
-        shop,
-        product,
-        blockId,
-        formId,
-        fieldsCount: fields.length,
-        hasQuantityOffers: !!quantityOffers,
-        hasRealProductData: !!realProductData
-      } : undefined
+      }
     };
 
-    console.log(`[${requestId}] 📊 Form stats: ${fields.length} fields`);
-    console.log(`[${requestId}] 📦 Response includes quantity offers: ${!!quantityOffers}`);
-    console.log(`[${requestId}] 💰 Response includes real product data: ${!!realProductData}`);
-    console.log(`[${requestId}] 🎉 SUCCESS - Sending form data to client`);
+    console.log(`[${requestId}] 🎉 SUCCESS - Form: ${fields.length} fields, Offers: ${!!quantityOffers}, Product: ${!!realProductData}`);
 
     return new Response(JSON.stringify(response), {
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json',
-      },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
   } catch (error) {
     console.error(`[${requestId}] ❌ Error:`, error);
     
-    const errorResponse = {
+    return new Response(JSON.stringify({
       success: false,
-      error: (error as Error).message,
-      timestamp: new Date().toISOString()
-    };
-
-    return new Response(JSON.stringify(errorResponse), {
+      error: (error as Error).message
+    }), {
       status: 500,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json',
-      },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
 });

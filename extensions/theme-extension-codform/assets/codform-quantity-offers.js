@@ -1,16 +1,15 @@
 
 /**
- * CODFORM Quantity Offers Handler - LOGICAL SOLUTION
- * حل منطقي وبسيط لعرض عروض الكمية
+ * CODFORM Quantity Offers Handler - PRECISE FIX
+ * إصلاح دقيق لعرض عروض الكمية بدون تخريب النموذج
  */
 
 window.CodformQuantityOffers = (function() {
   'use strict';
 
-  // دالة عرض quantity offers بطريقة منطقية وبسيطة
+  // دالة عرض quantity offers مع استخدام البيانات الصحيحة من API
   function displayQuantityOffers(quantityOffersData, blockId, productId, defaultCurrency = 'SAR', productData = null) {
-    console.log("🎯 LOGICAL SOLUTION - Starting quantity offers display");
-    console.log("📦 Data received:", { quantityOffersData, productData, defaultCurrency });
+    console.log("🎯 PRECISE FIX - Starting quantity offers display");
     
     // التحقق من صحة البيانات
     if (!quantityOffersData || !quantityOffersData.offers || !Array.isArray(quantityOffersData.offers)) {
@@ -43,26 +42,24 @@ window.CodformQuantityOffers = (function() {
       priceColor: '#ef4444'
     };
 
-    console.log("🎨 Using styling:", styling);
-
-    // التحقق من وجود بيانات منتج حقيقية
+    // استخدام بيانات المنتج الحقيقية من API بدلاً من window.meta.product
     const hasRealPrice = productData && productData.price && productData.price > 0;
     const realPrice = hasRealPrice ? parseFloat(productData.price) : null;
     const currency = productData?.currency || defaultCurrency;
     const productImage = productData?.image;
     const productTitle = productData?.title || 'المنتج';
 
-    console.log("💰 Product info:", {
+    console.log("💰 Using API product data:", {
       hasRealPrice,
       realPrice,
       currency,
-      hasImage: !!productImage,
-      productTitle
+      productTitle,
+      hasImage: !!productImage
     });
 
     // إذا لم يكن هناك سعر حقيقي، عرض رسالة تحذيرية
     if (!hasRealPrice) {
-      console.log("⚠️ No real price available - showing warning");
+      console.log("⚠️ No real price available");
       const warningDiv = document.createElement('div');
       warningDiv.style.cssText = `
         background-color: #fef3c7;
@@ -82,7 +79,7 @@ window.CodformQuantityOffers = (function() {
       return;
     }
 
-    // رمز العملة
+    // رمز العملة الصحيح
     const currencySymbol = currency === 'USD' ? '$' : 
                           currency === 'SAR' ? 'ر.س' : 
                           currency === 'MAD' ? 'د.م' : 
@@ -90,8 +87,6 @@ window.CodformQuantityOffers = (function() {
 
     // عرض العروض
     offers.forEach((offer, index) => {
-      console.log(`🎁 Processing offer ${index + 1}:`, offer);
-      
       const offerElement = document.createElement('div');
       offerElement.style.cssText = `
         background-color: ${styling.backgroundColor};
@@ -109,7 +104,7 @@ window.CodformQuantityOffers = (function() {
         ${index === 1 ? 'background-color: #f0fdf4;' : ''}
       `;
 
-      // إضافة تأثيرات hover
+      // تأثيرات hover
       offerElement.addEventListener('mouseenter', function() {
         this.style.transform = 'translateY(-2px)';
         this.style.boxShadow = '0 6px 12px rgba(0,0,0,0.15)';
@@ -129,7 +124,7 @@ window.CodformQuantityOffers = (function() {
         flex: 1;
       `;
 
-      // صورة المنتج
+      // صورة المنتج الحقيقية من API
       if (productImage) {
         const imageElement = document.createElement('img');
         imageElement.src = productImage;
@@ -180,7 +175,7 @@ window.CodformQuantityOffers = (function() {
         tagsContainer.appendChild(tagElement);
       }
 
-      // حساب الخصم وعرض نسبة التوفير
+      // حساب الخصم وعرض نسبة التوفير باستخدام السعر الصحيح
       let totalPrice = realPrice * (offer.quantity || 1);
       let originalPrice = totalPrice;
       let savingsPercentage = 0;
@@ -212,7 +207,7 @@ window.CodformQuantityOffers = (function() {
       textContent.appendChild(tagsContainer);
       leftSection.appendChild(textContent);
 
-      // الجزء الأيمن: الأسعار
+      // الجزء الأيمن: الأسعار الصحيحة
       const priceSection = document.createElement('div');
       priceSection.style.cssText = `
         text-align: center;
@@ -232,7 +227,7 @@ window.CodformQuantityOffers = (function() {
         priceSection.appendChild(originalPriceElement);
       }
 
-      // السعر النهائي
+      // السعر النهائي الصحيح
       const finalPriceElement = document.createElement('div');
       finalPriceElement.style.cssText = `
         font-size: 18px;
@@ -242,7 +237,7 @@ window.CodformQuantityOffers = (function() {
       finalPriceElement.textContent = `${totalPrice.toFixed(2)} ${currencySymbol}`;
       priceSection.appendChild(finalPriceElement);
 
-      // السعر لكل قطعة (إذا كان أكثر من قطعة واحدة)
+      // السعر لكل قطعة
       if (offer.quantity > 1) {
         const perItemElement = document.createElement('div');
         perItemElement.style.cssText = `
@@ -270,14 +265,12 @@ window.CodformQuantityOffers = (function() {
       container.style.transform = 'translateY(0)';
     }, 50);
 
-    console.log("✅ LOGICAL SOLUTION - Quantity offers displayed successfully");
+    console.log("✅ PRECISE FIX - Quantity offers displayed with correct pricing");
   }
 
-  // دالة تحميل وعرض العروض من API
+  // دالة تحميل وعرض العروض من API مع تحسينات
   async function loadAndDisplayOffers(blockId, productId, shop) {
     try {
-      console.log("🔍 LOGICAL SOLUTION - Loading offers for:", { blockId, productId, shop });
-      
       const apiUrl = `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/forms-product?shop=${encodeURIComponent(shop)}&product=${encodeURIComponent(productId)}&blockId=${encodeURIComponent(blockId)}`;
       
       const response = await fetch(apiUrl, {
@@ -293,36 +286,35 @@ window.CodformQuantityOffers = (function() {
       }
 
       const data = await response.json();
-      console.log("📦 LOGICAL SOLUTION - API Response:", data);
       
       // التحقق من وجود العروض والبيانات
       if (data.success && data.quantity_offers && data.quantity_offers.offers && data.quantity_offers.offers.length > 0) {
         console.log("✅ Found quantity offers and product data");
         
-        // عرض العروض فوراً مع البيانات الحقيقية من API
+        // عرض العروض مع البيانات الحقيقية من API
         displayQuantityOffers(
           data.quantity_offers, 
           blockId, 
           productId, 
           data.form?.currency || 'SAR',
-          data.product // هذه البيانات الحقيقية من API
+          data.product // البيانات الحقيقية من API
         );
         
         return { success: true, offers: data.quantity_offers };
       } else {
-        console.log("ℹ️ No quantity offers found for this product");
+        console.log("ℹ️ No quantity offers found");
         return { success: false, message: "No offers found" };
       }
       
     } catch (error) {
-      console.error("❌ LOGICAL SOLUTION - Error loading offers:", error);
+      console.error("❌ Error loading offers:", error);
       return { success: false, error: error.message };
     }
   }
 
-  // دالة تشخيص للاختبار
+  // دالة تشخيص محسنة
   function debugOffers(blockId, productId) {
-    console.log("🔧 LOGICAL SOLUTION DEBUG - Starting diagnosis...");
+    console.log("🔧 PRECISE FIX DEBUG - Starting diagnosis...");
     
     const container = document.getElementById(`quantity-offers-before-${blockId}`);
     const shop = window.Shopify?.shop || window.location.hostname.replace('www.', '');
@@ -331,12 +323,11 @@ window.CodformQuantityOffers = (function() {
       blockId,
       productId,
       shop,
-      containerExists: !!container,
-      containerId: `quantity-offers-before-${blockId}`
+      containerExists: !!container
     });
     
     if (container) {
-      console.log("📦 Container found, attempting to load offers...");
+      console.log("📦 Container found, loading offers...");
       return loadAndDisplayOffers(blockId, productId, shop);
     } else {
       console.error("❌ Container not found!");
@@ -352,8 +343,8 @@ window.CodformQuantityOffers = (function() {
   };
 })();
 
-// دالة عامة للتشخيص - يمكن استدعاؤها من console
+// دالة عامة للتشخيص
 window.debugQuantityOffers = function(blockId, productId) {
-  console.log("🔧 Manual debug called - LOGICAL SOLUTION");
+  console.log("🔧 Manual debug called - PRECISE FIX");
   return window.CodformQuantityOffers.debug(blockId, productId);
 };
