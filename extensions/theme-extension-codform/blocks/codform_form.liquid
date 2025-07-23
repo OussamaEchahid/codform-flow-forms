@@ -437,12 +437,14 @@
   }
   function loadCompleteForm() {
     const productId = getProductId();
+    const shopDomain = 'bestform-app.myshopify.com'; // Get from Shopify liquid
+    
     if (!productId) {
       console.log('❌ CODFORM: No product ID found');
       return;
     }
 
-    console.log('🔄 CODFORM: Loading complete form for product:', productId);
+    console.log('🔄 CODFORM: Loading complete form for product:', productId, 'shop:', shopDomain);
     
     // Try multiple API endpoints for better reliability
     const apiUrls = [
@@ -544,8 +546,8 @@
         // SIMPLE: Add form fields ONLY - no quantity offers here
         console.log('🎯 CODFORM: Building form fields HTML only');
         
-        // Load quantity offers using REAL DB structure
-        fetch(`https://trlklwixfeaexhydzaue.supabase.co/rest/v1/quantity_offers?product_id=eq.${productId}&enabled=eq.true&select=*`, {
+        // Load quantity offers using REAL DB structure - filter by product_id, shop_id, and form_id
+        fetch(`https://trlklwixfeaexhydzaue.supabase.co/rest/v1/quantity_offers?product_id=eq.${productId}&shop_id=eq.${shopDomain}&form_id=eq.${data.form?.id || data.id}&enabled=eq.true&select=*`, {
           headers: {
             'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
             'Content-Type': 'application/json'
