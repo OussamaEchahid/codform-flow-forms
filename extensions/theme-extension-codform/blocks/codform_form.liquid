@@ -48,13 +48,23 @@
   }
 
   // Enhanced field rendering with exact preview matching
-  function renderField(field, formStyle) {
+  function renderField(field, formStyle, formLanguage) {
     if (!field || !field.type) return '';
     
     console.log('🎨 Rendering field:', field.type, field.id);
     
-    // Get form direction from formStyle
-    const formDirection = (formStyle && formStyle.formDirection) || 'ltr';
+    // FIXED: Determine form direction properly - check multiple sources
+    let formDirection = 'ltr';
+    if (formStyle && formStyle.formDirection) {
+      formDirection = formStyle.formDirection;
+    } else if (formLanguage === 'ar') {
+      formDirection = 'rtl';
+    } else if (field.label && /[\u0600-\u06FF]/.test(field.label)) {
+      // Check if field label contains Arabic text
+      formDirection = 'rtl';
+    }
+    
+    console.log('🔄 CODFORM: Detected form direction:', formDirection);
     
     // Enhanced label styling to match preview exactly
     const labelStyle = field.style || {};
@@ -139,7 +149,7 @@
       
       let iconHtml = '';
       if (showIcon && hasIcon) {
-        const iconPosition = formDirection === 'rtl' ? 'right' : 'left';
+        const iconPosition = formDirection === 'rtl' ? 'left' : 'right';
         const iconSvg = getIconSvg(field.icon);
         iconHtml = `
           <div style="
@@ -159,9 +169,9 @@
         `;
       }
       
-      // Calculate padding based on icon and direction + custom paddingY - FIXED FOR RTL
-      const paddingLeft = formDirection === 'rtl' ? (showIcon && hasIcon ? '48px' : '16px') : '16px';
-      const paddingRight = formDirection === 'rtl' ? '16px' : (showIcon && hasIcon ? '48px' : '16px');
+      // Calculate padding based on icon and direction + custom paddingY - CORRECTED FOR RTL
+      const paddingLeft = formDirection === 'rtl' ? '16px' : (showIcon && hasIcon ? '48px' : '16px');
+      const paddingRight = formDirection === 'rtl' ? (showIcon && hasIcon ? '48px' : '16px') : '16px';
       const paddingTopBottom = actualPaddingY;
       
       html = `
@@ -868,10 +878,14 @@
           }
         })
         .catch(error => console.log('❌ REAL: Error loading offers:', error));
+        // Detect form language from data
+        const formLanguage = data.form?.language || data.language || 'en';
+        console.log('🌐 CODFORM: Detected form language:', formLanguage);
+        
         if (fieldsArray && Array.isArray(fieldsArray)) {
           fieldsArray.forEach((field, index) => {
             console.log(`🎨 CODFORM: Processing field ${index}:`, field);
-            formContent += renderField(field, formStyle);
+            formContent += renderField(field, formStyle, formLanguage);
           });
         } else {
           console.log('❌ CODFORM: No valid fields array found');
