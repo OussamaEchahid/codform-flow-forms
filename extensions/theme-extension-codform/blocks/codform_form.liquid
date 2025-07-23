@@ -157,64 +157,34 @@
 
 {% schema %}
 {
-  "name": {
-    "en": "CODFORM - Cash on Delivery Form",
-    "ar": "نموذج الدفع عند الاستلام"
-  },
+  "name": "COD Form",
   "target": "section",
-  "available_if": "{{ template contains 'product' }}",
   "settings": [
     {
       "type": "text",
       "id": "form_id",
-      "label": {
-        "en": "Form ID",
-        "ar": "معرف النموذج"
-      },
-      "info": {
-        "en": "Enter the form ID from your CODFORM dashboard",
-        "ar": "أدخل معرف النموذج من لوحة تحكم CODFORM"
-      }
+      "label": "Form ID",
+      "info": "Enter the form ID from your CODFORM dashboard"
     },
     {
       "type": "select",
       "id": "offer_position",
-      "label": {
-        "en": "Quantity Offers Position",
-        "ar": "موضع العروض الكمية"
-      },
+      "label": "Quantity Offers Position",
       "options": [
         {
           "value": "inside_form",
-          "label": {
-            "en": "Inside Form",
-            "ar": "داخل النموذج"
-          }
+          "label": "Inside Form"
         },
         {
           "value": "before_form",
-          "label": {
-            "en": "Before Form",
-            "ar": "قبل النموذج"
-          }
+          "label": "Before Form"
         },
         {
           "value": "after_form",
-          "label": {
-            "en": "After Form",
-            "ar": "بعد النموذج"
-          }
+          "label": "After Form"
         }
       ],
       "default": "inside_form"
-    }
-  ],
-  "presets": [
-    {
-      "name": {
-        "en": "COD Form",
-        "ar": "نموذج الدفع عند الاستلام"
-      }
     }
   ]
 }
