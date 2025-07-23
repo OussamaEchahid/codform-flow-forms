@@ -47,22 +47,26 @@ window.CodformQuantityOffers = (function() {
     console.log(`🎨 Using styling:`, styling);
     console.log(`🔢 Rendering ${offers.length} offers`);
 
-    // الحصول على بيانات المنتج من window.meta أو productData
+    // الحصول على بيانات المنتج من Shopify أولاً، ثم من productData
     let realPrice = null;
     let productImage = null;
     let actualCurrency = formCurrency;
     
-    if (productData && productData.price) {
-      realPrice = productData.price;
-      productImage = productData.image;
-      actualCurrency = productData.currency || formCurrency;
-    } else if (window.meta && window.meta.product) {
+    // محاولة الحصول على البيانات من Shopify أولاً
+    if (window.meta && window.meta.product) {
       realPrice = window.meta.product.price_min / 100; // Shopify uses cents
       productImage = window.meta.product.featured_image;
       // محاولة الحصول على العملة من شوبيفاي
       if (window.Shopify && window.Shopify.currency && window.Shopify.currency.active) {
         actualCurrency = window.Shopify.currency.active;
       }
+    }
+    
+    // إذا لم نحصل على البيانات من Shopify، استخدم البيانات المرسلة
+    if (!realPrice && productData && productData.price) {
+      realPrice = productData.price;
+      productImage = productData.image;
+      actualCurrency = productData.currency || formCurrency;
     }
 
     console.log("💰 Real price detected:", realPrice, "Currency:", actualCurrency);
@@ -220,19 +224,26 @@ window.CodformQuantityOffers = (function() {
       if (data.quantity_offers) {
         const formCurrency = data.form?.currency || 'SAR';
         
-        // الحصول على بيانات المنتج من API أو Shopify
-        let realPrice = data.product?.price || null;
-        let productImage = data.product?.image || null;
-        let actualCurrency = data.product?.currency || formCurrency;
+        // الحصول على بيانات المنتج من Shopify مباشرة
+        let realPrice = null;
+        let productImage = null;
+        let actualCurrency = formCurrency;
         
-        // إذا لم نحصل على البيانات من API، نحاول الحصول عليها من Shopify
-        if (!realPrice && window.meta && window.meta.product) {
+        // محاولة الحصول على البيانات من Shopify أولاً
+        if (window.meta && window.meta.product) {
           realPrice = window.meta.product.price_min / 100; // Shopify uses cents
           productImage = window.meta.product.featured_image;
           // محاولة الحصول على العملة من شوبيفاي
           if (window.Shopify && window.Shopify.currency && window.Shopify.currency.active) {
             actualCurrency = window.Shopify.currency.active;
           }
+        }
+        
+        // إذا لم نحصل على البيانات من Shopify، استخدم البيانات من API
+        if (!realPrice && data.product?.price) {
+          realPrice = data.product.price;
+          productImage = data.product.image;
+          actualCurrency = data.product.currency || formCurrency;
         }
         
         // تجميع بيانات المنتج الحقيقية
