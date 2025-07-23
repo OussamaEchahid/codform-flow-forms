@@ -57,96 +57,76 @@ window.CodformQuantityOffers = (function() {
       return;
     }
 
-    // البحث عن العنصر الأب الصحيح (div أو section يحتوي على النموذج)
-    let formWrapper = container;
-    while (formWrapper && formWrapper.parentElement) {
-      if (formWrapper.parentElement.classList.contains('shopify-section') || 
-          formWrapper.parentElement.tagName === 'MAIN' ||
-          formWrapper.parentElement.tagName === 'BODY') {
-        break;
-      }
-      formWrapper = formWrapper.parentElement;
-    }
-
     let targetElement = null;
-    let insertMethod = 'appendChild';
     let offerContainer = null;
 
-    // تحديد الموضع المناسب حسب الإعداد
-    switch (position) {
-      case 'before_form':
-        console.log(`📍 POSITION BASED - Placing BEFORE form`);
-        targetElement = formWrapper.parentElement || document.body;
-        insertMethod = 'insertBefore';
-        offerContainer = document.createElement('div');
-        offerContainer.id = `quantity-offers-before-${blockId}`;
-        offerContainer.className = 'quantity-offers-container-before-form';
-        break;
-        
-      case 'after_form':
-        console.log(`📍 POSITION BASED - Placing AFTER form`);
-        targetElement = formWrapper.parentElement || document.body;
-        insertMethod = 'insertAfter';
-        offerContainer = document.createElement('div');
-        offerContainer.id = `quantity-offers-after-${blockId}`;
-        offerContainer.className = 'quantity-offers-container-after-form';
-        break;
-        
-      case 'inside_form':
-      default:
-        console.log(`📍 POSITION BASED - Placing INSIDE form`);
-        targetElement = container;
-        insertMethod = 'appendChild';
-        offerContainer = document.createElement('div');
-        offerContainer.id = `quantity-offers-inside-${blockId}`;
-        offerContainer.className = 'quantity-offers-container-inside-form';
-        break;
-    }
-
-    if (!targetElement || !offerContainer) {
-      console.error(`❌ POSITION BASED - Failed to create target element or container`);
-      return;
-    }
-
-    // تنظيف الحاوي وإعداده
-    offerContainer.innerHTML = '';
+    // إنشاء العرض أولاً
+    offerContainer = document.createElement('div');
     offerContainer.style.cssText = `
       display: block !important;
       visibility: visible !important;
       opacity: 1 !important;
       margin: 20px 0;
       position: relative;
-      z-index: 10;
+      z-index: 999;
       width: 100%;
-      background: #f8f9fa;
-      border: 2px solid #e74c3c;
+      background: #fff3cd !important;
+      border: 3px solid #ffc107 !important;
       border-radius: 8px;
-      padding: 15px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     `;
 
-    // إدراج الحاوي في الموضع المحدد
-    if (insertMethod === 'insertBefore') {
-      console.log(`📍 POSITION BASED - Inserting BEFORE formWrapper:`, formWrapper);
-      targetElement.insertBefore(offerContainer, formWrapper);
-    } else if (insertMethod === 'insertAfter') {
-      console.log(`📍 POSITION BASED - Inserting AFTER formWrapper:`, formWrapper);
-      if (formWrapper.nextSibling) {
-        targetElement.insertBefore(offerContainer, formWrapper.nextSibling);
-      } else {
-        targetElement.appendChild(offerContainer);
-      }
-    } else {
-      // inside_form - البحث عن الموضع الأنسب داخل النموذج
-      const formTitle = container.querySelector('.form-title-field, [data-field-type="form-title"]');
-      const firstField = container.querySelector('.mb-4:not(.form-title-field), [class*="field"]:not([data-field-type="form-title"]):not(.quantity-offers-container-inside-form)');
-      
-      if (formTitle && firstField) {
-        formTitle.parentNode.insertBefore(offerContainer, firstField);
-      } else if (firstField) {
-        firstField.parentNode.insertBefore(offerContainer, firstField);
-      } else {
-        targetElement.appendChild(offerContainer);
-      }
+    // تحديد الموضع والإدراج
+    switch (position) {
+      case 'before_form':
+        console.log(`📍 POSITION BASED - Placing BEFORE form`);
+        offerContainer.id = `quantity-offers-before-${blockId}`;
+        offerContainer.className = 'quantity-offers-container-before-form';
+        
+        // إدراج قبل النموذج مباشرة
+        container.parentNode.insertBefore(offerContainer, container);
+        console.log(`✅ POSITION BASED - Inserted BEFORE container`);
+        break;
+        
+      case 'after_form':
+        console.log(`📍 POSITION BASED - Placing AFTER form`);
+        offerContainer.id = `quantity-offers-after-${blockId}`;
+        offerContainer.className = 'quantity-offers-container-after-form';
+        
+        // إدراج بعد النموذج مباشرة
+        if (container.nextSibling) {
+          container.parentNode.insertBefore(offerContainer, container.nextSibling);
+        } else {
+          container.parentNode.appendChild(offerContainer);
+        }
+        console.log(`✅ POSITION BASED - Inserted AFTER container`);
+        break;
+        
+      case 'inside_form':
+      default:
+        console.log(`📍 POSITION BASED - Placing INSIDE form`);
+        offerContainer.id = `quantity-offers-inside-${blockId}`;
+        offerContainer.className = 'quantity-offers-container-inside-form';
+        
+        // إدراج داخل النموذج
+        const formTitle = container.querySelector('.form-title-field, [data-field-type="form-title"]');
+        const firstField = container.querySelector('.mb-4:not(.form-title-field), [class*="field"]:not([data-field-type="form-title"]):not(.quantity-offers-container-inside-form)');
+        
+        if (formTitle && firstField) {
+          formTitle.parentNode.insertBefore(offerContainer, firstField);
+        } else if (firstField) {
+          firstField.parentNode.insertBefore(offerContainer, firstField);
+        } else {
+          container.appendChild(offerContainer);
+        }
+        console.log(`✅ POSITION BASED - Inserted INSIDE container`);
+        break;
+    }
+
+    if (!offerContainer.parentNode) {
+      console.error(`❌ POSITION BASED - Failed to insert offer container`);
+      return;
     }
 
     // منع التكرار في نفس الحاوي
