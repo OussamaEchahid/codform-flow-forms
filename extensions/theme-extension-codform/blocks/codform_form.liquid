@@ -13,8 +13,29 @@
 }
 {% endschema %}
 
-<!-- Add Cairo font for Arabic text -->
+<!-- Add Cairo font for Arabic text with strong specificity -->
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Force Cairo font for all Arabic text with high specificity */
+  .codform-arabic-text,
+  .codform-arabic-text *,
+  [dir="rtl"],
+  [dir="rtl"] *,
+  .codform-field-wrapper[dir="rtl"],
+  .codform-field-wrapper[dir="rtl"] * {
+    font-family: 'Cairo', 'Noto Sans Arabic', 'Amiri', sans-serif !important;
+  }
+  
+  /* Ensure proper text rendering for Arabic */
+  [dir="rtl"] input,
+  [dir="rtl"] textarea,
+  [dir="rtl"] label,
+  [dir="rtl"] button {
+    font-family: 'Cairo', 'Noto Sans Arabic', 'Amiri', sans-serif !important;
+    font-feature-settings: "liga" 1, "kern" 1;
+    text-rendering: optimizeLegibility;
+  }
+</style>
 
 <div data-form-preview-id="form-preview-stable">
   <!-- Form content will be loaded here -->
