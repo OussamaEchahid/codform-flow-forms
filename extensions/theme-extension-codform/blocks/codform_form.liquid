@@ -738,6 +738,7 @@
                   `;
                 });
               }
+            });
             
             // Insert offers before submit button
             const formDiv = container.querySelector('.codform-dynamic-form');
@@ -759,7 +760,6 @@
           }
         })
         .catch(error => console.log('❌ REAL: Error loading offers:', error));
-        
         if (fieldsArray && Array.isArray(fieldsArray)) {
           fieldsArray.forEach((field, index) => {
             console.log(`🎨 CODFORM: Processing field ${index}:`, field);
