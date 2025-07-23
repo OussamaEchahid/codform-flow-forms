@@ -841,9 +841,19 @@
     }
   }
 
-  // تعطيل تحميل النموذج الديناميكي مؤقتاً للحفاظ على النموذج الثابت
-  console.log('📝 CODFORM: Static form mode activated - dynamic loading disabled');
-  // setTimeout(loadCompleteForm, 500); // معطل مؤقتاً
+  // تحميل النموذج عند تحميل DOM
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(loadCompleteForm, 500);
+    });
+  } else {
+    setTimeout(loadCompleteForm, 500);
+  }
+  
+  // أيضاً عند تحميل النافذة
+  window.addEventListener('load', () => {
+    setTimeout(loadCompleteForm, 1000);
+  });
   
 })();
 </script>
