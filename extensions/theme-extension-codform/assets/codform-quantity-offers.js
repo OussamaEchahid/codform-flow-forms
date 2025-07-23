@@ -126,6 +126,10 @@ window.CodformQuantityOffers = (function() {
           border-radius: 8px;
           margin-left: 12px;
         `;
+        imageElement.onerror = function() {
+          console.log("❌ Image failed to load:", productImage);
+          this.style.display = 'none';
+        };
         offerElement.appendChild(imageElement);
       }
 
@@ -239,7 +243,7 @@ window.CodformQuantityOffers = (function() {
       const data = await response.json();
       console.log("📦 QUANTITY OFFERS FIX - API Response:", data);
       
-      if (data.quantity_offers) {
+      if (data.quantity_offers && data.quantity_offers.offers && data.quantity_offers.offers.length > 0) {
         const formCurrency = data.form?.currency || 'SAR';
         
         // الحصول على بيانات المنتج من Shopify مباشرة
@@ -271,7 +275,13 @@ window.CodformQuantityOffers = (function() {
           image: productImage
         };
         
-        displayQuantityOffers(data.quantity_offers, blockId, productId, formCurrency, productData);
+        console.log("💰 Final product data:", productData);
+        
+        // التأكد من وجود العروض قبل العرض
+        setTimeout(() => {
+          displayQuantityOffers(data.quantity_offers, blockId, productId, formCurrency, productData);
+        }, 100);
+        
         return { success: true, offers: data.quantity_offers };
       } else {
         console.log("ℹ️ No quantity offers found for this product");
