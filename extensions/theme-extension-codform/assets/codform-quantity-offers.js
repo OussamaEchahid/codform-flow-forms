@@ -1,9 +1,12 @@
 
-/**
+// DISABLED: تم تعطيل هذا السكريبت لمنع التكرار مع FormWithQuantityOffers.tsx
+// هذا السكريبت كان يسبب عرض العروض خارج النموذج
+// العروض الآن تُعرض فقط من خلال React component داخل النموذج
+
+/*
  * CODFORM Quantity Offers Handler - PRECISE FIX
  * إصلاح دقيق لعرض عروض الكمية بدون تخريب النموذج
- */
-
+ 
 window.CodformQuantityOffers = (function() {
   'use strict';
 
@@ -348,3 +351,6 @@ window.debugQuantityOffers = function(blockId, productId) {
   console.log("🔧 Manual debug called - PRECISE FIX");
   return window.CodformQuantityOffers.debug(blockId, productId);
 };
+*/
+
+console.log("🔧 CODFORM QUANTITY OFFERS - DISABLED to prevent duplication");

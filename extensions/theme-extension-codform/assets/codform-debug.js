@@ -1,3 +1,9 @@
+
+// DISABLED: تم تعطيل هذا السكريبت لمنع التكرار مع FormWithQuantityOffers.tsx
+// هذا السكريبت كان يسبب عرض العروض خارج النموذج
+// العروض الآن تُعرض فقط من خلال React component داخل النموذج
+
+/*
 // Script لفحص وتشخيص مشاكل Quantity Offers
 console.log("🔧 CODFORM DEBUG - Loading...");
 
@@ -161,3 +167,6 @@ console.log("🔧 CODFORM DEBUG - Loading...");
 })();
 
 console.log("🔧 CODFORM DEBUG - Loaded. Run debugCodform() in console to test.");
+*/
+
+console.log("🔧 CODFORM DEBUG - DISABLED to prevent duplication");
