@@ -137,6 +137,11 @@ window.CodformQuantityOffers = (function() {
       image: productData?.image
     });
     
+    // إظهار الحاوي أولاً
+    container.style.display = 'block';
+    container.style.visibility = 'visible';
+    container.style.opacity = '1';
+    
     // تنظيف الحاوي
     container.innerHTML = '';
     
