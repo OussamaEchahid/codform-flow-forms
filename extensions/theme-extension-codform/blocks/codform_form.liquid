@@ -431,10 +431,30 @@
   }
 
   // Function to handle quantity offer selection
-  function selectQuantityOffer(quantity, price) {
-    console.log(`🎁 Selected quantity: ${quantity}, price: ${price}`);
-    // Add logic to update cart or form here
+  function selectQuantityOffer(offerId, offerText, price) {
+    console.log(`🎁 Selected offer: ${offerId}, text: ${offerText}, price: ${price}`);
+    
+    // Remove selection from all offers
+    document.querySelectorAll('.quantity-offer-option').forEach(offer => {
+      offer.style.border = '2px solid #e5e7eb';
+      offer.style.background = 'white';
+      offer.querySelector('.selection-indicator').style.display = 'none';
+    });
+    
+    // Highlight selected offer
+    const selectedOffer = document.getElementById(offerId);
+    if (selectedOffer) {
+      selectedOffer.style.border = '2px solid #22c55e';
+      selectedOffer.style.background = '#f0fdf4';
+      selectedOffer.querySelector('.selection-indicator').style.display = 'flex';
+    }
+    
+    // Store selection for form submission
+    window.selectedQuantityOffer = { offerId, offerText, price };
   }
+  
+  // Make function globally available
+  window.selectQuantityOffer = selectQuantityOffer;
   function loadCompleteForm() {
     const productId = getProductId();
     const shopDomain = 'bestform-app.myshopify.com'; // Get from Shopify liquid
@@ -560,6 +580,10 @@
           if (quantityData && quantityData.length > 0) {
             let offersHTML = '';
             
+            // Get currency from form data for conversion
+            const formCurrency = data.form?.currency || data.currency || 'SAR';
+            const conversionRate = formCurrency === 'USD' ? 0.27 : 1; // SAR to USD rate
+            
             quantityData.forEach(offerGroup => {
               console.log('🎁 Processing offer group:', offerGroup);
               
@@ -601,38 +625,49 @@
                     }
                   }
                   
-                  const isDiscounted = finalPrice < originalPrice;
+                  // Convert prices to form currency
+                  finalPrice = finalPrice * conversionRate;
+                  originalPrice = originalPrice * conversionRate;
                   
-                  // Create offer HTML with exact styling from preview
+                  const isDiscounted = finalPrice < originalPrice;
+                  const offerId = `offer_${offerGroup.id}_${index}`;
+                  
+                  // Create offer HTML with exact styling from preview + selection functionality
                   offersHTML += `
-                    <div style="
-                      padding: 12px; 
-                      border-radius: 8px; 
-                      border: 2px solid ${isHighlighted ? '#22c55e' : '#e5e7eb'}; 
-                      background: ${isHighlighted ? '#f0fdf4' : 'white'};
-                      margin-bottom: 8px;
-                      display: flex; 
-                      align-items: center; 
-                      justify-content: space-between;
-                      transition: all 0.3s ease;
-                      cursor: pointer;
-                      box-shadow: ${isHighlighted ? '0 4px 12px rgba(34, 197, 94, 0.15)' : '0 1px 3px rgba(0, 0, 0, 0.1)'};
-                    " onmouseover="this.style.boxShadow='0 4px 12px rgba(0, 0, 0, 0.15)'" 
-                       onmouseout="this.style.boxShadow='${isHighlighted ? '0 4px 12px rgba(34, 197, 94, 0.15)' : '0 1px 3px rgba(0, 0, 0, 0.1)'}'">
+                    <div 
+                      id="${offerId}"
+                      class="quantity-offer-option"
+                      style="
+                        padding: 12px; 
+                        border-radius: 8px; 
+                        border: 2px solid ${isHighlighted ? '#22c55e' : '#e5e7eb'}; 
+                        background: ${isHighlighted ? '#f0fdf4' : 'white'};
+                        margin-bottom: 8px;
+                        display: flex; 
+                        align-items: center; 
+                        justify-content: space-between;
+                        transition: all 0.3s ease;
+                        cursor: pointer;
+                        box-shadow: ${isHighlighted ? '0 4px 12px rgba(34, 197, 94, 0.15)' : '0 1px 3px rgba(0, 0, 0, 0.1)'};
+                      " 
+                      onclick="selectQuantityOffer('${offerId}', '${offerText}', ${finalPrice})"
+                      onmouseover="this.style.boxShadow='0 4px 12px rgba(0, 0, 0, 0.15)'" 
+                      onmouseout="this.style.boxShadow='${isHighlighted ? '0 4px 12px rgba(34, 197, 94, 0.15)' : '0 1px 3px rgba(0, 0, 0, 0.1)'}'">
                       
                       <div style="display: flex; align-items: center; gap: 12px;">
-                        <!-- Product Icon -->
+                        <!-- Product Image -->
                         <div style="
                           width: 48px; 
                           height: 48px; 
-                          background: #f3f4f6; 
+                          background: url('{{ product.featured_image | img_url: '48x48' }}') center/cover; 
                           border-radius: 8px;
                           display: flex;
                           align-items: center;
                           justify-content: center;
                           flex-shrink: 0;
+                          border: 1px solid #e5e7eb;
                         ">
-                          🏠
+                          ${`{{ product.featured_image | img_url: '48x48' }}` ? '' : '📦'}
                         </div>
                         
                         <div>
@@ -641,6 +676,7 @@
                             font-size: 16px;
                             color: ${offerGroup.styling?.textColor || '#000000'};
                             margin-bottom: 4px;
+                            font-family: 'Cairo', 'Inter', system-ui, sans-serif;
                           ">
                             ${offerText || 'Buy Item'}
                           </div>
@@ -648,6 +684,62 @@
                           ${savingsText ? `
                             <div style="
                               display: inline-block;
+                              background: ${offerGroup.styling?.tagColor || '#22c55e'}; 
+                              color: white; 
+                              padding: 2px 8px; 
+                              border-radius: 12px; 
+                              font-size: 12px; 
+                              font-weight: 500;
+                              font-family: 'Cairo', 'Inter', system-ui, sans-serif;
+                            ">
+                              ${savingsText}
+                            </div>
+                          ` : ''}
+                        </div>
+                      </div>
+                      
+                      <div style="text-align: right;">
+                        ${isDiscounted ? `
+                          <div style="
+                            text-decoration: line-through; 
+                            color: #9ca3af; 
+                            font-size: 14px;
+                            font-family: 'Cairo', 'Inter', system-ui, sans-serif;
+                          ">
+                            ${originalPrice.toFixed(2)} ${formCurrency}
+                          </div>
+                        ` : ''}
+                        <div style="
+                          font-weight: 700; 
+                          font-size: 18px; 
+                          color: ${offerGroup.styling?.priceColor || '#ef4444'};
+                          font-family: 'Cairo', 'Inter', system-ui, sans-serif;
+                        ">
+                          ${finalPrice.toFixed(2)} ${formCurrency}
+                        </div>
+                      </div>
+                      
+                      <!-- Selection indicator -->
+                      <div class="selection-indicator" style="
+                        position: absolute;
+                        top: -5px;
+                        right: -5px;
+                        width: 20px;
+                        height: 20px;
+                        background: #22c55e;
+                        border-radius: 50%;
+                        display: none;
+                        align-items: center;
+                        justify-content: center;
+                        color: white;
+                        font-size: 12px;
+                      ">✓</div>
+                      
+                    </div>
+                  `;
+                });
+              }
+            });
                               padding: 2px 8px;
                               border-radius: 4px;
                               font-size: 12px;
