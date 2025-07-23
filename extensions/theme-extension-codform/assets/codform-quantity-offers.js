@@ -1,10 +1,10 @@
 
 /**
- * CODFORM Quantity Offers Handler - UNIFIED SYSTEM
- * معالج العروض الكمية - النظام الموحد
+ * CODFORM Quantity Offers Handler - INTEGRATED SYSTEM
+ * معالج العروض الكمية - النظام المتكامل
  * 
- * This system mirrors the React component logic to ensure
- * consistent behavior between preview and Shopify store
+ * This system works seamlessly with the automatic form loading
+ * and displays quantity offers at the specified positions
  */
 
 window.CodformQuantityOffers = (function() {
@@ -12,15 +12,12 @@ window.CodformQuantityOffers = (function() {
 
   // State management
   let isInitialized = false;
-  const processedForms = new Set();
+  const processedOffers = new Set();
   
   // Configuration
   const CONFIG = {
-    API_BASE_URL: 'https://trlklwixfeaexhydzaue.supabase.co/functions/v1',
-    RETRY_ATTEMPTS: 3,
-    RETRY_DELAY: 1000,
-    FORM_WAIT_TIMEOUT: 15000,
-    OFFER_CHECK_INTERVAL: 100
+    OFFER_CHECK_INTERVAL: 100,
+    MAX_WAIT_TIME: 10000
   };
 
   // Utility functions
@@ -36,126 +33,19 @@ window.CodformQuantityOffers = (function() {
     console.log(`✅ CODFORM Offers: ${message}`, data || '');
   };
 
-  // Form detection system
-  const FormDetector = {
-    findFormContainer: function(blockId) {
-      const selectors = [
-        `#codform-container-${blockId}`,
-        `#codform-form-${blockId}`,
-        `[data-block-id="${blockId}"]`,
-        `.codform-form-container-${blockId}`,
-        '.codform-form',
-        '.codform-form-container'
-      ];
-
-      for (const selector of selectors) {
-        const element = document.querySelector(selector);
-        if (element) {
-          log(`Found form container: ${selector}`, element);
-          return element;
-        }
-      }
-
-      error(`No form container found for blockId: ${blockId}`);
-      return null;
-    },
-
-    waitForForm: function(blockId, callback, timeout = CONFIG.FORM_WAIT_TIMEOUT) {
-      let attempts = 0;
-      const maxAttempts = timeout / CONFIG.OFFER_CHECK_INTERVAL;
-
-      const checkForm = () => {
-        const container = this.findFormContainer(blockId);
-        
-        if (container) {
-          success(`Form ready after ${attempts * CONFIG.OFFER_CHECK_INTERVAL}ms`);
-          callback(container);
-          return;
-        }
-
-        attempts++;
-        if (attempts >= maxAttempts) {
-          error(`Timeout waiting for form: ${blockId}`);
-          return;
-        }
-
-        setTimeout(checkForm, CONFIG.OFFER_CHECK_INTERVAL);
-      };
-
-      checkForm();
-    },
-
-    getFormData: function(container) {
-      const blockId = container.dataset.blockId || 
-                      container.id.replace('codform-container-', '') ||
-                      container.id.replace('codform-form-', '');
-      
-      const productId = container.dataset.productId || 
-                       document.querySelector('[data-product-id]')?.dataset.productId;
-      
-      const shop = container.dataset.shop || 
-                  window.Shopify?.shop?.domain || 
-                  window.location.hostname;
-
-      return { blockId, productId, shop };
-    }
-  };
-
-  // Offer container management
+  // Container Management
   const ContainerManager = {
     findOfferContainer: function(blockId, position) {
       const containerId = `quantity-offers-${position}-${blockId}`;
       let container = document.getElementById(containerId);
       
       if (!container) {
-        container = this.createOfferContainer(blockId, position);
-      }
-      
-      if (container) {
-        this.prepareContainer(container);
-      }
-      
-      return container;
-    },
-
-    createOfferContainer: function(blockId, position) {
-      const formContainer = FormDetector.findFormContainer(blockId);
-      if (!formContainer) {
-        error(`Cannot create offer container without form container`);
+        error(`Offer container not found: ${containerId}`);
         return null;
       }
-
-      const container = document.createElement('div');
-      container.id = `quantity-offers-${position}-${blockId}`;
-      container.className = 'quantity-offers-container';
-      container.style.cssText = `
-        display: none;
-        width: 100%;
-        margin: 15px 0;
-        position: relative;
-        z-index: 10;
-      `;
-
-      this.insertContainer(container, formContainer, position);
-      log(`Created offer container: ${container.id}`);
-      return container;
-    },
-
-    insertContainer: function(container, formContainer, position) {
-      const wrapper = formContainer.querySelector('.codform-form-wrapper') || formContainer;
       
-      switch (position) {
-        case 'before_form':
-          wrapper.parentNode.insertBefore(container, wrapper);
-          break;
-        case 'after_form':
-          wrapper.parentNode.insertBefore(container, wrapper.nextSibling);
-          break;
-        case 'inside_form':
-        default:
-          wrapper.insertBefore(container, wrapper.firstChild);
-          break;
-      }
+      this.prepareContainer(container);
+      return container;
     },
 
     prepareContainer: function(container) {
@@ -166,7 +56,7 @@ window.CodformQuantityOffers = (function() {
     }
   };
 
-  // Offer display system - mirrors React component logic
+  // Offer Display System
   const OfferRenderer = {
     render: function(container, offers, productData, styling = {}) {
       if (!container || !offers || !Array.isArray(offers) || offers.length === 0) {
@@ -388,113 +278,29 @@ window.CodformQuantityOffers = (function() {
     }
   };
 
-  // API integration
-  const ApiManager = {
-    loadQuantityOffers: async function(blockId, productId, shop) {
-      const cacheKey = `${blockId}-${productId}`;
-      
-      if (processedForms.has(cacheKey)) {
-        log('Offers already loaded for this form');
-        return { success: false, message: 'Already loaded' };
-      }
-
-      try {
-        log(`Loading offers for: ${cacheKey}`);
-        
-        const apiUrl = `${CONFIG.API_BASE_URL}/forms-product?shop=${encodeURIComponent(shop)}&product=${encodeURIComponent(productId)}&blockId=${encodeURIComponent(blockId)}`;
-        
-        const response = await fetch(apiUrl, {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          }
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        
-        if (data.success && data.quantity_offers && data.product) {
-          processedForms.add(cacheKey);
-          success('Offers loaded successfully');
-          return { success: true, data };
-        } else {
-          log('No offers found for this product');
-          return { success: false, message: 'No offers found' };
-        }
-        
-      } catch (error) {
-        error('Failed to load offers:', error.message);
-        return { success: false, error: error.message };
-      }
-    }
-  };
-
   // Main controller
   const OffersController = {
-    initialize: function() {
-      if (isInitialized) return;
-      
-      log('Initializing quantity offers system');
-      
-      // Wait for DOM to be ready
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
-          this.autoDetectAndLoad();
-        });
-      } else {
-        this.autoDetectAndLoad();
-      }
-      
-      isInitialized = true;
-    },
-
-    autoDetectAndLoad: function() {
-      // Look for form containers
-      const containers = document.querySelectorAll('[data-product-id], .codform-form, .codform-form-container');
-      
-      containers.forEach(container => {
-        const formData = FormDetector.getFormData(container);
-        
-        if (formData.blockId && formData.productId && formData.shop) {
-          this.loadAndDisplay(formData.blockId, formData.productId, formData.shop);
-        }
-      });
-    },
-
-    loadAndDisplay: async function(blockId, productId, shop) {
-      try {
-        // Wait for form to be ready
-        FormDetector.waitForForm(blockId, async (formContainer) => {
-          // Load offers data
-          const result = await ApiManager.loadQuantityOffers(blockId, productId, shop);
-          
-          if (result.success && result.data) {
-            this.displayOffers(result.data, blockId);
-          }
-        });
-      } catch (error) {
-        error('Failed to load and display offers:', error.message);
-      }
-    },
-
-    displayOffers: function(data, blockId) {
+    display: function(data, blockId) {
       const { quantity_offers, product } = data;
       
       if (!quantity_offers || !product) {
         error('Invalid offer data structure');
-        return;
+        return false;
+      }
+
+      const cacheKey = `${blockId}-${product.id}`;
+      
+      if (processedOffers.has(cacheKey)) {
+        log('Offers already displayed for this product');
+        return false;
       }
 
       const position = quantity_offers.position || 'inside_form';
       const container = ContainerManager.findOfferContainer(blockId, position);
       
       if (!container) {
-        error(`Could not find or create offer container for position: ${position}`);
-        return;
+        error(`Could not find offer container for position: ${position}`);
+        return false;
       }
 
       // Render offers
@@ -506,32 +312,34 @@ window.CodformQuantityOffers = (function() {
       );
 
       if (rendered) {
+        processedOffers.add(cacheKey);
         success(`Offers displayed successfully at position: ${position}`);
       }
+
+      return rendered;
+    },
+
+    initialize: function() {
+      if (isInitialized) return;
+      
+      log('Initializing quantity offers system');
+      isInitialized = true;
+    },
+
+    reset: function() {
+      processedOffers.clear();
+      log('Offers system reset completed');
     }
   };
 
-  // Auto-initialize when script loads
+  // Auto-initialize
   OffersController.initialize();
 
   // Public API
   return {
-    load: ApiManager.loadQuantityOffers,
-    display: OffersController.displayOffers,
-    reset: function() {
-      processedForms.clear();
-      log('System reset completed');
-    }
+    display: OffersController.display,
+    reset: OffersController.reset
   };
 })();
 
-// Global helper functions
-window.loadQuantityOffers = function(blockId, productId, shop) {
-  return window.CodformQuantityOffers.load(blockId, productId, shop);
-};
-
-window.resetQuantityOffers = function() {
-  return window.CodformQuantityOffers.reset();
-};
-
-success('Quantity Offers system initialized successfully');
+success('Quantity Offers system initialized and ready');

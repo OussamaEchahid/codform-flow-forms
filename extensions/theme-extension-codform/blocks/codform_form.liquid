@@ -1,31 +1,40 @@
 
 {{ 'codform.css' | asset_url | stylesheet_tag }}
+{{ 'codform.js' | asset_url | script_tag }}
 {{ 'codform-quantity-offers.js' | asset_url | script_tag }}
 
-{% assign form_id = block.settings.form_id %}
-{% assign block_id = block.id %}
+{% comment %}
+  CODFORM - Automatic Form Loading System
+  نظام تحميل النماذج التلقائي
+  
+  This block automatically detects the current product and loads
+  the associated form without requiring manual form ID input
+{% endcomment %}
 
-{% if form_id == blank %}
-  <div class="codform-error" style="padding: 20px; background-color: #fee; border: 1px solid #fcc; border-radius: 8px; color: #c00; text-align: center; font-family: system-ui, -apple-system, sans-serif;">
-    <p style="margin: 0; font-size: 16px; font-weight: 600;">⚠️ معرف النموذج مطلوب</p>
-    <p style="margin: 8px 0 0 0; font-size: 14px; opacity: 0.8;">يرجى إدخال معرف النموذج في إعدادات الكتلة</p>
+{% assign block_id = block.id %}
+{% assign offer_position = block.settings.offer_position | default: 'inside_form' %}
+
+{% comment %} Check if we're on a product page {% endcomment %}
+{% unless product %}
+  <div class="codform-error" style="padding: 20px; background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; color: #dc2626; text-align: center; font-family: system-ui, -apple-system, sans-serif;">
+    <p style="margin: 0; font-size: 16px; font-weight: 600;">⚠️ يجب إضافة هذا المكون في صفحة المنتج فقط</p>
+    <p style="margin: 8px 0 0 0; font-size: 14px; opacity: 0.8;">هذا المكون يعمل تلقائياً مع المنتجات المرتبطة بنماذج CODFORM</p>
   </div>
 {% else %}
   <div 
     id="codform-container-{{ block_id }}" 
     class="codform-container"
-    data-form-id="{{ form_id }}"
     data-block-id="{{ block_id }}"
-    {% if product %}
-      data-product-id="{{ product.id }}"
-      data-product-title="{{ product.title | escape }}"
-      data-product-price="{{ product.price | money_without_currency | remove: ',' }}"
-      data-product-currency="{{ shop.currency }}"
-      {% if product.featured_image %}
-        data-product-image="{{ product.featured_image | img_url: '300x300' }}"
-      {% endif %}
+    data-product-id="{{ product.id }}"
+    data-product-title="{{ product.title | escape }}"
+    data-product-price="{{ product.price | money_without_currency | remove: ',' }}"
+    data-product-currency="{{ shop.currency }}"
+    data-product-handle="{{ product.handle }}"
+    {% if product.featured_image %}
+      data-product-image="{{ product.featured_image | img_url: '300x300' }}"
     {% endif %}
     data-shop="{{ shop.domain }}"
+    data-offer-position="{{ offer_position }}"
     style="width: 100%; margin: 20px 0; position: relative;"
   >
     
@@ -85,55 +94,76 @@
     
   </div>
 
-  <!-- Initialize form loading -->
+  <!-- Initialize automatic form loading -->
   <script>
     (function() {
-      const container = document.getElementById('codform-form-{{ block_id }}');
-      const formData = {
-        formId: '{{ form_id }}',
-        blockId: '{{ block_id }}',
-        {% if product %}
+      // Wait for CodformLoader to be available
+      const initializeForm = () => {
+        const container = document.getElementById('codform-form-{{ block_id }}');
+        const containerData = document.getElementById('codform-container-{{ block_id }}');
+        
+        if (!container || !containerData) {
+          console.error('CODFORM: Form containers not found');
+          return;
+        }
+
+        // Extract data from container
+        const formData = {
+          blockId: '{{ block_id }}',
           productId: '{{ product.id }}',
           productData: {
             id: '{{ product.id }}',
             title: {{ product.title | json }},
             price: {{ product.price | money_without_currency | remove: ',' }},
             currency: '{{ shop.currency }}',
+            handle: '{{ product.handle }}',
             {% if product.featured_image %}
               image: '{{ product.featured_image | img_url: "300x300" }}'
             {% endif %}
           },
-        {% endif %}
-        shop: '{{ shop.domain }}'
+          shop: '{{ shop.domain }}',
+          offerPosition: '{{ offer_position }}'
+        };
+        
+        console.log('📋 CODFORM: Initializing with data:', formData);
+        
+        // Load the form automatically
+        if (window.CodformLoader) {
+          window.CodformLoader.load(container, formData);
+        } else {
+          console.error('CODFORM: CodformLoader not available');
+        }
       };
-      
-      // Load the form
+
+      // Check if CodformLoader is available
       if (window.CodformLoader) {
-        window.CodformLoader.load(container, formData);
+        initializeForm();
       } else {
-        // Fallback: wait for loader to be available
+        // Wait for the loader to be available
+        let attempts = 0;
         const checkLoader = setInterval(() => {
+          attempts++;
           if (window.CodformLoader) {
             clearInterval(checkLoader);
-            window.CodformLoader.load(container, formData);
+            initializeForm();
+          } else if (attempts > 50) { // 5 seconds timeout
+            clearInterval(checkLoader);
+            console.error('CODFORM: Timeout waiting for CodformLoader');
           }
         }, 100);
       }
-      
-      // Load quantity offers if product is available
-      {% if product %}
-        if (window.CodformQuantityOffers) {
-          window.CodformQuantityOffers.load('{{ block_id }}', '{{ product.id }}', '{{ shop.domain }}');
-        }
-      {% endif %}
     })();
   </script>
 
-  <!-- CSS for loading animation -->
+  <!-- CSS for loading animation and responsive design -->
   <style>
     @keyframes spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
+    }
+    
+    .codform-container {
+      font-family: system-ui, -apple-system, sans-serif;
     }
     
     .quantity-offers-container {
@@ -152,20 +182,40 @@
     .codform-loading {
       transition: opacity 0.3s ease;
     }
+    
+    .codform-form-content {
+      max-width: 100%;
+    }
+    
+    .codform-field input,
+    .codform-field textarea,
+    .codform-field select {
+      box-sizing: border-box;
+    }
+    
+    .codform-submit-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    /* Responsive design */
+    @media (max-width: 768px) {
+      .codform-container {
+        margin: 10px 0;
+      }
+      
+      .quantity-offers-container {
+        margin: 10px 0;
+      }
+    }
   </style>
-{% endif %}
+{% endunless %}
 
 {% schema %}
 {
   "name": "COD Form",
   "target": "section",
   "settings": [
-    {
-      "type": "text",
-      "id": "form_id",
-      "label": "Form ID",
-      "info": "Enter the form ID from your CODFORM dashboard"
-    },
     {
       "type": "select",
       "id": "offer_position",
