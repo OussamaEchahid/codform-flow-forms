@@ -111,14 +111,14 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
   
   const inputId = `${field.id}-input`;
   
-  // حساب المسافات الداخلية للنص بناءً على وجود الأيقونة واتجاه النموذج
+  // FIXED: حساب المسافات الداخلية للنص بناءً على وجود الأيقونة واتجاه النموذج
   const paddingLeft = formDirection === 'rtl' 
-    ? ((showIcon && hasIcon) ? '40px' : '12px')
-    : '12px';
+    ? '12px'  // في العربي، النص على اليمين فلا نحتاج padding إضافي على اليسار
+    : ((showIcon && hasIcon) ? '40px' : '12px'); // في الإنجليزي، الأيقونة على اليسار
     
   const paddingRight = formDirection === 'rtl' 
-    ? '12px'
-    : ((showIcon && hasIcon) ? '40px' : '12px');
+    ? ((showIcon && hasIcon) ? '40px' : '12px') // في العربي، الأيقونة على اليمين
+    : '12px'; // في الإنجليزي، لا نحتاج padding إضافي على اليمين
   
   return (
     <div 
