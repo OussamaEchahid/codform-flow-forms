@@ -68,7 +68,7 @@
     // Field styling to match preview exactly
     const fieldBackgroundColor = '#FFFFFF'; // White background for fields
     const fieldBorderColor = getStyleValue(labelStyle, 'borderColor', '#D1D5DB');
-    const fieldBorderRadius = '24px'; // CORRECTED: Match preview (1.5rem)
+    const fieldBorderRadius = '12px'; // Match preview exactly
     const fieldFontSize = '16px'; // Match preview
     const fieldTextColor = '#1F2937'; // Strong text color
     const fieldPadding = '12px 16px'; // Match preview padding
@@ -89,12 +89,14 @@
           color: ${titleColor};
           font-size: ${titleFontSize};
           font-weight: ${titleFontWeight};
-          text-align: ${titleTextAlign};
+          text-align: center;
           padding: 0;
           margin: 0 0 20px 0;
           background: none;
           border: none;
           font-family: 'Cairo', inherit;
+          width: 100%;
+          display: block;
         ">
           ${title}
         </div>
@@ -228,19 +230,37 @@
       const required = field.required || false;
       const fieldId = field.id || 'field-' + Math.random().toString(36).substr(2, 9);
       
+      // Enhanced styling to match preview exactly - get from field style
+      const fieldStyle = field.style || {};
+      
+      // Label styling from field settings
+      const actualLabelColor = getStyleValue(fieldStyle, 'labelColor', '#1F2937');
+      const actualLabelFontSize = getStyleValue(fieldStyle, 'labelFontSize', '16px');  
+      const actualLabelWeight = getStyleValue(fieldStyle, 'labelWeight', '500'); // Lighter weight like preview
+      const actualShowLabel = getStyleValue(fieldStyle, 'showLabel', true);
+      
+      // Field styling from field settings
+      const actualTextColor = getStyleValue(fieldStyle, 'textColor', '#1F2937');
+      const actualBorderColor = getStyleValue(fieldStyle, 'borderColor', '#D1D5DB');
+      const actualBorderWidth = getStyleValue(fieldStyle, 'borderWidth', '1px');
+      const actualFontSize = getStyleValue(fieldStyle, 'fontSize', '16px');
+      const actualPaddingY = getStyleValue(fieldStyle, 'paddingY', '12px');
+      const actualBorderRadius = getStyleValue(fieldStyle, 'borderRadius', '12px'); // Match preview exactly
+      const actualPlaceholder = getStyleValue(fieldStyle, 'placeholder', placeholder);
+      
       html = `
         <div class="codform-field-wrapper" style="
           margin-bottom: 20px;
           direction: ${formDirection};
         ">
-          ${showLabel ? `
+          ${actualShowLabel ? `
             <label for="${fieldId}" style="
               display: block;
-              color: ${labelColor};
-              font-size: ${labelFontSize};
-              font-weight: ${labelFontWeight};
+              color: ${actualLabelColor};
+              font-size: ${actualLabelFontSize};
+              font-weight: ${actualLabelWeight};
               margin-bottom: 8px;
-              font-family: inherit;
+              font-family: 'Cairo', inherit;
             ">
               ${label}${required ? '<span style="color: #EF4444; margin-left: 4px;">*</span>' : ''}
             </label>
@@ -249,18 +269,18 @@
           <textarea
             id="${fieldId}"
             name="${fieldId}"
-            placeholder="${placeholder}"
+            placeholder="${actualPlaceholder}"
             ${required ? 'required' : ''}
             rows="4"
             style="
               width: 100%;
-              background-color: ${fieldBackgroundColor};
-              border: 1px solid ${fieldBorderColor};
-              border-radius: ${fieldBorderRadius};
-              padding: 12px 16px;
-              font-size: ${fieldFontSize};
-              color: ${fieldTextColor};
-              font-family: inherit;
+              background-color: #FFFFFF;
+              border: ${actualBorderWidth} solid ${actualBorderColor};
+              border-radius: ${actualBorderRadius};
+              padding: ${actualPaddingY} 16px;
+              font-size: ${actualFontSize};
+              color: ${actualTextColor};
+              font-family: 'Cairo', inherit;
               outline: none;
               transition: all 0.2s ease;
               box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -271,7 +291,7 @@
               text-align: ${formDirection === 'rtl' ? 'right' : 'left'};
             "
             onfocus="this.style.borderColor='#9b87f5'; this.style.boxShadow='0 0 0 3px rgba(155, 135, 245, 0.1)'"
-            onblur="this.style.borderColor='${fieldBorderColor}'; this.style.boxShadow='0 1px 3px rgba(0, 0, 0, 0.1)'"
+            onblur="this.style.borderColor='${actualBorderColor}'; this.style.boxShadow='0 1px 3px rgba(0, 0, 0, 0.1)'"
           ></textarea>
           
           ${field.helpText ? `
@@ -279,6 +299,7 @@
               margin-top: 6px;
               font-size: 14px;
               color: #6B7280;
+              font-family: 'Cairo', inherit;
             ">${field.helpText}</p>
           ` : ''}
         </div>

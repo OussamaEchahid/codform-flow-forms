@@ -39,7 +39,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
   const showLabel = fieldStyle.showLabel !== false;
   const labelColor = fieldStyle.labelColor || '#333333';
   const labelFontSize = fieldStyle.labelFontSize || '1rem';
-  const labelFontWeight = fieldStyle.labelFontWeight || '600';
+  const labelFontWeight = fieldStyle.labelFontWeight || '500';
   
   const fontFamily = fieldStyle.fontFamily || 'inherit';
   const textColor = fieldStyle.color || 'rgb(31, 41, 55)';
@@ -50,7 +50,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
   const backgroundColor = 'rgb(255, 255, 255)';
   const borderColor = fieldStyle.borderColor || 'rgb(209, 213, 219)';
   const borderWidth = fieldStyle.borderWidth || '1px';
-  const borderRadius = '1.5rem';
+  const borderRadius = fieldStyle.borderRadius || '12px';
   const paddingY = fieldStyle.paddingY ? `${fieldStyle.paddingY}px` : '10px';
   
   // تحديد إذا كان هناك أيقونة وإذا كان يجب إظهارها
