@@ -544,7 +544,7 @@
         // SIMPLE: Add form fields ONLY - no quantity offers here
         console.log('🎯 CODFORM: Building form fields HTML only');
         
-        // Load quantity offers SEPARATELY and INSERT at the very beginning 
+        // Load quantity offers SIMPLE - no complex functions
         fetch(`https://trlklwixfeaexhydzaue.supabase.co/rest/v1/quantity_offers?product_id=eq.${productId}&enabled=eq.true`, {
           headers: {
             'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
@@ -554,16 +554,30 @@
         .then(response => response.json())
         .then(quantityData => {
           if (quantityData && quantityData.length > 0) {
-            const offersHtml = renderQuantityOffers(quantityData[0]);
-            // Find the form and prepend offers
+            const offer = quantityData[0];
+            
+            // Create simple offer HTML directly
+            const simpleOfferHTML = `
+              <div style="margin: 20px 4px; border: 2px solid #e74c3c; border-radius: 8px; padding: 16px; background: linear-gradient(135deg, #fff5f5, #ffeaea);">
+                <h3 style="color: #e74c3c; text-align: center; margin: 0 0 12px 0;">${offer.tag || 'عرض خاص'}</h3>
+                <div style="background: white; border-radius: 6px; padding: 12px;">
+                  <div style="font-weight: 600; color: #2c3e50; margin-bottom: 8px;">الكمية: ${offer.quantity}</div>
+                  <div style="color: #27ae60; font-weight: 500;">${offer.offer_text}</div>
+                  <div style="background: #e74c3c; color: white; padding: 6px 12px; border-radius: 4px; margin-top: 8px; text-align: center;">
+                    خصم ${offer.discount_value}${offer.discount_type === 'percentage' ? '%' : ' ريال'}
+                  </div>
+                </div>
+              </div>
+            `;
+            
             const formDiv = container.querySelector('.codform-dynamic-form');
-            if (formDiv && offersHtml) {
-              formDiv.insertAdjacentHTML('afterbegin', offersHtml);
-              console.log('✅ CODFORM: Quantity offers added to top of form');
+            if (formDiv) {
+              formDiv.insertAdjacentHTML('afterbegin', simpleOfferHTML);
+              console.log('✅ SIMPLE: Offer added successfully');
             }
           }
         })
-        .catch(error => console.log('❌ CODFORM: Error loading offers:', error));
+        .catch(error => console.log('❌ Error:', error));
         
         if (fieldsArray && Array.isArray(fieldsArray)) {
           fieldsArray.forEach((field, index) => {
