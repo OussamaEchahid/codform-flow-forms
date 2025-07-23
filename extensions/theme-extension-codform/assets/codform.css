@@ -77,6 +77,14 @@
 /* Specific styling for textarea */
 .codform-field textarea {
   min-height: 80px !important;
+  height: auto !important;
+  resize: vertical !important;
+}
+
+/* Ensure textarea height for Arabic language */
+.codform-container[dir="rtl"] .codform-field textarea,
+.codform-container .codform-field textarea {
+  min-height: 80px !important;
 }
 
 /* Placeholder text styling */
