@@ -48,19 +48,31 @@ window.CodformQuantityOffers = (function() {
 
   // دالة البحث عن النموذج الفعلي في Shopify
   function findActualFormContainer(blockId) {
-    console.log(`🔍 FINAL FIX - Looking for actual form container: ${blockId}`);
+    console.log(`🔍 REAL FIX - Looking for actual form container: ${blockId}`);
     
-    // البحث عن الحاوي الأساسي
-    const container = document.getElementById(`codform-container-${blockId}`);
-    if (!container) {
-      console.error(`❌ FINAL FIX - Container not found: codform-container-${blockId}`);
-      return null;
+    // البحث بطرق متعددة
+    const possibleContainers = [
+      document.getElementById(`codform-container-${blockId}`),
+      document.querySelector(`[id*="${blockId}"]`),
+      document.querySelector('.codform-form'),
+      document.querySelector('form'),
+      document.querySelector('[data-codform]')
+    ];
+    
+    for (const container of possibleContainers) {
+      if (container) {
+        console.log(`✅ REAL FIX - Found container:`, container);
+        console.log(`📋 REAL FIX - Container tag:`, container.tagName, `ID:`, container.id, `Classes:`, container.className);
+        
+        // البحث عن النموذج الحقيقي داخل الحاوي
+        const actualForm = container.querySelector('form') || container;
+        console.log(`📋 REAL FIX - Using form element:`, actualForm.tagName, actualForm.id || 'no-id');
+        return actualForm;
+      }
     }
-
-    console.log(`✅ FINAL FIX - Found container:`, container);
-    console.log(`📋 FINAL FIX - Container HTML structure:`, container.innerHTML.substring(0, 200) + '...');
     
-    return container;
+    console.error(`❌ REAL FIX - No container found for blockId: ${blockId}`);
+    return null;
   }
 
   // دالة البحث عن مكان الإدراج الصحيح داخل النموذج
