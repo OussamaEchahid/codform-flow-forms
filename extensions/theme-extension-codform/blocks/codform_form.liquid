@@ -341,13 +341,30 @@
 
     console.log('🔄 CODFORM: Loading complete form for product:', productId);
     
-    fetch(`https://lovable-forms-api.netlify.app/.netlify/functions/api-forms?productId=${productId}`)
-      .then(response => {
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+    // Try multiple API endpoints for better reliability
+    const apiUrls = [
+      `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/forms-product?shop=bestform-app.myshopify.com&product=${productId}&blockId=ASFhDTFBYRlN3VDNFK__codform_cod_forms_codform_form_xM8Ec7`,
+      `https://lovable-forms-api.netlify.app/.netlify/functions/api-forms?productId=${productId}`
+    ];
+    
+    async function tryFetchForm() {
+      for (let url of apiUrls) {
+        try {
+          console.log('🔄 CODFORM: Trying API:', url);
+          const response = await fetch(url);
+          if (response.ok) {
+            const data = await response.json();
+            console.log('✅ CODFORM: Success with:', url);
+            return data;
+          }
+        } catch (error) {
+          console.log('❌ CODFORM: Failed with:', url, error);
         }
-        return response.json();
-      })
+      }
+      throw new Error('All API endpoints failed');
+    }
+    
+    tryFetchForm()
       .then(data => {
         console.log('✅ CODFORM: Form data received:', data);
         
