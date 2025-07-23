@@ -46,67 +46,47 @@ window.CodformQuantityOffers = (function() {
     console.log("✅ FINAL FIX - Comprehensive cleanup completed");
   }
 
-  // دالة البحث عن النموذج الفعلي في Shopify - إصلاح جذري
+  // دالة البحث عن النموذج الفعلي - نسخة مبسطة ومضمونة
   function findActualFormContainer(blockId) {
-    console.log(`🎯 RADICAL FIX - Finding actual form for blockId: ${blockId}`);
+    console.log(`🎯 SIMPLE FIX - Looking for form with blockId: ${blockId}`);
     
-    // أولاً: البحث عن النموذج مباشرة في الصفحة
-    const allForms = document.querySelectorAll('form');
-    console.log(`🔍 RADICAL FIX - Found ${allForms.length} forms on page`);
+    // أولاً: البحث عن النموذج مباشرة
+    const forms = document.getElementsByTagName('form');
+    console.log(`🔍 SIMPLE FIX - Found ${forms.length} forms`);
     
-    for (let i = 0; i < allForms.length; i++) {
-      const form = allForms[i];
-      console.log(`📋 RADICAL FIX - Form ${i}:`, {
-        id: form.id,
-        className: form.className,
-        innerHTML: form.innerHTML.substring(0, 100) + '...'
-      });
+    for (let i = 0; i < forms.length; i++) {
+      const form = forms[i];
+      console.log(`📋 SIMPLE FIX - Form ${i}: ID="${form.id}", Class="${form.className}"`);
       
-      // التحقق إذا كان هذا النموذج يحتوي على معرف blockId أو يبدو كنموذج codform
-      const formId = form.id || '';
-      const formClassName = form.className || '';
-      const formInnerHTML = form.innerHTML || '';
-      
-      if (formId.includes(blockId) || 
-          formClassName.includes('codform') || 
-          formInnerHTML.includes(blockId) ||
-          form.querySelector(`[id*="${blockId}"]`) ||
-          form.querySelector('[data-field-type]')) {
-        console.log(`✅ RADICAL FIX - Found matching form:`, form);
+      // إذا وجدنا أي نموذج، نستخدمه (للبساطة)
+      if (form.tagName === 'FORM') {
+        console.log(`✅ SIMPLE FIX - Using form ${i}:`, form);
         return form;
       }
     }
     
-    // ثانياً: البحث في الحاويات الممكنة
-    const possibleSelectors = [
-      `#codform-container-${blockId}`,
-      `[id*="${blockId}"]`,
-      '.codform-form',
-      '[data-codform]',
-      '.shopify-section'
+    // ثانياً: البحث في div containers
+    const containers = [
+      document.querySelector(`#codform-container-${blockId}`),
+      document.querySelector('.codform-form'),
+      document.querySelector('[data-codform]')
     ];
     
-    for (const selector of possibleSelectors) {
-      const container = document.querySelector(selector);
+    for (let container of containers) {
       if (container) {
-        console.log(`📦 RADICAL FIX - Found container with selector "${selector}":`, container);
-        
-        // البحث عن form داخل الحاوي
-        const formInside = container.querySelector('form');
-        if (formInside) {
-          console.log(`✅ RADICAL FIX - Found form inside container:`, formInside);
-          return formInside;
+        console.log(`📦 SIMPLE FIX - Found container:`, container);
+        const form = container.querySelector('form');
+        if (form) {
+          console.log(`✅ SIMPLE FIX - Form inside container:`, form);
+          return form;
         }
-        
-        // إذا لم نجد form، نستخدم الحاوي نفسه إذا كان يحتوي على حقول
-        if (container.querySelector('input, textarea, select')) {
-          console.log(`✅ RADICAL FIX - Using container as form (has form fields):`, container);
-          return container;
-        }
+        // إذا لم نجد form، نستخدم الحاوي نفسه
+        console.log(`⚠️ SIMPLE FIX - Using container as form:`, container);
+        return container;
       }
     }
     
-    console.error(`❌ RADICAL FIX - No suitable form found for blockId: ${blockId}`);
+    console.error(`❌ SIMPLE FIX - No form found`);
     return null;
   }
 
