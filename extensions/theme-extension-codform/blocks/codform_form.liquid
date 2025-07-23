@@ -13,6 +13,9 @@
 }
 {% endschema %}
 
+<!-- Add Cairo font for Arabic text -->
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet">
+
 <div data-form-preview-id="form-preview-stable">
   <!-- Form content will be loaded here -->
 </div>
@@ -582,7 +585,10 @@
             
             // Get currency from form data for conversion
             const formCurrency = data.form?.currency || data.currency || 'SAR';
-            const conversionRate = formCurrency === 'USD' ? 0.27 : 1; // SAR to USD rate
+            const conversionRate = formCurrency === 'USD' ? 0.098 : 1; // MAD to USD rate (24.65 MAD = 2.44 USD)
+            
+            // Get real product price from Shopify
+            const realProductPrice = parseFloat('{{ product.price | money_without_currency | remove: "," }}') || 24.65;
             
             quantityData.forEach(offerGroup => {
               console.log('🎁 Processing offer group:', offerGroup);
@@ -594,7 +600,7 @@
                   
                   // Handle different data formats
                   let offerText = '';
-                  let basePrice = 24.95; // Default from DB
+                  let basePrice = realProductPrice; // Use real Shopify product price
                   let finalPrice = basePrice;
                   let originalPrice = basePrice;
                   let savingsText = '';
