@@ -190,9 +190,9 @@
         `;
       }
       
-      // Use consistent padding for all languages to match preview
-      const paddingLeft = '12px';
-      const paddingRight = showIcon && hasIcon ? '40px' : '12px';
+      // Fixed padding based on direction and icons
+      const paddingLeft = formDirection === 'rtl' ? '12px' : (showIcon && hasIcon ? '40px' : '12px');
+      const paddingRight = formDirection === 'rtl' ? (showIcon && hasIcon ? '40px' : '12px') : '12px';
       const paddingTopBottom = '10px';
       
       html = `
