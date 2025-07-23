@@ -69,3 +69,34 @@ DISABLED - تم تعطيل السكريبتات المتضاربة لمنع ال
   console.log('CODFORM: Product ID {{ product_id }}');
   console.log('CODFORM: Quantity offers will be loaded by React component only');
 </script>
+
+{% schema %}
+{
+  "name": "CODFORM - نموذج الطلب",
+  "target": "section",
+  "available_if": "{{ product != blank }}",
+  "settings": [
+    {
+      "type": "header",
+      "content": "إعدادات النموذج"
+    },
+    {
+      "type": "text",
+      "id": "form_title",
+      "label": "عنوان النموذج",
+      "default": "اطلب الآن"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_quantity_offers",
+      "label": "عرض عروض الكمية",
+      "default": true
+    }
+  ],
+  "presets": [
+    {
+      "name": "CODFORM - نموذج الطلب"
+    }
+  ]
+}
+{% endschema %}
