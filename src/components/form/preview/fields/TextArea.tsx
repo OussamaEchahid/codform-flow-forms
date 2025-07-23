@@ -77,6 +77,8 @@ const TextArea: React.FC<TextAreaProps> = ({ field, formStyle }) => {
           boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
           width: '100%',
           minHeight: '80px',
+          height: '80px',
+          resize: 'none',
           lineHeight: 1.5
         }}
         required={field.required}
