@@ -102,13 +102,16 @@ serve(async (req) => {
         let searchProductId = product;
         
         if (realProduct && realProduct.id) {
-          // Extract numeric ID from Shopify product ID (format: gid://shopify/Product/123456)
-          const numericId = realProduct.id.replace(/[^0-9]/g, '');
+          // Extract numeric ID from Shopify product ID safely
+          const productIdStr = String(realProduct.id);
+          const numericId = productIdStr.replace(/[^0-9]/g, '');
           if (numericId) {
             searchProductId = numericId;
             console.log(`[${requestId}] 🔄 Using numeric product ID: ${searchProductId}`);
           }
         }
+
+        console.log(`[${requestId}] 🔍 Searching for product: ${searchProductId}`);
 
         const { data, error } = await supabase
           .from('shopify_product_settings')
@@ -124,11 +127,9 @@ serve(async (req) => {
 
         if (error) {
           console.log(`[${requestId}] Product settings error:`, error.message);
-          return { found: false, error: error.message };
-        }
-
-        if (data && data.length > 0 && data[0].forms) {
+        } else if (data && data.length > 0 && data[0].forms) {
           const setting = data[0];
+          console.log(`[${requestId}] ✅ Found product-specific form: ${setting.form_id}`);
           return { found: true, formId: setting.form_id, formData: setting.forms };
         }
 
@@ -140,18 +141,37 @@ serve(async (req) => {
           .select('*')
           .eq('shop_id', shop)
           .eq('is_published', true)
+          .order('updated_at', { ascending: false })
           .limit(1);
 
         if (defaultError) {
           console.log(`[${requestId}] Default form error:`, defaultError.message);
-          return { found: false, error: defaultError.message };
-        }
-
-        if (defaultData && defaultData.length > 0) {
-          console.log(`[${requestId}] ✅ Found default form for shop`);
+        } else if (defaultData && defaultData.length > 0) {
+          console.log(`[${requestId}] ✅ Found default form for shop: ${defaultData[0].id}`);
           return { found: true, formId: defaultData[0].id, formData: defaultData[0] };
         }
 
+        // If still not found, get ANY form for this shop
+        console.log(`[${requestId}] 🔄 No published form found, looking for any form...`);
+        
+        const { data: anyData, error: anyError } = await supabase
+          .from('forms')
+          .select('*')
+          .eq('shop_id', shop)
+          .order('updated_at', { ascending: false })
+          .limit(1);
+
+        if (anyError) {
+          console.log(`[${requestId}] Any form error:`, anyError.message);
+          return { found: false, error: anyError.message };
+        }
+
+        if (anyData && anyData.length > 0) {
+          console.log(`[${requestId}] ✅ Found any form for shop: ${anyData[0].id}`);
+          return { found: true, formId: anyData[0].id, formData: anyData[0] };
+        }
+
+        console.log(`[${requestId}] ❌ No forms found for shop at all`);
         return { found: false };
       } catch (error) {
         console.log(`[${requestId}] Product settings exception:`, error);
