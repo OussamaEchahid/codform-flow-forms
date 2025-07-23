@@ -70,25 +70,25 @@
     25%, 75% { opacity: 0.5; }
   }
   
-  /* Animation classes - matching preview speeds */
+  /* Animation classes - matching preview speeds exactly */
   .pulse-animation {
-    animation: pulse 2s infinite;
+    animation: pulse 3s ease-in-out infinite;
   }
   
   .bounce-animation {
-    animation: bounce 2s infinite;
+    animation: bounce 3s infinite;
   }
   
   .shake-animation {
-    animation: shake 0.8s infinite;
+    animation: shake 1.2s infinite;
   }
   
   .wiggle-animation {
-    animation: wiggle 0.7s ease-in-out infinite;
+    animation: wiggle 1.5s ease-in-out infinite;
   }
   
   .flash-animation {
-    animation: flash 3s infinite;
+    animation: flash 4s infinite;
   }
 </style>
 
@@ -299,15 +299,25 @@
           </div>
           
           <style>
-            .codform-field input::placeholder,
+            /* Global placeholder font fix for all field types including address */
+            .codform-field input[type="text"]::placeholder,
+            .codform-field input[type="email"]::placeholder,
+            .codform-field input[type="tel"]::placeholder,
+            .codform-field input[type="number"]::placeholder,
+            .codform-field input[placeholder]::placeholder,
             .codform-field textarea::placeholder {
               font-family: ${formDirection === 'rtl' ? "'Cairo', 'Noto Sans Arabic', sans-serif" : "'Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', sans-serif"} !important;
-              opacity: 0.7;
+              opacity: 0.7 !important;
+              font-weight: 400 !important;
             }
             
             /* Ensure proper font inheritance for all input elements */
             .codform-field input,
-            .codform-field textarea {
+            .codform-field textarea,
+            .codform-field input[type="text"],
+            .codform-field input[type="email"],
+            .codform-field input[type="tel"],
+            .codform-field input[type="number"] {
               font-family: ${formDirection === 'rtl' ? "'Cairo', 'Noto Sans Arabic', sans-serif" : "'Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', sans-serif"} !important;
             }
           </style>
