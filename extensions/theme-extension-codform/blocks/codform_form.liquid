@@ -56,21 +56,15 @@
 <!-- تحميل script التشخيص -->
 {{ 'codform-debug.js' | asset_url | script_tag }}
 
-<!-- تحميل script العروض -->
-{{ 'codform-quantity-offers.js' | asset_url | script_tag }}
-
-<!-- تحميل الحل الشامل -->
-{{ 'codform-comprehensive-fix.js' | asset_url | script_tag }}
+<!-- السكريبتات المتضاربة تم حذفها لمنع التداخل -->
 
 <!-- تحميل خط Cairo لضمان تطابق الخطوط -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
-<!-- Quantity Offers Containers - في جميع المواضع -->
-<div id="quantity-offers-before-{{ block.id }}" class="quantity-offers-container" style="display: none; margin-bottom: 20px;"></div>
+<!-- الحاوية الداخلية للعروض فقط -->
 <div id="quantity-offers-inside-{{ block.id }}" class="quantity-offers-container" style="display: none; margin: 20px 0;"></div>
-<div id="quantity-offers-after-{{ block.id }}" class="quantity-offers-container" style="display: none; margin-top: 20px;"></div>
 
 <div 
   id="codform-container-{{ block.id }}" 
