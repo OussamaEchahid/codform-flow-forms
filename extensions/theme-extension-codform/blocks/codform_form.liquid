@@ -120,40 +120,102 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+  console.log('🎯 CODFORM - Simple init');
+  
+  // بيانات أساسية
   const productId = "{{ product.id }}";
   const blockId = "{{ block.id }}";
   const shop = "{{ shop.domain }}";
   
-  console.log(`🎯 CLEAN SOLUTION - Loading offers for ${productId} on ${shop}`);
-  
   if (!productId || !shop) {
-    console.log("❌ Missing required data");
+    console.log("❌ Missing data - product:", productId, "shop:", shop);
     return;
   }
   
-  // انتظار تحميل JavaScript ثم تحميل العروض
-  function loadOffers() {
-    if (window.CodformQuantityOffers && window.CodformQuantityOffers.load) {
-      console.log(`🚀 Loading offers for block ${blockId}`);
-      window.CodformQuantityOffers.load(blockId, productId, shop)
-        .then(result => {
-          if (result.success) {
-            console.log(`✅ Offers loaded successfully`);
-          } else {
-            console.log(`ℹ️ No offers found: ${result.message || 'Unknown'}`);
-          }
-        })
-        .catch(error => {
-          console.error(`❌ Error loading offers: ${error.message}`);
-        });
-    } else {
-      // المحاولة مرة أخرى بعد ثانية واحدة
-      setTimeout(loadOffers, 1000);
-    }
-  }
+  // تحميل النموذج مباشرة من API
+  const apiUrl = `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/forms-product?shop=${encodeURIComponent(shop)}&product=${encodeURIComponent(productId)}&blockId=${encodeURIComponent(blockId)}`;
   
-  // تحميل فوري
-  loadOffers();
+  fetch(apiUrl)
+    .then(response => response.json())
+    .then(data => {
+      if (data.success && data.form) {
+        console.log('✅ Form loaded successfully');
+        
+        // عرض النموذج
+        const container = document.getElementById(`codform-${blockId}`);
+        if (container) {
+          container.innerHTML = `
+            <form id="form-${blockId}" style="direction: rtl; font-family: 'Cairo', sans-serif;">
+              <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; color: #333;">الاسم الكامل *</label>
+                <input type="text" name="name" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+              </div>
+              <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; color: #333;">رقم الهاتف *</label>
+                <input type="tel" name="phone" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+              </div>
+              <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; color: #333;">العنوان *</label>
+                <textarea name="address" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; height: 80px;"></textarea>
+              </div>
+              <button type="submit" style="width: 100%; padding: 15px; background: #4CAF50; color: white; border: none; border-radius: 5px; font-size: 16px; cursor: pointer;">
+                ${data.form.submit_button_text || 'أرسل الطلب'}
+              </button>
+            </form>
+          `;
+        }
+        
+        // عرض عروض الكمية إذا كانت موجودة
+        if (data.quantity_offers && data.quantity_offers.offers && data.quantity_offers.offers.length > 0) {
+          const offersContainer = document.getElementById(`quantity-offers-before-${blockId}`);
+          if (offersContainer) {
+            let offersHTML = '<div style="margin-bottom: 20px; direction: rtl;">';
+            
+            data.quantity_offers.offers.forEach((offer, index) => {
+              const isHighlighted = index === 1;
+              const price = data.product.price || 0;
+              const totalPrice = price * (offer.quantity || 1);
+              
+              offersHTML += `
+                <div style="
+                  padding: 15px; 
+                  margin-bottom: 10px; 
+                  border: 2px solid ${isHighlighted ? '#22c55e' : '#e5e7eb'}; 
+                  border-radius: 8px; 
+                  background: ${isHighlighted ? '#f0fdf4' : '#ffffff'};
+                  display: flex; 
+                  justify-content: space-between; 
+                  align-items: center;
+                  cursor: pointer;
+                ">
+                  <div>
+                    <div style="font-weight: bold; color: #1f2937;">
+                      ${offer.text || `اشترِ ${offer.quantity || 1} قطعة`}
+                    </div>
+                    ${offer.tag ? `<span style="background: #22c55e; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px;">${offer.tag}</span>` : ''}
+                  </div>
+                  <div style="text-align: left;">
+                    <div style="font-weight: bold; font-size: 18px; color: #dc2626;">
+                      ${totalPrice.toFixed(2)} ${data.product.currency || 'USD'}
+                    </div>
+                  </div>
+                </div>
+              `;
+            });
+            
+            offersHTML += '</div>';
+            offersContainer.innerHTML = offersHTML;
+            offersContainer.style.display = 'block';
+          }
+        }
+        
+      } else {
+        console.log('❌ No form data found');
+      }
+    })
+    .catch(error => {
+      console.error('❌ Error loading form:', error);
+    });
 });
 </script>
 
