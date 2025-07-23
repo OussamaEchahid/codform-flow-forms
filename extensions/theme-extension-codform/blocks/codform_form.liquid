@@ -541,73 +541,29 @@
         // Build complete form HTML including offers at the top
         let completeFormHTML = '';
         
-        // First, add quantity offers at the very top - VISIBLE BY DEFAULT
-        console.log('🎁 CODFORM: Adding quantity offers section at top');
-        completeFormHTML += `
-          <div id="quantity-offers-container" style="
-            margin-bottom: 20px; 
-            border: 2px solid #e74c3c; 
-            border-radius: 8px; 
-            padding: 16px; 
-            background: linear-gradient(135deg, #fff5f5, #ffeaea);
-            min-height: 80px;
-            display: block !important;
-            visibility: visible !important;
-          ">
-            <div style="text-align: center; color: #e74c3c; font-size: 18px; font-weight: 600;">
-              🎁 عروض الكمية متاحة الآن!
-            </div>
-            <div style="text-align: center; color: #666; font-size: 14px; margin-top: 8px;">
-              جاري تحميل تفاصيل العروض...
-            </div>
-          </div>
-        `;
+        // SIMPLE: Add form fields ONLY - no quantity offers here
+        console.log('🎯 CODFORM: Building form fields HTML only');
         
-        // Then add the form fields
-        console.log('🎯 CODFORM: Building form fields HTML');
-        
-        // Fetch quantity offers from database
+        // Load quantity offers SEPARATELY and INSERT at the very beginning 
         fetch(`https://trlklwixfeaexhydzaue.supabase.co/rest/v1/quantity_offers?product_id=eq.${productId}&enabled=eq.true`, {
           headers: {
             'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
             'Content-Type': 'application/json'
           }
         })
-        .then(response => {
-          console.log('🎁 CODFORM: Quantity offers response status:', response.status);
-          return response.json();
-        })
+        .then(response => response.json())
         .then(quantityData => {
-          console.log('🎁 CODFORM: Raw quantity data from database:', quantityData);
-          
           if (quantityData && quantityData.length > 0) {
-            console.log('🎁 CODFORM: Processing quantity offers:', quantityData[0]);
             const offersHtml = renderQuantityOffers(quantityData[0]);
-            console.log('🎁 CODFORM: Generated offers HTML:', offersHtml);
-            
-            // Replace the placeholder with actual offers
-            setTimeout(() => {
-              const offersContainer = document.getElementById('quantity-offers-container');
-              if (offersContainer && offersHtml) {
-                console.log('🎁 CODFORM: Replacing placeholder with actual offers');
-                offersContainer.outerHTML = offersHtml;
-                console.log('✅ CODFORM: Quantity offers replaced successfully');
-              } else {
-                console.log('❌ CODFORM: Container not found or HTML empty');
-              }
-            }, 500);
-          } else {
-            console.log('⚠️ CODFORM: No quantity offers found, keeping placeholder');
+            // Find the form and prepend offers
+            const formDiv = container.querySelector('.codform-dynamic-form');
+            if (formDiv && offersHtml) {
+              formDiv.insertAdjacentHTML('afterbegin', offersHtml);
+              console.log('✅ CODFORM: Quantity offers added to top of form');
+            }
           }
         })
-        .catch(error => {
-          console.log('❌ CODFORM: Error loading quantity offers:', error);
-        });
-        
-        // Also check if offers come from API response
-        if (data.quantityOffers && Array.isArray(data.quantityOffers) && data.quantityOffers.length > 0) {
-          console.log('🎁 CODFORM: Also found quantity offers in API response:', data.quantityOffers[0]);
-        }
+        .catch(error => console.log('❌ CODFORM: Error loading offers:', error));
         
         if (fieldsArray && Array.isArray(fieldsArray)) {
           fieldsArray.forEach((field, index) => {
