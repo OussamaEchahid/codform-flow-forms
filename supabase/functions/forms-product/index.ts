@@ -97,6 +97,19 @@ serve(async (req) => {
       console.log(`[${requestId}] 🔎 Checking product-specific settings...`);
       
       try {
+        // First try to get real product data to get the actual product ID
+        const realProduct = await getRealProductData(shop, product);
+        let searchProductId = product;
+        
+        if (realProduct && realProduct.id) {
+          // Extract numeric ID from Shopify product ID (format: gid://shopify/Product/123456)
+          const numericId = realProduct.id.replace(/[^0-9]/g, '');
+          if (numericId) {
+            searchProductId = numericId;
+            console.log(`[${requestId}] 🔄 Using numeric product ID: ${searchProductId}`);
+          }
+        }
+
         const { data, error } = await supabase
           .from('shopify_product_settings')
           .select(`
@@ -105,7 +118,7 @@ serve(async (req) => {
             forms(*)
           `)
           .eq('shop_id', shop)
-          .eq('product_id', product)
+          .eq('product_id', searchProductId)
           .eq('enabled', true)
           .limit(1);
 
@@ -117,6 +130,26 @@ serve(async (req) => {
         if (data && data.length > 0 && data[0].forms) {
           const setting = data[0];
           return { found: true, formId: setting.form_id, formData: setting.forms };
+        }
+
+        // If not found by product ID, try to find any default form for this shop
+        console.log(`[${requestId}] 🔄 No product-specific form found, looking for default form...`);
+        
+        const { data: defaultData, error: defaultError } = await supabase
+          .from('forms')
+          .select('*')
+          .eq('shop_id', shop)
+          .eq('is_published', true)
+          .limit(1);
+
+        if (defaultError) {
+          console.log(`[${requestId}] Default form error:`, defaultError.message);
+          return { found: false, error: defaultError.message };
+        }
+
+        if (defaultData && defaultData.length > 0) {
+          console.log(`[${requestId}] ✅ Found default form for shop`);
+          return { found: true, formId: defaultData[0].id, formData: defaultData[0] };
         }
 
         return { found: false };
