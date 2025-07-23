@@ -1,4 +1,5 @@
 
+
 <!-- متغيرات النموذج -->
 {%- assign form_id = block.id -%}
 {%- assign product_id = product.id -%}
@@ -58,21 +59,23 @@
     font-family: 'Cairo', sans-serif;
     margin: 20px 0;
   }
+
+  /* إخفاء النموذج حتى يتم تحميله من API */
+  .codform-form-placeholder {
+    display: block;
+  }
+
+  .codform-form-loaded {
+    display: block;
+  }
 </style>
 
-<!-- تحميل script التشخيص -->
-{{ 'codform-debug.js' | asset_url | script_tag }}
-
-<!-- السكريبتات المتضاربة تم حذفها لمنع التداخل -->
-
-<!-- تحميل خط Cairo لضمان تطابق الخطوط -->
+<!-- تحميل خط Cairo -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
-<!-- الحاوية الداخلية للعروض فقط -->
-<div id="quantity-offers-inside-{{ block.id }}" class="quantity-offers-container" style="display: none; margin: 20px 0;"></div>
-
+<!-- الحاوية الرئيسية -->
 <div 
   id="codform-container-{{ block.id }}" 
   class="codform-container"
@@ -89,205 +92,211 @@
     </div>
   {%- endif -%}
 
-  <!-- النموذج -->
-  <form id="codform-form-{{ block.id }}" class="codform-form" action="/cart/add" method="post" enctype="multipart/form-data">
-    <!-- الحقول الأساسية -->
-    <div class="codform-field">
-      <label class="codform-label" for="customer_name_{{ block.id }}">الاسم</label>
-      <input 
-        type="text" 
-        id="customer_name_{{ block.id }}" 
-        name="properties[اسم العميل]" 
-        class="codform-input" 
-        required
-      >
+  <!-- مكان تحميل النموذج الديناميكي من API -->
+  <div id="codform-dynamic-form-{{ block.id }}" class="codform-form-placeholder">
+    <div style="text-align: center; padding: 20px; color: #666;">
+      <p>جاري تحميل النموذج...</p>
     </div>
-
-    <div class="codform-field">
-      <label class="codform-label" for="customer_phone_{{ block.id }}">رقم الهاتف</label>
-      <input 
-        type="tel" 
-        id="customer_phone_{{ block.id }}" 
-        name="properties[رقم الهاتف]" 
-        class="codform-input" 
-        required
-      >
-    </div>
-
-    <div class="codform-field">
-      <label class="codform-label" for="customer_address_{{ block.id }}">العنوان</label>
-      <textarea 
-        id="customer_address_{{ block.id }}" 
-        name="properties[العنوان]" 
-        class="codform-input" 
-        rows="3" 
-        required
-      ></textarea>
-    </div>
-
-    <!-- معلومات المنتج المخفية -->
-    <input type="hidden" name="id" value="{{ product.selected_or_first_available_variant.id }}">
-    <input type="hidden" name="quantity" value="1">
-
-    <!-- زر الإرسال -->
-    <button type="submit" class="codform-submit">
-      اطلب الآن
-    </button>
-  </form>
+  </div>
 </div>
 
-<!-- سكريبت تحميل العروض مباشرة -->
+<!-- سكريبت واحد فقط لتحميل النموذج الكامل مع العروض -->
 <script>
 (function() {
   'use strict';
   
-  console.log('🎯 DIRECT OFFERS LOADER - Starting...');
+  console.log('🚀 CODFORM COMPLETE FORM LOADER - Starting...');
   
-  // بيانات الأساسية
+  // بيانات أساسية
   const blockId = '{{ block.id }}';
   const productId = '{{ product.id }}';
   const shopDomain = '{{ shop.domain }}';
   
-  // دالة عرض العروض
-  function displayOffers(offersData) {
-    console.log('🎁 Displaying offers:', offersData);
-    
-    const container = document.getElementById(`quantity-offers-inside-${blockId}`);
-    if (!container) {
-      console.error('❌ Container not found');
-      return;
-    }
+  // إعدادات النموذج من Liquid
+  const formSettings = {
+    backgroundColor: '{{ block.settings.form_background_color | default: "#ffffff" }}',
+    titleColor: '{{ block.settings.title_color | default: "#333333" }}',
+    labelColor: '{{ block.settings.label_color | default: "#333333" }}',
+    inputBackgroundColor: '{{ block.settings.input_background_color | default: "#ffffff" }}',
+    inputTextColor: '{{ block.settings.input_text_color | default: "#333333" }}',
+    inputBorderColor: '{{ block.settings.input_border_color | default: "#ddd" }}',
+    submitButtonColor: '{{ block.settings.submit_button_color | default: "#007bff" }}',
+    submitButtonTextColor: '{{ block.settings.submit_button_text_color | default: "#ffffff" }}',
+    submitButtonHoverColor: '{{ block.settings.submit_button_hover_color | default: "#0056b3" }}'
+  };
 
+  // دالة إنشاء حقل النموذج
+  function createFormField(field, styling) {
+    const fieldContainer = document.createElement('div');
+    fieldContainer.className = 'codform-field';
+    
+    let fieldHTML = '';
+    
+    switch (field.type) {
+      case 'text':
+      case 'email':
+      case 'phone':
+        fieldHTML = `
+          <label class="codform-label" style="color: ${styling.labelColor};" for="${field.id || field.name}_${blockId}">
+            ${field.label || field.title || 'حقل نص'}
+            ${field.required ? ' *' : ''}
+          </label>
+          <input 
+            type="${field.type || 'text'}" 
+            id="${field.id || field.name}_${blockId}" 
+            name="properties[${field.label || field.title || field.name}]" 
+            class="codform-input"
+            style="background-color: ${styling.inputBackgroundColor}; color: ${styling.inputTextColor}; border-color: ${styling.inputBorderColor};"
+            ${field.required ? 'required' : ''}
+            ${field.placeholder ? `placeholder="${field.placeholder}"` : ''}
+          >
+        `;
+        break;
+        
+      case 'textarea':
+        fieldHTML = `
+          <label class="codform-label" style="color: ${styling.labelColor};" for="${field.id || field.name}_${blockId}">
+            ${field.label || field.title || 'منطقة نص'}
+            ${field.required ? ' *' : ''}
+          </label>
+          <textarea 
+            id="${field.id || field.name}_${blockId}" 
+            name="properties[${field.label || field.title || field.name}]" 
+            class="codform-input" 
+            rows="3"
+            style="background-color: ${styling.inputBackgroundColor}; color: ${styling.inputTextColor}; border-color: ${styling.inputBorderColor};"
+            ${field.required ? 'required' : ''}
+            ${field.placeholder ? `placeholder="${field.placeholder}"` : ''}
+          ></textarea>
+        `;
+        break;
+        
+      case 'submit':
+        fieldHTML = `
+          <button 
+            type="submit" 
+            class="codform-submit"
+            style="background-color: ${styling.submitButtonColor}; color: ${styling.submitButtonTextColor};"
+            onmouseover="this.style.backgroundColor='${styling.submitButtonHoverColor}'"
+            onmouseout="this.style.backgroundColor='${styling.submitButtonColor}'"
+          >
+            ${field.label || field.text || 'اطلب الآن'}
+          </button>
+        `;
+        break;
+        
+      default:
+        if (field.type !== 'step' && field.type !== 'form-title') {
+          fieldHTML = `
+            <div style="padding: 10px; background: #f5f5f5; border-radius: 4px; margin: 10px 0;">
+              <small>نوع حقل غير مدعوم: ${field.type}</small>
+            </div>
+          `;
+        }
+    }
+    
+    fieldContainer.innerHTML = fieldHTML;
+    return fieldContainer;
+  }
+
+  // دالة عرض العروض
+  function displayQuantityOffers(offersData, productData = null) {
+    console.log('🎁 Displaying quantity offers:', offersData);
+    
     if (!offersData || !offersData.offers || offersData.offers.length === 0) {
       console.log('ℹ️ No offers to display');
-      return;
+      return '';
     }
 
-    // مسح المحتوى السابق
-    container.innerHTML = '';
-    
-    const wrapper = document.createElement('div');
-    wrapper.className = 'space-y-2 mb-4';
-    wrapper.style.cssText = `
-      font-family: 'Cairo', system-ui, Arial, sans-serif;
-      margin: 0 0 16px 0;
-    `;
+    const styling = offersData.styling || {
+      backgroundColor: '#ffffff',
+      textColor: '#000000',
+      tagColor: '#22c55e',
+      priceColor: '#ef4444'
+    };
+
+    // استخدام بيانات المنتج الحقيقية
+    const hasRealPrice = productData && productData.price && productData.price > 0;
+    const realPrice = hasRealPrice ? parseFloat(productData.price) : {{ product.price | default: 15000 }} / 100;
+    const currency = productData?.currency || 'ر.س';
+    const productImage = productData?.image;
+
+    console.log('💰 Using price data:', { hasRealPrice, realPrice, currency });
+
+    let offersHTML = '<div class="quantity-offers-container" style="margin: 20px 0;">';
 
     offersData.offers.forEach((offer, index) => {
       const isHighlighted = index === 1;
       
-      const offerElement = document.createElement('div');
-      offerElement.style.cssText = `
-        padding: 12px;
-        border-radius: 8px;
-        border: 2px solid ${isHighlighted ? '#22c55e' : '#d1d5db'};
-        background: ${isHighlighted ? '#f0fdf4' : '#ffffff'};
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 8px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        transition: all 0.3s ease;
-        cursor: pointer;
-      `;
+      // حساب السعر
+      let totalPrice = realPrice * (offer.quantity || 1);
+      let originalPrice = totalPrice;
+      let savingsPercentage = 0;
 
-      // الجزء الأيسر
-      const leftContent = document.createElement('div');
-      leftContent.style.cssText = `
-        display: flex;
-        align-items: center;
-        gap: 12px;
-      `;
-
-      // الأيقونة
-      const icon = document.createElement('div');
-      icon.style.cssText = `
-        width: 48px;
-        height: 48px;
-        background-color: #f3f4f6;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      `;
-      icon.innerHTML = `
-        <svg width="32" height="32" fill="#9ca3af" viewBox="0 0 20 20">
-          <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd" />
-        </svg>
-      `;
-
-      // النص
-      const textContainer = document.createElement('div');
-      
-      const mainText = document.createElement('div');
-      mainText.style.cssText = `
-        font-weight: 600;
-        color: #1f2937;
-        margin-bottom: 4px;
-        font-size: 15px;
-      `;
-      mainText.textContent = offer.text || `اشترِ ${offer.quantity} واحصل على خصم`;
-
-      const tagContainer = document.createElement('div');
-      if (offer.tag) {
-        const tag = document.createElement('span');
-        tag.style.cssText = `
-          background-color: #22c55e;
-          color: white;
-          padding: 4px 8px;
-          border-radius: 4px;
-          font-size: 12px;
-          font-weight: 500;
-        `;
-        tag.textContent = offer.tag;
-        tagContainer.appendChild(tag);
+      if (offer.discountType === 'percentage' && offer.discountValue > 0) {
+        const discount = (originalPrice * offer.discountValue) / 100;
+        totalPrice = originalPrice - discount;
+        savingsPercentage = offer.discountValue;
+      } else if (offer.discountType === 'fixed' && offer.discountValue > 0) {
+        totalPrice = originalPrice - offer.discountValue;
+        savingsPercentage = Math.round((offer.discountValue / originalPrice) * 100);
       }
 
-      textContainer.appendChild(mainText);
-      textContainer.appendChild(tagContainer);
-      leftContent.appendChild(icon);
-      leftContent.appendChild(textContainer);
+      offersHTML += `
+        <div style="
+          background-color: ${isHighlighted ? '#f0fdf4' : styling.backgroundColor};
+          border: 2px solid ${isHighlighted ? '#22c55e' : '#e5e7eb'};
+          border-radius: 12px;
+          padding: 16px;
+          margin-bottom: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          font-family: 'Cairo', system-ui, Arial, sans-serif;
+          box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+          cursor: pointer;
+          transition: all 0.3s ease;
+        " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 12px rgba(0,0,0,0.15)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 8px rgba(0,0,0,0.1)';">
+          
+          <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+            ${productImage ? `<img src="${productImage}" alt="منتج" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px; border: 1px solid #e5e7eb;">` : `
+              <div style="width: 50px; height: 50px; background-color: #f3f4f6; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                <svg width="32" height="32" fill="#9ca3af" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd" />
+                </svg>
+              </div>
+            `}
+            
+            <div style="flex: 1;">
+              <div style="font-weight: 600; font-size: 15px; color: ${styling.textColor}; margin-bottom: 6px;">
+                ${offer.text || `اشترِ ${offer.quantity || 1} قطعة`}
+              </div>
+              <div style="display: flex; gap: 8px; align-items: center;">
+                ${offer.tag ? `<span style="background-color: ${styling.tagColor}; color: white; padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: 600;">${offer.tag}</span>` : ''}
+                ${savingsPercentage > 0 ? `<span style="background-color: #22c55e; color: white; padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: 600;">وفر ${savingsPercentage}%</span>` : ''}
+              </div>
+            </div>
+          </div>
 
-      // الجزء الأيمن - السعر
-      const rightContent = document.createElement('div');
-      rightContent.style.cssText = 'text-align: right;';
-
-      const priceElement = document.createElement('div');
-      priceElement.style.cssText = `
-        font-weight: 700;
-        font-size: 18px;
-        color: #ef4444;
+          <div style="text-align: center; min-width: 100px;">
+            ${savingsPercentage > 0 ? `<div style="font-size: 12px; color: #6b7280; text-decoration: line-through; margin-bottom: 4px;">${originalPrice.toFixed(2)} ${currency}</div>` : ''}
+            <div style="font-size: 18px; font-weight: bold; color: ${styling.priceColor};">
+              ${totalPrice.toFixed(2)} ${currency}
+            </div>
+            ${offer.quantity > 1 ? `<div style="font-size: 11px; color: #6b7280; margin-top: 2px;">${realPrice.toFixed(2)} ${currency} × ${offer.quantity}</div>` : ''}
+          </div>
+        </div>
       `;
-      
-      // حساب السعر (استخدام سعر افتراضي إذا لم يتوفر)
-      const basePrice = {{ product.price | default: 15000 }} / 100;
-      let totalPrice = basePrice * (offer.quantity || 1);
-      
-      if (offer.discountType === 'percentage' && offer.discountValue) {
-        totalPrice = totalPrice * (1 - offer.discountValue / 100);
-      } else if (offer.discountType === 'fixed' && offer.discountValue) {
-        totalPrice = totalPrice - offer.discountValue;
-      }
-      
-      priceElement.textContent = `${totalPrice.toFixed(2)} ر.س`;
-      rightContent.appendChild(priceElement);
-
-      // تجميع العناصر
-      offerElement.appendChild(leftContent);
-      offerElement.appendChild(rightContent);
-      wrapper.appendChild(offerElement);
     });
 
-    container.appendChild(wrapper);
-    container.style.display = 'block';
-    
-    console.log('✅ Offers displayed successfully');
+    offersHTML += '</div>';
+    return offersHTML;
   }
 
-  // دالة تحميل العروض من API
-  async function loadOffers() {
+  // دالة تحميل وعرض النموذج الكامل
+  async function loadCompleteForm() {
     try {
-      console.log('🔄 Loading offers from API...');
+      console.log('🔄 Loading complete form from API...');
       
       const apiUrl = `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/forms-product?shop=${encodeURIComponent(shopDomain)}&product=${encodeURIComponent(productId)}&blockId=${encodeURIComponent(blockId)}`;
       
@@ -304,31 +313,81 @@
       }
 
       const data = await response.json();
+      console.log('✅ API Response:', data);
       
-      if (data.success && data.quantity_offers) {
-        console.log('✅ Offers loaded successfully');
-        displayOffers(data.quantity_offers);
+      if (data.success && data.form && data.form.fields) {
+        const container = document.getElementById(`codform-dynamic-form-${blockId}`);
+        if (!container) {
+          console.error('❌ Container not found');
+          return;
+        }
+
+        // مسح placeholder
+        container.innerHTML = '';
+        
+        // إنشاء النموذج
+        const form = document.createElement('form');
+        form.id = `codform-form-${blockId}`;
+        form.className = 'codform-form';
+        form.action = '/cart/add';
+        form.method = 'post';
+        form.enctype = 'multipart/form-data';
+        
+        // عرض العروض قبل الحقول
+        if (data.quantity_offers && data.quantity_offers.offers && data.quantity_offers.offers.length > 0) {
+          const offersHTML = displayQuantityOffers(data.quantity_offers, data.product);
+          form.innerHTML += offersHTML;
+        }
+        
+        // إضافة الحقول
+        data.form.fields.forEach(field => {
+          if (field.type !== 'step' && field.type !== 'form-title') {
+            const fieldElement = createFormField(field, formSettings);
+            form.appendChild(fieldElement);
+          }
+        });
+
+        // إضافة الحقول المخفية
+        form.innerHTML += `
+          <input type="hidden" name="id" value="{{ product.selected_or_first_available_variant.id }}">
+          <input type="hidden" name="quantity" value="1">
+        `;
+
+        container.appendChild(form);
+        container.className = 'codform-form-loaded';
+        
+        console.log('✅ Complete form loaded successfully');
       } else {
-        console.log('ℹ️ No offers found in response');
+        console.log('⚠️ No form data found, keeping placeholder');
       }
       
     } catch (error) {
-      console.error('❌ Error loading offers:', error);
+      console.error('❌ Error loading complete form:', error);
+      
+      // في حالة الخطأ، عرض نموذج بسيط
+      const container = document.getElementById(`codform-dynamic-form-${blockId}`);
+      if (container) {
+        container.innerHTML = `
+          <div style="text-align: center; padding: 20px; color: #d97706; background: #fef3c7; border-radius: 8px;">
+            <p>حدث خطأ في تحميل النموذج. يرجى إعادة تحميل الصفحة.</p>
+          </div>
+        `;
+      }
     }
   }
 
-  // انتظار تحميل DOM ثم تحميل العروض
+  // تحميل النموذج عند تحميل DOM
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-      setTimeout(loadOffers, 500);
+      setTimeout(loadCompleteForm, 500);
     });
   } else {
-    setTimeout(loadOffers, 500);
+    setTimeout(loadCompleteForm, 500);
   }
   
   // أيضاً عند تحميل النافذة
   window.addEventListener('load', () => {
-    setTimeout(loadOffers, 1000);
+    setTimeout(loadCompleteForm, 1000);
   });
   
 })();
@@ -342,94 +401,65 @@
     {
       "type": "text",
       "id": "form_title",
-      "label": {
-        "ar": "عنوان النموذج",
-        "en": "Form Title"
-      },
+      "label": "عنوان النموذج",
       "default": "اطلب الآن"
     },
     {
       "type": "color",
       "id": "form_background_color",
-      "label": {
-        "ar": "لون خلفية النموذج",
-        "en": "Form Background Color"
-      },
+      "label": "لون خلفية النموذج",
       "default": "#ffffff"
     },
     {
       "type": "color",
       "id": "title_color",
-      "label": {
-        "ar": "لون العنوان",
-        "en": "Title Color"
-      },
+      "label": "لون العنوان",
       "default": "#333333"
     },
     {
       "type": "color",
       "id": "label_color",
-      "label": {
-        "ar": "لون التسميات",
-        "en": "Label Color"
-      },
+      "label": "لون التسميات",
       "default": "#333333"
     },
     {
       "type": "color",
       "id": "input_background_color",
-      "label": {
-        "ar": "لون خلفية الحقول",
-        "en": "Input Background Color"
-      },
+      "label": "لون خلفية الحقول",
       "default": "#ffffff"
     },
     {
       "type": "color",
       "id": "input_text_color",
-      "label": {
-        "ar": "لون نص الحقول",
-        "en": "Input Text Color"
-      },
+      "label": "لون نص الحقول",
       "default": "#333333"
     },
     {
       "type": "color",
       "id": "input_border_color",
-      "label": {
-        "ar": "لون حدود الحقول",
-        "en": "Input Border Color"
-      },
+      "label": "لون حدود الحقول",
       "default": "#ddd"
     },
     {
       "type": "color",
       "id": "submit_button_color",
-      "label": {
-        "ar": "لون زر الإرسال",
-        "en": "Submit Button Color"
-      },
+      "label": "لون زر الإرسال",
       "default": "#007bff"
     },
     {
       "type": "color",
       "id": "submit_button_text_color",
-      "label": {
-        "ar": "لون نص زر الإرسال",
-        "en": "Submit Button Text Color"
-      },
+      "label": "لون نص زر الإرسال",
       "default": "#ffffff"
     },
     {
       "type": "color",
       "id": "submit_button_hover_color",
-      "label": {
-        "ar": "لون زر الإرسال عند التمرير",
-        "en": "Submit Button Hover Color"
-      },
+      "label": "لون زر الإرسال عند التمرير",
       "default": "#0056b3"
     }
   ],
   "target": "section"
 }
 {% endschema %}
+
