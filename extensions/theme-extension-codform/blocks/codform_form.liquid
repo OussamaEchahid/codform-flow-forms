@@ -264,8 +264,8 @@
       const buttonBgColor = getStyleValue(buttonStyle, 'backgroundColor', formStyle?.primaryColor || '#9b87f5');
       const buttonTextColor = getStyleValue(buttonStyle, 'color', '#FFFFFF');
       const buttonFontSize = '18px';
-      const buttonBorderRadius = '24px';
-      const buttonPadding = '16px 0';
+      const buttonBorderRadius = '32px'; // More rounded like preview
+      const buttonPadding = '16px 32px';
       const buttonWidth = '100%';
       
       html = `
@@ -502,38 +502,33 @@
         
         console.log('🎯 CODFORM: Final fieldsArray:', fieldsArray, 'Length:', fieldsArray.length);
         
-        // FETCH AND ADD QUANTITY OFFERS from database
+        // LOAD QUANTITY OFFERS from database
         let quantityOffersHtml = '';
         
-        // Fetch quantity offers from Supabase
-        fetch(`https://trlklwixfeaexhydzaue.supabase.co/rest/v1/quantity_offers?product_id=eq.${productId}&enabled=eq.true`, {
-          headers: {
-            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY4NTMyMjksImV4cCI6MjA1MjQyOTIyOX0.ynNYzj4_w6k2kqpgmOvJlTF1VYk_TYQ8T1v9k1eXNJo',
-            'Content-Type': 'application/json'
+        // First try to get from API response
+        if (data.quantityOffers && Array.isArray(data.quantityOffers) && data.quantityOffers.length > 0) {
+          console.log('🎁 CODFORM: Using quantity offers from API:', data.quantityOffers[0]);
+          quantityOffersHtml = renderQuantityOffers(data.quantityOffers[0]);
+        }
+        
+        // If not in API response, fetch from database
+        if (!quantityOffersHtml) {
+          try {
+            const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/rest/v1/quantity_offers?product_id=eq.${productId}&enabled=eq.true`, {
+              headers: {
+                'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY4NTMyMjksImV4cCI6MjA1MjQyOTIyOX0.ynNYzj4_w6k2kqpgmOvJlTF1VYk_TYQ8T1v9k1eXNJo',
+                'Content-Type': 'application/json'
+              }
+            });
+            const quantityData = await response.json();
+            if (quantityData && quantityData.length > 0) {
+              console.log('🎁 CODFORM: Quantity offers loaded from database:', quantityData[0]);
+              quantityOffersHtml = renderQuantityOffers(quantityData[0]);
+            }
+          } catch (error) {
+            console.log('❌ CODFORM: Error fetching quantity offers:', error);
           }
-        })
-        .then(response => response.json())
-        .then(quantityData => {
-          if (quantityData && quantityData.length > 0) {
-            console.log('🎁 CODFORM: Quantity offers loaded from database:', quantityData[0]);
-            quantityOffersHtml = renderQuantityOffers(quantityData[0]);
-            
-            // Re-render the form with quantity offers
-            container.innerHTML = `
-              <form class="codform-dynamic-form" style="
-                background: transparent;
-                margin: 0;
-                padding: 0;
-              ">
-                ${quantityOffersHtml}
-                ${formContent}
-              </form>
-            `;
-          }
-        })
-        .catch(error => {
-          console.log('❌ CODFORM: Error fetching quantity offers:', error);
-        });
+        }
         
         if (fieldsArray && Array.isArray(fieldsArray)) {
           fieldsArray.forEach((field, index) => {
