@@ -562,13 +562,27 @@
             const offersHtml = renderQuantityOffers(quantityData[0]);
             console.log('🎁 CODFORM: Generated offers HTML:', offersHtml);
             
-            // Insert offers immediately at the top of the form
-            const form = container.querySelector('.codform-dynamic-form');
-            if (form && offersHtml) {
-              form.insertAdjacentHTML('afterbegin', offersHtml);
-              console.log('✅ CODFORM: Quantity offers inserted into form');
+            // Find the form container and insert offers at the very top
+            const formContainer = container.querySelector('.codform-dynamic-form');
+            if (formContainer && offersHtml) {
+              // Clear any existing offers first
+              const existingOffers = formContainer.querySelector('.quantity-offers');
+              if (existingOffers) {
+                existingOffers.remove();
+              }
+              
+              // Insert the new offers at the very beginning
+              formContainer.insertAdjacentHTML('afterbegin', offersHtml);
+              console.log('✅ CODFORM: Quantity offers inserted successfully');
+              
+              // Force a visual update
+              formContainer.style.display = 'none';
+              formContainer.offsetHeight; // Trigger reflow
+              formContainer.style.display = '';
             } else {
               console.log('❌ CODFORM: Failed to insert offers - form element or HTML missing');
+              console.log('Form container found:', !!formContainer);
+              console.log('Offers HTML generated:', !!offersHtml);
             }
           } else {
             console.log('⚠️ CODFORM: No quantity offers found in database');
