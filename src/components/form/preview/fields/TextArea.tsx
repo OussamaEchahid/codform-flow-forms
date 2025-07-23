@@ -22,7 +22,7 @@ const TextArea: React.FC<TextAreaProps> = ({ field, formStyle }) => {
   const labelFontWeight = fieldStyle.labelFontWeight || '500';
   
   // Set default values for border styling
-  const inputBorderRadius = fieldStyle.borderRadius || formStyle.borderRadius || '12px';
+  const inputBorderRadius = fieldStyle.borderRadius || formStyle.borderRadius || '8px';
   const inputBorderWidth = fieldStyle.borderWidth || '1px';
   
   // Set default rows
