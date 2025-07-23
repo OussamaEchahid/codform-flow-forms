@@ -190,10 +190,10 @@
         `;
       }
       
-      // Calculate padding based on icon and direction + custom paddingY - CORRECTED FOR RTL
-      const paddingLeft = formDirection === 'rtl' ? '16px' : (showIcon && hasIcon ? '48px' : '16px');
-      const paddingRight = formDirection === 'rtl' ? (showIcon && hasIcon ? '48px' : '16px') : '16px';
-      const paddingTopBottom = actualPaddingY;
+      // Use consistent padding for all languages to match preview
+      const paddingLeft = '12px';
+      const paddingRight = showIcon && hasIcon ? '40px' : '12px';
+      const paddingTopBottom = '10px';
       
       html = `
         <div class="codform-field-wrapper" style="
