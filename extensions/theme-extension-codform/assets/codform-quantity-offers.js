@@ -52,21 +52,33 @@ window.CodformQuantityOffers = (function() {
     let productImage = null;
     let actualCurrency = formCurrency;
     
-    // محاولة الحصول على البيانات من Shopify أولاً
-    if (window.meta && window.meta.product) {
+    // طباعة كل المتغيرات المتاحة للتشخيص
+    console.log("🔍 DEBUG - Available data sources:");
+    console.log("  - window.meta:", window.meta);
+    console.log("  - window.Shopify:", window.Shopify);
+    console.log("  - productData:", productData);
+    
+    // استخدام بيانات productData أولاً لأنها تأتي من API
+    if (productData && productData.price) {
+      realPrice = productData.price;
+      productImage = productData.image;
+      actualCurrency = productData.currency || formCurrency;
+      console.log("✅ Using API product data:", { realPrice, productImage, actualCurrency });
+    }
+    // إذا لم تكن متوفرة، جرب window.meta
+    else if (window.meta && window.meta.product) {
       realPrice = window.meta.product.price_min / 100; // Shopify uses cents
       productImage = window.meta.product.featured_image;
       // محاولة الحصول على العملة من شوبيفاي
       if (window.Shopify && window.Shopify.currency && window.Shopify.currency.active) {
         actualCurrency = window.Shopify.currency.active;
       }
+      console.log("✅ Using Shopify meta data:", { realPrice, productImage, actualCurrency });
     }
-    
-    // إذا لم نحصل على البيانات من Shopify، استخدم البيانات المرسلة
-    if (!realPrice && productData && productData.price) {
-      realPrice = productData.price;
-      productImage = productData.image;
-      actualCurrency = productData.currency || formCurrency;
+    // استخدام سعر افتراضي كحل أخير
+    else {
+      console.log("❌ No product data available - using defaults");
+      realPrice = 100; // سعر افتراضي
     }
 
     console.log("💰 Real price detected:", realPrice, "Currency:", actualCurrency);
