@@ -57,81 +57,56 @@ window.CodformQuantityOffers = (function() {
       return;
     }
 
-    let targetElement = null;
-    let offerContainer = null;
-
-    // إنشاء العرض أولاً
-    offerContainer = document.createElement('div');
+    // إنشاء العرض
+    const offerContainer = document.createElement('div');
+    offerContainer.id = `quantity-offers-${blockId}`;
+    offerContainer.className = 'quantity-offers-container';
     offerContainer.style.cssText = `
       display: block !important;
       visibility: visible !important;
       opacity: 1 !important;
-      margin: 20px 0;
+      margin: 15px 0;
       position: relative;
-      z-index: 999;
+      z-index: 10;
       width: 100%;
-      background: #fff3cd !important;
-      border: 3px solid #ffc107 !important;
-      border-radius: 8px;
-      padding: 20px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     `;
 
-    // تحديد الموضع والإدراج
-    switch (position) {
-      case 'before_form':
-        console.log(`📍 POSITION BASED - Placing BEFORE form`);
-        offerContainer.id = `quantity-offers-before-${blockId}`;
-        offerContainer.className = 'quantity-offers-container-before-form';
-        
-        // إدراج قبل النموذج مباشرة
-        container.parentNode.insertBefore(offerContainer, container);
-        console.log(`✅ POSITION BASED - Inserted BEFORE container`);
-        break;
-        
-      case 'after_form':
-        console.log(`📍 POSITION BASED - Placing AFTER form`);
-        offerContainer.id = `quantity-offers-after-${blockId}`;
-        offerContainer.className = 'quantity-offers-container-after-form';
-        
-        // إدراج بعد النموذج مباشرة
+    // تحديد مكان الإدراج حسب الموضع
+    if (position === 'before_form') {
+      // قبل النموذج - البحث عن العنصر الأب المناسب
+      const parentElement = container.parentElement;
+      if (parentElement) {
+        parentElement.insertBefore(offerContainer, container);
+        console.log(`✅ POSITION BASED - Inserted BEFORE form`);
+      }
+    } else if (position === 'after_form') {
+      // بعد النموذج
+      const parentElement = container.parentElement;
+      if (parentElement) {
         if (container.nextSibling) {
-          container.parentNode.insertBefore(offerContainer, container.nextSibling);
+          parentElement.insertBefore(offerContainer, container.nextSibling);
         } else {
-          container.parentNode.appendChild(offerContainer);
+          parentElement.appendChild(offerContainer);
         }
-        console.log(`✅ POSITION BASED - Inserted AFTER container`);
-        break;
-        
-      case 'inside_form':
-      default:
-        console.log(`📍 POSITION BASED - Placing INSIDE form`);
-        offerContainer.id = `quantity-offers-inside-${blockId}`;
-        offerContainer.className = 'quantity-offers-container-inside-form';
-        
-        // إدراج داخل النموذج
-        const formTitle = container.querySelector('.form-title-field, [data-field-type="form-title"]');
-        const firstField = container.querySelector('.mb-4:not(.form-title-field), [class*="field"]:not([data-field-type="form-title"]):not(.quantity-offers-container-inside-form)');
-        
-        if (formTitle && firstField) {
-          formTitle.parentNode.insertBefore(offerContainer, firstField);
-        } else if (firstField) {
-          firstField.parentNode.insertBefore(offerContainer, firstField);
-        } else {
-          container.appendChild(offerContainer);
-        }
-        console.log(`✅ POSITION BASED - Inserted INSIDE container`);
-        break;
-    }
-
-    if (!offerContainer.parentNode) {
-      console.error(`❌ POSITION BASED - Failed to insert offer container`);
-      return;
+        console.log(`✅ POSITION BASED - Inserted AFTER form`);
+      }
+    } else {
+      // داخل النموذج (الافتراضي) - فوق العنوان مباشرة
+      const formTitle = container.querySelector('.form-title-field, [data-field-type="form-title"]');
+      if (formTitle) {
+        formTitle.parentNode.insertBefore(offerContainer, formTitle);
+        console.log(`✅ POSITION BASED - Inserted INSIDE form before title`);
+      } else {
+        // إذا لم يوجد عنوان، في أول النموذج
+        container.insertBefore(offerContainer, container.firstChild);
+        console.log(`✅ POSITION BASED - Inserted INSIDE form at beginning`);
+      }
     }
 
     // منع التكرار في نفس الحاوي
     if (displayedContainers.has(offerContainer.id)) {
       console.log(`⚠️ POSITION BASED - Container already has offers: ${offerContainer.id}`);
+      offerContainer.remove();
       return;
     }
 
@@ -142,7 +117,6 @@ window.CodformQuantityOffers = (function() {
     markAsProcessed(blockId, productId);
     displayedContainers.add(offerContainer.id);
 
-    console.log(`✅ POSITION BASED - Offer displayed successfully at position: ${position}`);
   }
 
   // عرض محتوى العروض
