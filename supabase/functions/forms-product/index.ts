@@ -65,10 +65,12 @@ serve(async (req) => {
           if (data.success && data.products && data.products.length > 0) {
             const product = data.products[0];
             
-            // Ensure we get the correct product data with proper price conversion
+            // استخراج بيانات المنتج الحقيقية مع تحويل السعر الصحيح  
             const productPrice = parseFloat(product.price || product.priceRangeV2?.minVariantPrice?.amount || 0);
             const productCurrency = product.priceRangeV2?.minVariantPrice?.currencyCode || 'USD';
             const productImage = product.images?.[0]?.src || product.featuredImage?.url || product.image?.src || null;
+            
+            console.log(`[${requestId}] 📊 Raw product data: price=${productPrice}, currency=${productCurrency}, image=${!!productImage}`);
             
             const realProductData = {
               id: product.id,
@@ -226,7 +228,41 @@ serve(async (req) => {
       console.log(`[${requestId}] ⚠️ Invalid product data, using fallback`);
     }
 
-    // Build response with REAL product data
+    // تحويل السعر إلى عملة النموذج مع معدلات صحيحة
+    let convertedProductData = realProductData;
+    
+    if (realProductData && formData.currency && realProductData.currency !== formData.currency) {
+      // معدلات تحويل محدّثة للعملات الرئيسية
+      const exchangeRates: { [key: string]: { [key: string]: number } } = {
+        'USD': {
+          'SAR': 3.75,
+          'AED': 3.67, 
+          'MAD': 10.1,
+          'EGP': 30.5
+        },
+        'SAR': {
+          'USD': 0.267,
+          'AED': 0.98,
+          'MAD': 2.69,
+          'EGP': 8.13
+        }
+      };
+      
+      if (exchangeRates[realProductData.currency] && exchangeRates[realProductData.currency][formData.currency]) {
+        const rate = exchangeRates[realProductData.currency][formData.currency];
+        const convertedPrice = realProductData.price * rate;
+        
+        convertedProductData = {
+          ...realProductData,
+          price: parseFloat(convertedPrice.toFixed(2)),
+          currency: formData.currency
+        };
+        
+        console.log(`[${requestId}] 💱 CURRENCY CONVERSION: ${realProductData.price} ${realProductData.currency} → ${convertedPrice.toFixed(2)} ${formData.currency} (rate: ${rate})`);
+      }
+    }
+
+    // Build response with converted product data
     const response = {
       success: true,
       form: {
@@ -244,7 +280,7 @@ serve(async (req) => {
         phone_prefix: formData.phone_prefix || '+966'
       },
       quantity_offers: quantityOffers,
-      product: realProductData || {
+      product: convertedProductData || {
         id: product,
         title: 'Product',
         price: null,

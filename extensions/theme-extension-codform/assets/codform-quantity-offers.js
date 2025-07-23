@@ -207,37 +207,46 @@ window.CodformQuantityOffers = (function() {
       const leftSection = document.createElement('div');
       leftSection.style.cssText = 'display: flex; align-items: center; gap: 12px; flex: 1;';
 
-      // صورة المنتج الحقيقية - إظهار دائم مع fallback
+      // صورة المنتج الحقيقية مع إصلاح شامل
       const imageElement = document.createElement('img');
-      if (productImage) {
-        imageElement.src = productImage;
-        imageElement.alt = productTitle;
-        imageElement.style.cssText = `
-          width: 50px;
-          height: 50px;
-          object-fit: cover;
-          border-radius: 8px;
-          border: 1px solid #e5e7eb;
-          display: block;
-        `;
+      imageElement.style.cssText = `
+        width: 60px;
+        height: 60px;
+        object-fit: cover;
+        border-radius: 8px;
+        border: 1px solid #e5e7eb;
+        display: block;
+        background-color: #f9fafb;
+        flex-shrink: 0;
+      `;
+      
+      if (productImage && productImage.trim() !== '') {
+        // تنظيف رابط الصورة وإضافة أبعاد مناسبة
+        let cleanImageUrl = productImage.trim();
+        // إضافة أبعاد مناسبة لصور Shopify
+        if (cleanImageUrl.includes('shopify') && !cleanImageUrl.includes('_120x120')) {
+          cleanImageUrl = cleanImageUrl.replace(/\.(jpg|jpeg|png|webp)/i, '_120x120.$1');
+        }
+        
+        imageElement.src = cleanImageUrl;
+        imageElement.alt = productTitle || 'صورة المنتج';
+        
         imageElement.onerror = function() {
-          console.log('❌ Image failed to load, showing placeholder:', productImage);
-          this.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMCAxNUgzMFYzNUgyMFYxNVoiIGZpbGw9IiM5Q0E0QUYiLz4KPHN2Zz4K';
+          console.log('❌ REAL DATA - Image failed to load, trying original URL:', productImage);
+          // محاولة بالرابط الأصلي
+          this.src = productImage;
+          this.onerror = function() {
+            console.log('❌ REAL DATA - Original image also failed, using product icon');
+            this.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjZjlmYWZiIi8+CjxwYXRoIGQ9Ik0yMCAyMGgyMHYyMEgyMFYyMFoiIGZpbGw9IiM2Yjc2ODAiLz4KPGNpcmNsZSBjeD0iMjUiIGN5PSIyNSIgcj0iMiIgZmlsbD0iI2Y5ZmFmYiIvPgo8cGF0aCBkPSJNMjIgMzVsMy0zIDItMiA4IDh2MUgyMnYtNFoiIGZpbGw9IiNmOWZhZmIiLz4KPHN2Zz4K';
+          };
         };
-        console.log('✅ REAL DATA - Image element created with src:', productImage);
+        
+        console.log('✅ REAL DATA - Image element created with optimized src:', cleanImageUrl);
       } else {
-        // صورة بديلة إذا لم تكن هناك صورة
-        imageElement.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMCAxNUgzMFYzNUgyMFYxNVoiIGZpbGw9IiM5Q0E0QUYiLz4KPHN2Zz4K';
-        imageElement.alt = 'صورة المنتج';
-        imageElement.style.cssText = `
-          width: 50px;
-          height: 50px;
-          object-fit: cover;
-          border-radius: 8px;
-          border: 1px solid #e5e7eb;
-          display: block;
-        `;
-        console.log('⚠️ REAL DATA - No product image, using placeholder');
+        // أيقونة منتج جميلة بدلاً من مربع رمادي
+        imageElement.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjZjlmYWZiIi8+CjxwYXRoIGQ9Ik0yMCAyMGgyMHYyMEgyMFYyMFoiIGZpbGw9IiM2Yjc2ODAiLz4KPGNpcmNsZSBjeD0iMjUiIGN5PSIyNSIgcj0iMiIgZmlsbD0iI2Y5ZmFmYiIvPgo8cGF0aCBkPSJNMjIgMzVsMy0zIDItMiA4IDh2MUgyMnYtNFoiIGZpbGw9IiNmOWZhZmIiLz4KPHN2Zz4K';
+        imageElement.alt = 'أيقونة المنتج';
+        console.log('⚠️ REAL DATA - No product image, using product icon');
       }
       leftSection.appendChild(imageElement);
 
