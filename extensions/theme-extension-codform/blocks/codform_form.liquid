@@ -538,10 +538,21 @@
         
         console.log('🎯 CODFORM: Final fieldsArray:', fieldsArray, 'Length:', fieldsArray.length);
         
-        // LOAD QUANTITY OFFERS from database FIRST
-        let quantityOffersHtml = '';
+        // Build complete form HTML including offers at the top
+        let completeFormHTML = '';
         
-        console.log('🎁 CODFORM: Loading quantity offers for product:', productId);
+        // First, add quantity offers at the very top
+        console.log('🎁 CODFORM: Adding quantity offers section at top');
+        completeFormHTML += `
+          <div id="quantity-offers-container" style="margin-bottom: 20px;">
+            <div class="quantity-offers-placeholder" style="padding: 20px; text-align: center; background: #f8f9fa; border-radius: 8px; margin: 10px 0;">
+              <div style="color: #666; font-size: 16px;">🔄 جاري تحميل العروض...</div>
+            </div>
+          </div>
+        `;
+        
+        // Then add the form fields
+        console.log('🎯 CODFORM: Building form fields HTML');
         
         // Fetch quantity offers from database
         fetch(`https://trlklwixfeaexhydzaue.supabase.co/rest/v1/quantity_offers?product_id=eq.${productId}&enabled=eq.true`, {
@@ -562,26 +573,14 @@
             const offersHtml = renderQuantityOffers(quantityData[0]);
             console.log('🎁 CODFORM: Generated offers HTML:', offersHtml);
             
-            // Find the form container and insert offers at the very top
-            const formContainer = container.querySelector('.codform-dynamic-form');
-            if (formContainer && offersHtml) {
-              // Clear any existing offers first
-              const existingOffers = formContainer.querySelector('.quantity-offers');
-              if (existingOffers) {
-                existingOffers.remove();
-              }
-              
-              // Insert the new offers at the very beginning
-              formContainer.insertAdjacentHTML('afterbegin', offersHtml);
-              console.log('✅ CODFORM: Quantity offers inserted successfully');
-              
-              // Force a visual update
-              formContainer.style.display = 'none';
-              formContainer.offsetHeight; // Trigger reflow
-              formContainer.style.display = '';
+            // Replace the placeholder with actual offers
+            const offersContainer = document.getElementById('quantity-offers-container');
+            if (offersContainer && offersHtml) {
+              offersContainer.innerHTML = offersHtml;
+              console.log('✅ CODFORM: Quantity offers replaced placeholder successfully');
             } else {
-              console.log('❌ CODFORM: Failed to insert offers - form element or HTML missing');
-              console.log('Form container found:', !!formContainer);
+              console.log('❌ CODFORM: Failed to replace offers placeholder');
+              console.log('Offers container found:', !!offersContainer);
               console.log('Offers HTML generated:', !!offersHtml);
             }
           } else {
@@ -606,19 +605,21 @@
           console.log('❌ CODFORM: No valid fields array found');
         }
 
-        // Wrap in form element with quantity offers
-        container.innerHTML = `
-          <form class="codform-dynamic-form" style="
-            background: transparent;
-            margin: 0;
-            padding: 0;
-          ">
-            ${quantityOffersHtml}
+        // Wrap in form element
+        completeFormHTML += `
+          <form class="codform-form-fields" style="background: transparent; margin: 0; padding: 0;">
             ${formContent}
           </form>
         `;
 
-        console.log('🎉 CODFORM: Form rendered successfully with exact preview matching');
+        // Set the complete HTML with offers container at top
+        container.innerHTML = `
+          <div class="codform-dynamic-form">
+            ${completeFormHTML}
+          </div>
+        `;
+
+        console.log('🎉 CODFORM: Form rendered successfully with quantity offers container');
       })
       .catch(error => {
         console.error('❌ CODFORM: Error loading form:', error);
