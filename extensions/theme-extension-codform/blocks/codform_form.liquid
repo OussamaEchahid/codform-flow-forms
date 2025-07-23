@@ -70,25 +70,25 @@
     25%, 75% { opacity: 0.5; }
   }
   
-  /* Animation classes - matching preview speeds exactly */
+  /* Animation classes - EXACT match from preview CSS */
   .pulse-animation {
-    animation: pulse 3s ease-in-out infinite;
+    animation: pulse 2s infinite !important;
   }
   
   .bounce-animation {
-    animation: bounce 3s infinite;
+    animation: bounce 2s infinite !important;
   }
   
   .shake-animation {
-    animation: shake 1.2s infinite;
+    animation: shake 0.8s infinite !important;
   }
   
   .wiggle-animation {
-    animation: wiggle 1.5s ease-in-out infinite;
+    animation: wiggle 0.7s ease-in-out infinite !important;
   }
   
   .flash-animation {
-    animation: flash 4s infinite;
+    animation: flash 3s infinite !important;
   }
 </style>
 
@@ -299,25 +299,27 @@
           </div>
           
           <style>
-            /* Global placeholder font fix for all field types including address */
-            .codform-field input[type="text"]::placeholder,
-            .codform-field input[type="email"]::placeholder,
-            .codform-field input[type="tel"]::placeholder,
-            .codform-field input[type="number"]::placeholder,
-            .codform-field input[placeholder]::placeholder,
-            .codform-field textarea::placeholder {
+            /* Force proper font for ALL placeholder text in form */
+            .codform-field-wrapper input::placeholder,
+            .codform-field-wrapper textarea::placeholder,
+            input[type="text"]::placeholder,
+            input[type="email"]::placeholder,
+            input[type="tel"]::placeholder,
+            input[type="number"]::placeholder,
+            input[placeholder]::placeholder,
+            textarea[placeholder]::placeholder {
               font-family: ${formDirection === 'rtl' ? "'Cairo', 'Noto Sans Arabic', sans-serif" : "'Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', sans-serif"} !important;
               opacity: 0.7 !important;
               font-weight: 400 !important;
             }
             
-            /* Ensure proper font inheritance for all input elements */
-            .codform-field input,
-            .codform-field textarea,
-            .codform-field input[type="text"],
-            .codform-field input[type="email"],
-            .codform-field input[type="tel"],
-            .codform-field input[type="number"] {
+            /* Force proper font for ALL input elements in form */
+            .codform-field-wrapper input,
+            .codform-field-wrapper textarea,
+            input[type="text"],
+            input[type="email"],
+            input[type="tel"],
+            input[type="number"] {
               font-family: ${formDirection === 'rtl' ? "'Cairo', 'Noto Sans Arabic', sans-serif" : "'Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', sans-serif"} !important;
             }
           </style>
