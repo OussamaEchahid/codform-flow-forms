@@ -409,14 +409,16 @@
     // التنسيقات الأساسية مطابقة للـ React
     const showLabel = fieldStyle.showLabel !== false;
     const labelColor = fieldStyle.labelColor || styling.labelColor || '#333333';
-    const labelFontSize = fieldStyle.labelFontSize || formStyle.fontSize || '16px';
+    const labelFontSize = '16px'; // حجم ثابت 16px
     const labelFontWeight = fieldStyle.labelFontWeight || '600';
     const fontFamily = "'Cairo', 'Segoe UI', system-ui, -apple-system, sans-serif";
     const textColor = fieldStyle.color || styling.inputTextColor || '#333333';
-    const fontSize = fieldStyle.fontSize || formStyle.fontSize || '16px';
+    const fontSize = '16px'; // حجم ثابت 16px
     const backgroundColor = fieldStyle.backgroundColor || styling.inputBackgroundColor || '#ffffff';
     const borderColor = fieldStyle.borderColor || styling.inputBorderColor || '#e5e7eb';
-    const borderRadius = formStyle.borderRadius || '12px';
+    const borderRadius = '12px'; // زوايا ثابتة 12px للحقول
+    const inputPadding = '16px 20px'; // padding ثابت
+    const inputMinHeight = '56px'; // ارتفاع ثابت
     
     // الأيقونات
     const hasIcon = field.icon && field.icon !== 'none' && field.icon !== '';
@@ -839,19 +841,9 @@
     }
   }
 
-  // تحميل النموذج عند تحميل DOM
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      setTimeout(loadCompleteForm, 500);
-    });
-  } else {
-    setTimeout(loadCompleteForm, 500);
-  }
-  
-  // أيضاً عند تحميل النافذة
-  window.addEventListener('load', () => {
-    setTimeout(loadCompleteForm, 1000);
-  });
+  // تعطيل تحميل النموذج الديناميكي مؤقتاً للحفاظ على النموذج الثابت
+  console.log('📝 CODFORM: Static form mode activated - dynamic loading disabled');
+  // setTimeout(loadCompleteForm, 500); // معطل مؤقتاً
   
 })();
 </script>
