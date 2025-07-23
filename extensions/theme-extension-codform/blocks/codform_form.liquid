@@ -502,38 +502,49 @@
         
         console.log('🎯 CODFORM: Final fieldsArray:', fieldsArray, 'Length:', fieldsArray.length);
         
-        // LOAD QUANTITY OFFERS from database
+        // LOAD QUANTITY OFFERS from database FIRST
         let quantityOffersHtml = '';
         
-        // First try to get from API response
-        if (data.quantityOffers && Array.isArray(data.quantityOffers) && data.quantityOffers.length > 0) {
-          console.log('🎁 CODFORM: Using quantity offers from API:', data.quantityOffers[0]);
-          quantityOffersHtml = renderQuantityOffers(data.quantityOffers[0]);
-        }
+        console.log('🎁 CODFORM: Loading quantity offers for product:', productId);
         
-        // If not in API response, fetch from database (without await for now)
-        if (!quantityOffersHtml) {
-          fetch(`https://trlklwixfeaexhydzaue.supabase.co/rest/v1/quantity_offers?product_id=eq.${productId}&enabled=eq.true`, {
-            headers: {
-              'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
-              'Content-Type': 'application/json'
+        // Fetch quantity offers from database
+        fetch(`https://trlklwixfeaexhydzaue.supabase.co/rest/v1/quantity_offers?product_id=eq.${productId}&enabled=eq.true`, {
+          headers: {
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
+            'Content-Type': 'application/json'
+          }
+        })
+        .then(response => {
+          console.log('🎁 CODFORM: Quantity offers response status:', response.status);
+          return response.json();
+        })
+        .then(quantityData => {
+          console.log('🎁 CODFORM: Raw quantity data from database:', quantityData);
+          
+          if (quantityData && quantityData.length > 0) {
+            console.log('🎁 CODFORM: Processing quantity offers:', quantityData[0]);
+            const offersHtml = renderQuantityOffers(quantityData[0]);
+            console.log('🎁 CODFORM: Generated offers HTML:', offersHtml);
+            
+            // Insert offers immediately at the top of the form
+            const form = container.querySelector('.codform-dynamic-form');
+            if (form && offersHtml) {
+              form.insertAdjacentHTML('afterbegin', offersHtml);
+              console.log('✅ CODFORM: Quantity offers inserted into form');
+            } else {
+              console.log('❌ CODFORM: Failed to insert offers - form element or HTML missing');
             }
-          })
-          .then(response => response.json())
-          .then(quantityData => {
-            if (quantityData && quantityData.length > 0) {
-              console.log('🎁 CODFORM: Quantity offers loaded from database:', quantityData[0]);
-              const offersHtml = renderQuantityOffers(quantityData[0]);
-              // Insert offers at the beginning of form
-              const form = container.querySelector('.codform-dynamic-form');
-              if (form) {
-                form.insertAdjacentHTML('afterbegin', offersHtml);
-              }
-            }
-          })
-          .catch(error => {
-            console.log('❌ CODFORM: Error fetching quantity offers:', error);
-          });
+          } else {
+            console.log('⚠️ CODFORM: No quantity offers found in database');
+          }
+        })
+        .catch(error => {
+          console.log('❌ CODFORM: Error loading quantity offers:', error);
+        });
+        
+        // Also check if offers come from API response
+        if (data.quantityOffers && Array.isArray(data.quantityOffers) && data.quantityOffers.length > 0) {
+          console.log('🎁 CODFORM: Also found quantity offers in API response:', data.quantityOffers[0]);
         }
         
         if (fieldsArray && Array.isArray(fieldsArray)) {
