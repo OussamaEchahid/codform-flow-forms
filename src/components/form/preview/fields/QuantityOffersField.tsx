@@ -69,8 +69,8 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
           .single();
 
         if (data && !error) {
-          setOffers(data.offers || []);
-          setStyling(data.styling || styling);
+          setOffers(Array.isArray(data.offers) ? (data.offers as unknown as Offer[]) : []);
+          setStyling(data.styling && typeof data.styling === 'object' ? (data.styling as unknown as Styling) : styling);
         }
       } catch (error) {
         console.error('Error loading quantity offers:', error);
