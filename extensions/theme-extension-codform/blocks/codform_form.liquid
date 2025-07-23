@@ -113,19 +113,16 @@
       loadingElement.style.display = 'none';
       formElement.style.display = 'block';
       
-      // Create React root and render form
-      const script = document.createElement('script');
-      script.src = 'https://unpkg.com/react@18/umd/react.production.min.js';
-      script.onload = () => {
-        const reactDomScript = document.createElement('script');
-        reactDomScript.src = 'https://unpkg.com/react-dom@18/umd/react-dom.production.min.js';
-        reactDomScript.onload = () => {
-          // Form will be rendered by React with quantity offers inside
-          renderReactForm(data, formElement);
-        };
-        document.head.appendChild(reactDomScript);
+  // Load the main codform script that handles React rendering
+      const codformScript = document.createElement('script');
+      codformScript.src = '{{ "codform.js" | asset_url }}';
+      codformScript.onload = () => {
+        // Initialize the form with data
+        if (window.codform && window.codform.renderForm) {
+          window.codform.renderForm(formElement, data, blockId);
+        }
       };
-      document.head.appendChild(script);
+      document.head.appendChild(codformScript);
 
     } catch (error) {
       console.error('❌ CODFORM: Error loading form:', error);
