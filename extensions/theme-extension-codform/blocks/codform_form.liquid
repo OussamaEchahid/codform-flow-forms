@@ -298,7 +298,25 @@
     try {
       console.log('🔄 Loading complete form from API...');
       
-      const apiUrl = `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/forms-product?shop=${encodeURIComponent(shopDomain)}&product=${encodeURIComponent(productId)}&blockId=${encodeURIComponent(blockId)}`;
+      // استخدام handle المنتج من URL بدلاً من ID
+      const currentPath = window.location.pathname;
+      let productIdentifier = productId;
+      
+      // استخراج handle المنتج من URL إذا كان متاحاً
+      if (currentPath && currentPath.includes('/products/')) {
+        const pathParts = currentPath.split('/products/');
+        if (pathParts.length > 1) {
+          const productHandle = pathParts[1].split('?')[0].split('/')[0];
+          if (productHandle && productHandle !== 'undefined') {
+            productIdentifier = productHandle;
+            console.log('🎯 Using product handle from URL:', productHandle);
+          }
+        }
+      }
+      
+      console.log('📦 Product identifier:', productIdentifier, 'Shop:', shopDomain);
+      
+      const apiUrl = `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/forms-product?shop=${encodeURIComponent(shopDomain)}&product=${encodeURIComponent(productIdentifier)}&blockId=${encodeURIComponent(blockId)}`;
       
       const response = await fetch(apiUrl, {
         method: 'GET',
@@ -315,7 +333,7 @@
       const data = await response.json();
       console.log('✅ API Response:', data);
       
-      if (data.success && data.form && data.form.fields) {
+      if (data.success && data.form && data.form.data && data.form.data[0] && data.form.data[0].fields) {
         const container = document.getElementById(`codform-dynamic-form-${blockId}`);
         if (!container) {
           console.error('❌ Container not found');
@@ -340,7 +358,7 @@
         }
         
         // إضافة الحقول
-        data.form.fields.forEach(field => {
+        data.form.data[0].fields.forEach(field => {
           if (field.type !== 'step' && field.type !== 'form-title') {
             const fieldElement = createFormField(field, formSettings);
             form.appendChild(fieldElement);
@@ -356,20 +374,30 @@
         container.appendChild(form);
         container.className = 'codform-form-loaded';
         
-        console.log('✅ Complete form loaded successfully');
+        console.log('✅ Complete form loaded successfully with', data.form.data[0].fields.length, 'fields');
       } else {
-        console.log('⚠️ No form data found, keeping placeholder');
+        console.log('⚠️ No form data found for product:', productIdentifier);
+        
+        // عرض رسالة مفيدة للمستخدم
+        const container = document.getElementById(`codform-dynamic-form-${blockId}`);
+        if (container) {
+          container.innerHTML = `
+            <div style="text-align: center; padding: 20px; color: #64748b; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+              <p style="margin: 0; font-size: 14px;">لم يتم العثور على نموذج مرتبط بهذا المنتج</p>
+            </div>
+          `;
+        }
       }
       
     } catch (error) {
       console.error('❌ Error loading complete form:', error);
       
-      // في حالة الخطأ، عرض نموذج بسيط
+      // في حالة الخطأ، عرض رسالة خطأ واضحة
       const container = document.getElementById(`codform-dynamic-form-${blockId}`);
       if (container) {
         container.innerHTML = `
-          <div style="text-align: center; padding: 20px; color: #d97706; background: #fef3c7; border-radius: 8px;">
-            <p>حدث خطأ في تحميل النموذج. يرجى إعادة تحميل الصفحة.</p>
+          <div style="text-align: center; padding: 20px; color: #dc2626; background: #fef2f2; border-radius: 8px; border: 1px solid #fecaca;">
+            <p style="margin: 0; font-size: 14px;">حدث خطأ في تحميل النموذج. يرجى إعادة تحميل الصفحة.</p>
           </div>
         `;
       }
