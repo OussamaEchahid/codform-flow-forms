@@ -331,7 +331,43 @@
 
   // Function to render quantity offers
   function renderQuantityOffers(quantityOffer) {
-    if (!quantityOffer || !quantityOffer.offers) return '';
+    console.log('🎁 CODFORM: renderQuantityOffers called with:', quantityOffer);
+    
+    // Check if it's a single offer from database (new format)
+    if (quantityOffer && quantityOffer.quantity && !quantityOffer.offers) {
+      console.log('🎁 CODFORM: Processing single offer from database');
+      
+      // Calculate discount display
+      let discountText = '';
+      if (quantityOffer.discount_type === 'percentage') {
+        discountText = `خصم ${quantityOffer.discount_value}%`;
+      } else {
+        discountText = `خصم ${quantityOffer.discount_value} ريال`;
+      }
+      
+      return `
+        <div class="quantity-offers" style="margin: 20px 4px; border: 2px solid #e74c3c; border-radius: 8px; padding: 16px; background: linear-gradient(135deg, #fff5f5, #ffeaea);">
+          <div style="text-align: center; margin-bottom: 12px;">
+            <h3 style="color: #e74c3c; font-size: 18px; font-weight: 600; margin: 0 0 8px 0;">${quantityOffer.tag || 'عروض الكمية'}</h3>
+          </div>
+          <div style="background: white; border-radius: 6px; padding: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-weight: 600; color: #2c3e50;">الكمية: ${quantityOffer.quantity}</span>
+              <span style="background: #e74c3c; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600;">${discountText}</span>
+            </div>
+            <div style="color: #27ae60; font-weight: 500; font-size: 14px;">
+              ${quantityOffer.offer_text}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+    
+    // Legacy format (array of offers)
+    if (!quantityOffer || !quantityOffer.offers) {
+      console.log('🎁 CODFORM: No offers data found');
+      return '';
+    }
     
     const styling = quantityOffer.styling || {};
     const offers = quantityOffer.offers || [];
