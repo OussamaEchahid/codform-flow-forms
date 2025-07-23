@@ -207,7 +207,7 @@ window.CodformQuantityOffers = (function() {
       const leftSection = document.createElement('div');
       leftSection.style.cssText = 'display: flex; align-items: center; gap: 12px; flex: 1;';
 
-      // صورة المنتج الحقيقية مع إصلاح شامل
+      // صورة المنتج الحقيقية من Shopify - BIX EXACT IMAGE ISSUE
       const imageElement = document.createElement('img');
       imageElement.style.cssText = `
         width: 60px;
@@ -220,33 +220,41 @@ window.CodformQuantityOffers = (function() {
         flex-shrink: 0;
       `;
       
-      if (productImage && productImage.trim() !== '') {
-        // تنظيف رابط الصورة وإضافة أبعاد مناسبة
-        let cleanImageUrl = productImage.trim();
-        // إضافة أبعاد مناسبة لصور Shopify
-        if (cleanImageUrl.includes('shopify') && !cleanImageUrl.includes('_120x120')) {
-          cleanImageUrl = cleanImageUrl.replace(/\.(jpg|jpeg|png|webp)/i, '_120x120.$1');
-        }
-        
-        imageElement.src = cleanImageUrl;
+      // إجبار استخدام صورة المنتج الحقيقية ONLY
+      console.log('🖼️ REAL DATA - Product image URL:', productImage);
+      
+      if (productImage && productImage.trim() !== '' && productImage !== 'null' && productImage !== 'undefined') {
+        imageElement.src = productImage;
         imageElement.alt = productTitle || 'صورة المنتج';
         
+        // في حالة فشل تحميل الصورة، اطلب الصورة مرة أخرى
         imageElement.onerror = function() {
-          console.log('❌ REAL DATA - Image failed to load, trying original URL:', productImage);
-          // محاولة بالرابط الأصلي
-          this.src = productImage;
-          this.onerror = function() {
-            console.log('❌ REAL DATA - Original image also failed, using product icon');
-            this.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjZjlmYWZiIi8+CjxwYXRoIGQ9Ik0yMCAyMGgyMHYyMEgyMFYyMFoiIGZpbGw9IiM2Yjc2ODAiLz4KPGNpcmNsZSBjeD0iMjUiIGN5PSIyNSIgcj0iMiIgZmlsbD0iI2Y5ZmFmYiIvPgo8cGF0aCBkPSJNMjIgMzVsMy0zIDItMiA4IDh2MUgyMnYtNFoiIGZpbGw9IiNmOWZhZmIiLz4KPHN2Zz4K';
-          };
+          console.error('❌ REAL DATA - Failed to load product image:', productImage);
+          // تجربة إضافة ?v=timestamp لتجاوز الكاش
+          if (!productImage.includes('?v=')) {
+            this.src = productImage + '?v=' + Date.now();
+          } else {
+            console.error('❌ REAL DATA - Product image completely failed to load');
+            // فقط في حالة فشل تام، استخدم placeholder مؤقت
+            this.style.backgroundColor = '#f3f4f6';
+            this.style.border = '2px dashed #d1d5db';
+            this.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjZjNmNGY2IiBzdHJva2U9IiNkMWQ1ZGIiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWRhc2hhcnJheT0iNSA1Ii8+Cjx0ZXh0IHg9IjMwIiB5PSIzNSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjgiIGZpbGw9IiM2Yjc2ODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk5PIElNQUdFPC90ZXh0Pgo8L3N2Zz4K';
+          }
         };
         
-        console.log('✅ REAL DATA - Image element created with optimized src:', cleanImageUrl);
+        console.log('✅ REAL DATA - Using REAL product image:', productImage);
       } else {
-        // أيقونة منتج جميلة بدلاً من مربع رمادي
-        imageElement.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjZjlmYWZiIi8+CjxwYXRoIGQ9Ik0yMCAyMGgyMHYyMEgyMFYyMFoiIGZpbGw9IiM2Yjc2ODAiLz4KPGNpcmNsZSBjeD0iMjUiIGN5PSIyNSIgcj0iMiIgZmlsbD0iI2Y5ZmFmYiIvPgo8cGF0aCBkPSJNMjIgMzVsMy0zIDItMiA4IDh2MUgyMnYtNFoiIGZpbGw9IiNmOWZhZmIiLz4KPHN2Zz4K';
-        imageElement.alt = 'أيقونة المنتج';
-        console.log('⚠️ REAL DATA - No product image, using product icon');
+        console.error('❌ REAL DATA - NO PRODUCT IMAGE PROVIDED:', {
+          productImage,
+          productTitle,
+          productData: !!productData
+        });
+        
+        // إذا لم تكن هناك صورة، اعرض مربع يشير لعدم وجود صورة
+        imageElement.style.backgroundColor = '#fee2e2';
+        imageElement.style.border = '2px solid #fca5a5';
+        imageElement.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjZmVlMmUyIiBzdHJva2U9IiNmY2E1YTUiIHN0cm9rZS13aWR0aD0iMiIvPgo8dGV4dCB4PSIzMCIgeT0iMzUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSI4IiBmaWxsPSIjZGM0NjI2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5OTyBJTUFHRTwvdGV4dD4KPHN2Zz4K';
+        imageElement.alt = 'لا توجد صورة للمنتج';
       }
       leftSection.appendChild(imageElement);
 
