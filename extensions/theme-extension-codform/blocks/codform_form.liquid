@@ -156,3 +156,53 @@ document.addEventListener('DOMContentLoaded', function() {
   loadOffers();
 });
 </script>
+
+{% schema %}
+{
+  "name": "Codform Form",
+  "target": "section",
+  "available_if": "{{ product != blank }}",
+  "settings": [
+    {
+      "type": "text",
+      "id": "form_id",
+      "label": "Form ID",
+      "default": ""
+    },
+    {
+      "type": "text",
+      "id": "submit_button_text",
+      "label": "Submit Button Text",
+      "default": "أرسل الطلب"
+    },
+    {
+      "type": "select",
+      "id": "form_style",
+      "label": "Form Style",
+      "options": [
+        {
+          "value": "default",
+          "label": "Default"
+        },
+        {
+          "value": "modern",
+          "label": "Modern"
+        }
+      ],
+      "default": "default"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_quantity_offers",
+      "label": "Show Quantity Offers",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_product_info",
+      "label": "Show Product Info",
+      "default": false
+    }
+  ]
+}
+{% endschema %}
