@@ -191,9 +191,10 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
     return basePrice * offer.quantity;
   };
 
+  console.log('🎯 FINAL FIX - Rendering fields with offers only inside form');
+  
   return (
     <div className="space-y-4">
-      {console.log('🎯 FINAL FIX - Rendering fields with offers only inside form')}
       {fields.map((field, index) => {
         // عرض العروض فقط قبل زر الإرسال داخل النموذج
         if (field.type === 'submit' && quantityOffers.length > 0) {
