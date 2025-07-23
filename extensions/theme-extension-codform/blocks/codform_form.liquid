@@ -95,8 +95,8 @@
     try {
       console.log('📡 CODFORM: Fetching form data...');
       
-      // API call to get form data
-      const response = await fetch(`https://zrgnqfqamaupflkpghfj.supabase.co/functions/v1/forms-product?product_id=${productId}&shop_domain=${shopDomain}`);
+      // API call to get form data - using correct parameter names
+      const response = await fetch(`https://zrgnqfqamaupflkpghfj.supabase.co/functions/v1/forms-product?shop=${shopDomain}&product=${productId}`);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
