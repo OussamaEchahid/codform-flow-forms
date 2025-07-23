@@ -412,6 +412,19 @@
         let fieldsArray = data.fields || data.form?.fields || data.data || [];
         console.log('🎯 CODFORM: Using fields array:', fieldsArray);
         
+        // If no fields from API, use default form
+        if (!fieldsArray || fieldsArray.length === 0) {
+          console.log('🔧 CODFORM: Using default form fields');
+          fieldsArray = [
+            { type: 'form-title', label: 'نموذج الطلب', id: 'title' },
+            { type: 'text', label: 'الاسم الكامل', placeholder: 'أدخل اسمك', required: true, id: 'name', icon: 'user' },
+            { type: 'phone', label: 'رقم الهاتف', placeholder: 'أدخل رقم هاتفك', required: true, id: 'phone', icon: 'phone' },
+            { type: 'text', label: 'العنوان', placeholder: 'أدخل عنوانك', required: true, id: 'address', icon: 'map-pin' },
+            { type: 'textarea', label: 'ملاحظات إضافية', placeholder: 'أي ملاحظات أخرى...', id: 'notes' },
+            { type: 'submit', label: 'إرسال الطلب', id: 'submit' }
+          ];
+        }
+        
         if (fieldsArray && Array.isArray(fieldsArray)) {
           fieldsArray.forEach((field, index) => {
             console.log(`🎨 CODFORM: Processing field ${index}:`, field);
