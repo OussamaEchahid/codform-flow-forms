@@ -41,7 +41,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
   const labelFontSize = fieldStyle.labelFontSize || '1rem';
   const labelFontWeight = fieldStyle.labelFontWeight || '500';
   
-  const fontFamily = fieldStyle.fontFamily || 'inherit';
+  const fontFamily = language === 'ar' ? "'Cairo', sans-serif" : (fieldStyle.fontFamily || 'inherit');
   const textColor = fieldStyle.color || 'rgb(31, 41, 55)';
   const fontSize = fieldStyle.fontSize || '1rem';
   const fontWeight = fieldStyle.fontWeight || '400';
@@ -113,12 +113,12 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
   
   // حساب المسافات الداخلية للنص بناءً على وجود الأيقونة واتجاه النموذج
   const paddingLeft = formDirection === 'rtl' 
-    ? '12px' 
-    : ((showIcon && hasIcon) ? '40px' : '12px');
-    
-  const paddingRight = formDirection === 'rtl' 
     ? ((showIcon && hasIcon) ? '40px' : '12px')
     : '12px';
+    
+  const paddingRight = formDirection === 'rtl' 
+    ? '12px'
+    : ((showIcon && hasIcon) ? '40px' : '12px');
   
   return (
     <div 

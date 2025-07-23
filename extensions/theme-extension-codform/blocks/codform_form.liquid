@@ -159,7 +159,7 @@
         `;
       }
       
-      // Calculate padding based on icon and direction + custom paddingY
+      // Calculate padding based on icon and direction + custom paddingY - FIXED FOR RTL
       const paddingLeft = formDirection === 'rtl' ? (showIcon && hasIcon ? '48px' : '16px') : '16px';
       const paddingRight = formDirection === 'rtl' ? '16px' : (showIcon && hasIcon ? '48px' : '16px');
       const paddingTopBottom = actualPaddingY;
