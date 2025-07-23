@@ -408,9 +408,32 @@
         // Generate and insert form content
         let formContent = '';
         
-        // Check for fields in multiple possible locations
-        let fieldsArray = data.fields || data.form?.fields || data.data || [];
-        console.log('🎯 CODFORM: Using fields array:', fieldsArray);
+        // Enhanced data parsing to handle different API response structures
+        console.log('🔍 CODFORM: Raw API response:', JSON.stringify(data, null, 2));
+        
+        let fieldsArray = [];
+        
+        // Try different possible data structures
+        if (data.fields && Array.isArray(data.fields)) {
+          fieldsArray = data.fields;
+          console.log('✅ CODFORM: Found fields in data.fields');
+        } else if (data.form && data.form.fields && Array.isArray(data.form.fields)) {
+          fieldsArray = data.form.fields;
+          console.log('✅ CODFORM: Found fields in data.form.fields');
+        } else if (data.form && data.form.data && Array.isArray(data.form.data)) {
+          // Handle case where fields are in form.data
+          fieldsArray = data.form.data.flatMap(step => step.fields || []);
+          console.log('✅ CODFORM: Found fields in data.form.data steps');
+        } else if (data.data && Array.isArray(data.data)) {
+          // Handle case where data is array of steps
+          fieldsArray = data.data.flatMap(step => step.fields || []);
+          console.log('✅ CODFORM: Found fields in data.data steps');
+        } else if (data.form && Array.isArray(data.form)) {
+          fieldsArray = data.form;
+          console.log('✅ CODFORM: Found fields in data.form array');
+        }
+        
+        console.log('🎯 CODFORM: Final fieldsArray:', fieldsArray, 'Length:', fieldsArray.length);
         
         
         if (fieldsArray && Array.isArray(fieldsArray)) {
