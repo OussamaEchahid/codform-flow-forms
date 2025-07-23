@@ -45,20 +45,27 @@ window.CODFORM = (function() {
   // دالة إنشاء حقل العنوان
   function createTitleField(field, formStyle) {
     const titleContainer = document.createElement('div');
+    
+    // Use field-specific styles if available
+    const fieldStyle = field.style || {};
+    
     titleContainer.style.cssText = `
-      text-align: center;
+      text-align: ${fieldStyle.textAlign || 'center'};
       margin-bottom: 24px;
       padding: 20px;
+      background-color: ${fieldStyle.backgroundColor || 'transparent'};
+      border-radius: 8px;
     `;
 
     if (field.label) {
       const title = document.createElement('h2');
       title.textContent = field.label;
       title.style.cssText = `
-        font-size: ${formStyle.fontSize || '24px'};
-        font-weight: bold;
-        color: ${formStyle.primaryColor || '#1f2937'};
+        font-size: ${fieldStyle.fontSize || formStyle.fontSize || '24px'};
+        font-weight: ${fieldStyle.fontWeight || 'bold'};
+        color: ${fieldStyle.color || formStyle.primaryColor || '#1f2937'};
         margin: 0 0 8px 0;
+        line-height: 1.2;
       `;
       titleContainer.appendChild(title);
     }
@@ -67,8 +74,8 @@ window.CODFORM = (function() {
       const description = document.createElement('p');
       description.textContent = field.helpText;
       description.style.cssText = `
-        font-size: 16px;
-        color: #6b7280;
+        font-size: ${fieldStyle.descriptionFontSize || '16px'};
+        color: ${fieldStyle.descriptionColor || '#6b7280'};
         margin: 0;
         line-height: 1.5;
       `;
@@ -204,20 +211,43 @@ window.CODFORM = (function() {
     const button = document.createElement('button');
     button.type = 'submit';
     button.textContent = field.label || 'إرسال الطلب';
+    
+    // Use field-specific styles if available
+    const fieldStyle = field.style || {};
+    
     button.style.cssText = `
       width: 100%;
-      padding: 16px 24px;
-      background-color: ${formStyle.primaryColor || '#3b82f6'};
-      color: white;
-      border: none;
-      border-radius: ${formStyle.borderRadius || '8px'};
-      font-size: 16px;
-      font-weight: 600;
+      padding: ${fieldStyle.paddingY || '16'}px 24px;
+      background-color: ${fieldStyle.backgroundColor || formStyle.primaryColor || '#3b82f6'};
+      color: ${fieldStyle.color || 'white'};
+      border: ${fieldStyle.borderWidth || '0'}px solid ${fieldStyle.borderColor || 'transparent'};
+      border-radius: ${fieldStyle.borderRadius || formStyle.borderRadius || '8'}px;
+      font-size: ${fieldStyle.fontSize || '16'}px;
+      font-weight: ${fieldStyle.fontWeight || '600'};
       cursor: pointer;
       transition: all 0.2s;
       font-family: inherit;
       margin-top: 8px;
     `;
+
+    // Add icon if specified
+    if (fieldStyle.showIcon && fieldStyle.icon) {
+      const iconMap = {
+        'shopping-cart': '🛒',
+        'send': '📤',
+        'check': '✅',
+        'arrow-right': '→'
+      };
+      
+      const iconText = iconMap[fieldStyle.icon] || '📤';
+      const iconPosition = fieldStyle.iconPosition || 'left';
+      
+      if (iconPosition === 'left') {
+        button.textContent = `${iconText} ${button.textContent}`;
+      } else {
+        button.textContent = `${button.textContent} ${iconText}`;
+      }
+    }
 
     button.addEventListener('mouseenter', function() {
       this.style.opacity = '0.9';
