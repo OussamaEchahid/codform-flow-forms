@@ -24,6 +24,7 @@ interface ProductData {
   title?: string;
   image?: string;
   currency?: string;
+  handle?: string;
 }
 
 interface QuantityOffersFieldProps {
@@ -43,11 +44,13 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
   productData,
   currency = 'SAR'
 }) => {
-  console.log('🎯 QuantityOffersField - LOGICAL SOLUTION - Product Data:', {
+  console.log('🎯 QuantityOffersField - STRICT VALIDATION - Product Data:', {
     productData,
     productId,
     formId,
-    hasRealPrice: !!(productData?.price && productData.price > 0)
+    hasRealPrice: !!(productData?.price && productData.price > 0),
+    actualPrice: productData?.price,
+    currency: productData?.currency || currency
   });
 
   const [offers, setOffers] = useState<Offer[]>([]);
@@ -78,9 +81,10 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
         if (data && !error) {
           setOffers(data.offers || []);
           setStyling(data.styling || styling);
+          console.log('✅ QuantityOffersField - Loaded offers:', data.offers?.length || 0);
         }
       } catch (error) {
-        console.error('Error loading quantity offers:', error);
+        console.error('❌ QuantityOffersField - Error loading offers:', error);
       } finally {
         setLoading(false);
       }
@@ -89,12 +93,20 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
     loadQuantityOffers();
   }, [productId, formId]);
 
-  // التحقق من وجود بيانات منتج حقيقية
-  const hasRealPrice = productData?.price && productData.price > 0;
-  const realPrice = hasRealPrice ? productData.price : null;
+  // التحقق الصارم من وجود بيانات منتج حقيقية
+  const hasValidPrice = productData?.price && productData.price > 0 && !isNaN(productData.price);
+  const realPrice = hasValidPrice ? productData.price : null;
   const displayCurrency = productData?.currency || currency;
   const productTitle = productData?.title || 'المنتج';
   const productImage = productData?.image;
+
+  console.log('🔍 QuantityOffersField - Price validation:', {
+    hasValidPrice,
+    realPrice,
+    displayCurrency,
+    productTitle,
+    hasImage: !!productImage
+  });
 
   const calculatePrice = (offer: Offer) => {
     if (!realPrice) return 0;
@@ -124,18 +136,30 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
     return null;
   }
 
-  // إذا لم يكن هناك سعر حقيقي، عرض رسالة تحذيرية
-  if (!hasRealPrice) {
+  // إذا لم يكن هناك سعر حقيقي أو صالح، عرض رسالة تحذيرية
+  if (!hasValidPrice) {
     return (
-      <div className="p-4 border-2 border-dashed border-yellow-300 rounded-lg text-center text-yellow-600 bg-yellow-50 mb-4">
-        <p className="text-sm font-medium">⚠️ لا توجد بيانات سعر حقيقية للمنتج</p>
-        <p className="text-xs mt-1">يرجى التأكد من ربط المنتج بشكل صحيح</p>
+      <div className="p-4 border-2 border-dashed border-red-300 rounded-lg text-center text-red-600 bg-red-50 mb-4">
+        <p className="text-sm font-medium">⚠️ خطأ في بيانات السعر</p>
+        <p className="text-xs mt-1">
+          السعر الحالي: {productData?.price || 'غير محدد'} | 
+          يجب أن يكون السعر رقماً صحيحاً أكبر من صفر
+        </p>
       </div>
     );
   }
 
+  const currencySymbol = displayCurrency === 'USD' ? '$' : 
+                         displayCurrency === 'SAR' ? 'ر.س' : 
+                         displayCurrency === 'MAD' ? 'د.م' : 
+                         displayCurrency;
+
   return (
     <div className="space-y-2 mb-4">
+      <div className="text-xs text-gray-500 mb-2 p-2 bg-gray-50 rounded">
+        📊 معاينة العروض | السعر الأساسي: {realPrice?.toFixed(2)} {currencySymbol}
+      </div>
+      
       {offers.map((offer, index) => {
         const totalPrice = calculatePrice(offer);
         const originalPrice = realPrice * offer.quantity;
@@ -167,7 +191,7 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
                     alt={productTitle}
                     className="w-full h-full object-cover rounded-lg"
                     onError={(e) => {
-                      console.log('❌ Image failed to load:', productImage);
+                      console.log('❌ QuantityOffersField - Image failed to load:', productImage);
                       e.currentTarget.style.display = 'none';
                       const nextElement = e.currentTarget.nextElementSibling as HTMLElement;
                       if (nextElement) nextElement.style.display = 'flex';
@@ -189,7 +213,7 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
                   className="font-semibold"
                   style={{ color: styling.textColor }}
                 >
-                  {offer.text || `Buy ${offer.quantity} Item${offer.quantity > 1 ? 's' : ''}`}
+                  {offer.text || `اشترِ ${offer.quantity} قطعة`}
                 </div>
                 <div className="flex items-center gap-2 mt-1">
                   {offer.tag && (
@@ -202,7 +226,7 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
                   )}
                   {savingsPercentage > 0 && (
                     <div className="inline-block px-2 py-1 rounded text-xs font-medium text-white bg-green-500">
-                      Save {savingsPercentage}%
+                      وفر {savingsPercentage}%
                     </div>
                   )}
                 </div>
@@ -212,18 +236,18 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
             <div className="text-right">
               {isDiscounted && (
                 <div className="text-sm line-through text-gray-400">
-                  {originalPrice.toFixed(2)} {displayCurrency}
+                  {originalPrice.toFixed(2)} {currencySymbol}
                 </div>
               )}
               <div 
                 className="font-bold text-lg"
                 style={{ color: styling.priceColor }}
               >
-                {totalPrice.toFixed(2)} {displayCurrency}
+                {totalPrice.toFixed(2)} {currencySymbol}
               </div>
               {offer.quantity > 1 && (
                 <div className="text-xs text-gray-500 mt-1">
-                  {realPrice.toFixed(2)} {displayCurrency} × {offer.quantity}
+                  {realPrice.toFixed(2)} {currencySymbol} × {offer.quantity}
                 </div>
               )}
             </div>

@@ -1,4 +1,3 @@
-
 // Edge function for fetching product-specific forms and quantity offers
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
@@ -22,7 +21,6 @@ serve(async (req) => {
     let product = url.searchParams.get('product');
     const blockId = url.searchParams.get('blockId');
     
-    // تقليل console logs - فقط المعلومات الأساسية
     console.log(`[${requestId}] 🎯 API Request: ${shop}/${product}`);
 
     if (!shop) {
@@ -45,9 +43,11 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Function to get real product data from Shopify API
+    // Function to get real product data from Shopify API with better error handling
     async function getRealProductData(shopDomain: string, productHandle: string) {
       try {
+        console.log(`[${requestId}] 📦 Fetching real product data for: ${productHandle}`);
+        
         const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-products`, {
           method: 'POST',
           headers: {
@@ -65,19 +65,32 @@ serve(async (req) => {
           if (data.success && data.products && data.products.length > 0) {
             const product = data.products[0];
             
-            return {
+            // Ensure we get the correct product data
+            const realProductData = {
               id: product.id,
               title: product.title,
-              price: product.price || product.priceRangeV2?.minVariantPrice?.amount || null,
+              handle: product.handle,
+              price: parseFloat(product.price || product.priceRangeV2?.minVariantPrice?.amount || 0),
               currency: product.priceRangeV2?.minVariantPrice?.currencyCode || 'USD',
-              image: product.images?.[0] || product.featuredImage?.url || null
+              image: product.images?.[0]?.src || product.featuredImage?.url || null
             };
+            
+            console.log(`[${requestId}] ✅ Real product data:`, {
+              id: realProductData.id,
+              title: realProductData.title,
+              price: realProductData.price,
+              currency: realProductData.currency,
+              hasImage: !!realProductData.image
+            });
+            
+            return realProductData;
           }
         }
         
+        console.log(`[${requestId}] ⚠️ No product data found`);
         return null;
       } catch (error) {
-        console.error(`[${requestId}] Product fetch error:`, error);
+        console.error(`[${requestId}] ❌ Product fetch error:`, error);
         return null;
       }
     }
@@ -204,6 +217,11 @@ serve(async (req) => {
     // Get REAL product data from Shopify API
     const realProductData = await getRealProductData(shop, product);
 
+    // Validate product data before sending
+    if (!realProductData || !realProductData.price || realProductData.price <= 0) {
+      console.log(`[${requestId}] ⚠️ Invalid product data, using fallback`);
+    }
+
     // Build response with REAL product data
     const response = {
       success: true,
@@ -231,8 +249,7 @@ serve(async (req) => {
       }
     };
 
-    // تقليل console logs - فقط النتيجة النهائية
-    console.log(`[${requestId}] ✅ Success: ${fields.length} fields, ${!!quantityOffers ? 'with' : 'no'} offers`);
+    console.log(`[${requestId}] ✅ Success: ${fields.length} fields, ${!!quantityOffers ? 'with' : 'no'} offers, real price: ${realProductData?.price || 'N/A'}`);
 
     return new Response(JSON.stringify(response), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }

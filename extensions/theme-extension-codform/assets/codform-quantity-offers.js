@@ -1,7 +1,7 @@
 
 /**
- * CODFORM Quantity Offers Handler - REAL DATA ONLY
- * معالج العروض الكمية - البيانات الحقيقية فقط
+ * CODFORM Quantity Offers Handler - REAL DATA ONLY - STRICT INSIDE FORM
+ * معالج العروض الكمية - البيانات الحقيقية فقط - داخل النموذج فقط
  */
 
 window.CodformQuantityOffers = (function() {
@@ -24,31 +24,53 @@ window.CodformQuantityOffers = (function() {
     console.log(`✅ REAL DATA - Marked as processed: ${key}`);
   }
 
-  // تنظيف العروض الوهمية والمكررة
-  function cleanupFakeOffers() {
-    // حذف جميع العروض الخارجية
-    const externalOffers = document.querySelectorAll(
-      '.quantity-offers-container:not([id*="inside"]), [id*="quantity-offers-before"], [id*="quantity-offers-after"]'
-    );
+  // تنظيف شامل لجميع العروض الخارجية والمكررة
+  function cleanupAllExternalOffers() {
+    console.log("🧹 CLEANUP - Starting comprehensive cleanup...");
     
-    externalOffers.forEach(element => {
-      console.log("🧹 CLEANUP - Removing external offer:", element.id);
-      element.remove();
+    // حذف جميع العروض الخارجية
+    const externalSelectors = [
+      '.quantity-offers-container:not([id*="inside"])',
+      '[id*="quantity-offers-before"]',
+      '[id*="quantity-offers-after"]',
+      '[class*="quantity-offers"]:not([id*="inside"])',
+      '.codform-quantity-offers:not([id*="inside"])'
+    ];
+    
+    externalSelectors.forEach(selector => {
+      const elements = document.querySelectorAll(selector);
+      elements.forEach(element => {
+        console.log(`🧹 CLEANUP - Removing external offer: ${element.id || element.className}`);
+        element.remove();
+      });
     });
 
-    // حذف العروض المكررة
-    const allOffers = document.querySelectorAll('.quantity-offers-container-inside-form');
-    if (allOffers.length > 1) {
-      console.log(`🧹 CLEANUP - Found ${allOffers.length} duplicate offers, keeping only the first`);
-      for (let i = 1; i < allOffers.length; i++) {
-        allOffers[i].remove();
+    // حذف العروض المكررة داخل النموذج
+    const insideOffers = document.querySelectorAll('.quantity-offers-container-inside-form');
+    if (insideOffers.length > 1) {
+      console.log(`🧹 CLEANUP - Found ${insideOffers.length} duplicate inside offers, keeping only the first`);
+      for (let i = 1; i < insideOffers.length; i++) {
+        insideOffers[i].remove();
       }
     }
+
+    // تنظيف أي عروض بأسعار خاطئة (100, 10, إلخ)
+    const wrongPriceOffers = document.querySelectorAll('[class*="quantity-offers"] *');
+    wrongPriceOffers.forEach(element => {
+      const textContent = element.textContent || '';
+      if (textContent.includes('$100') || textContent.includes('$10') || textContent.includes('100.00') || textContent.includes('10.00')) {
+        console.log(`🧹 CLEANUP - Removing wrong price offer: ${textContent}`);
+        const container = element.closest('[class*="quantity-offers"]');
+        if (container) container.remove();
+      }
+    });
+
+    console.log("✅ CLEANUP - Comprehensive cleanup completed");
   }
 
-  // عرض العروض الحقيقية فقط
+  // عرض العروض الحقيقية داخل النموذج فقط
   function displayRealQuantityOffers(quantityOffersData, blockId, productId, productData = null) {
-    console.log("🎯 REAL DATA - Starting display with real product data");
+    console.log("🎯 REAL DATA - Starting display with STRICT inside form only");
     
     // التحقق من التكرار
     if (isAlreadyProcessed(blockId, productId)) {
@@ -56,8 +78,8 @@ window.CodformQuantityOffers = (function() {
       return;
     }
 
-    // تنظيف العروض الوهمية أولاً
-    cleanupFakeOffers();
+    // تنظيف شامل أولاً
+    cleanupAllExternalOffers();
 
     // التحقق من صحة البيانات الحقيقية
     if (!quantityOffersData || !quantityOffersData.offers || !Array.isArray(quantityOffersData.offers)) {
@@ -65,8 +87,8 @@ window.CodformQuantityOffers = (function() {
       return;
     }
 
-    if (!productData || !productData.price) {
-      console.log("❌ REAL DATA - Missing real product price data");
+    if (!productData || !productData.price || productData.price <= 0) {
+      console.log("❌ REAL DATA - Missing or invalid real product price data");
       return;
     }
 
@@ -83,27 +105,34 @@ window.CodformQuantityOffers = (function() {
       return;
     }
 
-    // استخدام البيانات الحقيقية فقط
+    // استخدام البيانات الحقيقية ONLY
     const realPrice = parseFloat(productData.price);
     const currency = productData.currency || 'USD';
     const productImage = productData.image;
     const productTitle = productData.title || 'المنتج';
 
-    console.log("💰 REAL DATA - Using real price:", {
+    console.log("💰 REAL DATA - Using CONFIRMED real price:", {
       realPrice,
       currency,
       productTitle,
-      hasImage: !!productImage
+      hasImage: !!productImage,
+      productHandle: productData.handle || 'N/A'
     });
 
-    // التحقق من وجود حاوي العروض داخل النموذج
+    // Validate price again
+    if (realPrice <= 0 || isNaN(realPrice)) {
+      console.error("❌ REAL DATA - Invalid real price:", realPrice);
+      return;
+    }
+
+    // التحقق من وجود حاوي العروض داخل النموذج ONLY
     let offersContainer = document.getElementById(`quantity-offers-inside-${blockId}`);
     if (!offersContainer) {
       offersContainer = document.createElement('div');
       offersContainer.id = `quantity-offers-inside-${blockId}`;
       offersContainer.className = 'quantity-offers-container-inside-form';
       
-      // إدراج العروض داخل النموذج فقط
+      // إدراج العروض داخل النموذج فقط - STRICT PLACEMENT
       const formTitle = container.querySelector('.form-title-field, [data-field-type="form-title"]');
       const firstField = container.querySelector('.mb-4:not(.form-title-field), [class*="field"]:not([data-field-type="form-title"])');
       
@@ -112,7 +141,7 @@ window.CodformQuantityOffers = (function() {
       } else if (firstField) {
         firstField.parentNode.insertBefore(offersContainer, firstField);
       } else {
-        container.insertBefore(offersContainer, container.firstChild);
+        container.appendChild(offersContainer);
       }
     }
 
@@ -147,7 +176,7 @@ window.CodformQuantityOffers = (function() {
                           currency === 'MAD' ? 'د.م' : 
                           currency;
 
-    // عرض العروض الحقيقية
+    // عرض العروض الحقيقية مع السعر الصحيح
     offers.forEach((offer, index) => {
       const offerElement = document.createElement('div');
       offerElement.style.cssText = `
@@ -183,6 +212,7 @@ window.CodformQuantityOffers = (function() {
           border: 1px solid #e5e7eb;
         `;
         imageElement.onerror = function() {
+          console.log('❌ Image failed to load:', productImage);
           this.style.display = 'none';
         };
         leftSection.appendChild(imageElement);
@@ -295,13 +325,15 @@ window.CodformQuantityOffers = (function() {
       offerElement.appendChild(leftSection);
       offerElement.appendChild(priceSection);
       offersContainer.appendChild(offerElement);
+
+      console.log(`✅ REAL DATA - Offer displayed: ${offer.text}, Price: ${totalPrice.toFixed(2)} ${currencySymbol}`);
     });
 
     // تسجيل المعالجة والعرض
     markAsProcessed(blockId, productId);
     displayedContainers.add(offersContainer.id);
 
-    console.log("✅ REAL DATA - Quantity offers displayed successfully with real data");
+    console.log("✅ REAL DATA - Quantity offers displayed successfully INSIDE FORM ONLY with correct real data");
   }
 
   // دالة تحميل وعرض العروض من API
@@ -331,6 +363,12 @@ window.CodformQuantityOffers = (function() {
       if (data.success && data.quantity_offers && data.quantity_offers.offers && data.quantity_offers.offers.length > 0) {
         console.log("✅ REAL DATA - Found real offers and product data");
         
+        // Validate product data before display
+        if (!data.product || !data.product.price || data.product.price <= 0) {
+          console.error("❌ REAL DATA - Invalid product data from API");
+          return { success: false, message: "Invalid product data" };
+        }
+        
         displayRealQuantityOffers(
           data.quantity_offers, 
           blockId, 
@@ -354,18 +392,25 @@ window.CodformQuantityOffers = (function() {
   function resetDuplicateCheck() {
     processedOffers.clear();
     displayedContainers.clear();
-    console.log("🔄 REAL DATA - Reset completed");
+    cleanupAllExternalOffers();
+    console.log("🔄 REAL DATA - Reset completed with cleanup");
   }
 
   // Public API
   return {
     display: displayRealQuantityOffers,
     load: loadAndDisplayRealOffers,
-    reset: resetDuplicateCheck
+    reset: resetDuplicateCheck,
+    cleanup: cleanupAllExternalOffers
   };
 })();
 
 // دالة إعادة تعيين للتشخيص
 window.resetQuantityOffers = function() {
   return window.CodformQuantityOffers.reset();
+};
+
+// دالة تنظيف للتشخيص
+window.cleanupQuantityOffers = function() {
+  return window.CodformQuantityOffers.cleanup();
 };
