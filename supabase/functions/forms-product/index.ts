@@ -17,12 +17,14 @@ serve(async (req) => {
   }
 
   try {
+    console.log(`[${requestId}] 🎯 PRECISE FIX - Product form request`);
+    
     const url = new URL(req.url);
     const shop = url.searchParams.get('shop');
     let product = url.searchParams.get('product');
     const blockId = url.searchParams.get('blockId');
     
-    console.log(`[${requestId}] 🎯 POSITION API Request: ${shop}/${product}`);
+    console.log(`[${requestId}] Parameters: shop=${shop}, product=${product}, blockId=${blockId}`);
 
     if (!shop) {
       throw new Error('Missing required parameter: shop');
@@ -35,6 +37,7 @@ serve(async (req) => {
         const matches = referer.match(/\/products\/([^?\/]+)/);
         if (matches && matches[1]) {
           product = matches[1];
+          console.log(`[${requestId}] ✅ Extracted product handle: ${product}`);
         }
       }
     }
@@ -46,9 +49,9 @@ serve(async (req) => {
 
     // Function to get real product data from Shopify API
     async function getRealProductData(shopDomain: string, productHandle: string) {
+      console.log(`[${requestId}] 🛍️ Fetching REAL product data`);
+      
       try {
-        console.log(`[${requestId}] 📦 POSITION - Fetching real product data for: ${productHandle}`);
-        
         const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-products`, {
           method: 'POST',
           headers: {
@@ -65,55 +68,34 @@ serve(async (req) => {
           const data = await response.json();
           if (data.success && data.products && data.products.length > 0) {
             const product = data.products[0];
-            
-            // استخراج بيانات المنتج مع معالجة الصورة بشكل صحيح
-            const productPrice = parseFloat(product.price || product.priceRangeV2?.minVariantPrice?.amount || 0);
-            const productCurrency = product.priceRangeV2?.minVariantPrice?.currencyCode || 'USD';
-            
-            // معالجة الصورة بشكل صحيح
-            let productImage = null;
-            if (product.images && product.images.length > 0) {
-              productImage = product.images[0].src || product.images[0].url;
-            } else if (product.featuredImage) {
-              productImage = product.featuredImage.url || product.featuredImage.src;
-            } else if (product.image) {
-              productImage = product.image.src || product.image.url || product.image;
-            }
-            
-            console.log(`[${requestId}] 📊 POSITION - Raw product data: price=${productPrice}, currency=${productCurrency}, image=${!!productImage}`);
-            
-            const realProductData = {
-              id: product.id,
+            console.log(`[${requestId}] ✅ Got real product:`, {
               title: product.title,
-              handle: product.handle,
-              price: productPrice,
-              currency: productCurrency,
-              image: productImage
-            };
-            
-            console.log(`[${requestId}] ✅ POSITION - Real product data:`, {
-              id: realProductData.id,
-              title: realProductData.title,
-              price: realProductData.price,
-              currency: realProductData.currency,
-              hasImage: !!realProductData.image,
-              imageUrl: realProductData.image ? realProductData.image.substring(0, 50) + '...' : 'N/A'
+              price: product.price,
+              currency: product.priceRangeV2?.minVariantPrice?.currencyCode
             });
             
-            return realProductData;
+            return {
+              id: product.id,
+              title: product.title,
+              price: product.price || product.priceRangeV2?.minVariantPrice?.amount || null,
+              currency: product.priceRangeV2?.minVariantPrice?.currencyCode || 'USD',
+              image: product.images?.[0] || product.featuredImage?.url || null
+            };
           }
         }
         
-        console.log(`[${requestId}] ⚠️ POSITION - No product data found`);
+        console.log(`[${requestId}] ❌ Failed to get real product data`);
         return null;
       } catch (error) {
-        console.error(`[${requestId}] ❌ POSITION - Product fetch error:`, error);
+        console.error(`[${requestId}] Error fetching real product data:`, error);
         return null;
       }
     }
 
     // Function to get product-specific form settings
     async function getProductFormSettings() {
+      console.log(`[${requestId}] 🔎 Checking product-specific settings...`);
+      
       try {
         const { data, error } = await supabase
           .from('shopify_product_settings')
@@ -128,6 +110,7 @@ serve(async (req) => {
           .limit(1);
 
         if (error) {
+          console.log(`[${requestId}] Product settings error:`, error.message);
           return { found: false, error: error.message };
         }
 
@@ -138,19 +121,21 @@ serve(async (req) => {
 
         return { found: false };
       } catch (error) {
+        console.log(`[${requestId}] Product settings exception:`, error);
         return { found: false, error: (error as Error).message };
       }
     }
 
-    // Function to fetch quantity offers WITH POSITION
+    // Function to fetch quantity offers
     async function getQuantityOffers(formId: string) {
       if (!product) {
+        console.log(`[${requestId}] ⚠️ No product available, skipping quantity offers`);
         return null;
       }
       
+      console.log(`[${requestId}] 🎁 Fetching quantity offers for product ${product}`);
+      
       try {
-        console.log(`[${requestId}] 🔍 POSITION - Fetching quantity offers for form: ${formId}, product: ${product}`);
-        
         const { data, error } = await supabase
           .from('quantity_offers')
           .select('*')
@@ -161,20 +146,18 @@ serve(async (req) => {
           .limit(1);
 
         if (error) {
-          console.error(`[${requestId}] ❌ POSITION - Quantity offers error:`, error);
+          console.log(`[${requestId}] ℹ️ No quantity offers configured`);
           return null;
         }
 
         if (data && data.length > 0) {
-          const offerData = data[0];
-          console.log(`[${requestId}] ✅ POSITION - Found quantity offers with position: ${offerData.position}`);
-          return offerData;
+          console.log(`[${requestId}] ✅ Found ${data[0].offers?.length || 0} quantity offers`);
+          return data[0];
         }
 
-        console.log(`[${requestId}] ℹ️ POSITION - No quantity offers found`);
         return null;
       } catch (error) {
-        console.error(`[${requestId}] ❌ POSITION - Quantity offers error:`, error);
+        console.error(`[${requestId}] Error fetching quantity offers:`, error);
         return null;
       }
     }
@@ -194,9 +177,10 @@ serve(async (req) => {
           fields = formData.data.fields;
         }
 
+        console.log(`[${requestId}] ✅ Extracted ${fields.length} fields`);
         return fields;
       } catch (error) {
-        console.error(`[${requestId}] ❌ POSITION - Fields extraction error:`, error);
+        console.error(`[${requestId}] Error extracting fields:`, error);
         return [];
       }
     }
@@ -206,6 +190,7 @@ serve(async (req) => {
     if (product) {
       productResult = await getProductFormSettings();
     } else {
+      console.log(`[${requestId}] ⚠️ No product handle available`);
       return new Response(JSON.stringify({
         success: false,
         error: 'No product found'
@@ -219,9 +204,11 @@ serve(async (req) => {
     let formId = null;
 
     if (productResult.found && productResult.formData) {
+      console.log(`[${requestId}] 🎯 Found product-specific form`);
       formData = productResult.formData;
       formId = productResult.formId;
     } else {
+      console.log(`[${requestId}] ❌ No form configured for this product`);
       return new Response(JSON.stringify({
         success: false,
         error: 'No form configured for this product'
@@ -234,52 +221,13 @@ serve(async (req) => {
     // Extract form fields
     const fields = extractFormFields(formData);
 
-    // Fetch quantity offers WITH POSITION
+    // Fetch quantity offers
     const quantityOffers = await getQuantityOffers(formId);
 
     // Get REAL product data from Shopify API
     const realProductData = await getRealProductData(shop, product);
 
-    // Validate product data before sending
-    if (!realProductData || !realProductData.price || realProductData.price <= 0) {
-      console.log(`[${requestId}] ⚠️ POSITION - Invalid product data, using fallback`);
-    }
-
-    // تحويل السعر إلى عملة النموذج مع معدلات محدثة
-    let convertedProductData = realProductData;
-    
-    if (realProductData && formData.currency && realProductData.currency !== formData.currency) {
-      // معدلات تحويل محدّثة للعملات الرئيسية
-      const exchangeRates: { [key: string]: { [key: string]: number } } = {
-        'USD': {
-          'SAR': 3.75,
-          'AED': 3.67, 
-          'MAD': 10.1,
-          'EGP': 30.5
-        },
-        'SAR': {
-          'USD': 0.267,
-          'AED': 0.98,
-          'MAD': 2.69,
-          'EGP': 8.13
-        }
-      };
-      
-      if (exchangeRates[realProductData.currency] && exchangeRates[realProductData.currency][formData.currency]) {
-        const rate = exchangeRates[realProductData.currency][formData.currency];
-        const convertedPrice = realProductData.price * rate;
-        
-        convertedProductData = {
-          ...realProductData,
-          price: parseFloat(convertedPrice.toFixed(2)),
-          currency: formData.currency
-        };
-        
-        console.log(`[${requestId}] 💱 POSITION - CURRENCY CONVERSION: ${realProductData.price} ${realProductData.currency} → ${convertedPrice.toFixed(2)} ${formData.currency} (rate: ${rate})`);
-      }
-    }
-
-    // Build response with converted product data AND POSITION
+    // Build response with REAL product data
     const response = {
       success: true,
       form: {
@@ -297,7 +245,7 @@ serve(async (req) => {
         phone_prefix: formData.phone_prefix || '+966'
       },
       quantity_offers: quantityOffers,
-      product: convertedProductData || {
+      product: realProductData || {
         id: product,
         title: 'Product',
         price: null,
@@ -306,14 +254,14 @@ serve(async (req) => {
       }
     };
 
-    console.log(`[${requestId}] ✅ POSITION - Success: ${fields.length} fields, ${!!quantityOffers ? 'with' : 'no'} offers at position: ${quantityOffers?.position || 'N/A'}, real price: ${realProductData?.price || 'N/A'}`);
+    console.log(`[${requestId}] 🎉 SUCCESS - Form: ${fields.length} fields, Offers: ${!!quantityOffers}, Product: ${!!realProductData}`);
 
     return new Response(JSON.stringify(response), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
   } catch (error) {
-    console.error(`[${requestId}] ❌ POSITION - Error:`, error);
+    console.error(`[${requestId}] ❌ Error:`, error);
     
     return new Response(JSON.stringify({
       success: false,
