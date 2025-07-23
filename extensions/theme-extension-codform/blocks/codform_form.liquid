@@ -899,9 +899,46 @@
           }
         })
         .catch(error => console.log('❌ REAL: Error loading offers:', error));
-        // Detect form language from data
-        const formLanguage = data.form?.language || data.language || 'en';
+        // FIXED: Better Arabic language detection
+        let formLanguage = 'en';
+        
+        // Check multiple sources for Arabic language
+        if (data.form?.language === 'ar' || data.language === 'ar') {
+          formLanguage = 'ar';
+        } else if (data.form?.title && /[\u0600-\u06FF]/.test(data.form.title)) {
+          formLanguage = 'ar';
+        } else if (fieldsArray && fieldsArray.some(field => 
+          field.label && /[\u0600-\u06FF]/.test(field.label)
+        )) {
+          formLanguage = 'ar';
+        }
+        
+        
         console.log('🌐 CODFORM: Detected form language:', formLanguage);
+        
+        // FIXED: Apply Cairo font immediately when Arabic is detected
+        if (formLanguage === 'ar') {
+          // Add Arabic-specific CSS dynamically
+          const arabicStyle = document.createElement('style');
+          arabicStyle.innerHTML = `
+            .codform-arabic-form,
+            .codform-arabic-form *,
+            .codform-arabic-form input,
+            .codform-arabic-form textarea,
+            .codform-arabic-form label,
+            .codform-arabic-form button {
+              font-family: 'Cairo', 'Noto Sans Arabic', 'Amiri', sans-serif !important;
+              font-feature-settings: "liga" 1, "kern" 1 !important;
+              text-rendering: optimizeLegibility !important;
+            }
+          `;
+          document.head.appendChild(arabicStyle);
+          
+          // Apply Arabic class to container
+          if (container) {
+            container.classList.add('codform-arabic-form');
+          }
+        }
         
         if (fieldsArray && Array.isArray(fieldsArray)) {
           fieldsArray.forEach((field, index) => {
