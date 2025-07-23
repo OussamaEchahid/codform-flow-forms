@@ -333,3 +333,107 @@
   
 })();
 </script>
+
+{% schema %}
+{
+  "name": {
+    "ar": "نموذج الدفع عند الاستلام",
+    "en": "Cash on Delivery Form"
+  },
+  "class": "codform-block",
+  "settings": [
+    {
+      "type": "text",
+      "id": "form_title",
+      "label": {
+        "ar": "عنوان النموذج",
+        "en": "Form Title"
+      },
+      "default": "اطلب الآن"
+    },
+    {
+      "type": "color",
+      "id": "form_background_color",
+      "label": {
+        "ar": "لون خلفية النموذج",
+        "en": "Form Background Color"
+      },
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "title_color",
+      "label": {
+        "ar": "لون العنوان",
+        "en": "Title Color"
+      },
+      "default": "#333333"
+    },
+    {
+      "type": "color",
+      "id": "label_color",
+      "label": {
+        "ar": "لون التسميات",
+        "en": "Label Color"
+      },
+      "default": "#333333"
+    },
+    {
+      "type": "color",
+      "id": "input_background_color",
+      "label": {
+        "ar": "لون خلفية الحقول",
+        "en": "Input Background Color"
+      },
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "input_text_color",
+      "label": {
+        "ar": "لون نص الحقول",
+        "en": "Input Text Color"
+      },
+      "default": "#333333"
+    },
+    {
+      "type": "color",
+      "id": "input_border_color",
+      "label": {
+        "ar": "لون حدود الحقول",
+        "en": "Input Border Color"
+      },
+      "default": "#ddd"
+    },
+    {
+      "type": "color",
+      "id": "submit_button_color",
+      "label": {
+        "ar": "لون زر الإرسال",
+        "en": "Submit Button Color"
+      },
+      "default": "#007bff"
+    },
+    {
+      "type": "color",
+      "id": "submit_button_text_color",
+      "label": {
+        "ar": "لون نص زر الإرسال",
+        "en": "Submit Button Text Color"
+      },
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "submit_button_hover_color",
+      "label": {
+        "ar": "لون زر الإرسال عند التمرير",
+        "en": "Submit Button Hover Color"
+      },
+      "default": "#0056b3"
+    }
+  ],
+  "target": "section",
+  "available_if": "{{ product != blank }}"
+}
+{% endschema %}
