@@ -544,8 +544,8 @@
         // SIMPLE: Add form fields ONLY - no quantity offers here
         console.log('🎯 CODFORM: Building form fields HTML only');
         
-        // Load ALL quantity offers and use REAL data with REAL styling
-        fetch(`https://trlklwixfeaexhydzaue.supabase.co/rest/v1/quantity_offers?product_id=eq.${productId}&enabled=eq.true`, {
+        // Load quantity offers using EXACT SAME CODE as preview
+        fetch(`https://trlklwixfeaexhydzaue.supabase.co/rest/v1/quantity_offers?product_id=eq.${productId}&enabled=eq.true&select=*`, {
           headers: {
             'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
             'Content-Type': 'application/json'
@@ -553,116 +553,146 @@
         })
         .then(response => response.json())
         .then(quantityData => {
+          console.log('✅ REAL DATA from DB:', quantityData);
+          
           if (quantityData && quantityData.length > 0) {
-            console.log('✅ REAL: Found', quantityData.length, 'offers');
+            let offersHTML = '';
             
-            // Process ALL offers, not just the first one
-            let allOffersHTML = '';
             quantityData.forEach(offer => {
-              console.log('🎁 REAL: Processing offer:', offer);
+              console.log('🎁 Processing offer:', offer);
               
-              // Create REAL offer HTML using actual database data
-              const realOfferHTML = `
+              // EXACT styling from preview component
+              const basePrice = 150; // SAR - same as preview
+              const totalPrice = basePrice * offer.quantity;
+              const originalPrice = basePrice * offer.quantity;
+              
+              // Calculate discount same as preview
+              let isDiscounted = offer.discount_type !== 'none' && offer.discount_value > 0;
+              let savingsPercentage = 0;
+              let finalPrice = totalPrice;
+              
+              if (isDiscounted) {
+                if (offer.discount_type === 'percentage') {
+                  savingsPercentage = offer.discount_value;
+                  finalPrice = totalPrice - (totalPrice * offer.discount_value / 100);
+                } else if (offer.discount_type === 'fixed') {
+                  finalPrice = totalPrice - offer.discount_value;
+                  savingsPercentage = Math.round((offer.discount_value / totalPrice) * 100);
+                }
+              }
+              
+              // Create EXACT HTML matching preview design
+              offersHTML += `
                 <div style="
-                  margin: 15px 0; 
-                  border: 1px solid #E5E7EB; 
-                  border-radius: 8px; 
                   padding: 12px; 
-                  background: white;
+                  border-radius: 8px; 
+                  border: 2px solid ${offer.enabled ? '#22c55e' : '#e5e7eb'}; 
+                  background: ${offer.enabled ? '#f0fdf4' : 'white'};
+                  margin-bottom: 8px;
+                  display: flex; 
+                  align-items: center; 
+                  justify-content: space-between;
+                  transition: all 0.3s ease;
+                  cursor: pointer;
                   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-                  display: flex;
-                  align-items: center;
-                  gap: 12px;
-                  position: ${offer.position || 'relative'};
-                ">
-                  <!-- Product Icon -->
-                  <div style="
-                    width: 48px; 
-                    height: 48px; 
-                    background: #D4A574; 
-                    border-radius: 6px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    flex-shrink: 0;
-                  ">
-                    📦
-                  </div>
+                " onmouseover="this.style.boxShadow='0 4px 12px rgba(0, 0, 0, 0.15)'" 
+                   onmouseout="this.style.boxShadow='0 1px 3px rgba(0, 0, 0, 0.1)'">
                   
-                  <!-- Offer Content -->
-                  <div style="flex: 1;">
+                  <div style="display: flex; align-items: center; gap: 12px;">
+                    <!-- Product Icon -->
                     <div style="
-                      background: #10B981; 
-                      color: white; 
-                      padding: 2px 6px; 
-                      border-radius: 4px; 
-                      font-size: 11px; 
-                      font-weight: 600;
-                      display: inline-block;
-                      margin-bottom: 4px;
+                      width: 48px; 
+                      height: 48px; 
+                      background: #f3f4f6; 
+                      border-radius: 8px;
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                      flex-shrink: 0;
                     ">
-                      ${offer.tag || 'عرض محدود'}
+                      <svg style="width: 32px; height: 32px; color: #9ca3af;" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 2L3 7v11a1 1 0 001 1h3a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1h3a1 1 0 001-1V7l-7-5z" clip-rule="evenodd" />
+                      </svg>
                     </div>
                     
-                    <div style="
-                      font-size: 14px; 
-                      color: #374151; 
-                      font-weight: 500; 
-                      line-height: 1.3;
-                    ">
-                      ${offer.offer_text || 'عرض خاص'}
-                    </div>
-                    
-                    <div style="
-                      font-size: 12px; 
-                      color: #6B7280; 
-                      margin-top: 2px;
-                    ">
-                      الكمية: ${offer.quantity}
+                    <div>
+                      <div style="
+                        font-weight: 600; 
+                        font-size: 16px;
+                        color: #000000;
+                        margin-bottom: 4px;
+                      ">
+                        ${offer.offer_text || ('Buy ' + offer.quantity + ' Item' + (offer.quantity > 1 ? 's' : ''))}
+                      </div>
+                      
+                      ${offer.tag ? `
+                        <div style="
+                          display: inline-block;
+                          padding: 2px 8px;
+                          border-radius: 4px;
+                          font-size: 12px;
+                          font-weight: 600;
+                          color: white;
+                          background: #22c55e;
+                          margin-top: 4px;
+                        ">
+                          ${offer.tag}
+                        </div>
+                      ` : ''}
+                      
+                      ${savingsPercentage > 0 ? `
+                        <div style="
+                          display: inline-block;
+                          padding: 2px 8px;
+                          border-radius: 4px;
+                          font-size: 12px;
+                          font-weight: 600;
+                          color: white;
+                          background: #22c55e;
+                          margin-top: 4px;
+                          margin-left: 8px;
+                        ">
+                          Save ${savingsPercentage}%
+                        </div>
+                      ` : ''}
                     </div>
                   </div>
                   
-                  <!-- Price and Discount -->
-                  <div style="
-                    text-align: right;
-                    flex-shrink: 0;
-                  ">
+                  <div style="text-align: right;">
+                    ${isDiscounted ? `
+                      <div style="
+                        font-size: 14px;
+                        text-decoration: line-through;
+                        color: #9ca3af;
+                        margin-bottom: 2px;
+                      ">
+                        ${originalPrice.toFixed(2)} ر.س
+                      </div>
+                    ` : ''}
+                    
                     <div style="
-                      font-size: 16px; 
-                      color: #111827; 
-                      font-weight: 700;
-                      margin-bottom: 2px;
+                      font-weight: bold;
+                      font-size: 18px;
+                      color: #ef4444;
                     ">
-                      2.44 USD
-                    </div>
-                    <div style="
-                      background: #8B5CF6; 
-                      color: white; 
-                      padding: 1px 4px; 
-                      border-radius: 3px; 
-                      font-size: 9px; 
-                      font-weight: 600;
-                    ">
-                      ${offer.discount_value}${offer.discount_type === 'percentage' ? '%' : 'ر.س'} خصم
+                      ${finalPrice.toFixed(2)} ر.س
                     </div>
                   </div>
                 </div>
               `;
-              
-              allOffersHTML += realOfferHTML;
             });
             
-            // Insert ALL offers
+            // Insert offers before submit button (same logic as preview)
             const formDiv = container.querySelector('.codform-dynamic-form');
-            if (formDiv && allOffersHTML) {
-              formDiv.insertAdjacentHTML('afterbegin', allOffersHTML);
-              console.log('✅ REAL: All', quantityData.length, 'offers added successfully');
+            if (formDiv && offersHTML) {
+              formDiv.insertAdjacentHTML('afterbegin', offersHTML);
+              console.log('✅ REAL: Inserted', quantityData.length, 'offers with exact preview styling');
             }
           } else {
-            console.log('⚠️ REAL: No offers found');
+            console.log('⚠️ REAL: No offers found in database');
           }
         })
-        .catch(error => console.log('❌ REAL: Error:', error));
+        .catch(error => console.log('❌ REAL: Error loading offers:', error));
         
         if (fieldsArray && Array.isArray(fieldsArray)) {
           fieldsArray.forEach((field, index) => {
