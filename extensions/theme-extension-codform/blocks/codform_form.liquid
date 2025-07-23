@@ -367,6 +367,13 @@
     tryFetchForm()
       .then(data => {
         console.log('✅ CODFORM: Form data received:', data);
+        console.log('🔍 CODFORM: Checking data structure:', {
+          hasFields: !!data.fields,
+          fieldsLength: data.fields ? data.fields.length : 0,
+          fieldsArray: data.fields,
+          hasForm: !!data.form,
+          hasData: !!data.data
+        });
         
         const container = document.querySelector('[data-form-preview-id="form-preview-stable"]');
         if (!container) {
@@ -401,10 +408,17 @@
         // Generate and insert form content
         let formContent = '';
         
-        if (data.fields && Array.isArray(data.fields)) {
-          data.fields.forEach(field => {
+        // Check for fields in multiple possible locations
+        let fieldsArray = data.fields || data.form?.fields || data.data || [];
+        console.log('🎯 CODFORM: Using fields array:', fieldsArray);
+        
+        if (fieldsArray && Array.isArray(fieldsArray)) {
+          fieldsArray.forEach((field, index) => {
+            console.log(`🎨 CODFORM: Processing field ${index}:`, field);
             formContent += renderField(field, formStyle);
           });
+        } else {
+          console.log('❌ CODFORM: No valid fields array found');
         }
 
         // Add submit button if not present
