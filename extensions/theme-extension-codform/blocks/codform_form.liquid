@@ -100,48 +100,37 @@
   </div>
 </div>
 
-<!-- إضافة تنفيذ Quantity Offers مباشرة بعد تحميل الصفحة -->
+<!-- SIMPLE LOGICAL SOLUTION - تحميل العروض بطريقة بسيطة -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  console.log("🚀 LOADING OFFERS - Page loaded, starting quantity offers");
+  console.log("🎯 SIMPLE SOLUTION - Loading offers for {{ block.id }}");
   
-  // التأكد من وجود العناصر
-  const container = document.getElementById('codform-container-{{ block.id }}');
-  const offersContainer = document.getElementById('quantity-offers-before-{{ block.id }}');
+  const productId = "{{ product.id }}";
+  const blockId = "{{ block.id }}";
+  const shop = window.Shopify?.shop || "{{ shop.domain }}";
   
-  if (!container || !offersContainer) {
-    console.error("❌ Missing containers:", { container: !!container, offersContainer: !!offersContainer });
+  if (!productId || !shop) {
+    console.log("❌ Missing data:", { productId, shop });
     return;
   }
   
-  // تحميل العروض فوراً
-  function loadOffers() {
-    if (window.CodformComprehensiveFix && window.CodformComprehensiveFix.loadData) {
-      console.log("🚀 AUTO TRIGGER v2.0 - Loading quantity offers for block {{ block.id }}");
-      window.CodformComprehensiveFix.loadData("{{ block.id }}")
-        .then(result => {
-          console.log("✅ Offers loaded successfully:", result);
-          // التأكد من ظهور العروض
-          setTimeout(() => {
-            const container = document.getElementById('quantity-offers-before-{{ block.id }}');
-            if (container && container.children.length > 0) {
-              console.log("🎉 SUCCESS: Offers are visible in DOM!");
-            } else {
-              console.error("❌ FAILED: Offers not visible after loading");
-            }
-          }, 500);
-        })
-        .catch(error => {
-          console.error("❌ Failed to load offers:", error);
-        });
-    } else {
-      console.log("⚠️ CodformComprehensiveFix not ready, retrying in 1 second");
-      setTimeout(loadOffers, 1000);
-    }
+  // تحميل العروض مباشرة
+  if (window.CodformQuantityOffers && window.CodformQuantityOffers.load) {
+    window.CodformQuantityOffers.load(blockId, productId, shop)
+      .then(result => {
+        console.log("✅ Offers loaded:", result);
+      })
+      .catch(error => {
+        console.error("❌ Failed to load offers:", error);
+      });
+  } else {
+    console.log("⚠️ Quantity offers script not ready, retrying...");
+    setTimeout(() => {
+      if (window.CodformQuantityOffers) {
+        window.CodformQuantityOffers.load(blockId, productId, shop);
+      }
+    }, 2000);
   }
-  
-  // تحميل فوري
-  setTimeout(loadOffers, 100);
 });
 </script>
 
