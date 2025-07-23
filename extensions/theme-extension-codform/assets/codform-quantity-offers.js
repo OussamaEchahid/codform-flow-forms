@@ -1,7 +1,7 @@
 
 /**
- * CODFORM Quantity Offers Handler - REAL DATA ONLY - STRICT INSIDE FORM
- * معالج العروض الكمية - البيانات الحقيقية فقط - داخل النموذج فقط
+ * CODFORM Quantity Offers Handler - REAL DATA ONLY - POSITION BASED
+ * معالج العروض الكمية - البيانات الحقيقية فقط - حسب الموضع المحدد
  */
 
 window.CodformQuantityOffers = (function() {
@@ -21,154 +21,154 @@ window.CodformQuantityOffers = (function() {
   function markAsProcessed(blockId, productId) {
     const key = `${blockId}-${productId}`;
     processedOffers.add(key);
-    console.log(`✅ REAL DATA - Marked as processed: ${key}`);
+    console.log(`✅ POSITION BASED - Marked as processed: ${key}`);
   }
 
-  // تنظيف شامل لجميع العروض الخارجية والمكررة
-  function cleanupAllExternalOffers() {
-    console.log("🧹 CLEANUP - Starting comprehensive cleanup...");
+  // تنظيف شامل لجميع العروض
+  function cleanupAllOffers() {
+    console.log("🧹 POSITION CLEANUP - Starting comprehensive cleanup...");
     
-    // حذف جميع العروض الخارجية
-    const externalSelectors = [
-      '.quantity-offers-container:not([id*="inside"])',
-      '[id*="quantity-offers-before"]',
-      '[id*="quantity-offers-after"]',
-      '[class*="quantity-offers"]:not([id*="inside"])',
-      '.codform-quantity-offers:not([id*="inside"])'
+    // حذف جميع العروض الموجودة
+    const offerSelectors = [
+      '.quantity-offers-container',
+      '[id*="quantity-offers"]',
+      '.codform-quantity-offers',
+      '[class*="quantity-offers"]'
     ];
     
-    externalSelectors.forEach(selector => {
+    offerSelectors.forEach(selector => {
       const elements = document.querySelectorAll(selector);
       elements.forEach(element => {
-        console.log(`🧹 CLEANUP - Removing external offer: ${element.id || element.className}`);
+        console.log(`🧹 POSITION CLEANUP - Removing: ${element.id || element.className}`);
         element.remove();
       });
     });
 
-    // حذف العروض المكررة داخل النموذج
-    const insideOffers = document.querySelectorAll('.quantity-offers-container-inside-form');
-    if (insideOffers.length > 1) {
-      console.log(`🧹 CLEANUP - Found ${insideOffers.length} duplicate inside offers, keeping only the first`);
-      for (let i = 1; i < insideOffers.length; i++) {
-        insideOffers[i].remove();
-      }
-    }
-
-    // تنظيف أي عروض بأسعار خاطئة (100, 10, إلخ)
-    const wrongPriceOffers = document.querySelectorAll('[class*="quantity-offers"] *');
-    wrongPriceOffers.forEach(element => {
-      const textContent = element.textContent || '';
-      if (textContent.includes('$100') || textContent.includes('$10') || textContent.includes('100.00') || textContent.includes('10.00')) {
-        console.log(`🧹 CLEANUP - Removing wrong price offer: ${textContent}`);
-        const container = element.closest('[class*="quantity-offers"]');
-        if (container) container.remove();
-      }
-    });
-
-    console.log("✅ CLEANUP - Comprehensive cleanup completed");
+    console.log("✅ POSITION CLEANUP - Comprehensive cleanup completed");
   }
 
-  // عرض العروض الحقيقية داخل النموذج فقط
-  function displayRealQuantityOffers(quantityOffersData, blockId, productId, productData = null) {
-    console.log("🎯 REAL DATA - Starting display with STRICT inside form only");
+  // إنشاء العرض بناءً على الموضع المحدد
+  function createOfferByPosition(quantityOffersData, blockId, productId, productData, position) {
+    console.log(`📍 POSITION BASED - Creating offer for position: ${position}`);
     
-    // التحقق من التكرار
-    if (isAlreadyProcessed(blockId, productId)) {
-      console.log("⚠️ REAL DATA - Already processed, skipping...");
-      return;
-    }
-
-    // تنظيف شامل أولاً
-    cleanupAllExternalOffers();
-
-    // التحقق من صحة البيانات الحقيقية
-    if (!quantityOffersData || !quantityOffersData.offers || !Array.isArray(quantityOffersData.offers)) {
-      console.log("❌ REAL DATA - Invalid or missing offers data");
-      return;
-    }
-
-    if (!productData || !productData.price || productData.price <= 0) {
-      console.log("❌ REAL DATA - Missing or invalid real product price data");
-      return;
-    }
-
-    const offers = quantityOffersData.offers;
-    if (offers.length === 0) {
-      console.log("ℹ️ REAL DATA - No offers to display");
-      return;
-    }
-
-    // البحث عن الحاوية داخل النموذج فقط
     const container = document.getElementById(`codform-container-${blockId}`);
     if (!container) {
-      console.error("❌ REAL DATA - Container not found:", `codform-container-${blockId}`);
+      console.error(`❌ POSITION BASED - Container not found: codform-container-${blockId}`);
       return;
     }
 
-    // استخدام البيانات الحقيقية ONLY
-    const realPrice = parseFloat(productData.price);
-    const currency = productData.currency || 'USD';
-    const productImage = productData.image;
-    const productTitle = productData.title || 'المنتج';
+    let targetElement = null;
+    let insertMethod = 'appendChild';
+    let offerContainer = null;
 
-    // Validate price first
-    if (realPrice <= 0 || isNaN(realPrice)) {
-      console.error("❌ REAL DATA - Invalid real price:", realPrice);
-      return;
+    // تحديد الموضع المناسب حسب الإعداد
+    switch (position) {
+      case 'before_form':
+        console.log(`📍 POSITION BASED - Placing BEFORE form`);
+        targetElement = container.parentElement;
+        insertMethod = 'insertBefore';
+        offerContainer = document.createElement('div');
+        offerContainer.id = `quantity-offers-before-${blockId}`;
+        offerContainer.className = 'quantity-offers-container-before-form';
+        break;
+        
+      case 'after_form':
+        console.log(`📍 POSITION BASED - Placing AFTER form`);
+        targetElement = container.parentElement;
+        insertMethod = 'insertAfter';
+        offerContainer = document.createElement('div');
+        offerContainer.id = `quantity-offers-after-${blockId}`;
+        offerContainer.className = 'quantity-offers-container-after-form';
+        break;
+        
+      case 'inside_form':
+      default:
+        console.log(`📍 POSITION BASED - Placing INSIDE form`);
+        targetElement = container;
+        insertMethod = 'appendChild';
+        offerContainer = document.createElement('div');
+        offerContainer.id = `quantity-offers-inside-${blockId}`;
+        offerContainer.className = 'quantity-offers-container-inside-form';
+        break;
     }
 
-    console.log("💰 REAL DATA - Using CONFIRMED real price:", {
-      realPrice,
-      currency,
-      productTitle,
-      hasImage: !!productImage,
-      productHandle: productData.handle || 'N/A'
-    });
-
-    // التحقق من وجود حاوي العروض داخل النموذج ONLY
-    let offersContainer = document.getElementById(`quantity-offers-inside-${blockId}`);
-    if (!offersContainer) {
-      offersContainer = document.createElement('div');
-      offersContainer.id = `quantity-offers-inside-${blockId}`;
-      offersContainer.className = 'quantity-offers-container-inside-form';
-      
-      // إدراج العروض في المكان المحدد حسب إعدادات العروض الكمية
-      const quantityOffersPosition = container.querySelector('[data-field-type="quantity-offers"], .quantity-offers-field-placeholder');
-      const formTitle = container.querySelector('.form-title-field, [data-field-type="form-title"]');
-      const firstField = container.querySelector('.mb-4:not(.form-title-field), [class*="field"]:not([data-field-type="form-title"]):not(.quantity-offers-container-inside-form)');
-      
-      if (quantityOffersPosition) {
-        // إذا وجد موضع محدد للعروض الكمية، استخدمه
-        quantityOffersPosition.parentNode.insertBefore(offersContainer, quantityOffersPosition.nextSibling);
-        console.log("📍 REAL DATA - Placed offers at designated quantity offers position");
-      } else if (formTitle && firstField) {
-        formTitle.parentNode.insertBefore(offersContainer, firstField);
-        console.log("📍 REAL DATA - Placed offers after form title");
-      } else if (firstField) {
-        firstField.parentNode.insertBefore(offersContainer, firstField);
-        console.log("📍 REAL DATA - Placed offers before first field");
-      } else {
-        container.appendChild(offersContainer);
-        console.log("📍 REAL DATA - Appended offers to container");
-      }
-    }
-
-    // منع التكرار في نفس الحاوي
-    if (displayedContainers.has(offersContainer.id)) {
-      console.log("⚠️ REAL DATA - Container already has offers");
+    if (!targetElement || !offerContainer) {
+      console.error(`❌ POSITION BASED - Failed to create target element or container`);
       return;
     }
 
     // تنظيف الحاوي وإعداده
-    offersContainer.innerHTML = '';
-    offersContainer.style.cssText = `
+    offerContainer.innerHTML = '';
+    offerContainer.style.cssText = `
       display: block !important;
       visibility: visible !important;
       opacity: 1 !important;
       margin: 20px 0;
       position: relative;
-      z-index: 1;
+      z-index: 10;
+      width: 100%;
     `;
+
+    // إدراج الحاوي في الموضع المحدد
+    if (insertMethod === 'insertBefore') {
+      targetElement.insertBefore(offerContainer, container);
+    } else if (insertMethod === 'insertAfter') {
+      targetElement.insertBefore(offerContainer, container.nextSibling);
+    } else {
+      // inside_form - البحث عن الموضع الأنسب داخل النموذج
+      const formTitle = container.querySelector('.form-title-field, [data-field-type="form-title"]');
+      const firstField = container.querySelector('.mb-4:not(.form-title-field), [class*="field"]:not([data-field-type="form-title"]):not(.quantity-offers-container-inside-form)');
+      
+      if (formTitle && firstField) {
+        formTitle.parentNode.insertBefore(offerContainer, firstField);
+      } else if (firstField) {
+        firstField.parentNode.insertBefore(offerContainer, firstField);
+      } else {
+        targetElement.appendChild(offerContainer);
+      }
+    }
+
+    // منع التكرار في نفس الحاوي
+    if (displayedContainers.has(offerContainer.id)) {
+      console.log(`⚠️ POSITION BASED - Container already has offers: ${offerContainer.id}`);
+      return;
+    }
+
+    // عرض العروض
+    displayOffersContent(offerContainer, quantityOffersData, productData);
+    
+    // تسجيل المعالجة
+    markAsProcessed(blockId, productId);
+    displayedContainers.add(offerContainer.id);
+
+    console.log(`✅ POSITION BASED - Offer displayed successfully at position: ${position}`);
+  }
+
+  // عرض محتوى العروض
+  function displayOffersContent(container, quantityOffersData, productData) {
+    const offers = quantityOffersData.offers || [];
+    if (offers.length === 0) {
+      console.log("ℹ️ POSITION BASED - No offers to display");
+      return;
+    }
+
+    // التحقق من صحة بيانات المنتج
+    if (!productData || !productData.price || productData.price <= 0) {
+      console.error("❌ POSITION BASED - Invalid product data:", productData);
+      return;
+    }
+
+    const realPrice = parseFloat(productData.price);
+    const currency = productData.currency || 'USD';
+    const productImage = productData.image;
+    const productTitle = productData.title || 'المنتج';
+
+    console.log("💰 POSITION BASED - Using REAL product data:", {
+      realPrice,
+      currency,
+      productTitle,
+      hasImage: !!productImage
+    });
 
     // استخدام التنسيق من البيانات
     const styling = quantityOffersData.styling || {
@@ -184,7 +184,7 @@ window.CodformQuantityOffers = (function() {
                           currency === 'MAD' ? 'د.م' : 
                           currency;
 
-    // عرض العروض الحقيقية مع السعر الصحيح
+    // عرض العروض
     offers.forEach((offer, index) => {
       const offerElement = document.createElement('div');
       offerElement.style.cssText = `
@@ -207,7 +207,7 @@ window.CodformQuantityOffers = (function() {
       const leftSection = document.createElement('div');
       leftSection.style.cssText = 'display: flex; align-items: center; gap: 12px; flex: 1;';
 
-      // صورة المنتج الحقيقية من Shopify - BIX EXACT IMAGE ISSUE
+      // صورة المنتج الحقيقية
       const imageElement = document.createElement('img');
       imageElement.style.cssText = `
         width: 60px;
@@ -220,43 +220,61 @@ window.CodformQuantityOffers = (function() {
         flex-shrink: 0;
       `;
       
-      // إجبار استخدام صورة المنتج الحقيقية ONLY
-      console.log('🖼️ REAL DATA - Product image URL:', productImage);
-      
-      if (productImage && productImage.trim() !== '' && productImage !== 'null' && productImage !== 'undefined') {
+      if (productImage && productImage.trim() !== '') {
         imageElement.src = productImage;
-        imageElement.alt = productTitle || 'صورة المنتج';
+        imageElement.alt = productTitle;
         
-        // في حالة فشل تحميل الصورة، اطلب الصورة مرة أخرى
         imageElement.onerror = function() {
-          console.error('❌ REAL DATA - Failed to load product image:', productImage);
-          // تجربة إضافة ?v=timestamp لتجاوز الكاش
-          if (!productImage.includes('?v=')) {
-            this.src = productImage + '?v=' + Date.now();
-          } else {
-            console.error('❌ REAL DATA - Product image completely failed to load');
-            // فقط في حالة فشل تام، استخدم placeholder مؤقت
-            this.style.backgroundColor = '#f3f4f6';
-            this.style.border = '2px dashed #d1d5db';
-            this.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjZjNmNGY2IiBzdHJva2U9IiNkMWQ1ZGIiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWRhc2hhcnJheT0iNSA1Ii8+Cjx0ZXh0IHg9IjMwIiB5PSIzNSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjgiIGZpbGw9IiM2Yjc2ODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk5PIElNQUdFPC90ZXh0Pgo8L3N2Zz4K';
-          }
+          console.error('❌ POSITION BASED - Failed to load product image:', productImage);
+          this.style.display = 'none';
+          const fallbackIcon = document.createElement('div');
+          fallbackIcon.style.cssText = `
+            width: 60px;
+            height: 60px;
+            background-color: #f3f4f6;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+          `;
+          fallbackIcon.innerHTML = `
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+              <circle cx="8.5" cy="8.5" r="1.5"/>
+              <polyline points="21,15 16,10 5,21"/>
+            </svg>
+          `;
+          this.parentNode.insertBefore(fallbackIcon, this);
         };
-        
-        console.log('✅ REAL DATA - Using REAL product image:', productImage);
       } else {
-        console.error('❌ REAL DATA - NO PRODUCT IMAGE PROVIDED:', {
-          productImage,
-          productTitle,
-          productData: !!productData
-        });
-        
-        // إذا لم تكن هناك صورة، اعرض مربع يشير لعدم وجود صورة
-        imageElement.style.backgroundColor = '#fee2e2';
-        imageElement.style.border = '2px solid #fca5a5';
-        imageElement.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjZmVlMmUyIiBzdHJva2U9IiNmY2E1YTUiIHN0cm9rZS13aWR0aD0iMiIvPgo8dGV4dCB4PSIzMCIgeT0iMzUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSI4IiBmaWxsPSIjZGM0NjI2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5OTyBJTUFHRTwvdGV4dD4KPHN2Zz4K';
-        imageElement.alt = 'لا توجد صورة للمنتج';
+        imageElement.style.display = 'none';
+        const fallbackIcon = document.createElement('div');
+        fallbackIcon.style.cssText = `
+          width: 60px;
+          height: 60px;
+          background-color: #f3f4f6;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        `;
+        fallbackIcon.innerHTML = `
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="1.5">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+            <polyline points="21,15 16,10 5,21"/>
+          </svg>
+        `;
+        leftSection.appendChild(fallbackIcon);
       }
-      leftSection.appendChild(imageElement);
+      
+      if (imageElement.src) {
+        leftSection.appendChild(imageElement);
+      }
 
       // محتوى النص
       const textContent = document.createElement('div');
@@ -290,7 +308,7 @@ window.CodformQuantityOffers = (function() {
         tagsContainer.appendChild(tagElement);
       }
 
-      // حساب السعر النهائي بناءً على البيانات الحقيقية
+      // حساب السعر النهائي
       let totalPrice = realPrice * (offer.quantity || 1);
       let originalPrice = totalPrice;
       let savingsPercentage = 0;
@@ -322,7 +340,7 @@ window.CodformQuantityOffers = (function() {
       textContent.appendChild(tagsContainer);
       leftSection.appendChild(textContent);
 
-      // الجزء الأيمن: الأسعار الحقيقية
+      // الجزء الأيمن: الأسعار
       const priceSection = document.createElement('div');
       priceSection.style.cssText = 'text-align: center; min-width: 100px;';
 
@@ -339,7 +357,7 @@ window.CodformQuantityOffers = (function() {
         priceSection.appendChild(originalPriceElement);
       }
 
-      // السعر النهائي الحقيقي
+      // السعر النهائي
       const finalPriceElement = document.createElement('div');
       finalPriceElement.style.cssText = `
         font-size: 18px;
@@ -364,22 +382,48 @@ window.CodformQuantityOffers = (function() {
       // تجميع العناصر
       offerElement.appendChild(leftSection);
       offerElement.appendChild(priceSection);
-      offersContainer.appendChild(offerElement);
+      container.appendChild(offerElement);
 
-      console.log(`✅ REAL DATA - Offer displayed: ${offer.text}, Price: ${totalPrice.toFixed(2)} ${currencySymbol}`);
+      console.log(`✅ POSITION BASED - Offer displayed: ${offer.text}, Price: ${totalPrice.toFixed(2)} ${currencySymbol}`);
     });
+  }
 
-    // تسجيل المعالجة والعرض
-    markAsProcessed(blockId, productId);
-    displayedContainers.add(offersContainer.id);
+  // دالة عرض العروض الحقيقية بناءً على الموضع
+  function displayRealQuantityOffers(quantityOffersData, blockId, productId, productData = null) {
+    console.log("🎯 POSITION BASED - Starting display with position respect");
+    
+    // التحقق من التكرار
+    if (isAlreadyProcessed(blockId, productId)) {
+      console.log("⚠️ POSITION BASED - Already processed, skipping...");
+      return;
+    }
 
-    console.log("✅ REAL DATA - Quantity offers displayed successfully INSIDE FORM ONLY with correct real data");
+    // تنظيف شامل أولاً
+    cleanupAllOffers();
+
+    // التحقق من صحة البيانات
+    if (!quantityOffersData || !quantityOffersData.offers || !Array.isArray(quantityOffersData.offers)) {
+      console.log("❌ POSITION BASED - Invalid or missing offers data");
+      return;
+    }
+
+    if (!productData || !productData.price || productData.price <= 0) {
+      console.log("❌ POSITION BASED - Missing or invalid product price data");
+      return;
+    }
+
+    // الحصول على الموضع من البيانات
+    const position = quantityOffersData.position || 'inside_form';
+    console.log(`📍 POSITION BASED - Using position: ${position}`);
+
+    // إنشاء العرض في الموضع المحدد
+    createOfferByPosition(quantityOffersData, blockId, productId, productData, position);
   }
 
   // دالة تحميل وعرض العروض من API
   async function loadAndDisplayRealOffers(blockId, productId, shop) {
     if (isAlreadyProcessed(blockId, productId)) {
-      console.log("⚠️ REAL DATA - Load already processed, skipping...");
+      console.log("⚠️ POSITION BASED - Load already processed, skipping...");
       return { success: false, message: "Already processed" };
     }
 
@@ -401,11 +445,11 @@ window.CodformQuantityOffers = (function() {
       const data = await response.json();
       
       if (data.success && data.quantity_offers && data.quantity_offers.offers && data.quantity_offers.offers.length > 0) {
-        console.log("✅ REAL DATA - Found real offers and product data");
+        console.log("✅ POSITION BASED - Found real offers and product data");
         
-        // Validate product data before display
+        // التحقق من بيانات المنتج
         if (!data.product || !data.product.price || data.product.price <= 0) {
-          console.error("❌ REAL DATA - Invalid product data from API");
+          console.error("❌ POSITION BASED - Invalid product data from API");
           return { success: false, message: "Invalid product data" };
         }
         
@@ -418,12 +462,12 @@ window.CodformQuantityOffers = (function() {
         
         return { success: true, offers: data.quantity_offers };
       } else {
-        console.log("ℹ️ REAL DATA - No offers found");
+        console.log("ℹ️ POSITION BASED - No offers found");
         return { success: false, message: "No offers found" };
       }
       
     } catch (error) {
-      console.error("❌ REAL DATA - Error loading offers:", error);
+      console.error("❌ POSITION BASED - Error loading offers:", error);
       return { success: false, error: error.message };
     }
   }
@@ -432,8 +476,8 @@ window.CodformQuantityOffers = (function() {
   function resetDuplicateCheck() {
     processedOffers.clear();
     displayedContainers.clear();
-    cleanupAllExternalOffers();
-    console.log("🔄 REAL DATA - Reset completed with cleanup");
+    cleanupAllOffers();
+    console.log("🔄 POSITION BASED - Reset completed with cleanup");
   }
 
   // Public API
@@ -441,7 +485,7 @@ window.CodformQuantityOffers = (function() {
     display: displayRealQuantityOffers,
     load: loadAndDisplayRealOffers,
     reset: resetDuplicateCheck,
-    cleanup: cleanupAllExternalOffers
+    cleanup: cleanupAllOffers
   };
 })();
 

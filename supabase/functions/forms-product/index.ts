@@ -1,3 +1,4 @@
+
 // Edge function for fetching product-specific forms and quantity offers
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
@@ -21,7 +22,7 @@ serve(async (req) => {
     let product = url.searchParams.get('product');
     const blockId = url.searchParams.get('blockId');
     
-    console.log(`[${requestId}] 🎯 API Request: ${shop}/${product}`);
+    console.log(`[${requestId}] 🎯 POSITION API Request: ${shop}/${product}`);
 
     if (!shop) {
       throw new Error('Missing required parameter: shop');
@@ -43,10 +44,10 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Function to get real product data from Shopify API with better error handling
+    // Function to get real product data from Shopify API
     async function getRealProductData(shopDomain: string, productHandle: string) {
       try {
-        console.log(`[${requestId}] 📦 Fetching real product data for: ${productHandle}`);
+        console.log(`[${requestId}] 📦 POSITION - Fetching real product data for: ${productHandle}`);
         
         const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-products`, {
           method: 'POST',
@@ -65,12 +66,21 @@ serve(async (req) => {
           if (data.success && data.products && data.products.length > 0) {
             const product = data.products[0];
             
-            // استخراج بيانات المنتج الحقيقية مع تحويل السعر الصحيح  
+            // استخراج بيانات المنتج مع معالجة الصورة بشكل صحيح
             const productPrice = parseFloat(product.price || product.priceRangeV2?.minVariantPrice?.amount || 0);
             const productCurrency = product.priceRangeV2?.minVariantPrice?.currencyCode || 'USD';
-            const productImage = product.images?.[0]?.src || product.featuredImage?.url || product.image?.src || null;
             
-            console.log(`[${requestId}] 📊 Raw product data: price=${productPrice}, currency=${productCurrency}, image=${!!productImage}`);
+            // معالجة الصورة بشكل صحيح
+            let productImage = null;
+            if (product.images && product.images.length > 0) {
+              productImage = product.images[0].src || product.images[0].url;
+            } else if (product.featuredImage) {
+              productImage = product.featuredImage.url || product.featuredImage.src;
+            } else if (product.image) {
+              productImage = product.image.src || product.image.url || product.image;
+            }
+            
+            console.log(`[${requestId}] 📊 POSITION - Raw product data: price=${productPrice}, currency=${productCurrency}, image=${!!productImage}`);
             
             const realProductData = {
               id: product.id,
@@ -81,22 +91,23 @@ serve(async (req) => {
               image: productImage
             };
             
-            console.log(`[${requestId}] ✅ Real product data:`, {
+            console.log(`[${requestId}] ✅ POSITION - Real product data:`, {
               id: realProductData.id,
               title: realProductData.title,
               price: realProductData.price,
               currency: realProductData.currency,
-              hasImage: !!realProductData.image
+              hasImage: !!realProductData.image,
+              imageUrl: realProductData.image ? realProductData.image.substring(0, 50) + '...' : 'N/A'
             });
             
             return realProductData;
           }
         }
         
-        console.log(`[${requestId}] ⚠️ No product data found`);
+        console.log(`[${requestId}] ⚠️ POSITION - No product data found`);
         return null;
       } catch (error) {
-        console.error(`[${requestId}] ❌ Product fetch error:`, error);
+        console.error(`[${requestId}] ❌ POSITION - Product fetch error:`, error);
         return null;
       }
     }
@@ -131,13 +142,15 @@ serve(async (req) => {
       }
     }
 
-    // Function to fetch quantity offers
+    // Function to fetch quantity offers WITH POSITION
     async function getQuantityOffers(formId: string) {
       if (!product) {
         return null;
       }
       
       try {
+        console.log(`[${requestId}] 🔍 POSITION - Fetching quantity offers for form: ${formId}, product: ${product}`);
+        
         const { data, error } = await supabase
           .from('quantity_offers')
           .select('*')
@@ -148,16 +161,20 @@ serve(async (req) => {
           .limit(1);
 
         if (error) {
+          console.error(`[${requestId}] ❌ POSITION - Quantity offers error:`, error);
           return null;
         }
 
         if (data && data.length > 0) {
-          return data[0];
+          const offerData = data[0];
+          console.log(`[${requestId}] ✅ POSITION - Found quantity offers with position: ${offerData.position}`);
+          return offerData;
         }
 
+        console.log(`[${requestId}] ℹ️ POSITION - No quantity offers found`);
         return null;
       } catch (error) {
-        console.error(`[${requestId}] Quantity offers error:`, error);
+        console.error(`[${requestId}] ❌ POSITION - Quantity offers error:`, error);
         return null;
       }
     }
@@ -179,7 +196,7 @@ serve(async (req) => {
 
         return fields;
       } catch (error) {
-        console.error(`[${requestId}] Fields extraction error:`, error);
+        console.error(`[${requestId}] ❌ POSITION - Fields extraction error:`, error);
         return [];
       }
     }
@@ -217,7 +234,7 @@ serve(async (req) => {
     // Extract form fields
     const fields = extractFormFields(formData);
 
-    // Fetch quantity offers
+    // Fetch quantity offers WITH POSITION
     const quantityOffers = await getQuantityOffers(formId);
 
     // Get REAL product data from Shopify API
@@ -225,10 +242,10 @@ serve(async (req) => {
 
     // Validate product data before sending
     if (!realProductData || !realProductData.price || realProductData.price <= 0) {
-      console.log(`[${requestId}] ⚠️ Invalid product data, using fallback`);
+      console.log(`[${requestId}] ⚠️ POSITION - Invalid product data, using fallback`);
     }
 
-    // تحويل السعر إلى عملة النموذج مع معدلات صحيحة
+    // تحويل السعر إلى عملة النموذج مع معدلات محدثة
     let convertedProductData = realProductData;
     
     if (realProductData && formData.currency && realProductData.currency !== formData.currency) {
@@ -258,11 +275,11 @@ serve(async (req) => {
           currency: formData.currency
         };
         
-        console.log(`[${requestId}] 💱 CURRENCY CONVERSION: ${realProductData.price} ${realProductData.currency} → ${convertedPrice.toFixed(2)} ${formData.currency} (rate: ${rate})`);
+        console.log(`[${requestId}] 💱 POSITION - CURRENCY CONVERSION: ${realProductData.price} ${realProductData.currency} → ${convertedPrice.toFixed(2)} ${formData.currency} (rate: ${rate})`);
       }
     }
 
-    // Build response with converted product data
+    // Build response with converted product data AND POSITION
     const response = {
       success: true,
       form: {
@@ -289,14 +306,14 @@ serve(async (req) => {
       }
     };
 
-    console.log(`[${requestId}] ✅ Success: ${fields.length} fields, ${!!quantityOffers ? 'with' : 'no'} offers, real price: ${realProductData?.price || 'N/A'}`);
+    console.log(`[${requestId}] ✅ POSITION - Success: ${fields.length} fields, ${!!quantityOffers ? 'with' : 'no'} offers at position: ${quantityOffers?.position || 'N/A'}, real price: ${realProductData?.price || 'N/A'}`);
 
     return new Response(JSON.stringify(response), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
   } catch (error) {
-    console.error(`[${requestId}] ❌ Error:`, error);
+    console.error(`[${requestId}] ❌ POSITION - Error:`, error);
     
     return new Response(JSON.stringify({
       success: false,
