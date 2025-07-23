@@ -43,13 +43,6 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
   productData,
   currency = 'SAR'
 }) => {
-  console.log('🎯 QuantityOffersField - LOGICAL SOLUTION - Product Data:', {
-    productData,
-    productId,
-    formId,
-    hasRealPrice: !!(productData?.price && productData.price > 0)
-  });
-
   const [offers, setOffers] = useState<Offer[]>([]);
   const [styling, setStyling] = useState<Styling>({
     backgroundColor: '#ffffff',
@@ -67,7 +60,7 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
       }
       
       try {
-        const { data, error } = await (supabase as any)
+        const { data, error } = await supabase
           .from('quantity_offers')
           .select('*')
           .eq('product_id', productId)
@@ -99,19 +92,29 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
   const calculatePrice = (offer: Offer) => {
     if (!realPrice) return 0;
     
-    let totalPrice = realPrice * offer.quantity;
+    const baseTotal = realPrice * (offer.quantity || 1);
     
     if (offer.discountType === 'fixed' && offer.discountValue) {
-      totalPrice = totalPrice - offer.discountValue;
+      return baseTotal - offer.discountValue;
     } else if (offer.discountType === 'percentage' && offer.discountValue) {
-      const discount = (totalPrice * offer.discountValue) / 100;
-      totalPrice = totalPrice - discount;
+      const discount = (baseTotal * offer.discountValue) / 100;
+      return baseTotal - discount;
     }
     
-    return totalPrice;
+    return baseTotal;
   };
 
-  // إذا لم تكن هناك عروض أو لا يوجد سعر حقيقي
+  const getCurrencySymbol = (curr: string) => {
+    const symbols: Record<string, string> = {
+      'USD': '$',
+      'SAR': 'ر.س',
+      'MAD': 'د.م',
+      'EUR': '€',
+      'GBP': '£'
+    };
+    return symbols[curr] || curr;
+  };
+
   if (loading) {
     return (
       <div className="p-4 text-center text-gray-500">
@@ -134,19 +137,23 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
     );
   }
 
+  const currencySymbol = getCurrencySymbol(displayCurrency);
+
   return (
     <div className="space-y-2 mb-4">
       {offers.map((offer, index) => {
         const totalPrice = calculatePrice(offer);
-        const originalPrice = realPrice * offer.quantity;
+        const originalPrice = realPrice * (offer.quantity || 1);
         const isDiscounted = offer.discountType !== 'none' && offer.discountValue && offer.discountValue > 0;
         const isHighlighted = index === 1;
         
         let savingsPercentage = 0;
-        if (isDiscounted && offer.discountType === 'percentage') {
-          savingsPercentage = offer.discountValue || 0;
-        } else if (isDiscounted && offer.discountType === 'fixed') {
-          savingsPercentage = Math.round(((offer.discountValue || 0) / originalPrice) * 100);
+        if (isDiscounted) {
+          if (offer.discountType === 'percentage') {
+            savingsPercentage = offer.discountValue || 0;
+          } else if (offer.discountType === 'fixed') {
+            savingsPercentage = Math.round(((offer.discountValue || 0) / originalPrice) * 100);
+          }
         }
 
         return (
@@ -167,7 +174,6 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
                     alt={productTitle}
                     className="w-full h-full object-cover rounded-lg"
                     onError={(e) => {
-                      console.log('❌ Image failed to load:', productImage);
                       e.currentTarget.style.display = 'none';
                       const nextElement = e.currentTarget.nextElementSibling as HTMLElement;
                       if (nextElement) nextElement.style.display = 'flex';
@@ -189,7 +195,7 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
                   className="font-semibold"
                   style={{ color: styling.textColor }}
                 >
-                  {offer.text || `Buy ${offer.quantity} Item${offer.quantity > 1 ? 's' : ''}`}
+                  {offer.text || `اشترِ ${offer.quantity || 1} قطعة`}
                 </div>
                 <div className="flex items-center gap-2 mt-1">
                   {offer.tag && (
@@ -202,7 +208,7 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
                   )}
                   {savingsPercentage > 0 && (
                     <div className="inline-block px-2 py-1 rounded text-xs font-medium text-white bg-green-500">
-                      Save {savingsPercentage}%
+                      وفر {savingsPercentage}%
                     </div>
                   )}
                 </div>
@@ -212,18 +218,18 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
             <div className="text-right">
               {isDiscounted && (
                 <div className="text-sm line-through text-gray-400">
-                  {originalPrice.toFixed(2)} {displayCurrency}
+                  {originalPrice.toFixed(2)} {currencySymbol}
                 </div>
               )}
               <div 
                 className="font-bold text-lg"
                 style={{ color: styling.priceColor }}
               >
-                {totalPrice.toFixed(2)} {displayCurrency}
+                {totalPrice.toFixed(2)} {currencySymbol}
               </div>
-              {offer.quantity > 1 && (
+              {(offer.quantity || 1) > 1 && (
                 <div className="text-xs text-gray-500 mt-1">
-                  {realPrice.toFixed(2)} {displayCurrency} × {offer.quantity}
+                  {realPrice.toFixed(2)} {currencySymbol} × {offer.quantity || 1}
                 </div>
               )}
             </div>
