@@ -112,9 +112,28 @@
       if (field.type === 'email') inputType = 'email';
       if (field.type === 'phone') inputType = 'tel';
       
-      // Icon handling
+      // Enhanced styling to match preview exactly - get from field style
+      const fieldStyle = field.style || {};
+      
+      // Label styling from field settings
+      const actualLabelColor = getStyleValue(fieldStyle, 'labelColor', '#1F2937');
+      const actualLabelFontSize = getStyleValue(fieldStyle, 'labelFontSize', '16px');  
+      const actualLabelWeight = getStyleValue(fieldStyle, 'labelWeight', '500'); // Lighter weight like preview
+      const actualShowLabel = getStyleValue(fieldStyle, 'showLabel', true);
+      
+      // Field styling from field settings
+      const actualTextColor = getStyleValue(fieldStyle, 'textColor', '#1F2937');
+      const actualBorderColor = getStyleValue(fieldStyle, 'borderColor', '#D1D5DB');
+      const actualBorderWidth = getStyleValue(fieldStyle, 'borderWidth', '1px');
+      const actualFontSize = getStyleValue(fieldStyle, 'fontSize', '16px');
+      const actualPaddingY = getStyleValue(fieldStyle, 'paddingY', '12px');
+      const actualBorderRadius = getStyleValue(fieldStyle, 'borderRadius', '12px'); // Match preview exactly
+      const actualPlaceholder = getStyleValue(fieldStyle, 'placeholder', placeholder);
+      
+      // Icon handling with preview settings
       const hasIcon = field.icon && field.icon !== 'none' && field.icon !== '';
-      const showIcon = getStyleValue(labelStyle, 'showIcon', hasIcon);
+      const showIconInPreview = getStyleValue(fieldStyle, 'showIconInPreview', hasIcon);
+      const showIcon = getStyleValue(fieldStyle, 'showIcon', hasIcon) && showIconInPreview;
       
       let iconHtml = '';
       if (showIcon && hasIcon) {
@@ -138,23 +157,24 @@
         `;
       }
       
-      // Calculate padding based on icon and direction
+      // Calculate padding based on icon and direction + custom paddingY
       const paddingLeft = formDirection === 'rtl' ? '16px' : (showIcon && hasIcon ? '48px' : '16px');
       const paddingRight = formDirection === 'rtl' ? (showIcon && hasIcon ? '48px' : '16px') : '16px';
+      const paddingTopBottom = actualPaddingY;
       
       html = `
         <div class="codform-field-wrapper" style="
           margin-bottom: 20px;
           direction: ${formDirection};
         ">
-          ${showLabel ? `
+          ${actualShowLabel ? `
             <label for="${fieldId}" style="
               display: block;
-              color: ${labelColor};
-              font-size: ${labelFontSize};
-              font-weight: ${labelFontWeight};
+              color: ${actualLabelColor};
+              font-size: ${actualLabelFontSize};
+              font-weight: ${actualLabelWeight};
               margin-bottom: 8px;
-              font-family: inherit;
+              font-family: 'Cairo', inherit;
             ">
               ${label}${required ? '<span style="color: #EF4444; margin-left: 4px;">*</span>' : ''}
             </label>
@@ -166,19 +186,17 @@
               type="${inputType}"
               id="${fieldId}"
               name="${fieldId}"
-              placeholder="${placeholder}"
+              placeholder="${actualPlaceholder}"
               ${required ? 'required' : ''}
               style="
                 width: 100%;
-                background-color: ${fieldBackgroundColor};
-                border: 1px solid ${fieldBorderColor};
-                border-radius: ${fieldBorderRadius};
-                padding: 12px;
-                padding-left: ${paddingLeft};
-                padding-right: ${paddingRight};
-                font-size: ${fieldFontSize};
-                color: ${fieldTextColor};
-                font-family: inherit;
+                background-color: #FFFFFF;
+                border: ${actualBorderWidth} solid ${actualBorderColor};
+                border-radius: ${actualBorderRadius};
+                padding: ${paddingTopBottom} ${paddingRight} ${paddingTopBottom} ${paddingLeft};
+                font-size: ${actualFontSize};
+                color: ${actualTextColor};
+                font-family: 'Cairo', inherit;
                 outline: none;
                 transition: all 0.2s ease;
                 box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -188,7 +206,7 @@
                 text-align: ${formDirection === 'rtl' ? 'right' : 'left'};
               "
               onfocus="this.style.borderColor='#9b87f5'; this.style.boxShadow='0 0 0 3px rgba(155, 135, 245, 0.1)'"
-              onblur="this.style.borderColor='${fieldBorderColor}'; this.style.boxShadow='0 1px 3px rgba(0, 0, 0, 0.1)'"
+              onblur="this.style.borderColor='${actualBorderColor}'; this.style.boxShadow='0 1px 3px rgba(0, 0, 0, 0.1)'"
             />
           </div>
           
@@ -197,6 +215,7 @@
               margin-top: 6px;
               font-size: 14px;
               color: #6B7280;
+              font-family: 'Cairo', inherit;
             ">${field.helpText}</p>
           ` : ''}
         </div>
@@ -270,12 +289,17 @@
       const buttonText = field.label || 'Submit';
       const buttonStyle = field.style || {};
       
+      // Get all button styles from field settings to match preview exactly
       const buttonBgColor = getStyleValue(buttonStyle, 'backgroundColor', formStyle?.primaryColor || '#9b87f5');
       const buttonTextColor = getStyleValue(buttonStyle, 'color', '#FFFFFF');
-      const buttonFontSize = '18px';
-      const buttonBorderRadius = '32px'; // More rounded like preview
-      const buttonPadding = '16px 32px';
-      const buttonWidth = '100%';
+      const buttonFontSize = getStyleValue(buttonStyle, 'fontSize', '18px');
+      const buttonFontWeight = getStyleValue(buttonStyle, 'fontWeight', '700');
+      const buttonBorderRadius = getStyleValue(buttonStyle, 'borderRadius', '12px'); // Match preview exactly
+      const buttonPadding = getStyleValue(buttonStyle, 'padding', '16px 32px');
+      const buttonWidth = getStyleValue(buttonStyle, 'width', '100%');
+      const buttonMinHeight = getStyleValue(buttonStyle, 'minHeight', '56px');
+      const buttonBorder = getStyleValue(buttonStyle, 'border', 'none');
+      const buttonBoxShadow = getStyleValue(buttonStyle, 'boxShadow', '0 4px 12px rgba(155, 135, 245, 0.3)');
       
       html = `
         <div class="codform-submit-wrapper" style="
@@ -289,26 +313,38 @@
               background-color: ${buttonBgColor};
               color: ${buttonTextColor};
               font-size: ${buttonFontSize};
-              font-weight: 700;
+              font-weight: ${buttonFontWeight};
               padding: ${buttonPadding};
-              border: none;
+              border: ${buttonBorder};
               border-radius: ${buttonBorderRadius};
               cursor: pointer;
-              transition: all 0.3s ease;
+              transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
               width: ${buttonWidth};
-              min-height: 56px;
-              font-family: inherit;
+              min-height: ${buttonMinHeight};
+              font-family: 'Cairo', inherit;
               display: flex;
               align-items: center;
               justify-content: center;
+              box-shadow: ${buttonBoxShadow};
+              transform: translateY(0);
+              position: relative;
+              overflow: hidden;
             "
             onmouseover="
-              this.style.transform='translateY(-2px)';
-              this.style.boxShadow='0 6px 20px rgba(155, 135, 245, 0.4)';
+              this.style.transform='translateY(-3px) scale(1.02)';
+              this.style.boxShadow='0 8px 25px rgba(155, 135, 245, 0.4)';
+              this.style.background='linear-gradient(135deg, ${buttonBgColor}, ${buttonBgColor}dd)';
             "
             onmouseout="
-              this.style.transform='translateY(0)';
-              this.style.boxShadow='0 4px 12px rgba(155, 135, 245, 0.3)';
+              this.style.transform='translateY(0) scale(1)';
+              this.style.boxShadow='${buttonBoxShadow}';
+              this.style.background='${buttonBgColor}';
+            "
+            onmousedown="
+              this.style.transform='translateY(-1px) scale(0.98)';
+            "
+            onmouseup="
+              this.style.transform='translateY(-3px) scale(1.02)';
             "
           >
             ${buttonText}
