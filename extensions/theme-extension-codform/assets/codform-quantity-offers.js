@@ -63,9 +63,13 @@ window.CodformQuantityOffers = (function() {
       });
       
       // التحقق إذا كان هذا النموذج يحتوي على معرف blockId أو يبدو كنموذج codform
-      if (form.id.includes(blockId) || 
-          form.className.includes('codform') || 
-          form.innerHTML.includes(blockId) ||
+      const formId = form.id || '';
+      const formClassName = form.className || '';
+      const formInnerHTML = form.innerHTML || '';
+      
+      if (formId.includes(blockId) || 
+          formClassName.includes('codform') || 
+          formInnerHTML.includes(blockId) ||
           form.querySelector(`[id*="${blockId}"]`) ||
           form.querySelector('[data-field-type]')) {
         console.log(`✅ RADICAL FIX - Found matching form:`, form);
