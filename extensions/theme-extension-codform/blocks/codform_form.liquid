@@ -229,7 +229,7 @@
                 padding: ${paddingTopBottom} ${paddingRight} ${paddingTopBottom} ${paddingLeft};
                 font-size: ${actualFontSize};
                 color: ${actualTextColor};
-                font-family: 'Cairo', inherit;
+                font-family: ${formDirection === 'rtl' ? "'Cairo', inherit" : "'Inter', system-ui, sans-serif"};
                 outline: none;
                 transition: all 0.2s ease;
                 box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -242,6 +242,12 @@
               onblur="this.style.borderColor='${actualBorderColor}'; this.style.boxShadow='0 1px 3px rgba(0, 0, 0, 0.1)'"
             />
           </div>
+          
+          <style>
+            input::placeholder {
+              font-family: ${formDirection === 'rtl' ? "'Cairo', inherit" : "'Inter', system-ui, sans-serif"} !important;
+            }
+          </style>
           
           ${field.helpText ? `
             <p style="
@@ -341,6 +347,34 @@
       const buttonText = field.label || 'Submit';
       const buttonStyle = field.style || {};
       
+      // Animation settings
+      const showAnimation = getStyleValue(buttonStyle, 'animation', false);
+      const animationType = getStyleValue(buttonStyle, 'animationType', 'pulse');
+      
+      // Generate animation class based on animation type
+      let animationClass = '';
+      if (showAnimation) {
+        switch (animationType) {
+          case 'pulse':
+            animationClass = 'pulse-animation';
+            break;
+          case 'bounce':
+            animationClass = 'bounce-animation';
+            break;
+          case 'shake':
+            animationClass = 'shake-animation';
+            break;
+          case 'wiggle':
+            animationClass = 'wiggle-animation';
+            break;
+          case 'flash':
+            animationClass = 'flash-animation';
+            break;
+          default:
+            animationClass = '';
+        }
+      }
+      
       // Get all button styles from field settings to match preview exactly
       const buttonBgColor = getStyleValue(buttonStyle, 'backgroundColor', formStyle?.primaryColor || '#9b87f5');
       const buttonTextColor = getStyleValue(buttonStyle, 'color', '#FFFFFF');
@@ -360,7 +394,7 @@
         ">
           <button
             type="submit"
-            class="codform-submit-btn"
+            class="codform-submit-btn ${animationClass}"
             style="
               background-color: ${buttonBgColor};
               color: ${buttonTextColor};
