@@ -105,18 +105,17 @@ window.CodformQuantityOffers = (function() {
       return;
     }
 
-    console.log("🎯 REAL DATA - Container found, setting up with real data:", {
-      realPrice,
-      currency,
-      productTitle,
-      hasImage: !!productImage
-    });
-
     // استخدام البيانات الحقيقية ONLY
     const realPrice = parseFloat(productData.price);
     const currency = productData.currency || 'USD';
     const productImage = productData.image;
     const productTitle = productData.title || 'المنتج';
+
+    // Validate price first
+    if (realPrice <= 0 || isNaN(realPrice)) {
+      console.error("❌ REAL DATA - Invalid real price:", realPrice);
+      return;
+    }
 
     console.log("💰 REAL DATA - Using CONFIRMED real price:", {
       realPrice,
@@ -125,12 +124,6 @@ window.CodformQuantityOffers = (function() {
       hasImage: !!productImage,
       productHandle: productData.handle || 'N/A'
     });
-
-    // Validate price again
-    if (realPrice <= 0 || isNaN(realPrice)) {
-      console.error("❌ REAL DATA - Invalid real price:", realPrice);
-      return;
-    }
 
     // التحقق من وجود حاوي العروض داخل النموذج ONLY
     let offersContainer = document.getElementById(`quantity-offers-inside-${blockId}`);
