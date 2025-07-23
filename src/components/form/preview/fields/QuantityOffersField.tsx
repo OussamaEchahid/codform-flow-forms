@@ -19,8 +19,8 @@ interface Styling {
 }
 
 interface ProductData {
+  id?: string;
   price?: number;
-  compareAtPrice?: number;
   title?: string;
   image?: string;
   currency?: string;
@@ -43,21 +43,11 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
   productData,
   currency = 'SAR'
 }) => {
-  // Use REAL product data - no default values
-  const realPrice = productData?.price;
-  const productTitle = productData?.title || 'المنتج';
-  const productImage = productData?.image;
-  const displayCurrency = productData?.currency || currency;
-  
-  console.log('🎯 QuantityOffersField - Product Data:', {
-    realPrice,
-    productTitle,
-    productImage,
-    displayCurrency,
+  console.log('🎯 QuantityOffersField - LOGICAL SOLUTION - Product Data:', {
     productData,
     productId,
     formId,
-    hasPrice: !!realPrice
+    hasRealPrice: !!(productData?.price && productData.price > 0)
   });
 
   const [offers, setOffers] = useState<Offer[]>([]);
@@ -67,12 +57,14 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
     tagColor: '#22c55e',
     priceColor: '#ef4444'
   });
-  const [position, setPosition] = useState('before_form');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadQuantityOffers = async () => {
-      if (!productId || !formId) return;
+      if (!productId || !formId) {
+        setLoading(false);
+        return;
+      }
       
       try {
         const { data, error } = await (supabase as any)
@@ -86,7 +78,6 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
         if (data && !error) {
           setOffers(data.offers || []);
           setStyling(data.styling || styling);
-          setPosition(data.position || 'before_form');
         }
       } catch (error) {
         console.error('Error loading quantity offers:', error);
@@ -98,27 +89,49 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
     loadQuantityOffers();
   }, [productId, formId]);
 
+  // التحقق من وجود بيانات منتج حقيقية
+  const hasRealPrice = productData?.price && productData.price > 0;
+  const realPrice = hasRealPrice ? productData.price : null;
+  const displayCurrency = productData?.currency || currency;
+  const productTitle = productData?.title || 'المنتج';
+  const productImage = productData?.image;
+
   const calculatePrice = (offer: Offer) => {
     if (!realPrice) return 0;
     
-    if (offer.discountType === 'none' || !offer.discountValue) {
-      return realPrice * offer.quantity;
+    let totalPrice = realPrice * offer.quantity;
+    
+    if (offer.discountType === 'fixed' && offer.discountValue) {
+      totalPrice = totalPrice - offer.discountValue;
+    } else if (offer.discountType === 'percentage' && offer.discountValue) {
+      const discount = (totalPrice * offer.discountValue) / 100;
+      totalPrice = totalPrice - discount;
     }
-
-    if (offer.discountType === 'fixed') {
-      return (realPrice * offer.quantity) - offer.discountValue;
-    }
-
-    if (offer.discountType === 'percentage') {
-      const discount = (realPrice * offer.quantity * offer.discountValue) / 100;
-      return (realPrice * offer.quantity) - discount;
-    }
-
-    return realPrice * offer.quantity;
+    
+    return totalPrice;
   };
 
-  if (loading || offers.length === 0 || !realPrice) {
+  // إذا لم تكن هناك عروض أو لا يوجد سعر حقيقي
+  if (loading) {
+    return (
+      <div className="p-4 text-center text-gray-500">
+        <p className="text-sm">جاري تحميل العروض...</p>
+      </div>
+    );
+  }
+
+  if (offers.length === 0) {
     return null;
+  }
+
+  // إذا لم يكن هناك سعر حقيقي، عرض رسالة تحذيرية
+  if (!hasRealPrice) {
+    return (
+      <div className="p-4 border-2 border-dashed border-yellow-300 rounded-lg text-center text-yellow-600 bg-yellow-50 mb-4">
+        <p className="text-sm font-medium">⚠️ لا توجد بيانات سعر حقيقية للمنتج</p>
+        <p className="text-xs mt-1">يرجى التأكد من ربط المنتج بشكل صحيح</p>
+      </div>
+    );
   }
 
   return (
@@ -127,9 +140,8 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
         const totalPrice = calculatePrice(offer);
         const originalPrice = realPrice * offer.quantity;
         const isDiscounted = offer.discountType !== 'none' && offer.discountValue && offer.discountValue > 0;
-        const isHighlighted = index === 1; // Highlight second offer
+        const isHighlighted = index === 1;
         
-        // Calculate savings percentage for display
         let savingsPercentage = 0;
         if (isDiscounted && offer.discountType === 'percentage') {
           savingsPercentage = offer.discountValue || 0;
@@ -141,8 +153,11 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
           <div 
             key={offer.id}
             className={`p-3 rounded-lg border-2 flex items-center justify-between transition-all cursor-pointer hover:shadow-md ${
-              isHighlighted ? 'border-green-500 bg-green-50 shadow-sm' : 'border-gray-200 bg-white'
+              isHighlighted 
+                ? 'border-green-500 bg-green-50 shadow-sm' 
+                : 'border-gray-200 bg-white'
             }`}
+            style={{ backgroundColor: isHighlighted ? '#f0fdf4' : styling.backgroundColor }}
           >
             <div className="flex items-center space-x-3">
               <div className="w-12 h-12 bg-gray-100 rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden">
@@ -155,7 +170,7 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
                       console.log('❌ Image failed to load:', productImage);
                       e.currentTarget.style.display = 'none';
                       const nextElement = e.currentTarget.nextElementSibling as HTMLElement;
-                      if (nextElement) nextElement.style.display = 'block';
+                      if (nextElement) nextElement.style.display = 'flex';
                     }}
                   />
                 ) : null}
@@ -176,19 +191,21 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
                 >
                   {offer.text || `Buy ${offer.quantity} Item${offer.quantity > 1 ? 's' : ''}`}
                 </div>
-                {offer.tag && (
-                  <div 
-                    className="inline-block px-2 py-1 rounded text-xs font-medium text-white mt-1"
-                    style={{ backgroundColor: styling.tagColor }}
-                  >
-                    {offer.tag}
-                  </div>
-                )}
-                {savingsPercentage > 0 && (
-                  <div className="inline-block px-2 py-1 rounded text-xs font-medium text-white bg-green-500 mt-1 ml-2">
-                    Save {savingsPercentage}%
-                  </div>
-                )}
+                <div className="flex items-center gap-2 mt-1">
+                  {offer.tag && (
+                    <div 
+                      className="inline-block px-2 py-1 rounded text-xs font-medium text-white"
+                      style={{ backgroundColor: styling.tagColor }}
+                    >
+                      {offer.tag}
+                    </div>
+                  )}
+                  {savingsPercentage > 0 && (
+                    <div className="inline-block px-2 py-1 rounded text-xs font-medium text-white bg-green-500">
+                      Save {savingsPercentage}%
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 

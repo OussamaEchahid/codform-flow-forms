@@ -18,7 +18,7 @@ serve(async (req) => {
   }
 
   try {
-    console.log(`[${requestId}] 🎯 COMPREHENSIVE FIX - Product form request received`);
+    console.log(`[${requestId}] 🎯 LOGICAL FIX - Product form request received`);
     
     const url = new URL(req.url);
     const shop = url.searchParams.get('shop');
@@ -53,12 +53,53 @@ serve(async (req) => {
 
     console.log(`[${requestId}] 🔍 Fetching form for shop ${shop}, product ${product}`);
 
+    // Function to get real product data from Shopify API
+    async function getRealProductData(shopDomain: string, productHandle: string) {
+      console.log(`[${requestId}] 🛍️ Fetching REAL product data from Shopify API`);
+      
+      try {
+        // Use the shopify-products function to get real product data
+        const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-products`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M`
+          },
+          body: JSON.stringify({
+            shop: shopDomain,
+            productHandle: productHandle
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.products && data.products.length > 0) {
+            const product = data.products[0];
+            console.log(`[${requestId}] ✅ Got real product data:`, product);
+            
+            return {
+              id: product.id,
+              title: product.title,
+              price: product.price || product.priceRangeV2?.minVariantPrice?.amount || null,
+              currency: product.priceRangeV2?.minVariantPrice?.currencyCode || 'USD',
+              image: product.images?.[0] || product.featuredImage?.url || null
+            };
+          }
+        }
+        
+        console.log(`[${requestId}] ❌ Failed to get real product data`);
+        return null;
+      } catch (error) {
+        console.error(`[${requestId}] Error fetching real product data:`, error);
+        return null;
+      }
+    }
+
     // Function to get product-specific form settings
     async function getProductFormSettings() {
       console.log(`[${requestId}] 🔎 Checking product-specific settings...`);
       
       try {
-        // Fix: Use proper query to get single record
         const { data, error } = await supabase
           .from('shopify_product_settings')
           .select(`
@@ -69,14 +110,13 @@ serve(async (req) => {
           .eq('shop_id', shop)
           .eq('product_id', product)
           .eq('enabled', true)
-          .limit(1); // Add limit to prevent multiple rows
+          .limit(1);
 
         if (error) {
           console.log(`[${requestId}] Product settings error:`, error.message);
           return { found: false, error: error.message };
         }
 
-        // Check if we have data and it's an array with at least one item
         if (data && data.length > 0 && data[0].forms) {
           const setting = data[0];
           return { found: true, formId: setting.form_id, formData: setting.forms };
@@ -87,30 +127,6 @@ serve(async (req) => {
         console.log(`[${requestId}] Product settings exception:`, error);
         return { found: false, error: (error as Error).message };
       }
-    }
-
-    // Function to get default form for shop - ONLY if product has NO specific settings
-    async function getDefaultForm() {
-      console.log(`[${requestId}] 🔄 Checking if product has ANY specific settings first...`);
-      
-      // First check if this product has ANY settings (enabled or disabled)
-      if (product) {
-        const { data: anySettings } = await supabase
-          .from('shopify_product_settings')
-          .select('*')
-          .eq('shop_id', shop)
-          .eq('product_id', product)
-          .limit(1);
-
-        // If product has specific settings (even disabled), don't show default form
-        if (anySettings && anySettings.length > 0) {
-          console.log(`[${requestId}] 🚫 Product has specific settings - no default form will be shown`);
-          return { found: false, error: 'Product has specific settings but they are disabled' };
-        }
-      }
-      
-      console.log(`[${requestId}] 🔄 Product has no specific settings, returning no form`);
-      return { found: false, error: 'No product-specific association and no default forms allowed' };
     }
 
     // Function to fetch quantity offers
@@ -130,14 +146,13 @@ serve(async (req) => {
           .eq('product_id', product)
           .eq('form_id', formId)
           .eq('enabled', true)
-          .limit(1); // Add limit to prevent multiple rows
+          .limit(1);
 
         if (error) {
           console.log(`[${requestId}] ℹ️ No quantity offers configured for this product`);
           return null;
         }
 
-        // Fix: Check if data is array and has items
         if (data && data.length > 0) {
           console.log(`[${requestId}] ✅ Found quantity offers:`, JSON.stringify(data[0], null, 2));
           return data[0];
@@ -188,39 +203,15 @@ serve(async (req) => {
         error: productResult.error
       }, null, 2));
     } else {
-      console.log(`[${requestId}] ⚠️ No product handle available, skipping product-specific form check`);
-    }
-
-    let formData = null;
-    let formId = null;
-
-    if (productResult.found && productResult.formData) {
-      console.log(`[${requestId}] 🎯 Found product-specific form ID: ${productResult.formId}`);
-      console.log(`[${requestId}] 🔄 Fetching product-specific form data...`);
-      formData = productResult.formData;
-      formId = productResult.formId;
-    } else {
-      console.log(`[${requestId}] ℹ️ No product-specific settings found, using default form`);
-      const defaultResult = await getDefaultForm();
-      console.log(`[${requestId}] 📄 Default forms result:`, { found: defaultResult.found, error: defaultResult.error });
-      
-      if (defaultResult.found && defaultResult.formData) {
-        console.log(`[${requestId}] ✅ Using default form: ${defaultResult.formData.id}`);
-        formData = defaultResult.formData;
-        formId = defaultResult.formData.id;
-      }
-    }
-
-    if (!formData) {
-      console.log(`[${requestId}] ❌ No form found - either no product association or product-specific form is disabled`);
+      console.log(`[${requestId}] ⚠️ No product handle available, returning no form`);
       const errorResponse = {
         success: false,
-        error: 'No form configured for this product',
+        error: 'No product found',
         debug_info: debug ? {
           shop,
           product,
           blockId,
-          message: 'Either no form is associated with this product, or the associated form is disabled. Please configure a form for this product in the admin panel.'
+          message: 'No product handle could be determined from the request'
         } : undefined
       };
       
@@ -233,16 +224,48 @@ serve(async (req) => {
       });
     }
 
-    console.log(`[${requestId}] ✅ Successfully fetched ${productResult.found ? 'product-specific' : 'default'} form`);
+    let formData = null;
+    let formId = null;
+
+    if (productResult.found && productResult.formData) {
+      console.log(`[${requestId}] 🎯 Found product-specific form ID: ${productResult.formId}`);
+      formData = productResult.formData;
+      formId = productResult.formId;
+    } else {
+      console.log(`[${requestId}] ❌ No form configured for this product`);
+      const errorResponse = {
+        success: false,
+        error: 'No form configured for this product',
+        debug_info: debug ? {
+          shop,
+          product,
+          blockId,
+          message: 'No form is associated with this product. Please configure a form for this product in the admin panel.'
+        } : undefined
+      };
+      
+      return new Response(JSON.stringify(errorResponse), {
+        status: 404,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+        },
+      });
+    }
+
+    console.log(`[${requestId}] ✅ Successfully fetched product-specific form`);
 
     // Extract form fields
     const fields = extractFormFields(formData);
-    const fieldsWithIcons = fields.filter((field: any) => field.icon).length;
 
     // Fetch quantity offers for this form and product
     const quantityOffers = await getQuantityOffers(formId);
 
-    // Build response in expected format
+    // Get REAL product data from Shopify API
+    const realProductData = await getRealProductData(shop, product);
+    console.log(`[${requestId}] 💰 Real product data from API:`, realProductData);
+
+    // Build response with REAL product data
     const response = {
       success: true,
       form: {
@@ -260,24 +283,27 @@ serve(async (req) => {
         phone_prefix: formData.phone_prefix || '+966'
       },
       quantity_offers: quantityOffers,
-      product: product ? {
+      product: realProductData || {
         id: product,
-        price: 24.95, // Default price, will be overridden by Shopify
+        title: 'Product',
+        price: null,
         currency: formData.currency || 'SAR',
-        image: null // Will be filled by frontend from Shopify
-      } : null,
+        image: null
+      },
       debug_info: debug ? {
         shop,
         product,
         blockId,
         formId,
         fieldsCount: fields.length,
-        hasQuantityOffers: !!quantityOffers
+        hasQuantityOffers: !!quantityOffers,
+        hasRealProductData: !!realProductData
       } : undefined
     };
 
-    console.log(`[${requestId}] 📊 Form stats: ${fields.length} fields, ${fieldsWithIcons} with icons`);
+    console.log(`[${requestId}] 📊 Form stats: ${fields.length} fields`);
     console.log(`[${requestId}] 📦 Response includes quantity offers: ${!!quantityOffers}`);
+    console.log(`[${requestId}] 💰 Response includes real product data: ${!!realProductData}`);
     console.log(`[${requestId}] 🎉 SUCCESS - Sending form data to client`);
 
     return new Response(JSON.stringify(response), {
