@@ -190,16 +190,13 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* Before form offers */}
-      {beforeFormOffers.length > 0 && renderQuantityOffers(beforeFormOffers)}
-      
-      {/* Form fields with inside form offers */}
+      {/* Form fields with inside form offers only */}
       {fields.map((field, index) => {
-        // Show inside form offers before submit button
-        if (field.type === 'submit' && insideFormOffers.length > 0) {
+        // Show ALL quantity offers (regardless of position) before submit button
+        if (field.type === 'submit' && quantityOffers.length > 0) {
           return (
             <div key={`${field.id}-with-offers`}>
-              {renderQuantityOffers(insideFormOffers)}
+              {renderQuantityOffers(quantityOffers)}
               <div className="mt-4">
                 <FormField 
                   key={field.id} 
@@ -223,9 +220,6 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
           />
         );
       })}
-      
-      {/* After form offers */}
-      {afterFormOffers.length > 0 && renderQuantityOffers(afterFormOffers)}
     </div>
   );
 };
