@@ -78,17 +78,23 @@
     if (field.type === 'form-title') {
       const title = field.label || 'Form Title';
       
+      // Get title color from field style or use default
+      const titleColor = getStyleValue(field.style, 'color', '#1F2937');
+      const titleFontSize = getStyleValue(field.style, 'fontSize', '24px');
+      const titleFontWeight = getStyleValue(field.style, 'fontWeight', '700');
+      const titleTextAlign = getStyleValue(field.style, 'textAlign', 'center');
+      
       html = `
         <div class="codform-title-field" style="
-          color: #dc2626;
-          font-size: 24px;
-          font-weight: 700;
-          text-align: center;
+          color: ${titleColor};
+          font-size: ${titleFontSize};
+          font-weight: ${titleFontWeight};
+          text-align: ${titleTextAlign};
           padding: 0;
           margin: 0 0 20px 0;
           background: none;
           border: none;
-          font-family: inherit;
+          font-family: 'Cairo', inherit;
         ">
           ${title}
         </div>
