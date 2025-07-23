@@ -3,11 +3,12 @@ import React from 'react';
 
 interface Offer {
   id: string;
-  text: string;
+  text?: string;
+  offer_text?: string;
   tag: string;
   quantity: number;
-  discountType: 'none' | 'fixed' | 'percentage';
-  discountValue?: number;
+  discount_type: 'none' | 'fixed' | 'percentage';
+  discount_value?: number;
 }
 
 interface Styling {
@@ -40,21 +41,20 @@ const QuantityOffersDisplay: React.FC<QuantityOffersDisplayProps> = ({
   productData,
   currency = 'SAR'
 }) => {
-  console.log('🎯 QuantityOffersDisplay received:', {
-    offers: offers?.length,
+  console.log('🎯 QuantityOffersDisplay - Rendering offers:', {
+    offersCount: offers?.length || 0,
     productData,
-    hasPrice: !!productData?.price,
-    hasImage: !!productData?.image,
+    hasValidPrice: !!(productData?.price && productData.price > 0),
     currency: productData?.currency || currency
   });
 
-  // إذا لم تكن هناك بيانات منتج حقيقية، عرض رسالة تحذيرية
-  if (!productData?.price) {
-    console.log('⚠️ No real product data available');
+  // Strict validation for real product data
+  if (!productData?.price || productData.price <= 0) {
+    console.log('⚠️ QuantityOffersDisplay - No valid product price');
     return (
       <div className="p-4 border-2 border-dashed border-yellow-300 rounded-lg text-center text-yellow-600 bg-yellow-50">
         <p className="text-sm font-medium">لا توجد بيانات سعر حقيقية للمنتج</p>
-        <p className="text-xs mt-1">يرجى التأكد من ربط المنتج بشكل صحيح</p>
+        <p className="text-xs mt-1">السعر الحالي: {productData?.price || 'غير محدد'}</p>
       </div>
     );
   }
@@ -64,29 +64,32 @@ const QuantityOffersDisplay: React.FC<QuantityOffersDisplayProps> = ({
   const productImage = productData.image;
   const displayCurrency = productData.currency || currency;
   
-  console.log('✅ Using real product data:', {
-    realPrice,
-    productTitle,
-    productImage: !!productImage,
-    displayCurrency
-  });
-  
   const calculatePrice = (offer: Offer) => {
-    if (offer.discountType === 'none' || !offer.discountValue) {
-      return realPrice * offer.quantity;
+    let totalPrice = realPrice * offer.quantity;
+    
+    if (offer.discount_type === 'fixed' && offer.discount_value) {
+      totalPrice = totalPrice - offer.discount_value;
+    } else if (offer.discount_type === 'percentage' && offer.discount_value) {
+      const discount = (totalPrice * offer.discount_value) / 100;
+      totalPrice = totalPrice - discount;
     }
-
-    if (offer.discountType === 'fixed') {
-      return (realPrice * offer.quantity) - offer.discountValue;
-    }
-
-    if (offer.discountType === 'percentage') {
-      const discount = (realPrice * offer.quantity * offer.discountValue) / 100;
-      return (realPrice * offer.quantity) - discount;
-    }
-
-    return realPrice * offer.quantity;
+    
+    return Math.max(0, totalPrice);
   };
+
+  const getCurrencySymbol = (curr: string) => {
+    const symbols: { [key: string]: string } = {
+      'USD': '$',
+      'SAR': 'ر.س',
+      'MAD': 'د.م',
+      'AED': 'د.إ',
+      'EUR': '€',
+      'GBP': '£'
+    };
+    return symbols[curr] || curr;
+  };
+
+  const currencySymbol = getCurrencySymbol(displayCurrency);
 
   if (!offers || offers.length === 0) {
     return (
@@ -96,19 +99,31 @@ const QuantityOffersDisplay: React.FC<QuantityOffersDisplayProps> = ({
     );
   }
 
+  console.log('✅ QuantityOffersDisplay - Rendering with valid data:', {
+    realPrice,
+    currencySymbol,
+    offersCount: offers.length
+  });
+
   return (
-    <div className="space-y-2 mb-4">
+    <div className="space-y-2">
+      <div className="text-xs text-gray-500 mb-2 p-2 bg-gray-50 rounded">
+        📊 معاينة العروض | السعر الأساسي: {realPrice.toFixed(2)} {currencySymbol}
+      </div>
+      
       {offers.map((offer, index) => {
         const totalPrice = calculatePrice(offer);
         const originalPrice = realPrice * offer.quantity;
-        const isDiscounted = offer.discountType !== 'none' && offer.discountValue && offer.discountValue > 0;
+        const isDiscounted = offer.discount_type !== 'none' && offer.discount_value && offer.discount_value > 0;
         const isHighlighted = index === 1;
         
         let savingsPercentage = 0;
-        if (isDiscounted && offer.discountType === 'percentage') {
-          savingsPercentage = offer.discountValue || 0;
-        } else if (isDiscounted && offer.discountType === 'fixed') {
-          savingsPercentage = Math.round(((offer.discountValue || 0) / originalPrice) * 100);
+        if (isDiscounted) {
+          if (offer.discount_type === 'percentage') {
+            savingsPercentage = offer.discount_value || 0;
+          } else if (offer.discount_type === 'fixed') {
+            savingsPercentage = Math.round(((offer.discount_value || 0) / originalPrice) * 100);
+          }
         }
 
         return (
@@ -129,7 +144,7 @@ const QuantityOffersDisplay: React.FC<QuantityOffersDisplayProps> = ({
                     alt={productTitle}
                     className="w-full h-full object-cover rounded-lg"
                     onError={(e) => {
-                      console.log('❌ Image failed to load:', productImage);
+                      console.log('❌ QuantityOffersDisplay - Image failed to load:', productImage);
                       e.currentTarget.style.display = 'none';
                       const nextElement = e.currentTarget.nextElementSibling as HTMLElement;
                       if (nextElement) nextElement.style.display = 'flex';
@@ -151,7 +166,7 @@ const QuantityOffersDisplay: React.FC<QuantityOffersDisplayProps> = ({
                   className="font-semibold"
                   style={{ color: styling.textColor }}
                 >
-                  {offer.text || `Buy ${offer.quantity} Item${offer.quantity > 1 ? 's' : ''}`}
+                  {offer.offer_text || offer.text || `اشترِ ${offer.quantity} قطعة`}
                 </div>
                 <div className="flex items-center gap-2 mt-1">
                   {offer.tag && (
@@ -164,7 +179,7 @@ const QuantityOffersDisplay: React.FC<QuantityOffersDisplayProps> = ({
                   )}
                   {savingsPercentage > 0 && (
                     <div className="inline-block px-2 py-1 rounded text-xs font-medium text-white bg-green-500">
-                      Save {savingsPercentage}%
+                      وفر {savingsPercentage}%
                     </div>
                   )}
                 </div>
@@ -174,18 +189,18 @@ const QuantityOffersDisplay: React.FC<QuantityOffersDisplayProps> = ({
             <div className="text-right">
               {isDiscounted && (
                 <div className="text-sm line-through text-gray-400">
-                  {originalPrice.toFixed(2)} {displayCurrency}
+                  {originalPrice.toFixed(2)} {currencySymbol}
                 </div>
               )}
               <div 
                 className="font-bold text-lg"
                 style={{ color: styling.priceColor }}
               >
-                {totalPrice.toFixed(2)} {displayCurrency}
+                {totalPrice.toFixed(2)} {currencySymbol}
               </div>
               {offer.quantity > 1 && (
                 <div className="text-xs text-gray-500 mt-1">
-                  {realPrice.toFixed(2)} {displayCurrency} × {offer.quantity}
+                  {realPrice.toFixed(2)} {currencySymbol} × {offer.quantity}
                 </div>
               )}
             </div>

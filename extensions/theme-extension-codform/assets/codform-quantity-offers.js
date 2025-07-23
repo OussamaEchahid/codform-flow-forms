@@ -1,167 +1,219 @@
 
 /**
- * CODFORM Quantity Offers Handler - FINAL CORRECTED VERSION
- * معالج العروض الكمية - النسخة المصححة نهائياً
+ * CODFORM Quantity Offers Handler - UNIFIED SYSTEM
+ * معالج العروض الكمية - النظام الموحد
  * 
- * This version fixes the core issue by:
- * 1. Targeting the correct form containers (div.codform-form, not form tag)
- * 2. Using pre-existing quantity offer containers from liquid template
- * 3. Proper timing with MutationObserver
- * 4. Simplified, focused code
+ * This system mirrors the React component logic to ensure
+ * consistent behavior between preview and Shopify store
  */
 
 window.CodformQuantityOffers = (function() {
   'use strict';
 
-  // تتبع العروض المعروضة لمنع التكرار
-  const displayedOffers = new Set();
+  // State management
+  let isInitialized = false;
+  const processedForms = new Set();
   
-  // دالة البحث عن حاوي النموذج الصحيح
-  function findCorrectFormContainer(blockId) {
-    console.log(`🎯 FINAL CORRECTED - Looking for form container with blockId: ${blockId}`);
-    
-    // أولاً: البحث عن الحاوي المحدد بـ blockId
-    const specificSelectors = [
-      `#codform-container-${blockId}`,
-      `#codform-form-${blockId}`,
-      `.codform-form-container-${blockId}`,
-      `[data-block-id="${blockId}"]`
-    ];
-    
-    for (const selector of specificSelectors) {
-      const container = document.querySelector(selector);
-      if (container) {
-        console.log(`✅ FINAL CORRECTED - Found specific container: ${selector}`, container);
-        return container;
+  // Configuration
+  const CONFIG = {
+    API_BASE_URL: 'https://trlklwixfeaexhydzaue.supabase.co/functions/v1',
+    RETRY_ATTEMPTS: 3,
+    RETRY_DELAY: 1000,
+    FORM_WAIT_TIMEOUT: 15000,
+    OFFER_CHECK_INTERVAL: 100
+  };
+
+  // Utility functions
+  const log = (message, data = null) => {
+    console.log(`🎯 CODFORM Offers: ${message}`, data || '');
+  };
+
+  const error = (message, data = null) => {
+    console.error(`❌ CODFORM Offers: ${message}`, data || '');
+  };
+
+  const success = (message, data = null) => {
+    console.log(`✅ CODFORM Offers: ${message}`, data || '');
+  };
+
+  // Form detection system
+  const FormDetector = {
+    findFormContainer: function(blockId) {
+      const selectors = [
+        `#codform-container-${blockId}`,
+        `#codform-form-${blockId}`,
+        `[data-block-id="${blockId}"]`,
+        `.codform-form-container-${blockId}`,
+        '.codform-form',
+        '.codform-form-container'
+      ];
+
+      for (const selector of selectors) {
+        const element = document.querySelector(selector);
+        if (element) {
+          log(`Found form container: ${selector}`, element);
+          return element;
+        }
       }
-    }
-    
-    // ثانياً: البحث عن حاوي النموذج العام
-    const generalSelectors = [
-      '.codform-form',
-      '.codform-form-container',
-      '[data-codform="true"]',
-      '[data-codform]'
-    ];
-    
-    for (const selector of generalSelectors) {
-      const container = document.querySelector(selector);
-      if (container) {
-        console.log(`✅ FINAL CORRECTED - Found general container: ${selector}`, container);
-        return container;
-      }
-    }
-    
-    console.error(`❌ FINAL CORRECTED - No form container found for blockId: ${blockId}`);
-    return null;
-  }
-  
-  // دالة البحث عن حاوي العرض المناسب
-  function findOfferContainer(blockId, position) {
-    console.log(`🎯 FINAL CORRECTED - Looking for offer container: ${position} with blockId: ${blockId}`);
-    
-    const containerIds = {
-      'before_form': `quantity-offers-before-${blockId}`,
-      'inside_form': `quantity-offers-inside-${blockId}`,
-      'after_form': `quantity-offers-after-${blockId}`
-    };
-    
-    const containerId = containerIds[position];
-    if (!containerId) {
-      console.error(`❌ FINAL CORRECTED - Invalid position: ${position}`);
+
+      error(`No form container found for blockId: ${blockId}`);
       return null;
+    },
+
+    waitForForm: function(blockId, callback, timeout = CONFIG.FORM_WAIT_TIMEOUT) {
+      let attempts = 0;
+      const maxAttempts = timeout / CONFIG.OFFER_CHECK_INTERVAL;
+
+      const checkForm = () => {
+        const container = this.findFormContainer(blockId);
+        
+        if (container) {
+          success(`Form ready after ${attempts * CONFIG.OFFER_CHECK_INTERVAL}ms`);
+          callback(container);
+          return;
+        }
+
+        attempts++;
+        if (attempts >= maxAttempts) {
+          error(`Timeout waiting for form: ${blockId}`);
+          return;
+        }
+
+        setTimeout(checkForm, CONFIG.OFFER_CHECK_INTERVAL);
+      };
+
+      checkForm();
+    },
+
+    getFormData: function(container) {
+      const blockId = container.dataset.blockId || 
+                      container.id.replace('codform-container-', '') ||
+                      container.id.replace('codform-form-', '');
+      
+      const productId = container.dataset.productId || 
+                       document.querySelector('[data-product-id]')?.dataset.productId;
+      
+      const shop = container.dataset.shop || 
+                  window.Shopify?.shop?.domain || 
+                  window.location.hostname;
+
+      return { blockId, productId, shop };
     }
-    
-    const container = document.getElementById(containerId);
-    if (container) {
-      console.log(`✅ FINAL CORRECTED - Found pre-existing offer container: ${containerId}`, container);
+  };
+
+  // Offer container management
+  const ContainerManager = {
+    findOfferContainer: function(blockId, position) {
+      const containerId = `quantity-offers-${position}-${blockId}`;
+      let container = document.getElementById(containerId);
+      
+      if (!container) {
+        container = this.createOfferContainer(blockId, position);
+      }
+      
+      if (container) {
+        this.prepareContainer(container);
+      }
+      
       return container;
-    }
-    
-    console.log(`⚠️ FINAL CORRECTED - Pre-existing container not found, will create: ${containerId}`);
-    return null;
-  }
-  
-  // دالة إنشاء حاوي العرض إذا لم يكن موجوداً
-  function createOfferContainer(blockId, position) {
-    console.log(`🔧 FINAL CORRECTED - Creating offer container for position: ${position}`);
-    
-    const formContainer = findCorrectFormContainer(blockId);
-    if (!formContainer) {
-      console.error(`❌ FINAL CORRECTED - Cannot create offer container without form container`);
-      return null;
-    }
-    
-    const offerContainer = document.createElement('div');
-    offerContainer.id = `quantity-offers-${position}-${blockId}`;
-    offerContainer.className = 'quantity-offers-container';
-    offerContainer.style.cssText = `
-      display: block !important;
-      visibility: visible !important;
-      opacity: 1 !important;
-      margin: 15px 0;
-      width: 100%;
-      position: relative;
-      z-index: 10;
-    `;
-    
-    // تحديد مكان الإدراج
-    if (position === 'before_form') {
-      formContainer.parentNode.insertBefore(offerContainer, formContainer);
-    } else if (position === 'after_form') {
-      if (formContainer.nextSibling) {
-        formContainer.parentNode.insertBefore(offerContainer, formContainer.nextSibling);
-      } else {
-        formContainer.parentNode.appendChild(offerContainer);
+    },
+
+    createOfferContainer: function(blockId, position) {
+      const formContainer = FormDetector.findFormContainer(blockId);
+      if (!formContainer) {
+        error(`Cannot create offer container without form container`);
+        return null;
       }
-    } else if (position === 'inside_form') {
-      // داخل النموذج، في البداية
-      formContainer.insertBefore(offerContainer, formContainer.firstChild);
+
+      const container = document.createElement('div');
+      container.id = `quantity-offers-${position}-${blockId}`;
+      container.className = 'quantity-offers-container';
+      container.style.cssText = `
+        display: none;
+        width: 100%;
+        margin: 15px 0;
+        position: relative;
+        z-index: 10;
+      `;
+
+      this.insertContainer(container, formContainer, position);
+      log(`Created offer container: ${container.id}`);
+      return container;
+    },
+
+    insertContainer: function(container, formContainer, position) {
+      const wrapper = formContainer.querySelector('.codform-form-wrapper') || formContainer;
+      
+      switch (position) {
+        case 'before_form':
+          wrapper.parentNode.insertBefore(container, wrapper);
+          break;
+        case 'after_form':
+          wrapper.parentNode.insertBefore(container, wrapper.nextSibling);
+          break;
+        case 'inside_form':
+        default:
+          wrapper.insertBefore(container, wrapper.firstChild);
+          break;
+      }
+    },
+
+    prepareContainer: function(container) {
+      container.style.display = 'block';
+      container.style.visibility = 'visible';
+      container.style.opacity = '1';
+      container.innerHTML = '';
     }
-    
-    console.log(`✅ FINAL CORRECTED - Created offer container at position: ${position}`);
-    return offerContainer;
-  }
-  
-  // دالة عرض العروض
-  function displayOffers(container, offers, productData, styling) {
-    if (!container || !offers || !Array.isArray(offers) || offers.length === 0) {
-      console.error('❌ FINAL CORRECTED - Invalid display parameters');
-      return;
-    }
-    
-    console.log(`📦 FINAL CORRECTED - Displaying ${offers.length} offers with real product data:`, {
-      price: productData?.price,
-      currency: productData?.currency,
-      title: productData?.title,
-      image: productData?.image
-    });
-    
-    // إظهار الحاوي أولاً
-    container.style.display = 'block';
-    container.style.visibility = 'visible';
-    container.style.opacity = '1';
-    
-    // تنظيف الحاوي
-    container.innerHTML = '';
-    
-    const realPrice = parseFloat(productData?.price || 0);
-    const currency = productData?.currency || 'SAR';
-    const currencySymbol = currency === 'USD' ? '$' : 
-                          currency === 'SAR' ? 'ر.س' : 
-                          currency === 'MAD' ? 'د.م' : currency;
-    
-    if (realPrice <= 0) {
-      console.error('❌ FINAL CORRECTED - Invalid product price:', realPrice);
-      return;
-    }
-    
-    offers.forEach((offer, index) => {
-      const offerElement = document.createElement('div');
-      offerElement.className = 'quantity-offer-item';
-      offerElement.style.cssText = `
-        background-color: ${styling?.backgroundColor || '#ffffff'};
-        border: 2px solid ${index === 1 ? '#22c55e' : '#e5e7eb'};
+  };
+
+  // Offer display system - mirrors React component logic
+  const OfferRenderer = {
+    render: function(container, offers, productData, styling = {}) {
+      if (!container || !offers || !Array.isArray(offers) || offers.length === 0) {
+        error('Invalid render parameters');
+        return false;
+      }
+
+      // Validate product data
+      if (!productData?.price || productData.price <= 0) {
+        error('Invalid product price data', productData);
+        return false;
+      }
+
+      const realPrice = parseFloat(productData.price);
+      const currency = productData.currency || 'SAR';
+      const currencySymbol = this.getCurrencySymbol(currency);
+
+      log(`Rendering ${offers.length} offers`, {
+        realPrice,
+        currency,
+        productTitle: productData.title
+      });
+
+      // Clear and prepare container
+      ContainerManager.prepareContainer(container);
+
+      // Create offer elements
+      offers.forEach((offer, index) => {
+        const offerElement = this.createOfferElement(offer, index, realPrice, currencySymbol, productData, styling);
+        container.appendChild(offerElement);
+      });
+
+      success(`Rendered ${offers.length} offers successfully`);
+      return true;
+    },
+
+    createOfferElement: function(offer, index, realPrice, currencySymbol, productData, styling) {
+      const isHighlighted = index === 1;
+      const totalPrice = this.calculatePrice(offer, realPrice);
+      const originalPrice = realPrice * (offer.quantity || 1);
+      const isDiscounted = totalPrice < originalPrice;
+      
+      const element = document.createElement('div');
+      element.className = 'quantity-offer-item';
+      element.style.cssText = `
+        background-color: ${isHighlighted ? '#f0fdf4' : styling.backgroundColor || '#ffffff'};
+        border: 2px solid ${isHighlighted ? '#22c55e' : '#e5e7eb'};
         border-radius: 12px;
         padding: 16px;
         margin-bottom: 12px;
@@ -170,84 +222,103 @@ window.CodformQuantityOffers = (function() {
         justify-content: space-between;
         cursor: pointer;
         transition: all 0.3s ease;
-        ${index === 1 ? 'background-color: #f0fdf4; box-shadow: 0 4px 8px rgba(0,0,0,0.1);' : ''}
+        ${isHighlighted ? 'box-shadow: 0 4px 8px rgba(0,0,0,0.1);' : ''}
       `;
+
+      // Left section: image and content
+      const leftSection = this.createLeftSection(offer, productData, styling);
       
-      // الجزء الأيسر: الصورة والمحتوى
-      const leftSection = document.createElement('div');
-      leftSection.style.cssText = 'display: flex; align-items: center; gap: 12px; flex: 1;';
-      
-      // صورة المنتج
-      const imageElement = document.createElement('img');
-      imageElement.style.cssText = `
+      // Right section: pricing
+      const rightSection = this.createRightSection(offer, totalPrice, originalPrice, isDiscounted, currencySymbol, styling);
+
+      element.appendChild(leftSection);
+      element.appendChild(rightSection);
+
+      // Add click handler
+      element.addEventListener('click', () => {
+        this.handleOfferClick(offer, totalPrice);
+      });
+
+      return element;
+    },
+
+    createLeftSection: function(offer, productData, styling) {
+      const section = document.createElement('div');
+      section.style.cssText = 'display: flex; align-items: center; gap: 12px; flex: 1;';
+
+      // Product image
+      const imageContainer = document.createElement('div');
+      imageContainer.style.cssText = `
         width: 60px;
         height: 60px;
-        object-fit: cover;
+        background-color: #f3f4f6;
         border-radius: 8px;
         border: 1px solid #e5e7eb;
         flex-shrink: 0;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       `;
-      
-      if (productData?.image) {
-        imageElement.src = productData.image;
-        imageElement.alt = productData.title || 'المنتج';
-        imageElement.onerror = function() {
-          this.style.display = 'none';
+
+      if (productData.image) {
+        const img = document.createElement('img');
+        img.src = productData.image;
+        img.alt = productData.title || 'Product';
+        img.style.cssText = 'width: 100%; height: 100%; object-fit: cover;';
+        img.onerror = () => {
+          imageContainer.innerHTML = this.getPlaceholderIcon();
         };
-        leftSection.appendChild(imageElement);
+        imageContainer.appendChild(img);
+      } else {
+        imageContainer.innerHTML = this.getPlaceholderIcon();
       }
-      
-      // محتوى النص
+
+      // Text content
       const textContent = document.createElement('div');
       textContent.style.cssText = 'flex: 1;';
-      
+
       const mainText = document.createElement('div');
       mainText.style.cssText = `
         font-weight: 600;
         font-size: 15px;
-        color: ${styling?.textColor || '#000000'};
+        color: ${styling.textColor || '#000000'};
         margin-bottom: 6px;
-        font-family: 'Cairo', system-ui, Arial, sans-serif;
+        font-family: system-ui, -apple-system, sans-serif;
       `;
-      mainText.textContent = offer.offer_text || `اشترِ ${offer.quantity} قطعة`;
-      
+      mainText.textContent = offer.offer_text || offer.text || `اشترِ ${offer.quantity} قطعة`;
+
       const tagsContainer = document.createElement('div');
       tagsContainer.style.cssText = 'display: flex; gap: 8px; align-items: center;';
-      
+
       if (offer.tag) {
-        const tagElement = document.createElement('span');
-        tagElement.style.cssText = `
-          background-color: ${styling?.tagColor || '#22c55e'};
+        const tag = document.createElement('span');
+        tag.style.cssText = `
+          background-color: ${styling.tagColor || '#22c55e'};
           color: white;
           padding: 4px 8px;
           border-radius: 12px;
           font-size: 12px;
           font-weight: 600;
         `;
-        tagElement.textContent = offer.tag;
-        tagsContainer.appendChild(tagElement);
+        tag.textContent = offer.tag;
+        tagsContainer.appendChild(tag);
       }
-      
+
       textContent.appendChild(mainText);
       textContent.appendChild(tagsContainer);
-      leftSection.appendChild(textContent);
-      
-      // الجزء الأيمن: الأسعار
-      const priceSection = document.createElement('div');
-      priceSection.style.cssText = 'text-align: center; min-width: 100px;';
-      
-      // حساب السعر
-      let totalPrice = realPrice * (offer.quantity || 1);
-      let originalPrice = totalPrice;
-      
-      if (offer.discount_type === 'percentage' && offer.discount_value > 0) {
-        totalPrice = originalPrice - (originalPrice * offer.discount_value / 100);
-      } else if (offer.discount_type === 'fixed' && offer.discount_value > 0) {
-        totalPrice = originalPrice - offer.discount_value;
-      }
-      
-      // عرض السعر الأصلي إذا كان هناك خصم
-      if (totalPrice < originalPrice) {
+
+      section.appendChild(imageContainer);
+      section.appendChild(textContent);
+
+      return section;
+    },
+
+    createRightSection: function(offer, totalPrice, originalPrice, isDiscounted, currencySymbol, styling) {
+      const section = document.createElement('div');
+      section.style.cssText = 'text-align: center; min-width: 100px;';
+
+      if (isDiscounted) {
         const originalPriceElement = document.createElement('div');
         originalPriceElement.style.cssText = `
           font-size: 12px;
@@ -256,187 +327,211 @@ window.CodformQuantityOffers = (function() {
           margin-bottom: 4px;
         `;
         originalPriceElement.textContent = `${originalPrice.toFixed(2)} ${currencySymbol}`;
-        priceSection.appendChild(originalPriceElement);
+        section.appendChild(originalPriceElement);
       }
-      
-      // السعر النهائي
+
       const finalPriceElement = document.createElement('div');
       finalPriceElement.style.cssText = `
         font-size: 18px;
         font-weight: bold;
-        color: ${styling?.priceColor || '#ef4444'};
-        font-family: 'Cairo', system-ui, Arial, sans-serif;
+        color: ${styling.priceColor || '#ef4444'};
+        font-family: system-ui, -apple-system, sans-serif;
       `;
       finalPriceElement.textContent = `${totalPrice.toFixed(2)} ${currencySymbol}`;
-      priceSection.appendChild(finalPriceElement);
+      section.appendChild(finalPriceElement);
+
+      return section;
+    },
+
+    calculatePrice: function(offer, basePrice) {
+      let totalPrice = basePrice * (offer.quantity || 1);
       
-      // تجميع العناصر
-      offerElement.appendChild(leftSection);
-      offerElement.appendChild(priceSection);
-      container.appendChild(offerElement);
+      if (offer.discount_type === 'percentage' && offer.discount_value > 0) {
+        totalPrice = totalPrice - (totalPrice * offer.discount_value / 100);
+      } else if (offer.discount_type === 'fixed' && offer.discount_value > 0) {
+        totalPrice = totalPrice - offer.discount_value;
+      }
       
-      console.log(`✅ FINAL CORRECTED - Offer displayed: ${offer.offer_text}, Price: ${totalPrice.toFixed(2)} ${currencySymbol}`);
-    });
-  }
-  
-  // دالة عرض العروض الرئيسية
-  function displayQuantityOffers(quantityOffersData, blockId, productId, productData) {
-    console.log('🎯 FINAL CORRECTED - Starting display process');
-    
-    const offerId = `${blockId}-${productId}`;
-    if (displayedOffers.has(offerId)) {
-      console.log('⚠️ FINAL CORRECTED - Already displayed, skipping');
-      return;
-    }
-    
-    if (!quantityOffersData?.offers || !Array.isArray(quantityOffersData.offers)) {
-      console.error('❌ FINAL CORRECTED - Invalid offers data');
-      return;
-    }
-    
-    if (!productData?.price || productData.price <= 0) {
-      console.error('❌ FINAL CORRECTED - Invalid product price');
-      return;
-    }
-    
-    const position = quantityOffersData.position || 'inside_form';
-    console.log(`📍 FINAL CORRECTED - Using position: ${position}`);
-    
-    // البحث عن حاوي العرض المناسب
-    let container = findOfferContainer(blockId, position);
-    
-    // إنشاء الحاوي إذا لم يكن موجوداً
-    if (!container) {
-      container = createOfferContainer(blockId, position);
-    }
-    
-    if (!container) {
-      console.error('❌ FINAL CORRECTED - Could not find or create offer container');
-      return;
-    }
-    
-    // عرض العروض
-    displayOffers(
-      container,
-      quantityOffersData.offers,
-      productData,
-      quantityOffersData.styling || {}
-    );
-    
-    // تسجيل النجاح
-    displayedOffers.add(offerId);
-    console.log(`✅ FINAL CORRECTED - Successfully displayed offers for ${offerId}`);
-  }
-  
-  // دالة تحميل العروض من API
-  async function loadQuantityOffers(blockId, productId, shop) {
-    const offerId = `${blockId}-${productId}`;
-    if (displayedOffers.has(offerId)) {
-      console.log('⚠️ FINAL CORRECTED - Already loaded, skipping');
-      return { success: false, message: 'Already loaded' };
-    }
-    
-    try {
-      console.log(`🔄 FINAL CORRECTED - Loading offers for: ${offerId}`);
-      
-      const apiUrl = `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/forms-product?shop=${encodeURIComponent(shop)}&product=${encodeURIComponent(productId)}&blockId=${encodeURIComponent(blockId)}`;
-      
-      const response = await fetch(apiUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        }
+      return Math.max(0, totalPrice);
+    },
+
+    getCurrencySymbol: function(currency) {
+      const symbols = {
+        'USD': '$',
+        'SAR': 'ر.س',
+        'MAD': 'د.م',
+        'AED': 'د.إ',
+        'EUR': '€',
+        'GBP': '£'
+      };
+      return symbols[currency] || currency;
+    },
+
+    getPlaceholderIcon: function() {
+      return `
+        <svg class="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 20 20" style="width: 32px; height: 32px;">
+          <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd" />
+        </svg>
+      `;
+    },
+
+    handleOfferClick: function(offer, totalPrice) {
+      log(`Offer clicked: ${offer.offer_text || offer.text}`, {
+        quantity: offer.quantity,
+        price: totalPrice
       });
       
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      // Trigger custom event for form integration
+      window.dispatchEvent(new CustomEvent('codform:offerSelected', {
+        detail: { offer, totalPrice }
+      }));
+    }
+  };
+
+  // API integration
+  const ApiManager = {
+    loadQuantityOffers: async function(blockId, productId, shop) {
+      const cacheKey = `${blockId}-${productId}`;
+      
+      if (processedForms.has(cacheKey)) {
+        log('Offers already loaded for this form');
+        return { success: false, message: 'Already loaded' };
       }
+
+      try {
+        log(`Loading offers for: ${cacheKey}`);
+        
+        const apiUrl = `${CONFIG.API_BASE_URL}/forms-product?shop=${encodeURIComponent(shop)}&product=${encodeURIComponent(productId)}&blockId=${encodeURIComponent(blockId)}`;
+        
+        const response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        
+        if (data.success && data.quantity_offers && data.product) {
+          processedForms.add(cacheKey);
+          success('Offers loaded successfully');
+          return { success: true, data };
+        } else {
+          log('No offers found for this product');
+          return { success: false, message: 'No offers found' };
+        }
+        
+      } catch (error) {
+        error('Failed to load offers:', error.message);
+        return { success: false, error: error.message };
+      }
+    }
+  };
+
+  // Main controller
+  const OffersController = {
+    initialize: function() {
+      if (isInitialized) return;
       
-      const data = await response.json();
+      log('Initializing quantity offers system');
       
-      if (data.success && data.quantity_offers && data.product) {
-        console.log('✅ FINAL CORRECTED - Loaded offers and product data successfully');
-        displayQuantityOffers(data.quantity_offers, blockId, productId, data.product);
-        return { success: true, data };
+      // Wait for DOM to be ready
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+          this.autoDetectAndLoad();
+        });
       } else {
-        console.log('ℹ️ FINAL CORRECTED - No offers found');
-        return { success: false, message: 'No offers found' };
+        this.autoDetectAndLoad();
       }
       
-    } catch (error) {
-      console.error('❌ FINAL CORRECTED - Error loading offers:', error);
-      return { success: false, error: error.message };
-    }
-  }
-  
-  // دالة المراقبة للتأكد من تحميل النموذج
-  function waitForFormContainer(blockId, callback, maxWait = 10000) {
-    console.log(`⏳ FINAL CORRECTED - Waiting for form container: ${blockId}`);
-    
-    const startTime = Date.now();
-    
-    function checkContainer() {
-      const container = findCorrectFormContainer(blockId);
-      if (container) {
-        console.log(`✅ FINAL CORRECTED - Form container found after ${Date.now() - startTime}ms`);
-        callback();
+      isInitialized = true;
+    },
+
+    autoDetectAndLoad: function() {
+      // Look for form containers
+      const containers = document.querySelectorAll('[data-product-id], .codform-form, .codform-form-container');
+      
+      containers.forEach(container => {
+        const formData = FormDetector.getFormData(container);
+        
+        if (formData.blockId && formData.productId && formData.shop) {
+          this.loadAndDisplay(formData.blockId, formData.productId, formData.shop);
+        }
+      });
+    },
+
+    loadAndDisplay: async function(blockId, productId, shop) {
+      try {
+        // Wait for form to be ready
+        FormDetector.waitForForm(blockId, async (formContainer) => {
+          // Load offers data
+          const result = await ApiManager.loadQuantityOffers(blockId, productId, shop);
+          
+          if (result.success && result.data) {
+            this.displayOffers(result.data, blockId);
+          }
+        });
+      } catch (error) {
+        error('Failed to load and display offers:', error.message);
+      }
+    },
+
+    displayOffers: function(data, blockId) {
+      const { quantity_offers, product } = data;
+      
+      if (!quantity_offers || !product) {
+        error('Invalid offer data structure');
         return;
       }
+
+      const position = quantity_offers.position || 'inside_form';
+      const container = ContainerManager.findOfferContainer(blockId, position);
       
-      if (Date.now() - startTime > maxWait) {
-        console.error(`❌ FINAL CORRECTED - Timeout waiting for form container: ${blockId}`);
+      if (!container) {
+        error(`Could not find or create offer container for position: ${position}`);
         return;
       }
-      
-      setTimeout(checkContainer, 100);
+
+      // Render offers
+      const rendered = OfferRenderer.render(
+        container, 
+        quantity_offers.offers, 
+        product, 
+        quantity_offers.styling || {}
+      );
+
+      if (rendered) {
+        success(`Offers displayed successfully at position: ${position}`);
+      }
     }
-    
-    checkContainer();
-  }
-  
-  // دالة تنظيف العروض
-  function cleanupOffers() {
-    console.log('🧹 FINAL CORRECTED - Cleaning up offers');
-    
-    const selectors = [
-      '.quantity-offers-container',
-      '[id*="quantity-offers"]',
-      '.quantity-offer-item'
-    ];
-    
-    selectors.forEach(selector => {
-      const elements = document.querySelectorAll(selector);
-      elements.forEach(element => element.remove());
-    });
-    
-    displayedOffers.clear();
-    console.log('✅ FINAL CORRECTED - Cleanup completed');
-  }
-  
-  // دالة إعادة تعيين
-  function reset() {
-    cleanupOffers();
-    console.log('🔄 FINAL CORRECTED - Reset completed');
-  }
-  
+  };
+
+  // Auto-initialize when script loads
+  OffersController.initialize();
+
   // Public API
   return {
-    display: displayQuantityOffers,
-    load: loadQuantityOffers,
-    reset: reset,
-    cleanup: cleanupOffers,
-    waitForContainer: waitForFormContainer
+    load: ApiManager.loadQuantityOffers,
+    display: OffersController.displayOffers,
+    reset: function() {
+      processedForms.clear();
+      log('System reset completed');
+    }
   };
 })();
 
-// دوال مساعدة للتشخيص
+// Global helper functions
+window.loadQuantityOffers = function(blockId, productId, shop) {
+  return window.CodformQuantityOffers.load(blockId, productId, shop);
+};
+
 window.resetQuantityOffers = function() {
   return window.CodformQuantityOffers.reset();
 };
 
-window.cleanupQuantityOffers = function() {
-  return window.CodformQuantityOffers.cleanup();
-};
-
-console.log('✅ FINAL CORRECTED - Quantity Offers handler loaded successfully');
+success('Quantity Offers system initialized successfully');
