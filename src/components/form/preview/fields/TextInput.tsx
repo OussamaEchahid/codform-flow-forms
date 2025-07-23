@@ -50,7 +50,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
   const backgroundColor = 'rgb(255, 255, 255)';
   const borderColor = fieldStyle.borderColor || 'rgb(209, 213, 219)';
   const borderWidth = fieldStyle.borderWidth || '1px';
-  const borderRadius = fieldStyle.borderRadius || '12px';
+  const borderRadius = fieldStyle.borderRadius || '8px';
   const paddingY = fieldStyle.paddingY ? `${fieldStyle.paddingY}px` : '10px';
   
   // تحديد إذا كان هناك أيقونة وإذا كان يجب إظهارها
