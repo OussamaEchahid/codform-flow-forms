@@ -586,17 +586,18 @@
             console.log('🎁 CODFORM: Generated offers HTML:', offersHtml);
             
             // Replace the placeholder with actual offers
-            const offersContainer = document.getElementById('quantity-offers-container');
-            if (offersContainer && offersHtml) {
-              offersContainer.innerHTML = offersHtml;
-              console.log('✅ CODFORM: Quantity offers replaced placeholder successfully');
-            } else {
-              console.log('❌ CODFORM: Failed to replace offers placeholder');
-              console.log('Offers container found:', !!offersContainer);
-              console.log('Offers HTML generated:', !!offersHtml);
-            }
+            setTimeout(() => {
+              const offersContainer = document.getElementById('quantity-offers-container');
+              if (offersContainer && offersHtml) {
+                console.log('🎁 CODFORM: Replacing placeholder with actual offers');
+                offersContainer.outerHTML = offersHtml;
+                console.log('✅ CODFORM: Quantity offers replaced successfully');
+              } else {
+                console.log('❌ CODFORM: Container not found or HTML empty');
+              }
+            }, 500);
           } else {
-            console.log('⚠️ CODFORM: No quantity offers found in database');
+            console.log('⚠️ CODFORM: No quantity offers found, keeping placeholder');
           }
         })
         .catch(error => {
