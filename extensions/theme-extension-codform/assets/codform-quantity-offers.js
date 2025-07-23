@@ -105,6 +105,13 @@ window.CodformQuantityOffers = (function() {
       return;
     }
 
+    console.log("🎯 REAL DATA - Container found, setting up with real data:", {
+      realPrice,
+      currency,
+      productTitle,
+      hasImage: !!productImage
+    });
+
     // استخدام البيانات الحقيقية ONLY
     const realPrice = parseFloat(productData.price);
     const currency = productData.currency || 'USD';
@@ -132,16 +139,24 @@ window.CodformQuantityOffers = (function() {
       offersContainer.id = `quantity-offers-inside-${blockId}`;
       offersContainer.className = 'quantity-offers-container-inside-form';
       
-      // إدراج العروض داخل النموذج فقط - STRICT PLACEMENT
+      // إدراج العروض في المكان المحدد حسب إعدادات العروض الكمية
+      const quantityOffersPosition = container.querySelector('[data-field-type="quantity-offers"], .quantity-offers-field-placeholder');
       const formTitle = container.querySelector('.form-title-field, [data-field-type="form-title"]');
-      const firstField = container.querySelector('.mb-4:not(.form-title-field), [class*="field"]:not([data-field-type="form-title"])');
+      const firstField = container.querySelector('.mb-4:not(.form-title-field), [class*="field"]:not([data-field-type="form-title"]):not(.quantity-offers-container-inside-form)');
       
-      if (formTitle && firstField) {
+      if (quantityOffersPosition) {
+        // إذا وجد موضع محدد للعروض الكمية، استخدمه
+        quantityOffersPosition.parentNode.insertBefore(offersContainer, quantityOffersPosition.nextSibling);
+        console.log("📍 REAL DATA - Placed offers at designated quantity offers position");
+      } else if (formTitle && firstField) {
         formTitle.parentNode.insertBefore(offersContainer, firstField);
+        console.log("📍 REAL DATA - Placed offers after form title");
       } else if (firstField) {
         firstField.parentNode.insertBefore(offersContainer, firstField);
+        console.log("📍 REAL DATA - Placed offers before first field");
       } else {
         container.appendChild(offersContainer);
+        console.log("📍 REAL DATA - Appended offers to container");
       }
     }
 
@@ -199,9 +214,9 @@ window.CodformQuantityOffers = (function() {
       const leftSection = document.createElement('div');
       leftSection.style.cssText = 'display: flex; align-items: center; gap: 12px; flex: 1;';
 
-      // صورة المنتج الحقيقية
+      // صورة المنتج الحقيقية - إظهار دائم مع fallback
+      const imageElement = document.createElement('img');
       if (productImage) {
-        const imageElement = document.createElement('img');
         imageElement.src = productImage;
         imageElement.alt = productTitle;
         imageElement.style.cssText = `
@@ -210,13 +225,28 @@ window.CodformQuantityOffers = (function() {
           object-fit: cover;
           border-radius: 8px;
           border: 1px solid #e5e7eb;
+          display: block;
         `;
         imageElement.onerror = function() {
-          console.log('❌ Image failed to load:', productImage);
-          this.style.display = 'none';
+          console.log('❌ Image failed to load, showing placeholder:', productImage);
+          this.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMCAxNUgzMFYzNUgyMFYxNVoiIGZpbGw9IiM5Q0E0QUYiLz4KPHN2Zz4K';
         };
-        leftSection.appendChild(imageElement);
+        console.log('✅ REAL DATA - Image element created with src:', productImage);
+      } else {
+        // صورة بديلة إذا لم تكن هناك صورة
+        imageElement.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMCAxNUgzMFYzNUgyMFYxNVoiIGZpbGw9IiM5Q0E0QUYiLz4KPHN2Zz4K';
+        imageElement.alt = 'صورة المنتج';
+        imageElement.style.cssText = `
+          width: 50px;
+          height: 50px;
+          object-fit: cover;
+          border-radius: 8px;
+          border: 1px solid #e5e7eb;
+          display: block;
+        `;
+        console.log('⚠️ REAL DATA - No product image, using placeholder');
       }
+      leftSection.appendChild(imageElement);
 
       // محتوى النص
       const textContent = document.createElement('div');

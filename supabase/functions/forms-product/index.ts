@@ -65,14 +65,18 @@ serve(async (req) => {
           if (data.success && data.products && data.products.length > 0) {
             const product = data.products[0];
             
-            // Ensure we get the correct product data
+            // Ensure we get the correct product data with proper price conversion
+            const productPrice = parseFloat(product.price || product.priceRangeV2?.minVariantPrice?.amount || 0);
+            const productCurrency = product.priceRangeV2?.minVariantPrice?.currencyCode || 'USD';
+            const productImage = product.images?.[0]?.src || product.featuredImage?.url || product.image?.src || null;
+            
             const realProductData = {
               id: product.id,
               title: product.title,
               handle: product.handle,
-              price: parseFloat(product.price || product.priceRangeV2?.minVariantPrice?.amount || 0),
-              currency: product.priceRangeV2?.minVariantPrice?.currencyCode || 'USD',
-              image: product.images?.[0]?.src || product.featuredImage?.url || null
+              price: productPrice,
+              currency: productCurrency,
+              image: productImage
             };
             
             console.log(`[${requestId}] ✅ Real product data:`, {
