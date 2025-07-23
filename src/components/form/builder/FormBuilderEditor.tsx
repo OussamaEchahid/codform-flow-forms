@@ -94,7 +94,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
   
   const [formStyle, setFormStyle] = useState<FormStyle>({
     primaryColor: '#9b87f5',
-    borderRadius: '1.5rem', // Large border radius
+    borderRadius: '1.2rem', // Large border radius
     fontSize: '1rem',
     buttonStyle: 'rounded',
     borderColor: '#9b87f5', // Default border color
@@ -252,7 +252,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
       // Set initial form style with all required properties
       const defaultStyle: FormStyle = {
         primaryColor: '#9b87f5',
-        borderRadius: '1.5rem', // Large border radius
+        borderRadius: '1.2rem', // Large border radius
         fontSize: '1rem',
         buttonStyle: 'rounded',
         borderColor: '#9b87f5', // Default border color
@@ -390,7 +390,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
             if (formData.style) {
               setFormStyle({
                 primaryColor: formData.style.primaryColor || '#9b87f5',
-                borderRadius: formData.style.borderRadius || '1.5rem', // Large border radius
+                borderRadius: formData.style.borderRadius || '1.2rem', // Large border radius
                 fontSize: formData.style.fontSize || '1rem',
                 buttonStyle: formData.style.buttonStyle || 'rounded',
                 borderColor: formData.style.borderColor || '#9b87f5', // Default border color
@@ -408,7 +408,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
               // قيم افتراضية إذا كان النمط مفقودًا
               setFormStyle({
                 primaryColor: '#9b87f5',
-                borderRadius: '1.5rem', // Large border radius
+                borderRadius: '1.2rem', // Large border radius
                 fontSize: '1rem',
                 buttonStyle: 'rounded',
                 borderColor: '#9b87f5', // Default border color
@@ -668,7 +668,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
       if (templateStyle) {
         setFormStyle({
           primaryColor: template.primaryColor || templateStyle.primaryColor || '#9b87f5',
-          borderRadius: templateStyle.borderRadius || '1.5rem', // Large border radius
+          borderRadius: templateStyle.borderRadius || '1.2rem', // Large border radius
           fontSize: templateStyle.fontSize || '1rem',
           buttonStyle: templateStyle.buttonStyle || 'rounded',
           borderColor: templateStyle.borderColor || '#9b87f5', // Default border color

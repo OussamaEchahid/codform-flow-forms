@@ -252,7 +252,7 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
         }] as any,
         style: {
           primaryColor: '#9b87f5',
-          borderRadius: '1.5rem', // Large border radius
+          borderRadius: '1.2rem', // Large border radius
           fontSize: '1rem',
           buttonStyle: 'rounded',
           borderColor: '#9b87f5', // Default border color

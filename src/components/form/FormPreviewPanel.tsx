@@ -104,7 +104,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           fontSize: '18px',
           animation: true,
           animationType: 'pulse',
-          borderRadius: '1.5rem',
+          borderRadius: '1.2rem',
         },
       };
       clonedFields.push(submitButton);
@@ -136,7 +136,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   const previewFormStyle = {
     ...formStyle,
     backgroundColor: formStyle.backgroundColor || '#ffffff',
-    borderRadius: '1.5rem',
+    borderRadius: '1.2rem',
     borderColor: formStyle.borderColor || '#9b87f5',
     borderWidth: formStyle.borderWidth || '2px',
   };
