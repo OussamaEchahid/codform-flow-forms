@@ -160,8 +160,8 @@
       }
       
       // Calculate padding based on icon and direction + custom paddingY
-      const paddingLeft = formDirection === 'rtl' ? '16px' : (showIcon && hasIcon ? '48px' : '16px');
-      const paddingRight = formDirection === 'rtl' ? (showIcon && hasIcon ? '48px' : '16px') : '16px';
+      const paddingLeft = formDirection === 'rtl' ? (showIcon && hasIcon ? '48px' : '16px') : '16px';
+      const paddingRight = formDirection === 'rtl' ? '16px' : (showIcon && hasIcon ? '48px' : '16px');
       const paddingTopBottom = actualPaddingY;
       
       html = `
