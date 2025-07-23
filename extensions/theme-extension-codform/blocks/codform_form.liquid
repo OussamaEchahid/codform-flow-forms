@@ -74,25 +74,16 @@
     
     if (field.type === 'form-title') {
       const title = field.label || 'Form Title';
-      const titleStyle = field.style || {};
-      
-      // Use EXACT preview colors - NO purple background!
-      const titleBgColor = getStyleValue(titleStyle, 'backgroundColor', '#FFFFFF'); // White background
-      const titleTextColor = getStyleValue(titleStyle, 'color', '#1F2937'); // Dark text
-      const titleFontSize = getStyleValue(titleStyle, 'fontSize', '20px');
-      const titleBorderRadius = '0'; // No border radius for title
-      const titlePadding = '16px 20px';
       
       html = `
         <div class="codform-title-field" style="
-          background-color: ${titleBgColor};
-          color: ${titleTextColor};
-          font-size: ${titleFontSize};
-          font-weight: 600;
+          color: #dc2626;
+          font-size: 24px;
+          font-weight: 700;
           text-align: center;
-          padding: ${titlePadding};
-          border-radius: ${titleBorderRadius};
-          margin: 0;
+          padding: 0;
+          margin: 0 0 20px 0;
+          background: none;
           border: none;
           font-family: inherit;
         ">
@@ -272,9 +263,10 @@
       
       const buttonBgColor = getStyleValue(buttonStyle, 'backgroundColor', formStyle?.primaryColor || '#9b87f5');
       const buttonTextColor = getStyleValue(buttonStyle, 'color', '#FFFFFF');
-      const buttonFontSize = getStyleValue(buttonStyle, 'fontSize', '16px'); // CORRECTED size
-      const buttonBorderRadius = getStyleValue(buttonStyle, 'borderRadius', '24px');
-      const buttonPadding = '16px 48px'; // CORRECTED: Larger padding like preview
+      const buttonFontSize = '18px';
+      const buttonBorderRadius = '24px';
+      const buttonPadding = '16px 0';
+      const buttonWidth = '100%';
       
       html = `
         <div class="codform-submit-wrapper" style="
@@ -288,15 +280,18 @@
               background-color: ${buttonBgColor};
               color: ${buttonTextColor};
               font-size: ${buttonFontSize};
-              font-weight: 600;
+              font-weight: 700;
               padding: ${buttonPadding};
               border: none;
               border-radius: ${buttonBorderRadius};
               cursor: pointer;
               transition: all 0.3s ease;
-              box-shadow: 0 4px 12px rgba(155, 135, 245, 0.3);
-              min-width: 200px;
+              width: ${buttonWidth};
+              min-height: 56px;
               font-family: inherit;
+              display: flex;
+              align-items: center;
+              justify-content: center;
             "
             onmouseover="
               this.style.transform='translateY(-2px)';
@@ -507,12 +502,38 @@
         
         console.log('🎯 CODFORM: Final fieldsArray:', fieldsArray, 'Length:', fieldsArray.length);
         
-        // ADD QUANTITY OFFERS if available
+        // FETCH AND ADD QUANTITY OFFERS from database
         let quantityOffersHtml = '';
-        if (data.quantityOffers && Array.isArray(data.quantityOffers) && data.quantityOffers.length > 0) {
-          console.log('🎁 CODFORM: Adding quantity offers:', data.quantityOffers);
-          quantityOffersHtml = renderQuantityOffers(data.quantityOffers[0]);
-        }
+        
+        // Fetch quantity offers from Supabase
+        fetch(`https://trlklwixfeaexhydzaue.supabase.co/rest/v1/quantity_offers?product_id=eq.${productId}&enabled=eq.true`, {
+          headers: {
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY4NTMyMjksImV4cCI6MjA1MjQyOTIyOX0.ynNYzj4_w6k2kqpgmOvJlTF1VYk_TYQ8T1v9k1eXNJo',
+            'Content-Type': 'application/json'
+          }
+        })
+        .then(response => response.json())
+        .then(quantityData => {
+          if (quantityData && quantityData.length > 0) {
+            console.log('🎁 CODFORM: Quantity offers loaded from database:', quantityData[0]);
+            quantityOffersHtml = renderQuantityOffers(quantityData[0]);
+            
+            // Re-render the form with quantity offers
+            container.innerHTML = `
+              <form class="codform-dynamic-form" style="
+                background: transparent;
+                margin: 0;
+                padding: 0;
+              ">
+                ${quantityOffersHtml}
+                ${formContent}
+              </form>
+            `;
+          }
+        })
+        .catch(error => {
+          console.log('❌ CODFORM: Error fetching quantity offers:', error);
+        });
         
         if (fieldsArray && Array.isArray(fieldsArray)) {
           fieldsArray.forEach((field, index) => {
