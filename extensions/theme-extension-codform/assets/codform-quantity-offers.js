@@ -1,7 +1,7 @@
 
 /**
- * CODFORM Quantity Offers Handler - REAL DATA ONLY - POSITION BASED
- * معالج العروض الكمية - البيانات الحقيقية فقط - حسب الموضع المحدد
+ * CODFORM Quantity Offers Handler - FINAL FIX VERSION
+ * معالج العروض الكمية - النسخة النهائية المصححة
  */
 
 window.CodformQuantityOffers = (function() {
@@ -21,14 +21,13 @@ window.CodformQuantityOffers = (function() {
   function markAsProcessed(blockId, productId) {
     const key = `${blockId}-${productId}`;
     processedOffers.add(key);
-    console.log(`✅ POSITION BASED - Marked as processed: ${key}`);
+    console.log(`✅ FINAL FIX - Marked as processed: ${key}`);
   }
 
   // تنظيف شامل لجميع العروض
   function cleanupAllOffers() {
-    console.log("🧹 POSITION CLEANUP - Starting comprehensive cleanup...");
+    console.log("🧹 FINAL FIX - Starting comprehensive cleanup...");
     
-    // حذف جميع العروض الموجودة
     const offerSelectors = [
       '.quantity-offers-container',
       '[id*="quantity-offers"]',
@@ -39,21 +38,85 @@ window.CodformQuantityOffers = (function() {
     offerSelectors.forEach(selector => {
       const elements = document.querySelectorAll(selector);
       elements.forEach(element => {
-        console.log(`🧹 POSITION CLEANUP - Removing: ${element.id || element.className}`);
+        console.log(`🧹 FINAL FIX - Removing: ${element.id || element.className}`);
         element.remove();
       });
     });
 
-    console.log("✅ POSITION CLEANUP - Comprehensive cleanup completed");
+    console.log("✅ FINAL FIX - Comprehensive cleanup completed");
   }
 
-  // إنشاء العرض بناءً على الموضع المحدد
-  function createOfferByPosition(quantityOffersData, blockId, productId, productData, position) {
-    console.log(`📍 POSITION BASED - Creating offer for position: ${position}`);
+  // دالة البحث عن النموذج الفعلي في Shopify
+  function findActualFormContainer(blockId) {
+    console.log(`🔍 FINAL FIX - Looking for actual form container: ${blockId}`);
     
+    // البحث عن الحاوي الأساسي
     const container = document.getElementById(`codform-container-${blockId}`);
     if (!container) {
-      console.error(`❌ POSITION BASED - Container not found: codform-container-${blockId}`);
+      console.error(`❌ FINAL FIX - Container not found: codform-container-${blockId}`);
+      return null;
+    }
+
+    console.log(`✅ FINAL FIX - Found container:`, container);
+    console.log(`📋 FINAL FIX - Container HTML structure:`, container.innerHTML.substring(0, 200) + '...');
+    
+    return container;
+  }
+
+  // دالة البحث عن مكان الإدراج الصحيح داخل النموذج
+  function findInsertionPointInForm(formContainer) {
+    console.log(`🎯 FINAL FIX - Finding insertion point inside form`);
+    
+    // البحث عن العنوان الحقيقي في النموذج
+    const titleSelectors = [
+      'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+      '.form-title',
+      '.product-title',
+      '[data-field-type="form-title"]',
+      '.title',
+      '.heading'
+    ];
+    
+    for (const selector of titleSelectors) {
+      const title = formContainer.querySelector(selector);
+      if (title) {
+        console.log(`✅ FINAL FIX - Found title element: ${selector}`, title);
+        return { element: title, position: 'before' };
+      }
+    }
+    
+    // البحث عن أول حقل في النموذج
+    const fieldSelectors = [
+      'input[type="text"]',
+      'input[type="email"]',
+      'input[type="tel"]',
+      'textarea',
+      'select',
+      '.form-field',
+      '.input-field',
+      '[data-field-type]'
+    ];
+    
+    for (const selector of fieldSelectors) {
+      const field = formContainer.querySelector(selector);
+      if (field) {
+        console.log(`✅ FINAL FIX - Found first field: ${selector}`, field);
+        return { element: field, position: 'before' };
+      }
+    }
+    
+    // كآخر حل، في أول النموذج
+    console.log(`⚠️ FINAL FIX - No specific element found, inserting at form beginning`);
+    return { element: formContainer.firstElementChild, position: 'before' };
+  }
+
+  // إنشاء العرض في المكان الصحيح
+  function createOfferInCorrectPosition(quantityOffersData, blockId, productId, productData, position) {
+    console.log(`📍 FINAL FIX - Creating offer for position: ${position}`);
+    
+    const formContainer = findActualFormContainer(blockId);
+    if (!formContainer) {
+      console.error(`❌ FINAL FIX - Form container not found`);
       return;
     }
 
@@ -69,43 +132,60 @@ window.CodformQuantityOffers = (function() {
       position: relative;
       z-index: 10;
       width: 100%;
+      background-color: transparent;
     `;
 
     // تحديد مكان الإدراج حسب الموضع
-    if (position === 'before_form') {
-      // قبل النموذج - البحث عن العنصر الأب المناسب
-      const parentElement = container.parentElement;
+    let insertionSuccess = false;
+    
+    if (position === 'inside_form') {
+      // داخل النموذج - البحث عن المكان الصحيح
+      const insertionPoint = findInsertionPointInForm(formContainer);
+      if (insertionPoint && insertionPoint.element) {
+        if (insertionPoint.position === 'before') {
+          insertionPoint.element.parentNode.insertBefore(offerContainer, insertionPoint.element);
+        } else {
+          insertionPoint.element.parentNode.insertBefore(offerContainer, insertionPoint.element.nextSibling);
+        }
+        insertionSuccess = true;
+        console.log(`✅ FINAL FIX - Inserted INSIDE form at correct position`);
+      } else {
+        // كآخر حل، في أول النموذج
+        formContainer.insertBefore(offerContainer, formContainer.firstElementChild);
+        insertionSuccess = true;
+        console.log(`✅ FINAL FIX - Inserted INSIDE form at beginning as fallback`);
+      }
+    } else if (position === 'before_form') {
+      // قبل النموذج
+      const parentElement = formContainer.parentElement;
       if (parentElement) {
-        parentElement.insertBefore(offerContainer, container);
-        console.log(`✅ POSITION BASED - Inserted BEFORE form`);
+        parentElement.insertBefore(offerContainer, formContainer);
+        insertionSuccess = true;
+        console.log(`✅ FINAL FIX - Inserted BEFORE form`);
       }
     } else if (position === 'after_form') {
       // بعد النموذج
-      const parentElement = container.parentElement;
+      const parentElement = formContainer.parentElement;
       if (parentElement) {
-        if (container.nextSibling) {
-          parentElement.insertBefore(offerContainer, container.nextSibling);
+        if (formContainer.nextSibling) {
+          parentElement.insertBefore(offerContainer, formContainer.nextSibling);
         } else {
           parentElement.appendChild(offerContainer);
         }
-        console.log(`✅ POSITION BASED - Inserted AFTER form`);
-      }
-    } else {
-      // داخل النموذج (الافتراضي) - فوق العنوان مباشرة
-      const formTitle = container.querySelector('.form-title-field, [data-field-type="form-title"]');
-      if (formTitle) {
-        formTitle.parentNode.insertBefore(offerContainer, formTitle);
-        console.log(`✅ POSITION BASED - Inserted INSIDE form before title`);
-      } else {
-        // إذا لم يوجد عنوان، في أول النموذج
-        container.insertBefore(offerContainer, container.firstChild);
-        console.log(`✅ POSITION BASED - Inserted INSIDE form at beginning`);
+        insertionSuccess = true;
+        console.log(`✅ FINAL FIX - Inserted AFTER form`);
       }
     }
 
-    // منع التكرار في نفس الحاوي
+    if (!insertionSuccess) {
+      console.error(`❌ FINAL FIX - Failed to insert offer at position: ${position}`);
+      offerContainer.remove();
+      return;
+    }
+
+    // منع التكرار
     if (displayedContainers.has(offerContainer.id)) {
-      console.log(`⚠️ POSITION BASED - Container already has offers: ${offerContainer.id}`);
+      console.log(`⚠️ FINAL FIX - Container already has offers: ${offerContainer.id}`);
       offerContainer.remove();
       return;
     }
@@ -116,20 +196,21 @@ window.CodformQuantityOffers = (function() {
     // تسجيل المعالجة
     markAsProcessed(blockId, productId);
     displayedContainers.add(offerContainer.id);
-
+    
+    console.log(`✅ FINAL FIX - Offer successfully displayed at position: ${position}`);
   }
 
   // عرض محتوى العروض
   function displayOffersContent(container, quantityOffersData, productData) {
     const offers = quantityOffersData.offers || [];
     if (offers.length === 0) {
-      console.log("ℹ️ POSITION BASED - No offers to display");
+      console.log("ℹ️ FINAL FIX - No offers to display");
       return;
     }
 
     // التحقق من صحة بيانات المنتج
     if (!productData || !productData.price || productData.price <= 0) {
-      console.error("❌ POSITION BASED - Invalid product data:", productData);
+      console.error("❌ FINAL FIX - Invalid product data:", productData);
       return;
     }
 
@@ -138,7 +219,7 @@ window.CodformQuantityOffers = (function() {
     const productImage = productData.image;
     const productTitle = productData.title || 'المنتج';
 
-    console.log("💰 POSITION BASED - Using REAL product data:", {
+    console.log("💰 FINAL FIX - Using REAL product data:", {
       realPrice,
       currency,
       productTitle,
@@ -200,7 +281,7 @@ window.CodformQuantityOffers = (function() {
         imageElement.alt = productTitle;
         
         imageElement.onerror = function() {
-          console.error('❌ POSITION BASED - Failed to load product image:', productImage);
+          console.error('❌ FINAL FIX - Failed to load product image:', productImage);
           this.style.display = 'none';
           const fallbackIcon = document.createElement('div');
           fallbackIcon.style.cssText = `
@@ -359,17 +440,17 @@ window.CodformQuantityOffers = (function() {
       offerElement.appendChild(priceSection);
       container.appendChild(offerElement);
 
-      console.log(`✅ POSITION BASED - Offer displayed: ${offer.text}, Price: ${totalPrice.toFixed(2)} ${currencySymbol}`);
+      console.log(`✅ FINAL FIX - Offer displayed: ${offer.text}, Price: ${totalPrice.toFixed(2)} ${currencySymbol}`);
     });
   }
 
-  // دالة عرض العروض الحقيقية بناءً على الموضع
+  // دالة عرض العروض الحقيقية - النسخة النهائية المصححة
   function displayRealQuantityOffers(quantityOffersData, blockId, productId, productData = null) {
-    console.log("🎯 POSITION BASED - Starting display with position respect");
+    console.log("🎯 FINAL FIX - Starting final corrected display");
     
     // التحقق من التكرار
     if (isAlreadyProcessed(blockId, productId)) {
-      console.log("⚠️ POSITION BASED - Already processed, skipping...");
+      console.log("⚠️ FINAL FIX - Already processed, skipping...");
       return;
     }
 
@@ -378,27 +459,27 @@ window.CodformQuantityOffers = (function() {
 
     // التحقق من صحة البيانات
     if (!quantityOffersData || !quantityOffersData.offers || !Array.isArray(quantityOffersData.offers)) {
-      console.log("❌ POSITION BASED - Invalid or missing offers data");
+      console.log("❌ FINAL FIX - Invalid or missing offers data");
       return;
     }
 
     if (!productData || !productData.price || productData.price <= 0) {
-      console.log("❌ POSITION BASED - Missing or invalid product price data");
+      console.log("❌ FINAL FIX - Missing or invalid product price data");
       return;
     }
 
-    // الحصول على الموضع من البيانات
+    // الحصول على الموضع من البيانات (افتراضي: داخل النموذج)
     const position = quantityOffersData.position || 'inside_form';
-    console.log(`📍 POSITION BASED - Using position: ${position}`);
+    console.log(`📍 FINAL FIX - Using position: ${position}`);
 
-    // إنشاء العرض في الموضع المحدد
-    createOfferByPosition(quantityOffersData, blockId, productId, productData, position);
+    // إنشاء العرض في المكان الصحيح
+    createOfferInCorrectPosition(quantityOffersData, blockId, productId, productData, position);
   }
 
   // دالة تحميل وعرض العروض من API
   async function loadAndDisplayRealOffers(blockId, productId, shop) {
     if (isAlreadyProcessed(blockId, productId)) {
-      console.log("⚠️ POSITION BASED - Load already processed, skipping...");
+      console.log("⚠️ FINAL FIX - Load already processed, skipping...");
       return { success: false, message: "Already processed" };
     }
 
@@ -420,11 +501,11 @@ window.CodformQuantityOffers = (function() {
       const data = await response.json();
       
       if (data.success && data.quantity_offers && data.quantity_offers.offers && data.quantity_offers.offers.length > 0) {
-        console.log("✅ POSITION BASED - Found real offers and product data");
+        console.log("✅ FINAL FIX - Found real offers and product data");
         
         // التحقق من بيانات المنتج
         if (!data.product || !data.product.price || data.product.price <= 0) {
-          console.error("❌ POSITION BASED - Invalid product data from API");
+          console.error("❌ FINAL FIX - Invalid product data from API");
           return { success: false, message: "Invalid product data" };
         }
         
@@ -437,12 +518,12 @@ window.CodformQuantityOffers = (function() {
         
         return { success: true, offers: data.quantity_offers };
       } else {
-        console.log("ℹ️ POSITION BASED - No offers found");
+        console.log("ℹ️ FINAL FIX - No offers found");
         return { success: false, message: "No offers found" };
       }
       
     } catch (error) {
-      console.error("❌ POSITION BASED - Error loading offers:", error);
+      console.error("❌ FINAL FIX - Error loading offers:", error);
       return { success: false, error: error.message };
     }
   }
@@ -452,7 +533,7 @@ window.CodformQuantityOffers = (function() {
     processedOffers.clear();
     displayedContainers.clear();
     cleanupAllOffers();
-    console.log("🔄 POSITION BASED - Reset completed with cleanup");
+    console.log("🔄 FINAL FIX - Reset completed with cleanup");
   }
 
   // Public API
