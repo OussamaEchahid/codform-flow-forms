@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import FormField from './FormField';
@@ -92,8 +91,10 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
     );
   }
 
-  // Get offers for inside form position only
+  // Get offers for different positions
+  const beforeFormOffers = quantityOffers.filter(offer => offer.position === 'before_form');
   const insideFormOffers = quantityOffers.filter(offer => offer.position === 'inside_form');
+  const afterFormOffers = quantityOffers.filter(offer => offer.position === 'after_form');
 
   const renderQuantityOffers = (offers: QuantityOffer[]) => {
     return offers.map(offer => (
@@ -189,7 +190,10 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* Form fields with inside form offers only */}
+      {/* Before form offers */}
+      {beforeFormOffers.length > 0 && renderQuantityOffers(beforeFormOffers)}
+      
+      {/* Form fields with inside form offers */}
       {fields.map((field, index) => {
         // Show inside form offers before submit button
         if (field.type === 'submit' && insideFormOffers.length > 0) {
@@ -219,6 +223,9 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
           />
         );
       })}
+      
+      {/* After form offers */}
+      {afterFormOffers.length > 0 && renderQuantityOffers(afterFormOffers)}
     </div>
   );
 };
