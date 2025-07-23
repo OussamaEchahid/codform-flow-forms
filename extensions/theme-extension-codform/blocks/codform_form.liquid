@@ -556,16 +556,47 @@
           if (quantityData && quantityData.length > 0) {
             const offer = quantityData[0];
             
-            // Create simple offer HTML directly
+            // Create beautiful offer HTML matching dashboard design
             const simpleOfferHTML = `
-              <div style="margin: 20px 4px; border: 2px solid #e74c3c; border-radius: 8px; padding: 16px; background: linear-gradient(135deg, #fff5f5, #ffeaea);">
-                <h3 style="color: #e74c3c; text-align: center; margin: 0 0 12px 0;">${offer.tag || 'عرض خاص'}</h3>
-                <div style="background: white; border-radius: 6px; padding: 12px;">
-                  <div style="font-weight: 600; color: #2c3e50; margin-bottom: 8px;">الكمية: ${offer.quantity}</div>
-                  <div style="color: #27ae60; font-weight: 500;">${offer.offer_text}</div>
-                  <div style="background: #e74c3c; color: white; padding: 6px 12px; border-radius: 4px; margin-top: 8px; text-align: center;">
-                    خصم ${offer.discount_value}${offer.discount_type === 'percentage' ? '%' : ' ريال'}
-                  </div>
+              <div style="
+                margin: 20px 4px; 
+                border: 2px solid #8B5CF6; 
+                border-radius: 12px; 
+                padding: 20px; 
+                background: linear-gradient(135deg, #F8FAFC, #EEF2FF);
+                box-shadow: 0 4px 12px rgba(139, 92, 246, 0.1);
+                text-align: center;
+              ">
+                <div style="
+                  background: #8B5CF6; 
+                  color: white; 
+                  padding: 8px 16px; 
+                  border-radius: 8px; 
+                  font-size: 16px; 
+                  font-weight: 600; 
+                  margin-bottom: 12px;
+                  display: inline-block;
+                ">
+                  ${offer.offer_text || 'اشتر ' + offer.quantity + ' واحصل على 1 مجاناً'}
+                </div>
+                <div style="
+                  font-size: 24px; 
+                  color: #1F2937; 
+                  font-weight: 700; 
+                  margin: 8px 0;
+                ">
+                  خصم ${offer.discount_value}${offer.discount_type === 'percentage' ? '%' : ' ريال'}
+                </div>
+                <div style="
+                  background: #10B981; 
+                  color: white; 
+                  padding: 4px 12px; 
+                  border-radius: 6px; 
+                  font-size: 12px; 
+                  font-weight: 600;
+                  display: inline-block;
+                ">
+                  عرض محدود
                 </div>
               </div>
             `;
