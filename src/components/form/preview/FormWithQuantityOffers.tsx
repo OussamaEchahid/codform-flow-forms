@@ -1,7 +1,7 @@
-
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import FormField from './FormField';
+import QuantityOffersField from './fields/QuantityOffersField';
 
 interface Offer {
   id: string;
@@ -44,9 +44,9 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
 
   useEffect(() => {
     const loadQuantityOffers = async () => {
-      console.log('🎯 FINAL FIX - Loading quantity offers for productId:', productId, 'formId:', formId);
+      console.log('Loading quantity offers for productId:', productId, 'formId:', formId);
       if (!productId || !formId) {
-        console.log('⚠️ Missing productId or formId, skipping load');
+        console.log('Missing productId or formId, skipping load');
         setLoading(false);
         return;
       }
@@ -60,13 +60,13 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
           .eq('enabled', true);
 
         if (data && !error) {
-          console.log('✅ FINAL FIX - Loaded quantity offers:', data);
+          console.log('Loaded quantity offers:', data);
           setQuantityOffers(data);
         } else if (error) {
-          console.error('❌ Error loading quantity offers:', error);
+          console.error('Error loading quantity offers:', error);
         }
       } catch (error) {
-        console.error('❌ Error loading quantity offers:', error);
+        console.error('Error loading quantity offers:', error);
       } finally {
         setLoading(false);
       }
@@ -91,20 +91,17 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
     );
   }
 
-  const renderQuantityOffers = (offers: QuantityOffer[]) => {
-    if (!offers || offers.length === 0) {
-      console.log('ℹ️ No offers to render');
-      return null;
-    }
+  // Get offers for different positions
+  const beforeFormOffers = quantityOffers.filter(offer => offer.position === 'before_form');
+  const insideFormOffers = quantityOffers.filter(offer => offer.position === 'inside_form');
+  const afterFormOffers = quantityOffers.filter(offer => offer.position === 'after_form');
 
+  const renderQuantityOffers = (offers: QuantityOffer[]) => {
     return offers.map(offer => (
       <div key={offer.id} className="space-y-2 mb-4">
-        <div className="text-sm text-gray-600 mb-2">
-          🎁 العروض الخاصة (داخل النموذج فقط)
-        </div>
         {offer.offers.map((singleOffer, index) => {
-          // استخدام السعر الثابت للريال السعودي
-          const basePrice = 150; // SAR - السعر الثابت
+          // Get actual product price or use default
+          const basePrice = 150; // SAR - Default price
           const totalPrice = calculatePrice(basePrice, singleOffer);
           const originalPrice = basePrice * singleOffer.quantity;
           const isDiscounted = singleOffer.discountType !== 'none' && singleOffer.discountValue && singleOffer.discountValue > 0;
@@ -136,7 +133,7 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
                     className="font-semibold"
                     style={{ color: offer.styling?.textColor || '#000000' }}
                   >
-                    {singleOffer.text || `اشترِ ${singleOffer.quantity} قطعة`}
+                    {singleOffer.text || `Buy ${singleOffer.quantity} Item${singleOffer.quantity > 1 ? 's' : ''}`}
                   </div>
                   {singleOffer.tag && (
                     <div 
@@ -148,7 +145,7 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
                   )}
                   {savingsPercentage > 0 && (
                     <div className="inline-block px-2 py-1 rounded text-xs font-medium text-white bg-green-500 mt-1 ml-2">
-                      وفر {savingsPercentage}%
+                      Save {savingsPercentage}%
                     </div>
                   )}
                 </div>
@@ -191,21 +188,15 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
     return basePrice * offer.quantity;
   };
 
-  console.log('🎯 FINAL FIX - Rendering fields with offers only inside form');
-  
   return (
     <div className="space-y-4">
+      {/* Form fields with inside form offers only */}
       {fields.map((field, index) => {
-        // عرض العروض فقط قبل زر الإرسال داخل النموذج
+        // Show ALL quantity offers (regardless of position) before submit button
         if (field.type === 'submit' && quantityOffers.length > 0) {
           return (
-            <div key={`${field.id}-with-offers-final`}>
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-                <div className="text-sm text-blue-700 font-medium mb-2">
-                  ✅ العروض تُعرض داخل النموذج فقط (Final Fix)
-                </div>
-                {renderQuantityOffers(quantityOffers)}
-              </div>
+            <div key={`${field.id}-with-offers`}>
+              {renderQuantityOffers(quantityOffers)}
               <div className="mt-4">
                 <FormField 
                   key={field.id} 
