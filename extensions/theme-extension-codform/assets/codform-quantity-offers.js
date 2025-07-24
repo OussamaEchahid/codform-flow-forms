@@ -103,13 +103,21 @@ window.CodformQuantityOffers = (function() {
       const calculatedTotalPrice = (() => {
         let total = realPrice * (offer.quantity || 1);
         const discountValue = parseFloat(offer.discount || offer.discountValue || 0);
-        const discountType = offer.discountType || 'percentage';
+        const discountType = offer.discountType || (offer.discount ? 'percentage' : 'percentage');
         
         if (discountType === 'percentage' && discountValue > 0) {
           total = total - (total * discountValue / 100);
         } else if (discountType === 'fixed' && discountValue > 0) {
           total = Math.max(0, total - discountValue);
         }
+        
+        console.log("💰 Pre-calculated total price:", {
+          originalTotal: realPrice * (offer.quantity || 1),
+          discountType,
+          discountValue,
+          finalTotal: total
+        });
+        
         return total;
       })();
       
@@ -272,9 +280,9 @@ window.CodformQuantityOffers = (function() {
       let originalPrice = totalPrice;
       let savingsPercentage = 0;
 
-      // تحويل قيم الخصم إلى أرقام
+      // تحويل قيم الخصم إلى أرقام وتحديد النوع الصحيح
       const discountValue = parseFloat(offer.discount || offer.discountValue || 0);
-      const discountType = offer.discountType || 'percentage';
+      const discountType = offer.discountType || (offer.discount ? 'percentage' : 'percentage');
 
       if (discountType === 'percentage' && discountValue > 0) {
         const discount = (originalPrice * discountValue) / 100;
@@ -285,14 +293,15 @@ window.CodformQuantityOffers = (function() {
         savingsPercentage = Math.round((discountValue / originalPrice) * 100);
       }
 
-      console.log("💰 Price calculation:", {
+      console.log("💰 FIXED Price calculation:", {
         quantity: offer.quantity,
         realPrice,
         originalPrice,
         discountType,
         discountValue,
-        totalPrice,
-        savingsPercentage
+        calculatedTotalPrice: totalPrice,
+        savingsPercentage,
+        offerStructure: offer
       });
 
       if (savingsPercentage > 0) {

@@ -987,6 +987,7 @@ const QuantityOffers = () => {
                 </CardHeader>
                 <CardContent>
                   <QuantityOffersPreview
+                    key={`${JSON.stringify(quantityOffer.styling)}-${quantityOffer.offers.length}`}
                     form={selectedForm}
                     offers={quantityOffer.offers}
                     styling={quantityOffer.styling}
