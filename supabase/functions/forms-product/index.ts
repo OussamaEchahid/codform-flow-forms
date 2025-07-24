@@ -1,4 +1,3 @@
-
 // Edge function for fetching product-specific forms and quantity offers
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
@@ -30,6 +29,7 @@ serve(async (req) => {
       shop = 'codmagnet.com';
       console.log(`[${requestId}] 🔄 Redirected bestform-app to codmagnet.com`);
     }
+    
     let product = params.get('product') || params.get('productId') || 'default';
     const blockId = params.get('blockId');
     
@@ -62,121 +62,136 @@ serve(async (req) => {
       console.log(`[${requestId}] 🛍️ Fetching REAL product data for ${productIdentifier}`);
       
       try {
-        // Try different endpoints for the actual Shopify domain
-        let actualShopDomain = shopDomain;
-        
-        // If it's codmagnet.com, we need to find the actual Shopify domain
-        if (shopDomain === 'codmagnet.com') {
-          // Try common Shopify domain patterns
-          const possibleDomains = [
-            'codmagnet.myshopify.com',
-            'codmagnet-store.myshopify.com',
-            'codmagnet-shop.myshopify.com'
-          ];
+        // Get store info with access token
+        const { data: storeData, error: storeError } = await supabase
+          .from('shopify_stores')
+          .select('access_token, shop')
+          .eq('shop', shopDomain)
+          .eq('is_active', true)
+          .single();
+
+        if (storeError || !storeData?.access_token) {
+          console.log(`[${requestId}] ❌ No access token found for shop: ${shopDomain}`);
+          return null;
+        }
+
+        const actualShopDomain = storeData.shop.includes('.myshopify.com') 
+          ? storeData.shop 
+          : `${storeData.shop}.myshopify.com`;
+
+        console.log(`[${requestId}] 🏪 Using shop domain: ${actualShopDomain}`);
+
+        // Try different methods to get product data
+        const methods = [
+          // Method 1: By product ID (if numeric)
+          async () => {
+            if (!isNaN(Number(productIdentifier))) {
+              const url = `https://${actualShopDomain}/admin/api/2023-07/products/${productIdentifier}.json`;
+              const response = await fetch(url, {
+                headers: {
+                  'X-Shopify-Access-Token': storeData.access_token,
+                  'Content-Type': 'application/json'
+                }
+              });
+              
+              if (response.ok) {
+                const data = await response.json();
+                return data.product;
+              }
+            }
+            return null;
+          },
           
-          for (const domain of possibleDomains) {
-            try {
-              const testResponse = await fetch(`https://${domain}/products.json?limit=1`);
-              if (testResponse.ok) {
-                actualShopDomain = domain;
-                console.log(`[${requestId}] 🎯 Found working Shopify domain: ${actualShopDomain}`);
-                break;
+          // Method 2: By handle using GraphQL
+          async () => {
+            const graphqlQuery = `
+              query getProductByHandle($handle: String!) {
+                productByHandle(handle: $handle) {
+                  id
+                  title
+                  handle
+                  priceRange {
+                    minVariantPrice {
+                      amount
+                      currencyCode
+                    }
+                  }
+                  featuredImage {
+                    originalSrc
+                    altText
+                  }
+                }
               }
-            } catch (e) {
-              console.log(`[${requestId}] ⚠️ Domain ${domain} not accessible`);
-            }
-          }
-        }
-        
-        // Try direct product API by ID
-        if (/^\d+$/.test(productIdentifier)) {
-          try {
-            const directResponse = await fetch(`https://${actualShopDomain}/products/${productIdentifier}.json`);
-            if (directResponse.ok) {
-              const directData = await directResponse.json();
-              if (directData.product) {
-                const product = directData.product;
-                const productData = {
-                  id: product.id.toString(),
+            `;
+            
+            const response = await fetch(`https://${actualShopDomain}/admin/api/2023-07/graphql.json`, {
+              method: 'POST',
+              headers: {
+                'X-Shopify-Access-Token': storeData.access_token,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                query: graphqlQuery,
+                variables: { handle: productIdentifier }
+              })
+            });
+            
+            if (response.ok) {
+              const data = await response.json();
+              const product = data.data?.productByHandle;
+              if (product) {
+                return {
+                  id: product.id.split('/').pop(),
                   title: product.title,
-                  price: product.variants[0]?.price || '150',
-                  currency: 'SAR',
-                  image: product.images[0]?.src || product.image?.src
+                  handle: product.handle,
+                  price: product.priceRange?.minVariantPrice?.amount,
+                  currency: product.priceRange?.minVariantPrice?.currencyCode,
+                  image: product.featuredImage?.originalSrc
                 };
-                console.log(`[${requestId}] ✅ Got product data from direct API:`, productData);
-                return productData;
               }
             }
-          } catch (e) {
-            console.log(`[${requestId}] ⚠️ Direct API failed for ${productIdentifier}`);
-          }
-        }
-        
-        // Try searching all products
-        try {
-          const allProductsResponse = await fetch(`https://${actualShopDomain}/products.json?limit=250`);
-          if (allProductsResponse.ok) {
-            const allData = await allProductsResponse.json();
-            if (allData.products) {
-              const matchingProduct = allData.products.find((p: any) => 
-                p.id.toString() === productIdentifier || 
-                p.handle === productIdentifier
-              );
-              if (matchingProduct) {
-                const productData = {
-                  id: matchingProduct.id.toString(),
-                  title: matchingProduct.title,
-                  price: matchingProduct.variants[0]?.price || '150',
-                  currency: 'SAR',
-                  image: matchingProduct.images[0]?.src || matchingProduct.image?.src
-                };
-                console.log(`[${requestId}] ✅ Found product in products list:`, productData);
-                return productData;
-              }
+            return null;
+          },
+          
+          // Method 3: Try public API (no auth needed)
+          async () => {
+            const url = `https://${actualShopDomain}/products/${productIdentifier}.json`;
+            const response = await fetch(url);
+            if (response.ok) {
+              const data = await response.json();
+              return data.product;
             }
+            return null;
           }
-        } catch (e) {
-          console.log(`[${requestId}] ⚠️ Products list search failed`);
-        }
-        
-        // Try by handle if it's not numeric
-        if (!/^\d+$/.test(productIdentifier)) {
+        ];
+
+        // Try each method until one succeeds
+        for (const method of methods) {
           try {
-            const handleResponse = await fetch(`https://${actualShopDomain}/products/${productIdentifier}.json`);
-            if (handleResponse.ok) {
-              const handleData = await handleResponse.json();
-              if (handleData.product) {
-                const product = handleData.product;
-                const productData = {
-                  id: product.id.toString(),
-                  title: product.title,
-                  price: product.variants[0]?.price || '150',
-                  currency: 'SAR',
-                  image: product.images[0]?.src || product.image?.src
-                };
-                console.log(`[${requestId}] ✅ Got product data by handle:`, productData);
-                return productData;
-              }
+            const result = await method();
+            if (result) {
+              console.log(`[${requestId}] ✅ Got product data: ${result.title || result.id}`);
+              return result;
             }
-          } catch (e) {
-            console.log(`[${requestId}] ⚠️ Handle API failed for ${productIdentifier}`);
+          } catch (error) {
+            console.log(`[${requestId}] ⚠️ Method failed:`, error);
           }
         }
-        
+
         console.log(`[${requestId}] ❌ Failed to get real product data from all methods`);
         return null;
+        
       } catch (error) {
-        console.error(`[${requestId}] Error fetching real product data:`, error);
+        console.error(`[${requestId}] ❌ Error in getRealProductData:`, error);
         return null;
       }
     }
 
-    // Function to get product-specific form settings
+    // Function to check for product-specific form settings
     async function getProductFormSettings() {
-      console.log(`[${requestId}] 🔎 Checking product-specific settings...`);
-      
       try {
-        // First try with exact product identifier
+        console.log(`[${requestId}] 🔎 Checking product-specific settings...`);
+        
         let { data, error } = await supabase
           .from('shopify_product_settings')
           .select(`
@@ -278,35 +293,37 @@ serve(async (req) => {
         }
 
         if (error) {
-          console.log(`[${requestId}] ℹ️ No quantity offers configured`);
+          console.log(`[${requestId}] ❌ Quantity offers error:`, error.message);
           return null;
         }
 
         if (data && data.length > 0) {
-          console.log(`[${requestId}] ✅ Found ${data[0].offers?.length || 0} quantity offers`);
+          console.log(`[${requestId}] ✅ Found ${data.length} quantity offers`);
           return data[0];
         }
 
+        console.log(`[${requestId}] ❌ No quantity offers found`);
         return null;
       } catch (error) {
-        console.error(`[${requestId}] Error fetching quantity offers:`, error);
+        console.log(`[${requestId}] ❌ Exception in getQuantityOffers:`, error);
         return null;
       }
     }
 
-    // Function to extract form fields
-    function extractFormFields(formData: any) {
+    // Function to extract fields from form data
+    function extractFields(formData: any) {
       try {
-        let fields: any[] = [];
-        
-        if (Array.isArray(formData.data)) {
-          if (formData.data.length > 0 && formData.data[0].fields) {
-            fields = formData.data[0].fields;
-          } else if (formData.data.length > 0) {
-            fields = formData.data;
+        if (!formData || !formData.data) {
+          return [];
+        }
+
+        const formSteps = Array.isArray(formData.data) ? formData.data : [formData.data];
+        const fields: any[] = [];
+
+        for (const step of formSteps) {
+          if (step && step.fields && Array.isArray(step.fields)) {
+            fields.push(...step.fields);
           }
-        } else if (formData.data && formData.data.fields) {
-          fields = formData.data.fields;
         }
 
         console.log(`[${requestId}] ✅ Extracted ${fields.length} fields`);
@@ -360,11 +377,11 @@ serve(async (req) => {
       });
     }
 
-    // Extract form fields
-    const fields = extractFormFields(formData);
-
-    // Fetch quantity offers
+    // Get quantity offers
     const quantityOffers = await getQuantityOffers(formId, product);
+    
+    // Extract fields
+    const fields = extractFields(formData);
 
     // تحديد المنتج الصحيح للحصول على البيانات
     let productForData = product;
