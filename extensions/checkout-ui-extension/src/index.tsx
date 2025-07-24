@@ -103,13 +103,16 @@ function Extension() {
     
     if (!showIcon) return null;
     
-    // Map common icons to simple symbols for checkout UI
+    // Map ALL available icons to emoji symbols for checkout UI
     const iconMap = {
+      // Basic icons
       user: '👤',
       phone: '📱', 
       mail: '📧',
       email: '📧',
       'map-pin': '📍',
+      
+      // New featured icons
       home: '🏠',
       heart: '❤️',
       star: '⭐',
@@ -118,13 +121,37 @@ function Extension() {
       calendar: '📅',
       clock: '⏰',
       'message-circle': '💬',
+      
+      // Shape icons
       diamond: '💎',
       circle: '⭕',
       square: '⬜',
       triangle: '🔺',
       hexagon: '⬣',
       target: '🎯',
-      settings: '⚙️'
+      
+      // Action icons
+      settings: '⚙️',
+      check: '✅',
+      x: '❌',
+      plus: '➕',
+      minus: '➖',
+      edit: '✏️',
+      trash: '🗑️',
+      search: '🔍',
+      eye: '👁️',
+      'eye-off': '🙈',
+      info: 'ℹ️',
+      'alert-triangle': '⚠️',
+      download: '⬇️',
+      upload: '⬆️',
+      link: '🔗',
+      'external-link': '↗️',
+      refresh: '🔄',
+      copy: '📋',
+      file: '📄',
+      folder: '📁',
+      image: '🖼️'
     };
     
     return iconMap[field.icon] || '•';
