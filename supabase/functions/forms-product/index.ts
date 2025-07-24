@@ -20,18 +20,18 @@ serve(async (req) => {
     console.log(`[${requestId}] 🎯 PRECISE FIX - Product form request`);
     
     const url = new URL(req.url);
-    const shop = url.searchParams.get('shop');
-    let product = url.searchParams.get('product');
-    const blockId = url.searchParams.get('blockId');
+    const params = url.searchParams;
     
-    console.log(`[${requestId}] Parameters: shop=${shop}, product=${product}, blockId=${blockId}`);
+    // Parse query parameters - استخدام النطاق الجديد كافتراضي
+    const shop = params.get('shop') || params.get('shopDomain') || 'codmagnet.com';
+    let product = params.get('product') || params.get('productId') || 'default';
+    const blockId = params.get('blockId');
+    
+    console.log(`[${requestId}] 🏪 Processing shop: ${shop}, product: ${product}, blockId: ${blockId}`);
 
-    if (!shop) {
-      throw new Error('Missing required parameter: shop');
-    }
     
-    // Extract product handle from referer URL if product is null
-    if (!product) {
+    // Extract product handle from referer URL if product is default or null
+    if (!product || product === 'default') {
       const referer = req.headers.get('referer');
       if (referer && referer.includes('/products/')) {
         const matches = referer.match(/\/products\/([^?\/]+)/);
@@ -40,6 +40,10 @@ serve(async (req) => {
           console.log(`[${requestId}] ✅ Extracted product handle: ${product}`);
         }
       }
+    }
+
+    if (!product || product === 'default') {
+      console.log(`[${requestId}] ⚠️ No product available, will return default form`);
     }
 
     // Initialize Supabase client
@@ -240,17 +244,27 @@ serve(async (req) => {
 
     // Try to get product-specific form
     let productResult = { found: false };
-    if (product) {
+    if (product && product !== 'default') {
       productResult = await getProductFormSettings();
     } else {
-      console.log(`[${requestId}] ⚠️ No product handle available`);
-      return new Response(JSON.stringify({
-        success: false,
-        error: 'No product found'
-      }), {
-        status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      console.log(`[${requestId}] ⚠️ No specific product, will try to find any form for this shop`);
+      
+      // Try to get any form for this shop
+      try {
+        const { data: anyForm, error } = await supabase
+          .from('forms')
+          .select('*')
+          .eq('shop_id', shop)
+          .eq('is_published', true)
+          .limit(1);
+          
+        if (anyForm && anyForm.length > 0) {
+          console.log(`[${requestId}] 📝 Found default form for shop`);
+          productResult = { found: true, formData: anyForm[0], formId: anyForm[0].id };
+        }
+      } catch (error) {
+        console.log(`[${requestId}] ❌ Error finding default form:`, error);
+      }
     }
 
     let formData = null;
