@@ -45,7 +45,8 @@ window.CodformQuantityOffers = (function() {
       // استخدام بيانات المنتج الحقيقية من API مع التحقق المحسن
       const hasRealPrice = productData && productData.price && parseFloat(productData.price) > 0;
       const realPrice = hasRealPrice ? parseFloat(productData.price) : 5000; // استخدام السعر الحقيقي أو قيمة افتراضية
-      const currency = productData?.currency || defaultCurrency;
+      // استخدام عملة النموذج وليس العملة الافتراضية
+      const currency = defaultCurrency; // استخدام عملة النموذج المُمررة من API
       const productImage = productData?.image || productData?.featuredImage;
       const productTitle = productData?.title || 'المنتج';
 
