@@ -57,7 +57,14 @@ const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
     productTitle,
     productImage,
     displayCurrency,
+    fallbackCurrency: currency,
     productData
+  });
+  
+  console.log('🎯 QuantityOffersPreview - Currency Analysis:', {
+    'productData.currency': productData?.currency,
+    'fallback currency param': currency,
+    'final displayCurrency': displayCurrency
   });
   if (!enabled || !form) {
     return (

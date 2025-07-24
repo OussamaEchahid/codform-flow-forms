@@ -40,6 +40,7 @@ interface Product {
   title: string;
   handle: string;
   price: string;
+  currency?: string;
   images?: { url: string }[];
 }
 
@@ -142,17 +143,15 @@ const QuantityOffers = () => {
       // Extract currency from shop info or first product
       let currency = 'SAR'; // default
       
-      if (data.shop && data.shop.currency) {
-        currency = data.shop.currency;
+      if (data.currency) {
+        currency = data.currency;
+        console.log('✅ Got currency from Shopify API response:', currency);
       } else if (data.products && data.products.length > 0) {
-        // Try to get currency from first product's price format
+        // استخدام العملة من المنتج مباشرة
         const firstProduct = data.products[0];
-        if (firstProduct.variants && firstProduct.variants.length > 0) {
-          const priceString = firstProduct.variants[0].price;
-          // For codmagnet.com, we know it's MAD
-          if (activeShop === 'codmagnet.com') {
-            currency = 'MAD';
-          }
+        if (firstProduct.currency) {
+          currency = firstProduct.currency;
+          console.log('✅ Got currency from first product:', currency);
         }
       }
       
@@ -160,12 +159,10 @@ const QuantityOffers = () => {
       console.log('✅ Store currency set to:', currency, 'for shop:', activeShop);
       
     } catch (error) {
-      console.warn('Could not fetch store currency, using default SAR:', error);
-      // For codmagnet.com specifically, set to MAD
-      if (activeStore === 'codmagnet.com') {
-        setStoreCurrency('MAD');
-        console.log('✅ Using hardcoded MAD for codmagnet.com store');
-      }
+      console.warn('Could not fetch store currency, using default MAD:', error);
+      // استخدام MAD كقيمة افتراضية
+      setStoreCurrency('MAD');
+      console.log('⚠️ Using fallback MAD currency');
     }
   };
 
@@ -239,6 +236,7 @@ const QuantityOffers = () => {
     title: product.title,
     handle: product.handle,
     price: product.price || '0',
+    currency: product.currency || storeCurrency, // إضافة العملة من المنتج
     images: product.images?.map(img => ({ url: typeof img === 'string' ? img : img.src })) || [{ url: '/placeholder.svg' }]
   }));
 
@@ -994,16 +992,10 @@ const QuantityOffers = () => {
                     position={quantityOffer.position}
                     enabled={quantityOffer.enabled}
                     productData={selectedProduct ? {
-                      price: (() => {
-                        const originalPrice = parseFloat(selectedProduct.price) || 0;
-                        const formCurrency = selectedForm?.currency || 'USD';
-                        const convertedPrice = convertCurrency(originalPrice, storeCurrency, formCurrency);
-                        console.log(`🔄 Currency conversion: ${originalPrice} ${storeCurrency} → ${convertedPrice} ${formCurrency}`);
-                        return convertedPrice;
-                      })(),
+                      price: parseFloat(selectedProduct.price) || 0, // استخدام السعر الأصلي بدون تحويل
                       title: selectedProduct.title,
                       image: selectedProduct.images?.[0]?.url,
-                      currency: selectedForm?.currency || 'USD'
+                      currency: selectedProduct.currency || storeCurrency // استخدام عملة المنتج الأصلية
                     } : undefined}
                   />
                 </CardContent>
