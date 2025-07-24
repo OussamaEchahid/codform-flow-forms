@@ -502,21 +502,17 @@ window.CodformQuantityOffers = (function() {
       return;
     }
 
-    const apiUrl = `https://trlklwixfeaexhydzaue.supabase.co/rest/v1/rpc/get_product_form_and_offers`;
+    // استدعاء المنتج والعروض باستخدام GET مع معاملات الاستعلام
+    const apiUrl = `https://trlklwixfeaexhydzaue.supabase.co/rest/v1/quantity_offers?shop_id=eq.${encodeURIComponent(shop)}&product_id=eq.${encodeURIComponent(productId)}&enabled=eq.true&select=*`;
     
     console.log("🔄 Fetching quantity offers from:", apiUrl);
     
     fetch(apiUrl, {
-      method: 'POST',
+      method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'Content-Type': 'application/json',
         'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M'
-      },
-      body: JSON.stringify({
-        shop_id: shop,
-        product_id: productId
-      })
+      }
     })
       .then(response => {
         if (!response.ok) {
@@ -527,7 +523,9 @@ window.CodformQuantityOffers = (function() {
       .then(data => {
         console.log("✅ Quantity offers data received:", data);
         
-        if (data && data.success && data.quantity_offers) {
+        if (data && data.length > 0) {
+          const offersData = data[0]; // أول نتيجة
+          
           // إنشاء بيانات المنتج الافتراضية
           const productData = {
             id: productId,
@@ -538,11 +536,9 @@ window.CodformQuantityOffers = (function() {
           };
           
           console.log("🎯 Displaying quantity offers for product:", productId);
-          displayQuantityOffers(data.quantity_offers, blockId, productId, formCurrency, productData);
+          displayQuantityOffers(offersData, blockId, productId, formCurrency, productData);
         } else {
-          console.log("ℹ️ No quantity offers found or data incomplete");
-          console.log("- Success:", data?.success);
-          console.log("- Has quantity_offers:", !!data?.quantity_offers);
+          console.log("ℹ️ No quantity offers found");
         }
       })
       .catch(error => {
