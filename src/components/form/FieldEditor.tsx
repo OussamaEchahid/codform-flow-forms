@@ -960,6 +960,7 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
         return (
           <div className="p-4">
             <h3 className="text-lg font-medium mb-4">
+              console.log('Current field in submit editor:', currentField);
               {language === 'ar' ? 'تعديل زر الإرسال' : 'Edit Submit Button'}
             </h3>
             
