@@ -244,11 +244,12 @@ const QuantityOffersManager: React.FC = () => {
     try {
       console.log('🎁 Loading quantity offers for form:', formId, 'store:', currentStore);
       
+      console.log('🔍 Debug: currentStore =', currentStore, 'formId =', formId);
+      
       const { data, error } = await supabase
         .from('quantity_offers')
         .select('*')
         .eq('shop_id', currentStore)
-        .eq('form_id', formId)
         .eq('enabled', true);
 
       if (error) {
