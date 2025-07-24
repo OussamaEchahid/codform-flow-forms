@@ -138,7 +138,10 @@ const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
                 </div>
                 
                 <div>
-                  <div className="font-semibold text-gray-800">
+                  <div 
+                    className="font-semibold"
+                    style={{ color: styling.textColor || '#000000' }}
+                  >
                     {offer.text || `Buy ${offer.quantity} Item${offer.quantity > 1 ? 's' : ''}`}
                   </div>
                   {offer.tag && (
@@ -163,7 +166,10 @@ const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
                     {originalPrice.toFixed(2)} {displayCurrency}
                   </div>
                 )}
-                <div className="font-bold text-lg text-gray-800">
+                <div 
+                  className="font-bold text-lg"
+                  style={{ color: styling.priceColor || '#000000' }}
+                >
                   {totalPrice.toFixed(2)} {displayCurrency}
                 </div>
                 {offer.quantity > 1 && (
