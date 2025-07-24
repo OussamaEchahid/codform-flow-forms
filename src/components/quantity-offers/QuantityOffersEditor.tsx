@@ -167,9 +167,13 @@ const QuantityOffersEditor: React.FC<Props> = ({ offer, isCreating, onSave, onCa
   };
 
   const updateStyling = (field: string, value: string) => {
+    console.log(`🎨 Updating styling ${field} to ${value}`);
     setCurrentOffer(prev => ({
       ...prev,
-      styling: { ...prev.styling, [field]: value }
+      styling: { 
+        ...prev.styling, 
+        [field]: value 
+      }
     }));
   };
 
@@ -374,12 +378,12 @@ const QuantityOffersEditor: React.FC<Props> = ({ offer, isCreating, onSave, onCa
                     discountType: offer.discountType === 'percentage' ? 'percentage' : 'fixed',
                     discountValue: offer.discount || 0
                   }))}
-                  styling={currentOffer.styling || {
-                    backgroundColor: '#ffffff',
-                    textColor: '#000000',
-                    tagColor: '#22c55e',
-                    priceColor: '#000000'
-                  }}
+          styling={currentOffer.styling || {
+            backgroundColor: '#ffffff',
+            textColor: '#000000',
+            tagColor: '#22c55e',
+            priceColor: '#000000'
+          }}
                   productData={productData || undefined}
                   currency={productData?.currency || 'SAR'}
                 />
@@ -439,7 +443,10 @@ const QuantityOffersEditor: React.FC<Props> = ({ offer, isCreating, onSave, onCa
                 <Input
                   type="color"
                   value={currentOffer.styling?.priceColor || '#000000'}
-                  onChange={(e) => updateStyling('priceColor', e.target.value)}
+                  onChange={(e) => {
+                    console.log('🎨 Price color changed to:', e.target.value);
+                    updateStyling('priceColor', e.target.value);
+                  }}
                 />
               </div>
           </div>
