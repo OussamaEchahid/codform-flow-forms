@@ -295,14 +295,27 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
   };
 
   const handleIconChange = (iconValue: string) => {
-    setCurrentField({
-      ...currentField,
-      icon: iconValue === 'none' ? undefined : iconValue,
-      style: {
-        ...currentField.style,
-        showIcon: iconValue !== 'none'
-      }
-    });
+    if (currentField.type === 'submit') {
+      // لحقول submit button، نحفظ الأيقونة في style.icon
+      setCurrentField({
+        ...currentField,
+        style: {
+          ...currentField.style,
+          icon: iconValue === 'none' ? undefined : iconValue,
+          showIcon: iconValue !== 'none'
+        }
+      });
+    } else {
+      // للحقول الأخرى، نحفظها في icon
+      setCurrentField({
+        ...currentField,
+        icon: iconValue === 'none' ? undefined : iconValue,
+        style: {
+          ...currentField.style,
+          showIcon: iconValue !== 'none'
+        }
+      });
+    }
   };
 
   const handleIconPositionChange = (position: 'left' | 'right') => {
@@ -974,7 +987,7 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
                   <div>
                     <FormLabel>{language === 'ar' ? 'اختر الأيقونة' : 'Select Icon'}</FormLabel>
                     <Select
-                      value={currentField.icon || 'none'}
+                      value={currentField.style?.icon || currentField.icon || 'none'}
                       onValueChange={handleIconChange}
                     >
                       <SelectTrigger className="w-full">
