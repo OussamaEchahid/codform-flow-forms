@@ -19,7 +19,7 @@ serve(async (req) => {
     const blockId = url.searchParams.get('blockId');
 
     console.log('🚀 تم استلام الطلب');
-    console.log(`🏪 معالجة الطلب للمتجر: ${shop} (الأصلي: ${shop}), معرف المنتج: ${productId}, معرف البلوك: ${blockId}`);
+    console.log(`🏪 معالجة الطلب للمتجر: ${shop}, معرف المنتج: ${productId}, معرف البلوك: ${blockId}`);
 
     if (!shop) {
       return new Response(
