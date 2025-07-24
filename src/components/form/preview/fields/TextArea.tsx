@@ -21,8 +21,8 @@ const TextArea: React.FC<TextAreaProps> = ({ field, formStyle }) => {
   const labelFontSize = fieldStyle.labelFontSize || formStyle.fontSize || '16px';
   const labelFontWeight = fieldStyle.labelFontWeight || '500';
   
-  // Set default values for border styling
-  const inputBorderRadius = fieldStyle.borderRadius || (formStyle.borderRadius === '1.5rem' ? '1.2rem' : formStyle.borderRadius) || '6px';
+  // Set default values for border styling - force smaller radius for textarea
+  const inputBorderRadius = fieldStyle.borderRadius || '8px';
   const inputBorderWidth = fieldStyle.borderWidth || '1px';
   
   // Set default rows
