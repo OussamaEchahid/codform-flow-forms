@@ -65,17 +65,25 @@ window.CodformQuantityOffers = (function() {
       priceColor: quantityOffersData.styling?.priceColor || '#000000' // اللون الافتراضي أسود
     };
 
-      // استخدام بيانات المنتج الحقيقية من API مع التحقق المحسن
-      const hasRealPrice = productData && productData.price && parseFloat(productData.price) > 0;
-      const productPrice = hasRealPrice ? parseFloat(productData.price) : 5000;
-      const productCurrency = productData?.currency || 'USD';
+      // استخدام بيانات المنتج المرسلة أولاً، ثم من API، ثم القيم الافتراضية
+      let actualProductData = productData;
+      
+      // إذا لم تُمرر بيانات المنتج، استخدم البيانات المحفوظة عالمياً
+      if (!actualProductData && window.CodformProductData) {
+        actualProductData = window.CodformProductData;
+        console.log("🛍️ Using global product data:", actualProductData);
+      }
+      
+      const hasRealPrice = actualProductData && actualProductData.price && parseFloat(actualProductData.price) > 0;
+      const productPrice = hasRealPrice ? parseFloat(actualProductData.price) : 5000;
+      const productCurrency = actualProductData?.currency || 'USD';
       const formCurrency = defaultCurrency; // عملة النموذج
       
       // تحويل السعر من عملة المنتج إلى عملة النموذج
       const realPrice = convertCurrency(productPrice, productCurrency, formCurrency);
       const currency = formCurrency; // استخدام عملة النموذج
-      const productImage = productData?.image || productData?.featuredImage;
-      const productTitle = productData?.title || 'المنتج';
+      const productImage = actualProductData?.image || actualProductData?.featuredImage;
+      const productTitle = actualProductData?.title || 'المنتج';
 
       console.log("💰 CURRENCY CONVERSION:", {
         productPrice,
@@ -392,7 +400,7 @@ window.CodformQuantityOffers = (function() {
   }
 
   // دالة تحميل وعرض العروض من API مع تحسينات
-  async function loadAndDisplayOffers(blockId, productId, shop) {
+  async function loadAndDisplayOffers(blockId, productId, shop, formCurrency = 'SAR', passedProductData = null) {
     try {
       // استخدام النطاق الجديد كافتراضي
       if (!shop) {
@@ -531,11 +539,34 @@ window.CodformQuantityOffers = (function() {
       });
   }
 
+  // Enhanced load function with product data support
+  function loadAndDisplayOffersWithProduct(blockId, productId, shop, formCurrency = 'SAR', productData = null) {
+    console.log("🛍️ Loading quantity offers with product data:", productData, "currency:", formCurrency);
+    
+    // حفظ بيانات المنتج في متغير عام
+    window.CodformProductData = productData;
+    
+    // استخدام المتجر الصحيح
+    if (!shop) {
+      shop = 'bestform-app.myshopify.com';
+    }
+    
+    const container = document.getElementById(`quantity-offers-before-${blockId}`);
+    if (!container) {
+      console.error("❌ Container not found for product data loading!");
+      return Promise.resolve({ success: false, error: "Container not found" });
+    }
+    
+    console.log("📦 Container found, loading offers with product data...");
+    return loadAndDisplayOffers(blockId, productId, shop, formCurrency, productData);
+  }
+
   // Public API
   return {
     display: displayQuantityOffers,
     load: loadAndDisplayOffers,
     loadWithCurrency: loadAndDisplayOffersWithCurrency,
+    loadWithProduct: loadAndDisplayOffersWithProduct,
     debug: debugOffers
   };
 })();

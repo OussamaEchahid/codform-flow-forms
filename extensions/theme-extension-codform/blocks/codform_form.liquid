@@ -725,6 +725,29 @@
   function loadFormWithValidation(productId, shopDomain, formId) {
     console.log('🔄 CODFORM: Loading validated form for product:', productId, 'shop:', shopDomain, 'form:', formId);
     
+    // Get current product data from Shopify liquid templates
+    const currentProduct = {
+      id: productId,
+      price: parseFloat('{{ product.price | divided_by: 100.0 }}') || 0,
+      comparePrice: parseFloat('{{ product.compare_at_price | divided_by: 100.0 }}') || 0,
+      title: '{{ product.title }}' || 'منتج',
+      image: '{{ product.featured_image | img_url: '400x400' }}' || '',
+      currency: '{{ shop.currency }}' || 'SAR',
+      variants: [
+        {% for variant in product.variants %}
+        {
+          id: {{ variant.id }},
+          price: {{ variant.price | divided_by: 100.0 }},
+          comparePrice: {{ variant.compare_at_price | divided_by: 100.0 | default: 0 }},
+          title: "{{ variant.title }}",
+          available: {{ variant.available }}
+        }{% unless forloop.last %},{% endunless %}
+        {% endfor %}
+      ]
+    };
+    
+    console.log('🛍️ CODFORM: معلومات المنتج:', currentProduct);
+    
     // Try multiple API endpoints for better reliability
     const apiUrls = [
       `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/forms-product?shop=${shopDomain}&product=${productId}&blockId=ASFhDTFBYRlN3VDNFK__codform_cod_forms_codform_form_xM8Ec7`,
@@ -1049,8 +1072,19 @@ document.addEventListener('DOMContentLoaded', function() {
         const formCurrency = window.currentFormData?.formStyle?.currency || 'SAR';
         console.log("💰 Using form currency for quantity offers:", formCurrency);
         
-        // تمرير عملة النموذج إلى عروض الكمية
-        window.CodformQuantityOffers.loadWithCurrency(blockId, productId, shopDomain, formCurrency);
+        // تمرير عملة النموذج وبيانات المنتج إلى عروض الكمية
+        const productData = {
+          id: productId,
+          price: parseFloat('{{ product.price | divided_by: 100.0 }}') || 0,
+          comparePrice: parseFloat('{{ product.compare_at_price | divided_by: 100.0 }}') || 0,
+          title: '{{ product.title }}' || 'منتج',
+          image: '{{ product.featured_image | img_url: '400x400' }}' || '',
+          currency: '{{ shop.currency }}' || 'SAR'
+        };
+        
+        console.log("🛍️ تمرير بيانات المنتج لعروض الكمية:", productData);
+        
+        window.CodformQuantityOffers.loadWithProduct(blockId, productId, shopDomain, formCurrency, productData);
         formContainer.dataset.quantityOffersLoaded = 'true';
         clearInterval(waitForFormLoad);
       }
