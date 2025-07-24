@@ -156,23 +156,47 @@ serve(async (req) => {
     }
 
     // Function to fetch quantity offers
-    async function getQuantityOffers(formId: string) {
-      if (!product) {
+    async function getQuantityOffers(formId: string, productIdentifier: string) {
+      if (!productIdentifier) {
         console.log(`[${requestId}] ⚠️ No product available, skipping quantity offers`);
         return null;
       }
       
-      console.log(`[${requestId}] 🎁 Fetching quantity offers for product ${product}`);
+      console.log(`[${requestId}] 🎁 Fetching quantity offers for product ${productIdentifier}`);
       
       try {
-        const { data, error } = await supabase
+        // First try with the original product identifier
+        let { data, error } = await supabase
           .from('quantity_offers')
           .select('*')
           .eq('shop_id', shop)
-          .eq('product_id', product)
+          .eq('product_id', productIdentifier)
           .eq('form_id', formId)
           .eq('enabled', true)
           .limit(1);
+
+        // If no results and product looks like a handle, try to get the actual product ID
+        if ((!data || data.length === 0) && isNaN(Number(productIdentifier))) {
+          console.log(`[${requestId}] 🔄 Trying to convert handle to product ID for quantity offers`);
+          
+          const realProductData = await getRealProductData(shop, productIdentifier);
+          if (realProductData && realProductData.id) {
+            const productId = realProductData.id.toString().split('/').pop();
+            console.log(`[${requestId}] 🎯 Using product ID ${productId} for quantity offers search`);
+            
+            const result = await supabase
+              .from('quantity_offers')
+              .select('*')
+              .eq('shop_id', shop)
+              .eq('product_id', productId)
+              .eq('form_id', formId)
+              .eq('enabled', true)
+              .limit(1);
+            
+            data = result.data;
+            error = result.error;
+          }
+        }
 
         if (error) {
           console.log(`[${requestId}] ℹ️ No quantity offers configured`);
@@ -251,7 +275,7 @@ serve(async (req) => {
     const fields = extractFormFields(formData);
 
     // Fetch quantity offers
-    const quantityOffers = await getQuantityOffers(formId);
+    const quantityOffers = await getQuantityOffers(formId, product);
 
     // Get REAL product data from Shopify API
     const realProductData = await getRealProductData(shop, product);
