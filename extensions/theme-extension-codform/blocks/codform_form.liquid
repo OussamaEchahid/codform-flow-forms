@@ -674,7 +674,7 @@
   // Quantity offer selection is now handled by codform-quantity-offers.js
   function loadCompleteForm() {
     const productId = getProductId();
-    const shopDomain = 'codmagnet.com'; // استخدام النطاق الجديد
+    const shopDomain = 'bestform-app.myshopify.com'; // استخدام المتجر الصحيح
     
     if (!productId) {
       console.log('❌ CODFORM: No product ID found');
@@ -684,7 +684,8 @@
     console.log('🔄 CODFORM: Loading complete form for product:', productId, 'shop:', shopDomain);
     
     // First check if this product has an associated form
-    fetch(`https://trlklwixfeaexhydzaue.supabase.co/rest/v1/shopify_product_settings?product_id=eq.${productId}&shop_id=eq.${shopDomain}&enabled=eq.true&select=*,forms(*)`, {
+    // محاولة البحث عن النموذج المحدد للمنتج أولاً، ثم البحث عن النموذج العام
+    fetch(`https://trlklwixfeaexhydzaue.supabase.co/rest/v1/shopify_product_settings?shop_id=eq.${shopDomain}&enabled=eq.true&select=*,forms(*)&or=(product_id.eq.${productId},product_id.eq.auto-detect)`, {
       headers: {
         'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
         'Content-Type': 'application/json'
@@ -964,7 +965,7 @@
     try {
       // Get current product info from page
       const productId = '{{ product.id }}' || '{{ product.variants.first.id }}' || DEFAULT_PRODUCT_ID;
-      const shopDomain = 'codmagnet.com'; // استخدام النطاق الجديد
+      const shopDomain = 'bestform-app.myshopify.com'; // استخدام المتجر الصحيح
       
       console.log('🏪 CODFORM: Submitting to shop:', shopDomain, 'product:', productId);
       
