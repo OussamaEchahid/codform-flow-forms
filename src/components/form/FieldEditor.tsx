@@ -201,8 +201,10 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
 
   // دالة لاختيار الأيقونات المناسبة لكل نوع حقل
   const getIconsForFieldType = (fieldType: string) => {
+    console.log('Field type:', fieldType); // للتحقق من نوع الحقل
     switch (fieldType) {
       case 'submit':
+        console.log('Submit icons:', submitIcons); // للتحقق من الأيقونات
         return submitIcons;
       case 'text':
         if (currentField.label?.toLowerCase().includes('name') || currentField.label?.toLowerCase().includes('اسم')) {
