@@ -762,6 +762,12 @@
           return;
         }
 
+        // تجنب إعادة التحميل إذا كان النموذج محمل بالفعل
+        if (container.dataset.formLoaded === 'true') {
+          console.log('📝 CODFORM: Form already loaded, skipping reload to preserve quantity offers');
+          return;
+        }
+
         // Apply form styling with exact preview matching
         const formStyle = data.formStyle || {};
         
@@ -892,6 +898,9 @@
             ${completeFormHTML}
           </div>
         `;
+        
+        // تحديد أن النموذج تم تحميله
+        container.dataset.formLoaded = 'true';
 
         console.log('🎉 CODFORM: Form rendered successfully with quantity offers container');
       })
