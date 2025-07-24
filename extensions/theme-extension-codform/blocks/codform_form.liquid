@@ -135,23 +135,15 @@
   }
 
   // Get current shop domain - FIXED to use actual shop domain
-  function getShopDomain() {
+  window.getShopDomain = function() {
     try {
-      // Get the actual shop domain from Shopify
-      const shopDomain = '{{ shop.myshopify_domain }}' || '{{ shop.domain }}' || window.Shopify?.shop;
-      
-      // Clean and validate the domain
-      if (shopDomain && shopDomain.trim() && shopDomain !== '') {
-        const cleanDomain = shopDomain.trim();
-        console.log('🏪 CODFORM: Using shop domain:', cleanDomain);
-        return cleanDomain;
-      }
-      
-      console.warn('⚠️ CODFORM: Could not detect shop domain, using fallback');
-      return 'auto-detect';
+      // Get the actual shop domain from Shopify - always use the correct shop
+      const shopDomain = 'bestform-app.myshopify.com'; // Fixed shop domain
+      console.log('🏪 CODFORM: Using shop domain:', shopDomain);
+      return shopDomain;
     } catch (error) {
       console.error('❌ CODFORM: Error getting shop domain:', error);
-      return 'auto-detect';
+      return 'bestform-app.myshopify.com';
     }
   }
 

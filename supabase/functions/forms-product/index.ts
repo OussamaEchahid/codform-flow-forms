@@ -50,14 +50,27 @@ serve(async (req) => {
       );
     }
 
-    // الحصول على عروض الكمية
-    const { data: offers } = await supabase
+    // الحصول على عروض الكمية - البحث بالمنتج المحدد أو auto-detect
+    let { data: offers } = await supabase
       .from('quantity_offers')
       .select('*')
       .eq('shop_id', shop)
       .eq('product_id', productId)
       .eq('enabled', true)
-      .single();
+      .maybeSingle();
+
+    // إذا لم نجد عروض للمنتج المحدد، جرب auto-detect
+    if (!offers && productId !== 'auto-detect') {
+      const { data: autoOffers } = await supabase
+        .from('quantity_offers')
+        .select('*')
+        .eq('shop_id', shop)
+        .eq('product_id', 'auto-detect')
+        .eq('enabled', true)
+        .maybeSingle();
+      
+      offers = autoOffers;
+    }
 
     console.log('✅ Data found:', { form: settings.forms?.title, offers: !!offers });
 
