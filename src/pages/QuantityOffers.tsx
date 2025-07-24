@@ -149,8 +149,8 @@ const QuantityOffers = () => {
         const firstProduct = data.products[0];
         if (firstProduct.variants && firstProduct.variants.length > 0) {
           const priceString = firstProduct.variants[0].price;
-          // For bestform-app.myshopify.com, we know it's MAD
-          if (activeShop === 'bestform-app.myshopify.com') {
+          // For codmagnet.com, we know it's MAD
+          if (activeShop === 'codmagnet.com') {
             currency = 'MAD';
           }
         }
@@ -161,8 +161,8 @@ const QuantityOffers = () => {
       
     } catch (error) {
       console.warn('Could not fetch store currency, using default SAR:', error);
-      // For bestform-app.myshopify.com specifically, set to MAD
-      if (activeStore === 'bestform-app.myshopify.com') {
+      // For codmagnet.com specifically, set to MAD
+      if (activeStore === 'codmagnet.com') {
         setStoreCurrency('MAD');
         console.log('✅ Using hardcoded MAD for bestform-app store');
       }

@@ -345,7 +345,7 @@ const ShopifyConnection = () => {
             disabled={isConnecting}
           />
           <p className="text-xs text-muted-foreground">
-            أدخل نطاق متجرك مثل: bestform-app.myshopify.com
+            أدخل نطاق متجرك مثل: codmagnet.com
           </p>
         </div>
       </CardContent>

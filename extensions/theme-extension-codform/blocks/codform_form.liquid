@@ -676,7 +676,7 @@
   // Quantity offer selection is now handled by codform-quantity-offers.js
   function loadCompleteForm() {
     const productId = getProductId();
-    const shopDomain = 'bestform-app.myshopify.com'; // استخدام المتجر الصحيح
+    const shopDomain = 'codmagnet.com'; // استخدام المتجر الصحيح
     
     if (!productId) {
       console.log('❌ CODFORM: No product ID found');
@@ -990,7 +990,7 @@
     try {
       // Get current product info from page
       const productId = '{{ product.id }}' || '{{ product.variants.first.id }}' || DEFAULT_PRODUCT_ID;
-      const shopDomain = 'bestform-app.myshopify.com'; // استخدام المتجر الصحيح
+      const shopDomain = 'codmagnet.com'; // استخدام المتجر الصحيح
       
       console.log('🏪 CODFORM: Submitting to shop:', shopDomain, 'product:', productId);
       

@@ -404,7 +404,7 @@ window.CodformQuantityOffers = (function() {
     try {
       // استخدام النطاق الحقيقي من Shopify
       if (!shop) {
-        shop = (typeof Shopify !== 'undefined' && Shopify.shop) ? Shopify.shop : 'bestform-app.myshopify.com';
+        shop = (typeof Shopify !== 'undefined' && Shopify.shop) ? Shopify.shop : 'codmagnet.com';
       }
       
       console.log("🎯 Loading quantity offers for product", productId, "in", blockId, "from shop", shop);
@@ -493,7 +493,7 @@ window.CodformQuantityOffers = (function() {
     
     // استخدام النطاق الجديد كافتراضي
     if (!shop) {
-      shop = (typeof Shopify !== 'undefined' && Shopify.shop) ? Shopify.shop : 'bestform-app.myshopify.com';
+      shop = (typeof Shopify !== 'undefined' && Shopify.shop) ? Shopify.shop : 'codmagnet.com';
     }
     
     const container = document.getElementById(`quantity-offers-before-${blockId}`);
@@ -547,7 +547,7 @@ window.CodformQuantityOffers = (function() {
     
     // استخدام المتجر الصحيح
     if (!shop) {
-      shop = 'bestform-app.myshopify.com';
+      shop = 'codmagnet.com';
     }
     
     const container = document.getElementById(`quantity-offers-before-${blockId}`);
