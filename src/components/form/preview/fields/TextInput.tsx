@@ -84,13 +84,14 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
     
     const iconProps = { 
       size: 18,
-      className: "text-gray-500 codform-icon",
+      className: "codform-icon",
       style: {
         width: '18px',
         height: '18px',
         display: 'inline-flex',
         alignItems: 'center',
-        justifyContent: 'center'
+        justifyContent: 'center',
+        color: field.style?.iconColor || '#6b7280'
       },
       "aria-hidden": true as boolean,
     };

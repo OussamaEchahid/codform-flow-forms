@@ -71,7 +71,8 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
   const getIconComponent = (iconType: string) => {
     const iconProps = {
       size: 16,
-      className: "submit-button-icon"
+      className: "submit-button-icon",
+      style: { color: field.style?.iconColor || '#ffffff' }
     };
 
     switch (iconType) {

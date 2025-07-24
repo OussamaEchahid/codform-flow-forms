@@ -315,6 +315,16 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
     });
   };
 
+  const handleStyleChange = (property: string, value: string) => {
+    setCurrentField({
+      ...currentField,
+      style: {
+        ...currentField.style,
+        [property]: value
+      }
+    });
+  };
+
   const renderEditorByType = () => {
     switch (currentField.type) {
       case 'text':
@@ -985,7 +995,27 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
                           ))}
                         </SelectContent>
                     </Select>
-                  </div>
+                   </div>
+
+                  {/* إعدادات لون الأيقونة */}
+                  {currentField.icon && currentField.icon !== 'none' && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">
+                        {language === 'ar' ? 'لون الأيقونة' : 'Icon Color'}
+                      </label>
+                      <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                        <input
+                          type="color"
+                          value={currentField.style?.iconColor || '#6366f1'}
+                          onChange={(e) => handleStyleChange('iconColor', e.target.value)}
+                          className="w-10 h-8 rounded border border-gray-300 cursor-pointer"
+                        />
+                        <span className="text-sm text-gray-600">
+                          {currentField.style?.iconColor || '#6366f1'}
+                        </span>
+                      </div>
+                    </div>
+                  )}
 
                   {currentField.style?.showIcon && (
                     <div>

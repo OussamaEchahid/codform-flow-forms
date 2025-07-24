@@ -52,7 +52,7 @@ const TextArea: React.FC<TextAreaProps> = ({ field, formStyle }) => {
     const iconProps = {
       size: 16,
       style: { 
-        color: fieldStyle.color || '#6b7280',
+        color: field.style?.iconColor || fieldStyle.color || '#6b7280',
         marginRight: language === 'ar' ? '0' : '8px',
         marginLeft: language === 'ar' ? '8px' : '0'
       }
