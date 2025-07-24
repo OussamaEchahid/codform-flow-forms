@@ -894,16 +894,6 @@
         `;
 
         console.log('🎉 CODFORM: Form rendered successfully with quantity offers container');
-        
-        // استدعاء عرض العروض مباشرة بعد إنشاء النموذج
-        if (window.CodformQuantityOffers) {
-          const productId = getProductId();
-          const shopDomain = '{{ shop.domain }}' || window.Shopify?.shop || '{{ shop.permanent_domain }}';
-          const blockId = `ASFhDTFBYRlN3VDNFK__codform_cod_forms_codform_form_${productId}`;
-          
-          console.log("🎯 Loading quantity offers immediately after form creation");
-          window.CodformQuantityOffers.load(blockId, productId, shopDomain);
-        }
       })
       .catch(error => {
         console.error('❌ CODFORM: Error loading form:', error);
