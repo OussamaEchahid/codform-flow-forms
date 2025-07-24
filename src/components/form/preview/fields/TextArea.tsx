@@ -33,13 +33,13 @@ const TextArea: React.FC<TextAreaProps> = ({ field, formStyle }) => {
   const { language } = useI18n();
   const fieldStyle = field.style || {};
   
-  // Set default values for styling - مطابقة للمتجر
-  const labelColor = fieldStyle.labelColor || '#1F2937';
-  const labelFontSize = fieldStyle.labelFontSize || '16px';
+  // Set default values for styling
+  const labelColor = fieldStyle.labelColor || '#334155';
+  const labelFontSize = fieldStyle.labelFontSize || formStyle.fontSize || '16px';
   const labelFontWeight = fieldStyle.labelFontWeight || '500';
   
-  // Set default values for border styling - مطابقة للمتجر
-  const inputBorderRadius = fieldStyle.borderRadius || '12px';
+  // Set default values for border styling - force smaller radius for textarea
+  const inputBorderRadius = fieldStyle.borderRadius || '8px';
   const inputBorderWidth = fieldStyle.borderWidth || '1px';
   
   // Set default rows
@@ -82,7 +82,7 @@ const TextArea: React.FC<TextAreaProps> = ({ field, formStyle }) => {
   };
   
   return (
-    <div className="mb-4" style={{ marginBottom: '20px' }}>
+    <div className="mb-4">
       <label 
         htmlFor={field.id} 
         className={`block mb-2 ${field.required ? 'relative' : ''}`}
@@ -117,11 +117,11 @@ const TextArea: React.FC<TextAreaProps> = ({ field, formStyle }) => {
         placeholder={field.placeholder || ''}
         className="w-full py-2 px-3 bg-white border outline-none focus:ring-2 focus:ring-opacity-50 transition-all"
         style={{
-          color: '#1F2937',
-          fontSize: '16px',
-          fontWeight: '400',
-          fontFamily: "'Cairo', inherit",
-          borderColor: '#D1D5DB',
+          color: fieldStyle.color || '#1f2937',
+          fontSize: fieldStyle.fontSize || formStyle.fontSize || '16px',
+          fontWeight: fieldStyle.fontWeight || '400',
+          fontFamily: fieldStyle.fontFamily || 'inherit',
+          borderColor: fieldStyle.borderColor || '#d1d5db',
           borderRadius: inputBorderRadius,
           borderWidth: inputBorderWidth,
           borderStyle: 'solid',
@@ -129,22 +129,12 @@ const TextArea: React.FC<TextAreaProps> = ({ field, formStyle }) => {
           paddingBottom: '10px',
           paddingLeft: '12px',
           paddingRight: '12px',
-          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
           width: '100%',
           minHeight: '80px',
           height: '80px',
           resize: 'none',
-          lineHeight: 1.5,
-          direction: 'ltr',
-          textAlign: 'left'
-        }}
-        onFocus={(e) => {
-          e.target.style.borderColor = '#9b87f5';
-          e.target.style.boxShadow = '0 0 0 3px rgba(155, 135, 245, 0.1)';
-        }}
-        onBlur={(e) => {
-          e.target.style.borderColor = '#D1D5DB';
-          e.target.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)';
+          lineHeight: 1.5
         }}
         required={field.required}
       />

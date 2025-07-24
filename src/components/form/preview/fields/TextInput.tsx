@@ -53,22 +53,22 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
   // استخدام اتجاه النموذج من formStyle
   const formDirection = formStyle.formDirection || 'ltr';
   
-  // القيم الافتراضية للتنسيق - مطابقة للمتجر
+  // القيم الافتراضية للتنسيق
   const showLabel = fieldStyle.showLabel !== false;
-  const labelColor = fieldStyle.labelColor || '#1F2937';
-  const labelFontSize = fieldStyle.labelFontSize || '16px';
+  const labelColor = fieldStyle.labelColor || '#333333';
+  const labelFontSize = fieldStyle.labelFontSize || '1rem';
   const labelFontWeight = fieldStyle.labelFontWeight || '500';
   
-  const fontFamily = "'Inter', system-ui, sans-serif";
-  const textColor = fieldStyle.color || '#1F2937';
-  const fontSize = fieldStyle.fontSize || '16px';
+  const fontFamily = language === 'ar' ? "'Cairo', sans-serif" : (fieldStyle.fontFamily || 'inherit');
+  const textColor = fieldStyle.color || 'rgb(31, 41, 55)';
+  const fontSize = fieldStyle.fontSize || '1rem';
   const fontWeight = fieldStyle.fontWeight || '400';
   
   // خلفية بيضاء ثابتة للحقول
-  const backgroundColor = '#FFFFFF';
-  const borderColor = fieldStyle.borderColor || '#D1D5DB';
+  const backgroundColor = 'rgb(255, 255, 255)';
+  const borderColor = fieldStyle.borderColor || 'rgb(209, 213, 219)';
   const borderWidth = fieldStyle.borderWidth || '1px';
-  const borderRadius = fieldStyle.borderRadius || '12px';
+  const borderRadius = fieldStyle.borderRadius || '8px';
   const paddingY = fieldStyle.paddingY ? `${fieldStyle.paddingY}px` : '10px';
   
   // تحديد إذا كان هناك أيقونة وإذا كان يجب إظهارها
@@ -91,7 +91,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
-        color: field.style?.iconColor || '#9b87f5'
+        color: field.style?.iconColor || '#6b7280'
       },
       "aria-hidden": true as boolean,
     };
@@ -158,19 +158,19 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
   
   const inputId = `${field.id}-input`;
   
-  // حساب المسافات الداخلية للنص بناءً على وجود الأيقونة واتجاه النموذج - مطابقة للمتجر
+  // FIXED: حساب المسافات الداخلية للنص بناءً على وجود الأيقونة واتجاه النموذج
   const paddingLeft = formDirection === 'rtl' 
-    ? '12px'  
-    : ((showIcon && hasIcon) ? '40px' : '12px'); // 40px مثل المتجر
-     
+    ? '12px'  // في العربي، النص على اليمين فلا نحتاج padding إضافي على اليسار
+    : ((showIcon && hasIcon) ? '40px' : '12px'); // في الإنجليزي، الأيقونة على اليسار
+    
   const paddingRight = formDirection === 'rtl' 
-    ? ((showIcon && hasIcon) ? '40px' : '12px') 
-    : '12px';
+    ? ((showIcon && hasIcon) ? '40px' : '12px') // في العربي، الأيقونة على اليمين
+    : '12px'; // في الإنجليزي، لا نحتاج padding إضافي على اليمين
   
   return (
     <div 
       className="mb-4" 
-      style={{ marginBottom: '20px', background: 'transparent' }}
+      style={{ marginBottom: '16px', background: 'transparent' }}
       dir={formDirection}
     >
       {showLabel && (
@@ -211,15 +211,15 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
             className="absolute codform-field-icon" 
             style={{
               position: 'absolute',
-              left: iconPosition === 'left' ? '16px' : 'auto',
-              right: iconPosition === 'right' ? '16px' : 'auto',
+              left: iconPosition === 'left' ? '12px' : 'auto',
+              right: iconPosition === 'right' ? '12px' : 'auto',
               top: '50%',
               transform: 'translateY(-50%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               zIndex: 2,
-              color: '#9b87f5',
+              color: 'rgb(156, 163, 175)',
               background: 'transparent'
             }}
           >
@@ -247,7 +247,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
             padding: paddingY,
             paddingLeft: paddingLeft,
             paddingRight: paddingRight,
-            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+            boxShadow: 'rgba(0, 0, 0, 0.05) 0px 1px 2px',
             width: '100%',
             height: 'auto',
             lineHeight: 1.5,
@@ -257,14 +257,6 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
             textAlign: formDirection === 'rtl' ? 'right' : 'left',
             outline: 'none',
             transition: 'all 0.2s ease'
-          }}
-          onFocus={(e) => {
-            e.target.style.borderColor = '#9b87f5';
-            e.target.style.boxShadow = '0 0 0 3px rgba(155, 135, 245, 0.1)';
-          }}
-          onBlur={(e) => {
-            e.target.style.borderColor = borderColor;
-            e.target.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)';
           }}
           required={field.required}
         />
