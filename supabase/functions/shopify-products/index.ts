@@ -83,10 +83,37 @@ serve(async (req) => {
       });
     }
 
-    // Fetch products from Shopify API
+    // Fetch shop info and products from Shopify API
     try {
-      console.log(`[${requestId}] 📡 جلب المنتجات من Shopify API للمتجر: ${shop}`);
+      console.log(`[${requestId}] 📡 جلب معلومات المتجر والمنتجات من Shopify API للمتجر: ${shop}`);
       
+      // First, get shop information to get current currency
+      const shopInfoUrl = `https://${shop}/admin/api/2024-04/shop.json`;
+      
+      const shopInfoResponse = await fetch(shopInfoUrl, {
+        headers: {
+          'X-Shopify-Access-Token': shopData.access_token,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!shopInfoResponse.ok) {
+        console.error(`[${requestId}] ❌ خطأ في جلب معلومات المتجر: ${shopInfoResponse.status} ${shopInfoResponse.statusText}`);
+        return new Response(JSON.stringify({
+          success: false,
+          message: `Shop info API error: ${shopInfoResponse.status} ${shopInfoResponse.statusText}`,
+        }), {
+          status: shopInfoResponse.status,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      
+      const shopInfoData = await shopInfoResponse.json();
+      const shopInfo = shopInfoData.shop;
+      
+      console.log(`[${requestId}] ✅ تم جلب معلومات المتجر - العملة: ${shopInfo.currency}`);
+      
+      // Now get products
       const apiUrl = `https://${shop}/admin/api/2024-04/products.json?limit=250&status=active`;
       
       const shopifyResponse = await fetch(apiUrl, {
@@ -167,10 +194,10 @@ serve(async (req) => {
           images: images,
           featuredImage: featuredImage,
           variants: variants,
-          // Add currency information from store
-          currency: shopData.currency || 'USD',
-          money_format: shopData.money_format || '${{amount}}',
-          money_with_currency_format: shopData.money_with_currency_format || '${{amount}} USD'
+          // Add currency information from Shopify shop info (real-time data)
+          currency: shopInfo.currency,
+          money_format: shopInfo.money_format,
+          money_with_currency_format: shopInfo.money_with_currency_format
         };
       });
 
@@ -189,9 +216,9 @@ serve(async (req) => {
         products,
         count: products.length,
         shop: shop,
-        currency: shopData.currency || 'USD',
-        money_format: shopData.money_format || '${{amount}}',
-        money_with_currency_format: shopData.money_with_currency_format || '${{amount}} USD'
+        currency: shopInfo.currency,
+        money_format: shopInfo.money_format,
+        money_with_currency_format: shopInfo.money_with_currency_format
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
