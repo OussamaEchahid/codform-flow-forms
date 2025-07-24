@@ -115,45 +115,33 @@ window.CodformQuantityOffers = (function() {
         this.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
       });
 
-      // الجزء الأيسر: الصورة والنص
-      const leftSection = document.createElement('div');
-      leftSection.style.cssText = `
+      // ترتيب مناسب للغة العربية: النص والعلامات أولاً، ثم الصورة، ثم السعر
+      const rightSection = document.createElement('div');
+      rightSection.style.cssText = `
         display: flex;
         align-items: center;
         gap: 12px;
         flex: 1;
+        direction: rtl;
       `;
 
-      // صورة المنتج الحقيقية من API
-      if (productImage) {
-        const imageElement = document.createElement('img');
-        imageElement.src = productImage;
-        imageElement.alt = productTitle;
-        imageElement.style.cssText = `
-          width: 50px;
-          height: 50px;
-          object-fit: cover;
-          border-radius: 8px;
-          border: 1px solid #e5e7eb;
-        `;
-        imageElement.onerror = function() {
-          console.log("❌ Image failed to load:", productImage);
-          this.style.display = 'none';
-        };
-        leftSection.appendChild(imageElement);
-      }
-
-      // محتوى النص
+      // محتوى النص (الجانب الأيمن للعربية)
       const textContent = document.createElement('div');
-      textContent.style.cssText = 'flex: 1;';
+      textContent.style.cssText = `
+        flex: 1;
+        text-align: right;
+        direction: rtl;
+      `;
 
       // النص الرئيسي
       const mainText = document.createElement('div');
       mainText.style.cssText = `
         font-weight: 600;
-        font-size: 15px;
+        font-size: 16px;
         color: ${styling.textColor};
-        margin-bottom: 6px;
+        margin-bottom: 8px;
+        direction: rtl;
+        text-align: right;
       `;
       mainText.textContent = offer.text || `اشترِ ${offer.quantity || 1} قطعة`;
 
@@ -205,13 +193,34 @@ window.CodformQuantityOffers = (function() {
 
       textContent.appendChild(mainText);
       textContent.appendChild(tagsContainer);
-      leftSection.appendChild(textContent);
+      rightSection.appendChild(textContent);
 
-      // الجزء الأيمن: الأسعار الصحيحة
+      // إضافة الصورة في الوسط (للغة العربية)
+      if (productImage) {
+        const imageElement = document.createElement('img');
+        imageElement.src = productImage;
+        imageElement.alt = productTitle;
+        imageElement.style.cssText = `
+          width: 50px;
+          height: 50px;
+          object-fit: cover;
+          border-radius: 8px;
+          border: 1px solid #e5e7eb;
+          flex-shrink: 0;
+        `;
+        imageElement.onerror = function() {
+          console.log("❌ Image failed to load:", productImage);
+          this.style.display = 'none';
+        };
+        rightSection.appendChild(imageElement);
+      }
+
+      // قسم الأسعار (الجانب الأيسر للعربية)
       const priceSection = document.createElement('div');
       priceSection.style.cssText = `
-        text-align: center;
+        text-align: left;
         min-width: 100px;
+        direction: ltr;
       `;
 
       // السعر الأصلي (إذا كان هناك خصم)
@@ -222,6 +231,7 @@ window.CodformQuantityOffers = (function() {
           color: #6b7280;
           text-decoration: line-through;
           margin-bottom: 4px;
+          direction: ltr;
         `;
         originalPriceElement.textContent = `${originalPrice.toFixed(2)} ${currencySymbol}`;
         priceSection.appendChild(originalPriceElement);
@@ -233,6 +243,7 @@ window.CodformQuantityOffers = (function() {
         font-size: 18px;
         font-weight: bold;
         color: ${styling.priceColor};
+        direction: ltr;
       `;
       finalPriceElement.textContent = `${totalPrice.toFixed(2)} ${currencySymbol}`;
       priceSection.appendChild(finalPriceElement);
@@ -244,13 +255,14 @@ window.CodformQuantityOffers = (function() {
           font-size: 11px;
           color: #6b7280;
           margin-top: 2px;
+          direction: ltr;
         `;
         perItemElement.textContent = `${realPrice.toFixed(2)} ${currencySymbol} × ${offer.quantity}`;
         priceSection.appendChild(perItemElement);
       }
 
-      // تجميع العناصر
-      offerElement.appendChild(leftSection);
+      // تجميع العناصر بترتيب مناسب للعربية
+      offerElement.appendChild(rightSection);
       offerElement.appendChild(priceSection);
       container.appendChild(offerElement);
     });
