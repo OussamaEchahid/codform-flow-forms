@@ -7,6 +7,29 @@
 window.CodformQuantityOffers = (function() {
   'use strict';
 
+  // دالة تحويل العملة
+  function convertCurrency(amount, fromCurrency, toCurrency) {
+    // معدلات التحويل المبسطة (يمكن تحسينها لاحقاً بـ API حقيقي)
+    const exchangeRates = {
+      'USD': { 'SAR': 3.75, 'MAD': 10.0, 'USD': 1 },
+      'SAR': { 'USD': 0.27, 'MAD': 2.67, 'SAR': 1 },
+      'MAD': { 'USD': 0.10, 'SAR': 0.375, 'MAD': 1 }
+    };
+    
+    if (fromCurrency === toCurrency) {
+      return amount;
+    }
+    
+    const rate = exchangeRates[fromCurrency]?.[toCurrency];
+    if (rate) {
+      return amount * rate;
+    }
+    
+    // إذا لم يتم العثور على معدل التحويل، إرجاع المبلغ كما هو
+    console.warn(`No exchange rate found for ${fromCurrency} to ${toCurrency}`);
+    return amount;
+  }
+
   // دالة عرض quantity offers مع استخدام البيانات الصحيحة من API
   function displayQuantityOffers(quantityOffersData, blockId, productId, defaultCurrency = 'SAR', productData = null) {
     console.log("🎯 PRECISE FIX - Starting quantity offers display");
@@ -44,20 +67,22 @@ window.CodformQuantityOffers = (function() {
 
       // استخدام بيانات المنتج الحقيقية من API مع التحقق المحسن
       const hasRealPrice = productData && productData.price && parseFloat(productData.price) > 0;
-      const realPrice = hasRealPrice ? parseFloat(productData.price) : 5000; // استخدام السعر الحقيقي أو قيمة افتراضية
-      // استخدام عملة النموذج وليس العملة الافتراضية
-      const currency = defaultCurrency; // استخدام عملة النموذج المُمررة من API
+      const productPrice = hasRealPrice ? parseFloat(productData.price) : 5000;
+      const productCurrency = productData?.currency || 'USD';
+      const formCurrency = defaultCurrency; // عملة النموذج
+      
+      // تحويل السعر من عملة المنتج إلى عملة النموذج
+      const realPrice = convertCurrency(productPrice, productCurrency, formCurrency);
+      const currency = formCurrency; // استخدام عملة النموذج
       const productImage = productData?.image || productData?.featuredImage;
       const productTitle = productData?.title || 'المنتج';
 
-      console.log("💰 ENHANCED Using API product data:", {
-        hasRealPrice,
-        realPrice,
-        currency,
-        productTitle,
-        hasImage: !!productImage,
-        rawPrice: productData?.price,
-        productData: productData
+      console.log("💰 CURRENCY CONVERSION:", {
+        productPrice,
+        productCurrency,
+        formCurrency,
+        convertedPrice: realPrice,
+        conversionApplied: productCurrency !== formCurrency
       });
 
     // استمرار العمل مع السعر (حقيقي أو افتراضي)
