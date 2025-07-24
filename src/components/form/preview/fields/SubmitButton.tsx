@@ -2,6 +2,17 @@
 import React from 'react';
 import { FormField } from '@/lib/form-utils';
 import { cn } from '@/lib/utils';
+import { 
+  ShoppingCart, 
+  Send, 
+  Check, 
+  ArrowRight, 
+  CreditCard, 
+  Package, 
+  Truck, 
+  Heart, 
+  Star 
+} from 'lucide-react';
 
 interface SubmitButtonProps {
   field: FormField;
@@ -49,6 +60,37 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
     }
   };
 
+  // Get the appropriate icon component
+  const getIconComponent = (iconType: string) => {
+    const iconProps = {
+      size: 16,
+      className: "submit-button-icon"
+    };
+
+    switch (iconType) {
+      case 'shopping-cart':
+        return <ShoppingCart {...iconProps} />;
+      case 'send':
+        return <Send {...iconProps} />;
+      case 'check':
+        return <Check {...iconProps} />;
+      case 'arrow-right':
+        return <ArrowRight {...iconProps} />;
+      case 'credit-card':
+        return <CreditCard {...iconProps} />;
+      case 'package':
+        return <Package {...iconProps} />;
+      case 'truck':
+        return <Truck {...iconProps} />;
+      case 'heart':
+        return <Heart {...iconProps} />;
+      case 'star':
+        return <Star {...iconProps} />;
+      default:
+        return <ArrowRight {...iconProps} />;
+    }
+  };
+
   // Define button style
   const btnStyle: React.CSSProperties = {
     backgroundColor,
@@ -78,10 +120,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
     >
       {showIcon && iconPosition === 'left' && field.icon && (
         <span className="submit-icon-left">
-          {/* Icon would be rendered here */}
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
+          {getIconComponent(field.icon)}
         </span>
       )}
       
@@ -89,10 +128,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
       
       {showIcon && iconPosition === 'right' && field.icon && (
         <span className="submit-icon-right">
-          {/* Icon would be rendered here */}
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
+          {getIconComponent(field.icon)}
         </span>
       )}
     </button>

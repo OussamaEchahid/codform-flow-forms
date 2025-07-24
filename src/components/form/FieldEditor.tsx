@@ -771,6 +771,40 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
           { value: "wiggle" as const, label: language === 'ar' ? 'تمايل' : 'Wiggle' },
           { value: "flash" as const, label: language === 'ar' ? 'وميض' : 'Flash' }
         ];
+
+        const submitIcons = [
+          { value: "none", label: language === 'ar' ? 'بدون أيقونة' : 'No Icon' },
+          { value: "shopping-cart", label: language === 'ar' ? 'سلة التسوق' : 'Shopping Cart' },
+          { value: "send", label: language === 'ar' ? 'إرسال' : 'Send' },
+          { value: "check", label: language === 'ar' ? 'علامة صح' : 'Check' },
+          { value: "arrow-right", label: language === 'ar' ? 'سهم للأمام' : 'Arrow Right' },
+          { value: "credit-card", label: language === 'ar' ? 'بطاقة ائتمان' : 'Credit Card' },
+          { value: "package", label: language === 'ar' ? 'طرد' : 'Package' },
+          { value: "truck", label: language === 'ar' ? 'شاحنة' : 'Truck' },
+          { value: "heart", label: language === 'ar' ? 'قلب' : 'Heart' },
+          { value: "star", label: language === 'ar' ? 'نجمة' : 'Star' }
+        ];
+
+        const handleIconChange = (iconValue: string) => {
+          setCurrentField({
+            ...currentField,
+            icon: iconValue === 'none' ? undefined : iconValue,
+            style: {
+              ...currentField.style,
+              showIcon: iconValue !== 'none'
+            }
+          });
+        };
+
+        const handleIconPositionChange = (position: 'left' | 'right') => {
+          setCurrentField({
+            ...currentField,
+            style: {
+              ...currentField.style,
+              iconPosition: position
+            }
+          });
+        };
         
         return (
           <div className="p-4">
@@ -792,6 +826,50 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
                     </FormItem>
                   )}
                 />
+
+                {/* Icon controls */}
+                <div className="space-y-4 border rounded-md p-4">
+                  <h4 className="font-medium">
+                    {language === 'ar' ? 'إعدادات الأيقونة' : 'Icon Settings'}
+                  </h4>
+                  
+                  <div>
+                    <FormLabel>{language === 'ar' ? 'اختر الأيقونة' : 'Select Icon'}</FormLabel>
+                    <Select
+                      value={currentField.icon || 'none'}
+                      onValueChange={handleIconChange}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder={language === 'ar' ? 'اختر أيقونة' : 'Select icon'} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {submitIcons.map((icon) => (
+                          <SelectItem key={icon.value} value={icon.value}>
+                            {icon.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {currentField.style?.showIcon && (
+                    <div>
+                      <FormLabel>{language === 'ar' ? 'موقع الأيقونة' : 'Icon Position'}</FormLabel>
+                      <Select
+                        value={currentField.style?.iconPosition || 'left'}
+                        onValueChange={(value) => handleIconPositionChange(value as 'left' | 'right')}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder={language === 'ar' ? 'اختر موقع الأيقونة' : 'Select icon position'} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="left">{language === 'ar' ? 'يسار' : 'Left'}</SelectItem>
+                          <SelectItem value="right">{language === 'ar' ? 'يمين' : 'Right'}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
                 
                 {/* Animation controls */}
                 <div className="space-y-4 border rounded-md p-4">
