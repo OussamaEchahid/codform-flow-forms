@@ -108,6 +108,7 @@ function Extension() {
       user: '👤',
       phone: '📱', 
       mail: '📧',
+      email: '📧',
       'map-pin': '📍',
       home: '🏠',
       heart: '❤️',
@@ -116,7 +117,14 @@ function Extension() {
       gift: '🎁',
       calendar: '📅',
       clock: '⏰',
-      'message-circle': '💬'
+      'message-circle': '💬',
+      diamond: '💎',
+      circle: '⭕',
+      square: '⬜',
+      triangle: '🔺',
+      hexagon: '⬣',
+      target: '🎯',
+      settings: '⚙️'
     };
     
     return iconMap[field.icon] || '•';
