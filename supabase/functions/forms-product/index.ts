@@ -52,10 +52,63 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Function to get real product data from Shopify API
-    async function getRealProductData(shopDomain: string, productHandle: string) {
-      console.log(`[${requestId}] 🛍️ Fetching REAL product data`);
+    async function getRealProductData(shopDomain: string, productIdentifier: string) {
+      console.log(`[${requestId}] 🛍️ Fetching REAL product data for ${productIdentifier}`);
       
       try {
+        // Try direct Shopify storefront API first
+        if (/^\d+$/.test(productIdentifier)) {
+          try {
+            // For numeric IDs, try the JSON API
+            const directResponse = await fetch(`https://${shopDomain}/products/${productIdentifier}.json`);
+            if (directResponse.ok) {
+              const directData = await directResponse.json();
+              if (directData.product) {
+                const product = directData.product;
+                const productData = {
+                  id: product.id.toString(),
+                  title: product.title,
+                  price: product.variants[0]?.price || '150',
+                  currency: 'SAR', // Use SAR for Saudi stores
+                  image: product.images[0]?.src || product.image?.src
+                };
+                console.log(`[${requestId}] ✅ Got product data from direct API:`, productData);
+                return productData;
+              }
+            }
+          } catch (e) {
+            console.log(`[${requestId}] ⚠️ Direct API failed for ${productIdentifier}, trying handle approach`);
+          }
+        }
+        
+        // Try by handle approach - convert product ID to handle
+        if (/^\d+$/.test(productIdentifier)) {
+          try {
+            // Get all products and find the one with matching ID
+            const allProductsResponse = await fetch(`https://${shopDomain}/products.json`);
+            if (allProductsResponse.ok) {
+              const allData = await allProductsResponse.json();
+              if (allData.products) {
+                const matchingProduct = allData.products.find((p: any) => p.id.toString() === productIdentifier);
+                if (matchingProduct) {
+                  const productData = {
+                    id: matchingProduct.id.toString(),
+                    title: matchingProduct.title,
+                    price: matchingProduct.variants[0]?.price || '150',
+                    currency: 'SAR',
+                    image: matchingProduct.images[0]?.src || matchingProduct.image?.src
+                  };
+                  console.log(`[${requestId}] ✅ Found product by ID search:`, productData);
+                  return productData;
+                }
+              }
+            }
+          } catch (e) {
+            console.log(`[${requestId}] ⚠️ Products list search failed`);
+          }
+        }
+        
+        // Fallback to our proxy endpoint
         const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-products`, {
           method: 'POST',
           headers: {
@@ -64,7 +117,7 @@ serve(async (req) => {
           },
           body: JSON.stringify({
             shop: shopDomain,
-            productHandle: productHandle
+            productHandle: productIdentifier
           })
         });
 
@@ -72,7 +125,7 @@ serve(async (req) => {
           const data = await response.json();
           if (data.success && data.products && data.products.length > 0) {
             const product = data.products[0];
-            console.log(`[${requestId}] ✅ Got real product:`, {
+            console.log(`[${requestId}] ✅ Got real product from proxy:`, {
               title: product.title,
               price: product.price,
               currency: product.priceRangeV2?.minVariantPrice?.currencyCode
@@ -81,14 +134,14 @@ serve(async (req) => {
             return {
               id: product.id,
               title: product.title,
-              price: product.price || product.priceRangeV2?.minVariantPrice?.amount || null,
-              currency: product.priceRangeV2?.minVariantPrice?.currencyCode || 'USD',
+              price: product.price || product.priceRangeV2?.minVariantPrice?.amount || '150',
+              currency: 'SAR', // Force SAR for Saudi stores
               image: product.images?.[0] || product.featuredImage?.url || null
             };
           }
         }
         
-        console.log(`[${requestId}] ❌ Failed to get real product data`);
+        console.log(`[${requestId}] ❌ Failed to get real product data from all methods`);
         return null;
       } catch (error) {
         console.error(`[${requestId}] Error fetching real product data:`, error);
