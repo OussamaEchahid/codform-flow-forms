@@ -61,7 +61,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
       console.log('📝 Form data:', formData);
       
       // Call the submission API with correct form ID
-      const response = await fetch('/api/submissions', {
+      const response = await fetch('https://trlklwixfeaexhydzaue.supabase.co/functions/v1/api-submissions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -78,6 +78,12 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
       if (result.success) {
         toast.success(language === 'ar' ? 'تم إرسال الطلب بنجاح' : 'Order submitted successfully');
         setFormData({});
+        // Redirect to thank you page
+        if (result.thankYouUrl) {
+          setTimeout(() => {
+            window.location.href = result.thankYouUrl;
+          }, 1500);
+        }
       } else {
         toast.error(result.error || (language === 'ar' ? 'فشل في إرسال الطلب' : 'Failed to submit order'));
       }
@@ -166,6 +172,10 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
                   formPhonePrefix={formPhonePrefix}
                   value={formData[field.id]}
                   onChange={(value) => handleInputChange(field.id, value)}
+                  {...(field.type === 'submit' && { 
+                    onClick: () => handleSubmit({ preventDefault: () => {} } as React.FormEvent),
+                    disabled: isSubmitting 
+                  })}
                 />
               </div>
             ))}

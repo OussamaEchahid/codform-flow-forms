@@ -440,7 +440,7 @@ serve(async (req: Request) => {
         success: true, 
         message: 'تم إرسال طلبكم بنجاح',
         submissionId: submissionData.id,
-        redirect: '/thank-you'
+        thankYouUrl: '/thank-you'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );

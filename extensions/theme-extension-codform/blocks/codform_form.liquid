@@ -1193,9 +1193,10 @@
           console.log('❌ CODFORM: No valid fields array found');
         }
 
-        // Wrap in form element
+        // Wrap in form element with submission handler
         completeFormHTML += `
-          <form class="codform-form-fields" style="background: transparent; margin: 0; padding: 0;">
+          <form class="codform-form-fields" style="background: transparent; margin: 0; padding: 0;" 
+                id="codform-main-form" onsubmit="handleFormSubmission(event)">
             ${formContent}
           </form>
         `;
@@ -1227,6 +1228,98 @@
   window.addEventListener('load', () => {
     setTimeout(loadCompleteForm, 1000);
   });
+  
+  // Form submission handler
+  window.handleFormSubmission = async function(event) {
+    event.preventDefault();
+    
+    console.log('🚀 CODFORM: Form submission started');
+    
+    // Get form data
+    const form = event.target;
+    const formData = new FormData(form);
+    const submissionData = {};
+    
+    // Convert FormData to regular object
+    for (let [key, value] of formData.entries()) {
+      submissionData[key] = value;
+    }
+    
+    // Get additional form data from inputs
+    const allInputs = form.querySelectorAll('input, textarea, select');
+    allInputs.forEach(input => {
+      if (input.name || input.id) {
+        const fieldKey = input.name || input.id;
+        if (input.type === 'checkbox') {
+          submissionData[fieldKey] = input.checked;
+        } else if (input.type === 'radio') {
+          if (input.checked) {
+            submissionData[fieldKey] = input.value;
+          }
+        } else {
+          submissionData[fieldKey] = input.value;
+        }
+      }
+    });
+    
+    console.log('📝 CODFORM: Collected form data:', submissionData);
+    
+    try {
+      // Get current product info from page
+      const productId = '{{ product.id }}' || '{{ product.variants.first.id }}' || DEFAULT_PRODUCT_ID;
+      const shopDomain = window.Shopify?.shop || '{{ shop.permanent_domain }}';
+      
+      console.log('🏪 CODFORM: Submitting to shop:', shopDomain, 'product:', productId);
+      
+      // Submit to edge function
+      const response = await fetch('https://trlklwixfeaexhydzaue.supabase.co/functions/v1/api-submissions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          formId: productId, // Use product ID as form ID
+          shopDomain: shopDomain,
+          productId: productId,
+          data: submissionData
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        console.log('✅ CODFORM: Submission successful');
+        
+        // Show success message
+        const submitBtn = form.querySelector('.codform-submit-btn');
+        if (submitBtn) {
+          const originalText = submitBtn.innerHTML;
+          submitBtn.innerHTML = '✅ تم الإرسال بنجاح';
+          submitBtn.style.backgroundColor = '#22c55e';
+          
+          setTimeout(() => {
+            submitBtn.innerHTML = originalText;
+            submitBtn.style.backgroundColor = '';
+          }, 3000);
+        }
+        
+        // Redirect to thank you page if provided
+        if (result.thankYouUrl) {
+          setTimeout(() => {
+            window.location.href = result.thankYouUrl;
+          }, 1500);
+        }
+        
+      } else {
+        console.error('❌ CODFORM: Submission failed:', result.error);
+        alert('خطأ في إرسال الطلب. يرجى المحاولة مرة أخرى.');
+      }
+      
+    } catch (error) {
+      console.error('❌ CODFORM: Submission error:', error);
+      alert('خطأ في إرسال الطلب. يرجى المحاولة مرة أخرى.');
+    }
+  };
   
 })();
 </script>

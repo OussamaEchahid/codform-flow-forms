@@ -29,9 +29,11 @@ interface SubmitButtonProps {
     fontSize?: string;
     buttonStyle?: string;
   };
+  onClick?: () => void;
+  disabled?: boolean;
 }
 
-const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
+const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, onClick, disabled = false }) => {
   // Extract style values with fallbacks
   const {
     backgroundColor = field.style?.backgroundColor || formStyle.primaryColor || '#9b87f5',
@@ -136,9 +138,11 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
 
   return (
     <button 
-      type="button" 
+      type="submit" 
       className={cn("form-submit-btn w-full", animClass)}
       style={btnStyle}
+      onClick={onClick}
+      disabled={disabled}
     >
       {showIcon && iconPosition === 'left' && field.icon && (
         <span className="submit-icon-left">

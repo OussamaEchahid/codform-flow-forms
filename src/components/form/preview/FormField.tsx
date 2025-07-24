@@ -24,6 +24,8 @@ interface FormFieldProps {
   formPhonePrefix?: string;
   value?: any;
   onChange?: (value: any) => void;
+  onClick?: () => void;
+  disabled?: boolean;
 }
 
 const FormField: React.FC<FormFieldProps> = ({ 
@@ -32,7 +34,9 @@ const FormField: React.FC<FormFieldProps> = ({
   formCountry = 'MA', 
   formPhonePrefix = '+212',
   value,
-  onChange
+  onChange,
+  onClick,
+  disabled
 }) => {
   // Create enhanced field with value and onChange
   const enhancedField = {
@@ -66,7 +70,7 @@ const FormField: React.FC<FormFieldProps> = ({
       return <FormTitleField field={enhancedField} formStyle={formStyle} />;
     
     case 'submit':
-      return <SubmitButton field={enhancedField} formStyle={formStyle} />;
+      return <SubmitButton field={enhancedField} formStyle={formStyle} onClick={onClick} disabled={disabled} />;
     
     case 'cart-items':
       return <CartItems field={enhancedField} formStyle={formStyle} />;
