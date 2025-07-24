@@ -103,16 +103,16 @@ function Extension() {
     
     if (!showIcon) return null;
     
-    // Map ALL available icons to emoji symbols for checkout UI
+    // Map جميع الأيقونات المتاحة في النظام - نفس الطريقة التي نجحت
     const iconMap = {
-      // Basic icons
+      // الأيقونات الأساسية
       user: '👤',
       phone: '📱', 
       mail: '📧',
       email: '📧',
       'map-pin': '📍',
       
-      // New featured icons
+      // الأيقونات المميزة الجديدة
       home: '🏠',
       heart: '❤️',
       star: '⭐',
@@ -122,36 +122,45 @@ function Extension() {
       clock: '⏰',
       'message-circle': '💬',
       
-      // Shape icons
+      // أيقونات الأشكال
       diamond: '💎',
       circle: '⭕',
       square: '⬜',
       triangle: '🔺',
       hexagon: '⬣',
       target: '🎯',
-      
-      // Action icons
       settings: '⚙️',
+      
+      // أيقونات زر الطلب
+      'shopping-bag': '🛍️',
+      'credit-card': '💳',
+      banknote: '💵',
+      handshake: '🤝',
+      truck: '🚚',
+      package: '📦',
+      send: '📤',
+      crown: '👑',
+      zap: '⚡',
       check: '✅',
-      x: '❌',
-      plus: '➕',
-      minus: '➖',
+      
+      // أيقونات حقول الاسم
+      users: '👥',
+      'id-card': '🆔',
+      award: '🏆',
+      
+      // أيقونات الهاتف
+      smartphone: '📱',
+      'phone-call': '📞',
+      
+      // أيقونات العنوان
+      building: '🏢',
+      map: '🗺️',
+      
+      // أيقونات الرسائل
+      'message-square': '💬',
+      'sticky-note': '📝',
       edit: '✏️',
-      trash: '🗑️',
-      search: '🔍',
-      eye: '👁️',
-      'eye-off': '🙈',
-      info: 'ℹ️',
-      'alert-triangle': '⚠️',
-      download: '⬇️',
-      upload: '⬆️',
-      link: '🔗',
-      'external-link': '↗️',
-      refresh: '🔄',
-      copy: '📋',
-      file: '📄',
-      folder: '📁',
-      image: '🖼️'
+      sparkles: '✨'
     };
     
     return iconMap[field.icon] || '•';
