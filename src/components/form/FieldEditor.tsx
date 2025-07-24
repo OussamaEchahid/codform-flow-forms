@@ -772,24 +772,78 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
           { value: "flash" as const, label: language === 'ar' ? 'وميض' : 'Flash' }
         ];
 
+        // أيقونات خاصة بزر الطلب فقط
         const submitIcons = [
           { value: "none", label: language === 'ar' ? 'بدون أيقونة' : 'No Icon' },
           { value: "shopping-cart", label: language === 'ar' ? 'سلة التسوق' : 'Shopping Cart' },
           { value: "credit-card", label: language === 'ar' ? 'بطاقة ائتمان' : 'Credit Card' },
           { value: "package", label: language === 'ar' ? 'طرد' : 'Package' },
           { value: "truck", label: language === 'ar' ? 'شاحنة توصيل' : 'Delivery Truck' },
-          { value: "check", label: language === 'ar' ? 'علامة صح' : 'Check Mark' }
+          { value: "check", label: language === 'ar' ? 'تأكيد الطلب' : 'Confirm Order' },
+          { value: "send", label: language === 'ar' ? 'إرسال الطلب' : 'Send Order' },
+          { value: "shopping-bag", label: language === 'ar' ? 'حقيبة تسوق' : 'Shopping Bag' },
+          { value: "banknote", label: language === 'ar' ? 'دفع نقدي' : 'Cash Payment' },
+          { value: "handshake", label: language === 'ar' ? 'دفع عند الاستلام' : 'Cash on Delivery' }
         ];
 
-        // أيقونات خاصة بحقول الإدخال (مخصصة لكل نوع حقل)
-        const inputFieldIcons = [
+        // أيقونات خاصة بالاسم
+        const nameFieldIcons = [
           { value: "none", label: language === 'ar' ? 'بدون أيقونة' : 'No Icon' },
           { value: "user", label: language === 'ar' ? 'مستخدم' : 'User' },
-          { value: "mail", label: language === 'ar' ? 'بريد إلكتروني' : 'Email' },
-          { value: "phone", label: language === 'ar' ? 'هاتف' : 'Phone' },
-          { value: "map-pin", label: language === 'ar' ? 'موقع' : 'Location' },
-          { value: "message-square", label: language === 'ar' ? 'رسالة' : 'Message' }
+          { value: "users", label: language === 'ar' ? 'عدة أشخاص' : 'Multiple Users' },
+          { value: "person-standing", label: language === 'ar' ? 'شخص' : 'Person' },
+          { value: "id-card", label: language === 'ar' ? 'هوية' : 'ID Card' }
         ];
+
+        // أيقونات خاصة برقم الهاتف
+        const phoneFieldIcons = [
+          { value: "none", label: language === 'ar' ? 'بدون أيقونة' : 'No Icon' },
+          { value: "phone", label: language === 'ar' ? 'هاتف' : 'Phone' },
+          { value: "smartphone", label: language === 'ar' ? 'هاتف ذكي' : 'Smartphone' },
+          { value: "phone-call", label: language === 'ar' ? 'مكالمة هاتفية' : 'Phone Call' }
+        ];
+
+        // أيقونات خاصة بالعنوان
+        const addressFieldIcons = [
+          { value: "none", label: language === 'ar' ? 'بدون أيقونة' : 'No Icon' },
+          { value: "map-pin", label: language === 'ar' ? 'موقع' : 'Location' },
+          { value: "home", label: language === 'ar' ? 'منزل' : 'Home' },
+          { value: "building", label: language === 'ar' ? 'مبنى' : 'Building' },
+          { value: "map", label: language === 'ar' ? 'خريطة' : 'Map' }
+        ];
+
+        // أيقونات خاصة بالرسائل والملاحظات
+        const messageFieldIcons = [
+          { value: "none", label: language === 'ar' ? 'بدون أيقونة' : 'No Icon' },
+          { value: "message-square", label: language === 'ar' ? 'رسالة' : 'Message' },
+          { value: "mail", label: language === 'ar' ? 'بريد إلكتروني' : 'Email' },
+          { value: "sticky-note", label: language === 'ar' ? 'ملاحظة' : 'Note' },
+          { value: "edit", label: language === 'ar' ? 'تحرير' : 'Edit' }
+        ];
+
+        // دالة لاختيار الأيقونات المناسبة لكل نوع حقل
+        const getIconsForFieldType = (fieldType: string) => {
+          switch (fieldType) {
+            case 'submit':
+              return submitIcons;
+            case 'text':
+              if (currentField.label?.toLowerCase().includes('name') || currentField.label?.toLowerCase().includes('اسم')) {
+                return nameFieldIcons;
+              }
+              return nameFieldIcons; // default for text fields
+            case 'phone':
+              return phoneFieldIcons;
+            case 'textarea':
+              if (currentField.label?.toLowerCase().includes('address') || currentField.label?.toLowerCase().includes('عنوان')) {
+                return addressFieldIcons;
+              }
+              return messageFieldIcons; // default for textarea
+            case 'email':
+              return messageFieldIcons;
+            default:
+              return submitIcons;
+          }
+        };
 
         const handleIconChange = (iconValue: string) => {
           setCurrentField({

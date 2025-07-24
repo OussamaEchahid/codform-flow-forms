@@ -10,8 +10,9 @@ import {
   CreditCard, 
   Package, 
   Truck, 
-  Heart, 
-  Star 
+  ShoppingBag,
+  Banknote,
+  Handshake
 } from 'lucide-react';
 
 interface SubmitButtonProps {
@@ -82,12 +83,14 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
         return <Package {...iconProps} />;
       case 'truck':
         return <Truck {...iconProps} />;
-      case 'heart':
-        return <Heart {...iconProps} />;
-      case 'star':
-        return <Star {...iconProps} />;
+      case 'shopping-bag':
+        return <ShoppingBag {...iconProps} />;
+      case 'banknote':
+        return <Banknote {...iconProps} />;
+      case 'handshake':
+        return <Handshake {...iconProps} />;
       default:
-        return <ArrowRight {...iconProps} />;
+        return <ShoppingCart {...iconProps} />;
     }
   };
 
