@@ -283,31 +283,47 @@ serve(async (req: Request) => {
     try {
       console.log('🔍 Looking up form settings for ID:', formId);
       
-      // First try to get form by exact ID
+      // First try to get form by exact ID (UUID format)
       let { data: formData, error: formError } = await supabase
         .from('forms')
         .select('id, country, currency, phone_prefix')
         .eq('id', formId)
         .single();
         
+      // If not found by ID, try to find form associated with this product
       if (formError || !formData) {
-        console.log('⚠️ Form not found by ID, trying fallback by shop_id:', shopDomain);
+        console.log('⚠️ Form not found by ID, trying to find form associated with product:', formId);
         
-        // Fallback: get the most recent form for this shop
-        const { data: fallbackFormData, error: fallbackError } = await supabase
-          .from('forms')
-          .select('id, country, currency, phone_prefix')
+        const { data: productSettingData, error: productError } = await supabase
+          .from('shopify_product_settings')
+          .select('form_id, forms(id, country, currency, phone_prefix)')
+          .eq('product_id', formId)
           .eq('shop_id', shopDomain)
-          .order('updated_at', { ascending: false })
-          .limit(1)
           .single();
           
-        if (!fallbackError && fallbackFormData) {
-          formData = fallbackFormData;
-          actualFormId = fallbackFormData.id;
-          console.log('✅ Using fallback form:', actualFormId);
+        if (!productError && productSettingData?.forms) {
+          formData = productSettingData.forms as any;
+          actualFormId = formData.id;
+          console.log('✅ Found form associated with product:', actualFormId);
         } else {
-          console.log('⚠️ No fallback form found, using default settings');
+          console.log('⚠️ No product-specific form found, trying latest form for shop:', shopDomain);
+          
+          // Final fallback: get the most recent form for this shop
+          const { data: fallbackFormData, error: fallbackError } = await supabase
+            .from('forms')
+            .select('id, country, currency, phone_prefix')
+            .eq('shop_id', shopDomain)
+            .order('updated_at', { ascending: false })
+            .limit(1)
+            .single();
+            
+          if (!fallbackError && fallbackFormData) {
+            formData = fallbackFormData;
+            actualFormId = fallbackFormData.id;
+            console.log('✅ Using fallback form:', actualFormId);
+          } else {
+            console.log('⚠️ No fallback form found, using default settings');
+          }
         }
       }
       
