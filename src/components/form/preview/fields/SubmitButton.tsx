@@ -39,8 +39,8 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
     fontSize = field.style?.fontSize || formStyle.fontSize || '16px',
     animation = field.style?.animation || false,
     animationType = field.style?.animationType || 'pulse',
-    borderRadius = formStyle.borderRadius || '6px',
-    paddingY = field.style?.paddingY || '16px',
+    borderRadius = formStyle.borderRadius || '8px',
+    paddingY = field.style?.paddingY || '10px',
     showIcon = field.style?.showIcon || false,
     iconPosition = field.style?.iconPosition || 'left',
     borderColor = field.style?.borderColor,
@@ -119,22 +119,16 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
     color,
     fontSize,
     borderRadius,
-    padding: `${paddingY} 32px`,
+    padding: `${paddingY} 24px`,
     border: borderColor ? `${borderWidth} solid ${borderColor}` : 'none',
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
     gap: '8px',
     cursor: 'pointer',
-    fontWeight: '500',
+    fontWeight: 'bold',
     textAlign: 'center',
-    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-    boxShadow: '0 4px 12px rgba(155, 135, 245, 0.3)',
-    transform: 'translateY(0)',
-    position: 'relative',
-    overflow: 'hidden',
-    minHeight: '56px',
-    fontFamily: "'Cairo', inherit"
+    transition: 'all 0.2s ease-in-out',
   };
 
   // Add className for animation
@@ -145,22 +139,6 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
       type="button" 
       className={cn("form-submit-btn w-full", animClass)}
       style={btnStyle}
-      onMouseOver={(e) => {
-        e.currentTarget.style.transform = 'translateY(-3px) scale(1.02)';
-        e.currentTarget.style.boxShadow = '0 8px 25px rgba(155, 135, 245, 0.4)';
-        e.currentTarget.style.background = 'linear-gradient(135deg, #9b87f5, #9b87f5dd)';
-      }}
-      onMouseOut={(e) => {
-        e.currentTarget.style.transform = 'translateY(0) scale(1)';
-        e.currentTarget.style.boxShadow = '0 4px 12px rgba(155, 135, 245, 0.3)';
-        e.currentTarget.style.background = backgroundColor;
-      }}
-      onMouseDown={(e) => {
-        e.currentTarget.style.transform = 'translateY(-1px) scale(0.98)';
-      }}
-      onMouseUp={(e) => {
-        e.currentTarget.style.transform = 'translateY(-3px) scale(1.02)';
-      }}
     >
       {showIcon && iconPosition === 'left' && field.icon && (
         <span className="submit-icon-left">

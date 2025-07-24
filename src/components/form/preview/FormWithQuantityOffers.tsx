@@ -195,9 +195,9 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
         // Show ALL quantity offers (regardless of position) before submit button
         if (field.type === 'submit' && quantityOffers.length > 0) {
           return (
-        <div key={`${field.id}-with-offers`}>
-          {renderQuantityOffers(quantityOffers)}
-          <div style={{ marginTop: '24px' }}>
+            <div key={`${field.id}-with-offers`}>
+              {renderQuantityOffers(quantityOffers)}
+              <div className="mt-4">
                 <FormField 
                   key={field.id} 
                   field={field} 
