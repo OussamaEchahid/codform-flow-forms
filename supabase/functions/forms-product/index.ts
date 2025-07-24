@@ -18,8 +18,7 @@ serve(async (req) => {
     const productId = url.searchParams.get('product') || url.searchParams.get('productId');
     const blockId = url.searchParams.get('blockId');
 
-    console.log('🚀 تم استلام الطلب');
-    console.log(`🏪 معالجة الطلب للمتجر: ${shop}, معرف المنتج: ${productId}, معرف البلوك: ${blockId}`);
+    console.log('🚀 Request received for shop:', shop, 'product:', productId, 'block:', blockId);
 
     if (!shop) {
       return new Response(
@@ -36,8 +35,8 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // البحث عن النموذج المرتبط بالمنتج أو النموذج العام
-    let query = supabase
+    // البحث عن النموذج والإعدادات
+    const { data: productSettings, error: settingsError } = await supabase
       .from('shopify_product_settings')
       .select(`
         *,
@@ -53,22 +52,14 @@ serve(async (req) => {
         )
       `)
       .eq('shop_id', shop)
-      .eq('enabled', true);
+      .eq('enabled', true)
+      .or(productId ? `product_id.eq.${productId},product_id.eq.auto-detect` : `product_id.eq.auto-detect`)
+      .limit(1);
 
-    // إذا كان هناك معرف منتج محدد، ابحث عنه أولاً
-    if (productId && productId !== 'default') {
-      query = query.or(`product_id.eq.${productId},product_id.eq.auto-detect`);
-    } else {
-      // إذا لم يكن هناك معرف منتج، ابحث عن النموذج العام
-      query = query.eq('product_id', 'auto-detect');
-    }
-
-    const { data: productSettings, error } = await query.limit(1);
-
-    if (error) {
-      console.error('❌ خطأ في قاعدة البيانات:', error);
+    if (settingsError) {
+      console.error('❌ Database error:', settingsError);
       return new Response(
-        JSON.stringify({ success: false, message: `Database error: ${error.message}` }),
+        JSON.stringify({ success: false, message: `Database error: ${settingsError.message}` }),
         { 
           status: 500, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -77,7 +68,7 @@ serve(async (req) => {
     }
 
     if (!productSettings || productSettings.length === 0) {
-      console.log('⚠️ لا توجد إعدادات منتج للمتجر:', shop);
+      console.log('⚠️ No product settings found for shop:', shop);
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -96,7 +87,7 @@ serve(async (req) => {
     const form = setting.forms;
 
     if (!form) {
-      console.log('⚠️ لا يوجد نموذج مرتبط بالإعدادات');
+      console.log('⚠️ No form linked to settings');
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -109,7 +100,7 @@ serve(async (req) => {
       );
     }
 
-    // البحث عن عروض الكمية إذا كانت موجودة
+    // البحث عن عروض الكمية
     const { data: quantityOffers } = await supabase
       .from('quantity_offers')
       .select('*')
@@ -118,10 +109,8 @@ serve(async (req) => {
       .or(`form_id.eq.${form.id},product_id.eq.${productId || 'auto-detect'}`)
       .limit(1);
 
-    console.log('🎯 البحث عن عروض الكمية للمنتج:', productId, 'والنموذج:', form.id);
-    console.log('🎯 عروض الكمية الموجودة:', quantityOffers);
-
-    console.log('✅ تم العثور على النموذج:', form.title);
+    console.log('✅ Found form:', form.title);
+    console.log('🎯 Quantity offers found:', quantityOffers ? quantityOffers.length : 0);
     
     const responseData = {
       success: true,
@@ -149,7 +138,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('❌ خطأ عام:', error);
+    console.error('❌ General error:', error);
     return new Response(
       JSON.stringify({ 
         success: false, 
