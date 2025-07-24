@@ -45,6 +45,7 @@ const ShopifyProductsList: React.FC<ShopifyProductsListProps> = memo(({
       const currencySymbols: Record<string, string> = {
         'AED': 'د.إ',
         'SAR': 'ر.س',
+        'MAD': 'د.م', // الدرهم المغربي
         'USD': '$',
         'EUR': '€',
         'GBP': '£'
@@ -123,6 +124,7 @@ const ShopifyProductsList: React.FC<ShopifyProductsListProps> = memo(({
                         const currencySymbols: Record<string, string> = {
                           'AED': 'د.إ',
                           'SAR': 'ر.س',
+                          'MAD': 'د.م', // الدرهم المغربي
                           'USD': '$',
                           'EUR': '€',
                           'GBP': '£'

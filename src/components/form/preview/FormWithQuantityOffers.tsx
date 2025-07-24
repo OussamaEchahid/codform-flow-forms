@@ -51,6 +51,7 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
       const currencySymbols: Record<string, string> = {
         'AED': 'د.إ',
         'SAR': 'ر.س',
+        'MAD': 'د.م', // الدرهم المغربي
         'USD': '$',
         'EUR': '€',
         'GBP': '£'
