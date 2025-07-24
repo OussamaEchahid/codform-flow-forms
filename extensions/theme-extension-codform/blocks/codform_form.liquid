@@ -157,22 +157,22 @@
     
     console.log('🔄 CODFORM: Detected form direction:', formDirection);
     
-    // Enhanced label styling to match preview exactly
-    const labelStyle = field.style || {};
-    const showLabel = getStyleValue(labelStyle, 'showLabel', true);
+      // Enhanced label styling to match preview exactly
+      const labelStyle = field.style || {};
+      const showLabel = getStyleValue(labelStyle, 'showLabel', true);
+      
+      // Label styling to match preview exactly
+      const labelColor = getStyleValue(labelStyle, 'labelColor', '#333333'); // Match preview color
+      const labelFontSize = getStyleValue(labelStyle, 'labelFontSize', '1rem'); // Match preview
+      const labelFontWeight = getStyleValue(labelStyle, 'labelFontWeight', '500'); // Match preview weight
     
-    // STRONG label text color (تقوية حبر الـ Label)
-    const labelColor = getStyleValue(labelStyle, 'labelColor', '#1F2937'); // Stronger color
-    const labelFontSize = getStyleValue(labelStyle, 'labelFontSize', '16px'); // Match preview
-    const labelFontWeight = getStyleValue(labelStyle, 'labelFontWeight', '600'); // Bold weight
-    
-    // Field styling to match preview exactly
-    const fieldBackgroundColor = '#FFFFFF'; // White background for fields
-    const fieldBorderColor = getStyleValue(labelStyle, 'borderColor', '#D1D5DB');
-    const fieldBorderRadius = '12px'; // Match preview exactly
-    const fieldFontSize = '16px'; // Match preview
-    const fieldTextColor = '#1F2937'; // Strong text color
-    const fieldPadding = '12px 16px'; // Match preview padding
+      // Field styling to match preview exactly
+      const fieldBackgroundColor = '#FFFFFF'; // White background for fields
+      const fieldBorderColor = getStyleValue(labelStyle, 'borderColor', '#D1D5DB');
+      const fieldBorderRadius = '8px'; // Match preview exactly (8px not 12px)
+      const fieldFontSize = '16px'; // Match preview
+      const fieldTextColor = '#1F2937'; // Strong text color
+      const fieldPadding = '12px 16px'; // Match preview padding
     
     let html = '';
     
@@ -218,19 +218,19 @@
       // Enhanced styling to match preview exactly - get from field style
       const fieldStyle = field.style || {};
       
-      // Label styling from field settings
-      const actualLabelColor = getStyleValue(fieldStyle, 'labelColor', '#1F2937');
-      const actualLabelFontSize = getStyleValue(fieldStyle, 'labelFontSize', '16px');  
-      const actualLabelWeight = getStyleValue(fieldStyle, 'labelWeight', '500'); // Lighter weight like preview
+      // Label styling from field settings - match preview exactly
+      const actualLabelColor = getStyleValue(fieldStyle, 'labelColor', '#333333');
+      const actualLabelFontSize = getStyleValue(fieldStyle, 'labelFontSize', '1rem');  
+      const actualLabelWeight = getStyleValue(fieldStyle, 'labelWeight', '500'); // Match preview weight
       const actualShowLabel = getStyleValue(fieldStyle, 'showLabel', true);
       
-      // Field styling from field settings
-      const actualTextColor = getStyleValue(fieldStyle, 'textColor', '#1F2937');
-      const actualBorderColor = getStyleValue(fieldStyle, 'borderColor', '#D1D5DB');
+      // Field styling from field settings - match preview exactly
+      const actualTextColor = getStyleValue(fieldStyle, 'textColor', 'rgb(31, 41, 55)');
+      const actualBorderColor = getStyleValue(fieldStyle, 'borderColor', 'rgb(209, 213, 219)');
       const actualBorderWidth = getStyleValue(fieldStyle, 'borderWidth', '1px');
-      const actualFontSize = getStyleValue(fieldStyle, 'fontSize', '16px');
-      const actualPaddingY = getStyleValue(fieldStyle, 'paddingY', '12px');
-      const actualBorderRadius = getStyleValue(fieldStyle, 'borderRadius', '12px'); // Match preview exactly
+      const actualFontSize = getStyleValue(fieldStyle, 'fontSize', '1rem');
+      const actualPaddingY = getStyleValue(fieldStyle, 'paddingY', '10px');
+      const actualBorderRadius = getStyleValue(fieldStyle, 'borderRadius', '8px'); // Match preview exactly
       const actualPlaceholder = getStyleValue(fieldStyle, 'placeholder', placeholder);
       
       // Icon handling with preview settings
@@ -241,12 +241,12 @@
       let iconHtml = '';
       if (showIcon && hasIcon) {
         const iconPosition = formDirection === 'rtl' ? 'right' : 'left';
-        const iconColor = getStyleValue(fieldStyle, 'iconColor', '#9CA3AF');
+        const iconColor = getStyleValue(fieldStyle, 'iconColor', '#9b87f5'); // Match preview icon color
         const iconSvg = getIconSvg(field.icon, iconColor);
         iconHtml = `
           <div style="
             position: absolute;
-            ${iconPosition}: 16px;
+            ${iconPosition}: 12px;
             top: 50%;
             transform: translateY(-50%);
             color: ${iconColor};
@@ -261,7 +261,7 @@
         `;
       }
       
-      // Fixed padding based on direction and icons
+      // Fixed padding based on direction and icons - match preview exactly
       const paddingLeft = formDirection === 'rtl' ? '12px' : (showIcon && hasIcon ? '40px' : '12px');
       const paddingRight = formDirection === 'rtl' ? (showIcon && hasIcon ? '40px' : '12px') : '12px';
       const paddingTopBottom = '10px';
@@ -300,17 +300,17 @@
                 padding: ${paddingTopBottom} ${paddingRight} ${paddingTopBottom} ${paddingLeft};
                 font-size: ${actualFontSize};
                 color: ${actualTextColor};
-                font-family: ${formDirection === 'rtl' ? "'Cairo', inherit" : "'Inter', system-ui, sans-serif"};
+                font-family: inherit;
                 outline: none;
                 transition: all 0.2s ease;
-                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px;
                 min-height: 44px;
                 box-sizing: border-box;
                 direction: ${formDirection};
                 text-align: ${formDirection === 'rtl' ? 'right' : 'left'};
               "
               onfocus="this.style.borderColor='#9b87f5'; this.style.boxShadow='0 0 0 3px rgba(155, 135, 245, 0.1)'"
-              onblur="this.style.borderColor='${actualBorderColor}'; this.style.boxShadow='0 1px 3px rgba(0, 0, 0, 0.1)'"
+              onblur="this.style.borderColor='${actualBorderColor}'; this.style.boxShadow='rgba(0, 0, 0, 0.05) 0px 1px 2px'"
             />
           </div>
           
@@ -361,19 +361,19 @@
       // Enhanced styling to match preview exactly - get from field style
       const fieldStyle = field.style || {};
       
-      // Label styling from field settings
-      const actualLabelColor = getStyleValue(fieldStyle, 'labelColor', '#1F2937');
-      const actualLabelFontSize = getStyleValue(fieldStyle, 'labelFontSize', '16px');  
-      const actualLabelWeight = getStyleValue(fieldStyle, 'labelWeight', '500'); // Lighter weight like preview
+      // Label styling from field settings - match preview exactly
+      const actualLabelColor = getStyleValue(fieldStyle, 'labelColor', 'rgb(51, 65, 85)');
+      const actualLabelFontSize = getStyleValue(fieldStyle, 'labelFontSize', '1rem');  
+      const actualLabelWeight = getStyleValue(fieldStyle, 'labelWeight', '500'); // Match preview weight
       const actualShowLabel = getStyleValue(fieldStyle, 'showLabel', true);
       
-      // Field styling from field settings
-      const actualTextColor = getStyleValue(fieldStyle, 'textColor', '#1F2937');
-      const actualBorderColor = getStyleValue(fieldStyle, 'borderColor', '#D1D5DB');
+      // Field styling from field settings - match preview exactly  
+      const actualTextColor = getStyleValue(fieldStyle, 'textColor', 'rgb(31, 41, 55)');
+      const actualBorderColor = getStyleValue(fieldStyle, 'borderColor', 'rgb(209, 213, 219)');
       const actualBorderWidth = getStyleValue(fieldStyle, 'borderWidth', '1px');
-      const actualFontSize = getStyleValue(fieldStyle, 'fontSize', '16px');
-      const actualPaddingY = getStyleValue(fieldStyle, 'paddingY', '12px');
-      const actualBorderRadius = getStyleValue(fieldStyle, 'borderRadius', '12px'); // Match preview exactly
+      const actualFontSize = getStyleValue(fieldStyle, 'fontSize', '1rem');
+      const actualPaddingY = getStyleValue(fieldStyle, 'paddingY', '10px');
+      const actualBorderRadius = getStyleValue(fieldStyle, 'borderRadius', '8px'); // Match preview exactly
       const actualPlaceholder = getStyleValue(fieldStyle, 'placeholder', placeholder);
       
       html = `
@@ -408,10 +408,10 @@
               padding: 10px 12px;
               font-size: ${actualFontSize};
               color: ${actualTextColor};
-              font-family: 'Cairo', inherit;
+              font-family: inherit;
               outline: none;
               transition: all 0.2s ease;
-              box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+              box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px;
               resize: none;
               min-height: 80px;
               height: 80px;
@@ -420,7 +420,7 @@
               text-align: ${formDirection === 'rtl' ? 'right' : 'left'};
             "
             onfocus="this.style.borderColor='#9b87f5'; this.style.boxShadow='0 0 0 3px rgba(155, 135, 245, 0.1)'"
-            onblur="this.style.borderColor='${actualBorderColor}'; this.style.boxShadow='0 1px 3px rgba(0, 0, 0, 0.1)'"
+            onblur="this.style.borderColor='${actualBorderColor}'; this.style.boxShadow='rgba(0, 0, 0, 0.05) 0px 1px 2px'"
           ></textarea>
           
           ${field.helpText ? `
@@ -468,16 +468,16 @@
       }
       
       // Get all button styles from field settings to match preview exactly
-      const buttonBgColor = getStyleValue(buttonStyle, 'backgroundColor', formStyle?.primaryColor || '#9b87f5');
-      const buttonTextColor = getStyleValue(buttonStyle, 'color', '#FFFFFF');
-      const buttonFontSize = getStyleValue(buttonStyle, 'fontSize', '18px');
-      const buttonFontWeight = getStyleValue(buttonStyle, 'fontWeight', '700');
-      const buttonBorderRadius = getStyleValue(buttonStyle, 'borderRadius', '12px'); // Match preview exactly
-      const buttonPadding = getStyleValue(buttonStyle, 'padding', '16px 32px');
+      const buttonBgColor = getStyleValue(buttonStyle, 'backgroundColor', formStyle?.primaryColor || 'rgb(155, 135, 245)');
+      const buttonTextColor = getStyleValue(buttonStyle, 'color', 'rgb(255, 255, 255)');
+      const buttonFontSize = getStyleValue(buttonStyle, 'fontSize', '19px');
+      const buttonFontWeight = getStyleValue(buttonStyle, 'fontWeight', 'bold');
+      const buttonBorderRadius = getStyleValue(buttonStyle, 'borderRadius', '6px'); // Match preview exactly
+      const buttonPadding = getStyleValue(buttonStyle, 'padding', '15px 24px');
       const buttonWidth = getStyleValue(buttonStyle, 'width', '100%');
       const buttonMinHeight = getStyleValue(buttonStyle, 'minHeight', '56px');
       const buttonBorder = getStyleValue(buttonStyle, 'border', 'none');
-      const buttonBoxShadow = getStyleValue(buttonStyle, 'boxShadow', '0 4px 12px rgba(155, 135, 245, 0.3)');
+      const buttonBoxShadow = getStyleValue(buttonStyle, 'boxShadow', 'none');
       
       // Icon handling for submit button
       const hasIcon = field.icon && field.icon !== 'none' && field.icon !== '';
@@ -516,30 +516,22 @@
               transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
               width: ${buttonWidth};
               min-height: ${buttonMinHeight};
-              font-family: 'Cairo', inherit;
-              display: flex;
+              font-family: inherit;
+              display: inline-flex;
               align-items: center;
               justify-content: center;
+              gap: 8px;
               box-shadow: ${buttonBoxShadow};
               transform: translateY(0);
               position: relative;
               overflow: hidden;
+              text-align: center;
             "
             onmouseover="
-              this.style.transform='translateY(-3px) scale(1.02)';
-              this.style.boxShadow='0 8px 25px rgba(155, 135, 245, 0.4)';
-              this.style.background='linear-gradient(135deg, ${buttonBgColor}, ${buttonBgColor}dd)';
+              this.style.opacity='0.9';
             "
             onmouseout="
-              this.style.transform='translateY(0) scale(1)';
-              this.style.boxShadow='${buttonBoxShadow}';
-              this.style.background='${buttonBgColor}';
-            "
-            onmousedown="
-              this.style.transform='translateY(-1px) scale(0.98)';
-            "
-            onmouseup="
-              this.style.transform='translateY(-3px) scale(1.02)';
+              this.style.opacity='1';
             "
           >
             ${buttonContent}
@@ -890,12 +882,12 @@
         // Apply form styling with exact preview matching
         const formStyle = data.formStyle || {};
         
-        // CORRECTED: Form background color to match preview
-        const formBackgroundColor = '#F9FAFB'; // Fixed background color
-        const formBorderColor = formStyle.borderColor || '#9b87f5';
+        // Form container styles to match preview exactly
+        const formBackgroundColor = 'rgb(249, 250, 251)';
+        const formBorderColor = formStyle.borderColor || 'rgb(155, 135, 245)';
         const formBorderWidth = formStyle.borderWidth || '2px';
-        const formBorderRadius = '24px'; // CORRECTED: Container border radius
-        const formPadding = '24px'; // Match preview padding
+        const formBorderRadius = '1.2rem'; // Match preview exactly (19.2px)
+        const formPadding = '24px';
         
         // Apply container styles to match preview exactly
         container.style.cssText = `
@@ -903,12 +895,13 @@
           border: ${formBorderWidth} solid ${formBorderColor};
           border-radius: ${formBorderRadius};
           padding: ${formPadding};
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+          box-shadow: rgba(0, 0, 0, 0.05) 0px 4px 6px;
           max-width: 480px;
           margin: 0 auto;
           font-family: inherit;
           direction: ${formStyle.formDirection || 'ltr'};
           box-sizing: border-box;
+          gap: 16px;
         `;
 
         // Generate and insert form content
