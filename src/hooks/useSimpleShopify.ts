@@ -12,19 +12,15 @@ export const useSimpleShopify = () => {
   const [loading, setLoading] = useState(false);
   const [tokenError, setTokenError] = useState(false);
 
-  // تحديد المتجر النشط عند بدء التطبيق - Force codmagnet.com
+  // تحديد المتجر النشط عند بدء التطبيق
   useEffect(() => {
-    // Force use codmagnet.com instead of any other store
-    const defaultStore = 'codmagnet.com';
+    const store = simpleShopifyConnectionManager.getActiveStore();
+    const connected = simpleShopifyConnectionManager.isConnected();
     
-    console.log('🔄 Forcing default store to:', defaultStore);
+    setActiveStore(store);
+    setIsConnected(connected);
     
-    simpleShopifyConnectionManager.setActiveStore(defaultStore);
-    
-    setActiveStore(defaultStore);
-    setIsConnected(true);
-    
-    console.log('Simple Shopify initialized with forced store:', defaultStore);
+    console.log('Simple Shopify initialized:', { store, connected });
   }, []);
 
   // تبديل المتجر

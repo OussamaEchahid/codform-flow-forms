@@ -11,16 +11,16 @@ class SimpleShopifyConnectionManager {
    */
   public setActiveStore(domain: string): void {
     try {
-      let cleanedDomain = cleanShopifyDomain(domain);
-      
-      // Force codmagnet.com for any bestform-app requests
-      if (cleanedDomain && cleanedDomain.includes('bestform-app')) {
-        cleanedDomain = 'codmagnet.com';
-        console.log('🔄 Redirected bestform-app to codmagnet.com');
-      }
+      const cleanedDomain = cleanShopifyDomain(domain);
       
       if (!cleanedDomain) {
         console.error('Invalid domain provided');
+        return;
+      }
+      
+      // التأكد من أن النطاق هو متجر Shopify صحيح وليس النطاق الخاص بالتطبيق
+      if (cleanedDomain === 'codmagnet.com') {
+        console.error('Cannot set codmagnet.com as a Shopify store - this is the app domain');
         return;
       }
       
@@ -48,23 +48,16 @@ class SimpleShopifyConnectionManager {
     try {
       const stored = localStorage.getItem(this.ACTIVE_STORE_KEY);
       
-      // Force codmagnet.com for any bestform-app references
-      if (stored && stored.includes('bestform-app')) {
-        this.setActiveStore('codmagnet.com');
-        return 'codmagnet.com';
-      }
-      
-      // Default to codmagnet.com if no store is set
-      if (!stored) {
-        this.setActiveStore('codmagnet.com');
-        return 'codmagnet.com';
+      // إذا كان المخزن codmagnet.com، فهذا خطأ - احذفه
+      if (stored === 'codmagnet.com') {
+        localStorage.removeItem(this.ACTIVE_STORE_KEY);
+        return null;
       }
       
       return stored;
     } catch (error) {
       console.error('Error getting active store:', error);
-      // Fallback to default store
-      return 'codmagnet.com';
+      return null;
     }
   }
   
