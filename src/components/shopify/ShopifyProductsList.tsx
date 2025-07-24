@@ -34,12 +34,24 @@ const ShopifyProductsList: React.FC<ShopifyProductsListProps> = memo(({
   const formatProductPrice = (product: ShopifyProduct): string => {
     const price = parseFloat(product.price || '0');
     
+    // Use store's money format if available
     if (product.money_format) {
       return product.money_format.replace('{{amount}}', price.toFixed(2));
     }
     
+    // Use currency code
     if (product.currency) {
-      return `${price.toFixed(2)} ${product.currency}`;
+      // Map common currencies to symbols
+      const currencySymbols: Record<string, string> = {
+        'AED': 'د.إ',
+        'SAR': 'ر.س',
+        'USD': '$',
+        'EUR': '€',
+        'GBP': '£'
+      };
+      
+      const symbol = currencySymbols[product.currency] || product.currency;
+      return `${price.toFixed(2)} ${symbol}`;
     }
     
     return `$${price.toFixed(2)}`;
@@ -102,9 +114,24 @@ const ShopifyProductsList: React.FC<ShopifyProductsListProps> = memo(({
                   <div className="mt-2">
                     <h4 className="text-sm font-medium">Variants: {product.variants.length}</h4>
                     {product.variants.slice(0, 1).map(variant => {
-                      const variantPrice = product.money_format 
-                        ? product.money_format.replace('{{amount}}', parseFloat(variant.price).toFixed(2))
-                        : `${parseFloat(variant.price).toFixed(2)} ${product.currency || 'USD'}`;
+                      const price = parseFloat(variant.price);
+                      let variantPrice;
+                      
+                      if (product.money_format) {
+                        variantPrice = product.money_format.replace('{{amount}}', price.toFixed(2));
+                      } else if (product.currency) {
+                        const currencySymbols: Record<string, string> = {
+                          'AED': 'د.إ',
+                          'SAR': 'ر.س',
+                          'USD': '$',
+                          'EUR': '€',
+                          'GBP': '£'
+                        };
+                        const symbol = currencySymbols[product.currency] || product.currency;
+                        variantPrice = `${price.toFixed(2)} ${symbol}`;
+                      } else {
+                        variantPrice = `$${price.toFixed(2)}`;
+                      }
                       
                       return (
                         <p key={variant.id} className="text-sm text-gray-500">

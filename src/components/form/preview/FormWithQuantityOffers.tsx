@@ -47,8 +47,16 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
   // الحصول على رمز العملة بناءً على المنتج أو الدولة أو العملة المحددة
   const getCurrencySymbol = () => {
     if (productData?.currency) {
-      const currencyData = getCurrencyByCode(productData.currency);
-      return currencyData?.symbol || productData.currency;
+      // Map common currencies to symbols
+      const currencySymbols: Record<string, string> = {
+        'AED': 'د.إ',
+        'SAR': 'ر.س',
+        'USD': '$',
+        'EUR': '€',
+        'GBP': '£'
+      };
+      
+      return currencySymbols[productData.currency] || productData.currency;
     }
     
     const currency = formStyle?.currency || formCountry;
@@ -158,7 +166,7 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
       <div key={offer.id} className="space-y-2 mb-4">
         {offer.offers.map((singleOffer, index) => {
           // استخدام السعر الفعلي للمنتج من Shopify
-          const basePrice = productData?.price || 25; // استخدام السعر الفعلي أو قيمة افتراضية
+          const basePrice = productData?.price || 0; // استخدام السعر الفعلي من المنتج
           const totalPrice = calculatePrice(basePrice, singleOffer);
           const originalPrice = basePrice * singleOffer.quantity;
           const isDiscounted = singleOffer.discountType !== 'none' && singleOffer.discountValue && singleOffer.discountValue > 0;
