@@ -277,8 +277,18 @@ serve(async (req) => {
     // Fetch quantity offers
     const quantityOffers = await getQuantityOffers(formId, product);
 
-    // Get REAL product data from Shopify API
-    const realProductData = await getRealProductData(shop, product);
+    // Get REAL product data from Shopify API - use the product from quantity offer if available
+    let realProductData = await getRealProductData(shop, product);
+    
+    // If we have quantity offers, try to get product data for the specific product in the offer
+    if (quantityOffers && quantityOffers.product_id && quantityOffers.product_id !== product) {
+      console.log(`[${requestId}] 🎯 Quantity offer has different product: ${quantityOffers.product_id}`);
+      const offerProductData = await getRealProductData(shop, quantityOffers.product_id);
+      if (offerProductData) {
+        console.log(`[${requestId}] ✅ Using product data from quantity offer`);
+        realProductData = offerProductData;
+      }
+    }
 
     // Build response with REAL product data
     const response = {

@@ -414,11 +414,15 @@ window.CodformQuantityOffers = (function() {
       if (data.success && data.quantity_offers && data.quantity_offers.offers && data.quantity_offers.offers.length > 0) {
         console.log("✅ Found quantity offers and product data");
         
+        // استخدام product_id من بيانات العرض، وليس من URL
+        const actualProductId = data.quantity_offers.product_id || productId;
+        console.log("🎯 Using product ID from offer data:", actualProductId, "instead of URL product:", productId);
+        
         // عرض العروض مع البيانات الحقيقية من API
         displayQuantityOffers(
           data.quantity_offers, 
           blockId, 
-          productId, 
+          actualProductId, // استخدام معرف المنتج من العرض
           data.form?.currency || 'SAR',
           data.product // البيانات الحقيقية من API
         );
