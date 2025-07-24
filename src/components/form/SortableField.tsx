@@ -136,27 +136,70 @@ const SortableField: React.FC<SortableFieldProps> = ({
     { value: 'Open Sans', label: 'Open Sans' },
   ];
   
-  // Icons mapping with components for visual display
-  const fieldIcons = [
+  // أيقونات خاصة بزر الطلب فقط
+  const submitIcons = [
+    { value: 'none', label: language === 'ar' ? 'بدون أيقونة' : 'No Icon', component: null },
+    { value: 'shopping-cart', label: language === 'ar' ? 'سلة التسوق' : 'Shopping Cart', component: <ShoppingCart size={16} /> },
+    { value: 'credit-card', label: language === 'ar' ? 'بطاقة ائتمان' : 'Credit Card', component: <CreditCard size={16} /> },
+    { value: 'truck', label: language === 'ar' ? 'شحن' : 'Delivery', component: <Truck size={16} /> },
+    { value: 'check', label: language === 'ar' ? 'تأكيد الطلب' : 'Confirm Order', component: <Check size={16} /> },
+    { value: 'send', label: language === 'ar' ? 'إرسال الطلب' : 'Send Order', component: <Send size={16} /> },
+  ];
+
+  // أيقونات خاصة بحقول الاسم
+  const nameFieldIcons = [
     { value: 'none', label: language === 'ar' ? 'بدون أيقونة' : 'No Icon', component: null },
     { value: 'user', label: language === 'ar' ? 'مستخدم' : 'User', component: <User size={16} /> },
+  ];
+
+  // أيقونات خاصة برقم الهاتف
+  const phoneFieldIcons = [
+    { value: 'none', label: language === 'ar' ? 'بدون أيقونة' : 'No Icon', component: null },
     { value: 'phone', label: language === 'ar' ? 'هاتف' : 'Phone', component: <Phone size={16} /> },
+  ];
+
+  // أيقونات خاصة بالعنوان
+  const addressFieldIcons = [
+    { value: 'none', label: language === 'ar' ? 'بدون أيقونة' : 'No Icon', component: null },
     { value: 'map-pin', label: language === 'ar' ? 'موقع' : 'Location', component: <MapPin size={16} /> },
+  ];
+
+  // أيقونات خاصة بالرسائل والبريد الإلكتروني
+  const messageFieldIcons = [
+    { value: 'none', label: language === 'ar' ? 'بدون أيقونة' : 'No Icon', component: null },
     { value: 'mail', label: language === 'ar' ? 'بريد' : 'Email', component: <Mail size={16} /> },
     { value: 'message-square', label: language === 'ar' ? 'رسالة' : 'Message', component: <MessageSquare size={16} /> },
-    { value: 'check', label: language === 'ar' ? 'تحقق' : 'Check', component: <Check size={16} /> },
-    { value: 'shopping-cart', label: language === 'ar' ? 'عربة تسوق' : 'Shopping Cart', component: <ShoppingCart size={16} /> },
-    { value: 'arrow-right', label: language === 'ar' ? 'سهم' : 'Arrow', component: <ArrowRight size={16} /> },
-    { value: 'send', label: language === 'ar' ? 'إرسال' : 'Send', component: <Send size={16} /> },
-    { value: 'image', label: language === 'ar' ? 'صورة' : 'Image', component: <Image size={16} /> },
-    { value: 'file-text', label: language === 'ar' ? 'ملف نصي' : 'Text File', component: <FileText size={16} /> },
-    { value: 'credit-card', label: language === 'ar' ? 'بطاقة ائتمان' : 'Credit Card', component: <CreditCard size={16} /> },
-    { value: 'dollar-sign', label: language === 'ar' ? 'الدفع عند الاستلام' : 'Cash on Delivery', component: <DollarSign size={16} /> },
-    { value: 'truck', label: language === 'ar' ? 'شحن' : 'Delivery', component: <Truck size={16} /> },
   ];
+
+  // دالة لاختيار الأيقونات المناسبة لكل نوع حقل
+  const getIconsForFieldType = (fieldType: string) => {
+    switch (fieldType) {
+      case 'submit':
+        return submitIcons;
+      case 'text':
+        // إذا كان التسمية تحتوي على "اسم" أو "name"
+        if (field.label?.toLowerCase().includes('name') || field.label?.toLowerCase().includes('اسم')) {
+          return nameFieldIcons;
+        }
+        return nameFieldIcons; // افتراضي للنص
+      case 'phone':
+        return phoneFieldIcons;
+      case 'textarea':
+        // إذا كان التسمية تحتوي على "عنوان" أو "address"
+        if (field.label?.toLowerCase().includes('address') || field.label?.toLowerCase().includes('عنوان')) {
+          return addressFieldIcons;
+        }
+        return messageFieldIcons; // افتراضي للنصوص الطويلة
+      case 'email':
+        return messageFieldIcons;
+      default:
+        return submitIcons;
+    }
+  };
   
   const getIconComponent = (iconName: string) => {
-    const icon = fieldIcons.find(i => i.value === iconName);
+    const allIcons = [...submitIcons, ...nameFieldIcons, ...phoneFieldIcons, ...addressFieldIcons, ...messageFieldIcons];
+    const icon = allIcons.find(i => i.value === iconName);
     return icon ? icon.component : null;
   };
 
@@ -724,12 +767,12 @@ const SortableField: React.FC<SortableFieldProps> = ({
                           <SelectValue placeholder={language === 'ar' ? 'اختر أيقونة للمعاينة' : 'Select preview icon'}>
                             <div className="flex items-center gap-2">
                               {getIconComponent(editedField.icon || 'none')}
-                              <span>{fieldIcons.find(i => i.value === (editedField.icon || 'none'))?.label || ''}</span>
+                              <span>{getIconsForFieldType(field.type).find(i => i.value === (editedField.icon || 'none'))?.label || ''}</span>
                             </div>
                           </SelectValue>
                         </SelectTrigger>
                         <SelectContent>
-                          {fieldIcons.map(icon => (
+                          {getIconsForFieldType(field.type).map(icon => (
                             <SelectItem key={icon.value} value={icon.value}>
                               <div className="flex items-center gap-2">
                                 {icon.component}
