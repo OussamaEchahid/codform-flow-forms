@@ -413,6 +413,10 @@ export type Database = {
         }
         Returns: string
       }
+      update_default_store_connection: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
