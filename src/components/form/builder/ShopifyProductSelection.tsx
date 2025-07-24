@@ -596,7 +596,21 @@ const ShopifyProductSelection: React.FC<ShopifyProductSelectionProps> = ({
                   <div>
                     <p className="font-medium">{product.title}</p>
                     <p className="text-sm text-muted-foreground">
-                      {product.price ? `$${product.price}` : '-'}
+                      {product.price ? (() => {
+                        const currencySymbols: Record<string, string> = {
+                          'AED': 'د.إ',
+                          'SAR': 'ر.س',
+                          'MAD': 'د.م', // الدرهم المغربي
+                          'USD': '$',
+                          'EUR': '€',
+                          'GBP': '£'
+                        };
+                        
+                        const currency = product.currency || 'USD';
+                        const symbol = currencySymbols[currency] || currency;
+                        
+                        return `${product.price} ${symbol}`;
+                      })() : '-'}
                     </p>
                   </div>
                 </div>
