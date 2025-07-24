@@ -154,49 +154,69 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
   };
 
   
-  // تعريف أنواع الأيقونات المختلفة لكل نوع حقل
+  // أيقونات خاصة بزر الطلب - أيقونات متنوعة وإبداعية
   const submitIcons = [
     { value: "none", label: language === 'ar' ? 'بدون أيقونة' : 'No Icon' },
     { value: "shopping-cart", label: language === 'ar' ? 'سلة التسوق' : 'Shopping Cart' },
+    { value: "shopping-bag", label: language === 'ar' ? 'حقيبة تسوق' : 'Shopping Bag' },
     { value: "credit-card", label: language === 'ar' ? 'بطاقة ائتمان' : 'Credit Card' },
+    { value: "banknote", label: language === 'ar' ? 'دفع نقدي' : 'Cash Payment' },
+    { value: "handshake", label: language === 'ar' ? 'دفع عند الاستلام' : 'Cash on Delivery' },
+    { value: "truck", label: language === 'ar' ? 'توصيل سريع' : 'Fast Delivery' },
     { value: "package", label: language === 'ar' ? 'طرد' : 'Package' },
-    { value: "truck", label: language === 'ar' ? 'شاحنة توصيل' : 'Delivery Truck' },
     { value: "check", label: language === 'ar' ? 'تأكيد الطلب' : 'Confirm Order' },
     { value: "send", label: language === 'ar' ? 'إرسال الطلب' : 'Send Order' },
-    { value: "shopping-bag", label: language === 'ar' ? 'حقيبة تسوق' : 'Shopping Bag' },
-    { value: "banknote", label: language === 'ar' ? 'دفع نقدي' : 'Cash Payment' },
-    { value: "handshake", label: language === 'ar' ? 'دفع عند الاستلام' : 'Cash on Delivery' }
+    { value: "heart", label: language === 'ar' ? 'أضف للمفضلة' : 'Add to Favorites' },
+    { value: "star", label: language === 'ar' ? 'طلب مميز' : 'Premium Order' },
+    { value: "gift", label: language === 'ar' ? 'هدية' : 'Gift Order' },
+    { value: "crown", label: language === 'ar' ? 'طلب VIP' : 'VIP Order' },
+    { value: "zap", label: language === 'ar' ? 'طلب فوري' : 'Instant Order' },
+    { value: "target", label: language === 'ar' ? 'اطلب الآن' : 'Order Now' }
   ];
 
+  // أيقونات خاصة بحقول الاسم - أيقونات شخصية متنوعة
   const nameFieldIcons = [
     { value: "none", label: language === 'ar' ? 'بدون أيقونة' : 'No Icon' },
-    { value: "user", label: language === 'ar' ? 'مستخدم' : 'User' },
+    { value: "user", label: language === 'ar' ? 'مستخدم واحد' : 'Single User' },
     { value: "users", label: language === 'ar' ? 'عدة أشخاص' : 'Multiple Users' },
-    { value: "person-standing", label: language === 'ar' ? 'شخص' : 'Person' },
-    { value: "id-card", label: language === 'ar' ? 'هوية' : 'ID Card' }
+    { value: "id-card", label: language === 'ar' ? 'بطاقة هوية' : 'ID Card' },
+    { value: "crown", label: language === 'ar' ? 'عميل مميز' : 'VIP Customer' },
+    { value: "star", label: language === 'ar' ? 'عميل مفضل' : 'Star Customer' },
+    { value: "award", label: language === 'ar' ? 'عضو مكرم' : 'Honored Member' },
+    { value: "diamond", label: language === 'ar' ? 'عضو ألماسي' : 'Diamond Member' }
   ];
 
+  // أيقونات خاصة برقم الهاتف - أيقونات اتصال متنوعة
   const phoneFieldIcons = [
     { value: "none", label: language === 'ar' ? 'بدون أيقونة' : 'No Icon' },
-    { value: "phone", label: language === 'ar' ? 'هاتف' : 'Phone' },
+    { value: "phone", label: language === 'ar' ? 'هاتف أرضي' : 'Landline Phone' },
     { value: "smartphone", label: language === 'ar' ? 'هاتف ذكي' : 'Smartphone' },
-    { value: "phone-call", label: language === 'ar' ? 'مكالمة هاتفية' : 'Phone Call' }
+    { value: "phone-call", label: language === 'ar' ? 'مكالمة هاتفية' : 'Phone Call' },
+    { value: "zap", label: language === 'ar' ? 'اتصال سريع' : 'Quick Call' },
+    { value: "target", label: language === 'ar' ? 'رقم مباشر' : 'Direct Number' }
   ];
 
+  // أيقونات خاصة بالعنوان - أيقونات مواقع متنوعة
   const addressFieldIcons = [
     { value: "none", label: language === 'ar' ? 'بدون أيقونة' : 'No Icon' },
-    { value: "map-pin", label: language === 'ar' ? 'موقع' : 'Location' },
-    { value: "home", label: language === 'ar' ? 'منزل' : 'Home' },
-    { value: "building", label: language === 'ar' ? 'مبنى' : 'Building' },
-    { value: "map", label: language === 'ar' ? 'خريطة' : 'Map' }
+    { value: "map-pin", label: language === 'ar' ? 'دبوس الخريطة' : 'Map Pin' },
+    { value: "home", label: language === 'ar' ? 'عنوان المنزل' : 'Home Address' },
+    { value: "building", label: language === 'ar' ? 'عنوان العمل' : 'Office Address' },
+    { value: "map", label: language === 'ar' ? 'خريطة تفصيلية' : 'Detailed Map' },
+    { value: "target", label: language === 'ar' ? 'موقع دقيق' : 'Precise Location' },
+    { value: "truck", label: language === 'ar' ? 'عنوان التوصيل' : 'Delivery Address' }
   ];
 
+  // أيقونات خاصة بالرسائل والبريد الإلكتروني - أيقونات تواصل إبداعية
   const messageFieldIcons = [
     { value: "none", label: language === 'ar' ? 'بدون أيقونة' : 'No Icon' },
-    { value: "message-square", label: language === 'ar' ? 'رسالة' : 'Message' },
     { value: "mail", label: language === 'ar' ? 'بريد إلكتروني' : 'Email' },
-    { value: "sticky-note", label: language === 'ar' ? 'ملاحظة' : 'Note' },
-    { value: "edit", label: language === 'ar' ? 'تحرير' : 'Edit' }
+    { value: "message-square", label: language === 'ar' ? 'رسالة نصية' : 'Text Message' },
+    { value: "sticky-note", label: language === 'ar' ? 'ملاحظة لاصقة' : 'Sticky Note' },
+    { value: "edit", label: language === 'ar' ? 'محرر النص' : 'Text Editor' },
+    { value: "sparkles", label: language === 'ar' ? 'رسالة مميزة' : 'Special Message' },
+    { value: "heart", label: language === 'ar' ? 'رسالة ودية' : 'Friendly Message' },
+    { value: "star", label: language === 'ar' ? 'تعليق مهم' : 'Important Comment' }
   ];
 
   // دالة لاختيار الأيقونات المناسبة لكل نوع حقل

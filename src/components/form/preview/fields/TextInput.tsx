@@ -6,10 +6,28 @@ import { useI18n } from '@/lib/i18n';
 // استيراد الأيقونات مباشرة لتجنب مشاكل التحميل الديناميكي
 import {
   User,
+  Users,
+  IdCard,
+  Crown,
+  Star,
+  Award,
+  Diamond,
   Phone,
+  Smartphone,
+  PhoneCall,
+  Zap,
+  Target,
   MapPin,
+  Home,
+  Building,
+  Map,
+  Truck,
   Mail,
   MessageSquare,
+  StickyNote,
+  Edit,
+  Sparkles,
+  Heart,
   CheckSquare,
   CircleCheck,
   Image,
@@ -78,15 +96,43 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
     };
     
     switch(field.icon) {
+      // أيقونات الاسم
       case 'user': return <User {...iconProps} />;
+      case 'users': return <Users {...iconProps} />;
+      case 'id-card': return <IdCard {...iconProps} />;
+      case 'crown': return <Crown {...iconProps} />;
+      case 'star': return <Star {...iconProps} />;
+      case 'award': return <Award {...iconProps} />;
+      case 'diamond': return <Diamond {...iconProps} />;
+      
+      // أيقونات الهاتف
       case 'phone': return <Phone {...iconProps} />;
+      case 'smartphone': return <Smartphone {...iconProps} />;
+      case 'phone-call': return <PhoneCall {...iconProps} />;
+      
+      // أيقونات العنوان
       case 'map-pin': return <MapPin {...iconProps} />;
+      case 'home': return <Home {...iconProps} />;
+      case 'building': return <Building {...iconProps} />;
+      case 'map': return <Map {...iconProps} />;
+      case 'truck': return <Truck {...iconProps} />;
+      
+      // أيقونات الرسائل والبريد
       case 'mail': return <Mail {...iconProps} />;
       case 'message-square': return <MessageSquare {...iconProps} />;
+      case 'sticky-note': return <StickyNote {...iconProps} />;
+      case 'edit': return <Edit {...iconProps} />;
+      case 'sparkles': return <Sparkles {...iconProps} />;
+      case 'heart': return <Heart {...iconProps} />;
+      
+      // أيقونات عامة
+      case 'zap': return <Zap {...iconProps} />;
+      case 'target': return <Target {...iconProps} />;
       case 'check-square': return <CheckSquare {...iconProps} />;
       case 'circle-check': return <CircleCheck {...iconProps} />;
       case 'image': return <Image {...iconProps} />;
       case 'file-text': return <FileText {...iconProps} />;
+      
       default: 
         return null;
     }

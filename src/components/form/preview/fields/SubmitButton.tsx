@@ -12,7 +12,13 @@ import {
   Truck, 
   ShoppingBag,
   Banknote,
-  Handshake
+  Handshake,
+  Heart,
+  Star,
+  Gift,
+  Crown,
+  Zap,
+  Target
 } from 'lucide-react';
 
 interface SubmitButtonProps {
@@ -71,6 +77,8 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
     switch (iconType) {
       case 'shopping-cart':
         return <ShoppingCart {...iconProps} />;
+      case 'shopping-bag':
+        return <ShoppingBag {...iconProps} />;
       case 'send':
         return <Send {...iconProps} />;
       case 'check':
@@ -83,12 +91,22 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
         return <Package {...iconProps} />;
       case 'truck':
         return <Truck {...iconProps} />;
-      case 'shopping-bag':
-        return <ShoppingBag {...iconProps} />;
       case 'banknote':
         return <Banknote {...iconProps} />;
       case 'handshake':
         return <Handshake {...iconProps} />;
+      case 'heart':
+        return <Heart {...iconProps} />;
+      case 'star':
+        return <Star {...iconProps} />;
+      case 'gift':
+        return <Gift {...iconProps} />;
+      case 'crown':
+        return <Crown {...iconProps} />;
+      case 'zap':
+        return <Zap {...iconProps} />;
+      case 'target':
+        return <Target {...iconProps} />;
       default:
         return <ShoppingCart {...iconProps} />;
     }

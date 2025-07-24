@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { FormField } from '@/lib/form-utils';
-import { GripVertical, Copy, Trash, ChevronDown, ChevronUp, User, Phone, Mail, MapPin, MessageSquare, CheckSquare, Image, FileText, CreditCard, DollarSign, Truck, ShoppingCart, ArrowRight, Check, Send } from 'lucide-react';
+import { GripVertical, Copy, Trash, ChevronDown, ChevronUp, User, Phone, Mail, MapPin, MessageSquare, CheckSquare, Image, FileText, CreditCard, DollarSign, Truck, ShoppingCart, ArrowRight, Check, Send, Users, IdCard, Smartphone, PhoneCall, Home, Building, Map, StickyNote, Edit, Package, Banknote, Handshake, ShoppingBag, Heart, Star, Target, Gift, Crown, Zap, Sparkles, Award, Diamond, Gem } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -136,39 +136,69 @@ const SortableField: React.FC<SortableFieldProps> = ({
     { value: 'Open Sans', label: 'Open Sans' },
   ];
   
-  // أيقونات خاصة بزر الطلب فقط
+  // أيقونات خاصة بزر الطلب - أيقونات متنوعة وإبداعية
   const submitIcons = [
     { value: 'none', label: language === 'ar' ? 'بدون أيقونة' : 'No Icon', component: null },
     { value: 'shopping-cart', label: language === 'ar' ? 'سلة التسوق' : 'Shopping Cart', component: <ShoppingCart size={16} /> },
+    { value: 'shopping-bag', label: language === 'ar' ? 'حقيبة تسوق' : 'Shopping Bag', component: <ShoppingBag size={16} /> },
     { value: 'credit-card', label: language === 'ar' ? 'بطاقة ائتمان' : 'Credit Card', component: <CreditCard size={16} /> },
-    { value: 'truck', label: language === 'ar' ? 'شحن' : 'Delivery', component: <Truck size={16} /> },
+    { value: 'banknote', label: language === 'ar' ? 'دفع نقدي' : 'Cash Payment', component: <Banknote size={16} /> },
+    { value: 'handshake', label: language === 'ar' ? 'دفع عند الاستلام' : 'Cash on Delivery', component: <Handshake size={16} /> },
+    { value: 'truck', label: language === 'ar' ? 'توصيل سريع' : 'Fast Delivery', component: <Truck size={16} /> },
+    { value: 'package', label: language === 'ar' ? 'طرد' : 'Package', component: <Package size={16} /> },
     { value: 'check', label: language === 'ar' ? 'تأكيد الطلب' : 'Confirm Order', component: <Check size={16} /> },
     { value: 'send', label: language === 'ar' ? 'إرسال الطلب' : 'Send Order', component: <Send size={16} /> },
+    { value: 'heart', label: language === 'ar' ? 'أضف للمفضلة' : 'Add to Favorites', component: <Heart size={16} /> },
+    { value: 'star', label: language === 'ar' ? 'طلب مميز' : 'Premium Order', component: <Star size={16} /> },
+    { value: 'gift', label: language === 'ar' ? 'هدية' : 'Gift Order', component: <Gift size={16} /> },
+    { value: 'crown', label: language === 'ar' ? 'طلب VIP' : 'VIP Order', component: <Crown size={16} /> },
+    { value: 'zap', label: language === 'ar' ? 'طلب فوري' : 'Instant Order', component: <Zap size={16} /> },
+    { value: 'target', label: language === 'ar' ? 'اطلب الآن' : 'Order Now', component: <Target size={16} /> }
   ];
 
-  // أيقونات خاصة بحقول الاسم
+  // أيقونات خاصة بحقول الاسم - أيقونات شخصية متنوعة
   const nameFieldIcons = [
     { value: 'none', label: language === 'ar' ? 'بدون أيقونة' : 'No Icon', component: null },
-    { value: 'user', label: language === 'ar' ? 'مستخدم' : 'User', component: <User size={16} /> },
+    { value: 'user', label: language === 'ar' ? 'مستخدم واحد' : 'Single User', component: <User size={16} /> },
+    { value: 'users', label: language === 'ar' ? 'عدة أشخاص' : 'Multiple Users', component: <Users size={16} /> },
+    { value: 'id-card', label: language === 'ar' ? 'بطاقة هوية' : 'ID Card', component: <IdCard size={16} /> },
+    { value: 'crown', label: language === 'ar' ? 'عميل مميز' : 'VIP Customer', component: <Crown size={16} /> },
+    { value: 'star', label: language === 'ar' ? 'عميل مفضل' : 'Star Customer', component: <Star size={16} /> },
+    { value: 'award', label: language === 'ar' ? 'عضو مكرم' : 'Honored Member', component: <Award size={16} /> },
+    { value: 'diamond', label: language === 'ar' ? 'عضو ألماسي' : 'Diamond Member', component: <Diamond size={16} /> }
   ];
 
-  // أيقونات خاصة برقم الهاتف
+  // أيقونات خاصة برقم الهاتف - أيقونات اتصال متنوعة
   const phoneFieldIcons = [
     { value: 'none', label: language === 'ar' ? 'بدون أيقونة' : 'No Icon', component: null },
-    { value: 'phone', label: language === 'ar' ? 'هاتف' : 'Phone', component: <Phone size={16} /> },
+    { value: 'phone', label: language === 'ar' ? 'هاتف أرضي' : 'Landline Phone', component: <Phone size={16} /> },
+    { value: 'smartphone', label: language === 'ar' ? 'هاتف ذكي' : 'Smartphone', component: <Smartphone size={16} /> },
+    { value: 'phone-call', label: language === 'ar' ? 'مكالمة هاتفية' : 'Phone Call', component: <PhoneCall size={16} /> },
+    { value: 'zap', label: language === 'ar' ? 'اتصال سريع' : 'Quick Call', component: <Zap size={16} /> },
+    { value: 'target', label: language === 'ar' ? 'رقم مباشر' : 'Direct Number', component: <Target size={16} /> }
   ];
 
-  // أيقونات خاصة بالعنوان
+  // أيقونات خاصة بالعنوان - أيقونات مواقع متنوعة
   const addressFieldIcons = [
     { value: 'none', label: language === 'ar' ? 'بدون أيقونة' : 'No Icon', component: null },
-    { value: 'map-pin', label: language === 'ar' ? 'موقع' : 'Location', component: <MapPin size={16} /> },
+    { value: 'map-pin', label: language === 'ar' ? 'دبوس الخريطة' : 'Map Pin', component: <MapPin size={16} /> },
+    { value: 'home', label: language === 'ar' ? 'عنوان المنزل' : 'Home Address', component: <Home size={16} /> },
+    { value: 'building', label: language === 'ar' ? 'عنوان العمل' : 'Office Address', component: <Building size={16} /> },
+    { value: 'map', label: language === 'ar' ? 'خريطة تفصيلية' : 'Detailed Map', component: <Map size={16} /> },
+    { value: 'target', label: language === 'ar' ? 'موقع دقيق' : 'Precise Location', component: <Target size={16} /> },
+    { value: 'truck', label: language === 'ar' ? 'عنوان التوصيل' : 'Delivery Address', component: <Truck size={16} /> }
   ];
 
-  // أيقونات خاصة بالرسائل والبريد الإلكتروني
+  // أيقونات خاصة بالرسائل والبريد الإلكتروني - أيقونات تواصل إبداعية
   const messageFieldIcons = [
     { value: 'none', label: language === 'ar' ? 'بدون أيقونة' : 'No Icon', component: null },
-    { value: 'mail', label: language === 'ar' ? 'بريد' : 'Email', component: <Mail size={16} /> },
-    { value: 'message-square', label: language === 'ar' ? 'رسالة' : 'Message', component: <MessageSquare size={16} /> },
+    { value: 'mail', label: language === 'ar' ? 'بريد إلكتروني' : 'Email', component: <Mail size={16} /> },
+    { value: 'message-square', label: language === 'ar' ? 'رسالة نصية' : 'Text Message', component: <MessageSquare size={16} /> },
+    { value: 'sticky-note', label: language === 'ar' ? 'ملاحظة لاصقة' : 'Sticky Note', component: <StickyNote size={16} /> },
+    { value: 'edit', label: language === 'ar' ? 'محرر النص' : 'Text Editor', component: <Edit size={16} /> },
+    { value: 'sparkles', label: language === 'ar' ? 'رسالة مميزة' : 'Special Message', component: <Sparkles size={16} /> },
+    { value: 'heart', label: language === 'ar' ? 'رسالة ودية' : 'Friendly Message', component: <Heart size={16} /> },
+    { value: 'star', label: language === 'ar' ? 'تعليق مهم' : 'Important Comment', component: <Star size={16} /> }
   ];
 
   // دالة لاختيار الأيقونات المناسبة لكل نوع حقل
