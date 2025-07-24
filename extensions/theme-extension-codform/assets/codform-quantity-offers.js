@@ -409,16 +409,15 @@ window.CodformQuantityOffers = (function() {
       
       console.log("🎯 Loading quantity offers for product", productId, "in", blockId, "from shop", shop);
       
-      const apiUrl = `https://trlklwixfeaexhydzaue.supabase.co/rest/v1/rpc/get_product_form_and_offers?shop_id=${encodeURIComponent(shop)}&product_id=${encodeURIComponent(productId)}`;
+      const apiUrl = `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/forms-product?shop_id=${encodeURIComponent(shop)}&product_id=${encodeURIComponent(productId)}`;
       
       console.log("🌐 API URL:", apiUrl);
       
       const response = await fetch(apiUrl, {
-        method: 'POST',
+        method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M'
+          'Content-Type': 'application/json'
         }
       });
 
