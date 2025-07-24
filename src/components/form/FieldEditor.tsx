@@ -245,6 +245,55 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
     }
   };
 
+  // دالة لعرض الأيقونة في واجهة الاختيار
+  const getIconComponent = (iconType: string) => {
+    switch (iconType) {
+      // أيقونات زر الطلب
+      case 'shopping-cart': return '🛒';
+      case 'shopping-bag': return '🛍️';
+      case 'credit-card': return '💳';
+      case 'banknote': return '💰';
+      case 'handshake': return '🤝';
+      case 'truck': return '🚚';
+      case 'package': return '📦';
+      case 'check': return '✅';
+      case 'send': return '📤';
+      case 'heart': return '❤️';
+      case 'star': return '⭐';
+      case 'gift': return '🎁';
+      case 'crown': return '👑';
+      case 'zap': return '⚡';
+      case 'target': return '🎯';
+      
+      // أيقونات الاسم
+      case 'user': return '👤';
+      case 'users': return '👥';
+      case 'id-card': return '🆔';
+      case 'award': return '🏆';
+      case 'diamond': return '💎';
+      
+      // أيقونات الهاتف
+      case 'phone': return '📞';
+      case 'smartphone': return '📱';
+      case 'phone-call': return '☎️';
+      
+      // أيقونات العنوان
+      case 'map-pin': return '📍';
+      case 'home': return '🏠';
+      case 'building': return '🏢';
+      case 'map': return '🗺️';
+      
+      // أيقونات الرسائل
+      case 'mail': return '📧';
+      case 'message-square': return '💬';
+      case 'sticky-note': return '📝';
+      case 'edit': return '✏️';
+      case 'sparkles': return '✨';
+      
+      default: return '';
+    }
+  };
+
   const handleIconChange = (iconValue: string) => {
     setCurrentField({
       ...currentField,
@@ -921,13 +970,20 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder={language === 'ar' ? 'اختر أيقونة' : 'Select icon'} />
                       </SelectTrigger>
-                       <SelectContent>
-                         {getIconsForFieldType(currentField.type).map((icon) => (
-                           <SelectItem key={icon.value} value={icon.value}>
-                             {icon.label}
-                           </SelectItem>
-                         ))}
-                       </SelectContent>
+                        <SelectContent>
+                          {getIconsForFieldType(currentField.type).map((icon) => (
+                            <SelectItem key={icon.value} value={icon.value}>
+                              <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                                {icon.value !== 'none' && (
+                                  <span className="text-sm">
+                                    {getIconComponent(icon.value)}
+                                  </span>
+                                )}
+                                <span>{icon.label}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
                     </Select>
                   </div>
 
