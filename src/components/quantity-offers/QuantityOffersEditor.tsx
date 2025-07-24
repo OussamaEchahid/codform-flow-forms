@@ -434,14 +434,14 @@ const QuantityOffersEditor: React.FC<Props> = ({ offer, isCreating, onSave, onCa
                 onChange={(e) => updateStyling('tagColor', e.target.value)}
               />
             </div>
-            <div>
-              <Label>لون السعر</Label>
-              <Input
-                type="color"
-                value={currentOffer.styling.priceColor}
-                onChange={(e) => updateStyling('priceColor', e.target.value)}
-              />
-            </div>
+              <div>
+                <Label>لون السعر</Label>
+                <Input
+                  type="color"
+                  value={currentOffer.styling?.priceColor || '#000000'}
+                  onChange={(e) => updateStyling('priceColor', e.target.value)}
+                />
+              </div>
           </div>
         </CardContent>
       </Card>

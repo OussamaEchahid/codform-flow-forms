@@ -35,11 +35,11 @@ window.CodformQuantityOffers = (function() {
     container.style.display = 'block';
 
     // استخدام التنسيق من البيانات مع لون أسود افتراضي للسعر
-    const styling = quantityOffersData.styling || {
-      backgroundColor: '#ffffff',
-      textColor: '#000000',
-      tagColor: '#22c55e',
-      priceColor: '#000000' // تغيير اللون الافتراضي للأسود
+    const styling = {
+      backgroundColor: quantityOffersData.styling?.backgroundColor || '#ffffff',
+      textColor: quantityOffersData.styling?.textColor || '#000000',
+      tagColor: quantityOffersData.styling?.tagColor || '#22c55e',
+      priceColor: quantityOffersData.styling?.priceColor || '#000000' // اللون الافتراضي أسود
     };
 
       // استخدام بيانات المنتج الحقيقية من API بدلاً من window.meta.product
@@ -99,7 +99,21 @@ window.CodformQuantityOffers = (function() {
       const offerElement = document.createElement('div');
       offerElement.setAttribute('data-offer-id', offer.id || index);
       offerElement.setAttribute('data-quantity', offer.quantity);
-      offerElement.setAttribute('data-total-price', (realPrice * (offer.quantity || 1)).toFixed(2));
+      // حساب السعر النهائي مع الخصم مسبقاً
+      const calculatedTotalPrice = (() => {
+        let total = realPrice * (offer.quantity || 1);
+        const discountValue = parseFloat(offer.discount || offer.discountValue || 0);
+        const discountType = offer.discountType || 'percentage';
+        
+        if (discountType === 'percentage' && discountValue > 0) {
+          total = total - (total * discountValue / 100);
+        } else if (discountType === 'fixed' && discountValue > 0) {
+          total = Math.max(0, total - discountValue);
+        }
+        return total;
+      })();
+      
+      offerElement.setAttribute('data-total-price', calculatedTotalPrice.toFixed(2));
       offerElement.style.cssText = `
         background-color: ${styling.backgroundColor};
         border: 2px solid ${index === 1 ? '#22c55e' : '#e5e7eb'};
@@ -152,12 +166,15 @@ window.CodformQuantityOffers = (function() {
         indicator.innerHTML = '✓';
         this.appendChild(indicator);
         
-        // حفظ البيانات المحددة
+        // حفظ البيانات المحددة مع السعر المحسوب
+        const calculatedPrice = parseFloat(this.getAttribute('data-total-price'));
         window.selectedQuantityOffer = {
-          quantity: this.getAttribute('data-quantity'),
-          totalPrice: this.getAttribute('data-total-price'),
+          quantity: parseInt(this.getAttribute('data-quantity')),
+          totalPrice: calculatedPrice,
           currency: currency,
-          text: offer.text
+          text: offer.text,
+          originalPrice: realPrice * parseInt(this.getAttribute('data-quantity')),
+          savings: savingsPercentage
         };
         
         console.log("✅ Offer selected:", window.selectedQuantityOffer);
@@ -255,14 +272,28 @@ window.CodformQuantityOffers = (function() {
       let originalPrice = totalPrice;
       let savingsPercentage = 0;
 
-      if (offer.discountType === 'percentage' && offer.discountValue > 0) {
-        const discount = (originalPrice * offer.discountValue) / 100;
+      // تحويل قيم الخصم إلى أرقام
+      const discountValue = parseFloat(offer.discount || offer.discountValue || 0);
+      const discountType = offer.discountType || 'percentage';
+
+      if (discountType === 'percentage' && discountValue > 0) {
+        const discount = (originalPrice * discountValue) / 100;
         totalPrice = originalPrice - discount;
-        savingsPercentage = offer.discountValue;
-      } else if (offer.discountType === 'fixed' && offer.discountValue > 0) {
-        totalPrice = originalPrice - offer.discountValue;
-        savingsPercentage = Math.round((offer.discountValue / originalPrice) * 100);
+        savingsPercentage = discountValue;
+      } else if (discountType === 'fixed' && discountValue > 0) {
+        totalPrice = Math.max(0, originalPrice - discountValue);
+        savingsPercentage = Math.round((discountValue / originalPrice) * 100);
       }
+
+      console.log("💰 Price calculation:", {
+        quantity: offer.quantity,
+        realPrice,
+        originalPrice,
+        discountType,
+        discountValue,
+        totalPrice,
+        savingsPercentage
+      });
 
       if (savingsPercentage > 0) {
         const savingsElement = document.createElement('span');

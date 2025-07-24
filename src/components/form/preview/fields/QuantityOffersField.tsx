@@ -55,7 +55,7 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
     backgroundColor: '#ffffff',
     textColor: '#000000',
     tagColor: '#22c55e',
-    priceColor: '#ef4444'
+    priceColor: '#000000'
   });
   const [loading, setLoading] = useState(true);
 

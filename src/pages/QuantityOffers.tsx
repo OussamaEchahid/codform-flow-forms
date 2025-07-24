@@ -105,7 +105,7 @@ const QuantityOffers = () => {
       backgroundColor: '#ffffff',
       textColor: '#000000',
       tagColor: '#22c55e',
-      priceColor: '#ef4444'
+      priceColor: '#000000'
     },
     position: 'before_form'
   });
@@ -466,7 +466,7 @@ const QuantityOffers = () => {
         backgroundColor: '#ffffff',
         textColor: '#000000',
         tagColor: '#22c55e',
-        priceColor: '#ef4444'
+        priceColor: '#000000'
       },
       position: 'before_form'
     });

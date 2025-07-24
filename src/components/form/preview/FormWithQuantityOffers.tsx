@@ -159,7 +159,7 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
                 )}
                 <div 
                   className="font-bold text-lg"
-                  style={{ color: offer.styling?.priceColor || '#ef4444' }}
+                  style={{ color: offer.styling?.priceColor || '#000000' }}
                 >
                   {totalPrice.toFixed(2)} ر.س
                 </div>
