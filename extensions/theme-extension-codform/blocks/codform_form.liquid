@@ -157,31 +157,34 @@
     
     console.log('🔄 CODFORM: Detected form direction:', formDirection);
     
-      // Enhanced label styling to match preview exactly
+      // Enhanced label styling to match preview exactly - get base font size from form style
+      const baseFontSize = getStyleValue(formStyle, 'baseFontSize', '16px');
       const labelStyle = field.style || {};
       const showLabel = getStyleValue(labelStyle, 'showLabel', true);
       
-      // Label styling to match preview exactly
-      const labelColor = getStyleValue(labelStyle, 'labelColor', '#333333'); // Match preview color
-      const labelFontSize = getStyleValue(labelStyle, 'labelFontSize', '1rem'); // Match preview
-      const labelFontWeight = getStyleValue(labelStyle, 'labelFontWeight', '500'); // Match preview weight
+      // Label styling to match preview exactly - scale with base font size
+      const labelColor = getStyleValue(labelStyle, 'labelColor', '#333333');
+      const labelFontSize = getStyleValue(labelStyle, 'labelFontSize', baseFontSize); // Use form base font size
+      const labelFontWeight = getStyleValue(labelStyle, 'labelFontWeight', '500');
     
-      // Field styling to match preview exactly
-      const fieldBackgroundColor = '#FFFFFF'; // White background for fields
+      // Field styling to match preview exactly - scale with base font size
+      const fieldBackgroundColor = '#FFFFFF';
       const fieldBorderColor = getStyleValue(labelStyle, 'borderColor', '#D1D5DB');
-      const fieldBorderRadius = '8px'; // Match preview exactly (8px not 12px)
-      const fieldFontSize = '16px'; // Match preview
-      const fieldTextColor = '#1F2937'; // Strong text color
-      const fieldPadding = '12px 16px'; // Match preview padding
+      const fieldBorderRadius = '8px';
+      const fieldFontSize = baseFontSize; // Use form base font size
+      const fieldTextColor = '#1F2937';
+      const fieldPadding = '12px 16px';
     
     let html = '';
     
     if (field.type === 'form-title') {
       const title = field.label || 'Form Title';
       
-      // Get title color from field style or use default
+      // Get title color from field style or use default - scale with base font size
+      const baseFontSize = getStyleValue(formStyle, 'baseFontSize', '16px');
+      const baseSizeNum = parseInt(baseFontSize);
       const titleColor = getStyleValue(field.style, 'color', '#1F2937');
-      const titleFontSize = getStyleValue(field.style, 'fontSize', '24px');
+      const titleFontSize = getStyleValue(field.style, 'fontSize', (baseSizeNum * 1.5) + 'px'); // Scale title with base font size
       const titleFontWeight = getStyleValue(field.style, 'fontWeight', '700');
       const titleTextAlign = getStyleValue(field.style, 'textAlign', 'center');
       
@@ -218,19 +221,20 @@
       // Enhanced styling to match preview exactly - get from field style
       const fieldStyle = field.style || {};
       
-      // Label styling from field settings - match preview exactly
+      // Label styling from field settings - match preview exactly - scale with base font size
+      const baseFontSize = getStyleValue(formStyle, 'baseFontSize', '16px');
       const actualLabelColor = getStyleValue(fieldStyle, 'labelColor', '#333333');
-      const actualLabelFontSize = getStyleValue(fieldStyle, 'labelFontSize', '1rem');  
-      const actualLabelWeight = getStyleValue(fieldStyle, 'labelWeight', '500'); // Match preview weight
+      const actualLabelFontSize = getStyleValue(fieldStyle, 'labelFontSize', baseFontSize);  
+      const actualLabelWeight = getStyleValue(fieldStyle, 'labelWeight', '500');
       const actualShowLabel = getStyleValue(fieldStyle, 'showLabel', true);
       
-      // Field styling from field settings - match preview exactly
+      // Field styling from field settings - match preview exactly - scale with base font size
       const actualTextColor = getStyleValue(fieldStyle, 'textColor', 'rgb(31, 41, 55)');
       const actualBorderColor = getStyleValue(fieldStyle, 'borderColor', 'rgb(209, 213, 219)');
       const actualBorderWidth = getStyleValue(fieldStyle, 'borderWidth', '1px');
-      const actualFontSize = getStyleValue(fieldStyle, 'fontSize', '1rem');
-      const actualPaddingY = getStyleValue(fieldStyle, 'paddingY', '10px');
-      const actualBorderRadius = getStyleValue(fieldStyle, 'borderRadius', '8px'); // Match preview exactly
+      const actualFontSize = getStyleValue(fieldStyle, 'fontSize', baseFontSize);
+      const actualPaddingY = getStyleValue(fieldStyle, 'paddingY', '12px');
+      const actualBorderRadius = getStyleValue(fieldStyle, 'borderRadius', '8px');
       const actualPlaceholder = getStyleValue(fieldStyle, 'placeholder', placeholder);
       
       // Icon handling with preview settings
@@ -361,19 +365,20 @@
       // Enhanced styling to match preview exactly - get from field style
       const fieldStyle = field.style || {};
       
-      // Label styling from field settings - match preview exactly
+      // Label styling from field settings - match preview exactly - scale with base font size
+      const baseFontSize = getStyleValue(formStyle, 'baseFontSize', '16px');
       const actualLabelColor = getStyleValue(fieldStyle, 'labelColor', 'rgb(51, 65, 85)');
-      const actualLabelFontSize = getStyleValue(fieldStyle, 'labelFontSize', '1rem');  
-      const actualLabelWeight = getStyleValue(fieldStyle, 'labelWeight', '500'); // Match preview weight
+      const actualLabelFontSize = getStyleValue(fieldStyle, 'labelFontSize', baseFontSize);  
+      const actualLabelWeight = getStyleValue(fieldStyle, 'labelWeight', '500');
       const actualShowLabel = getStyleValue(fieldStyle, 'showLabel', true);
       
-      // Field styling from field settings - match preview exactly  
+      // Field styling from field settings - match preview exactly - scale with base font size
       const actualTextColor = getStyleValue(fieldStyle, 'textColor', 'rgb(31, 41, 55)');
       const actualBorderColor = getStyleValue(fieldStyle, 'borderColor', 'rgb(209, 213, 219)');
       const actualBorderWidth = getStyleValue(fieldStyle, 'borderWidth', '1px');
-      const actualFontSize = getStyleValue(fieldStyle, 'fontSize', '1rem');
-      const actualPaddingY = getStyleValue(fieldStyle, 'paddingY', '10px');
-      const actualBorderRadius = getStyleValue(fieldStyle, 'borderRadius', '8px'); // Match preview exactly
+      const actualFontSize = getStyleValue(fieldStyle, 'fontSize', baseFontSize);
+      const actualPaddingY = getStyleValue(fieldStyle, 'paddingY', '12px');
+      const actualBorderRadius = getStyleValue(fieldStyle, 'borderRadius', '8px');
       const actualPlaceholder = getStyleValue(fieldStyle, 'placeholder', placeholder);
       
       html = `
@@ -467,12 +472,13 @@
         }
       }
       
-      // Get all button styles from field settings to match preview exactly
+      // Get all button styles from field settings to match preview exactly - scale with base font size
+      const baseFontSize = getStyleValue(formStyle, 'baseFontSize', '16px');
       const buttonBgColor = getStyleValue(buttonStyle, 'backgroundColor', formStyle?.primaryColor || 'rgb(155, 135, 245)');
       const buttonTextColor = getStyleValue(buttonStyle, 'color', 'rgb(255, 255, 255)');
-      const buttonFontSize = getStyleValue(buttonStyle, 'fontSize', '19px');
+      const buttonFontSize = getStyleValue(buttonStyle, 'fontSize', baseFontSize);
       const buttonFontWeight = getStyleValue(buttonStyle, 'fontWeight', 'bold');
-      const buttonBorderRadius = getStyleValue(buttonStyle, 'borderRadius', '6px'); // Match preview exactly
+      const buttonBorderRadius = getStyleValue(buttonStyle, 'borderRadius', '8px');
       const buttonPadding = getStyleValue(buttonStyle, 'padding', '15px 24px');
       const buttonWidth = getStyleValue(buttonStyle, 'width', '100%');
       const buttonMinHeight = getStyleValue(buttonStyle, 'minHeight', '56px');
