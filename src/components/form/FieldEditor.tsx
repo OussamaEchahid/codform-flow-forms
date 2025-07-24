@@ -1011,7 +1011,18 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
                    </div>
 
                   {/* إعدادات لون الأيقونة */}
-                  {((currentField.icon && currentField.icon !== 'none') || (currentField.style?.icon && currentField.style?.icon !== 'none')) && (
+                  {(() => {
+                    const hasIcon = (currentField.icon && currentField.icon !== 'none') || 
+                                   (currentField.style?.icon && currentField.style?.icon !== 'none');
+                    console.log('Icon check:', {
+                      fieldType: currentField.type,
+                      fieldIcon: currentField.icon,
+                      styleIcon: currentField.style?.icon,
+                      hasIcon,
+                      style: currentField.style
+                    });
+                    return hasIcon;
+                  })() && (
                     <div className="space-y-2">
                       <label className="text-sm font-medium">
                         {language === 'ar' ? 'لون الأيقونة' : 'Icon Color'}
