@@ -42,12 +42,26 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
 }) => {
   const [quantityOffers, setQuantityOffers] = useState<QuantityOffer[]>([]);
   const [loading, setLoading] = useState(true);
+  const [productData, setProductData] = useState<{price: number, currency: string, moneyFormat: string} | null>(null);
 
-  // الحصول على رمز العملة بناءً على الدولة أو العملة المحددة
+  // الحصول على رمز العملة بناءً على المنتج أو الدولة أو العملة المحددة
   const getCurrencySymbol = () => {
+    if (productData?.currency) {
+      const currencyData = getCurrencyByCode(productData.currency);
+      return currencyData?.symbol || productData.currency;
+    }
+    
     const currency = formStyle?.currency || formCountry;
     const currencyData = getCurrencyByCode(currency);
     return currencyData?.symbol || 'ر.س';
+  };
+
+  // دالة لتنسيق السعر باستخدام تنسيق المتجر
+  const formatPrice = (amount: number) => {
+    if (productData?.moneyFormat) {
+      return productData.moneyFormat.replace('{{amount}}', amount.toFixed(2));
+    }
+    return `${amount.toFixed(2)} ${getCurrencySymbol()}`;
   };
 
   useEffect(() => {
@@ -60,6 +74,41 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
       }
       
       try {
+        // First, get the shop information from form to fetch product data
+        const { data: formData } = await supabase
+          .from('forms')
+          .select('shop_id')
+          .eq('id', formId)
+          .single();
+
+        if (formData?.shop_id) {
+          // Fetch product data from Shopify
+          const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-products`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M`
+            },
+            body: JSON.stringify({
+              shop: formData.shop_id,
+              productIds: [productId]
+            })
+          });
+
+          if (response.ok) {
+            const productResponse = await response.json();
+            if (productResponse.success && productResponse.products?.length > 0) {
+              const product = productResponse.products[0];
+              setProductData({
+                price: parseFloat(product.price || '0'),
+                currency: product.currency || 'USD',
+                moneyFormat: product.money_format || '${{amount}}'
+              });
+            }
+          }
+        }
+
+        // Load quantity offers
         const { data, error } = await (supabase as any)
           .from('quantity_offers')
           .select('*')
@@ -108,22 +157,8 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
     return offers.map(offer => (
       <div key={offer.id} className="space-y-2 mb-4">
         {offer.offers.map((singleOffer, index) => {
-          // استخدام سعر ديناميكي بناءً على العملة
-          const getCurrencyBasePrice = () => {
-            const currency = formStyle?.currency || formCountry;
-            switch (currency) {
-              case 'USD': return 40;
-              case 'EUR': return 35;
-              case 'GBP': return 30;
-              case 'MAD': return 400;
-              case 'AED': return 150;
-              case 'EGP': return 1200;
-              case 'SAR': 
-              default: return 150;
-            }
-          };
-          
-          const basePrice = getCurrencyBasePrice();
+          // استخدام السعر الفعلي للمنتج من Shopify
+          const basePrice = productData?.price || 25; // استخدام السعر الفعلي أو قيمة افتراضية
           const totalPrice = calculatePrice(basePrice, singleOffer);
           const originalPrice = basePrice * singleOffer.quantity;
           const isDiscounted = singleOffer.discountType !== 'none' && singleOffer.discountValue && singleOffer.discountValue > 0;
@@ -173,17 +208,17 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
                 </div>
               </div>
 
-              <div className="text-right">
+               <div className="text-right">
                 {isDiscounted && (
                  <div className="text-sm line-through text-gray-400">
-                    {originalPrice.toFixed(2)} {getCurrencySymbol()}
+                    {formatPrice(originalPrice)}
                   </div>
                 )}
                  <div 
                   className="font-bold text-lg"
                   style={{ color: offer.styling?.priceColor || '#000000' }}
                 >
-                  {totalPrice.toFixed(2)} {getCurrencySymbol()}
+                  {formatPrice(totalPrice)}
                 </div>
               </div>
             </div>

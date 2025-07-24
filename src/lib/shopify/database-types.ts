@@ -10,6 +10,9 @@ export interface ShopifyStore {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  currency?: string | null;
+  money_format?: string | null;
+  money_with_currency_format?: string | null;
 }
 
 export interface ShopifyProductSettings {

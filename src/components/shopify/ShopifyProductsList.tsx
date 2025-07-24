@@ -30,6 +30,21 @@ const ShopifyProductsList: React.FC<ShopifyProductsListProps> = memo(({
     return product.title;
   };
 
+  // Format price with correct currency
+  const formatProductPrice = (product: ShopifyProduct): string => {
+    const price = parseFloat(product.price || '0');
+    
+    if (product.money_format) {
+      return product.money_format.replace('{{amount}}', price.toFixed(2));
+    }
+    
+    if (product.currency) {
+      return `${price.toFixed(2)} ${product.currency}`;
+    }
+    
+    return `$${price.toFixed(2)}`;
+  };
+
   return (
     <div className="space-y-4">
       {products.length === 0 ? (
@@ -68,7 +83,7 @@ const ShopifyProductsList: React.FC<ShopifyProductsListProps> = memo(({
                   )}
                 </div>
                 
-                <p className="text-gray-600">{product.price ? `$${product.price}` : 'No price'}</p>
+                <p className="text-gray-600">{product.price ? formatProductPrice(product) : 'No price'}</p>
                 
                 {/* Status badge */}
                 <div className="mt-1 mb-2">
@@ -86,14 +101,20 @@ const ShopifyProductsList: React.FC<ShopifyProductsListProps> = memo(({
                 {product.variants && product.variants.length > 0 && (
                   <div className="mt-2">
                     <h4 className="text-sm font-medium">Variants: {product.variants.length}</h4>
-                    {product.variants.slice(0, 1).map(variant => (
-                      <p key={variant.id} className="text-sm text-gray-500">
-                        {variant.title}: ${variant.price} 
-                        {variant.inventory_quantity !== undefined && (
-                          <span className="ml-2">{variant.inventory_quantity} in stock</span>
-                        )}
-                      </p>
-                    ))}
+                    {product.variants.slice(0, 1).map(variant => {
+                      const variantPrice = product.money_format 
+                        ? product.money_format.replace('{{amount}}', parseFloat(variant.price).toFixed(2))
+                        : `${parseFloat(variant.price).toFixed(2)} ${product.currency || 'USD'}`;
+                      
+                      return (
+                        <p key={variant.id} className="text-sm text-gray-500">
+                          {variant.title}: {variantPrice}
+                          {variant.inventory_quantity !== undefined && (
+                            <span className="ml-2">{variant.inventory_quantity} in stock</span>
+                          )}
+                        </p>
+                      );
+                    })}
                     {product.variants.length > 1 && (
                       <p className="text-xs text-gray-400">{product.variants.length - 1} more variants...</p>
                     )}

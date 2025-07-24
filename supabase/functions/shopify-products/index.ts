@@ -98,10 +98,10 @@ serve(async (req: Request) => {
     if (productIds && productIds.length > 0) {
       console.log(`[${requestId}] 🎯 جلب منتجات محددة: ${productIds}`);
       
-      // Get shop access token
+      // Get shop access token and currency info
       const { data: shopData, error: shopError } = await supabase
         .from('shopify_stores')
-        .select('access_token')
+        .select('access_token, currency, money_format, money_with_currency_format')
         .eq('shop', shop)
         .single();
       
@@ -254,7 +254,11 @@ serve(async (req: Request) => {
             price: product.variants && product.variants.length > 0 ? product.variants[0].price : '0',
             images: images,
             featuredImage: featuredImage,
-            variants: variants
+            variants: variants,
+            // Add currency information from store
+            currency: shopData?.currency || 'USD',
+            money_format: shopData?.money_format || '${{amount}}',
+            money_with_currency_format: shopData?.money_with_currency_format || '${{amount}} USD'
           };
         });
         
@@ -314,11 +318,11 @@ serve(async (req: Request) => {
       }
     }
     
-    // Get shop access token if not provided
+    // Get shop access token and currency info if not provided
     if (!accessToken) {
       const { data: shopData, error: shopError } = await supabase
         .from('shopify_stores')
-        .select('access_token')
+        .select('access_token, currency, money_format, money_with_currency_format')
         .eq('shop', shop)
         .single();
       
@@ -433,7 +437,11 @@ serve(async (req: Request) => {
           price: product.variants && product.variants.length > 0 ? product.variants[0].price : '0',
           images: images,
           featuredImage: featuredImage,
-          variants: variants
+          variants: variants,
+          // Add currency information from store
+          currency: shopData?.currency || 'USD',
+          money_format: shopData?.money_format || '${{amount}}',
+          money_with_currency_format: shopData?.money_with_currency_format || '${{amount}} USD'
         };
       });
       

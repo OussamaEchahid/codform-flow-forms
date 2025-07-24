@@ -198,6 +198,11 @@ class ShopifyConnectionService {
           console.warn(`Not creating store record without token: ${shop}`);
         }
       }
+
+      // Update store currency information if we have a valid token
+      if (token && token !== 'placeholder_token') {
+        await this.updateStoreCurrency(shop, token);
+      }
       
       // Update connection manager
       shopifyConnectionManager.addOrUpdateStore(shop, isActive);
@@ -208,6 +213,39 @@ class ShopifyConnectionService {
     } catch (error) {
       console.error('Error syncing store to database:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Updates store currency information from Shopify API
+   * @param shop The shop domain
+   * @param accessToken The access token
+   */
+  async updateStoreCurrency(shop: string, accessToken: string): Promise<void> {
+    console.log('Updating store currency information for:', shop);
+    
+    try {
+      const response = await fetch('https://trlklwixfeaexhydzaue.supabase.co/functions/v1/update-shop-currency', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M`
+        },
+        body: JSON.stringify({
+          shop,
+          accessToken
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Store currency updated successfully:', result);
+      } else {
+        console.error('Failed to update store currency');
+      }
+    } catch (error) {
+      console.error('Error updating store currency:', error);
+      // Don't throw error here as this is not critical for store connection
     }
   }
   

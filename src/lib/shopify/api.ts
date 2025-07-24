@@ -286,6 +286,39 @@ class ShopifyAPI {
     }
   }
 
+  async getShopInfo(): Promise<{name: string, currency: string, moneyFormat: string, moneyWithCurrencyFormat: string}> {
+    console.log('Fetching shop information for:', this.shopDomain);
+    
+    const query = `
+      {
+        shop {
+          name
+          currencyCode
+          moneyFormat
+          moneyWithCurrencyFormat
+        }
+      }
+    `;
+
+    try {
+      const data = await this.fetchAPI(query);
+      
+      if (!data?.shop) {
+        throw new Error('No shop data returned from Shopify API');
+      }
+
+      return {
+        name: data.shop.name,
+        currency: data.shop.currencyCode,
+        moneyFormat: data.shop.moneyFormat,
+        moneyWithCurrencyFormat: data.shop.moneyWithCurrencyFormat
+      };
+    } catch (error) {
+      console.error('Error fetching shop info:', error);
+      throw error;
+    }
+  }
+
   async verifyConnection(): Promise<boolean> {
     console.log('Verifying Shopify connection for shop:', this.shopDomain);
     

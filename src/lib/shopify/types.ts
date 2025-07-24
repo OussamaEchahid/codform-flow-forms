@@ -78,6 +78,9 @@ export interface ShopifyProduct {
     available: boolean;
     inventory_quantity?: number;
   }>;
+  currency?: string;
+  money_format?: string;
+  money_with_currency_format?: string;
 }
 
 export interface ShopifyOrder {
