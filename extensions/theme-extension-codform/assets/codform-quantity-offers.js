@@ -502,16 +502,17 @@ window.CodformQuantityOffers = (function() {
       return;
     }
 
-    // استدعاء المنتج والعروض باستخدام GET مع معاملات الاستعلام
-    const apiUrl = `https://trlklwixfeaexhydzaue.supabase.co/rest/v1/quantity_offers?shop_id=eq.${encodeURIComponent(shop)}&product_id=eq.${encodeURIComponent(productId)}&enabled=eq.true&select=*`;
+    // استخدام GET مع headers صحيحة
+    const apiUrl = `https://trlklwixfeaexhydzaue.supabase.co/rest/v1/quantity_offers?shop_id=eq.${encodeURIComponent(shop)}&product_id=eq.${encodeURIComponent(productId)}&enabled=eq.true`;
     
     console.log("🔄 Fetching quantity offers from:", apiUrl);
     
     fetch(apiUrl, {
-      method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M'
+        'Content-Type': 'application/json',
+        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
+        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M'
       }
     })
       .then(response => {
