@@ -998,7 +998,7 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
                    </div>
 
                   {/* إعدادات لون الأيقونة */}
-                  {currentField.icon && currentField.icon !== 'none' && (
+                  {((currentField.icon && currentField.icon !== 'none') || (currentField.style?.icon && currentField.style?.icon !== 'none')) && (
                     <div className="space-y-2">
                       <label className="text-sm font-medium">
                         {language === 'ar' ? 'لون الأيقونة' : 'Icon Color'}
