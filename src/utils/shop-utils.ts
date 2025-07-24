@@ -1,7 +1,7 @@
 
 /**
  * دالة مركزية موحدة لجلب معرف المتجر النشط
- * تتبع ترتيب أولوية واضح لضمان عدم خلط البيانات بين المتاجر
+ * تتبع ترتيب أولوية واضح مع التحقق من صحة المتاجر
  */
 export const getActiveShopId = (): string | null => {
   // الترتيب الموحد للبحث عن shop_id
@@ -10,18 +10,27 @@ export const getActiveShopId = (): string | null => {
   for (const key of shopIdKeys) {
     const value = localStorage.getItem(key);
     if (value && value.trim()) {
-      const cleanedValue = cleanShopId(value.trim());
-      console.log(`🏪 استخدام shop_id من ${key}: ${cleanedValue}`);
-      return cleanedValue;
+      const trimmedValue = value.trim();
+      
+      // التحقق من صحة المتجر قبل إرجاعه
+      if (validateShopId(trimmedValue)) {
+        console.log(`🏪 استخدام shop_id صحيح من ${key}: ${trimmedValue}`);
+        return trimmedValue;
+      } else {
+        console.warn(`❌ تم تجاهل shop_id غير صحيح من ${key}: ${trimmedValue}`);
+        // إزالة المعرف غير الصحيح
+        localStorage.removeItem(key);
+      }
     }
   }
   
-  console.warn('⚠️ لم يتم العثور على shop_id في localStorage');
+  console.warn('⚠️ لم يتم العثور على shop_id صحيح في localStorage');
   return null;
 };
 
 /**
  * تنظيف معرف المتجر من البادئات أو المسارات الإضافية
+ * يرفض أي نطاق ليس متجر Shopify صحيح
  */
 export const cleanShopId = (shopId: string): string => {
   if (!shopId) return shopId;
@@ -32,28 +41,41 @@ export const cleanShopId = (shopId: string): string => {
     .replace(/^admin\./, '')
     .split('/')[0];
   
-  // التأكد من إنهاء .myshopify.com
+  // إذا كان النطاق لا يحتوي على .myshopify.com، لا نضيفه تلقائياً
+  // هذا يمنع تحويل النطاقات العادية إلى متاجر Shopify
   if (!cleaned.includes('.myshopify.com')) {
-    cleaned = cleaned.replace(/\.myshopify\.com.*$/, '') + '.myshopify.com';
+    // إذا كان نطاق عادي مثل codmagnet.com، ارجع كما هو لكن مع تسجيل تحذير
+    console.warn('⚠️ النطاق المدخل ليس متجر Shopify:', cleaned);
+    return cleaned; // نرجع النطاق كما هو بدون تعديل
   }
   
   return cleaned;
 };
 
 /**
- * التحقق من صحة معرف المتجر
+ * التحقق من صحة معرف المتجر - يجب أن يكون متجر Shopify صحيح
  */
 export const validateShopId = (shopId: string): boolean => {
   if (!shopId) return false;
   
-  const cleanedId = cleanShopId(shopId);
-  
-  // يجب أن ينتهي بـ .myshopify.com
-  if (!cleanedId.endsWith('.myshopify.com')) return false;
+  // التحقق الصارم: يجب أن ينتهي بـ .myshopify.com
+  if (!shopId.endsWith('.myshopify.com')) {
+    console.warn('❌ معرف المتجر غير صحيح - ليس متجر Shopify:', shopId);
+    return false;
+  }
   
   // يجب أن يحتوي على نص قبل .myshopify.com
-  const storeName = cleanedId.replace('.myshopify.com', '');
-  if (!storeName || storeName.length < 3) return false;
+  const storeName = shopId.replace('.myshopify.com', '');
+  if (!storeName || storeName.length < 3) {
+    console.warn('❌ اسم المتجر قصير جداً:', storeName);
+    return false;
+  }
+  
+  // التحقق من عدم وجود نطاقات عادية مثل .com، .net، إلخ
+  if (storeName.includes('.') && !storeName.endsWith('myshopify')) {
+    console.warn('❌ النطاق يبدو كنطاق عادي وليس متجر Shopify:', shopId);
+    return false;
+  }
   
   return true;
 };
