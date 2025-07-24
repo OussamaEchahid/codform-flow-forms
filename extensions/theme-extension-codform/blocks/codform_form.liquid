@@ -134,6 +134,27 @@
     }
   }
 
+  // Get current shop domain - FIXED to use actual shop domain
+  function getShopDomain() {
+    try {
+      // Get the actual shop domain from Shopify
+      const shopDomain = '{{ shop.myshopify_domain }}' || '{{ shop.domain }}' || window.Shopify?.shop;
+      
+      // Clean and validate the domain
+      if (shopDomain && shopDomain.trim() && shopDomain !== '') {
+        const cleanDomain = shopDomain.trim();
+        console.log('🏪 CODFORM: Using shop domain:', cleanDomain);
+        return cleanDomain;
+      }
+      
+      console.warn('⚠️ CODFORM: Could not detect shop domain, using fallback');
+      return 'auto-detect';
+    } catch (error) {
+      console.error('❌ CODFORM: Error getting shop domain:', error);
+      return 'auto-detect';
+    }
+  }
+
   // Helper function to safely get style value with fallback
   function getStyleValue(style, property, fallback) {
     if (!style || typeof style !== 'object') return fallback;
@@ -676,7 +697,7 @@
   // Quantity offer selection is now handled by codform-quantity-offers.js
   function loadCompleteForm() {
     const productId = getProductId();
-    const shopDomain = 'codmagnet.com'; // استخدام المتجر الصحيح
+    const shopDomain = getShopDomain(); // استخدام دالة لجلب المتجر الصحيح
     
     if (!productId) {
       console.log('❌ CODFORM: No product ID found');
@@ -990,7 +1011,7 @@
     try {
       // Get current product info from page
       const productId = '{{ product.id }}' || '{{ product.variants.first.id }}' || DEFAULT_PRODUCT_ID;
-      const shopDomain = 'codmagnet.com'; // استخدام المتجر الصحيح
+      const shopDomain = getShopDomain(); // استخدام دالة لجلب المتجر الصحيح
       
       console.log('🏪 CODFORM: Submitting to shop:', shopDomain, 'product:', productId);
       
@@ -1062,7 +1083,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const formContainer = document.querySelector('.codform-dynamic-form');
     if (formContainer && !formContainer.dataset.quantityOffersLoaded) {
       const productId = '{{ product.id }}' || '{{ product.variants.first.id }}' || 'default';
-      const shopDomain = 'codmagnet.com'; // استخدام النطاق الصحيح
+      const shopDomain = getShopDomain(); // استخدام دالة لجلب المتجر الصحيح
       const blockId = generateBlockId(productId);
       
       console.log("🎯 Loading quantity offers after form is ready:", { productId, shopDomain, blockId });
