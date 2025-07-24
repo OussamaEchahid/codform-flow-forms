@@ -502,38 +502,23 @@ window.CodformQuantityOffers = (function() {
       return;
     }
 
-    const apiUrl = `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/forms-product?shop=${encodeURIComponent(shop)}&product=${encodeURIComponent(productId)}&blockId=${encodeURIComponent(blockId)}`;
+    const apiUrl = `https://trlklwixfeaexhydzaue.supabase.co/rest/v1/rpc/get_product_form_and_offers?shop_id=${encodeURIComponent(shop)}&product_id=${encodeURIComponent(productId)}`;
     
     console.log("🔄 Fetching quantity offers from:", apiUrl);
     
-    fetch(apiUrl)
+    fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M'
+      }
+    })
       .then(response => {
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
         }
         return response.json();
-      })
-      .then(data => {
-        console.log("✅ Quantity offers data received:", data);
-        
-        if (data.success && data.quantity_offers && data.product) {
-          // استخدام product_id من بيانات العرض للتأكد من المنتج الصحيح
-          const actualProductId = data.quantity_offers.product_id || productId;
-          console.log("🎯 Using actual product ID:", actualProductId, "instead of URL product:", productId);
-          
-          // استخدام عملة النموذج بدلاً من عملة المنتج الافتراضية
-          const productData = {
-            ...data.product,
-            currency: formCurrency // استخدام عملة النموذج
-          };
-          
-          displayQuantityOffers(data.quantity_offers, blockId, actualProductId, formCurrency, productData);
-        } else {
-          console.log("ℹ️ No quantity offers found or data incomplete");
-          console.log("- Success:", data.success);
-          console.log("- Has quantity_offers:", !!data.quantity_offers);
-          console.log("- Has product:", !!data.product);
-        }
       })
       .catch(error => {
         console.error("❌ Error loading quantity offers:", error);

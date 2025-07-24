@@ -413,6 +413,10 @@ export type Database = {
         }
         Returns: string
       }
+      get_product_form_and_offers: {
+        Args: { shop_id: string; product_id: string }
+        Returns: Json
+      }
       update_default_store_connection: {
         Args: Record<PropertyKey, never>
         Returns: string
