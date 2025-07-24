@@ -51,15 +51,27 @@ export class FormManagementService {
 
   // Fetch all forms from database
   async fetchForms(): Promise<FormData[]> {
-    const shopId = this.getActiveShopId();
+    let shopId = this.getActiveShopId();
+    
+    // Try multiple sources for shop ID as fallback
+    if (!shopId) {
+      shopId = localStorage.getItem('ACTIVE_STORE_KEY') || 
+               localStorage.getItem('active_shop') ||
+               localStorage.getItem('shopify_store');
+    }
     
     if (!shopId) {
-      console.error('No active shop ID found');
+      console.error('No active shop ID found in any location');
       throw new Error('لم يتم العثور على متجر نشط');
     }
 
     try {
       console.log('🔍 Fetching forms for shop:', shopId);
+      console.log('📍 Current localStorage shops:', {
+        ACTIVE_STORE_KEY: localStorage.getItem('ACTIVE_STORE_KEY'),
+        active_shop: localStorage.getItem('active_shop'),
+        shopify_store: localStorage.getItem('shopify_store')
+      });
       
       const { data, error } = await this.fetchWithRetry(async () => {
         return await supabase
