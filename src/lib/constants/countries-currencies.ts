@@ -144,6 +144,218 @@ export const COUNTRIES: Country[] = [
     phonePrefix: '+61',
     currency: 'AUD',
     flag: '🇦🇺'
+  },
+  // دول أمريكا اللاتينية
+  {
+    code: 'MX',
+    name: 'Mexico',
+    nameAr: 'المكسيك',
+    phonePrefix: '+52',
+    currency: 'MXN',
+    flag: '🇲🇽'
+  },
+  {
+    code: 'BR',
+    name: 'Brazil',
+    nameAr: 'البرازيل',
+    phonePrefix: '+55',
+    currency: 'BRL',
+    flag: '🇧🇷'
+  },
+  {
+    code: 'AR',
+    name: 'Argentina',
+    nameAr: 'الأرجنتين',
+    phonePrefix: '+54',
+    currency: 'ARS',
+    flag: '🇦🇷'
+  },
+  {
+    code: 'CL',
+    name: 'Chile',
+    nameAr: 'تشيلي',
+    phonePrefix: '+56',
+    currency: 'CLP',
+    flag: '🇨🇱'
+  },
+  {
+    code: 'CO',
+    name: 'Colombia',
+    nameAr: 'كولومبيا',
+    phonePrefix: '+57',
+    currency: 'COP',
+    flag: '🇨🇴'
+  },
+  {
+    code: 'PE',
+    name: 'Peru',
+    nameAr: 'بيرو',
+    phonePrefix: '+51',
+    currency: 'PEN',
+    flag: '🇵🇪'
+  },
+  {
+    code: 'VE',
+    name: 'Venezuela',
+    nameAr: 'فنزويلا',
+    phonePrefix: '+58',
+    currency: 'VES',
+    flag: '🇻🇪'
+  },
+  {
+    code: 'UY',
+    name: 'Uruguay',
+    nameAr: 'الأوروغواي',
+    phonePrefix: '+598',
+    currency: 'UYU',
+    flag: '🇺🇾'
+  },
+  {
+    code: 'EC',
+    name: 'Ecuador',
+    nameAr: 'الإكوادور',
+    phonePrefix: '+593',
+    currency: 'USD',
+    flag: '🇪🇨'
+  },
+  // دول الخليج الإضافية
+  {
+    code: 'IQ',
+    name: 'Iraq',
+    nameAr: 'العراق',
+    phonePrefix: '+964',
+    currency: 'IQD',
+    flag: '🇮🇶'
+  },
+  {
+    code: 'IR',
+    name: 'Iran',
+    nameAr: 'إيران',
+    phonePrefix: '+98',
+    currency: 'IRR',
+    flag: '🇮🇷'
+  },
+  // دول الشرق الأوسط الإضافية
+  {
+    code: 'TR',
+    name: 'Turkey',
+    nameAr: 'تركيا',
+    phonePrefix: '+90',
+    currency: 'TRY',
+    flag: '🇹🇷'
+  },
+  {
+    code: 'IL',
+    name: 'Israel',
+    nameAr: 'إسرائيل',
+    phonePrefix: '+972',
+    currency: 'ILS',
+    flag: '🇮🇱'
+  },
+  {
+    code: 'PS',
+    name: 'Palestine',
+    nameAr: 'فلسطين',
+    phonePrefix: '+970',
+    currency: 'ILS',
+    flag: '🇵🇸'
+  },
+  {
+    code: 'SY',
+    name: 'Syria',
+    nameAr: 'سوريا',
+    phonePrefix: '+963',
+    currency: 'SYP',
+    flag: '🇸🇾'
+  },
+  {
+    code: 'YE',
+    name: 'Yemen',
+    nameAr: 'اليمن',
+    phonePrefix: '+967',
+    currency: 'YER',
+    flag: '🇾🇪'
+  },
+  // دول أفريقيا
+  {
+    code: 'NG',
+    name: 'Nigeria',
+    nameAr: 'نيجيريا',
+    phonePrefix: '+234',
+    currency: 'NGN',
+    flag: '🇳🇬'
+  },
+  {
+    code: 'ZA',
+    name: 'South Africa',
+    nameAr: 'جنوب أفريقيا',
+    phonePrefix: '+27',
+    currency: 'ZAR',
+    flag: '🇿🇦'
+  },
+  {
+    code: 'KE',
+    name: 'Kenya',
+    nameAr: 'كينيا',
+    phonePrefix: '+254',
+    currency: 'KES',
+    flag: '🇰🇪'
+  },
+  {
+    code: 'GH',
+    name: 'Ghana',
+    nameAr: 'غانا',
+    phonePrefix: '+233',
+    currency: 'GHS',
+    flag: '🇬🇭'
+  },
+  {
+    code: 'ET',
+    name: 'Ethiopia',
+    nameAr: 'إثيوبيا',
+    phonePrefix: '+251',
+    currency: 'ETB',
+    flag: '🇪🇹'
+  },
+  {
+    code: 'TZ',
+    name: 'Tanzania',
+    nameAr: 'تنزانيا',
+    phonePrefix: '+255',
+    currency: 'TZS',
+    flag: '🇹🇿'
+  },
+  {
+    code: 'UG',
+    name: 'Uganda',
+    nameAr: 'أوغندا',
+    phonePrefix: '+256',
+    currency: 'UGX',
+    flag: '🇺🇬'
+  },
+  {
+    code: 'ZW',
+    name: 'Zimbabwe',
+    nameAr: 'زيمبابوي',
+    phonePrefix: '+263',
+    currency: 'ZWL',
+    flag: '🇿🇼'
+  },
+  {
+    code: 'ZM',
+    name: 'Zambia',
+    nameAr: 'زامبيا',
+    phonePrefix: '+260',
+    currency: 'ZMW',
+    flag: '🇿🇲'
+  },
+  {
+    code: 'RW',
+    name: 'Rwanda',
+    nameAr: 'رواندا',
+    phonePrefix: '+250',
+    currency: 'RWF',
+    flag: '🇷🇼'
   }
 ];
 
@@ -249,6 +461,153 @@ export const CURRENCIES: Currency[] = [
     name: 'Australian Dollar',
     nameAr: 'دولار أسترالي',
     symbol: 'A$'
+  },
+  // عملات أمريكا اللاتينية
+  {
+    code: 'MXN',
+    name: 'Mexican Peso',
+    nameAr: 'بيزو مكسيكي',
+    symbol: '$'
+  },
+  {
+    code: 'BRL',
+    name: 'Brazilian Real',
+    nameAr: 'ريال برازيلي',
+    symbol: 'R$'
+  },
+  {
+    code: 'ARS',
+    name: 'Argentine Peso',
+    nameAr: 'بيزو أرجنتيني',
+    symbol: '$'
+  },
+  {
+    code: 'CLP',
+    name: 'Chilean Peso',
+    nameAr: 'بيزو تشيلي',
+    symbol: '$'
+  },
+  {
+    code: 'COP',
+    name: 'Colombian Peso',
+    nameAr: 'بيزو كولومبي',
+    symbol: '$'
+  },
+  {
+    code: 'PEN',
+    name: 'Peruvian Sol',
+    nameAr: 'سول بيروفي',
+    symbol: 'S/'
+  },
+  {
+    code: 'VES',
+    name: 'Venezuelan Bolívar',
+    nameAr: 'بوليفار فنزويلي',
+    symbol: 'Bs.'
+  },
+  {
+    code: 'UYU',
+    name: 'Uruguayan Peso',
+    nameAr: 'بيزو أوروغوياني',
+    symbol: '$U'
+  },
+  // عملات الخليج والشرق الأوسط الإضافية
+  {
+    code: 'IQD',
+    name: 'Iraqi Dinar',
+    nameAr: 'دينار عراقي',
+    symbol: 'ع.د'
+  },
+  {
+    code: 'IRR',
+    name: 'Iranian Rial',
+    nameAr: 'ريال إيراني',
+    symbol: '﷼'
+  },
+  {
+    code: 'TRY',
+    name: 'Turkish Lira',
+    nameAr: 'ليرة تركية',
+    symbol: '₺'
+  },
+  {
+    code: 'ILS',
+    name: 'Israeli Shekel',
+    nameAr: 'شيكل إسرائيلي',
+    symbol: '₪'
+  },
+  {
+    code: 'SYP',
+    name: 'Syrian Pound',
+    nameAr: 'ليرة سورية',
+    symbol: 'ل.س'
+  },
+  {
+    code: 'YER',
+    name: 'Yemeni Rial',
+    nameAr: 'ريال يمني',
+    symbol: '﷼'
+  },
+  // عملات أفريقيا
+  {
+    code: 'NGN',
+    name: 'Nigerian Naira',
+    nameAr: 'نايرا نيجيرية',
+    symbol: '₦'
+  },
+  {
+    code: 'ZAR',
+    name: 'South African Rand',
+    nameAr: 'راند جنوب أفريقي',
+    symbol: 'R'
+  },
+  {
+    code: 'KES',
+    name: 'Kenyan Shilling',
+    nameAr: 'شلن كيني',
+    symbol: 'KSh'
+  },
+  {
+    code: 'GHS',
+    name: 'Ghanaian Cedi',
+    nameAr: 'سيدي غاني',
+    symbol: '₵'
+  },
+  {
+    code: 'ETB',
+    name: 'Ethiopian Birr',
+    nameAr: 'بر إثيوبي',
+    symbol: 'Br'
+  },
+  {
+    code: 'TZS',
+    name: 'Tanzanian Shilling',
+    nameAr: 'شلن تنزاني',
+    symbol: 'TSh'
+  },
+  {
+    code: 'UGX',
+    name: 'Ugandan Shilling',
+    nameAr: 'شلن أوغندي',
+    symbol: 'USh'
+  },
+  {
+    code: 'ZWL',
+    name: 'Zimbabwean Dollar',
+    nameAr: 'دولار زيمبابوي',
+    symbol: 'Z$'
+  },
+  {
+    code: 'ZMW',
+    name: 'Zambian Kwacha',
+    nameAr: 'كواشا زامبية',
+    symbol: 'ZK'
+  },
+  {
+    code: 'RWF',
+    name: 'Rwandan Franc',
+    nameAr: 'فرنك رواندي',
+    symbol: 'FRw'
   }
 ];
 

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import FormField from './FormField';
 import QuantityOffersField from './fields/QuantityOffersField';
+import { getCurrencyByCode } from '@/lib/constants/countries-currencies';
 
 interface Offer {
   id: string;
@@ -41,6 +42,13 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
 }) => {
   const [quantityOffers, setQuantityOffers] = useState<QuantityOffer[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // الحصول على رمز العملة بناءً على الدولة أو العملة المحددة
+  const getCurrencySymbol = () => {
+    const currency = formStyle?.currency || formCountry;
+    const currencyData = getCurrencyByCode(currency);
+    return currencyData?.symbol || 'ر.س';
+  };
 
   useEffect(() => {
     const loadQuantityOffers = async () => {
@@ -100,8 +108,22 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
     return offers.map(offer => (
       <div key={offer.id} className="space-y-2 mb-4">
         {offer.offers.map((singleOffer, index) => {
-          // Get actual product price or use default
-          const basePrice = 150; // SAR - Default price
+          // استخدام سعر ديناميكي بناءً على العملة
+          const getCurrencyBasePrice = () => {
+            const currency = formStyle?.currency || formCountry;
+            switch (currency) {
+              case 'USD': return 40;
+              case 'EUR': return 35;
+              case 'GBP': return 30;
+              case 'MAD': return 400;
+              case 'AED': return 150;
+              case 'EGP': return 1200;
+              case 'SAR': 
+              default: return 150;
+            }
+          };
+          
+          const basePrice = getCurrencyBasePrice();
           const totalPrice = calculatePrice(basePrice, singleOffer);
           const originalPrice = basePrice * singleOffer.quantity;
           const isDiscounted = singleOffer.discountType !== 'none' && singleOffer.discountValue && singleOffer.discountValue > 0;
@@ -153,15 +175,15 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
 
               <div className="text-right">
                 {isDiscounted && (
-                <div className="text-sm line-through text-gray-400">
-                    {originalPrice.toFixed(2)} ر.س
+                 <div className="text-sm line-through text-gray-400">
+                    {originalPrice.toFixed(2)} {getCurrencySymbol()}
                   </div>
                 )}
-                <div 
+                 <div 
                   className="font-bold text-lg"
                   style={{ color: offer.styling?.priceColor || '#000000' }}
                 >
-                  {totalPrice.toFixed(2)} ر.س
+                  {totalPrice.toFixed(2)} {getCurrencySymbol()}
                 </div>
               </div>
             </div>
