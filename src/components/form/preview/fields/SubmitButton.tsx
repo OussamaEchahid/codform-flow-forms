@@ -113,47 +113,72 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle }) => {
     }
   };
 
-  // Define button style
+  // Define button style - مطابقة للمتجر
   const btnStyle: React.CSSProperties = {
     backgroundColor,
     color,
-    fontSize,
-    borderRadius,
-    padding: `${paddingY} 24px`,
+    fontSize: field.style?.fontSize || '19px',
+    borderRadius: '6px',
+    padding: '16px 32px',
     border: borderColor ? `${borderWidth} solid ${borderColor}` : 'none',
-    display: 'inline-flex',
+    display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     gap: '8px',
     cursor: 'pointer',
-    fontWeight: 'bold',
+    fontWeight: '500',
     textAlign: 'center',
-    transition: 'all 0.2s ease-in-out',
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    width: '100%',
+    minHeight: '56px',
+    fontFamily: "'Cairo', inherit",
+    boxShadow: '0 4px 12px rgba(155, 135, 245, 0.3)',
+    transform: 'translateY(0)',
+    position: 'relative',
+    overflow: 'hidden'
   };
 
   // Add className for animation
   const animClass = getAnimationClass();
 
   return (
-    <button 
-      type="button" 
-      className={cn("form-submit-btn w-full", animClass)}
-      style={btnStyle}
-    >
-      {showIcon && iconPosition === 'left' && field.icon && (
-        <span className="submit-icon-left">
-          {getIconComponent(field.icon)}
-        </span>
-      )}
-      
-      {field.label || 'Submit'}
-      
-      {showIcon && iconPosition === 'right' && field.icon && (
-        <span className="submit-icon-right">
-          {getIconComponent(field.icon)}
-        </span>
-      )}
-    </button>
+    <div style={{ marginTop: '24px', textAlign: 'center' }}>
+      <button 
+        type="button" 
+        className={cn("form-submit-btn w-full", animClass)}
+        style={btnStyle}
+        onMouseOver={(e) => {
+          e.currentTarget.style.transform = 'translateY(-3px) scale(1.02)';
+          e.currentTarget.style.boxShadow = '0 8px 25px rgba(155, 135, 245, 0.4)';
+          e.currentTarget.style.background = 'linear-gradient(135deg, #9b87f5, #9b87f5dd)';
+        }}
+        onMouseOut={(e) => {
+          e.currentTarget.style.transform = 'translateY(0) scale(1)';
+          e.currentTarget.style.boxShadow = '0 4px 12px rgba(155, 135, 245, 0.3)';
+          e.currentTarget.style.background = '#9b87f5';
+        }}
+        onMouseDown={(e) => {
+          e.currentTarget.style.transform = 'translateY(-1px) scale(0.98)';
+        }}
+        onMouseUp={(e) => {
+          e.currentTarget.style.transform = 'translateY(-3px) scale(1.02)';
+        }}
+      >
+        {showIcon && iconPosition === 'left' && field.icon && (
+          <span className="submit-icon-left" style={{ marginRight: '8px', display: 'inline-flex', alignItems: 'center' }}>
+            {getIconComponent(field.icon)}
+          </span>
+        )}
+        
+        {field.label || 'Submit'}
+        
+        {showIcon && iconPosition === 'right' && field.icon && (
+          <span className="submit-icon-right" style={{ marginLeft: '8px', display: 'inline-flex', alignItems: 'center' }}>
+            {getIconComponent(field.icon)}
+          </span>
+        )}
+      </button>
+    </div>
   );
 };
 

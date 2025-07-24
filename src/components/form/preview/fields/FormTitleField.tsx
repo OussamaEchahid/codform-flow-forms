@@ -26,13 +26,12 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
   // Get title text from content or label
   const titleText = field.content || field.label || 'عنوان النموذج';
   
-  // Apply styles from field settings - USE FIELD COLOR OR BLACK DEFAULT
+  // Apply styles from field settings - مطابقة للمتجر
   const fieldStyle = field.style || {};
-  // FIXED: استخدام لون الحقل أو الأسود كافتراضي (يمكن تغييره من المحرر)
   const textColor = fieldStyle.color || '#000000';
-  const fontSize = fieldStyle.fontSize || '1.5rem';
-  const fontWeight = fieldStyle.fontWeight || '700';
-  const fontFamily = fieldStyle.fontFamily || 'Cairo, Tajawal, Arial, sans-serif';
+  const fontSize = fieldStyle.fontSize || '24px';
+  const fontWeight = fieldStyle.fontWeight || 'bold';
+  const fontFamily = fieldStyle.fontFamily || "'Cairo', inherit";
   
   // ALWAYS center align the title regardless of form direction
   const textAlign = 'center';
@@ -43,25 +42,19 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
   const paddingLeft = fieldStyle.paddingLeft || '0px';
   const paddingRight = fieldStyle.paddingRight || '0px';
 
-  // Clean title style with proper centering and BLACK default color
+  // Clean title style - مطابقة للمتجر
   const titleStyle: React.CSSProperties = {
     color: textColor,
     fontSize: fontSize,
     fontWeight: fontWeight,
     fontFamily: fontFamily,
     textAlign: textAlign,
+    padding: '0',
     margin: '0 0 20px 0',
-    lineHeight: '1.4',
-    direction: formStyle.formDirection || 'ltr',
-    paddingTop: paddingTop,
-    paddingBottom: paddingBottom,
-    paddingLeft: paddingLeft,
-    paddingRight: paddingRight,
-    width: '100%',
-    display: 'block',
-    backgroundColor: 'transparent',
     background: 'none',
     border: 'none',
+    width: '100%',
+    display: 'block'
   };
 
   console.log('FormTitleField - FIXED BLACK COLOR:', {
