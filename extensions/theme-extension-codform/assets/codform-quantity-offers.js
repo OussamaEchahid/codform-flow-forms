@@ -34,12 +34,12 @@ window.CodformQuantityOffers = (function() {
     container.innerHTML = '';
     container.style.display = 'block';
 
-    // استخدام التنسيق من البيانات
+    // استخدام التنسيق من البيانات مع لون أسود افتراضي للسعر
     const styling = quantityOffersData.styling || {
       backgroundColor: '#ffffff',
       textColor: '#000000',
       tagColor: '#22c55e',
-      priceColor: '#ef4444'
+      priceColor: '#000000' // تغيير اللون الافتراضي للأسود
     };
 
       // استخدام بيانات المنتج الحقيقية من API بدلاً من window.meta.product
@@ -94,9 +94,12 @@ window.CodformQuantityOffers = (function() {
                           currency === 'MAD' ? 'د.م' : 
                           currency;
 
-    // عرض العروض
+    // عرض العروض مع إمكانية التحديد
     offers.forEach((offer, index) => {
       const offerElement = document.createElement('div');
+      offerElement.setAttribute('data-offer-id', offer.id || index);
+      offerElement.setAttribute('data-quantity', offer.quantity);
+      offerElement.setAttribute('data-total-price', (realPrice * (offer.quantity || 1)).toFixed(2));
       offerElement.style.cssText = `
         background-color: ${styling.backgroundColor};
         border: 2px solid ${index === 1 ? '#22c55e' : '#e5e7eb'};
@@ -110,8 +113,55 @@ window.CodformQuantityOffers = (function() {
         box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         transition: all 0.3s ease;
         cursor: pointer;
+        position: relative;
         ${index === 1 ? 'background-color: #f0fdf4;' : ''}
       `;
+
+      // إضافة وظيفة التحديد
+      offerElement.addEventListener('click', function() {
+        // إزالة التحديد من العروض الأخرى
+        const allOffers = container.querySelectorAll('[data-offer-id]');
+        allOffers.forEach(el => {
+          el.style.borderColor = '#e5e7eb';
+          el.style.backgroundColor = styling.backgroundColor;
+          el.querySelector('.selected-indicator')?.remove();
+        });
+        
+        // تحديد العرض الحالي
+        this.style.borderColor = '#22c55e';
+        this.style.backgroundColor = '#f0fdf4';
+        
+        // إضافة مؤشر التحديد
+        const indicator = document.createElement('div');
+        indicator.className = 'selected-indicator';
+        indicator.style.cssText = `
+          position: absolute;
+          top: -8px;
+          right: -8px;
+          width: 24px;
+          height: 24px;
+          background-color: #22c55e;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+          font-size: 16px;
+          font-weight: bold;
+        `;
+        indicator.innerHTML = '✓';
+        this.appendChild(indicator);
+        
+        // حفظ البيانات المحددة
+        window.selectedQuantityOffer = {
+          quantity: this.getAttribute('data-quantity'),
+          totalPrice: this.getAttribute('data-total-price'),
+          currency: currency,
+          text: offer.text
+        };
+        
+        console.log("✅ Offer selected:", window.selectedQuantityOffer);
+      });
 
       // تأثيرات hover
       offerElement.addEventListener('mouseenter', function() {
@@ -124,7 +174,7 @@ window.CodformQuantityOffers = (function() {
         this.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
       });
 
-      // تخطيط محسن للعربية - النص على اليمين، الصورة في المنتصف، السعر على اليسار
+      // تخطيط صحيح للعربية - الصورة على اليسار، النص على اليمين، السعر في المنتصف
       const contentWrapper = document.createElement('div');
       contentWrapper.style.cssText = `
         display: flex;
@@ -132,15 +182,42 @@ window.CodformQuantityOffers = (function() {
         width: 100%;
         gap: 12px;
         direction: rtl;
+        cursor: pointer;
       `;
 
-      // محتوى النص (الجانب الأيمن للعربية)
+      // الصورة على اليسار (ترتيب 1)
+      const imageSection = document.createElement('div');
+      imageSection.style.cssText = `
+        order: 1;
+        flex-shrink: 0;
+      `;
+      
+      if (productImage) {
+        const imageElement = document.createElement('img');
+        imageElement.src = productImage;
+        imageElement.alt = productTitle;
+        imageElement.style.cssText = `
+          width: 50px;
+          height: 50px;
+          object-fit: cover;
+          border-radius: 8px;
+          border: 1px solid #e5e7eb;
+          display: block;
+        `;
+        imageElement.onerror = function() {
+          console.log("❌ Image failed to load:", productImage);
+          this.style.display = 'none';
+        };
+        imageSection.appendChild(imageElement);
+      }
+
+      // محتوى النص (ترتيب 2 - على اليمين)
       const textContent = document.createElement('div');
       textContent.style.cssText = `
         flex: 1;
         text-align: right;
         direction: rtl;
-        order: 1;
+        order: 2;
       `;
 
       // النص الرئيسي
@@ -204,36 +281,10 @@ window.CodformQuantityOffers = (function() {
       textContent.appendChild(mainText);
       textContent.appendChild(tagsContainer);
 
-      // إضافة الصورة في الوسط (ترتيب 2)
-      const imageSection = document.createElement('div');
-      imageSection.style.cssText = `
-        order: 2;
-        flex-shrink: 0;
-      `;
-      
-      if (productImage) {
-        const imageElement = document.createElement('img');
-        imageElement.src = productImage;
-        imageElement.alt = productTitle;
-        imageElement.style.cssText = `
-          width: 50px;
-          height: 50px;
-          object-fit: cover;
-          border-radius: 8px;
-          border: 1px solid #e5e7eb;
-          display: block;
-        `;
-        imageElement.onerror = function() {
-          console.log("❌ Image failed to load:", productImage);
-          this.style.display = 'none';
-        };
-        imageSection.appendChild(imageElement);
-      }
-
-      // قسم الأسعار (الجانب الأيسر للعربية - ترتيب 3)
+      // قسم الأسعار (ترتيب 3 - في المنتصف)
       const priceSection = document.createElement('div');
       priceSection.style.cssText = `
-        text-align: left;
+        text-align: center;
         min-width: 100px;
         direction: ltr;
         order: 3;
@@ -277,9 +328,9 @@ window.CodformQuantityOffers = (function() {
         priceSection.appendChild(perItemElement);
       }
 
-      // تجميع العناصر بترتيب مناسب للعربية
-      contentWrapper.appendChild(textContent);
+      // تجميع العناصر بترتيب صحيح للعربية: صورة، نص، سعر
       contentWrapper.appendChild(imageSection);
+      contentWrapper.appendChild(textContent);
       contentWrapper.appendChild(priceSection);
       
       // إضافة المحتوى الكامل إلى العنصر الرئيسي

@@ -378,7 +378,7 @@ const QuantityOffersEditor: React.FC<Props> = ({ offer, isCreating, onSave, onCa
                     backgroundColor: '#ffffff',
                     textColor: '#000000',
                     tagColor: '#22c55e',
-                    priceColor: '#ef4444'
+                    priceColor: '#000000'
                   }}
                   productData={productData || undefined}
                   currency={productData?.currency || 'SAR'}

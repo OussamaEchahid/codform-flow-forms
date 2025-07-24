@@ -331,7 +331,7 @@ const QuantityOffersManager: React.FC = () => {
         backgroundColor: '#ffffff',
         textColor: '#000000',
         tagColor: '#22c55e',
-        priceColor: '#ef4444'
+        priceColor: '#000000'
       },
       position: 'before_form',
       enabled: true,
@@ -605,7 +605,7 @@ const QuantityOffersManager: React.FC = () => {
                           backgroundColor: '#ffffff',
                           textColor: '#000000',
                           tagColor: '#22c55e',
-                          priceColor: '#ef4444'
+                          priceColor: '#000000'
                         }}
                         productData={associatedProduct ? {
                           price: associatedProduct.product_price,
