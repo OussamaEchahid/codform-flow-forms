@@ -42,7 +42,7 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
 }) => {
   const [quantityOffers, setQuantityOffers] = useState<QuantityOffer[]>([]);
   const [loading, setLoading] = useState(true);
-  const [productData, setProductData] = useState<{price: number, currency: string, moneyFormat: string} | null>(null);
+  const [productData, setProductData] = useState<{price: number, currency: string, moneyFormat: string, moneyWithCurrencyFormat?: string} | null>(null);
 
   // الحصول على رمز العملة بناءً على المنتج أو الدولة أو العملة المحددة
   const getCurrencySymbol = () => {
@@ -67,7 +67,10 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
 
   // دالة لتنسيق السعر باستخدام تنسيق المتجر
   const formatPrice = (amount: number) => {
-    if (productData?.moneyFormat) {
+    // استخدام تنسيق المتجر الصحيح من Shopify
+    if (productData?.moneyWithCurrencyFormat) {
+      return productData.moneyWithCurrencyFormat.replace('{{amount}}', amount.toFixed(2));
+    } else if (productData?.moneyFormat) {
       return productData.moneyFormat.replace('{{amount}}', amount.toFixed(2));
     }
     return `${amount.toFixed(2)} ${getCurrencySymbol()}`;
@@ -108,10 +111,19 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
             const productResponse = await response.json();
             if (productResponse.success && productResponse.products?.length > 0) {
               const product = productResponse.products[0];
+              console.log('Product data from Shopify:', product);
+              
               setProductData({
                 price: parseFloat(product.price || '0'),
                 currency: product.currency || 'USD',
-                moneyFormat: product.money_format || '${{amount}}'
+                moneyFormat: product.money_format || '${{amount}}',
+                moneyWithCurrencyFormat: product.money_with_currency_format || '${{amount}} USD'
+              });
+              
+              console.log('Set product data:', {
+                price: parseFloat(product.price || '0'),
+                currency: product.currency,
+                moneyFormat: product.money_format
               });
             }
           }
@@ -168,10 +180,14 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
         {offer.offers.map((singleOffer, index) => {
           // استخدام السعر الفعلي للمنتج من Shopify
           const basePrice = productData?.price || 0; // استخدام السعر الفعلي من المنتج
+          console.log(`Offer ${index}: basePrice = ${basePrice}, currency = ${productData?.currency}, quantity = ${singleOffer.quantity}`);
+          
           const totalPrice = calculatePrice(basePrice, singleOffer);
           const originalPrice = basePrice * singleOffer.quantity;
           const isDiscounted = singleOffer.discountType !== 'none' && singleOffer.discountValue && singleOffer.discountValue > 0;
           const isHighlighted = index === 1;
+          
+          console.log(`Calculated prices: totalPrice = ${totalPrice}, originalPrice = ${originalPrice}`);
           
           let savingsPercentage = 0;
           if (isDiscounted && singleOffer.discountType === 'percentage') {
