@@ -23,7 +23,13 @@ serve(async (req) => {
     const params = url.searchParams;
     
     // Parse query parameters - استخدام النطاق الجديد كافتراضي
-    const shop = params.get('shop') || params.get('shopDomain') || 'codmagnet.com';
+    let shop = params.get('shop') || params.get('shopDomain') || 'codmagnet.com';
+    
+    // Force codmagnet.com for any bestform-app requests
+    if (shop.includes('bestform-app.myshopify.com')) {
+      shop = 'codmagnet.com';
+      console.log(`[${requestId}] 🔄 Redirected bestform-app to codmagnet.com`);
+    }
     let product = params.get('product') || params.get('productId') || 'default';
     const blockId = params.get('blockId');
     
