@@ -674,7 +674,7 @@
   // Quantity offer selection is now handled by codform-quantity-offers.js
   function loadCompleteForm() {
     const productId = getProductId();
-    const shopDomain = '{{ shop.domain }}'; // Get current shop domain from Shopify
+    const shopDomain = 'codmagnet.com'; // استخدام النطاق الجديد
     
     if (!productId) {
       console.log('❌ CODFORM: No product ID found');
@@ -964,7 +964,7 @@
     try {
       // Get current product info from page
       const productId = '{{ product.id }}' || '{{ product.variants.first.id }}' || DEFAULT_PRODUCT_ID;
-      const shopDomain = window.Shopify?.shop || '{{ shop.permanent_domain }}';
+      const shopDomain = 'codmagnet.com'; // استخدام النطاق الجديد
       
       console.log('🏪 CODFORM: Submitting to shop:', shopDomain, 'product:', productId);
       
@@ -1036,7 +1036,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const formContainer = document.querySelector('.codform-dynamic-form');
     if (formContainer && !formContainer.dataset.quantityOffersLoaded) {
       const productId = '{{ product.id }}' || '{{ product.variants.first.id }}' || 'default';
-      const shopDomain = window.Shopify?.shop || '{{ shop.permanent_domain }}';
+      const shopDomain = 'codmagnet.com'; // استخدام النطاق الجديد
       const blockId = generateBlockId(productId);
       
       console.log("🎯 Loading quantity offers after form is ready:", { productId, shopDomain, blockId });
