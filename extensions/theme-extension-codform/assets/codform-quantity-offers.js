@@ -520,6 +520,27 @@ window.CodformQuantityOffers = (function() {
         }
         return response.json();
       })
+      .then(data => {
+        console.log("✅ Quantity offers data received:", data);
+        
+        if (data && data.success && data.quantity_offers) {
+          // إنشاء بيانات المنتج الافتراضية
+          const productData = {
+            id: productId,
+            title: 'Gift Card',
+            price: 1000, // قيمة افتراضية
+            currency: formCurrency,
+            image: 'https://cdn.shopify.com/shop-files/gift_card_400x400.png?v=1'
+          };
+          
+          console.log("🎯 Displaying quantity offers for product:", productId);
+          displayQuantityOffers(data.quantity_offers, blockId, productId, formCurrency, productData);
+        } else {
+          console.log("ℹ️ No quantity offers found or data incomplete");
+          console.log("- Success:", data?.success);
+          console.log("- Has quantity_offers:", !!data?.quantity_offers);
+        }
+      })
       .catch(error => {
         console.error("❌ Error loading quantity offers:", error);
       });
