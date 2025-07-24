@@ -813,6 +813,24 @@ const SortableField: React.FC<SortableFieldProps> = ({
                         </SelectContent>
                       </Select>
                     </div>
+                    
+                    {/* إعدادات لون الأيقونة */}
+                    {editedField.icon && editedField.icon !== 'none' && (
+                      <div className="space-y-1">
+                        <Label>{language === 'ar' ? 'لون الأيقونة' : 'Icon Color'}</Label>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="color"
+                            value={editedField.style?.iconColor || '#6366f1'}
+                            onChange={(e) => handleStyleChange('iconColor', e.target.value)}
+                            className="w-12 h-8 p-1 rounded cursor-pointer"
+                          />
+                          <span className="text-sm text-gray-600">
+                            {editedField.style?.iconColor || '#6366f1'}
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
