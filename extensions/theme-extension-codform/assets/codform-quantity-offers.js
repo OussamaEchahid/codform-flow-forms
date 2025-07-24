@@ -402,9 +402,9 @@ window.CodformQuantityOffers = (function() {
   // دالة تحميل وعرض العروض من API مع تحسينات
   async function loadAndDisplayOffers(blockId, productId, shop, formCurrency = 'SAR', passedProductData = null) {
     try {
-      // استخدام النطاق الجديد كافتراضي
+      // استخدام النطاق الحقيقي من Shopify
       if (!shop) {
-        shop = 'codmagnet.com';
+        shop = (typeof Shopify !== 'undefined' && Shopify.shop) ? Shopify.shop : 'bestform-app.myshopify.com';
       }
       
       console.log("🎯 Loading quantity offers for product", productId, "in", blockId, "from shop", shop);
@@ -492,7 +492,7 @@ window.CodformQuantityOffers = (function() {
     
     // استخدام النطاق الجديد كافتراضي
     if (!shop) {
-      shop = 'codmagnet.com';
+      shop = (typeof Shopify !== 'undefined' && Shopify.shop) ? Shopify.shop : 'bestform-app.myshopify.com';
     }
     
     const container = document.getElementById(`quantity-offers-before-${blockId}`);
