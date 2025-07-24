@@ -901,6 +901,9 @@
         
         // تحديد أن النموذج تم تحميله
         container.dataset.formLoaded = 'true';
+        
+        // حفظ بيانات النموذج مع العملة للاستخدام مع عروض الكمية
+        window.currentFormData = data;
 
         console.log('🎉 CODFORM: Form rendered successfully with quantity offers container');
       })
@@ -1039,7 +1042,12 @@ document.addEventListener('DOMContentLoaded', function() {
       console.log("🎯 Loading quantity offers after form is ready:", { productId, shopDomain, blockId });
       
       if (window.CodformQuantityOffers) {
-        window.CodformQuantityOffers.load(blockId, productId, shopDomain);
+        // الحصول على عملة النموذج من البيانات المحملة
+        const formCurrency = window.currentFormData?.formStyle?.currency || 'SAR';
+        console.log("💰 Using form currency for quantity offers:", formCurrency);
+        
+        // تمرير عملة النموذج إلى عروض الكمية
+        window.CodformQuantityOffers.loadWithCurrency(blockId, productId, shopDomain, formCurrency);
         formContainer.dataset.quantityOffersLoaded = 'true';
         clearInterval(waitForFormLoad);
       }

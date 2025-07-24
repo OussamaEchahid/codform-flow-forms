@@ -124,13 +124,13 @@ window.CodformQuantityOffers = (function() {
         this.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
       });
 
-      // ترتيب مناسب للغة العربية: النص والعلامات أولاً، ثم الصورة، ثم السعر
-      const rightSection = document.createElement('div');
-      rightSection.style.cssText = `
+      // تخطيط محسن للعربية - النص على اليمين، الصورة في المنتصف، السعر على اليسار
+      const contentWrapper = document.createElement('div');
+      contentWrapper.style.cssText = `
         display: flex;
         align-items: center;
+        width: 100%;
         gap: 12px;
-        flex: 1;
         direction: rtl;
       `;
 
@@ -140,6 +140,7 @@ window.CodformQuantityOffers = (function() {
         flex: 1;
         text-align: right;
         direction: rtl;
+        order: 1;
       `;
 
       // النص الرئيسي
@@ -202,9 +203,14 @@ window.CodformQuantityOffers = (function() {
 
       textContent.appendChild(mainText);
       textContent.appendChild(tagsContainer);
-      rightSection.appendChild(textContent);
 
-      // إضافة الصورة في الوسط (للغة العربية)
+      // إضافة الصورة في الوسط (ترتيب 2)
+      const imageSection = document.createElement('div');
+      imageSection.style.cssText = `
+        order: 2;
+        flex-shrink: 0;
+      `;
+      
       if (productImage) {
         const imageElement = document.createElement('img');
         imageElement.src = productImage;
@@ -215,21 +221,22 @@ window.CodformQuantityOffers = (function() {
           object-fit: cover;
           border-radius: 8px;
           border: 1px solid #e5e7eb;
-          flex-shrink: 0;
+          display: block;
         `;
         imageElement.onerror = function() {
           console.log("❌ Image failed to load:", productImage);
           this.style.display = 'none';
         };
-        rightSection.appendChild(imageElement);
+        imageSection.appendChild(imageElement);
       }
 
-      // قسم الأسعار (الجانب الأيسر للعربية)
+      // قسم الأسعار (الجانب الأيسر للعربية - ترتيب 3)
       const priceSection = document.createElement('div');
       priceSection.style.cssText = `
         text-align: left;
         min-width: 100px;
         direction: ltr;
+        order: 3;
       `;
 
       // السعر الأصلي (إذا كان هناك خصم)
@@ -271,8 +278,12 @@ window.CodformQuantityOffers = (function() {
       }
 
       // تجميع العناصر بترتيب مناسب للعربية
-      offerElement.appendChild(rightSection);
-      offerElement.appendChild(priceSection);
+      contentWrapper.appendChild(textContent);
+      contentWrapper.appendChild(imageSection);
+      contentWrapper.appendChild(priceSection);
+      
+      // إضافة المحتوى الكامل إلى العنصر الرئيسي
+      offerElement.appendChild(contentWrapper);
       container.appendChild(offerElement);
     });
 
@@ -356,10 +367,52 @@ window.CodformQuantityOffers = (function() {
     }
   }
 
+  // Enhanced load function with currency support
+  function loadAndDisplayOffersWithCurrency(blockId, productId, shop, formCurrency = 'SAR') {
+    console.log("💰 Loading quantity offers with currency:", formCurrency);
+    
+    const container = document.getElementById(`quantity-offers-before-${blockId}`);
+    if (!container) {
+      console.error("❌ Container not found:", `quantity-offers-before-${blockId}`);
+      return;
+    }
+
+    const apiUrl = `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/forms-product?shop=${shop}&product=${productId}&blockId=${blockId}`;
+    
+    console.log("🔄 Fetching quantity offers from:", apiUrl);
+    
+    fetch(apiUrl)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log("✅ Quantity offers data received:", data);
+        
+        if (data.success && data.quantity_offers && data.product) {
+          // استخدام عملة النموذج بدلاً من عملة المنتج الافتراضية
+          const productData = {
+            ...data.product,
+            currency: formCurrency // استخدام عملة النموذج
+          };
+          
+          displayQuantityOffers(data.quantity_offers, blockId, productId, formCurrency, productData);
+        } else {
+          console.log("ℹ️ No quantity offers found or data incomplete");
+        }
+      })
+      .catch(error => {
+        console.error("❌ Error loading quantity offers:", error);
+      });
+  }
+
   // Public API
   return {
     display: displayQuantityOffers,
     load: loadAndDisplayOffers,
+    loadWithCurrency: loadAndDisplayOffersWithCurrency,
     debug: debugOffers
   };
 })();
