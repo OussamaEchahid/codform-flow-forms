@@ -1015,36 +1015,23 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
                     </Select>
                    </div>
 
-                  {/* إعدادات لون الأيقونة */}
-                  {(() => {
-                    const hasIcon = (currentField.icon && currentField.icon !== 'none') || 
-                                   (currentField.style?.icon && currentField.style?.icon !== 'none');
-                    console.log('Icon check:', {
-                      fieldType: currentField.type,
-                      fieldIcon: currentField.icon,
-                      styleIcon: currentField.style?.icon,
-                      hasIcon,
-                      style: currentField.style
-                    });
-                    return hasIcon;
-                  })() && (
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">
-                        {language === 'ar' ? 'لون الأيقونة' : 'Icon Color'}
-                      </label>
-                      <div className="flex items-center space-x-2 rtl:space-x-reverse">
-                        <input
-                          type="color"
-                          value={currentField.style?.iconColor || '#6366f1'}
-                          onChange={(e) => handleStyleChange('iconColor', e.target.value)}
-                          className="w-10 h-8 rounded border border-gray-300 cursor-pointer"
-                        />
-                        <span className="text-sm text-gray-600">
-                          {currentField.style?.iconColor || '#6366f1'}
-                        </span>
-                      </div>
-                    </div>
-                  )}
+                   {/* إعدادات لون الأيقونة - مباشرة بدون شروط */}
+                   <div className="space-y-2">
+                     <label className="text-sm font-medium">
+                       {language === 'ar' ? 'لون الأيقونة' : 'Icon Color'}
+                     </label>
+                     <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                       <input
+                         type="color"
+                         value={currentField.style?.iconColor || '#6366f1'}
+                         onChange={(e) => handleStyleChange('iconColor', e.target.value)}
+                         className="w-10 h-8 rounded border border-gray-300 cursor-pointer"
+                       />
+                       <span className="text-sm text-gray-600">
+                         {currentField.style?.iconColor || '#6366f1'}
+                       </span>
+                     </div>
+                   </div>
 
                   {currentField.style?.showIcon && (
                     <div>
