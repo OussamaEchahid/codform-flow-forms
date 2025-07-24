@@ -94,6 +94,34 @@ function Extension() {
     }));
   };
 
+  // Icon helper function for checkout UI
+  const getIconForField = (field) => {
+    if (!field.icon || field.icon === 'none') return null;
+    
+    const iconColor = field.style?.iconColor || '#9CA3AF';
+    const showIcon = field.style?.showIcon !== false && field.style?.showIconInPreview !== false;
+    
+    if (!showIcon) return null;
+    
+    // Map common icons to simple symbols for checkout UI
+    const iconMap = {
+      user: '👤',
+      phone: '📱', 
+      mail: '📧',
+      'map-pin': '📍',
+      home: '🏠',
+      heart: '❤️',
+      star: '⭐',
+      'shopping-cart': '🛒',
+      gift: '🎁',
+      calendar: '📅',
+      clock: '⏰',
+      'message-circle': '💬'
+    };
+    
+    return iconMap[field.icon] || '•';
+  };
+
   const renderField = (field) => {
     if (field.type === 'form-title') {
       return (
@@ -109,25 +137,50 @@ function Extension() {
     }
 
     if (field.type === 'text' || field.type === 'email' || field.type === 'phone') {
+      const icon = getIconForField(field);
+      const showLabel = field.style?.showLabel !== false;
+      
       return (
         <BlockStack key={field.id}>
-          <Text>{field.label}</Text>
+          {showLabel && <Text>{icon ? `${icon} ${field.label}` : field.label}</Text>}
           <input
-            type="text"
+            type={field.type === 'email' ? 'email' : field.type === 'phone' ? 'tel' : 'text'}
+            placeholder={field.placeholder || field.label}
             defaultValue={formData[field.id] || ''}
             onChange={e => handleChange(field.id, e.target.value)}
+            style={{
+              padding: '8px 12px',
+              border: '1px solid #D1D5DB',
+              borderRadius: '8px',
+              fontSize: '16px',
+              width: '100%',
+              boxSizing: 'border-box'
+            }}
           />
         </BlockStack>
       );
     }
 
     if (field.type === 'textarea') {
+      const showLabel = field.style?.showLabel !== false;
+      
       return (
         <BlockStack key={field.id}>
-          <Text>{field.label}</Text>
+          {showLabel && <Text>{field.label}</Text>}
           <textarea
+            placeholder={field.placeholder || field.label}
             defaultValue={formData[field.id] || ''}
             onChange={e => handleChange(field.id, e.target.value)}
+            style={{
+              padding: '8px 12px',
+              border: '1px solid #D1D5DB',
+              borderRadius: '8px',
+              fontSize: '16px',
+              width: '100%',
+              minHeight: '80px',
+              resize: 'vertical',
+              boxSizing: 'border-box'
+            }}
           />
         </BlockStack>
       );
@@ -136,13 +189,13 @@ function Extension() {
     if (field.type === 'checkbox') {
       return (
         <BlockStack key={field.id}>
-          <label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <input
               type="checkbox"
-              value={formData[field.id] || false}
+              checked={formData[field.id] || false}
               onChange={e => handleChange(field.id, e.target.checked)}
             />
-            {field.label}
+            <Text>{field.label}</Text>
           </label>
         </BlockStack>
       );

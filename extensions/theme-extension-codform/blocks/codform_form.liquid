@@ -241,14 +241,15 @@
       let iconHtml = '';
       if (showIcon && hasIcon) {
         const iconPosition = formDirection === 'rtl' ? 'right' : 'left';
-        const iconSvg = getIconSvg(field.icon);
+        const iconColor = getStyleValue(fieldStyle, 'iconColor', '#9CA3AF');
+        const iconSvg = getIconSvg(field.icon, iconColor);
         iconHtml = `
           <div style="
             position: absolute;
             ${iconPosition}: 16px;
             top: 50%;
             transform: translateY(-50%);
-            color: #9CA3AF;
+            color: ${iconColor};
             pointer-events: none;
             z-index: 2;
             display: flex;
@@ -533,9 +534,9 @@
     return html;
   }
 
-  // Enhanced icon SVG generator
-  function getIconSvg(iconName) {
-    const iconStyle = 'width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2;';
+  // Enhanced icon SVG generator with color support
+  function getIconSvg(iconName, iconColor = '#9CA3AF') {
+    const iconStyle = `width: 18px; height: 18px; stroke: ${iconColor}; fill: none; stroke-width: 2;`;
     
     switch(iconName) {
       case 'user':
@@ -546,6 +547,22 @@
         return `<svg style="${iconStyle}" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>`;
       case 'map-pin':
         return `<svg style="${iconStyle}" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>`;
+      case 'home':
+        return `<svg style="${iconStyle}" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9,22 9,12 15,12 15,22"></polyline></svg>`;
+      case 'heart':
+        return `<svg style="${iconStyle}" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>`;
+      case 'star':
+        return `<svg style="${iconStyle}" viewBox="0 0 24 24"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"></polygon></svg>`;
+      case 'shopping-cart':
+        return `<svg style="${iconStyle}" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>`;
+      case 'gift':
+        return `<svg style="${iconStyle}" viewBox="0 0 24 24"><polyline points="20,12 20,22 4,22 4,12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg>`;
+      case 'calendar':
+        return `<svg style="${iconStyle}" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>`;
+      case 'clock':
+        return `<svg style="${iconStyle}" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12,6 12,12 16,14"></polyline></svg>`;
+      case 'message-circle':
+        return `<svg style="${iconStyle}" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>`;
       default:
         return `<svg style="${iconStyle}" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle></svg>`;
     }
