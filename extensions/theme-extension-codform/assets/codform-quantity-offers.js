@@ -394,7 +394,16 @@ window.CodformQuantityOffers = (function() {
   // دالة تحميل وعرض العروض من API مع تحسينات
   async function loadAndDisplayOffers(blockId, productId, shop) {
     try {
+      // استخدام النطاق الجديد كافتراضي
+      if (!shop) {
+        shop = 'codmagnet.com';
+      }
+      
+      console.log("🎯 Loading quantity offers for product", productId, "in", blockId, "from shop", shop);
+      
       const apiUrl = `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/forms-product?shop=${encodeURIComponent(shop)}&product=${encodeURIComponent(productId)}&blockId=${encodeURIComponent(blockId)}`;
+      
+      console.log("🌐 API URL:", apiUrl);
       
       const response = await fetch(apiUrl, {
         method: 'GET',
@@ -409,14 +418,17 @@ window.CodformQuantityOffers = (function() {
       }
 
       const data = await response.json();
+      console.log("📊 API Response:", data);
       
       // التحقق من وجود العروض والبيانات
       if (data.success && data.quantity_offers && data.quantity_offers.offers && data.quantity_offers.offers.length > 0) {
         console.log("✅ Found quantity offers and product data");
         
-        // استخدام product_id من بيانات العرض، وليس من URL
+        // استخدام product_id من بيانات العرض للتأكد من المنتج الصحيح
         const actualProductId = data.quantity_offers.product_id || productId;
-        console.log("🎯 Using product ID from offer data:", actualProductId, "instead of URL product:", productId);
+        console.log("🎯 Quantity offer product_id:", data.quantity_offers.product_id);
+        console.log("🎯 URL product:", productId);
+        console.log("🎯 Using actual product ID:", actualProductId);
         
         // عرض العروض مع البيانات الحقيقية من API
         displayQuantityOffers(
@@ -429,7 +441,10 @@ window.CodformQuantityOffers = (function() {
         
         return { success: true, offers: data.quantity_offers };
       } else {
-        console.log("ℹ️ No quantity offers found");
+        console.log("❌ No quantity offers found or API error");
+        console.log("- Success:", data.success);
+        console.log("- Has quantity_offers:", !!data.quantity_offers);
+        console.log("- Has offers:", data.quantity_offers?.offers?.length > 0);
         return { success: false, message: "No offers found" };
       }
       
@@ -444,13 +459,14 @@ window.CodformQuantityOffers = (function() {
     console.log("🔧 PRECISE FIX DEBUG - Starting diagnosis...");
     
     const container = document.getElementById(`quantity-offers-before-${blockId}`);
-    const shop = window.Shopify?.shop || window.location.hostname.replace('www.', '');
+    const shop = window.Shopify?.shop || 'codmagnet.com'; // استخدام النطاق الجديد كافتراضي
     
     console.log("🔍 Debug Info:", {
       blockId,
       productId,
       shop,
-      containerExists: !!container
+      containerExists: !!container,
+      windowShopify: window.Shopify
     });
     
     if (container) {
@@ -464,7 +480,12 @@ window.CodformQuantityOffers = (function() {
 
   // Enhanced load function with currency support
   function loadAndDisplayOffersWithCurrency(blockId, productId, shop, formCurrency = 'SAR') {
-    console.log("💰 Loading quantity offers with currency:", formCurrency);
+    console.log("💰 Loading quantity offers with currency:", formCurrency, "for product:", productId, "shop:", shop);
+    
+    // استخدام النطاق الجديد كافتراضي
+    if (!shop) {
+      shop = 'codmagnet.com';
+    }
     
     const container = document.getElementById(`quantity-offers-before-${blockId}`);
     if (!container) {
@@ -472,7 +493,7 @@ window.CodformQuantityOffers = (function() {
       return;
     }
 
-    const apiUrl = `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/forms-product?shop=${shop}&product=${productId}&blockId=${blockId}`;
+    const apiUrl = `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/forms-product?shop=${encodeURIComponent(shop)}&product=${encodeURIComponent(productId)}&blockId=${encodeURIComponent(blockId)}`;
     
     console.log("🔄 Fetching quantity offers from:", apiUrl);
     
@@ -487,15 +508,22 @@ window.CodformQuantityOffers = (function() {
         console.log("✅ Quantity offers data received:", data);
         
         if (data.success && data.quantity_offers && data.product) {
+          // استخدام product_id من بيانات العرض للتأكد من المنتج الصحيح
+          const actualProductId = data.quantity_offers.product_id || productId;
+          console.log("🎯 Using actual product ID:", actualProductId, "instead of URL product:", productId);
+          
           // استخدام عملة النموذج بدلاً من عملة المنتج الافتراضية
           const productData = {
             ...data.product,
             currency: formCurrency // استخدام عملة النموذج
           };
           
-          displayQuantityOffers(data.quantity_offers, blockId, productId, formCurrency, productData);
+          displayQuantityOffers(data.quantity_offers, blockId, actualProductId, formCurrency, productData);
         } else {
           console.log("ℹ️ No quantity offers found or data incomplete");
+          console.log("- Success:", data.success);
+          console.log("- Has quantity_offers:", !!data.quantity_offers);
+          console.log("- Has product:", !!data.product);
         }
       })
       .catch(error => {
