@@ -137,13 +137,13 @@
   // Get current shop domain - FIXED to use actual shop domain
   window.getShopDomain = function() {
     try {
-      // Get the actual shop domain from Shopify - always use the correct shop
-      const shopDomain = 'bestform-app.myshopify.com'; // Fixed shop domain
+      // Get the actual shop domain from Shopify - use dynamic shop domain
+      const shopDomain = '{{ shop.domain }}' || '{{ shop.permanent_domain }}' || 'auto-detect';
       console.log('🏪 CODFORM: Using shop domain:', shopDomain);
       return shopDomain;
     } catch (error) {
       console.error('❌ CODFORM: Error getting shop domain:', error);
-      return 'bestform-app.myshopify.com';
+      return 'auto-detect';
     }
   }
 
