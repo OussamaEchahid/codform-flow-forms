@@ -124,11 +124,13 @@
   // Utility functions
   function getProductId() {
     try {
-      const productId = '{{ product.id }}' || '{{ product.variants.first.id }}' || '{{ block.settings.product_id }}' || DEFAULT_PRODUCT_ID;
+      // الحصول على معرف المنتج من Shopify
+      const productId = '{{ product.id }}' || '{{ product.variants.first.id }}' || '{{ block.settings.product_id }}' || 'auto-detect';
+      console.log('🔍 معرف المنتج المكتشف:', productId);
       return productId.trim();
     } catch (error) {
       console.error('❌ CODFORM: Error getting product ID:', error);
-      return DEFAULT_PRODUCT_ID;
+      return 'auto-detect';
     }
   }
 
