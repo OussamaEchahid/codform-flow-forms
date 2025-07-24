@@ -114,9 +114,12 @@ serve(async (req) => {
       .from('quantity_offers')
       .select('*')
       .eq('shop_id', shop)
-      .eq('form_id', form.id)
       .eq('enabled', true)
+      .or(`form_id.eq.${form.id},product_id.eq.${productId || 'auto-detect'}`)
       .limit(1);
+
+    console.log('🎯 البحث عن عروض الكمية للمنتج:', productId, 'والنموذج:', form.id);
+    console.log('🎯 عروض الكمية الموجودة:', quantityOffers);
 
     console.log('✅ تم العثور على النموذج:', form.title);
     
