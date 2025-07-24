@@ -992,10 +992,17 @@ const QuantityOffers = () => {
                     position={quantityOffer.position}
                     enabled={quantityOffer.enabled}
                     productData={selectedProduct ? {
-                      price: parseFloat(selectedProduct.price) || 0, // استخدام السعر الأصلي بدون تحويل
+                      price: (() => {
+                        const originalPrice = parseFloat(selectedProduct.price) || 0;
+                        const productCurrency = selectedProduct.currency || storeCurrency; // عملة المنتج الأصلية
+                        const formCurrency = selectedForm?.currency || 'USD'; // عملة النموذج من الإعدادات
+                        const convertedPrice = convertCurrency(originalPrice, productCurrency, formCurrency);
+                        console.log(`🔄 Currency conversion CORRECTED: ${originalPrice} ${productCurrency} → ${convertedPrice} ${formCurrency}`);
+                        return convertedPrice;
+                      })(),
                       title: selectedProduct.title,
                       image: selectedProduct.images?.[0]?.url,
-                      currency: selectedProduct.currency || storeCurrency // استخدام عملة المنتج الأصلية
+                      currency: selectedForm?.currency || 'USD' // عملة النموذج
                     } : undefined}
                   />
                 </CardContent>
