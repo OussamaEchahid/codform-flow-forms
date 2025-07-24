@@ -6,4 +6,4 @@ app:
 
 build:
   automatically_update_urls_on_dev: true
-  dev_store_url: "bestform-app.myshopify.com"
+  dev_store_url: "codmagnet.com"

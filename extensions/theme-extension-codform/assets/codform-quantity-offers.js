@@ -46,10 +46,28 @@ window.CodformQuantityOffers = (function() {
       return;
     }
 
+    console.log("🔍 DEBUGGING offers display:", {
+      offersLength: offers.length,
+      blockId,
+      containerId: `quantity-offers-before-${blockId}`
+    });
+
     // البحث عن الحاوية
     const container = document.getElementById(`quantity-offers-before-${blockId}`);
+    console.log("📦 Container search result:", {
+      found: !!container,
+      id: `quantity-offers-before-${blockId}`,
+      allContainers: Array.from(document.querySelectorAll('[id*="quantity-offers"]')).map(el => el.id)
+    });
+    
     if (!container) {
       console.error("❌ Container not found:", `quantity-offers-before-${blockId}`);
+      // حاول البحث عن أي حاوية تحتوي على quantity-offers في اسمها
+      const anyContainer = document.querySelector('[id*="quantity-offers"]');
+      if (anyContainer) {
+        console.log("🔧 Found alternative container:", anyContainer.id);
+        anyContainer.innerHTML = `<div style="background: red; color: white; padding: 10px;">DEBUG: العروض يجب أن تظهر هنا - Container ID: ${anyContainer.id} - Expected: quantity-offers-before-${blockId}</div>`;
+      }
       return;
     }
 

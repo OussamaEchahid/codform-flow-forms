@@ -164,7 +164,7 @@ const QuantityOffers = () => {
       // For codmagnet.com specifically, set to MAD
       if (activeStore === 'codmagnet.com') {
         setStoreCurrency('MAD');
-        console.log('✅ Using hardcoded MAD for bestform-app store');
+        console.log('✅ Using hardcoded MAD for codmagnet.com store');
       }
     }
   };
