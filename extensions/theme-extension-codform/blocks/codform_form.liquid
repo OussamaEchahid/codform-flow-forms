@@ -479,6 +479,23 @@
       const buttonBorder = getStyleValue(buttonStyle, 'border', 'none');
       const buttonBoxShadow = getStyleValue(buttonStyle, 'boxShadow', '0 4px 12px rgba(155, 135, 245, 0.3)');
       
+      // Icon handling for submit button
+      const hasIcon = field.icon && field.icon !== 'none' && field.icon !== '';
+      const showIcon = getStyleValue(buttonStyle, 'showIcon', hasIcon);
+      const iconPosition = getStyleValue(buttonStyle, 'iconPosition', 'left');
+      const iconColor = getStyleValue(buttonStyle, 'iconColor', buttonTextColor);
+      
+      let iconHtml = '';
+      if (showIcon && hasIcon) {
+        const iconSvg = getIconSvg(field.icon, iconColor);
+        const iconMargin = iconPosition === 'left' ? 'margin-right: 8px;' : 'margin-left: 8px;';
+        iconHtml = `<span style="${iconMargin} display: inline-flex; align-items: center;">${iconSvg}</span>`;
+      }
+      
+      const buttonContent = iconPosition === 'left' ? 
+        `${iconHtml}${buttonText}` : 
+        `${buttonText}${iconHtml}`;
+      
       html = `
         <div class="codform-submit-wrapper" style="
           margin-top: 24px;
@@ -525,7 +542,7 @@
               this.style.transform='translateY(-3px) scale(1.02)';
             "
           >
-            ${buttonText}
+            ${buttonContent}
           </button>
         </div>
       `;
