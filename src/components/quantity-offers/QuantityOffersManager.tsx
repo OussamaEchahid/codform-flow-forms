@@ -248,7 +248,8 @@ const QuantityOffersManager: React.FC = () => {
         .from('quantity_offers')
         .select('*')
         .eq('shop_id', currentStore)
-        .eq('form_id', formId);
+        .eq('form_id', formId)
+        .eq('enabled', true);
 
       if (error) {
         console.error('❌ Error loading quantity offers:', error);
