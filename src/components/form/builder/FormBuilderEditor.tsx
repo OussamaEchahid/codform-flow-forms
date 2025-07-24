@@ -187,8 +187,11 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
       type: 'submit' as FormFieldType,
       id: `submit-${Date.now()}`,
       label: language === 'ar' ? 'الدفع عند الاستلام' : 'Buy with Cash on Delivery',
+      icon: 'shopping-cart',
       style: {
         backgroundColor: '#000000', // لون الخلفية الأسود
+        showIcon: true,
+        iconPosition: 'left',
         color: '#ffffff', // لون النص الأبيض
         fontSize: '1.15rem', // حجم الخط
         fontWeight: '500', // وزن النص
@@ -365,8 +368,11 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
                 type: 'submit',
                 id: `submit-${Date.now()}`,
                 label: language === 'ar' ? 'الدفع عند الاستلام' : 'Buy with Cash on Delivery',
+                icon: 'shopping-cart',
                 style: {
                   backgroundColor: '#000000',
+                  showIcon: true,
+                  iconPosition: 'left',
                   color: '#ffffff',
                   fontSize: '1.15rem',
                   animation: true,

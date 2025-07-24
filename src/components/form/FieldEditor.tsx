@@ -775,14 +775,20 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
         const submitIcons = [
           { value: "none", label: language === 'ar' ? 'بدون أيقونة' : 'No Icon' },
           { value: "shopping-cart", label: language === 'ar' ? 'سلة التسوق' : 'Shopping Cart' },
-          { value: "send", label: language === 'ar' ? 'إرسال' : 'Send' },
-          { value: "check", label: language === 'ar' ? 'علامة صح' : 'Check' },
-          { value: "arrow-right", label: language === 'ar' ? 'سهم للأمام' : 'Arrow Right' },
           { value: "credit-card", label: language === 'ar' ? 'بطاقة ائتمان' : 'Credit Card' },
           { value: "package", label: language === 'ar' ? 'طرد' : 'Package' },
-          { value: "truck", label: language === 'ar' ? 'شاحنة' : 'Truck' },
-          { value: "heart", label: language === 'ar' ? 'قلب' : 'Heart' },
-          { value: "star", label: language === 'ar' ? 'نجمة' : 'Star' }
+          { value: "truck", label: language === 'ar' ? 'شاحنة توصيل' : 'Delivery Truck' },
+          { value: "check", label: language === 'ar' ? 'علامة صح' : 'Check Mark' }
+        ];
+
+        // أيقونات خاصة بحقول الإدخال (مخصصة لكل نوع حقل)
+        const inputFieldIcons = [
+          { value: "none", label: language === 'ar' ? 'بدون أيقونة' : 'No Icon' },
+          { value: "user", label: language === 'ar' ? 'مستخدم' : 'User' },
+          { value: "mail", label: language === 'ar' ? 'بريد إلكتروني' : 'Email' },
+          { value: "phone", label: language === 'ar' ? 'هاتف' : 'Phone' },
+          { value: "map-pin", label: language === 'ar' ? 'موقع' : 'Location' },
+          { value: "message-square", label: language === 'ar' ? 'رسالة' : 'Message' }
         ];
 
         const handleIconChange = (iconValue: string) => {

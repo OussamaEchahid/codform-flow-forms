@@ -317,9 +317,12 @@ export const formTemplates = [
             id: 'contact-submit',
             type: 'submit',
             label: 'Send Message',
+            icon: 'shopping-cart',
             style: {
               backgroundColor: '#9b87f5',
               color: '#ffffff',
+              showIcon: true,
+              iconPosition: 'left',
               animation: true,
               animationType: 'pulse' as 'pulse'
             }
@@ -391,9 +394,12 @@ export const formTemplates = [
             id: 'order-submit',
             type: 'submit',
             label: 'Complete Order',
+            icon: 'shopping-cart',
             style: {
               backgroundColor: '#9b87f5',
               color: '#ffffff',
+              showIcon: true,
+              iconPosition: 'left',
               animation: true,
               animationType: 'pulse' as 'pulse'
             }

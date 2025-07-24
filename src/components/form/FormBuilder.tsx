@@ -304,8 +304,11 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
       type: 'submit',
       id: uuidv4(),
       label: language === 'ar' ? 'إرسال الطلب' : 'Submit Order',
+      icon: 'shopping-cart',
       style: {
         backgroundColor: '#9b87f5',
+        showIcon: true,
+        iconPosition: 'left',
         color: '#ffffff',
         fontSize: '18px',
         animation: true,

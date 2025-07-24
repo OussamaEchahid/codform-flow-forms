@@ -164,9 +164,10 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
       id: `submit-button-${Date.now()}`,
       type: 'submit',
       label: currentTexts.submit,
+      icon: 'shopping-cart',
       style: {
         backgroundColor: '#9b87f5', // Use our default purple color
-        color: '#ffffff', 
+        color: '#ffffff',
         fontSize: '19px', // Updated to 19px
         fontWeight: '500',
         animation: true,
@@ -176,7 +177,6 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
         borderWidth: '0px',
         paddingY: '15px', // Updated to 15px
         showIcon: true,
-        icon: 'shopping-cart',
         iconPosition: 'left',
       }
     };

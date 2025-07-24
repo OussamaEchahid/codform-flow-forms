@@ -98,8 +98,11 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
         type: 'submit',
         id: `submit-stable`,
         label: language === 'ar' ? 'إرسال الطلب' : 'Submit Order',
+        icon: 'shopping-cart',
         style: {
           backgroundColor: formStyle.primaryColor || '#9b87f5',
+          showIcon: true,
+          iconPosition: 'left',
           color: '#ffffff',
           fontSize: '18px',
           animation: true,
