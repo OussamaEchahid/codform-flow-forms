@@ -1323,3 +1323,23 @@
   
 })();
 </script>
+
+<!-- تحميل مدير عروض الكمية -->
+<script src="{{ 'codform-quantity-offers.js' | asset_url }}" defer></script>
+<script>
+// تهيئة عروض الكمية عند تحميل الصفحة
+document.addEventListener('DOMContentLoaded', function() {
+  // انتظار قليل حتى يتم تحميل النموذج
+  setTimeout(function() {
+    const productId = '{{ product.id }}' || '{{ product.variants.first.id }}' || DEFAULT_PRODUCT_ID;
+    const shopDomain = window.Shopify?.shop || '{{ shop.permanent_domain }}';
+    const blockId = generateBlockId(productId);
+    
+    console.log("🎯 Initializing quantity offers for:", { productId, shopDomain, blockId });
+    
+    if (window.CodformQuantityOffers) {
+      window.CodformQuantityOffers.load(blockId, productId, shopDomain);
+    }
+  }, 1500);
+});
+</script>

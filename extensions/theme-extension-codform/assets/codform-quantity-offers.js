@@ -42,12 +42,21 @@ window.CodformQuantityOffers = (function() {
       priceColor: '#ef4444'
     };
 
-    // استخدام بيانات المنتج الحقيقية من API بدلاً من window.meta.product
-    const hasRealPrice = productData && productData.price && productData.price > 0;
-    const realPrice = hasRealPrice ? parseFloat(productData.price) : null;
-    const currency = productData?.currency || defaultCurrency;
-    const productImage = productData?.image;
-    const productTitle = productData?.title || 'المنتج';
+      // استخدام بيانات المنتج الحقيقية من API بدلاً من window.meta.product
+      const hasRealPrice = productData && productData.price && productData.price > 0;
+      const realPrice = hasRealPrice ? parseFloat(productData.price) : null;
+      const currency = productData?.currency || defaultCurrency;
+      const productImage = productData?.image;
+      const productTitle = productData?.title || 'المنتج';
+
+      console.log("💰 Using API product data:", {
+        hasRealPrice,
+        realPrice,
+        currency,
+        productTitle,
+        hasImage: !!productImage,
+        originalPrice: productData?.price
+      });
 
     console.log("💰 Using API product data:", {
       hasRealPrice,
