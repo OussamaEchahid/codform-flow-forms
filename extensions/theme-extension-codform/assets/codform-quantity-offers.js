@@ -427,7 +427,7 @@ window.CodformQuantityOffers = (function() {
       
       console.log("🎯 Loading quantity offers for product", productId, "in", blockId, "from shop", shop);
       
-      const apiUrl = `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/forms-product?shop_id=${encodeURIComponent(shop)}&product_id=${encodeURIComponent(productId)}`;
+      const apiUrl = `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/forms-product?shop=${encodeURIComponent(shop)}&product=${encodeURIComponent(productId)}`;
       
       console.log("🌐 API URL:", apiUrl);
       
