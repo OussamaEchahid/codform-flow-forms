@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -23,8 +22,16 @@ const ShopifyAutoConnector: React.FC<ShopifyAutoConnectorProps> = ({ onConnected
     const detectShop = () => {
       const urlParams = new URLSearchParams(window.location.search);
       const shopParam = urlParams.get('shop');
+      const hmacParam = urlParams.get('hmac');
+      const codeParam = urlParams.get('code');
+      const hostParam = urlParams.get('host');
       
-      if (shopParam) {
+      console.log('🔍 ShopifyAutoConnector - URL parameters:', {
+        shopParam, hmacParam, codeParam, hostParam
+      });
+      
+      // فقط إذا كان هناك shop parameter ولا يوجد code (ليس callback)
+      if (shopParam && !codeParam) {
         let normalizedShop = shopParam.trim().toLowerCase();
         if (!normalizedShop.includes('.myshopify.com')) {
           normalizedShop = `${normalizedShop}.myshopify.com`;
@@ -49,25 +56,10 @@ const ShopifyAutoConnector: React.FC<ShopifyAutoConnectorProps> = ({ onConnected
         const existingStore = allStores.find(store => store.shop === normalizedShop || store.domain === normalizedShop);
         
         if (existingStore) {
-          console.log('🔄 Store exists, switching to it directly');
-          shopifyConnectionManager.setActiveStore(normalizedShop);
-          
-          toast({
-            title: "تم التبديل بنجاح",
-            description: `تم التبديل إلى متجر ${normalizedShop}`,
-          });
-          
-          // تنظيف URL
-          const newUrl = window.location.pathname;
-          window.history.replaceState({}, '', newUrl);
-          
-          if (onConnected) {
-            onConnected(normalizedShop);
-          }
-          return;
+          console.log('🔄 Store exists, showing connection dialog');
         }
         
-        // إظهار النافذة فقط للمتاجر الجديدة غير المتصلة
+        // إظهار النافذة للمتاجر الجديدة أو الموجودة
         setDetectedShop(normalizedShop);
         setShowDialog(true);
         
@@ -166,7 +158,7 @@ const ShopifyAutoConnector: React.FC<ShopifyAutoConnectorProps> = ({ onConnected
             اتصال جديد بمتجر Shopify
           </DialogTitle>
           <DialogDescription>
-            تم اكتشاف متجر جديد. هل تريد الاتصال به؟
+            تم اكتشاف متجر. هل تريد الاتصال به؟
           </DialogDescription>
         </DialogHeader>
 
