@@ -438,6 +438,15 @@ export type Database = {
         Args: { shop_id: string; product_id: string }
         Returns: Json
       }
+      get_user_stores: {
+        Args: { p_user_id: string }
+        Returns: {
+          shop: string
+          is_active: boolean
+          updated_at: string
+          access_token: string
+        }[]
+      }
       update_default_store_connection: {
         Args: Record<PropertyKey, never>
         Returns: string

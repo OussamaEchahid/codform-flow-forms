@@ -9,16 +9,37 @@ import { useI18n } from '@/lib/i18n';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { useSimpleShopify } from '@/hooks/useSimpleShopify';
+import { supabase } from '@/integrations/supabase/client';
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { shopifyConnected } = useAuth();
+  const { shopifyConnected, user } = useAuth();
   const { t, language } = useI18n();
   const [searchParams] = useSearchParams();
   const [isFirstVisit, setIsFirstVisit] = useState(false);
+  const [authenticationChecked, setAuthenticationChecked] = useState(false);
   
   // استخدام النظام المبسط
   const { activeStore, isConnected, switchToStore } = useSimpleShopify();
+  
+  // Authentication check
+  useEffect(() => {
+    const checkAuthentication = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.user) {
+        console.log('🚫 No authenticated user found. Dashboard access denied.');
+        toast.error('يجب تسجيل الدخول للوصول إلى لوحة التحكم');
+        navigate('/shopify'); // Redirect to Shopify connection page
+        return;
+      }
+      
+      console.log('✅ User authenticated:', session.user.id);
+      setAuthenticationChecked(true);
+    };
+    
+    checkAuthentication();
+  }, [navigate]);
   
   useEffect(() => {
     // التحقق من معلمات URL للتوجيه من شوبيفاي
@@ -72,6 +93,18 @@ const Dashboard = () => {
   const handleConnectShopify = () => {
     navigate('/shopify');
   };
+  
+  // Don't render dashboard until authentication is verified
+  if (!authenticationChecked) {
+    return (
+      <div className="flex min-h-screen bg-[#F8F9FB] items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">جاري التحقق من المصادقة...</p>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="flex min-h-screen bg-[#F8F9FB]">

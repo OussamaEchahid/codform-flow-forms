@@ -52,29 +52,34 @@ const SimpleStoreManager = () => {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session?.user) {
-        console.log('No authenticated user found');
+        console.log('No authenticated user found - redirecting to authentication');
         setStores([]);
-        return;
-      }
-      
-      // Using manual fetch to avoid TypeScript deep instantiation issue
-      const { data: storeData, error } = await supabase.rpc('get_user_stores', {
-        p_user_id: session.user.id
-      });
-
-      if (error) {
-        console.error('Error loading stores:', error);
+        
+        // Redirect to authentication if no user
         toast({
-          title: "خطأ في التحميل",
-          description: "فشل في تحميل المتاجر",
+          title: "مطلوب تسجيل الدخول",
+          description: "يرجى تسجيل الدخول أولاً لمشاهدة المتاجر",
           variant: "destructive"
         });
         return;
       }
-
-      const typedData = (storeData || []) as Store[];
-      setStores(typedData);
-      console.log(`📋 Loaded ${typedData.length} stores for user ${session.user.id}`);
+      
+      // Directly query the stores table with user filter
+      const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/rest/v1/shopify_stores?user_id=eq.${session.user.id}&select=shop,is_active,updated_at,access_token&order=updated_at.desc`, {
+        headers: {
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json() as Store[];
+      setStores(data || []);
+      console.log(`📋 Loaded ${data?.length || 0} stores for user ${session.user.id}`);
       
     } catch (error) {
       console.error('Error loading stores:', error);

@@ -155,17 +155,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Load shops from database
+  // Load shops from database - only for authenticated users
   const loadShopsFromDatabase = async () => {
     try {
-      const { data, error } = await shopifyStores()
-        .select('shop, is_active, updated_at')
-        .order('is_active', { ascending: false })
-        .order('updated_at', { ascending: false });
+      // Check if user is authenticated first
+      const { data: { session } } = await supabase.auth.getSession();
       
-      if (error) {
-        throw error;
+      if (!session?.user) {
+        console.log('No authenticated user - cannot load shops from database');
+        return;
       }
+      
+      // Use direct API call to avoid TypeScript issues
+      const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/rest/v1/shopify_stores?user_id=eq.${session.user.id}&select=shop,is_active,updated_at&order=is_active.desc,updated_at.desc`, {
+        headers: {
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
       
       if (data && data.length > 0) {
         console.log("Loaded shops from database:", data);
