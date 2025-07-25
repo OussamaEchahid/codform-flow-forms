@@ -8,7 +8,7 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { user, loading } = useContext(AuthContext);
+  const { user, loading, shopifyConnected, shop } = useContext(AuthContext);
 
   // Show loading spinner while checking authentication
   if (loading) {
@@ -16,14 +16,19 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p>Loading...</p>
+          <p>جاري التحميل...</p>
         </div>
       </div>
     );
   }
 
-  // Redirect to login if not authenticated
-  if (!user) {
+  // إذا كان هناك متجر shopify متصل بدون مستخدم مصادق، وجه لصفحة ربط الحساب
+  if (shop && shopifyConnected && !user) {
+    return <Navigate to="/shopify-account-link" replace />;
+  }
+
+  // Redirect to login if not authenticated and no Shopify store
+  if (!user && !shop) {
     return <Navigate to="/login" replace />;
   }
 

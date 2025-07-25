@@ -28,6 +28,7 @@ import OrdersChannels from '@/pages/OrdersChannels';
 import FormBuilderPage from '@/pages/FormBuilderPage';
 import Auth from '@/pages/Auth';
 import Login from '@/pages/Login';
+import ShopifyAccountLink from '@/pages/ShopifyAccountLink';
 import ThankYou from '@/pages/ThankYou';
 import LandingPages from '@/pages/LandingPages';
 import MyStores from '@/pages/MyStores';
@@ -93,6 +94,10 @@ export const routes: RouteObject[] = [
   {
     path: '/login',
     Component: Login,
+  },
+  {
+    path: '/shopify-account-link',
+    Component: ShopifyAccountLink,
   },
   {
     path: '/settings',

@@ -478,10 +478,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               console.error('❌ Failed to link shop to user:', error);
             }
           }
-        } else {
-          // No automatic user creation - authentication is required
-          console.log("🔐 Authentication required for shop access:", shop);
-          setUser(null);
+        } else if (shop) {
+          // إذا كان هناك متجر بدون مستخدم مصادق، وجه للصفحة الخاصة بربط الحساب
+          console.log("🔐 Store found without authenticated user, redirecting to account link page");
+          // تأخير للسماح للصفحة بالتحميل قبل التوجيه
+          setTimeout(() => {
+            if (window.location.pathname !== '/shopify-account-link') {
+              window.location.href = '/shopify-account-link';
+            }
+          }, 1000);
         }
       } catch (error) {
         console.error("Error setting up auth:", error);
