@@ -113,6 +113,10 @@ export const routes: RouteObject[] = [
     Component: Shopify,
   },
   {
+    path: '/shopify-connect',
+    Component: Shopify,
+  },
+  {
     path: '/shopify-stores',
     Component: ShopifyStores,
   },
