@@ -459,14 +459,17 @@ export type Database = {
         }[]
       }
       get_user_stores_by_email: {
-        Args: { p_email: string }
+        Args: { p_email?: string }
         Returns: {
           shop: string
+          email: string
           user_id: string
           access_token: string
           is_active: boolean
           created_at: string
           updated_at: string
+          plan_type: string
+          subscription_status: string
         }[]
       }
       link_store_to_user: {
