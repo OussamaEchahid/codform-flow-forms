@@ -176,7 +176,7 @@ function AppRoutes() {
 }
 
 function App() {
-  // Check for successful Shopify connection in URL params
+  // معالجة نجاح الاتصال من Shopify
   React.useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const connected = urlParams.get('connected');
@@ -194,9 +194,13 @@ function App() {
         position: 'top-right'
       });
       
-      // Clean up URL
+      // تنظيف URL بدون إعادة التحميل
       const newUrl = window.location.pathname;
       window.history.replaceState({}, '', newUrl);
+      
+      // تعيين علامة لمنع معالجة أخرى
+      sessionStorage.setItem('connection_processed', 'true');
+      return;
     }
   }, []);
 
@@ -204,6 +208,13 @@ function App() {
   React.useEffect(() => {
     console.log("App mounted, cleaning tokens and validating connection");
     
+    // تحقق من معالجة اتصال ناجح مسبقاً
+    const connectionProcessed = sessionStorage.getItem('connection_processed');
+    if (connectionProcessed) {
+      console.log('Connection already processed, skipping validation');
+      sessionStorage.removeItem('connection_processed');
+      return;
+    }
     
     // تحقق من وجود أخطاء STORE_NOT_FOUND وأصلحها
     const detectAndFixConnectionIssues = () => {

@@ -183,9 +183,9 @@ serve(async (req) => {
       console.log("💾 Saving shop data to database...");
       await saveShopData(cleanedShop, tokenData);
       
-      // إعادة توجيه مباشر للتطبيق الأصلي
+      // إعادة توجيه للصفحة الرئيسية مع معاملات الاتصال الناجح
       const appUrl = req.headers.get('origin') || 'https://codmagnet.com';
-      const redirectUrl = `${appUrl}/dashboard?connected=true&shop=${encodeURIComponent(cleanedShop)}`;
+      const redirectUrl = `${appUrl}/?connected=true&shop=${encodeURIComponent(cleanedShop)}`;
       
       console.log(`🔄 Redirecting to: ${redirectUrl}`);
       
