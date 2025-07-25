@@ -464,11 +464,46 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         
         if (session) {
           setUser(session.user);
+          
+          // Link current shop to authenticated user
+          if (shop && session.user) {
+            try {
+              await supabase.functions.invoke('link-store-to-user', {
+                body: { 
+                  shop, 
+                  user_id: session.user.id, 
+                  email: session.user.email 
+                }
+              });
+              console.log('✅ Shop linked to authenticated user:', shop, session.user.id);
+            } catch (error) {
+              console.error('❌ Failed to link shop to user:', error);
+            }
+          }
         } else if (shop) {
-          // If we have a shop connection but no user, create a temporary user
-          const tempUser = { id: 'shopify-user', email: shop ? `shopify@${shop.replace('.myshopify.com', '')}.app` : 'shopify@unknown.app' };
-          console.log("Creating temporary Shopify user:", tempUser);
-          setUser(tempUser);
+          // For Shopify-only connections, create a minimal authenticated session
+          const shopifyUser = { 
+            id: `shopify-${shop.replace('.myshopify.com', '')}`, 
+            email: `shopify@${shop.replace('.myshopify.com', '')}.app`,
+            shopify_shop: shop
+          };
+          
+          console.log("Creating Shopify-authenticated session:", shopifyUser);
+          setUser(shopifyUser);
+          
+          // Try to link this shop to this synthetic user in database
+          try {
+            await supabase.functions.invoke('link-store-to-user', {
+              body: { 
+                shop, 
+                user_id: shopifyUser.id, 
+                email: shopifyUser.email 
+              }
+            });
+            console.log('✅ Shop linked to Shopify user:', shop, shopifyUser.id);
+          } catch (error) {
+            console.error('❌ Failed to link shop to Shopify user:', error);
+          }
         }
       } catch (error) {
         console.error("Error setting up auth:", error);
