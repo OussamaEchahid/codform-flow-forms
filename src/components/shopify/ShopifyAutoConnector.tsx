@@ -145,8 +145,18 @@ const ShopifyAutoConnector: React.FC<ShopifyAutoConnectorProps> = ({ onConnected
 
       // 2. بدء عملية المصادقة مع Shopify
       console.log('🚀 Starting Shopify OAuth...');
+      
+      // الحصول على user_id الحالي
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id;
+      
+      console.log(`🔗 Auto-connecting with user ID: ${userId}`);
+      
       const { data, error } = await supabase.functions.invoke('shopify-auth', {
-        body: { shop: detectedShop }
+        body: { 
+          shop: detectedShop,
+          userId: userId 
+        }
       });
 
       if (error) {

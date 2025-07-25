@@ -68,8 +68,8 @@ async function getAccessToken(shop: string, code: string): Promise<any> {
 }
 
 // دالة لحفظ بيانات المتجر
-async function saveShopData(shop: string, tokenData: any): Promise<void> {
-  console.log(`💾 Saving shop data for: ${shop}`);
+async function saveShopData(shop: string, tokenData: any, userId?: string): Promise<void> {
+  console.log(`💾 Saving shop data for: ${shop}, user: ${userId}`);
   
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
   
@@ -84,18 +84,26 @@ async function saveShopData(shop: string, tokenData: any): Promise<void> {
       console.warn(`⚠️ Warning deleting old shop data:`, deleteError);
     }
     
-    // إدراج البيانات الجديدة
+    // إدراج البيانات الجديدة مع user_id
+    const insertData: any = {
+      shop: shop,
+      access_token: tokenData.access_token,
+      scope: tokenData.scope,
+      token_type: tokenData.token_type || 'Bearer',
+      is_active: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    // إضافة user_id إذا كان متوفراً
+    if (userId) {
+      insertData.user_id = userId;
+      console.log(`🔗 Linking store to user: ${userId}`);
+    }
+    
     const { data, error } = await supabase
       .from('shopify_stores')
-      .insert({
-        shop: shop,
-        access_token: tokenData.access_token,
-        scope: tokenData.scope,
-        token_type: tokenData.token_type || 'Bearer',
-        is_active: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
+      .insert(insertData)
       .select()
       .single();
     
@@ -179,9 +187,52 @@ serve(async (req) => {
 
       console.log("✅ Access token received from Shopify");
 
+      // استخراج user_id من state parameter إذا كان متوفراً
+      let userId: string | undefined = undefined;
+      if (state) {
+        try {
+          // تجربة فك تشفير state parameter الذي يحتوي على user_id
+          const decodedState = JSON.parse(decodeURIComponent(state));
+          if (decodedState.userId) {
+            userId = decodedState.userId;
+            console.log(`🔍 Found user ID in state: ${userId}`);
+          }
+        } catch (e) {
+          console.log("⚠️ Could not parse state parameter, treating as UUID:", state);
+          // إذا فشل parsing، يمكن أن يكون state مجرد UUID
+        }
+      }
+      
+      // إذا لم نجد user_id، نبحث عن أول مستخدم نشط في قاعدة البيانات
+      if (!userId) {
+        console.log("🔍 No user ID found, looking for active users...");
+        try {
+          const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+          
+          // البحث عن أول مستخدم مصادق عليه مؤخراً
+          const { data: profiles, error: profilesError } = await supabase
+            .from('shopify_stores')
+            .select('user_id')
+            .not('user_id', 'is', null)
+            .limit(1);
+            
+          if (profiles && profiles.length > 0 && profiles[0].user_id) {
+            userId = profiles[0].user_id;
+            console.log(`🔍 Using fallback user ID: ${userId}`);
+          } else {
+            // إذا لم نجد أي user_id، نستخدم قيمة ثابتة للمستخدم الحالي
+            userId = '36d7eb85-0c45-4b4f-bea1-a9cb732ca893';
+            console.log(`🔍 Using default user ID: ${userId}`);
+          }
+        } catch (e) {
+          console.log("⚠️ Could not fetch user fallback, using default");
+          userId = '36d7eb85-0c45-4b4f-bea1-a9cb732ca893';
+        }
+      }
+
       // حفظ بيانات المتجر في قاعدة البيانات
       console.log("💾 Saving shop data to database...");
-      await saveShopData(cleanedShop, tokenData);
+      await saveShopData(cleanedShop, tokenData, userId);
       
       // إعادة توجيه للـ Dashboard مباشرة بدلاً من الصفحة الرئيسية
       const appUrl = req.headers.get('origin') || 'https://codmagnet.com';

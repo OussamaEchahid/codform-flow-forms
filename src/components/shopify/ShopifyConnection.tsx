@@ -191,9 +191,18 @@ const ShopifyConnection = () => {
       localStorage.removeItem('shopify_connected');
       localStorage.removeItem('shopify_active_store');
 
-      // Call the shopify-auth edge function
+      // الحصول على user_id الحالي
+      const { data: { user } } = await shopifySupabase.auth.getUser();
+      const userId = user?.id;
+      
+      console.log(`🔗 Connecting store with user ID: ${userId}`);
+
+      // Call the shopify-auth edge function with user_id
       const { data, error } = await shopifySupabase.functions.invoke('shopify-auth', {
-        body: { shop: normalizedShopDomain }
+        body: { 
+          shop: normalizedShopDomain,
+          userId: userId 
+        }
       });
 
       if (error) {

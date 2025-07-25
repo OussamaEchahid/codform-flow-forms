@@ -47,9 +47,18 @@ const SimpleStoreManager = () => {
     try {
       console.log(`🔗 Connecting to store: ${shopDomain}`);
       
-      // بدء عملية المصادقة
+      // الحصول على user_id الحالي
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id;
+      
+      console.log(`🔗 Connecting store with user ID: ${userId}`);
+      
+      // بدء عملية المصادقة مع تمرير user_id
       const { data, error } = await supabase.functions.invoke('shopify-auth', {
-        body: { shop: shopDomain }
+        body: { 
+          shop: shopDomain,
+          userId: userId 
+        }
       });
 
       if (error) {

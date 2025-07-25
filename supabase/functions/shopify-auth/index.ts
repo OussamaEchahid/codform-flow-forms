@@ -73,6 +73,7 @@ serve(async (req) => {
   try {
     // استخراج المعلمات من URL أو body
     let shop = "";
+    let userId: string | undefined = undefined;
     
     const url = new URL(req.url);
     const shopParam = url.searchParams.get("shop");
@@ -84,6 +85,7 @@ serve(async (req) => {
         const body = await req.json();
         console.log("Request body:", body);
         shop = cleanShopDomain(body.shop || "");
+        userId = body.userId || body.user_id; // استخراج user_id من الطلب
       } catch (e) {
         console.error("Error parsing request body:", e);
         return new Response(
@@ -93,6 +95,24 @@ serve(async (req) => {
           }),
           { status: 400, headers: corsHeaders }
         );
+      }
+    }
+    
+    // محاولة الحصول على user_id من header Authorization
+    if (!userId) {
+      const authHeader = req.headers.get("Authorization");
+      if (authHeader?.startsWith("Bearer ")) {
+        try {
+          const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+          const token = authHeader.replace("Bearer ", "");
+          const { data: { user }, error } = await supabase.auth.getUser(token);
+          if (user && !error) {
+            userId = user.id;
+            console.log("🔍 Found user ID from auth token:", userId);
+          }
+        } catch (e) {
+          console.log("⚠️ Could not extract user from auth token:", e);
+        }
       }
     }
     
@@ -120,8 +140,14 @@ serve(async (req) => {
       );
     }
     
-    // إنشاء حالة مصادقة فريدة
-    const state = uuidv4();
+    // إنشاء حالة مصادقة تحتوي على userId إذا كان متوفراً
+    const stateData = {
+      id: uuidv4(),
+      userId: userId
+    };
+    const state = encodeURIComponent(JSON.stringify(stateData));
+    
+    console.log("🔗 Creating auth state with user:", userId);
     
     // إنشاء عنوان URL للمصادقة
     const authUrl = `https://${shop}/admin/oauth/authorize?` +
