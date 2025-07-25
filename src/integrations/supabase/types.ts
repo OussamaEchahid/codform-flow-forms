@@ -485,7 +485,7 @@ export type Database = {
         Returns: undefined
       }
       link_store_to_user: {
-        Args: { p_shop: string; p_user_id: string; p_email?: string }
+        Args: { p_shop: string; p_user_id?: string; p_email?: string }
         Returns: boolean
       }
       update_default_store_connection: {
