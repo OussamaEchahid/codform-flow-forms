@@ -1,5 +1,6 @@
 
 import { RouteObject } from "react-router-dom";
+import ProtectedRoute from '@/components/ProtectedRoute';
 import FormBuilderDashboard from '@/components/form/builder/FormBuilderDashboard';
 import Settings from '@/pages/Settings';
 import OrderSettings from '@/pages/OrderSettings';
@@ -26,6 +27,7 @@ import AbandonedOrders from '@/pages/AbandonedOrders';
 import OrdersChannels from '@/pages/OrdersChannels';
 import FormBuilderPage from '@/pages/FormBuilderPage';
 import Auth from '@/pages/Auth';
+import Login from '@/pages/Login';
 import ThankYou from '@/pages/ThankYou';
 import LandingPages from '@/pages/LandingPages';
 import MyStores from '@/pages/MyStores';
@@ -38,11 +40,19 @@ export const routes: RouteObject[] = [
   },
   {
     path: '/dashboard',
-    Component: Dashboard,
+    element: (
+      <ProtectedRoute>
+        <Dashboard />
+      </ProtectedRoute>
+    ),
   },
   {
     path: '/forms',
-    Component: Forms,
+    element: (
+      <ProtectedRoute>
+        <Forms />
+      </ProtectedRoute>
+    ),
   },
   {
     path: '/landing-pages',
@@ -79,6 +89,10 @@ export const routes: RouteObject[] = [
   {
     path: '/auth/*',
     Component: Auth,
+  },
+  {
+    path: '/login',
+    Component: Login,
   },
   {
     path: '/settings',

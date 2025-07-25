@@ -433,24 +433,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             }
           }
         
-          // For development, create a default connection if none exists
-          if (process.env.NODE_ENV === 'development' && !shopConnected && !shop) {
-            console.log("Development mode: Using default shop");
-            const defaultShop = 'dev-store.myshopify.com';
-            shopifyConnectionManager.addOrUpdateStore(defaultShop, true);
-            
-            setShop(defaultShop);
-            setShopifyConnected(true);
-            setShops([defaultShop]);
-            
-            // Update localStorage
-            localStorage.setItem('shopify_store', defaultShop);
-            localStorage.setItem('shopify_connected', 'true');
-            
-            // Create a default user for development
-            const devUser = { id: 'shopify-user', email: 'dev@example.com' };
-            setUser(devUser);
-          }
+        // Development mode: Only set shop connection, no auto user creation
+        if (process.env.NODE_ENV === 'development' && !shopConnected && !shop) {
+          console.log("Development mode: Using default shop (authentication required)");
+          const defaultShop = 'dev-store.myshopify.com';
+          shopifyConnectionManager.addOrUpdateStore(defaultShop, true);
+          
+          setShop(defaultShop);
+          setShopifyConnected(true);
+          setShops([defaultShop]);
+          
+          // Update localStorage
+          localStorage.setItem('shopify_store', defaultShop);
+          localStorage.setItem('shopify_connected', 'true');
+          
+          // No automatic user creation - require proper login
+        }
         }
         
         // Try to load all shops from database
@@ -480,69 +478,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               console.error('❌ Failed to link shop to user:', error);
             }
           }
-        } else if (shop) {
-          // For Shopify-only connections, create a REAL authenticated user
-          console.log("🔐 Creating authenticated user for Shopify shop:", shop);
-          
-          const shopEmail = `shopify@${shop.replace('.myshopify.com', '')}.app`;
-          const tempPassword = `shopify-${shop.replace('.myshopify.com', '')}-${Date.now()}`;
-          
-          try {
-            // Sign up a real user
-            const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-              email: shopEmail,
-              password: tempPassword,
-              options: {
-                emailRedirectTo: `${window.location.origin}/`,
-                data: {
-                  shopify_shop: shop,
-                  created_for_shop: true
-                }
-              }
-            });
-            
-            if (signUpError) {
-              console.error('❌ Failed to create Shopify user:', signUpError);
-              
-              // Try to sign in if user already exists
-              const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-                email: shopEmail,
-                password: tempPassword
-              });
-              
-              if (signInError) {
-                console.log('ℹ️ User might already exist, trying anonymous approach');
-                // Fallback: create anonymous session and bypass auth for this shop
-                localStorage.setItem('bypass_auth', 'true');
-                localStorage.setItem('shopify_temp_user', shopEmail);
-                setUser({ id: `temp-${Date.now()}`, email: shopEmail, shopify_shop: shop });
-              } else if (signInData.user) {
-                setUser(signInData.user);
-              }
-            } else if (signUpData.user) {
-              setUser(signUpData.user);
-              
-              // Link shop to the new user
-              try {
-                await supabase.functions.invoke('link-store-to-user', {
-                  body: { 
-                    shop, 
-                    user_id: signUpData.user.id, 
-                    email: shopEmail 
-                  }
-                });
-                console.log('✅ Shop linked to new Shopify user:', shop, signUpData.user.id);
-              } catch (linkError) {
-                console.error('❌ Failed to link shop to new user:', linkError);
-              }
-            }
-            
-          } catch (error) {
-            console.error('❌ Error creating Shopify user:', error);
-            // Final fallback
-            localStorage.setItem('bypass_auth', 'true');
-            setUser({ id: `fallback-${Date.now()}`, email: shopEmail, shopify_shop: shop });
-          }
+        } else {
+          // No automatic user creation - authentication is required
+          console.log("🔐 Authentication required for shop access:", shop);
+          setUser(null);
         }
       } catch (error) {
         console.error("Error setting up auth:", error);
