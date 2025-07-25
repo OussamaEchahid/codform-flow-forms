@@ -5,9 +5,9 @@ import { useNavigate } from 'react-router-dom';
 // Redirect to the new ShopifyConnect page
 const Shopify = () => {
   const navigate = useNavigate();
-  
   useEffect(() => {
-    navigate('/shopify-connect');
+    // لا نحتاج إعادة توجيه، تم إصلاح التوجيه من المتجر مباشرة
+    // navigate('/shopify-connect');
   }, [navigate]);
   
   return (

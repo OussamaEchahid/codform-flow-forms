@@ -1,5 +1,5 @@
-
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
@@ -10,11 +10,90 @@ import Pricing from '@/components/home/Pricing';
 import CTA from '@/components/home/CTA';
 import { Link } from 'react-router-dom';
 import { fixShopifyConnectionState } from '@/utils/fix-shopify-state';
+import ShopifyAutoConnector from '@/components/shopify/ShopifyAutoConnector';
+import { parseShopifyParams } from '@/utils/shopify-helpers';
+import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
+import { shopifyStores } from '@/lib/shopify/supabase-client';
+import { toast } from '@/hooks/use-toast';
 
 const Index = () => {
+  const navigate = useNavigate();
+  const [isProcessingShopify, setIsProcessingShopify] = useState(false);
+
+  useEffect(() => {
+    const handleShopifyConnection = async () => {
+      const { shopDomain, isShopifyRequest } = parseShopifyParams();
+      
+      console.log('🔍 Index page - Shopify params:', { shopDomain, isShopifyRequest });
+      
+      if (shopDomain && isShopifyRequest) {
+        setIsProcessingShopify(true);
+        
+        try {
+          // فحص إذا كان المتجر موجود مسبقاً
+          const { data: existingStore } = await shopifyStores()
+            .select('*')
+            .eq('shop', shopDomain)
+            .maybeSingle();
+
+          if (existingStore && existingStore.access_token) {
+            // المتجر موجود ومتصل - اذهب مباشرة للوحة التحكم
+            console.log('✅ Store already connected, going to dashboard');
+            
+            shopifyConnectionManager.setActiveStore(shopDomain);
+            
+            toast({
+              title: "تم الاتصال بنجاح",
+              description: `تم الاتصال بمتجر ${shopDomain}`,
+            });
+            
+            // تنظيف URL ثم الانتقال للوحة التحكم
+            window.history.replaceState({}, '', '/');
+            navigate('/dashboard');
+            return;
+          }
+          
+          // المتجر جديد أو غير متصل - سيعرض ShopifyAutoConnector نافذة الحوار
+          console.log('🔔 New store detected, will show dialog');
+          
+        } catch (error) {
+          console.error('❌ Error checking store:', error);
+          toast({
+            title: "خطأ في التحقق من المتجر",
+            description: "حدث خطأ أثناء التحقق من حالة المتجر",
+            variant: "destructive"
+          });
+        } finally {
+          setIsProcessingShopify(false);
+        }
+      }
+    };
+
+    handleShopifyConnection();
+  }, [navigate]);
+
+  const handleShopifyConnected = (shop: string) => {
+    console.log('🎉 Shop connected:', shop);
+    toast({
+      title: "تم الاتصال بنجاح",
+      description: `تم الاتصال بمتجر ${shop}`,
+    });
+    navigate('/dashboard');
+  };
+
   return (
     <div dir="rtl" className="min-h-screen">
+      {/* Shopify Auto Connector - يعرض نافذة للمتاجر الجديدة فقط */}
+      <ShopifyAutoConnector onConnected={handleShopifyConnected} />
+      
       <Navbar />
+      
+      {isProcessingShopify && (
+        <div className="fixed top-0 left-0 right-0 bg-blue-500 text-white text-center py-2 z-50">
+          جاري التحقق من اتصال المتجر...
+        </div>
+      )}
+      
       <Hero />
       <Features />
       <Templates />

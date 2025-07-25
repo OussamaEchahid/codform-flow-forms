@@ -18,7 +18,7 @@ import OrdersChannels from "@/pages/OrdersChannels";
 import NotFound from "@/pages/NotFound";
 import ShopifyRedirect from "@/pages/ShopifyRedirect";
 import Shopify from "@/pages/Shopify";
-import ShopifyConnect from "@/pages/ShopifyConnect";
+
 import Auth from "@/pages/Auth";
 import ShopifyCallback from "@/pages/ShopifyCallback";
 import ShopifyStores from "@/pages/ShopifyStores";
@@ -97,7 +97,7 @@ const ProtectedRoute = ({ requireAuth = true }: { requireAuth?: boolean }) => {
     }
     
     toast.info("يجب الاتصال بمتجر Shopify أولاً");
-    return <Navigate to="/shopify-connect" replace />;
+    return <Navigate to="/" replace />;
   }
   
   // وإلا، قم بعرض مسارات الطفل
@@ -134,7 +134,7 @@ function AppRoutes() {
     <Routes>
       <Route path="/" element={<Index />} />
       <Route path="/shopify" element={<Shopify />} />
-      <Route path="/shopify-connect" element={<ShopifyConnect />} />
+      
       <Route path="/shopify-redirect" element={<ShopifyRedirect />} />
       <Route path="/auth/*" element={<Auth />} />
       

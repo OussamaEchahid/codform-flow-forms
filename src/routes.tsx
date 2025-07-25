@@ -9,7 +9,7 @@ import PlansSettings from '@/pages/PlansSettings';
 import QuantityOffers from '@/pages/QuantityOffers';
 import ShopifyRedirect from '@/pages/ShopifyRedirect';
 import Shopify from '@/pages/Shopify';
-import ShopifyConnect from '@/pages/ShopifyConnect';
+
 import ShopifyStores from '@/pages/ShopifyStores';
 import ShopifyTest from '@/pages/ShopifyTest';
 import ShopifyProducts from '@/pages/ShopifyProducts';
@@ -111,10 +111,6 @@ export const routes: RouteObject[] = [
   {
     path: '/shopify',
     Component: Shopify,
-  },
-  {
-    path: '/shopify-connect',
-    Component: ShopifyConnect,
   },
   {
     path: '/shopify-stores',
