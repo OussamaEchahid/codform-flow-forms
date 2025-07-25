@@ -29,44 +29,83 @@ const ShopifyAutoConnector: React.FC<ShopifyAutoConnectorProps> = ({ onConnected
       console.log('🔍 ShopifyAutoConnector - URL parameters:', {
         shopParam, hmacParam, codeParam, hostParam
       });
-      
-      // فقط إذا كان هناك shop parameter ولا يوجد code (ليس callback)
+
+      let detectedShopDomain = null;
+
+      // الأولوية الأولى: shop parameter
       if (shopParam && !codeParam) {
         let normalizedShop = shopParam.trim().toLowerCase();
         if (!normalizedShop.includes('.myshopify.com')) {
           normalizedShop = `${normalizedShop}.myshopify.com`;
         }
-        
-        console.log('🔍 Shop detected:', normalizedShop);
-        
-        // فحص إذا كان هذا المتجر هو النشط حالياً من connection manager
+        detectedShopDomain = normalizedShop;
+        console.log('🔍 Shop detected from shop param:', detectedShopDomain);
+      }
+      // الأولوية الثانية: استخراج المتجر من host parameter
+      else if (hostParam && !codeParam) {
+        try {
+          // host parameter يحتوي على base64 encoded domain
+          const decodedHost = atob(hostParam);
+          console.log('🔍 Decoded host:', decodedHost);
+          
+          // استخراج domain من decoded host
+          const hostParts = decodedHost.split('/');
+          if (hostParts.length > 0) {
+            let shopDomain = hostParts[0];
+            if (shopDomain.includes('.myshopify.com')) {
+              detectedShopDomain = shopDomain;
+              console.log('🔍 Shop detected from host param:', detectedShopDomain);
+            }
+          }
+        } catch (error) {
+          console.error('❌ Error decoding host parameter:', error);
+        }
+      }
+
+      // إذا لم يتم اكتشاف أي متجر، فحص localStorage
+      if (!detectedShopDomain) {
         const currentActiveStore = shopifyConnectionManager.getActiveStore();
-        console.log('🔍 Current active store from connection manager:', currentActiveStore);
-        
-        if (currentActiveStore === normalizedShop) {
-          console.log('✅ Shop already active, skipping dialog');
+        if (currentActiveStore) {
+          console.log('✅ Using existing active store from localStorage:', currentActiveStore);
           // تنظيف URL بدون إظهار النافذة
           const newUrl = window.location.pathname;
           window.history.replaceState({}, '', newUrl);
           return;
         }
         
-        // فحص إذا كان المتجر موجود في قائمة المتاجر المحفوظة
-        const allStores = shopifyConnectionManager.getAllStores();
-        const existingStore = allStores.find(store => store.shop === normalizedShop || store.domain === normalizedShop);
-        
-        if (existingStore) {
-          console.log('🔄 Store exists, showing connection dialog');
-        }
-        
-        // إظهار النافذة للمتاجر الجديدة أو الموجودة
-        setDetectedShop(normalizedShop);
-        setShowDialog(true);
-        
-        // تنظيف URL بعد الاكتشاف
+        console.log('⚠️ No shop detected from URL parameters or localStorage');
+        return;
+      }
+      
+      // فحص إذا كان هذا المتجر هو النشط حالياً
+      const currentActiveStore = shopifyConnectionManager.getActiveStore();
+      console.log('🔍 Current active store from connection manager:', currentActiveStore);
+      
+      if (currentActiveStore === detectedShopDomain) {
+        console.log('✅ Shop already active, skipping dialog');
+        // تنظيف URL بدون إظهار النافذة
         const newUrl = window.location.pathname;
         window.history.replaceState({}, '', newUrl);
+        return;
       }
+      
+      // فحص إذا كان المتجر موجود في قائمة المتاجر المحفوظة
+      const allStores = shopifyConnectionManager.getAllStores();
+      const existingStore = allStores.find(store => 
+        store.shop === detectedShopDomain || store.domain === detectedShopDomain
+      );
+      
+      if (existingStore) {
+        console.log('🔄 Store exists, showing connection dialog');
+      }
+      
+      // إظهار النافذة للمتاجر الجديدة أو الموجودة
+      setDetectedShop(detectedShopDomain);
+      setShowDialog(true);
+      
+      // تنظيف URL بعد الاكتشاف
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
     };
 
     detectShop();
