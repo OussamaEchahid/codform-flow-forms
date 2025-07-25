@@ -8,6 +8,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, ArrowLeft, User, Lock, Mail } from 'lucide-react';
 import { toast } from 'sonner';
+import { useSimpleShopify } from '@/hooks/useSimpleShopify';
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -19,6 +20,9 @@ const Profile = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [userMetadata, setUserMetadata] = useState<any>(null);
+  const [shopEmail, setShopEmail] = useState<string>('');
+  const [shopEmailLoading, setShopEmailLoading] = useState(true);
+  const { activeStore, isConnected } = useSimpleShopify();
 
   useEffect(() => {
     const getUser = async () => {
@@ -47,6 +51,54 @@ const Profile = () => {
 
     getUser();
   }, [navigate]);
+
+  // جلب بيانات المتجر من Shopify API
+  useEffect(() => {
+    const fetchShopData = async () => {
+      if (!isConnected || !activeStore) {
+        setShopEmailLoading(false);
+        return;
+      }
+
+      setShopEmailLoading(true);
+      try {
+        // جلب بيانات المتجر من قاعدة البيانات المحلية
+        const { data: shopData } = await supabase
+          .from('shopify_stores')
+          .select('access_token')
+          .eq('shop', activeStore)
+          .single();
+
+        if (shopData?.access_token && shopData?.access_token !== 'placeholder_token') {
+          // جلب بيانات المتجر من Shopify API
+          const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-products`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+            },
+            body: JSON.stringify({
+              shop: activeStore,
+              endpoint: 'shop.json'
+            })
+          });
+
+          if (response.ok) {
+            const result = await response.json();
+            if (result.shop?.email) {
+              setShopEmail(result.shop.email);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching shop data:', error);
+      } finally {
+        setShopEmailLoading(false);
+      }
+    };
+
+    fetchShopData();
+  }, [isConnected, activeStore]);
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -157,15 +209,42 @@ const Profile = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="email">البريد الإلكتروني</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={user.email || ''}
-                  disabled
-                  className="bg-muted"
-                />
+                <Label htmlFor="email">البريد الإلكتروني للمتجر</Label>
+                <div className="relative">
+                  <Input
+                    id="email"
+                    type="email"
+                    value={shopEmailLoading ? 'جاري تحميل بيانات المتجر...' : (shopEmail || 'لم يتم جلب البريد الإلكتروني')}
+                    disabled
+                    className="bg-muted"
+                  />
+                  {shopEmailLoading && (
+                    <Loader2 className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin" />
+                  )}
+                </div>
+                {!shopEmailLoading && !shopEmail && isConnected && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    لم يتم العثور على بريد إلكتروني مرتبط بالمتجر {activeStore}
+                  </p>
+                )}
+                {!isConnected && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    يرجى ربط متجر Shopify لعرض البريد الإلكتروني
+                  </p>
+                )}
               </div>
+              
+              {isConnected && activeStore && (
+                <div>
+                  <Label>المتجر المتصل</Label>
+                  <Input
+                    type="text"
+                    value={activeStore}
+                    disabled
+                    className="bg-muted"
+                  />
+                </div>
+              )}
               
               {userMetadata?.created_via === 'shopify_auto' && (
                 <div className="p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
