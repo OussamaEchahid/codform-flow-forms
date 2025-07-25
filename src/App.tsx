@@ -87,12 +87,13 @@ const ProtectedRoute = ({ requireAuth = true }: { requireAuth?: boolean }) => {
   });
   
   // Only redirect if we have absolutely no indication of access rights
-  if (requireAuth && !hasAccess) {
-    console.log("No authentication or Shopify connection, redirecting to /shopify-connect");
+  // Allow access if Shopify store is connected, even without user authentication
+  if (requireAuth && !hasAccess && !hasShopifyAccess) {
+    console.log("No authenticated user found. Dashboard access denied.");
     
     // Save current path for redirection after authentication
     const currentPath = window.location.pathname;
-    if (currentPath !== '/shopify-connect') {
+    if (currentPath !== '/') {
       localStorage.setItem('auth_redirect', currentPath);
     }
     
