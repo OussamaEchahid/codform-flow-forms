@@ -180,52 +180,84 @@ function App() {
   React.useEffect(() => {
     console.log("App mounted, cleaning tokens and validating connection");
     
+    
     // تحقق من وجود أخطاء STORE_NOT_FOUND وأصلحها
     const detectAndFixConnectionIssues = () => {
       const activeStore = shopifyConnectionManager.getActiveStore();
       const urlParams = new URLSearchParams(window.location.search);
       const urlShop = urlParams.get('shop');
+      const host = urlParams.get('host');
+      const hmac = urlParams.get('hmac');
+      const code = urlParams.get('code');
       
       console.log('Current connection state:', {
         activeStore,
         urlShop,
+        host,
+        hmac,
+        code,
         localStorage: {
           shopify_store: localStorage.getItem('shopify_store'),
           shopify_connected: localStorage.getItem('shopify_connected')
         }
       });
       
+      // التحقق من وجود أي parameters من Shopify
+      const hasShopifyParams = !!(urlShop || host || hmac || code);
+      
+      // إذا لم توجد أي parameters من Shopify وليس هناك متجر محفوظ
+      if (!hasShopifyParams && !activeStore) {
+        console.log('⚠️ No Shopify parameters and no saved store - likely embedded app issue');
+        
+        // عرض رسالة للمستخدم بدلاً من إعادة التحميل
+        const shouldShowHelp = !sessionStorage.getItem('shopify_help_shown');
+        if (shouldShowHelp) {
+          sessionStorage.setItem('shopify_help_shown', 'true');
+          console.log('ℹ️ Showing help message for embedded app access');
+          
+          // توقيت قصير للسماح للتطبيق بالتحميل ثم عرض الرسالة
+          setTimeout(() => {
+            if (!shopifyConnectionManager.getActiveStore()) {
+              toast.info("يبدو أنك تحاول الوصول للتطبيق من خارج Shopify. يرجى فتح التطبيق من لوحة تحكم متجرك.", {
+                duration: 10000
+              });
+            }
+          }, 2000);
+        }
+        return;
+      }
+      
       // إذا كان هناك متجر مختلف في URL، استخدمه
       if (urlShop && urlShop !== activeStore) {
         console.log(`URL shop (${urlShop}) differs from active store (${activeStore}), updating...`);
         shopifyConnectionManager.clearAllStores();
         shopifyConnectionManager.addOrUpdateStore(urlShop, true, true);
-        window.location.reload();
         return;
       }
       
-      // إذا كان لا يوجد متجر نشط، امسح كل شيء وأعد التوجيه
-      if (!activeStore) {
-        console.log('No active store found, clearing state and redirecting to connect');
-        fixShopifyConnectionState();
-        return;
+      // إذا كان هناك host parameter فقط، حاول استخراج shop منه
+      if (host && !urlShop && !activeStore) {
+        try {
+          const decodedHost = atob(host);
+          const shopFromHost = decodedHost.split('/')[0];
+          if (shopFromHost && shopFromHost.includes('.myshopify.com')) {
+            console.log(`Extracted shop from host: ${shopFromHost}`);
+            shopifyConnectionManager.addOrUpdateStore(shopFromHost, true, true);
+            return;
+          }
+        } catch (error) {
+          console.error('Error decoding host parameter:', error);
+        }
       }
     };
     
-    // Attempt to validate the connection state with retry logic
+    // عدم إجراء validation مفرط يؤدي إلى إعادة التحميل
     const validateConnection = async () => {
       try {
         detectAndFixConnectionIssues();
-        
-        // Validate connection without excessive cleanup
-        shopifyConnectionManager.validateConnectionState();
-        console.log("Connection validated successfully");
+        console.log("Connection state checked");
       } catch (error) {
-        console.error("Error validating connection:", error);
-        
-        // If validation fails, clear everything and retry
-        console.log("Validation failed, attempting fix...");
-        fixShopifyConnectionState();
+        console.error("Error checking connection:", error);
       }
     };
     
