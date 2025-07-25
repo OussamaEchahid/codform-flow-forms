@@ -472,6 +472,10 @@ export type Database = {
           subscription_status: string
         }[]
       }
+      link_orphan_stores_to_user: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       link_store_to_user: {
         Args: { p_shop: string; p_user_id: string; p_email?: string }
         Returns: boolean
