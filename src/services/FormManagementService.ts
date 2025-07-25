@@ -73,12 +73,24 @@ export class FormManagementService {
         shopify_store: localStorage.getItem('shopify_store')
       });
       
+      // الحصول على المستخدم الحالي
+      const { data: { user } } = await supabase.auth.getUser();
+      
       const { data, error } = await this.fetchWithRetry(async () => {
-        return await supabase
+        // البحث عن النماذج بطريقتين: بـ shop_id أو بـ user_id إذا كان المستخدم موجود
+        let query = supabase
           .from('forms')
-          .select('*')
-          .eq('shop_id', shopId)
-          .order('created_at', { ascending: false });
+          .select('*');
+          
+        if (user) {
+          // إذا كان المستخدم مسجل دخول، البحث بـ user_id أولاً ثم shop_id
+          query = query.or(`user_id.eq.${user.id},shop_id.eq.${shopId}`);
+        } else {
+          // إذا لم يكن مسجل دخول، البحث بـ shop_id فقط
+          query = query.eq('shop_id', shopId);
+        }
+        
+        return await query.order('created_at', { ascending: false });
       });
       
       if (error) {
@@ -87,6 +99,7 @@ export class FormManagementService {
       }
       
       console.log(`✅ Found ${data?.length || 0} forms for shop: ${shopId}`);
+      console.log('📝 Forms data:', data?.map(f => ({ id: f.id, title: f.title, shop_id: f.shop_id, user_id: f.user_id })));
       
       // Transform data to match FormData interface
       const formattedData = data.map(form => ({
