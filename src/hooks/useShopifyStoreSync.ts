@@ -87,8 +87,11 @@ export const useShopifyStoreSync = () => {
       localStorage.setItem('active_shop', shopDomain);
       localStorage.setItem('shopify_connected', 'true');
       
-      // Update current store
+      // Update current store state immediately
       setCurrentStore(shopDomain);
+      
+      // Force reload stores to ensure UI consistency
+      loadStores();
       
       console.log(`🔄 Switched to store: ${shopDomain}`);
       toast.success(`تم التبديل إلى متجر: ${shopDomain}`);
@@ -99,7 +102,7 @@ export const useShopifyStoreSync = () => {
       toast.error('فشل في تبديل المتجر');
       return false;
     }
-  }, []);
+  }, [loadStores]);
 
   // Disconnect from all stores
   const disconnectAll = useCallback(() => {

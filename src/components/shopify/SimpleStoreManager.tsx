@@ -92,10 +92,7 @@ const SimpleStoreManager = () => {
     const success = switchToStore(shopDomain);
     
     if (success) {
-      // إعادة تحميل الصفحة للتأكد
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
+      console.log(`✅ Successfully switched to store: ${shopDomain}`);
     }
   };
 
