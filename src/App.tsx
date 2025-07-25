@@ -176,31 +176,23 @@ function AppRoutes() {
 }
 
 function App() {
-  // معالجة نجاح الاتصال من Shopify
+  // معالجة نجاح الاتصال من Shopify - مرة واحدة فقط
   React.useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const connected = urlParams.get('connected');
     const shopParam = urlParams.get('shop');
     
     if (connected === 'true' && shopParam) {
-      console.log('🎉 Shopify connection successful, updating active store');
+      console.log('🎉 Shopify connection successful for shop:', shopParam);
       
-      // Update the active store
-      shopifyConnectionManager.setActiveStore(shopParam);
-      
-      // Show success toast message
+      // Show success toast
       toast.success(`✅ نجح الاتصال بالمتجر ${shopParam}`, {
         duration: 4000,
         position: 'top-right'
       });
       
-      // تنظيف URL بدون إعادة التحميل
-      const newUrl = window.location.pathname;
-      window.history.replaceState({}, '', newUrl);
-      
-      // تعيين علامة لمنع معالجة أخرى
-      sessionStorage.setItem('connection_processed', 'true');
-      return;
+      // تنظيف URL فوراً
+      window.history.replaceState({}, '', window.location.pathname);
     }
   }, []);
 
@@ -208,11 +200,10 @@ function App() {
   React.useEffect(() => {
     console.log("App mounted, cleaning tokens and validating connection");
     
-    // تحقق من معالجة اتصال ناجح مسبقاً
-    const connectionProcessed = sessionStorage.getItem('connection_processed');
-    if (connectionProcessed) {
-      console.log('Connection already processed, skipping validation');
-      sessionStorage.removeItem('connection_processed');
+    // تحقق من وجود معاملات الاتصال في الـ URL
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('connected') === 'true') {
+      console.log('Connection success detected, skipping validation');
       return;
     }
     
