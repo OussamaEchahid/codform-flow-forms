@@ -41,6 +41,7 @@ import { shopifyConnectionManager } from "@/lib/shopify/connection-manager";
 import { shopifyConnectionService } from "@/services/ShopifyConnectionService";
 import { fixShopifyConnectionState } from "@/utils/fix-shopify-state";
 import ShopifyAutoConnector from "@/components/shopify/ShopifyAutoConnector";
+import { simpleShopifyConnectionManager } from "@/lib/shopify/simple-connection-manager";
 
 // إعداد عميل الاستعلام مع معالجة أفضل للأخطاء
 const queryClient = new QueryClient({
@@ -62,20 +63,24 @@ const ProtectedRoute = ({ requireAuth = true }: { requireAuth?: boolean }) => {
     return <div className="flex items-center justify-center h-screen">جاري التحميل...</div>;
   }
   
-  // Enhanced connection checking to be more tolerant of different connection states
+  // Enhanced connection checking using simple connection manager
+  const simpleActiveStore = simpleShopifyConnectionManager.getActiveStore();
+  const simpleConnected = simpleShopifyConnectionManager.isConnected();
   const activeStore = shopifyConnectionManager.getActiveStore();
   const localStorageConnected = localStorage.getItem('shopify_connected') === 'true';
   const localStorageShop = localStorage.getItem('shopify_store');
   const bypassAuth = localStorage.getItem('bypass_auth') === 'true';
   
-  // Check for ANY indication of a connection - much more tolerant approach
-  const hasShopifyAccess = shopifyConnected || localStorageConnected || !!activeStore || !!localStorageShop;
-  const isAuthenticated = !!user; // التحقق مما إذا كان المستخدم مصادقًا عليه
+  // أولوية للنظام المبسط، ثم بقية المصادر
+  const hasShopifyAccess = simpleConnected || shopifyConnected || localStorageConnected || !!activeStore || !!localStorageShop;
+  const isAuthenticated = !!user;
   
-  // اجعل Shopify connection كافياً للوصول حتى بدون user authentication
+  // المتطلب الوحيد هو وجود اتصال Shopify - لا حاجة لـ user authentication
   const hasAccess = hasShopifyAccess || isAuthenticated || (process.env.NODE_ENV === 'development') || bypassAuth;
   
   console.log("Protected route check:", {
+    simpleActiveStore,
+    simpleConnected,
     authContextConnected: shopifyConnected,
     localStorageConnected,
     activeStore,
@@ -88,9 +93,9 @@ const ProtectedRoute = ({ requireAuth = true }: { requireAuth?: boolean }) => {
     env: process.env.NODE_ENV
   });
   
-  // السماح بالوصول إذا كان متجر Shopify متصل حتى بدون user authentication
-  if (requireAuth && !hasShopifyAccess && !isAuthenticated) {
-    console.log("No Shopify connection or authenticated user found. Access denied.");
+  // فقط امنع الوصول إذا لم يكن هناك أي نوع من الاتصال بـ Shopify
+  if (requireAuth && !hasShopifyAccess) {
+    console.log("No Shopify connection found. Access denied.");
     
     // Save current path for redirection after authentication
     const currentPath = window.location.pathname;
