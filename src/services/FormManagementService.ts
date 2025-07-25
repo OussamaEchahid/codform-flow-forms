@@ -41,83 +41,94 @@ export class FormManagementService {
 
   // Get current active shop ID
   private getActiveShopId(): string | null {
-    const activeStore = localStorage.getItem('simple_active_store') || 
-                       localStorage.getItem('shopify_store') ||
-                       localStorage.getItem('active_shop');
+    // Try multiple sources for the shop ID with better logging
+    const sources = [
+      'simple_active_store',
+      'shopify_store', 
+      'active_shop'
+    ];
     
-    console.log('🏪 Active shop ID from localStorage:', activeStore);
-    return activeStore;
+    console.log('🔍 Checking localStorage for shop ID...');
+    
+    for (const source of sources) {
+      const shopId = localStorage.getItem(source);
+      console.log(`  - ${source}: ${shopId}`);
+      if (shopId && shopId !== 'null' && shopId.trim() !== '') {
+        console.log(`📍 Using active shop ID from ${source}: ${shopId}`);
+        return shopId;
+      }
+    }
+    
+    console.log('⚠️ No active shop ID found in any localStorage key');
+    return null;
   }
 
   // Fetch all forms from database
   async fetchForms(): Promise<FormData[]> {
-    try {
-      // الحصول على معلومات المستخدم والمتجر
-      const { data: { user } } = await supabase.auth.getUser();
-      const shopId = this.getActiveShopId();
+    return this.fetchWithRetry(async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const activeShopId = this.getActiveShopId();
       
-      console.log('🔍 بدء جلب النماذج مع:', { 
-        userId: user?.id, 
-        shopId,
-        isAnonymous: user?.is_anonymous 
+      console.log('🔍 Fetching forms with context:', {
+        hasSession: !!session,
+        userId: session?.user?.id,
+        activeShopId,
+        timestamp: new Date().toISOString()
       });
-      
-      const { data, error } = await this.fetchWithRetry(async () => {
-        let query = supabase.from('forms').select('*');
-        
-        // استراتيجية البحث المحسّنة
-        if (shopId && user) {
-          // إذا كان لدينا كل من shop_id و user_id، ابحث بـ shop_id أولاً
-          console.log('🔍 البحث بـ shop_id و user_id');
-          query = query.or(`shop_id.eq.${shopId},user_id.eq.${user.id}`);
-        } else if (shopId) {
-          // إذا كان لدينا shop_id فقط
-          console.log('🔍 البحث بـ shop_id فقط:', shopId);
-          query = query.eq('shop_id', shopId);
-        } else if (user && !user.is_anonymous) {
-          // إذا كان لدينا user_id فقط وليس anonymous
-          console.log('🔍 البحث بـ user_id فقط:', user.id);
-          query = query.eq('user_id', user.id);
-        } else {
-          // لا توجد معايير بحث صالحة
-          console.log('⚠️ لا توجد معايير بحث صالحة');
-          return { data: [], error: null };
-        }
-        
-        return await query.order('created_at', { ascending: false });
-      });
-      
-      if (error) {
-        console.error('❌ خطأ في جلب النماذج:', error);
-        toast.error('خطأ في جلب النماذج من قاعدة البيانات');
+
+      let query = supabase
+        .from('forms')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      // Apply filtering with clear priority
+      if (activeShopId) {
+        // Priority 1: Filter by shop_id if available (most specific)
+        console.log(`🎯 Filtering by shop_id: ${activeShopId}`);
+        query = query.eq('shop_id', activeShopId);
+      } else if (session?.user?.id) {
+        // Priority 2: Filter by user_id if no shop but user exists
+        console.log(`👤 Filtering by user_id: ${session.user.id}`);
+        query = query.eq('user_id', session.user.id);
+      } else {
+        // No context available - return empty array
+        console.log('⚠️ No shop_id or user_id available - returning empty forms list');
         return [];
       }
-      
-      console.log(`✅ تم العثور على ${data?.length || 0} نموذج`);
-      if (data && data.length > 0) {
-        console.log('📝 تفاصيل النماذج:', data.map(f => ({ 
-          id: f.id, 
-          title: f.title, 
-          shop_id: f.shop_id, 
-          user_id: f.user_id,
-          is_published: f.is_published
-        })));
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('❌ Error fetching forms:', error);
+        throw error;
       }
-      
-      // تحويل البيانات لتتماشى مع FormData interface
-      const formattedData = (data || []).map(form => ({
-        ...form,
+
+      const forms = (data || []).map(form => ({
+        id: form.id,
+        title: form.title,
+        description: form.description,
         data: Array.isArray(form.data) ? form.data as unknown as FormStep[] : [],
+        isPublished: form.is_published,
+        is_published: form.is_published,
+        shop_id: form.shop_id,
+        created_at: form.created_at,
         style: (form.style as unknown as FormStyle) || undefined,
-        isPublished: form.is_published
+        country: (form as any).country,
+        currency: (form as any).currency,
+        phone_prefix: (form as any).phone_prefix
       }));
+
+      console.log(`✅ Successfully fetched ${forms.length} forms for ${activeShopId ? `shop: ${activeShopId}` : `user: ${session?.user?.id}`}`);
       
-      return formattedData;
-    } catch (error) {
-      console.error('❌ فشل في جلب النماذج بعد المحاولات:', error);
-      toast.error('فشل في تحميل النماذج');
-      return [];
-    }
+      // Cache forms for offline usage
+      try {
+        localStorage.setItem('cached_forms', JSON.stringify(forms));
+      } catch (e) {
+        console.warn('Failed to cache forms:', e);
+      }
+
+      return forms;
+    });
   }
 
   // Publish or unpublish a form

@@ -14,9 +14,8 @@ import {
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { toast } from '@/hooks/use-toast';
-import { shopifyStores } from '@/lib/shopify/supabase-client';
 import { supabase } from '@/integrations/supabase/client';
-import { useSimpleShopify } from '@/hooks/useSimpleShopify';
+import { useShopifyStoreSync } from '@/hooks/useShopifyStoreSync';
 
 interface Store {
   shop: string;
@@ -28,113 +27,18 @@ interface Store {
 
 const SimpleStoreManager = () => {
   const { language } = useI18n();
-  const [stores, setStores] = useState<Store[]>([]);
-  const [loading, setLoading] = useState(true);
   const [connectingStore, setConnectingStore] = useState<string | null>(null);
   
   const {
-    activeStore,
-    isConnected,
+    stores,
+    loading,
+    currentStore,
+    loadStores,
     switchToStore,
-    disconnect,
-    getDebugInfo
-  } = useSimpleShopify();
+    disconnectAll,
+    getActiveStore
+  } = useShopifyStoreSync();
 
-  // جلب المتاجر من قاعدة البيانات
-  useEffect(() => {
-    loadStores();
-  }, []);
-
-  const loadStores = async () => {
-    try {
-      setLoading(true);
-      
-      // Check if user is authenticated first
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session?.user) {
-        console.log('No authenticated user found');
-        setStores([]);
-        
-        toast({
-          title: "مطلوب تسجيل الدخول",
-          description: "يرجى تسجيل الدخول أولاً لمشاهدة المتاجر",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      // جلب المتاجر للمستخدم الحالي - استخدام fetch API للتجنب من مشاكل types
-      const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/rest/v1/shopify_stores?select=shop,is_active,updated_at,access_token,user_id&order=updated_at.desc`, {
-        headers: {
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const allStores = await response.json() as Store[];
-      
-      // تصفية المتاجر للمستخدم الحالي أو التي بدون مستخدم
-      const userStores = allStores.filter(store => 
-        store.user_id === session.user.id || !store.user_id
-      );
-      
-      // ربط المتاجر التي لا تحتوي على user_id بالمستخدم الحالي
-      const unlinkedStores = userStores.filter(store => !store.user_id);
-      
-      if (unlinkedStores.length > 0) {
-        console.log(`🔗 Linking ${unlinkedStores.length} unlinked stores to current user`);
-        
-        // تحديث المتاجر لربطها بالمستخدم
-        for (const store of unlinkedStores) {
-          try {
-            await fetch(`https://trlklwixfeaexhydzaue.supabase.co/rest/v1/shopify_stores?shop=eq.${store.shop}`, {
-              method: 'PATCH',
-              headers: {
-                'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
-                'Authorization': `Bearer ${session.access_token}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                user_id: session.user.id,
-                updated_at: new Date().toISOString()
-              })
-            });
-            
-            // تحديث المتجر محلياً
-            store.user_id = session.user.id;
-          } catch (linkError) {
-            console.error(`Failed to link store ${store.shop}:`, linkError);
-          }
-        }
-      }
-      
-      // عرض المتاجر المرتبطة بالمستخدم فقط
-      const finalStores = userStores.map(store => ({
-        ...store,
-        user_id: store.user_id || session.user.id
-      }));
-      
-      setStores(finalStores);
-      
-      console.log(`📋 Loaded ${finalStores?.length || 0} stores for user ${session.user.id}`);
-      
-    } catch (error) {
-      console.error('Error loading stores:', error);
-      toast({
-        title: "خطأ في التحميل",
-        description: "فشل في تحميل المتاجر",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // ربط متجر جديد
   const handleConnectStore = async (shopDomain: string) => {
@@ -188,7 +92,7 @@ const SimpleStoreManager = () => {
 
   // قطع الاتصال من جميع المتاجر
   const handleDisconnectAll = () => {
-    const success = disconnect();
+    const success = disconnectAll();
     
     if (success) {
       // إعادة تحميل الصفحة
@@ -200,12 +104,21 @@ const SimpleStoreManager = () => {
 
   // عرض معلومات التصحيح
   const showDebugInfo = () => {
-    const debugInfo = getDebugInfo();
-    console.log('🐛 Debug Info:', debugInfo);
+    const activeStore = getActiveStore();
+    console.log('🐛 Debug Info:', { 
+      currentStore, 
+      activeStore,
+      storesCount: stores.length,
+      localStorage: {
+        shopify_store: localStorage.getItem('shopify_store'),
+        simple_active_store: localStorage.getItem('simple_active_store'),
+        shopify_connected: localStorage.getItem('shopify_connected')
+      }
+    });
     
     toast({
       title: "معلومات التصحيح",
-      description: `تم طباعة المعلومات في وحدة التحكم. المتجر النشط: ${debugInfo.activeStore || 'لا يوجد'}`,
+      description: `تم طباعة المعلومات في وحدة التحكم. المتجر النشط: ${activeStore || 'لا يوجد'}`,
     });
   };
 
@@ -236,12 +149,12 @@ const SimpleStoreManager = () => {
 
       {/* الحالة الحالية */}
       <div className="mb-6">
-        {activeStore && isConnected ? (
+        {currentStore ? (
           <Alert className="border-green-200 bg-green-50">
             <CheckCircle className="h-4 w-4 text-green-600" />
             <AlertDescription className="text-green-800 flex items-center justify-between">
               <span>
-                <strong>متصل بـ:</strong> {activeStore}
+                <strong>متصل بـ:</strong> {currentStore}
               </span>
               <div className="flex gap-2">
                 <Button 
@@ -279,7 +192,7 @@ const SimpleStoreManager = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {stores.map((store) => {
           const hasToken = !!store.access_token && store.access_token !== 'null';
-          const isCurrentStore = store.shop === activeStore;
+          const isCurrentStore = store.shop === currentStore;
           const isConnecting = connectingStore === store.shop;
           
           return (

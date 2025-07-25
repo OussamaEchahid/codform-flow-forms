@@ -29,16 +29,19 @@ const Dashboard = () => {
     console.log('✅ Dashboard authentication check DISABLED - allowing access to everyone');
     
     // فقط تحقق من وجود متجر Shopify متصل
-    if (isConnected && activeStore) {
-      console.log('✅ Shopify store connected:', activeStore);
+    const shopFromStorage = localStorage.getItem('shopify_store');
+    const isConnectedFromStorage = localStorage.getItem('shopify_connected') === 'true';
+    
+    if (shopFromStorage && isConnectedFromStorage) {
+      console.log('✅ Shopify store connected:', shopFromStorage);
     } else {
-      console.log('⚠️ No Shopify store connected, but allowing dashboard access anyway');
+      console.log('⚠️ No active Shopify store found');
     }
     
     // تعيين أن التحقق من المصادقة تم (حتى لو لم نتحقق حقاً)
     setAuthenticationChecked(true);
     setUserHasStores(true); // افتراض أن المستخدم لديه متاجر
-  }, [isConnected, activeStore]);
+  }, []);
   
   useEffect(() => {
     // التحقق من معلمات URL للتوجيه من شوبيفاي
