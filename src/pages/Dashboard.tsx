@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { useSimpleShopify } from '@/hooks/useSimpleShopify';
 import { supabase } from '@/integrations/supabase/client';
+import NoStoreConnected from '@/components/dashboard/NoStoreConnected';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ const Dashboard = () => {
   const [searchParams] = useSearchParams();
   const [isFirstVisit, setIsFirstVisit] = useState(false);
   const [authenticationChecked, setAuthenticationChecked] = useState(false);
+  const [userHasStores, setUserHasStores] = useState<boolean | null>(null);
   
   // استخدام النظام المبسط
   const { activeStore, isConnected, switchToStore } = useSimpleShopify();
@@ -35,6 +37,26 @@ const Dashboard = () => {
       }
       
       console.log('✅ User authenticated:', session.user.id);
+      
+      // Check if user has any connected stores
+      const checkStores = async () => {
+        try {
+          const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/rest/v1/shopify_stores?user_id=eq.${session.user.id}&select=shop&limit=1`, {
+            headers: {
+              'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
+              'Authorization': `Bearer ${session.access_token}`
+            }
+          });
+          const stores = await response.json();
+          setUserHasStores(Array.isArray(stores) && stores.length > 0);
+        } catch (err) {
+          console.error('Error checking user stores:', err);
+          setUserHasStores(false);
+        }
+      };
+      
+      checkStores();
+      
       setAuthenticationChecked(true);
     };
     
@@ -104,6 +126,11 @@ const Dashboard = () => {
         </div>
       </div>
     );
+  }
+  
+  // Show no store connected page if user has no stores
+  if (userHasStores === false) {
+    return <NoStoreConnected />;
   }
   
   return (

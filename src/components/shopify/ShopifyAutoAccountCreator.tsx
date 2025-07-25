@@ -36,9 +36,12 @@ const ShopifyAutoAccountCreator: React.FC<ShopifyAutoAccountCreatorProps> = ({ o
       console.log(`🔍 Processing shop: ${shopDomain}`);
       setStatus(`جاري ربط متجر ${shopDomain}...`);
 
-      // For now, we'll use a placeholder email based on shop domain
-      // In production, this should come from Shopify's API or be stored during installation
-      const defaultEmail = `admin@${shopDomain.replace('.myshopify.com', '')}.store`;
+      // Try to get email from URL parameters first (from Shopify OAuth)
+      const urlParams = new URLSearchParams(window.location.search);
+      const shopifyEmail = urlParams.get('email');
+      
+      // Use Shopify provided email or generate based on shop domain
+      const defaultEmail = shopifyEmail || `admin@${shopDomain.replace('.myshopify.com', '')}.store`;
       
       console.log(`📧 Using default email: ${defaultEmail}`);
       setStatus('جاري إنشاء/ربط الحساب...');
