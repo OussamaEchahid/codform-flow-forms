@@ -24,44 +24,21 @@ const Dashboard = () => {
   // استخدام النظام المبسط
   const { activeStore, isConnected, switchToStore } = useSimpleShopify();
   
-  // Authentication check
+  // تم إلغاء التحقق من Authentication - Dashboard مفتوح للجميع
   useEffect(() => {
-    const checkAuthentication = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session?.user) {
-        console.log('🚫 No authenticated user found. Dashboard access denied.');
-        toast.error('يجب تسجيل الدخول للوصول إلى لوحة التحكم');
-        navigate('/shopify'); // Redirect to Shopify connection page
-        return;
-      }
-      
-      console.log('✅ User authenticated:', session.user.id);
-      
-      // Check if user has any connected stores
-      const checkStores = async () => {
-        try {
-          const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/rest/v1/shopify_stores?user_id=eq.${session.user.id}&select=shop&limit=1`, {
-            headers: {
-              'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
-              'Authorization': `Bearer ${session.access_token}`
-            }
-          });
-          const stores = await response.json();
-          setUserHasStores(Array.isArray(stores) && stores.length > 0);
-        } catch (err) {
-          console.error('Error checking user stores:', err);
-          setUserHasStores(false);
-        }
-      };
-      
-      checkStores();
-      
-      setAuthenticationChecked(true);
-    };
+    console.log('✅ Dashboard authentication check DISABLED - allowing access to everyone');
     
-    checkAuthentication();
-  }, [navigate]);
+    // فقط تحقق من وجود متجر Shopify متصل
+    if (isConnected && activeStore) {
+      console.log('✅ Shopify store connected:', activeStore);
+    } else {
+      console.log('⚠️ No Shopify store connected, but allowing dashboard access anyway');
+    }
+    
+    // تعيين أن التحقق من المصادقة تم (حتى لو لم نتحقق حقاً)
+    setAuthenticationChecked(true);
+    setUserHasStores(true); // افتراض أن المستخدم لديه متاجر
+  }, [isConnected, activeStore]);
   
   useEffect(() => {
     // التحقق من معلمات URL للتوجيه من شوبيفاي
