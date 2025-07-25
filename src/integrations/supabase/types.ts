@@ -441,6 +441,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      fix_user_ownership: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       get_product_form_and_offers: {
         Args: { shop_id: string; product_id: string }
         Returns: Json
