@@ -95,6 +95,7 @@ export type Database = {
           description: string | null
           id: string
           is_published: boolean
+          owner_user_id: string | null
           phone_prefix: string | null
           shop_id: string | null
           style: Json | null
@@ -110,6 +111,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_published?: boolean
+          owner_user_id?: string | null
           phone_prefix?: string | null
           shop_id?: string | null
           style?: Json | null
@@ -125,6 +127,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_published?: boolean
+          owner_user_id?: string | null
           phone_prefix?: string | null
           shop_id?: string | null
           style?: Json | null
@@ -243,6 +246,7 @@ export type Database = {
           shop_id: string
           styling: Json
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string
@@ -256,6 +260,7 @@ export type Database = {
           shop_id: string
           styling?: Json
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string
@@ -269,6 +274,7 @@ export type Database = {
           shop_id?: string
           styling?: Json
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -334,6 +340,7 @@ export type Database = {
           product_id: string
           shop_id: string
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           block_id?: string | null
@@ -344,6 +351,7 @@ export type Database = {
           product_id: string
           shop_id: string
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           block_id?: string | null
@@ -354,6 +362,7 @@ export type Database = {
           product_id?: string
           shop_id?: string
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -378,6 +387,7 @@ export type Database = {
           shop: string
           token_type: string | null
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           access_token?: string | null
@@ -391,6 +401,7 @@ export type Database = {
           shop: string
           token_type?: string | null
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           access_token?: string | null
@@ -404,6 +415,7 @@ export type Database = {
           shop?: string
           token_type?: string | null
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
