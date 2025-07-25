@@ -23,6 +23,7 @@ interface Store {
   is_active: boolean;
   updated_at: string;
   access_token?: string;
+  user_id?: string;
 }
 
 const SimpleStoreManager = () => {
@@ -52,10 +53,9 @@ const SimpleStoreManager = () => {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session?.user) {
-        console.log('No authenticated user found - redirecting to authentication');
+        console.log('No authenticated user found');
         setStores([]);
         
-        // Redirect to authentication if no user
         toast({
           title: "مطلوب تسجيل الدخول",
           description: "يرجى تسجيل الدخول أولاً لمشاهدة المتاجر",
@@ -64,8 +64,8 @@ const SimpleStoreManager = () => {
         return;
       }
       
-      // Directly query the stores table with user filter
-      const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/rest/v1/shopify_stores?user_id=eq.${session.user.id}&select=shop,is_active,updated_at,access_token&order=updated_at.desc`, {
+      // جلب المتاجر للمستخدم الحالي - استخدام fetch API للتجنب من مشاكل types
+      const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/rest/v1/shopify_stores?select=shop,is_active,updated_at,access_token,user_id&order=updated_at.desc`, {
         headers: {
           'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
           'Authorization': `Bearer ${session.access_token}`,
@@ -77,9 +77,52 @@ const SimpleStoreManager = () => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
-      const data = await response.json() as Store[];
-      setStores(data || []);
-      console.log(`📋 Loaded ${data?.length || 0} stores for user ${session.user.id}`);
+      const allStores = await response.json() as Store[];
+      
+      // تصفية المتاجر للمستخدم الحالي أو التي بدون مستخدم
+      const userStores = allStores.filter(store => 
+        store.user_id === session.user.id || !store.user_id
+      );
+      
+      // ربط المتاجر التي لا تحتوي على user_id بالمستخدم الحالي
+      const unlinkedStores = userStores.filter(store => !store.user_id);
+      
+      if (unlinkedStores.length > 0) {
+        console.log(`🔗 Linking ${unlinkedStores.length} unlinked stores to current user`);
+        
+        // تحديث المتاجر لربطها بالمستخدم
+        for (const store of unlinkedStores) {
+          try {
+            await fetch(`https://trlklwixfeaexhydzaue.supabase.co/rest/v1/shopify_stores?shop=eq.${store.shop}`, {
+              method: 'PATCH',
+              headers: {
+                'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
+                'Authorization': `Bearer ${session.access_token}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                user_id: session.user.id,
+                updated_at: new Date().toISOString()
+              })
+            });
+            
+            // تحديث المتجر محلياً
+            store.user_id = session.user.id;
+          } catch (linkError) {
+            console.error(`Failed to link store ${store.shop}:`, linkError);
+          }
+        }
+      }
+      
+      // عرض المتاجر المرتبطة بالمستخدم فقط
+      const finalStores = userStores.map(store => ({
+        ...store,
+        user_id: store.user_id || session.user.id
+      }));
+      
+      setStores(finalStores);
+      
+      console.log(`📋 Loaded ${finalStores?.length || 0} stores for user ${session.user.id}`);
       
     } catch (error) {
       console.error('Error loading stores:', error);

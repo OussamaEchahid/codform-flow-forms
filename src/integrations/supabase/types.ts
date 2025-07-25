@@ -379,6 +379,7 @@ export type Database = {
           access_token: string | null
           created_at: string
           currency: string | null
+          email: string | null
           id: string
           is_active: boolean
           money_format: string | null
@@ -393,6 +394,7 @@ export type Database = {
           access_token?: string | null
           created_at?: string
           currency?: string | null
+          email?: string | null
           id?: string
           is_active?: boolean
           money_format?: string | null
@@ -407,6 +409,7 @@ export type Database = {
           access_token?: string | null
           created_at?: string
           currency?: string | null
+          email?: string | null
           id?: string
           is_active?: boolean
           money_format?: string | null
@@ -434,9 +437,17 @@ export type Database = {
         }
         Returns: string
       }
+      fix_form_store_links: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       get_product_form_and_offers: {
         Args: { shop_id: string; product_id: string }
         Returns: Json
+      }
+      get_store_access_token: {
+        Args: { p_shop: string }
+        Returns: string
       }
       get_user_stores: {
         Args: { p_user_id: string }
@@ -446,6 +457,21 @@ export type Database = {
           updated_at: string
           access_token: string
         }[]
+      }
+      get_user_stores_by_email: {
+        Args: { p_email: string }
+        Returns: {
+          shop: string
+          user_id: string
+          access_token: string
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }[]
+      }
+      link_store_to_user: {
+        Args: { p_shop: string; p_user_id: string; p_email?: string }
+        Returns: boolean
       }
       update_default_store_connection: {
         Args: Record<PropertyKey, never>
