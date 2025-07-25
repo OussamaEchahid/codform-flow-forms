@@ -30,6 +30,8 @@ import PlansSettings from "@/pages/PlansSettings";
 import QuantityOffers from "@/pages/QuantityOffers";
 import LandingPages from "@/pages/LandingPages";
 import MyStores from "@/pages/MyStores";
+import Login from "@/pages/Login";
+import ShopifyAccountLink from "@/pages/ShopifyAccountLink";
 
 // Components
 import { Toaster } from "@/components/ui/toaster"; 
@@ -135,6 +137,9 @@ function AppRoutes() {
     <Routes>
       <Route path="/" element={<Index />} />
       <Route path="/shopify" element={<Shopify />} />
+      <Route path="/shopify-connect" element={<Shopify />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/shopify-account-link" element={<ShopifyAccountLink />} />
       
       <Route path="/shopify-redirect" element={<ShopifyRedirect />} />
       <Route path="/auth/*" element={<Auth />} />
