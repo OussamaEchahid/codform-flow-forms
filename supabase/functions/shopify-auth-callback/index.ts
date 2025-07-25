@@ -183,11 +183,11 @@ serve(async (req) => {
       console.log("💾 Saving shop data to database...");
       await saveShopData(cleanedShop, tokenData);
       
-      // إعادة توجيه للصفحة الرئيسية مع معاملات الاتصال الناجح
+      // إعادة توجيه للـ Dashboard مباشرة بدلاً من الصفحة الرئيسية
       const appUrl = req.headers.get('origin') || 'https://codmagnet.com';
-      const redirectUrl = `${appUrl}/?connected=true&shop=${encodeURIComponent(cleanedShop)}`;
+      const redirectUrl = `${appUrl}/dashboard?connected=true&shop=${encodeURIComponent(cleanedShop)}`;
       
-      console.log(`🔄 Redirecting to: ${redirectUrl}`);
+      console.log(`🔄 Redirecting to Dashboard: ${redirectUrl}`);
       
       return new Response(null, {
         status: 302,
