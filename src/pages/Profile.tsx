@@ -62,33 +62,25 @@ const Profile = () => {
 
       setShopEmailLoading(true);
       try {
-        // جلب بيانات المتجر من قاعدة البيانات المحلية
-        const { data: shopData } = await supabase
-          .from('shopify_stores')
-          .select('access_token')
-          .eq('shop', activeStore)
-          .single();
+        // استخدام edge function الجديد لجلب معلومات المتجر
+        const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-shop-info`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+          },
+          body: JSON.stringify({
+            shop: activeStore
+          })
+        });
 
-        if (shopData?.access_token && shopData?.access_token !== 'placeholder_token') {
-          // جلب بيانات المتجر من Shopify API
-          const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-products`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
-            },
-            body: JSON.stringify({
-              shop: activeStore,
-              endpoint: 'shop.json'
-            })
-          });
-
-          if (response.ok) {
-            const result = await response.json();
-            if (result.shop?.email) {
-              setShopEmail(result.shop.email);
-            }
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.shop?.email) {
+            setShopEmail(result.shop.email);
           }
+        } else {
+          console.error('خطأ في جلب معلومات المتجر:', response.status, response.statusText);
         }
       } catch (error) {
         console.error('Error fetching shop data:', error);
