@@ -32,41 +32,47 @@ export const useShopifyStoreSync = () => {
     try {
       setLoading(true);
       
-      // Get current session
+      // First try to link active stores to current user
       const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        try {
+          // Use direct SQL call since rpc function typing isn't available
+          const result = await fetch('https://trlklwixfeaexhydzaue.supabase.co/rest/v1/rpc/link_active_store_to_user', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
+              'Authorization': `Bearer ${session.access_token}`
+            }
+          });
+          if (result.ok) {
+            console.log('✅ Successfully linked active stores to user');
+          }
+        } catch (linkError) {
+          console.log('Could not link stores to user:', linkError);
+        }
+      }
       
-      // Use direct API call to avoid TypeScript issues
-      const apiUrl = 'https://trlklwixfeaexhydzaue.supabase.co/rest/v1/shopify_stores';
-      const headers: Record<string, string> = {
-        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
-        'Content-Type': 'application/json',
-        'Prefer': 'return=representation'
-      };
+      // Now fetch stores using the Supabase client directly
+      const { data: storesList, error } = await supabase
+        .from('shopify_stores')
+        .select('shop, is_active, updated_at, access_token')
+        .order('updated_at', { ascending: false });
 
-      // Add authorization header if user is authenticated
-      if (session?.access_token) {
-        headers['Authorization'] = `Bearer ${session.access_token}`;
+      if (error) {
+        throw error;
       }
 
-      const response = await fetch(`${apiUrl}?select=shop,is_active,updated_at&order=updated_at.desc`, {
-        headers
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const storesList = await response.json() as ShopifyStore[];
-      setStores(storesList);
+      setStores(storesList || []);
       
       // Update current store
       const activeStore = getActiveStore();
       setCurrentStore(activeStore);
       
-      console.log(`📋 Loaded ${storesList.length} stores, active: ${activeStore}`);
+      console.log(`📋 تم تحميل ${(storesList || []).length} متجر، المتجر النشط: ${activeStore}`);
       
     } catch (error) {
-      console.error('❌ Error in loadStores:', error);
+      console.error('❌ خطأ في تحميل المتاجر:', error);
       toast.error('فشل في تحميل المتاجر');
     } finally {
       setLoading(false);
