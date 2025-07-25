@@ -183,33 +183,16 @@ serve(async (req) => {
       console.log("💾 Saving shop data to database...");
       await saveShopData(cleanedShop, tokenData);
       
-      // إعادة توجيه JavaScript فوري للتطبيق الأصلي
+      // إعادة توجيه مباشر للتطبيق الأصلي
       const appUrl = req.headers.get('origin') || 'https://codmagnet.com';
       const redirectUrl = `${appUrl}/dashboard?connected=true&shop=${encodeURIComponent(cleanedShop)}`;
       
-      return new Response(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="UTF-8">
-          <title>تم الاتصال بنجاح</title>
-          <style>
-            body { font-family: Arial; text-align: center; padding: 50px; background: #e8f5e8; }
-            h1 { color: #4caf50; }
-          </style>
-        </head>
-        <body>
-          <h1>✅ تم الاتصال بالمتجر بنجاح</h1>
-          <p>جاري إعادة التوجيه...</p>
-          <script>
-            console.log('🎉 Shopify connection successful for: ${cleanedShop}');
-            window.location.href = '${redirectUrl}';
-          </script>
-        </body>
-        </html>
-      `, {
+      console.log(`🔄 Redirecting to: ${redirectUrl}`);
+      
+      return new Response(null, {
+        status: 302,
         headers: { 
-          "Content-Type": "text/html; charset=utf-8",
+          "Location": redirectUrl,
           "Cache-Control": "no-store, no-cache, must-revalidate",
           "Pragma": "no-cache"
         }

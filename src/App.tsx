@@ -176,6 +176,30 @@ function AppRoutes() {
 }
 
 function App() {
+  // Check for successful Shopify connection in URL params
+  React.useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const connected = urlParams.get('connected');
+    const shopParam = urlParams.get('shop');
+    
+    if (connected === 'true' && shopParam) {
+      console.log('🎉 Shopify connection successful, updating active store');
+      
+      // Update the active store
+      shopifyConnectionManager.setActiveStore(shopParam);
+      
+      // Show success toast message
+      toast.success(`✅ نجح الاتصال بالمتجر ${shopParam}`, {
+        duration: 4000,
+        position: 'top-right'
+      });
+      
+      // Clean up URL
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
+    }
+  }, []);
+
   // Clean placeholder tokens and validate connection on startup
   React.useEffect(() => {
     console.log("App mounted, cleaning tokens and validating connection");
