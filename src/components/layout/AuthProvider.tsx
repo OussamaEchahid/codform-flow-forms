@@ -5,6 +5,7 @@ import { detectCurrentShop, parseShopifyParams } from '@/utils/shopify-helpers';
 import { toast } from 'sonner';
 import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
 import { shopifyConnectionService } from '@/services/ShopifyConnectionService';
+import ShopifyAutoAccountCreator from '@/components/shopify/ShopifyAutoAccountCreator';
 
 interface AuthProviderProps {
   children: React.ReactNode;
@@ -38,6 +39,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [shop, setShop] = useState<string | null>(null);
   const [shops, setShops] = useState<string[] | null>(null);
   const [shopifyConnected, setShopifyConnected] = useState(false);
+  const [showAutoCreator, setShowAutoCreator] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState<number>(0);
   const syncAttempts = useRef(0);
   const lastErrorHash = useRef<string>('');
@@ -392,10 +394,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       try {
         setLoading(true);
         
-        // Try URL parameters first (highest priority)
+        // Check for Shopify connection and auto account creation
         const { shopDomain, isShopifyRequest } = parseShopifyParams();
-        
-        if (shopDomain && isShopifyRequest) {
+        if (shopDomain && isShopifyRequest && !user) {
+          console.log('🔗 Shopify connection detected, starting auto account creation:', shopDomain);
+          setShowAutoCreator(true);
+          setLoading(false);
+          return; // Don't continue with normal initialization
+        } else if (shopDomain && isShopifyRequest) {
           console.log("URL contains Shopify parameters:", shopDomain);
           // Clear any other stores to avoid confusion
           shopifyConnectionManager.clearAllStores();
@@ -556,19 +562,36 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const contextValue = {
+    user,
+    loading,
+    shopifyConnected,
+    shop,
+    shops,
+    setShop: handleSetShop,
+    signIn,
+    signOut,
+  };
+
+  // Show auto account creator for Shopify users without accounts
+  if (showAutoCreator) {
+    return (
+      <AuthContext.Provider value={contextValue}>
+        <ShopifyAutoAccountCreator 
+          onComplete={(success) => {
+            setShowAutoCreator(false);
+            if (success) {
+              // Reload the session after successful account creation
+              window.location.reload();
+            }
+          }} 
+        />
+      </AuthContext.Provider>
+    );
+  }
+
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        loading,
-        shopifyConnected,
-        shop,
-        shops,
-        setShop: handleSetShop,
-        signIn,
-        signOut,
-      }}
-    >
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
