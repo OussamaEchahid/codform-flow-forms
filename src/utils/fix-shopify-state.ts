@@ -25,7 +25,7 @@ export const fixShopifyConnectionState = () => {
   console.log('🔄 Please reconnect your Shopify store');
   
   // إعادة تحميل الصفحة لبدء نظيف
-  window.location.href = '/shopify-connect';
+  window.location.href = '/';
 };
 
 // تصدير للاستخدام في وحدة التحكم
