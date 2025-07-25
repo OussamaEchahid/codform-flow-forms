@@ -48,10 +48,21 @@ const ShopifyProductSelection: React.FC<ShopifyProductSelectionProps> = ({
   useEffect(() => {
     const fetchProducts = async () => {
       try {
+        // التحقق من وجود متجر نشط قبل تحميل المنتجات
+        const activeShop = shop || localStorage.getItem('shopify_store');
+        if (!activeShop) {
+          console.log('⚠️ لا يوجد متجر نشط، تخطي تحميل المنتجات');
+          toast.error(language === 'ar' 
+            ? 'لا يوجد متجر Shopify نشط. يرجى الاتصال بمتجرك أولاً'
+            : 'No active Shopify store. Please connect your store first');
+          return;
+        }
+
+        console.log('🚀 بدء تحميل المنتجات للمتجر:', activeShop);
         await loadProducts(false);
-        console.log("Products loaded successfully");
+        console.log("✅ تم تحميل المنتجات بنجاح");
       } catch (error) {
-        console.error("Error loading products:", error);
+        console.error("❌ خطأ في تحميل المنتجات:", error);
         toast.error(language === 'ar' 
           ? 'فشل في تحميل المنتجات. يرجى المحاولة مرة أخرى'
           : 'Failed to load products. Please try again');
@@ -59,7 +70,7 @@ const ShopifyProductSelection: React.FC<ShopifyProductSelectionProps> = ({
     };
     
     fetchProducts();
-  }, [loadProducts]);
+  }, [loadProducts, shop]);
   
   // Update local products when selectedProducts prop changes
   useEffect(() => {

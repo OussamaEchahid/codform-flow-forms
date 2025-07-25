@@ -98,7 +98,6 @@ export const useShopify = () => {
         const { data, error } = await shopifyStores()
           .select('*')
           .eq('shop', shop)
-          .eq('is_active', true)
           .order('updated_at', { ascending: false })
           .limit(1);
 
@@ -174,7 +173,6 @@ export const useShopify = () => {
       const { data: tokenData, error: tokenError } = await shopifyStores()
         .select('*')
         .eq('shop', shop)
-        .eq('is_active', true)
         .order('updated_at', { ascending: false })
         .limit(1);
 

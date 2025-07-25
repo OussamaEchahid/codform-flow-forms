@@ -51,71 +51,72 @@ export class FormManagementService {
 
   // Fetch all forms from database
   async fetchForms(): Promise<FormData[]> {
-    let shopId = this.getActiveShopId();
-    
-    // Try multiple sources for shop ID as fallback
-    if (!shopId) {
-      shopId = localStorage.getItem('ACTIVE_STORE_KEY') || 
-               localStorage.getItem('active_shop') ||
-               localStorage.getItem('shopify_store');
-    }
-    
-    if (!shopId) {
-      console.error('No active shop ID found in any location');
-      throw new Error('لم يتم العثور على متجر نشط');
-    }
-
     try {
-      console.log('🔍 Fetching forms for shop:', shopId);
-      console.log('📍 Current localStorage shops:', {
-        ACTIVE_STORE_KEY: localStorage.getItem('ACTIVE_STORE_KEY'),
-        active_shop: localStorage.getItem('active_shop'),
-        shopify_store: localStorage.getItem('shopify_store')
+      // الحصول على معلومات المستخدم والمتجر
+      const { data: { user } } = await supabase.auth.getUser();
+      const shopId = this.getActiveShopId();
+      
+      console.log('🔍 بدء جلب النماذج مع:', { 
+        userId: user?.id, 
+        shopId,
+        isAnonymous: user?.is_anonymous 
       });
       
-      // الحصول على المستخدم الحالي
-      const { data: { user } } = await supabase.auth.getUser();
-      
       const { data, error } = await this.fetchWithRetry(async () => {
-        // البحث عن النماذج بطريقتين: بـ shop_id أو بـ user_id إذا كان المستخدم موجود
-        let query = supabase
-          .from('forms')
-          .select('*');
-          
-        if (user) {
-          // إذا كان المستخدم مسجل دخول، البحث بـ user_id أولاً ثم shop_id
-          query = query.or(`user_id.eq.${user.id},shop_id.eq.${shopId}`);
-        } else {
-          // إذا لم يكن مسجل دخول، البحث بـ shop_id فقط
+        let query = supabase.from('forms').select('*');
+        
+        // استراتيجية البحث المحسّنة
+        if (shopId && user) {
+          // إذا كان لدينا كل من shop_id و user_id، ابحث بـ shop_id أولاً
+          console.log('🔍 البحث بـ shop_id و user_id');
+          query = query.or(`shop_id.eq.${shopId},user_id.eq.${user.id}`);
+        } else if (shopId) {
+          // إذا كان لدينا shop_id فقط
+          console.log('🔍 البحث بـ shop_id فقط:', shopId);
           query = query.eq('shop_id', shopId);
+        } else if (user && !user.is_anonymous) {
+          // إذا كان لدينا user_id فقط وليس anonymous
+          console.log('🔍 البحث بـ user_id فقط:', user.id);
+          query = query.eq('user_id', user.id);
+        } else {
+          // لا توجد معايير بحث صالحة
+          console.log('⚠️ لا توجد معايير بحث صالحة');
+          return { data: [], error: null };
         }
         
         return await query.order('created_at', { ascending: false });
       });
       
       if (error) {
-        console.error('Error fetching forms:', error);
-        throw new Error('خطأ في جلب النماذج');
+        console.error('❌ خطأ في جلب النماذج:', error);
+        toast.error('خطأ في جلب النماذج من قاعدة البيانات');
+        return [];
       }
       
-      console.log(`✅ Found ${data?.length || 0} forms for shop: ${shopId}`);
-      console.log('📝 Forms data:', data?.map(f => ({ id: f.id, title: f.title, shop_id: f.shop_id, user_id: f.user_id })));
+      console.log(`✅ تم العثور على ${data?.length || 0} نموذج`);
+      if (data && data.length > 0) {
+        console.log('📝 تفاصيل النماذج:', data.map(f => ({ 
+          id: f.id, 
+          title: f.title, 
+          shop_id: f.shop_id, 
+          user_id: f.user_id,
+          is_published: f.is_published
+        })));
+      }
       
-      // Transform data to match FormData interface
-      const formattedData = data.map(form => ({
+      // تحويل البيانات لتتماشى مع FormData interface
+      const formattedData = (data || []).map(form => ({
         ...form,
         data: Array.isArray(form.data) ? form.data as unknown as FormStep[] : [],
         style: (form.style as unknown as FormStyle) || undefined,
         isPublished: form.is_published
       }));
       
-      // Clear any cached data since we have fresh data
-      localStorage.removeItem('cached_forms');
-      
       return formattedData;
     } catch (error) {
-      console.error('Failed to fetch forms after retries:', error);
-      throw error;
+      console.error('❌ فشل في جلب النماذج بعد المحاولات:', error);
+      toast.error('فشل في تحميل النماذج');
+      return [];
     }
   }
 
