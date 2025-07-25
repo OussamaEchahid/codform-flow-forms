@@ -1,0 +1,1 @@
+UPDATE shopify_stores SET is_active = true WHERE shop = 'bestform-app.myshopify.com';
