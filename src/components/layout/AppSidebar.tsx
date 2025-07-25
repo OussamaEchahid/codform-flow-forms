@@ -1,14 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, FileText, ShoppingCart, Settings, BarChart, Gift, ImageIcon, Globe, LogOut, RefreshCcw, ShoppingBag, ChevronDown, ListOrdered, AlertTriangle, Layers, Users, Shield, Crown, Package } from 'lucide-react';
+import { LayoutDashboard, FileText, ShoppingCart, Settings, BarChart, Gift, ImageIcon, Globe, LogOut, RefreshCcw, ShoppingBag, ChevronDown, ListOrdered, AlertTriangle, Layers, Users, Shield, Crown, Package, User, CreditCard } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '@/lib/auth';
 const AppSidebar = () => {
   const {
     t,
@@ -17,10 +18,20 @@ const AppSidebar = () => {
   } = useI18n();
   const navigate = useNavigate();
   const location = useLocation();
+  const { shop } = useAuth();
+  const [user, setUser] = useState<any>(null);
 
   // State for collapsible menus
   const [isOrdersOpen, setIsOrdersOpen] = useState(location.pathname.startsWith('/orders'));
   const [isSettingsOpen, setIsSettingsOpen] = useState(location.pathname.startsWith('/settings'));
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      setUser(currentUser);
+    };
+    getUser();
+  }, []);
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
@@ -86,21 +97,64 @@ const AppSidebar = () => {
             <span className="text-2xl font-bold text-[#9b87f5]">COD</span>
             <span className="text-2xl font-bold text-white">Magnet</span>
           </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="text-white">
-                <Globe className="h-5 w-5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setLanguage('en')} className={language === 'en' ? 'bg-muted' : ''}>
-                English
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setLanguage('ar')} className={language === 'ar' ? 'bg-muted' : ''}>
-                العربية
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="flex items-center gap-2">
+            {/* Language Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="text-white">
+                  <Globe className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setLanguage('en')} className={language === 'en' ? 'bg-muted' : ''}>
+                  English
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setLanguage('ar')} className={language === 'ar' ? 'bg-muted' : ''}>
+                  العربية
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* User Dropdown */}
+            {user && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="text-white flex items-center gap-2 px-3">
+                    <div className="w-8 h-8 bg-[#9b87f5] rounded-full flex items-center justify-center">
+                      <User className="h-4 w-4 text-white" />
+                    </div>
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-64">
+                  <div className="px-3 py-2">
+                    <p className="text-sm font-medium">{user.email}</p>
+                    {shop && (
+                      <p className="text-xs text-muted-foreground">{shop}</p>
+                    )}
+                  </div>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => navigate('/my-stores')}>
+                    <ShoppingBag className="mr-2 h-4 w-4" />
+                    {language === 'ar' ? 'متاجري' : 'My Stores'}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/settings/plans')}>
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    {language === 'ar' ? 'الخطط' : 'Plans'}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/profile')}>
+                    <User className="mr-2 h-4 w-4" />
+                    {language === 'ar' ? 'البروفايل' : 'Profile'}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    {t('logout')}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
         </div>
         <nav>
           <ul className="space-y-2">

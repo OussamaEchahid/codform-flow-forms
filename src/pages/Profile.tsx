@@ -8,12 +8,12 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, ArrowLeft, User, Lock, Mail } from 'lucide-react';
 import { toast } from 'sonner';
-import { useAuth } from '@/lib/auth';
 
 const Profile = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const [loading, setLoading] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [updateLoading, setUpdateLoading] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -21,10 +21,32 @@ const Profile = () => {
   const [userMetadata, setUserMetadata] = useState<any>(null);
 
   useEffect(() => {
-    if (user) {
-      setUserMetadata(user.user_metadata || {});
-    }
-  }, [user]);
+    const getUser = async () => {
+      try {
+        const { data: { user: currentUser }, error } = await supabase.auth.getUser();
+        if (error) {
+          console.error('Error getting user:', error);
+          navigate('/login');
+          return;
+        }
+        
+        if (!currentUser) {
+          navigate('/login');
+          return;
+        }
+
+        setUser(currentUser);
+        setUserMetadata(currentUser.user_metadata || {});
+      } catch (error) {
+        console.error('Error:', error);
+        navigate('/login');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    getUser();
+  }, [navigate]);
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,7 +67,7 @@ const Profile = () => {
       return;
     }
 
-    setLoading(true);
+    setUpdateLoading(true);
 
     try {
       // Update password
@@ -81,7 +103,7 @@ const Profile = () => {
       console.error('Password update error:', error);
       setError(error.message || 'حدث خطأ أثناء تغيير كلمة المرور');
     } finally {
-      setLoading(false);
+      setUpdateLoading(false);
     }
   };
 
@@ -94,7 +116,7 @@ const Profile = () => {
     }
   };
 
-  if (!user) {
+  if (loading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -214,10 +236,10 @@ const Profile = () => {
 
                 <Button
                   type="submit"
-                  disabled={loading || !newPassword || !confirmPassword}
+                  disabled={updateLoading || !newPassword || !confirmPassword}
                   className="w-full"
                 >
-                  {loading ? (
+                  {updateLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       جاري التحديث...
