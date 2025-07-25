@@ -15,12 +15,12 @@ serve(async (req) => {
   try {
     console.log('🚀 Auto Account Creation function started');
     
-    const { shop, email, access_token } = await req.json();
+    const { shop, access_token } = await req.json();
     
-    if (!shop || !email) {
-      console.error('❌ Missing required fields: shop or email');
+    if (!shop) {
+      console.error('❌ Missing required field: shop');
       return new Response(
-        JSON.stringify({ success: false, error: 'Shop and email are required' }),
+        JSON.stringify({ success: false, error: 'Shop is required' }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 400 
@@ -28,7 +28,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`🔄 Processing auto account creation for ${email} and shop ${shop}`);
+    console.log(`🔄 Processing auto account creation for shop ${shop}`);
 
     // Initialize Supabase client with service role key for admin operations
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -40,6 +40,40 @@ serve(async (req) => {
         persistSession: false
       }
     });
+
+    // Get real email from Shopify API
+    let realEmail: string;
+    
+    if (access_token) {
+      try {
+        console.log('📧 Fetching real email from Shopify API...');
+        
+        const shopInfoUrl = `https://${shop}/admin/api/2024-04/shop.json`;
+        const shopInfoResponse = await fetch(shopInfoUrl, {
+          headers: {
+            'X-Shopify-Access-Token': access_token,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (shopInfoResponse.ok) {
+          const shopInfoData = await shopInfoResponse.json();
+          realEmail = shopInfoData.shop.email;
+          console.log(`✅ Got real email from Shopify: ${realEmail}`);
+        } else {
+          throw new Error(`Shopify API error: ${shopInfoResponse.status}`);
+        }
+      } catch (error) {
+        console.error('❌ Failed to get email from Shopify:', error);
+        // Fallback to shop-based email if API fails
+        realEmail = `admin@${shop.replace('.myshopify.com', '')}.store`;
+        console.log(`🔄 Using fallback email: ${realEmail}`);
+      }
+    } else {
+      // If no access token, use shop-based email
+      realEmail = `admin@${shop.replace('.myshopify.com', '')}.store`;
+      console.log(`⚠️ No access token provided, using fallback email: ${realEmail}`);
+    }
 
     // Check if user already exists
     const { data: existingUsers, error: getUserError } = await supabase.auth.admin.listUsers();
@@ -55,27 +89,28 @@ serve(async (req) => {
       );
     }
 
-    const existingUser = existingUsers.users.find(user => user.email === email);
+    const existingUser = existingUsers.users.find(user => user.email === realEmail);
     let userId: string;
 
     if (existingUser) {
-      console.log(`👤 User already exists: ${email}`);
+      console.log(`👤 User already exists: ${realEmail}`);
       userId = existingUser.id;
     } else {
-      console.log(`➕ Creating new user for: ${email}`);
+      console.log(`➕ Creating new user for: ${realEmail}`);
       
       // Generate a temporary random password
       const tempPassword = `Temp${Math.random().toString(36).slice(-8)}!${Date.now().toString().slice(-4)}`;
       
       // Create new user with admin API
       const { data: newUser, error: createUserError } = await supabase.auth.admin.createUser({
-        email: email,
+        email: realEmail,
         password: tempPassword,
         email_confirm: true, // Auto-confirm email for Shopify users
         user_metadata: {
           created_via: 'shopify_auto',
           shop: shop,
-          temp_password: true
+          temp_password: true,
+          real_shopify_email: true
         }
       });
 
@@ -100,7 +135,7 @@ serve(async (req) => {
       .upsert({
         shop: shop,
         user_id: userId,
-        email: email,
+        email: realEmail,
         access_token: access_token || null,
         is_active: true,
         updated_at: new Date().toISOString()

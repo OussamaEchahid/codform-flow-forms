@@ -36,22 +36,33 @@ const ShopifyAutoAccountCreator: React.FC<ShopifyAutoAccountCreatorProps> = ({ o
       console.log(`🔍 Processing shop: ${shopDomain}`);
       setStatus(`جاري ربط متجر ${shopDomain}...`);
 
-      // Try to get email from URL parameters first (from Shopify OAuth)
-      const urlParams = new URLSearchParams(window.location.search);
-      const shopifyEmail = urlParams.get('email');
-      
-      // Use Shopify provided email or generate based on shop domain
-      const defaultEmail = shopifyEmail || `admin@${shopDomain.replace('.myshopify.com', '')}.store`;
-      
-      console.log(`📧 Using default email: ${defaultEmail}`);
+      // Try to get access token from stored store data
+      let accessToken = null;
+      try {
+        // Try to get access token from database
+        const { data: storeData } = await supabase
+          .from('shopify_stores')
+          .select('access_token')
+          .eq('shop', shopDomain)
+          .single();
+        
+        if (storeData?.access_token) {
+          accessToken = storeData.access_token;
+          console.log(`🔑 Found access token for store: ${shopDomain}`);
+        } else {
+          console.log(`⚠️ No access token found for store: ${shopDomain}`);
+        }
+      } catch (error) {
+        console.log(`⚠️ Could not retrieve access token: ${error}`);
+      }
+
       setStatus('جاري إنشاء/ربط الحساب...');
 
       // Call auto account creation function
       const { data: autoAccountResult, error: autoAccountError } = await supabase.functions.invoke('auto-account-creation', {
         body: {
           shop: shopDomain,
-          email: defaultEmail,
-          access_token: null
+          access_token: accessToken
         }
       });
 
