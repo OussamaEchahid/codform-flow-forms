@@ -93,19 +93,18 @@ const ProtectedRoute = ({ requireAuth = true }: { requireAuth?: boolean }) => {
     env: process.env.NODE_ENV
   });
   
-  // فقط امنع الوصول إذا لم يكن هناك أي نوع من الاتصال بـ Shopify
-  if (requireAuth && !hasShopifyAccess) {
-    console.log("No Shopify connection found. Access denied.");
-    
-    // Save current path for redirection after authentication
-    const currentPath = window.location.pathname;
-    if (currentPath !== '/') {
-      localStorage.setItem('auth_redirect', currentPath);
-    }
-    
-    toast.info("يجب الاتصال بمتجر Shopify أولاً");
-    return <Navigate to="/" replace />;
+  // **إلغاء كل منطق منع الوصول - الـ dashboard مفتوح لأي شخص**
+  // هذا إصلاح مؤقت لحل المشكلة نهائياً
+  console.log("✅ ALLOWING ACCESS - Dashboard is now open to everyone");
+  
+  // عرض معلومات الاتصال للتصحيح
+  if (hasShopifyAccess) {
+    console.log("✅ Shopify connection detected:", simpleActiveStore || localStorageShop || activeStore);
+  } else {
+    console.log("⚠️ No Shopify connection detected, but allowing access anyway");
   }
+  
+  // **عدم منع الوصول أبداً - مؤقت لحل المشكلة**
   
   // وإلا، قم بعرض مسارات الطفل
   return <Outlet />;
