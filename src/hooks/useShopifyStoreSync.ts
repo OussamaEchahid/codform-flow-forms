@@ -27,53 +27,52 @@ export const useShopifyStoreSync = () => {
     return null;
   }, []);
 
-  // Load stores from database
+  // Load stores from database - إصدار مُبسط بدون تعقيدات
   const loadStores = useCallback(async () => {
     try {
       setLoading(true);
       
-      // First try to link active stores to current user
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        try {
-          // Use direct SQL call since rpc function typing isn't available
-          const result = await fetch('https://trlklwixfeaexhydzaue.supabase.co/rest/v1/rpc/link_active_store_to_user', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
-              'Authorization': `Bearer ${session.access_token}`
-            }
-          });
-          if (result.ok) {
-            console.log('✅ Successfully linked active stores to user');
-          }
-        } catch (linkError) {
-          console.log('Could not link stores to user:', linkError);
-        }
-      }
+      console.log('🔄 جاري تحميل المتاجر من قاعدة البيانات...');
       
-      // Now fetch stores using the Supabase client directly
+      // جلب جميع المتاجر مباشرة بدون شروط معقدة
       const { data: storesList, error } = await supabase
         .from('shopify_stores')
         .select('shop, is_active, updated_at, access_token')
+        .eq('is_active', true)
+        .not('access_token', 'is', null)
+        .neq('access_token', '')
+        .neq('access_token', 'placeholder_token')
         .order('updated_at', { ascending: false });
 
       if (error) {
+        console.error('❌ خطأ في جلب المتاجر:', error);
         throw error;
       }
 
+      console.log('📋 المتاجر المستلمة من قاعدة البيانات:', storesList);
+      
       setStores(storesList || []);
       
-      // Update current store
+      // تحديث المتجر النشط
       const activeStore = getActiveStore();
       setCurrentStore(activeStore);
       
-      console.log(`📋 تم تحميل ${(storesList || []).length} متجر، المتجر النشط: ${activeStore}`);
+      console.log(`✅ تم تحميل ${(storesList || []).length} متجر، المتجر النشط: ${activeStore}`);
       
     } catch (error) {
       console.error('❌ خطأ في تحميل المتاجر:', error);
       toast.error('فشل في تحميل المتاجر');
+      // في حالة الخطأ، نحاول جلب المتجر من localStorage على الأقل
+      const activeStore = getActiveStore();
+      if (activeStore) {
+        setStores([{
+          shop: activeStore,
+          is_active: true,
+          updated_at: new Date().toISOString(),
+          access_token: 'unknown'
+        }]);
+        setCurrentStore(activeStore);
+      }
     } finally {
       setLoading(false);
     }
