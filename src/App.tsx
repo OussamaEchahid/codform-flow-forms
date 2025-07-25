@@ -72,9 +72,8 @@ const ProtectedRoute = ({ requireAuth = true }: { requireAuth?: boolean }) => {
   const hasShopifyAccess = shopifyConnected || localStorageConnected || !!activeStore || !!localStorageShop;
   const isAuthenticated = !!user; // التحقق مما إذا كان المستخدم مصادقًا عليه
   
-  // Allow access if ANY indication of connection exists
-  // Including a bypass flag for better reliability
-  const hasAccess = isAuthenticated || hasShopifyAccess || (process.env.NODE_ENV === 'development') || bypassAuth;
+  // اجعل Shopify connection كافياً للوصول حتى بدون user authentication
+  const hasAccess = hasShopifyAccess || isAuthenticated || (process.env.NODE_ENV === 'development') || bypassAuth;
   
   console.log("Protected route check:", {
     authContextConnected: shopifyConnected,
@@ -89,10 +88,9 @@ const ProtectedRoute = ({ requireAuth = true }: { requireAuth?: boolean }) => {
     env: process.env.NODE_ENV
   });
   
-  // Only redirect if we have absolutely no indication of access rights
-  // Allow access if Shopify store is connected, even without user authentication
-  if (requireAuth && !hasAccess && !hasShopifyAccess) {
-    console.log("No authenticated user found. Dashboard access denied.");
+  // السماح بالوصول إذا كان متجر Shopify متصل حتى بدون user authentication
+  if (requireAuth && !hasShopifyAccess && !isAuthenticated) {
+    console.log("No Shopify connection or authenticated user found. Access denied.");
     
     // Save current path for redirection after authentication
     const currentPath = window.location.pathname;
@@ -184,6 +182,12 @@ function App() {
     
     if (connected === 'true' && shopParam) {
       console.log('🎉 Shopify connection successful for shop:', shopParam);
+      
+      // استخدم النظام المبسط لحفظ المتجر
+      import('@/lib/shopify/simple-connection-manager').then(({ simpleShopifyConnectionManager }) => {
+        simpleShopifyConnectionManager.setActiveStore(shopParam);
+        console.log('✅ Shop saved using simple connection manager');
+      });
       
       // Show success toast
       toast.success(`✅ نجح الاتصال بالمتجر ${shopParam}`, {

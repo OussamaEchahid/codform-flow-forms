@@ -36,15 +36,31 @@ export const useAuth = () => {
       ...context,
       shopifyConnected: true,
       shop: activeStore,
-      shops: [activeStore] // قائمة مبسطة تحتوي على المتجر النشط فقط
+      shops: [activeStore], // قائمة مبسطة تحتوي على المتجر النشط فقط
+      loading: false
     };
   }
   
-  // إذا لم يكن هناك اتصال في المدير المبسط، استخدم السياق كما هو
+  // تحقق من localStorage كمصدر احتياطي
+  const localStorage_shop = localStorage.getItem('shopify_store');
+  const localStorage_connected = localStorage.getItem('shopify_connected') === 'true';
+  
+  if (localStorage_shop && localStorage_connected) {
+    return {
+      ...context,
+      shopifyConnected: true,
+      shop: localStorage_shop,
+      shops: [localStorage_shop],
+      loading: false
+    };
+  }
+  
+  // إذا لم يكن هناك اتصال، استخدم السياق كما هو
   return {
     ...context,
     shopifyConnected: false,
     shop: null,
-    shops: null
+    shops: null,
+    loading: context.loading !== undefined ? context.loading : false
   };
 };
