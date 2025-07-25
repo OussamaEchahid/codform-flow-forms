@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   ExternalLink, 
-  Store, 
+  Store as StoreIcon, 
   CheckCircle, 
   AlertCircle, 
   Zap,
@@ -48,9 +48,19 @@ const SimpleStoreManager = () => {
     try {
       setLoading(true);
       
-      const { data, error } = await shopifyStores()
-        .select('shop, is_active, updated_at, access_token')
-        .order('updated_at', { ascending: false });
+      // Check if user is authenticated first
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.user) {
+        console.log('No authenticated user found');
+        setStores([]);
+        return;
+      }
+      
+      // Using manual fetch to avoid TypeScript deep instantiation issue
+      const { data: storeData, error } = await supabase.rpc('get_user_stores', {
+        p_user_id: session.user.id
+      });
 
       if (error) {
         console.error('Error loading stores:', error);
@@ -62,8 +72,9 @@ const SimpleStoreManager = () => {
         return;
       }
 
-      setStores(data || []);
-      console.log(`📋 Loaded ${data?.length || 0} stores`);
+      const typedData = (storeData || []) as Store[];
+      setStores(typedData);
+      console.log(`📋 Loaded ${typedData.length} stores for user ${session.user.id}`);
       
     } catch (error) {
       console.error('Error loading stores:', error);
@@ -227,7 +238,7 @@ const SimpleStoreManager = () => {
             <Card key={store.shop} className={`transition-all ${isCurrentStore ? 'border-green-500 bg-green-50' : ''}`}>
               <CardHeader>
                 <div className="flex items-start justify-between">
-                  <Store className="h-5 w-5 text-blue-600" />
+                  <StoreIcon className="h-5 w-5 text-blue-600" />
                   <div className="flex gap-2">
                     {isCurrentStore && (
                       <Badge variant="default" className="bg-green-600">
@@ -296,7 +307,7 @@ const SimpleStoreManager = () => {
       {/* رسالة إذا لم توجد متاجر */}
       {stores.length === 0 && (
         <div className="text-center py-12">
-          <Store className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <StoreIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <p className="text-muted-foreground mb-4">لا توجد متاجر مضافة بعد</p>
           <p className="text-sm text-muted-foreground">
             يمكنك إضافة متجر عن طريق الذهاب إلى صفحة ربط Shopify
