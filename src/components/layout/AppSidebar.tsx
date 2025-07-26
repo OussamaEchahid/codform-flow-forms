@@ -119,38 +119,40 @@ const AppSidebar = () => {
             {user && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="text-white flex items-center gap-2 px-3">
-                    <div className="w-8 h-8 bg-[#9b87f5] rounded-full flex items-center justify-center">
+                  <Button variant="ghost" className="text-white hover:bg-[#2A2E36] p-2 rounded-lg transition-colors">
+                    <div className="w-8 h-8 bg-gradient-to-r from-[#9b87f5] to-[#7c65d4] rounded-full flex items-center justify-center shadow-lg">
                       <User className="h-4 w-4 text-white" />
                     </div>
-                    <ChevronDown className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-64">
-                  <div className="px-3 py-2">
-                    <p className="text-sm font-medium">{user.email}</p>
+                <DropdownMenuContent align="start" side="bottom" className="w-72 shadow-xl border-[#2A2E36] bg-[#1E2127] text-white">
+                  <div className="px-4 py-3 bg-gradient-to-r from-[#9b87f5]/10 to-[#7c65d4]/10 border-b border-[#2A2E36]">
+                    <p className="text-sm font-medium text-white truncate">{user.email}</p>
                     {shop && (
-                      <p className="text-xs text-muted-foreground">{shop}</p>
+                      <p className="text-xs text-gray-400 truncate mt-1">{shop}</p>
                     )}
                   </div>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => navigate('/my-stores')}>
-                    <ShoppingBag className="mr-2 h-4 w-4" />
-                    {language === 'ar' ? 'متاجري' : 'My Stores'}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate('/settings/plans')}>
-                    <CreditCard className="mr-2 h-4 w-4" />
-                    {language === 'ar' ? 'الخطط' : 'Plans'}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate('/profile')}>
-                    <User className="mr-2 h-4 w-4" />
-                    {language === 'ar' ? 'البروفايل' : 'Profile'}
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    {t('logout')}
-                  </DropdownMenuItem>
+                  <div className="py-2">
+                    <DropdownMenuItem onClick={() => navigate('/my-stores')} className="hover:bg-[#2A2E36] text-white cursor-pointer">
+                      <ShoppingBag className="mr-3 h-4 w-4" />
+                      {language === 'ar' ? 'متاجري' : 'My Stores'}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/settings/plans')} className="hover:bg-[#2A2E36] text-white cursor-pointer">
+                      <CreditCard className="mr-3 h-4 w-4" />
+                      {language === 'ar' ? 'الخطط' : 'Plans'}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/profile')} className="hover:bg-[#2A2E36] text-white cursor-pointer">
+                      <User className="mr-3 h-4 w-4" />
+                      {language === 'ar' ? 'البروفايل' : 'Profile'}
+                    </DropdownMenuItem>
+                  </div>
+                  <DropdownMenuSeparator className="bg-[#2A2E36]" />
+                  <div className="py-2">
+                    <DropdownMenuItem onClick={handleLogout} className="hover:bg-red-500/10 text-red-400 cursor-pointer">
+                      <LogOut className="mr-3 h-4 w-4" />
+                      {t('logout')}
+                    </DropdownMenuItem>
+                  </div>
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
