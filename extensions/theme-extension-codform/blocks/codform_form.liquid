@@ -937,18 +937,47 @@
           console.log('❌ CODFORM: No valid fields array found');
         }
 
-        // Wrap in form element with submission handler
+        // Apply global form styling
+        const globalFormStyle = formStyle || {};
+        const globalBorderColor = globalFormStyle.borderColor || '#e5e7eb';
+        const globalBorderRadius = globalFormStyle.borderRadius || '8px';
+        const globalBorderWidth = globalFormStyle.borderWidth || '1px';
+        const globalBackgroundColor = globalFormStyle.backgroundColor || '#ffffff';
+        const globalPaddingTop = globalFormStyle.paddingTop || '20px';
+        const globalPaddingBottom = globalFormStyle.paddingBottom || '20px';
+        const globalPaddingLeft = globalFormStyle.paddingLeft || '20px';
+        const globalPaddingRight = globalFormStyle.paddingRight || '20px';
+        const globalFormGap = globalFormStyle.formGap || '16px';
+        const globalFormDirection = globalFormStyle.formDirection || 'ltr';
+
+        // Wrap in form element with submission handler and global styling
         completeFormHTML += `
-          <form class="codform-form-fields" style="background: transparent; margin: 0; padding: 0;" 
-                id="codform-main-form" onsubmit="handleFormSubmission(event)">
+          <form class="codform-form-fields" style="
+            background: transparent; 
+            margin: 0; 
+            padding: 0;
+          " id="codform-main-form" onsubmit="handleFormSubmission(event)">
             ${formContent}
           </form>
         `;
 
-        // Set the complete HTML with offers container at top
+        // Set the complete HTML with offers container at top and global form styling
         container.innerHTML = `
-          <div class="codform-dynamic-form">
-            ${completeFormHTML}
+          <div class="codform-dynamic-form" style="
+            background-color: ${globalBackgroundColor};
+            border-radius: ${globalBorderRadius};
+            border: ${globalBorderWidth} solid ${globalBorderColor};
+            direction: ${globalFormDirection};
+            padding: ${globalPaddingTop} ${globalPaddingRight} ${globalPaddingBottom} ${globalPaddingLeft};
+            box-sizing: border-box;
+          ">
+            <div style="
+              display: flex;
+              flex-direction: column;
+              gap: ${globalFormGap};
+            ">
+              ${completeFormHTML}
+            </div>
           </div>
         `;
         
