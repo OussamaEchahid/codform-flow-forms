@@ -539,12 +539,25 @@
       const buttonTextColor = getStyleValue(buttonStyle, 'color', 'rgb(255, 255, 255)');
       const buttonFontSize = getStyleValue(buttonStyle, 'fontSize', baseFontSize);
       const buttonFontWeight = getStyleValue(buttonStyle, 'fontWeight', 'bold');
-      const buttonBorderRadius = getStyleValue(buttonStyle, 'borderRadius', '8px');
-      const buttonPadding = getStyleValue(buttonStyle, 'padding', '15px 24px');
+      const buttonBorderRadius = getStyleValue(buttonStyle, 'borderRadius', formStyle?.borderRadius || '8px');
       const buttonWidth = getStyleValue(buttonStyle, 'width', '100%');
       const buttonMinHeight = getStyleValue(buttonStyle, 'minHeight', '56px');
-      const buttonBorder = getStyleValue(buttonStyle, 'border', 'none');
       const buttonBoxShadow = getStyleValue(buttonStyle, 'boxShadow', 'none');
+      
+      // الحصول على إعدادات الحدود والحشو من field.style مباشرة
+      const buttonBorderWidth = getStyleValue(buttonStyle, 'borderWidth', '0px');
+      const buttonBorderColor = getStyleValue(buttonStyle, 'borderColor', 'transparent');
+      const buttonPaddingY = getStyleValue(buttonStyle, 'paddingY', '15px');
+      const buttonPaddingX = getStyleValue(buttonStyle, 'paddingX', '24px');
+      
+      // إنشاء border و padding صحيحة
+      const buttonBorder = buttonBorderWidth !== '0px' && buttonBorderColor !== 'transparent' 
+        ? `${buttonBorderWidth} solid ${buttonBorderColor}` 
+        : 'none';
+      const buttonPadding = `${buttonPaddingY} ${buttonPaddingX}`;
+      
+      // إصلاح الحصول على fontWeight
+      const actualButtonFontWeight = getStyleValue(buttonStyle, 'fontWeight', getStyleValue(buttonStyle, 'labelWeight', 'bold'));
       
       // Icon handling for submit button
       const hasIcon = field.icon && field.icon !== 'none' && field.icon !== '';
@@ -575,7 +588,7 @@
               background-color: ${buttonBgColor};
               color: ${buttonTextColor};
               font-size: ${buttonFontSize};
-              font-weight: ${buttonFontWeight};
+              font-weight: ${actualButtonFontWeight};
               padding: ${buttonPadding};
               border: ${buttonBorder};
               border-radius: ${buttonBorderRadius};
