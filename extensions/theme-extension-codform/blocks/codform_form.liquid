@@ -195,7 +195,7 @@
     if (field.type === 'form-title') {
       const title = field.label || 'Form Title';
       
-      // Get title settings from field style or use defaults to match old version
+      // Get title settings from field style or use defaults to match old version EXACTLY
       const titleColor = getStyleValue(field.style, 'color', '#000000');
       const titleFontSize = getStyleValue(field.style, 'fontSize', '24px');
       const titleFontWeight = getStyleValue(field.style, 'fontWeight', 'bold');
@@ -206,12 +206,12 @@
       const paddingRight = getStyleValue(field.style, 'paddingRight', '0px');
       
       html = `
-        <div class="codform-title-field" style="
+        <div class="form-title-field w-full" style="
           color: ${titleColor};
           font-size: ${titleFontSize};
           font-weight: ${titleFontWeight};
           font-family: Cairo, Tajawal, Arial, sans-serif;
-          text-align: ${titleTextAlign};
+          text-align: center;
           margin: 0px;
           line-height: 1.4;
           direction: ${formStyle.formDirection || 'ltr'};

@@ -37,9 +37,9 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
   // ALWAYS center align the title regardless of form direction
   const textAlign = 'center';
   
-  // Get padding values with defaults
+  // Get padding values with defaults - MATCH STORE EXACTLY
   const paddingTop = fieldStyle.paddingTop || '0px';
-  const paddingBottom = fieldStyle.paddingBottom || '20px';
+  const paddingBottom = fieldStyle.paddingBottom || '0px'; // FIXED: Remove default bottom padding
   const paddingLeft = fieldStyle.paddingLeft || '0px';
   const paddingRight = fieldStyle.paddingRight || '0px';
 
