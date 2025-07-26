@@ -77,7 +77,9 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        form: settings.forms,
+        form: settings.forms?.title || 'New Form',
+        data: settings.forms?.data || [],
+        style: settings.forms?.style || {},
         quantity_offers: offers,
         shop,
         productId
