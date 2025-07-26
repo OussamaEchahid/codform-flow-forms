@@ -30,6 +30,10 @@ interface TextAreaProps {
     fontSize?: string;
     formDirection?: 'ltr' | 'rtl';
     floatingLabels?: boolean;
+    focusBorderColor?: string;
+    fieldBorderColor?: string;
+    fieldBorderWidth?: string;
+    fieldBorderRadius?: string;
   };
 }
 
@@ -47,8 +51,10 @@ const TextArea: React.FC<TextAreaProps> = ({ field, formStyle }) => {
   const labelFontWeight = fieldStyle.labelFontWeight || '500';
   
   // Set default values for border styling - force smaller radius for textarea
-  const inputBorderRadius = fieldStyle.borderRadius || '8px';
-  const inputBorderWidth = fieldStyle.borderWidth || '1px';
+  const inputBorderRadius = fieldStyle.borderRadius || formStyle.fieldBorderRadius || '8px';
+  const inputBorderWidth = fieldStyle.borderWidth || formStyle.fieldBorderWidth || '1px';
+  const inputBorderColor = fieldStyle.borderColor || formStyle.fieldBorderColor || '#d1d5db';
+  const focusBorderColor = formStyle.focusBorderColor || formStyle.primaryColor || '#9b87f5';
   
   // Set default rows
   const rows = field.rows || 4;
@@ -177,7 +183,7 @@ const TextArea: React.FC<TextAreaProps> = ({ field, formStyle }) => {
             fontWeight: fieldStyle.fontWeight || '400',
             fontFamily: fieldStyle.fontFamily || 'inherit',
             backgroundColor: '#FFFFFF',
-            borderColor: isFocused ? (formStyle.primaryColor || '#9b87f5') : (fieldStyle.borderColor || '#d1d5db'),
+            borderColor: isFocused ? focusBorderColor : inputBorderColor,
             borderRadius: inputBorderRadius,
             borderWidth: inputBorderWidth,
             borderStyle: 'solid',
@@ -186,7 +192,7 @@ const TextArea: React.FC<TextAreaProps> = ({ field, formStyle }) => {
             paddingLeft: '12px',
             paddingRight: '12px',
             boxShadow: isFocused 
-              ? `0 0 0 3px ${formStyle.primaryColor || '#9b87f5'}20` 
+              ? `0 0 0 3px ${focusBorderColor}20` 
               : '0 1px 2px rgba(0, 0, 0, 0.05)',
             width: '100%',
             minHeight: '80px',

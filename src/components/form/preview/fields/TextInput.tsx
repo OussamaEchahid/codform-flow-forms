@@ -44,6 +44,10 @@ interface TextInputProps {
     fontSize?: string;
     formDirection?: 'ltr' | 'rtl';
     floatingLabels?: boolean;
+    focusBorderColor?: string;
+    fieldBorderColor?: string;
+    fieldBorderWidth?: string;
+    fieldBorderRadius?: string;
   };
   formCountry?: string;
   formPhonePrefix?: string;
@@ -69,9 +73,10 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
   
   // خلفية بيضاء ثابتة للحقول
   const backgroundColor = 'rgb(255, 255, 255)';
-  const borderColor = fieldStyle.borderColor || 'rgb(209, 213, 219)';
-  const borderWidth = fieldStyle.borderWidth || '1px';
-  const borderRadius = fieldStyle.borderRadius || '8px';
+  const borderColor = fieldStyle.borderColor || formStyle.fieldBorderColor || 'rgb(209, 213, 219)';
+  const borderWidth = fieldStyle.borderWidth || formStyle.fieldBorderWidth || '1px';
+  const borderRadius = fieldStyle.borderRadius || formStyle.fieldBorderRadius || '8px';
+  const focusBorderColor = formStyle.focusBorderColor || formStyle.primaryColor || '#9b87f5';
   const paddingY = fieldStyle.paddingY ? `${fieldStyle.paddingY}px` : '10px';
   
   // تحديد إذا كان هناك أيقونة وإذا كان يجب إظهارها
@@ -284,7 +289,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
             fontWeight: fontWeight,
             fontFamily: fontFamily,
             backgroundColor: backgroundColor,
-            borderColor: isFocused ? (formStyle.primaryColor || '#9b87f5') : borderColor,
+            borderColor: isFocused ? focusBorderColor : borderColor,
             borderRadius: borderRadius,
             borderWidth: borderWidth,
             borderStyle: 'solid',
@@ -292,7 +297,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
             paddingLeft: paddingLeft,
             paddingRight: paddingRight,
             boxShadow: isFocused 
-              ? `0 0 0 3px ${formStyle.primaryColor || '#9b87f5'}20` 
+              ? `0 0 0 3px ${focusBorderColor}20` 
               : 'rgba(0, 0, 0, 0.05) 0px 1px 2px',
             width: '100%',
             height: 'auto',
