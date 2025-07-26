@@ -105,6 +105,60 @@
     animation-duration: 2s !important;
     animation: flash 2s infinite !important;
   }
+  
+  /* Popup Button Styles */
+  .codform-popup-button {
+    position: fixed;
+    z-index: 9999;
+    padding: 12px 24px;
+    border: 2px solid;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(10px);
+    white-space: nowrap;
+  }
+  
+  .codform-popup-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  }
+  
+  .codform-popup-button:active {
+    transform: translateY(0);
+  }
+  
+  /* Popup Button Position Classes */
+  .popup-bottom-right {
+    bottom: 20px;
+    right: 20px;
+  }
+  
+  .popup-bottom-left {
+    bottom: 20px;
+    left: 20px;
+  }
+  
+  .popup-top-right {
+    top: 20px;
+    right: 20px;
+  }
+  
+  .popup-top-left {
+    top: 20px;
+    left: 20px;
+  }
+  
+  .popup-center {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+  
+  .popup-center:hover {
+    transform: translate(-50%, -52px);
+  }
 </style>
 
 <div data-form-preview-id="form-preview-stable">
@@ -895,6 +949,7 @@
         const formGap = formStyle.formGap || '16px';
         const formDirection = formStyle.formDirection || 'ltr';
         const floatingLabels = formStyle.floatingLabels || false;
+        const popupButton = formStyle.popupButton || { enabled: false };
         
         // Apply container styles using Global form styling
         console.log('🎨 CODFORM: Applying styles:', {
@@ -1031,6 +1086,11 @@
           </div>
         `;
         
+        // Create popup button if enabled
+        if (popupButton && popupButton.enabled) {
+          createPopupButton(popupButton, formStyle, container);
+        }
+        
         // تحديد أن النموذج تم تحميله
         container.dataset.formLoaded = 'true';
         
@@ -1151,6 +1211,72 @@
   };
   
 })();
+
+// Popup Button Creation Function
+function createPopupButton(popupConfig, formStyle, formContainer) {
+  console.log('🎯 CODFORM: Creating popup button with config:', popupConfig);
+  
+  // Remove existing popup button if any
+  const existingButton = document.querySelector('.codform-popup-button');
+  if (existingButton) {
+    existingButton.remove();
+  }
+  
+  // Create popup button element
+  const popupButton = document.createElement('button');
+  popupButton.className = `codform-popup-button popup-${popupConfig.position || 'bottom-right'}`;
+  
+  // Add animation class if specified
+  if (popupConfig.animation && popupConfig.animation !== 'none') {
+    popupButton.classList.add(`${popupConfig.animation}-animation`);
+  }
+  
+  // Set button text with optional icon
+  let buttonText = popupConfig.text || 'Buy with Cash on Delivery';
+  if (popupConfig.showIcon) {
+    buttonText = '🛒 ' + buttonText;
+  }
+  popupButton.innerHTML = buttonText;
+  
+  // Apply styles
+  popupButton.style.cssText = `
+    background-color: ${popupConfig.backgroundColor || '#9b87f5'};
+    color: ${popupConfig.textColor || '#ffffff'};
+    border-color: ${popupConfig.borderColor || '#9b87f5'};
+    border-width: ${popupConfig.borderWidth || '2px'};
+    border-radius: ${popupConfig.borderRadius || '8px'};
+    font-size: ${popupConfig.fontSize || '16px'};
+    font-weight: ${popupConfig.fontWeight || '600'};
+    padding: ${popupConfig.paddingY || '12px'} 24px;
+  `;
+  
+  // Add click handler to scroll to form
+  popupButton.addEventListener('click', function() {
+    console.log('🎯 CODFORM: Popup button clicked, scrolling to form');
+    
+    // Find the form element
+    const formElement = document.querySelector('.codform-dynamic-form');
+    if (formElement) {
+      formElement.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'center' 
+      });
+      
+      // Focus on first input after scroll
+      setTimeout(() => {
+        const firstInput = formElement.querySelector('input, textarea');
+        if (firstInput) {
+          firstInput.focus();
+        }
+      }, 500);
+    }
+  });
+  
+  // Add to document body
+  document.body.appendChild(popupButton);
+  
+  console.log('✅ CODFORM: Popup button created and added to page');
+}
 
 // Floating labels functionality
 document.addEventListener('DOMContentLoaded', function() {

@@ -17,6 +17,21 @@ export interface FormStyle {
   formGap?: string;
   formDirection?: 'ltr' | 'rtl';
   floatingLabels?: boolean;
+  popupButton?: {
+    enabled: boolean;
+    text: string;
+    position: string;
+    fontSize: string;
+    fontWeight: string;
+    textColor: string;
+    backgroundColor: string;
+    borderColor: string;
+    borderWidth: string;
+    borderRadius: string;
+    paddingY: string;
+    animation: string;
+    showIcon: boolean;
+  };
 }
 
 export interface FormState {
