@@ -287,18 +287,18 @@
       
       html = `
         <div class="codform-field-wrapper" style="
-          margin-bottom: 20px;
-          direction: ${formDirection};
-        ">
-          ${actualShowLabel ? `
-            <label for="${fieldId}" style="
-              display: block;
-              color: ${actualLabelColor};
-              font-size: ${actualLabelFontSize};
-              font-weight: ${actualLabelWeight};
-              margin-bottom: 8px;
-              font-family: 'Cairo', inherit;
+              margin-bottom: 16px;
+              direction: ${formDirection};
             ">
+              ${actualShowLabel ? `
+                <label for="${fieldId}" style="
+                  display: block;
+                  color: ${actualLabelColor};
+                  font-size: ${actualLabelFontSize};
+                  font-weight: 600;
+                  margin-bottom: 8px;
+                  font-family: 'Cairo', sans-serif;
+                ">
               ${label}${required ? '<span style="color: #EF4444; margin-left: 4px;">*</span>' : ''}
             </label>
           ` : ''}
@@ -817,19 +817,19 @@
         const formBorderRadius = '1.2rem'; // Match preview exactly (19.2px)
         const formPadding = '24px';
         
-        // Apply container styles to match preview exactly - UPDATED TO MATCH PREVIEW
+        // Apply container styles to match old form exactly
         container.style.cssText = `
           background-color: ${formBackgroundColor};
           border: ${formBorderWidth} solid ${formBorderColor};
           border-radius: ${formBorderRadius};
-          padding: ${formPadding};
+          padding: 20px;
           box-shadow: rgba(0, 0, 0, 0.05) 0px 4px 6px;
           max-width: 500px;
           margin: 20px auto;
           font-family: inherit;
           direction: ${formStyle.formDirection || 'ltr'};
           box-sizing: border-box;
-          gap: 20px;
+          gap: 16px;
           position: relative;
           overflow: hidden;
         `;
