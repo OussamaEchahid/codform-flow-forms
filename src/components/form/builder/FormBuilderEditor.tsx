@@ -409,7 +409,8 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
                 paddingRight: formData.style.paddingRight || '20px',
                 formGap: formData.style.formGap || '16px',
                 formDirection: formData.style.formDirection || 'ltr',
-                floatingLabels: formData.style.floatingLabels || false
+                floatingLabels: formData.style.floatingLabels || false,
+                popupButton: formData.style.popupButton || undefined
               });
             } else {
               // قيم افتراضية إذا كان النمط مفقودًا
@@ -780,7 +781,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
   };
 
   // Handle individual style property updates
-  const handleStylePropertyChange = (key: string, value: string | boolean) => {
+  const handleStylePropertyChange = (key: string, value: string | boolean | object) => {
     setFormStyle(prevStyle => ({
       ...prevStyle,
       [key]: value

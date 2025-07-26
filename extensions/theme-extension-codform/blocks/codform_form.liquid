@@ -159,10 +159,82 @@
   .popup-center:hover {
     transform: translate(-50%, -52px);
   }
+  
+  /* Popup Modal Styles */
+  .codform-popup-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+  }
+  
+  .codform-popup-modal.active {
+    display: flex;
+  }
+  
+  .codform-popup-content {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+  }
+  
+  .codform-popup-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+  }
+  
+  .codform-popup-close:hover {
+    background-color: #f5f5f5;
+  }
+  
+  /* Hide form container when popup is enabled */
+  .codform-form-container.popup-mode {
+    display: none;
+  }
 </style>
 
-<div data-form-preview-id="form-preview-stable">
+<div data-form-preview-id="form-preview-stable" class="codform-form-container">
   <!-- Form content will be loaded here -->
+</div>
+
+<!-- Popup Button (will be shown if popup mode is enabled) -->
+<button id="codform-popup-button" class="codform-popup-button" style="display: none;">
+  Buy with Cash on Delivery
+</button>
+
+<!-- Popup Modal -->
+<div id="codform-popup-modal" class="codform-popup-modal">
+  <div class="codform-popup-content">
+    <button class="codform-popup-close" onclick="window.codformClosePopup()">&times;</button>
+    <div id="codform-popup-form-content">
+      <!-- Form will be inserted here when popup opens -->
+    </div>
+  </div>
 </div>
 
 <script>
@@ -1089,6 +1161,20 @@
         // Create popup button if enabled
         if (popupButton && popupButton.enabled) {
           createPopupButton(popupButton, formStyle, container);
+          
+          // Hide the normal form container and show popup button
+          container.classList.add('popup-mode');
+          const popupButtonElement = document.getElementById('codform-popup-button');
+          if (popupButtonElement) {
+            popupButtonElement.style.display = 'block';
+          }
+        } else {
+          // Ensure normal form is visible and popup button is hidden
+          container.classList.remove('popup-mode');
+          const popupButtonElement = document.getElementById('codform-popup-button');
+          if (popupButtonElement) {
+            popupButtonElement.style.display = 'none';
+          }
         }
         
         // تحديد أن النموذج تم تحميله
@@ -1250,26 +1336,10 @@ function createPopupButton(popupConfig, formStyle, formContainer) {
     padding: ${popupConfig.paddingY || '12px'} 24px;
   `;
   
-  // Add click handler to scroll to form
+  // Add click handler to open popup
   popupButton.addEventListener('click', function() {
-    console.log('🎯 CODFORM: Popup button clicked, scrolling to form');
-    
-    // Find the form element
-    const formElement = document.querySelector('.codform-dynamic-form');
-    if (formElement) {
-      formElement.scrollIntoView({ 
-        behavior: 'smooth', 
-        block: 'center' 
-      });
-      
-      // Focus on first input after scroll
-      setTimeout(() => {
-        const firstInput = formElement.querySelector('input, textarea');
-        if (firstInput) {
-          firstInput.focus();
-        }
-      }, 500);
-    }
+    console.log('🎯 CODFORM: Popup button clicked, opening popup');
+    window.codformOpenPopup();
   });
   
   // Add to document body
@@ -1277,6 +1347,60 @@ function createPopupButton(popupConfig, formStyle, formContainer) {
   
   console.log('✅ CODFORM: Popup button created and added to page');
 }
+
+// Popup functionality
+window.codformOpenPopup = function() {
+  console.log('🎯 CODFORM: Opening popup modal');
+  
+  const modal = document.getElementById('codform-popup-modal');
+  const formContainer = document.querySelector('.codform-form-container');
+  const popupContent = document.getElementById('codform-popup-form-content');
+  
+  if (modal && formContainer && popupContent) {
+    // Clone the form content to the popup
+    const formClone = formContainer.cloneNode(true);
+    formClone.classList.remove('popup-mode');
+    popupContent.innerHTML = '';
+    popupContent.appendChild(formClone);
+    
+    // Show modal
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden'; // Prevent background scroll
+    
+    // Focus on first input
+    setTimeout(() => {
+      const firstInput = popupContent.querySelector('input, textarea');
+      if (firstInput) {
+        firstInput.focus();
+      }
+    }, 100);
+  }
+};
+
+window.codformClosePopup = function() {
+  console.log('🎯 CODFORM: Closing popup modal');
+  
+  const modal = document.getElementById('codform-popup-modal');
+  if (modal) {
+    modal.classList.remove('active');
+    document.body.style.overflow = ''; // Restore scroll
+  }
+};
+
+// Close popup when clicking outside content
+document.addEventListener('click', function(e) {
+  const modal = document.getElementById('codform-popup-modal');
+  if (e.target === modal) {
+    window.codformClosePopup();
+  }
+});
+
+// Close popup with Escape key
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    window.codformClosePopup();
+  }
+});
 
 // Floating labels functionality
 document.addEventListener('DOMContentLoaded', function() {
