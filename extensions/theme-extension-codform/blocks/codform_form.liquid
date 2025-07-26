@@ -245,7 +245,7 @@
       const actualLabelColor = getStyleValue(fieldStyle, 'labelColor', '#333333');
       const actualLabelFontSize = getStyleValue(fieldStyle, 'labelFontSize', baseFontSize);  
       const actualLabelWeight = getStyleValue(fieldStyle, 'labelFontWeight', '500');
-      const actualShowLabel = getStyleValue(fieldStyle, 'showLabel', true);
+      const actualShowLabel = fieldStyle.showLabel !== undefined ? fieldStyle.showLabel : true;
       
       // Field styling from field settings - match preview exactly - scale with base font size
       const actualTextColor = getStyleValue(fieldStyle, 'color', 'rgb(31, 41, 55)');
@@ -390,7 +390,7 @@
       const actualLabelColor = getStyleValue(fieldStyle, 'labelColor', 'rgb(51, 65, 85)');
       const actualLabelFontSize = getStyleValue(fieldStyle, 'labelFontSize', baseFontSize);  
       const actualLabelWeight = getStyleValue(fieldStyle, 'labelFontWeight', '500');
-      const actualShowLabel = getStyleValue(fieldStyle, 'showLabel', true);
+      const actualShowLabel = fieldStyle.showLabel !== undefined ? fieldStyle.showLabel : true;
       
       // Field styling from field settings - match preview exactly - scale with base font size
       const actualTextColor = getStyleValue(fieldStyle, 'color', 'rgb(31, 41, 55)');
