@@ -206,20 +206,18 @@
       const paddingRight = getStyleValue(field.style, 'paddingRight', '0px');
       
       html = `
-        <div class="form-title-field w-full" style="
+        <div class="codform-title-field" style="
           color: ${titleColor};
           font-size: ${titleFontSize};
           font-weight: ${titleFontWeight};
-          font-family: Cairo, Tajawal, Arial, sans-serif;
           text-align: center;
-          margin: 0px;
-          line-height: 1.4;
-          direction: ${formStyle.formDirection || 'ltr'};
           padding: ${paddingTop} ${paddingRight} ${paddingBottom} ${paddingLeft};
-          width: 100%;
-          display: block;
+          margin: 0 0 20px 0;
           background: none;
           border: none;
+          font-family: 'Cairo', inherit;
+          width: 100%;
+          display: block;
         ">
           ${title}
         </div>
