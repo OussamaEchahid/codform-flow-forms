@@ -34,6 +34,7 @@ const TextArea: React.FC<TextAreaProps> = ({ field, formStyle }) => {
   const fieldStyle = field.style || {};
   
   // Set default values for styling
+  const showLabel = fieldStyle.showLabel !== false;
   const labelColor = fieldStyle.labelColor || '#334155';
   const labelFontSize = fieldStyle.labelFontSize || formStyle.fontSize || '16px';
   const labelFontWeight = fieldStyle.labelFontWeight || '500';
@@ -83,33 +84,35 @@ const TextArea: React.FC<TextAreaProps> = ({ field, formStyle }) => {
   
   return (
     <div className="mb-4">
-      <label 
-        htmlFor={field.id} 
-        className={`block mb-2 ${field.required ? 'relative' : ''}`}
-        style={{ 
-          color: labelColor,
-          fontSize: labelFontSize,
-          fontWeight: labelFontWeight,
-          fontFamily: fieldStyle.fontFamily || 'inherit',
-          marginBottom: '8px',
-          display: 'flex',
-          alignItems: 'center'
-        }}
-      >
-        {renderIcon()}
-        {field.label || (language === 'ar' ? 'ملاحظات إضافية' : 'Additional notes')}
-        {field.required && (
-          <span 
-            className="text-red-500" 
-            style={{
-              marginRight: language === 'ar' ? '0' : '4px',
-              marginLeft: language === 'ar' ? '4px' : '0',
-            }}
-          >
-            *
-          </span>
-        )}
-      </label>
+      {showLabel && (
+        <label 
+          htmlFor={field.id} 
+          className={`block mb-2 ${field.required ? 'relative' : ''}`}
+          style={{ 
+            color: labelColor,
+            fontSize: labelFontSize,
+            fontWeight: labelFontWeight,
+            fontFamily: fieldStyle.fontFamily || 'inherit',
+            marginBottom: '8px',
+            display: 'flex',
+            alignItems: 'center'
+          }}
+        >
+          {renderIcon()}
+          {field.label || (language === 'ar' ? 'ملاحظات إضافية' : 'Additional notes')}
+          {field.required && (
+            <span 
+              className="text-red-500" 
+              style={{
+                marginRight: language === 'ar' ? '0' : '4px',
+                marginLeft: language === 'ar' ? '4px' : '0',
+              }}
+            >
+              *
+            </span>
+          )}
+        </label>
+      )}
       
       <textarea
         id={field.id}
@@ -121,6 +124,7 @@ const TextArea: React.FC<TextAreaProps> = ({ field, formStyle }) => {
           fontSize: fieldStyle.fontSize || formStyle.fontSize || '16px',
           fontWeight: fieldStyle.fontWeight || '400',
           fontFamily: fieldStyle.fontFamily || 'inherit',
+          backgroundColor: '#FFFFFF',
           borderColor: fieldStyle.borderColor || '#d1d5db',
           borderRadius: inputBorderRadius,
           borderWidth: inputBorderWidth,

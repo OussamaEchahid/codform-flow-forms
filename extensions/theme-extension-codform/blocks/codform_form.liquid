@@ -244,14 +244,15 @@
       const baseFontSize = getStyleValue(formStyle, 'baseFontSize', '16px');
       const actualLabelColor = getStyleValue(fieldStyle, 'labelColor', '#333333');
       const actualLabelFontSize = getStyleValue(fieldStyle, 'labelFontSize', baseFontSize);  
-      const actualLabelWeight = getStyleValue(fieldStyle, 'labelWeight', '500');
+      const actualLabelWeight = getStyleValue(fieldStyle, 'labelFontWeight', '500');
       const actualShowLabel = getStyleValue(fieldStyle, 'showLabel', true);
       
       // Field styling from field settings - match preview exactly - scale with base font size
-      const actualTextColor = getStyleValue(fieldStyle, 'textColor', 'rgb(31, 41, 55)');
+      const actualTextColor = getStyleValue(fieldStyle, 'color', 'rgb(31, 41, 55)');
       const actualBorderColor = getStyleValue(fieldStyle, 'borderColor', 'rgb(209, 213, 219)');
       const actualBorderWidth = getStyleValue(fieldStyle, 'borderWidth', '1px');
       const actualFontSize = getStyleValue(fieldStyle, 'fontSize', baseFontSize);
+      const actualFontFamily = getStyleValue(fieldStyle, 'fontFamily', 'inherit');
       const actualPaddingY = getStyleValue(fieldStyle, 'paddingY', '12px');
       const actualBorderRadius = getStyleValue(fieldStyle, 'borderRadius', '8px');
       const actualPlaceholder = getStyleValue(fieldStyle, 'placeholder', placeholder);
@@ -323,7 +324,7 @@
                 padding: ${paddingTopBottom} ${paddingRight} ${paddingTopBottom} ${paddingLeft};
                 font-size: ${actualFontSize};
                 color: ${actualTextColor};
-                font-family: inherit;
+                font-family: ${actualFontFamily};
                 outline: none;
                 transition: all 0.2s ease;
                 box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px;
@@ -388,14 +389,15 @@
       const baseFontSize = getStyleValue(formStyle, 'baseFontSize', '16px');
       const actualLabelColor = getStyleValue(fieldStyle, 'labelColor', 'rgb(51, 65, 85)');
       const actualLabelFontSize = getStyleValue(fieldStyle, 'labelFontSize', baseFontSize);  
-      const actualLabelWeight = getStyleValue(fieldStyle, 'labelWeight', '500');
+      const actualLabelWeight = getStyleValue(fieldStyle, 'labelFontWeight', '500');
       const actualShowLabel = getStyleValue(fieldStyle, 'showLabel', true);
       
       // Field styling from field settings - match preview exactly - scale with base font size
-      const actualTextColor = getStyleValue(fieldStyle, 'textColor', 'rgb(31, 41, 55)');
+      const actualTextColor = getStyleValue(fieldStyle, 'color', 'rgb(31, 41, 55)');
       const actualBorderColor = getStyleValue(fieldStyle, 'borderColor', 'rgb(209, 213, 219)');
       const actualBorderWidth = getStyleValue(fieldStyle, 'borderWidth', '1px');
       const actualFontSize = getStyleValue(fieldStyle, 'fontSize', baseFontSize);
+      const actualFontFamily = getStyleValue(fieldStyle, 'fontFamily', 'inherit');
       const actualPaddingY = getStyleValue(fieldStyle, 'paddingY', '12px');
       const actualBorderRadius = getStyleValue(fieldStyle, 'borderRadius', '8px');
       const actualPlaceholder = getStyleValue(fieldStyle, 'placeholder', placeholder);
@@ -432,7 +434,7 @@
               padding: 10px 12px;
               font-size: ${actualFontSize};
               color: ${actualTextColor};
-              font-family: inherit;
+              font-family: ${actualFontFamily};
               outline: none;
               transition: all 0.2s ease;
               box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px;
