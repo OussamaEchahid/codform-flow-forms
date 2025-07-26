@@ -176,6 +176,7 @@
       const baseFontSize = getStyleValue(formStyle, 'baseFontSize', '16px');
       const labelStyle = field.style || {};
       const showLabel = getStyleValue(labelStyle, 'showLabel', true);
+      const isFloatingLabels = getStyleValue(formStyle, 'floatingLabels', false);
       
       // Label styling to match preview exactly - scale with base font size
       const labelColor = getStyleValue(labelStyle, 'labelColor', '#333333');
@@ -816,26 +817,31 @@
         // Apply form styling with exact preview matching
         const formStyle = data.formStyle || {};
         
-        // Form container styles to match preview exactly
-        const formBackgroundColor = 'rgb(249, 250, 251)';
-        const formBorderColor = formStyle.borderColor || 'rgb(155, 135, 245)';
+        // Form container styles - use Global form styling settings
+        const formBackgroundColor = formStyle.backgroundColor || '#ffffff';
+        const formBorderColor = formStyle.borderColor || '#9b87f5';
         const formBorderWidth = formStyle.borderWidth || '2px';
-        const formBorderRadius = '1.2rem'; // Match preview exactly (19.2px)
-        const formPadding = '24px';
+        const formBorderRadius = formStyle.borderRadius || '8px';
+        const formPaddingTop = formStyle.paddingTop || '20px';
+        const formPaddingBottom = formStyle.paddingBottom || '20px';
+        const formPaddingLeft = formStyle.paddingLeft || '20px';
+        const formPaddingRight = formStyle.paddingRight || '20px';
+        const formGap = formStyle.formGap || '16px';
+        const formDirection = formStyle.formDirection || 'ltr';
         
-        // Apply container styles to match old form exactly
+        // Apply container styles using Global form styling
         container.style.cssText = `
           background-color: ${formBackgroundColor};
           border: ${formBorderWidth} solid ${formBorderColor};
           border-radius: ${formBorderRadius};
-          padding: 16px 20px;
+          padding: ${formPaddingTop} ${formPaddingRight} ${formPaddingBottom} ${formPaddingLeft};
           box-shadow: rgba(0, 0, 0, 0.05) 0px 4px 6px;
           max-width: 500px;
           margin: 20px auto;
           font-family: inherit;
-          direction: ${formStyle.formDirection || 'ltr'};
+          direction: ${formDirection};
           box-sizing: border-box;
-          gap: 12px;
+          gap: ${formGap};
           position: relative;
           overflow: hidden;
         `;

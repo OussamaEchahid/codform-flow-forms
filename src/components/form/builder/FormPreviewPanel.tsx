@@ -154,13 +154,17 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
       <CardContent className="flex-1 p-6">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div
-            className="max-w-md mx-auto p-6 rounded-lg shadow-sm"
+            className="max-w-md mx-auto rounded-lg shadow-sm"
             style={{
               backgroundColor: formStyle.backgroundColor || '#ffffff',
               borderRadius: formStyle.borderRadius || '8px',
               border: `${formStyle.borderWidth || '1px'} solid ${formStyle.borderColor || '#e5e7eb'}`,
               direction: formStyle.formDirection || 'ltr',
-              gap: formStyle.formGap || '16px'
+              gap: formStyle.formGap || '16px',
+              paddingTop: formStyle.paddingTop || '20px',
+              paddingBottom: formStyle.paddingBottom || '20px',
+              paddingLeft: formStyle.paddingLeft || '20px',
+              paddingRight: formStyle.paddingRight || '20px'
             }}
           >
             {fields.map((field, index) => (

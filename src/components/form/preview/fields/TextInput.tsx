@@ -35,12 +35,15 @@ import {
 } from 'lucide-react';
 
 interface TextInputProps {
-  field: FormField;
+  field: FormField & {
+    onChange?: (value: string) => void;
+  };
   formStyle: {
     primaryColor?: string;
     borderRadius?: string;
     fontSize?: string;
     formDirection?: 'ltr' | 'rtl';
+    floatingLabels?: boolean;
   };
   formCountry?: string;
   formPhonePrefix?: string;
@@ -167,13 +170,17 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
     ? ((showIcon && hasIcon) ? '40px' : '12px') // في العربي، الأيقونة على اليمين
     : '12px'; // في الإنجليزي، لا نحتاج padding إضافي على اليمين
   
+  const isFloatingLabels = formStyle.floatingLabels;
+  const [hasValue, setHasValue] = React.useState(false);
+  const [isFocused, setIsFocused] = React.useState(false);
+
   return (
     <div 
       className="mb-4" 
       style={{ marginBottom: '16px', background: 'transparent' }}
       dir={formDirection}
     >
-      {showLabel && (
+      {showLabel && !isFloatingLabels && (
         <label 
           htmlFor={inputId} 
           className="block mb-2"
@@ -226,12 +233,49 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
             {renderIcon()}
           </div>
         )}
+
+        {/* Floating label */}
+        {showLabel && isFloatingLabels && (
+          <label 
+            htmlFor={inputId} 
+            className="absolute transition-all pointer-events-none"
+            style={{
+              position: 'absolute',
+              left: formDirection === 'rtl' ? 'auto' : ((showIcon && hasIcon) ? '40px' : '12px'),
+              right: formDirection === 'rtl' ? ((showIcon && hasIcon) ? '40px' : '12px') : 'auto',
+              top: (hasValue || isFocused) ? '-8px' : '50%',
+              transform: (hasValue || isFocused) ? 'translateY(0)' : 'translateY(-50%)',
+              fontSize: (hasValue || isFocused) ? '12px' : labelFontSize,
+              color: isFocused ? (formStyle.primaryColor || '#9b87f5') : labelColor,
+              fontWeight: labelFontWeight,
+              fontFamily: fontFamily,
+              backgroundColor: backgroundColor,
+              padding: (hasValue || isFocused) ? '0 4px' : '0',
+              zIndex: 3,
+              transition: 'all 0.2s ease',
+              pointerEvents: 'none'
+            }}
+          >
+            {labelText}
+            {field.required && (
+              <span 
+                style={{
+                  marginLeft: formDirection === 'rtl' ? '0' : '4px',
+                  marginRight: formDirection === 'rtl' ? '4px' : '0',
+                  color: 'rgb(239, 68, 68)'
+                }}
+              >
+                *
+              </span>
+            )}
+          </label>
+        )}
         
         <input
           type={getInputType()}
           id={inputId}
           name={field.id}
-          placeholder={placeholderText}
+          placeholder={isFloatingLabels ? '' : placeholderText}
           aria-label={field.inputFor || labelText}
           className="w-full outline-none transition-all codform-input"
           style={{
@@ -240,14 +284,16 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
             fontWeight: fontWeight,
             fontFamily: fontFamily,
             backgroundColor: backgroundColor,
-            borderColor: borderColor,
+            borderColor: isFocused ? (formStyle.primaryColor || '#9b87f5') : borderColor,
             borderRadius: borderRadius,
             borderWidth: borderWidth,
             borderStyle: 'solid',
             padding: paddingY,
             paddingLeft: paddingLeft,
             paddingRight: paddingRight,
-            boxShadow: 'rgba(0, 0, 0, 0.05) 0px 1px 2px',
+            boxShadow: isFocused 
+              ? `0 0 0 3px ${formStyle.primaryColor || '#9b87f5'}20` 
+              : 'rgba(0, 0, 0, 0.05) 0px 1px 2px',
             width: '100%',
             height: 'auto',
             lineHeight: 1.5,
@@ -259,6 +305,17 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
             transition: 'all 0.2s ease'
           }}
           required={field.required}
+          onFocus={() => setIsFocused(true)}
+          onBlur={(e) => {
+            setIsFocused(false);
+            setHasValue(e.target.value.length > 0);
+          }}
+          onChange={(e) => {
+            setHasValue(e.target.value.length > 0);
+            if (field.onChange) {
+              field.onChange(e.target.value);
+            }
+          }}
         />
       </div>
       

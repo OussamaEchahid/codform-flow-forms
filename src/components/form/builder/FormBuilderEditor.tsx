@@ -12,6 +12,7 @@ import FormElementList from '@/components/form/builder/FormElementList';
 import FormPreviewPanel from '@/components/form/builder/FormPreviewPanel';
 import FormTemplatesDialog from '@/components/form/FormTemplatesDialog';
 import FormSettingsTab from '@/components/form/builder/FormSettingsTab';
+import GlobalFormStyling from '@/components/form/builder/GlobalFormStyling';
 import { useShopify } from '@/hooks/useShopify';
 import { COUNTRIES, getCountryByCode } from '@/lib/constants/countries-currencies';
 import { 
@@ -890,10 +891,16 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
           />
         </div>
         
-        <div className="col-span-6 bg-gray-50 p-6">
+        <div className="col-span-6 bg-gray-50 p-6 overflow-y-auto">
           <h2 className={`text-xl font-semibold mb-6 ${language === 'ar' ? 'text-right' : ''}`}>
             {language === 'ar' ? 'تحرير وترتيب عناصر النموذج' : 'Edit & Order Form Elements'}
           </h2>
+          
+          {/* Global Form Styling - Fixed at the top */}
+          <GlobalFormStyling 
+            formStyle={formStyle}
+            onStyleChange={handleStylePropertyChange}
+          />
           
           <DndContext 
             sensors={sensors}
