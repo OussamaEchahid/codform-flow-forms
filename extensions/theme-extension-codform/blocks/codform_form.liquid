@@ -291,118 +291,53 @@
       const paddingRight = formDirection === 'rtl' ? (showIcon && hasIcon ? '40px' : '12px') : '12px';
       const paddingTopBottom = '10px';
       
-      if (isFloatingLabels && actualShowLabel) {
-        // Floating labels design
-        html = `
-          <div class="codform-field-wrapper" style="
-                margin-bottom: 16px;
-                direction: ${formDirection};
-                position: relative;
-              ">
-            <div style="position: relative;">
-              ${iconHtml}
-              <input
-                type="${inputType}"
-                id="${fieldId}"
-                name="${fieldId}"
-                placeholder=" "
-                ${required ? 'required' : ''}
-                style="
-                  width: 100%;
-                  background-color: #FFFFFF;
-                  border: ${actualBorderWidth} solid ${actualBorderColor};
-                  border-radius: ${actualBorderRadius};
-                  padding: ${paddingTopBottom} ${paddingRight} ${paddingTopBottom} ${paddingLeft};
-                  font-size: ${actualFontSize};
-                  color: ${actualTextColor};
-                  font-family: ${actualFontFamily};
-                  outline: none;
-                  transition: all 0.2s ease;
-                  box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px;
-                  min-height: 44px;
-                  box-sizing: border-box;
-                  direction: ${formDirection};
-                  text-align: ${formDirection === 'rtl' ? 'right' : 'left'};
-                "
-                onfocus="this.style.borderColor='#9b87f5'; this.style.boxShadow='0 0 0 3px rgba(155, 135, 245, 0.1)'; this.nextElementSibling.style.transform='translateY(-50%) scale(0.85)'; this.nextElementSibling.style.color='#9b87f5';"
-                onblur="this.style.borderColor='${actualBorderColor}'; this.style.boxShadow='rgba(0, 0, 0, 0.05) 0px 1px 2px'; if(this.value === '') { this.nextElementSibling.style.transform='translateY(-50%) scale(1)'; this.nextElementSibling.style.color='${actualLabelColor}'; }"
-                oninput="if(this.value !== '') { this.nextElementSibling.style.transform='translateY(-50%) scale(0.85)'; this.nextElementSibling.style.color='#9b87f5'; } else { this.nextElementSibling.style.transform='translateY(-50%) scale(1)'; this.nextElementSibling.style.color='${actualLabelColor}'; }"
-              />
-              <label for="${fieldId}" style="
-                position: absolute;
-                ${formDirection === 'rtl' ? 'right' : 'left'}: ${showIcon && hasIcon ? '40px' : '12px'};
-                top: 50%;
-                transform: translateY(-50%) scale(1);
-                transform-origin: ${formDirection === 'rtl' ? 'right' : 'left'} center;
+      html = `
+        <div class="codform-field-wrapper" style="
+              margin-bottom: 16px;
+              direction: ${formDirection};
+            ">
+              ${actualShowLabel ? `
+                <label for="${fieldId}" style="
+                  display: block;
+                  color: ${actualLabelColor};
+                  font-size: ${actualLabelFontSize};
+                  font-weight: 600;
+                  margin-bottom: 8px;
+                  font-family: 'Cairo', sans-serif;
+                ">
+              ${label}${required ? '<span style="color: #EF4444; margin-left: 4px;">*</span>' : ''}
+            </label>
+          ` : ''}
+          
+          <div style="position: relative;">
+            ${iconHtml}
+            <input
+              type="${inputType}"
+              id="${fieldId}"
+              name="${fieldId}"
+              placeholder="${actualPlaceholder}"
+              ${required ? 'required' : ''}
+              style="
+                width: 100%;
                 background-color: #FFFFFF;
-                padding: 0 4px;
-                font-size: ${actualLabelFontSize};
-                font-weight: 600;
-                color: ${actualLabelColor};
-                font-family: 'Cairo', sans-serif;
-                pointer-events: none;
+                border: ${actualBorderWidth} solid ${actualBorderColor};
+                border-radius: ${actualBorderRadius};
+                padding: ${paddingTopBottom} ${paddingRight} ${paddingTopBottom} ${paddingLeft};
+                font-size: ${actualFontSize};
+                color: ${actualTextColor};
+                font-family: ${actualFontFamily};
+                outline: none;
                 transition: all 0.2s ease;
-                z-index: 1;
-              ">
-                ${label}${required ? '<span style="color: #EF4444; margin-left: 4px;">*</span>' : ''}
-              </label>
-            </div>
-            ${helpText ? `<div style="margin-top: 4px; color: #64748B; font-size: 14px;">${helpText}</div>` : ''}
-          </div>
-        `;
-      } else {
-        // Regular labels design
-        html = `
-          <div class="codform-field-wrapper" style="
-                margin-bottom: 16px;
+                box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px;
+                min-height: 44px;
+                box-sizing: border-box;
                 direction: ${formDirection};
-              ">
-                ${actualShowLabel ? `
-                  <label for="${fieldId}" style="
-                    display: block;
-                    color: ${actualLabelColor};
-                    font-size: ${actualLabelFontSize};
-                    font-weight: 600;
-                    margin-bottom: 8px;
-                    font-family: 'Cairo', sans-serif;
-                  ">
-                ${label}${required ? '<span style="color: #EF4444; margin-left: 4px;">*</span>' : ''}
-              </label>
-            ` : ''}
-            
-            <div style="position: relative;">
-              ${iconHtml}
-              <input
-                type="${inputType}"
-                id="${fieldId}"
-                name="${fieldId}"
-                placeholder="${actualPlaceholder}"
-                ${required ? 'required' : ''}
-                style="
-                  width: 100%;
-                  background-color: #FFFFFF;
-                  border: ${actualBorderWidth} solid ${actualBorderColor};
-                  border-radius: ${actualBorderRadius};
-                  padding: ${paddingTopBottom} ${paddingRight} ${paddingTopBottom} ${paddingLeft};
-                  font-size: ${actualFontSize};
-                  color: ${actualTextColor};
-                  font-family: ${actualFontFamily};
-                  outline: none;
-                  transition: all 0.2s ease;
-                  box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px;
-                  min-height: 44px;
-                  box-sizing: border-box;
-                  direction: ${formDirection};
-                  text-align: ${formDirection === 'rtl' ? 'right' : 'left'};
-                "
-                onfocus="this.style.borderColor='#9b87f5'; this.style.boxShadow='0 0 0 3px rgba(155, 135, 245, 0.1)'"
-                onblur="this.style.borderColor='${actualBorderColor}'; this.style.boxShadow='rgba(0, 0, 0, 0.05) 0px 1px 2px'"
-              />
-            </div>
-            ${helpText ? `<div style="margin-top: 4px; color: #64748B; font-size: 14px;">${helpText}</div>` : ''}
+                text-align: ${formDirection === 'rtl' ? 'right' : 'left'};
+              "
+              onfocus="this.style.borderColor='#9b87f5'; this.style.boxShadow='0 0 0 3px rgba(155, 135, 245, 0.1)'"
+              onblur="this.style.borderColor='${actualBorderColor}'; this.style.boxShadow='rgba(0, 0, 0, 0.05) 0px 1px 2px'"
+            />
           </div>
-        `;
-      }
           
           <style>
             /* Force proper font for ALL placeholder text in form */
@@ -468,134 +403,63 @@
       const actualBorderRadius = getStyleValue(fieldStyle, 'borderRadius', '8px');
       const actualPlaceholder = getStyleValue(fieldStyle, 'placeholder', placeholder);
       
-      if (isFloatingLabels && actualShowLabel) {
-        // Floating labels design for textarea
-        html = `
-          <div class="codform-field-wrapper" style="
-            margin-bottom: 20px;
-            direction: ${formDirection};
-            position: relative;
-          ">
-            <div style="position: relative;">
-              <textarea
-                id="${fieldId}"
-                name="${fieldId}"
-                placeholder=" "
-                ${required ? 'required' : ''}
-                rows="4"
-                style="
-                  width: 100%;
-                  background-color: #FFFFFF;
-                  border: ${actualBorderWidth} solid ${actualBorderColor};
-                  border-radius: ${actualBorderRadius};
-                  padding: 18px 12px 10px 12px;
-                  font-size: ${actualFontSize};
-                  color: ${actualTextColor};
-                  font-family: ${actualFontFamily};
-                  outline: none;
-                  transition: all 0.2s ease;
-                  box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px;
-                  resize: none;
-                  min-height: 80px;
-                  height: 80px;
-                  box-sizing: border-box;
-                  direction: ${formDirection};
-                  text-align: ${formDirection === 'rtl' ? 'right' : 'left'};
-                "
-                onfocus="this.style.borderColor='#9b87f5'; this.style.boxShadow='0 0 0 3px rgba(155, 135, 245, 0.1)'; this.nextElementSibling.style.transform='translateY(-10px) scale(0.85)'; this.nextElementSibling.style.color='#9b87f5';"
-                onblur="this.style.borderColor='${actualBorderColor}'; this.style.boxShadow='rgba(0, 0, 0, 0.05) 0px 1px 2px'; if(this.value === '') { this.nextElementSibling.style.transform='translateY(8px) scale(1)'; this.nextElementSibling.style.color='${actualLabelColor}'; }"
-                oninput="if(this.value !== '') { this.nextElementSibling.style.transform='translateY(-10px) scale(0.85)'; this.nextElementSibling.style.color='#9b87f5'; } else { this.nextElementSibling.style.transform='translateY(8px) scale(1)'; this.nextElementSibling.style.color='${actualLabelColor}'; }"
-              ></textarea>
-              <label for="${fieldId}" style="
-                position: absolute;
-                ${formDirection === 'rtl' ? 'right' : 'left'}: 12px;
-                top: 8px;
-                transform: translateY(8px) scale(1);
-                transform-origin: ${formDirection === 'rtl' ? 'right' : 'left'} center;
-                background-color: #FFFFFF;
-                padding: 0 4px;
-                font-size: ${actualLabelFontSize};
-                font-weight: 600;
-                color: ${actualLabelColor};
-                font-family: 'Cairo', sans-serif;
-                pointer-events: none;
-                transition: all 0.2s ease;
-                z-index: 1;
-              ">
-                ${label}${required ? '<span style="color: #EF4444; margin-left: 4px;">*</span>' : ''}
-              </label>
-            </div>
-            
-            ${field.helpText ? `
-              <p style="
-                margin-top: 6px;
-                font-size: 14px;
-                color: #6B7280;
-                font-family: 'Cairo', inherit;
-              ">${field.helpText}</p>
-            ` : ''}
-          </div>
-        `;
-      } else {
-        // Regular labels design for textarea
-        html = `
-          <div class="codform-field-wrapper" style="
-            margin-bottom: 20px;
-            direction: ${formDirection};
-          ">
-            ${actualShowLabel ? `
-              <label for="${fieldId}" style="
-                display: block;
-                color: ${actualLabelColor};
-                font-size: ${actualLabelFontSize};
-                font-weight: ${actualLabelWeight};
-                margin-bottom: 8px;
-                font-family: 'Cairo', sans-serif;
-              ">
-                ${label}${required ? '<span style="color: #EF4444; margin-left: 4px;">*</span>' : ''}
-              </label>
-            ` : ''}
-            
-            <textarea
-              id="${fieldId}"
-              name="${fieldId}"
-              placeholder="${actualPlaceholder}"
-              ${required ? 'required' : ''}
-              rows="4"
-              style="
-                width: 100%;
-                background-color: #FFFFFF;
-                border: ${actualBorderWidth} solid ${actualBorderColor};
-                border-radius: ${actualBorderRadius};
-                padding: 10px 12px;
-                font-size: ${actualFontSize};
-                color: ${actualTextColor};
-                font-family: ${actualFontFamily};
-                outline: none;
-                transition: all 0.2s ease;
-                box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px;
-                resize: none;
-                min-height: 80px;
-                height: 80px;
-                box-sizing: border-box;
-                direction: ${formDirection};
-                text-align: ${formDirection === 'rtl' ? 'right' : 'left'};
-              "
-              onfocus="this.style.borderColor='#9b87f5'; this.style.boxShadow='0 0 0 3px rgba(155, 135, 245, 0.1)'"
-              onblur="this.style.borderColor='${actualBorderColor}'; this.style.boxShadow='rgba(0, 0, 0, 0.05) 0px 1px 2px'"
-            ></textarea>
-            
-            ${field.helpText ? `
-              <p style="
-                margin-top: 6px;
-                font-size: 14px;
-                color: #6B7280;
-                font-family: 'Cairo', inherit;
-              ">${field.helpText}</p>
-            ` : ''}
-          </div>
-        `;
-      }
+      html = `
+        <div class="codform-field-wrapper" style="
+          margin-bottom: 20px;
+          direction: ${formDirection};
+        ">
+          ${actualShowLabel ? `
+            <label for="${fieldId}" style="
+              display: block;
+              color: ${actualLabelColor};
+              font-size: ${actualLabelFontSize};
+              font-weight: ${actualLabelWeight};
+              margin-bottom: 8px;
+              font-family: 'Cairo', sans-serif;
+            ">
+              ${label}${required ? '<span style="color: #EF4444; margin-left: 4px;">*</span>' : ''}
+            </label>
+          ` : ''}
+          
+          <textarea
+            id="${fieldId}"
+            name="${fieldId}"
+            placeholder="${actualPlaceholder}"
+            ${required ? 'required' : ''}
+            rows="4"
+            style="
+              width: 100%;
+              background-color: #FFFFFF;
+              border: ${actualBorderWidth} solid ${actualBorderColor};
+              border-radius: ${actualBorderRadius};
+              padding: 10px 12px;
+              font-size: ${actualFontSize};
+              color: ${actualTextColor};
+              font-family: ${actualFontFamily};
+              outline: none;
+              transition: all 0.2s ease;
+              box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px;
+              resize: none;
+              min-height: 80px;
+              height: 80px;
+              box-sizing: border-box;
+              direction: ${formDirection};
+              text-align: ${formDirection === 'rtl' ? 'right' : 'left'};
+            "
+            onfocus="this.style.borderColor='#9b87f5'; this.style.boxShadow='0 0 0 3px rgba(155, 135, 245, 0.1)'"
+            onblur="this.style.borderColor='${actualBorderColor}'; this.style.boxShadow='rgba(0, 0, 0, 0.05) 0px 1px 2px'"
+          ></textarea>
+          
+          ${field.helpText ? `
+            <p style="
+              margin-top: 6px;
+              font-size: 14px;
+              color: #6B7280;
+              font-family: 'Cairo', inherit;
+            ">${field.helpText}</p>
+          ` : ''}
+        </div>
+      `;
     }
     
     else if (field.type === 'submit') {
