@@ -780,7 +780,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
   };
 
   // Handle individual style property updates
-  const handleStylePropertyChange = (key: string, value: string) => {
+  const handleStylePropertyChange = (key: string, value: string | boolean) => {
     setFormStyle(prevStyle => ({
       ...prevStyle,
       [key]: value

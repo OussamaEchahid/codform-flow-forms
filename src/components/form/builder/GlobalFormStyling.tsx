@@ -1,11 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
-import { Palette, Settings } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Button } from '@/components/ui/button';
+import { Palette, Settings, ChevronDown, ChevronUp } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 
 interface GlobalFormStylingProps {
@@ -27,6 +29,7 @@ interface GlobalFormStylingProps {
 
 const GlobalFormStyling: React.FC<GlobalFormStylingProps> = ({ formStyle, onStyleChange }) => {
   const { t, language } = useI18n();
+  const [isOpen, setIsOpen] = useState(false);
 
   // Helper function to get numeric value from string with unit
   const getNumericValue = (value: string | undefined, defaultValue: number): number => {
@@ -39,14 +42,26 @@ const GlobalFormStyling: React.FC<GlobalFormStylingProps> = ({ formStyle, onStyl
   const formatWithPx = (value: number): string => `${value}px`;
 
   return (
-    <Card className="mb-4 border-2 border-primary/20 bg-gradient-to-r from-primary/5 to-primary/10">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Settings className="h-5 w-5 text-primary" />
-          Global form styling
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <Card className="mb-4 border-2 border-primary/20 bg-gradient-to-r from-primary/5 to-primary/10">
+        <CollapsibleTrigger asChild>
+          <CardHeader className="pb-3 cursor-pointer hover:bg-primary/5 transition-colors">
+            <CardTitle className="flex items-center justify-between text-lg">
+              <div className="flex items-center gap-2">
+                <Settings className="h-5 w-5 text-primary" />
+                Global form styling
+              </div>
+              {isOpen ? (
+                <ChevronUp className="h-4 w-4 text-primary" />
+              ) : (
+                <ChevronDown className="h-4 w-4 text-primary" />
+              )}
+            </CardTitle>
+          </CardHeader>
+        </CollapsibleTrigger>
+        
+        <CollapsibleContent>
+          <CardContent className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Border color */}
           <div className="space-y-2">
@@ -221,8 +236,10 @@ const GlobalFormStyling: React.FC<GlobalFormStylingProps> = ({ formStyle, onStyl
             </div>
           </div>
         </div>
-      </CardContent>
-    </Card>
+          </CardContent>
+        </CollapsibleContent>
+      </Card>
+    </Collapsible>
   );
 };
 
