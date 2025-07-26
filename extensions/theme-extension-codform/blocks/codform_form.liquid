@@ -427,7 +427,7 @@
           margin-bottom: 20px;
           direction: ${formDirection};
         ">
-          ${actualShowLabel ? `
+          ${actualShowLabel && !isFloatingLabels ? `
             <label for="${fieldId}" style="
               display: block;
               color: ${actualLabelColor};
@@ -440,10 +440,29 @@
             </label>
           ` : ''}
           
+          <div style="position: relative;">
+            ${isFloatingLabels && actualShowLabel ? `
+              <label for="${fieldId}" style="
+                position: absolute;
+                left: ${formDirection === 'rtl' ? 'auto' : '12px'};
+                right: ${formDirection === 'rtl' ? '12px' : 'auto'};
+                top: 20px;
+                color: #9CA3AF;
+                font-size: ${actualLabelFontSize};
+                font-family: 'Cairo', sans-serif;
+                pointer-events: none;
+                transition: all 0.2s ease;
+                background: white;
+                padding: 0 4px;
+                z-index: 10;
+              " class="floating-label">
+                ${label}${required ? '<span style="color: #EF4444; margin-left: 4px;">*</span>' : ''}
+              </label>
+            ` : ''}
           <textarea
             id="${fieldId}"
             name="${fieldId}"
-            placeholder="${actualPlaceholder}"
+            placeholder="${isFloatingLabels ? '' : actualPlaceholder}"
             ${required ? 'required' : ''}
             rows="4"
             style="
@@ -468,6 +487,7 @@
             onfocus="this.style.borderColor='#9b87f5'; this.style.boxShadow='0 0 0 3px rgba(155, 135, 245, 0.1)'"
             onblur="this.style.borderColor='${actualBorderColor}'; this.style.boxShadow='rgba(0, 0, 0, 0.05) 0px 1px 2px'"
           ></textarea>
+          </div>
           
           ${field.helpText ? `
             <p style="
@@ -1121,16 +1141,17 @@ document.addEventListener('DOMContentLoaded', function() {
     if (label) {
       // Function to update label position
       const updateLabel = () => {
+        const isTextarea = input.tagName.toLowerCase() === 'textarea';
         if (input.value || input === document.activeElement) {
-          label.style.top = '0px';
+          label.style.top = isTextarea ? '8px' : '0px';
           label.style.fontSize = '12px';
           label.style.color = '#6366f1';
-          label.style.transform = 'translateY(-50%)';
+          label.style.transform = isTextarea ? 'translateY(0)' : 'translateY(-50%)';
         } else {
-          label.style.top = '50%';
+          label.style.top = isTextarea ? '20px' : '50%';
           label.style.fontSize = input.style.fontSize || '16px';
           label.style.color = '#9CA3AF';
-          label.style.transform = 'translateY(-50%)';
+          label.style.transform = isTextarea ? 'translateY(0)' : 'translateY(-50%)';
         }
       };
       
