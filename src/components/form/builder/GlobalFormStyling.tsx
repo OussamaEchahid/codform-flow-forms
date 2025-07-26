@@ -23,6 +23,10 @@ interface GlobalFormStylingProps {
     formGap?: string;
     formDirection?: 'ltr' | 'rtl';
     floatingLabels?: boolean;
+    focusBorderColor?: string;
+    fieldBorderColor?: string;
+    fieldBorderWidth?: string;
+    fieldBorderRadius?: string;
   };
   onStyleChange: (key: string, value: string | boolean) => void;
 }
@@ -234,6 +238,76 @@ const GlobalFormStyling: React.FC<GlobalFormStylingProps> = ({ formStyle, onStyl
                 {formStyle.floatingLabels ? 'Enabled' : 'Disabled'}
               </span>
             </div>
+          </div>
+
+          {/* Focus border color */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Focus border color</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                type="color"
+                value={formStyle.focusBorderColor || '#3b82f6'}
+                onChange={(e) => onStyleChange('focusBorderColor', e.target.value)}
+                className="w-12 h-8 p-1 border rounded"
+              />
+              <Input
+                type="text"
+                value={formStyle.focusBorderColor || '#3b82f6'}
+                onChange={(e) => onStyleChange('focusBorderColor', e.target.value)}
+                className="flex-1"
+                placeholder="#3b82f6"
+              />
+            </div>
+          </div>
+
+          {/* Field border color */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Field border color</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                type="color"
+                value={formStyle.fieldBorderColor || '#d1d5db'}
+                onChange={(e) => onStyleChange('fieldBorderColor', e.target.value)}
+                className="w-12 h-8 p-1 border rounded"
+              />
+              <Input
+                type="text"
+                value={formStyle.fieldBorderColor || '#d1d5db'}
+                onChange={(e) => onStyleChange('fieldBorderColor', e.target.value)}
+                className="flex-1"
+                placeholder="#d1d5db"
+              />
+            </div>
+          </div>
+
+          {/* Field border width */}
+          <div className="space-y-2">
+            <Label className="flex items-center justify-between text-sm font-medium">
+              <span>Field border width ({getNumericValue(formStyle.fieldBorderWidth, 1)})</span>
+              <span className="text-xs text-muted-foreground">10</span>
+            </Label>
+            <Slider
+              value={[getNumericValue(formStyle.fieldBorderWidth, 1)]}
+              onValueChange={(value) => onStyleChange('fieldBorderWidth', formatWithPx(value[0]))}
+              max={10}
+              step={1}
+              className="w-full"
+            />
+          </div>
+
+          {/* Field border radius */}
+          <div className="space-y-2">
+            <Label className="flex items-center justify-between text-sm font-medium">
+              <span>Field border radius ({getNumericValue(formStyle.fieldBorderRadius, 8)})</span>
+              <span className="text-xs text-muted-foreground">30</span>
+            </Label>
+            <Slider
+              value={[getNumericValue(formStyle.fieldBorderRadius, 8)]}
+              onValueChange={(value) => onStyleChange('fieldBorderRadius', formatWithPx(value[0]))}
+              max={30}
+              step={1}
+              className="w-full"
+            />
           </div>
         </div>
           </CardContent>

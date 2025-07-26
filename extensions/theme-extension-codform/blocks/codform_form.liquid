@@ -250,13 +250,17 @@
       
       // Field styling from field settings - match preview exactly - scale with base font size
       const actualTextColor = getStyleValue(fieldStyle, 'color', 'rgb(31, 41, 55)');
-      const actualBorderColor = getStyleValue(fieldStyle, 'borderColor', 'rgb(209, 213, 219)');
-      const actualBorderWidth = getStyleValue(fieldStyle, 'borderWidth', '1px');
+      // استخدام إعدادات الحدود من Global form styling أولاً ثم Field styling
+      const actualBorderColor = getStyleValue(fieldStyle, 'borderColor', getStyleValue(formStyle, 'fieldBorderColor', 'rgb(209, 213, 219)'));
+      const actualBorderWidth = getStyleValue(fieldStyle, 'borderWidth', getStyleValue(formStyle, 'fieldBorderWidth', '1px'));
       const actualFontSize = getStyleValue(fieldStyle, 'fontSize', baseFontSize);
       const actualFontFamily = getStyleValue(fieldStyle, 'fontFamily', 'inherit');
       const actualPaddingY = getStyleValue(fieldStyle, 'paddingY', '12px');
-      const actualBorderRadius = getStyleValue(fieldStyle, 'borderRadius', '8px');
+      const actualBorderRadius = getStyleValue(fieldStyle, 'borderRadius', getStyleValue(formStyle, 'fieldBorderRadius', '8px'));
       const actualPlaceholder = getStyleValue(fieldStyle, 'placeholder', placeholder);
+      
+      // إعدادات لون الحدود عند التركيز من Global form styling
+      const focusBorderColor = getStyleValue(formStyle, 'focusBorderColor', '#3b82f6');
       
       // Icon handling with preview settings
       const hasIcon = field.icon && field.icon !== 'none' && field.icon !== '';
@@ -353,7 +357,7 @@
                 direction: ${formDirection};
                 text-align: ${formDirection === 'rtl' ? 'right' : 'left'};
               "
-              onfocus="this.style.borderColor='#9b87f5'; this.style.boxShadow='0 0 0 3px rgba(155, 135, 245, 0.1)'"
+              onfocus="this.style.borderColor='${focusBorderColor}'; this.style.boxShadow='0 0 0 3px ${focusBorderColor}20'"
               onblur="this.style.borderColor='${actualBorderColor}'; this.style.boxShadow='rgba(0, 0, 0, 0.05) 0px 1px 2px'"
             />
           </div>
@@ -414,13 +418,17 @@
       
       // Field styling from field settings - match preview exactly - scale with base font size
       const actualTextColor = getStyleValue(fieldStyle, 'color', 'rgb(31, 41, 55)');
-      const actualBorderColor = getStyleValue(fieldStyle, 'borderColor', 'rgb(209, 213, 219)');
-      const actualBorderWidth = getStyleValue(fieldStyle, 'borderWidth', '1px');
+      // استخدام إعدادات الحدود من Global form styling أولاً ثم Field styling
+      const actualBorderColor = getStyleValue(fieldStyle, 'borderColor', getStyleValue(formStyle, 'fieldBorderColor', 'rgb(209, 213, 219)'));
+      const actualBorderWidth = getStyleValue(fieldStyle, 'borderWidth', getStyleValue(formStyle, 'fieldBorderWidth', '1px'));
       const actualFontSize = getStyleValue(fieldStyle, 'fontSize', baseFontSize);
       const actualFontFamily = getStyleValue(fieldStyle, 'fontFamily', 'inherit');
       const actualPaddingY = getStyleValue(fieldStyle, 'paddingY', '12px');
-      const actualBorderRadius = getStyleValue(fieldStyle, 'borderRadius', '8px');
+      const actualBorderRadius = getStyleValue(fieldStyle, 'borderRadius', getStyleValue(formStyle, 'fieldBorderRadius', '8px'));
       const actualPlaceholder = getStyleValue(fieldStyle, 'placeholder', placeholder);
+      
+      // إعدادات لون الحدود عند التركيز من Global form styling
+      const focusBorderColor = getStyleValue(formStyle, 'focusBorderColor', '#3b82f6');
       
       html = `
         <div class="codform-field-wrapper" style="
@@ -484,7 +492,7 @@
               direction: ${formDirection};
               text-align: ${formDirection === 'rtl' ? 'right' : 'left'};
             "
-            onfocus="this.style.borderColor='#9b87f5'; this.style.boxShadow='0 0 0 3px rgba(155, 135, 245, 0.1)'"
+            onfocus="this.style.borderColor='${focusBorderColor}'; this.style.boxShadow='0 0 0 3px ${focusBorderColor}20'"
             onblur="this.style.borderColor='${actualBorderColor}'; this.style.boxShadow='rgba(0, 0, 0, 0.05) 0px 1px 2px'"
           ></textarea>
           </div>
@@ -556,8 +564,10 @@
         : 'none';
       const buttonPadding = `${buttonPaddingY} ${buttonPaddingX}`;
       
-      // إصلاح الحصول على fontWeight
-      const actualButtonFontWeight = getStyleValue(buttonStyle, 'fontWeight', getStyleValue(buttonStyle, 'labelWeight', 'bold'));
+      // إصلاح الحصول على fontWeight - التحقق من labelWeight أولاً ثم fontWeight
+      const labelWeight = getStyleValue(buttonStyle, 'labelWeight', null);
+      const fontWeight = getStyleValue(buttonStyle, 'fontWeight', null);
+      const actualButtonFontWeight = labelWeight || fontWeight || 'bold';
       
       // Icon handling for submit button
       const hasIcon = field.icon && field.icon !== 'none' && field.icon !== '';
