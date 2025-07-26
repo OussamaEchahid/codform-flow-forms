@@ -195,27 +195,31 @@
     if (field.type === 'form-title') {
       const title = field.label || 'Form Title';
       
-      // Get title color from field style or use default - scale with base font size
-      const baseFontSize = getStyleValue(formStyle, 'baseFontSize', '16px');
-      const baseSizeNum = parseInt(baseFontSize);
-      const titleColor = getStyleValue(field.style, 'color', '#1F2937');
-      const titleFontSize = getStyleValue(field.style, 'fontSize', (baseSizeNum * 1.5) + 'px'); // Scale title with base font size
-      const titleFontWeight = getStyleValue(field.style, 'fontWeight', '700');
+      // Get title settings from field style or use defaults to match old version
+      const titleColor = getStyleValue(field.style, 'color', '#000000');
+      const titleFontSize = getStyleValue(field.style, 'fontSize', '24px');
+      const titleFontWeight = getStyleValue(field.style, 'fontWeight', 'bold');
       const titleTextAlign = getStyleValue(field.style, 'textAlign', 'center');
+      const paddingTop = getStyleValue(field.style, 'paddingTop', '0px');
+      const paddingBottom = getStyleValue(field.style, 'paddingBottom', '0px');
+      const paddingLeft = getStyleValue(field.style, 'paddingLeft', '0px');
+      const paddingRight = getStyleValue(field.style, 'paddingRight', '0px');
       
       html = `
         <div class="codform-title-field" style="
           color: ${titleColor};
           font-size: ${titleFontSize};
           font-weight: ${titleFontWeight};
-          text-align: center;
-          padding: 0;
-          margin: 0 0 20px 0;
-          background: none;
-          border: none;
-          font-family: 'Cairo', inherit;
+          font-family: Cairo, Tajawal, Arial, sans-serif;
+          text-align: ${titleTextAlign};
+          margin: 0px;
+          line-height: 1.4;
+          direction: ${formStyle.formDirection || 'ltr'};
+          padding: ${paddingTop} ${paddingRight} ${paddingBottom} ${paddingLeft};
           width: 100%;
           display: block;
+          background: none;
+          border: none;
         ">
           ${title}
         </div>
