@@ -817,6 +817,10 @@
         // Apply form styling with exact preview matching - ENHANCED GLOBAL STYLING
         const formStyle = data.style || {};
         
+        // Debug logging - التحقق من البيانات
+        console.log('🔍 CODFORM DEBUG: Full data object:', data);
+        console.log('🔍 CODFORM DEBUG: Form style object:', formStyle);
+        
         // Global Form Styling settings - direct sync with component
         const formBackgroundColor = formStyle.backgroundColor || '#F9FAFB';
         const formBorderColor = formStyle.borderColor || '#9b87f5';
@@ -831,6 +835,16 @@
         const floatingLabels = formStyle.floatingLabels || false;
         
         // Apply container styles using Global form styling
+        console.log('🎨 CODFORM: Applying styles:', {
+          backgroundColor: formBackgroundColor,
+          borderColor: formBorderColor,
+          borderWidth: formBorderWidth,
+          borderRadius: formBorderRadius,
+          padding: `${formPaddingTop} ${formPaddingRight} ${formPaddingBottom} ${formPaddingLeft}`,
+          gap: formGap,
+          direction: formDirection
+        });
+        
         container.style.cssText = `
           background-color: ${formBackgroundColor};
           border: ${formBorderWidth} solid ${formBorderColor};
@@ -846,6 +860,8 @@
           position: relative;
           overflow: hidden;
         `;
+        
+        console.log('✅ CODFORM: Styles applied to container. Final container style:', container.style.cssText);
 
         // Generate and insert form content
         let formContent = '';
