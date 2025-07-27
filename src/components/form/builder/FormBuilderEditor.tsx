@@ -88,6 +88,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
   const { formState, setFormState } = useFormStore();
   
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
+  const [isPopupFormDialogOpen, setIsPopupFormDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isPublished, setIsPublished] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
@@ -935,6 +936,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
         onSave={handleSave}
         onPublish={handlePublish}
         onTemplateOpen={() => setIsTemplateDialogOpen(true)}
+        onPopupFormOpen={() => setIsPopupFormDialogOpen(true)}
         isSaving={isSaving}
         isPublishing={isPublishing}
         isPublished={isPublished}
@@ -1061,6 +1063,44 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
           onSelect={handleSelectTemplate} 
           onClose={() => setIsTemplateDialogOpen(false)}
         />
+      </Dialog>
+
+      {/* Popup Form Dialog */}
+      <Dialog open={isPopupFormDialogOpen} onOpenChange={setIsPopupFormDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <PopupButtonManager
+            popupButton={formState.style?.popupButton || {
+              enabled: false,
+              text: language === 'ar' ? 'اطلب الآن' : 'Order Now',
+              fontSize: '18px',
+              fontWeight: '600',
+              textColor: '#ffffff',
+              backgroundColor: '#9b87f5',
+              borderColor: '#9b87f5',
+              borderWidth: '2px',
+              borderRadius: '8px',
+              paddingY: '16px',
+              animation: 'none',
+              showIcon: true
+            }}
+            onUpdate={(config) => {
+              const updatedStyle = {
+                ...formState.style,
+                popupButton: config
+              };
+              
+              setFormState({
+                ...formState,
+                style: updatedStyle
+              });
+              
+              setFormStyle(updatedStyle);
+              setHasUnsavedChanges(true);
+            }}
+            fields={formElements}
+            formStyle={formStyle}
+          />
+        </DialogContent>
       </Dialog>
 
       {isFieldEditorOpen && currentEditingField && (
