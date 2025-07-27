@@ -1277,6 +1277,15 @@
           </div>
         `;
         
+        // CRITICAL: Store original form content immediately after building it
+        const formContainer = container.querySelector('.codform-dynamic-form');
+        if (formContainer) {
+          window.originalFormContent = formContainer.innerHTML;
+          window.originalFormClasses = formContainer.className;
+          window.originalFormStyle = formContainer.style.cssText;
+          console.log('💾 CODFORM: Original form content stored after building');
+        }
+        
         // Show popup button if enabled
         if (popupButton && popupButton.enabled) {
           // Remove any existing popup buttons from the entire page to prevent duplicates
@@ -1503,13 +1512,14 @@ function showPopupButton(popupConfig, formContainer) {
       return;
     }
     
-    // Store original form content AND data for the popup - this is critical!
-    console.log('💾 CODFORM: Storing original form content and data for popup');
-    window.originalFormContent = formContainer.innerHTML;
-    if (window.lastFormData) {
-      window.storedFormData = JSON.parse(JSON.stringify(window.lastFormData));
-      console.log('✅ CODFORM: Form data stored for popup:', window.storedFormData);
+    // Ensure original content is stored (should already be stored after form building)
+    if (!window.originalFormContent) {
+      console.log('💾 CODFORM: Storing original form content for popup (backup)');
+      window.originalFormContent = formContainer.innerHTML;
+      window.originalFormClasses = formContainer.className;
+      window.originalFormStyle = formContainer.style.cssText;
     }
+    console.log('✅ CODFORM: Original form content available for popup');
     
     // Configure button text and styling
     const buttonText = popupConfig.showIcon ? 
@@ -1647,72 +1657,33 @@ window.codformOpenPopup = function() {
   `;
   document.head.appendChild(style);
 
-  // Load the form content into popup
-  console.log('🔍 CODFORM: Loading form content into popup...');
+  // Load the form content into popup - use original HTML directly
+  console.log('🔍 CODFORM: Loading original form content into popup...');
   
-  // First check for stored form data - most reliable method
-  if (window.lastFormData) {
-    console.log('✅ CODFORM: Using stored form data to recreate form');
-    const recreatedForm = createFormFromData(window.lastFormData);
-    if (recreatedForm) {
-      console.log('✅ CODFORM: Form recreated successfully from stored data');
-      popup.appendChild(recreatedForm);
-    } else {
-      console.error('❌ CODFORM: Failed to recreate form from stored data, trying fallback');
-      // Try original content as fallback
-      if (window.originalFormContent) {
-        console.log('🔄 CODFORM: Using stored original form content as fallback');
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = window.originalFormContent;
-        tempDiv.style.margin = '0';
-        tempDiv.style.maxWidth = '100%';
-        popup.appendChild(tempDiv);
-      } else {
-        const errorDiv = document.createElement('div');
-        errorDiv.innerHTML = '<p style="text-align: center; color: #666;">خطأ في تحميل النموذج</p>';
-        popup.appendChild(errorDiv);
-      }
-    }
-  } else if (window.originalFormContent) {
+  if (window.originalFormContent) {
     console.log('✅ CODFORM: Using stored original form content');
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = window.originalFormContent;
-    tempDiv.style.margin = '0';
-    tempDiv.style.maxWidth = '100%';
-    popup.appendChild(tempDiv);
+    const formDiv = document.createElement('div');
+    formDiv.innerHTML = window.originalFormContent;
+    formDiv.className = window.originalFormClasses || 'codform-dynamic-form';
+    
+    // Ensure the form container is styled properly for popup
+    formDiv.style.cssText = `
+      margin: 0;
+      max-width: 100%;
+      background-color: transparent;
+      border: none;
+      border-radius: 0;
+      padding: 0;
+      box-shadow: none;
+    `;
+    
+    popup.appendChild(formDiv);
+    console.log('✅ CODFORM: Original form content loaded successfully');
   } else {
-    // Fallback: try to find existing form container
-    const formContainer = document.querySelector('.codform-dynamic-form');
-    if (formContainer && !formContainer.classList.contains('popup-mode')) {
-      console.log('✅ CODFORM: Using existing form container');
-      const formClone = formContainer.cloneNode(true);
-      formClone.style.margin = '0';
-      formClone.style.maxWidth = '100%';
-      popup.appendChild(formClone);
-    } else {
-      // Last resort: recreate form from stored data
-      console.log('🔄 CODFORM: Recreating form from stored data...');
-      console.log('🔄 CODFORM: Available stored data:', window.lastFormData);
-      
-      if (window.lastFormData) {
-        const recreatedForm = createFormFromData(window.lastFormData);
-        if (recreatedForm) {
-          console.log('✅ CODFORM: Form recreated successfully from stored data');
-          popup.appendChild(recreatedForm);
-        } else {
-          console.error('❌ CODFORM: Failed to recreate form from stored data');
-          const errorDiv = document.createElement('div');
-          errorDiv.innerHTML = '<p style="text-align: center; color: #666;">خطأ في تحميل النموذج</p>';
-          popup.appendChild(errorDiv);
-        }
-      } else {
-        console.error('❌ CODFORM: No stored form data available');
-        const errorDiv = document.createElement('div');
-        errorDiv.innerHTML = '<p style="text-align: center; color: #666;">لم يتم العثور على النموذج</p>';
-        popup.appendChild(errorDiv);
-      }
-    }
-  }
+    console.error('❌ CODFORM: No original form content available');
+    const errorDiv = document.createElement('div');
+    errorDiv.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">خطأ في تحميل النموذج</p>';
+    popup.appendChild(errorDiv);
   }
   
   // Add close button
