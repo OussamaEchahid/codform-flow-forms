@@ -83,14 +83,15 @@ const PopupButtonManager: React.FC<PopupButtonManagerProps> = ({
       </Button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
+        <DialogContent className="max-w-7xl max-h-[95vh] overflow-hidden flex flex-col">
+          <DialogHeader className="pb-4 border-b">
+            <DialogTitle className="text-xl font-semibold flex items-center gap-2">
+              <Settings className="h-5 w-5" />
               {language === 'ar' ? 'إعدادات النموذج المنبثق' : 'Popup Form Settings'}
             </DialogTitle>
           </DialogHeader>
 
-          <Tabs defaultValue="settings" className="w-full">
+          <Tabs defaultValue="settings" className="flex-1 flex flex-col overflow-hidden">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="settings">
                 {language === 'ar' ? 'الإعدادات' : 'Settings'}
@@ -100,14 +101,15 @@ const PopupButtonManager: React.FC<PopupButtonManagerProps> = ({
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="settings" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>
-                    {language === 'ar' ? 'إعدادات عامة' : 'General Settings'}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
+            <TabsContent value="settings" className="flex-1 overflow-y-auto p-1">
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      ⚙️ {language === 'ar' ? 'إعدادات عامة' : 'General Settings'}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
                   <div className="flex items-center justify-between">
                     <Label>
                       {language === 'ar' ? 'تفعيل النموذج المنبثق' : 'Enable Popup Form'}
@@ -297,45 +299,129 @@ const PopupButtonManager: React.FC<PopupButtonManagerProps> = ({
                       </div>
                     </>
                   )}
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
 
-            <TabsContent value="preview" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>
-                    {language === 'ar' ? 'معاينة الزر' : 'Button Preview'}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="relative h-64 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center">
-                    {popupButton.enabled ? (
-                      <PopupButton
-                        config={{
-                          ...popupButton,
-                          position: 'center' // لعرض الزر في المنتصف في المعاينة
-                        }}
-                        onScroll={() => {}}
-                      />
-                    ) : (
-                      <p className="text-gray-500">
-                        {language === 'ar' 
-                          ? 'قم بتفعيل النموذج المنبثق لرؤية المعاينة' 
-                          : 'Enable popup form to see preview'
-                        }
-                      </p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+            <TabsContent value="preview" className="flex-1 overflow-y-auto p-1">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
+                {/* Live Preview */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-sm font-medium">
+                      {language === 'ar' ? 'معاينة مباشرة' : 'Live Preview'}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="relative min-h-[200px] bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg border flex items-center justify-center p-4">
+                      {popupButton.enabled ? (
+                        <div className="w-full max-w-sm">
+                          <button
+                            className={`w-full transition-all duration-300 transform hover:scale-105 ${
+                              popupButton.animation !== 'none' ? `animate-${popupButton.animation}` : ''
+                            }`}
+                            style={{
+                              backgroundColor: popupButton.backgroundColor,
+                              color: popupButton.textColor,
+                              border: `${popupButton.borderWidth} solid ${popupButton.borderColor}`,
+                              borderRadius: popupButton.borderRadius,
+                              fontSize: popupButton.fontSize,
+                              fontWeight: popupButton.fontWeight,
+                              padding: `${popupButton.paddingY} 24px`,
+                              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                              minHeight: '50px'
+                            }}
+                          >
+                            {popupButton.showIcon ? '🛒 ' : ''}{popupButton.text}
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="text-center text-gray-500">
+                          <div className="w-16 h-16 mx-auto mb-3 bg-gray-200 rounded-lg flex items-center justify-center">
+                            <Settings className="w-8 h-8 text-gray-400" />
+                          </div>
+                          <p className="text-sm">
+                            {language === 'ar' 
+                              ? 'قم بتفعيل النموذج المنبثق لرؤية المعاينة' 
+                              : 'Enable popup form to see preview'
+                            }
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Form Preview */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-sm font-medium">
+                      {language === 'ar' ? 'معاينة النموذج' : 'Form Preview'}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="min-h-[200px] bg-white rounded-lg border p-4 space-y-3">
+                      {fields && fields.length > 0 ? (
+                        <div className="space-y-3">
+                          {fields.slice(0, 3).map((field, index) => (
+                            <div key={index} className="space-y-1">
+                              <div className="text-xs text-gray-600 font-medium">
+                                {field.label || `Field ${index + 1}`}
+                              </div>
+                              <div className="h-8 bg-gray-100 rounded border"></div>
+                            </div>
+                          ))}
+                          {fields.length > 3 && (
+                            <div className="text-xs text-gray-400 text-center">
+                              {language === 'ar' 
+                                ? `و ${fields.length - 3} حقول أخرى...`
+                                : `+${fields.length - 3} more fields...`
+                              }
+                            </div>
+                          )}
+                          <div className="mt-4">
+                            <div className="h-10 bg-blue-500 rounded text-white flex items-center justify-center text-sm font-medium">
+                              {language === 'ar' ? 'إرسال الطلب' : 'Submit Order'}
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center h-full text-gray-400">
+                          <div className="text-center">
+                            <div className="w-12 h-12 mx-auto mb-2 bg-gray-100 rounded flex items-center justify-center">
+                              📝
+                            </div>
+                            <p className="text-xs">
+                              {language === 'ar' ? 'لا توجد حقول' : 'No fields'}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
           </Tabs>
 
-          <DialogFooter>
-            <Button onClick={() => setIsOpen(false)}>
-              {language === 'ar' ? 'إغلاق' : 'Close'}
-            </Button>
+          <DialogFooter className="border-t pt-4 mt-4">
+            <div className="flex items-center justify-between w-full">
+              <div className="text-sm text-gray-500">
+                {popupButton.enabled ? (
+                  <span className="text-green-600 font-medium">
+                    ✅ {language === 'ar' ? 'النموذج المنبثق مفعل' : 'Popup form enabled'}
+                  </span>
+                ) : (
+                  <span className="text-gray-400">
+                    ❌ {language === 'ar' ? 'النموذج المنبثق معطل' : 'Popup form disabled'}
+                  </span>
+                )}
+              </div>
+              <Button onClick={() => setIsOpen(false)} size="lg">
+                {language === 'ar' ? 'حفظ وإغلاق' : 'Save & Close'}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -110,6 +110,14 @@ export const useFormStore = create<FormStore>((set) => ({
       // Deep copy to prevent reference issues
       const newStyleProps = JSON.parse(JSON.stringify(form.style));
       
+      // Special handling for popupButton to ensure proper merging
+      if (newStyleProps.popupButton && updatedStyle.popupButton) {
+        newStyleProps.popupButton = {
+          ...updatedStyle.popupButton,
+          ...newStyleProps.popupButton
+        };
+      }
+      
       // Apply the style updates, ensuring fontSize is preserved
       updatedStyle = {
         ...updatedStyle,

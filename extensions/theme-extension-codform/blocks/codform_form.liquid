@@ -1035,34 +1035,43 @@
 
         // Check if popup button is enabled
         console.log('🎯 CODFORM: Checking popup button settings:', popupButton);
-        const isPopupEnabled = popupButton?.enabled === true;
+        console.log('🎯 CODFORM: Popup enabled check:', popupButton?.enabled, typeof popupButton?.enabled);
+        const isPopupEnabled = popupButton && popupButton.enabled === true;
+        console.log('🎯 CODFORM: Final popup enabled result:', isPopupEnabled);
         
         if (isPopupEnabled) {
           console.log('🎯 CODFORM: Popup mode enabled, hiding form and showing button');
           // Hide the normal form and show popup button
           container.style.display = 'none';
           
-          // Create popup button
+          // Create popup button with enhanced styling
           const popupButtonElement = document.createElement('button');
-          popupButtonElement.textContent = popupButton.showIcon ? `🛒 ${popupButton.text}` : popupButton.text;
+          const buttonText = popupButton.showIcon ? `🛒 ${popupButton.text || 'Order Now'}` : (popupButton.text || 'Order Now');
+          popupButtonElement.textContent = buttonText;
           popupButtonElement.style.cssText = `
             background-color: ${popupButton.backgroundColor || '#9b87f5'};
             color: ${popupButton.textColor || '#ffffff'};
             border: ${popupButton.borderWidth || '2px'} solid ${popupButton.borderColor || '#9b87f5'};
             border-radius: ${popupButton.borderRadius || '8px'};
-            font-size: ${popupButton.fontSize || '16px'};
+            font-size: ${popupButton.fontSize || '18px'};
             font-weight: ${popupButton.fontWeight || '600'};
-            padding: ${popupButton.paddingY || '12px'} 24px;
+            padding: ${popupButton.paddingY || '16px'} 24px;
             cursor: pointer;
             transition: all 0.3s ease;
             white-space: nowrap;
-            display: block;
+            display: block !important;
             width: 100%;
             text-align: center;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
             margin: 20px auto;
-            max-width: 300px;
+            max-width: 100%;
+            min-height: 50px;
+            font-family: 'Cairo', inherit;
+            position: relative;
+            z-index: 1;
           `;
+          
+          console.log('✅ CODFORM: Created popup button with text:', buttonText);
           
           // Add animation class
           if (popupButton.animation && popupButton.animation !== 'none') {
@@ -1080,10 +1089,15 @@
             this.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
           });
           
-          // Insert button in the same container
-          const sectionElement = document.querySelector('[data-section-id="{{ section.id }}"]');
-          if (sectionElement) {
-            sectionElement.appendChild(popupButtonElement);
+          // Insert button in place of the form
+          const parentElement = container.parentElement;
+          if (parentElement) {
+            parentElement.insertBefore(popupButtonElement, container);
+            console.log('✅ CODFORM: Button inserted before form container');
+          } else {
+            // Fallback: insert after the container
+            container.parentNode.insertBefore(popupButtonElement, container.nextSibling);
+            console.log('✅ CODFORM: Button inserted after form container');
           }
           
           // Add click event to show form popup
