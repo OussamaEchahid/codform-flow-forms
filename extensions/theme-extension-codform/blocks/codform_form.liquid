@@ -1739,73 +1739,86 @@ window.openFormPopup = function(event) {
   `;
   formElement.onsubmit = handlePopupFormSubmission;
   
-  // نسخ مباشر للنموذج الأصلي مع جميع العناصر والستايلات
+  // البحث عن النموذج الأصلي ونسخه بالكامل
   const originalFormContainer = document.querySelector('[data-form-preview-id="form-preview-stable"]');
+  const existingForm = document.querySelector('#codform-main-form, .codform-form-fields, form');
   
-  if (originalFormContainer) {
-    console.log('📋 CODFORM: Found original form, creating exact copy');
+  if (originalFormContainer && originalFormContainer.innerHTML.trim()) {
+    console.log('📋 CODFORM: Found original form container, copying content');
     
-    // نسخ كامل للحاوية الأصلية مع جميع المحتويات
-    const clonedForm = originalFormContainer.cloneNode(true);
+    // نسخ محتوى الحاوية الأصلية مباشرة
+    formElement.innerHTML = originalFormContainer.innerHTML;
     
-    // إزالة معرف الحاوية الأصلية لتجنب التضارب
-    clonedForm.removeAttribute('data-form-preview-id');
-    clonedForm.id = 'popup-form-container';
-    
-    // تطبيق ستايلات النافذة المنبثقة فقط على الحاوية الخارجية
-    clonedForm.style.cssText = `
-      background: transparent !important;
-      border: none !important;
-      box-shadow: none !important;
-      margin: 0 !important;
-      padding: 0 !important;
-      width: 100% !important;
-      direction: inherit !important;
-      font-family: 'Cairo', 'Noto Sans Arabic', 'Amiri', sans-serif !important;
-    `;
-    
-    // التأكد من أن جميع الأحداث والتفاعلات تعمل
-    const allInputs = clonedForm.querySelectorAll('input, textarea, select, button');
-    allInputs.forEach(input => {
-      // نسخ الأحداث من العنصر الأصلي
-      const originalInput = originalFormContainer.querySelector(`[name="${input.name}"], [id="${input.id}"]`);
-      if (originalInput) {
-        ['change', 'input', 'click', 'focus', 'blur', 'keyup'].forEach(eventType => {
-          input.addEventListener(eventType, function(e) {
-            // تحديث القيمة في العنصر الأصلي أيضاً
-            if (originalInput.type === input.type) {
-              originalInput.value = input.value;
-            }
-          });
-        });
-      }
-      
-      // التأكد من الخط العربي لجميع العناصر
-      input.style.fontFamily = "'Cairo', 'Noto Sans Arabic', 'Amiri', sans-serif";
-    });
-    
-    // استبدال محتوى formElement بالنسخة المستنسخة
-    formElement.innerHTML = '';
-    formElement.appendChild(clonedForm);
-    
-    console.log('✅ CODFORM: Successfully copied original form with all styling and functionality');
-    
-  } else {
-    console.log('📋 CODFORM: Original form not found, using form data to recreate');
-    
-    // إنشاء النموذج من البيانات المحفوظة كخيار احتياطي
+    // تطبيق الستايلات العربية
     formElement.style.direction = 'rtl';
     formElement.style.textAlign = 'right';
     formElement.style.fontFamily = "'Cairo', 'Noto Sans Arabic', 'Amiri', sans-serif";
     
-    // استخدام renderField لإنشاء الحقول مع الستايلات الصحيحة
-    window.codformCurrentlyInPopup = true; // إشارة للدالة أننا في النافذة المنبثقة
+    console.log('✅ CODFORM: Successfully copied original form content');
+    
+  } else if (existingForm && existingForm.innerHTML.trim()) {
+    console.log('📋 CODFORM: Found existing form, copying content');
+    
+    // نسخ محتوى النموذج الموجود
+    formElement.innerHTML = existingForm.innerHTML;
+    
+    // نسخ الستايلات المطبقة
+    const computedStyle = window.getComputedStyle(existingForm);
+    formElement.style.direction = computedStyle.direction || 'rtl';
+    formElement.style.textAlign = computedStyle.textAlign || 'right';
+    formElement.style.fontFamily = "'Cairo', 'Noto Sans Arabic', 'Amiri', sans-serif";
+    
+    console.log('✅ CODFORM: Successfully copied existing form with styling');
+    
+  } else {
+    console.log('📋 CODFORM: No existing form found, creating from field data');
+    
+    // إنشاء النموذج من البيانات كخيار احتياطي
+    formElement.style.direction = 'rtl';
+    formElement.style.textAlign = 'right';
+    formElement.style.fontFamily = "'Cairo', 'Noto Sans Arabic', 'Amiri', sans-serif";
+    
+    // استخدام renderField لإنشاء الحقول
+    window.codformCurrentlyInPopup = true;
     
     formElement.innerHTML = fieldsArray.map(field => {
+      if (field.type === 'submit') {
+        return `<button type="submit" style="
+          background-color: ${formStyle.submitButtonStyle?.backgroundColor || '#9b87f5'};
+          color: ${formStyle.submitButtonStyle?.color || 'white'};
+          padding: 12px 24px;
+          border: none;
+          border-radius: 8px;
+          font-size: 16px;
+          font-weight: 600;
+          cursor: pointer;
+          width: 100%;
+          margin-top: 16px;
+          font-family: 'Cairo', 'Noto Sans Arabic', 'Amiri', sans-serif;
+          transition: all 0.3s ease;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">${field.label || 'إرسال الطلب'}</button>`;
+      }
       return renderField(field, formStyle, formLanguage);
     }).join('');
     
-    window.codformCurrentlyInPopup = false; // إعادة تعيين الإشارة
+    window.codformCurrentlyInPopup = false;
+    
+    console.log('✅ CODFORM: Created form from field data');
+  }
+  
+  // التأكد من أن النموذج يحتوي على محتوى
+  if (!formElement.innerHTML.trim()) {
+    console.error('❌ CODFORM: Form element is empty, adding fallback content');
+    formElement.innerHTML = `
+      <div style="direction: rtl; text-align: right; font-family: 'Cairo', sans-serif;">
+        <div style="margin-bottom: 16px;">
+          <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #374151;">الاسم الكامل</label>
+          <input type="text" name="fullName" style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-family: 'Cairo', sans-serif;" />
+        </div>
+        <button type="submit" style="background-color: #9b87f5; color: white; padding: 12px 24px; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; width: 100%; font-family: 'Cairo', sans-serif;">إرسال الطلب</button>
+      </div>
+    `;
   }
   
   // Assemble the complete form
