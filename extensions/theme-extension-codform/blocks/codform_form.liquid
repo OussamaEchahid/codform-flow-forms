@@ -664,7 +664,9 @@ button[id^="codform-popup-btn"] * {
       const buttonContent = `${iconHtml}${finalButtonText}`;
       
       // Button click handler - different for popup vs normal
-      const clickHandler = isPopupMode ? 
+      // Check if we're actually inside a popup or just have popup enabled
+      const isActuallyInPopup = typeof window !== 'undefined' && window.codformCurrentlyInPopup === true;
+      const clickHandler = (isPopupMode && !isActuallyInPopup) ? 
         'onclick="openFormPopup(event)"' : 
         'type="submit"';
       
@@ -1188,8 +1190,14 @@ button[id^="codform-popup-btn"] * {
 
         // Check if popup mode is enabled
         if (popupButton && popupButton.enabled) {
-          // Create clean form HTML for popup (without popup button)
+          // Set popup mode flag to create proper form for popup
+          window.codformCurrentlyInPopup = true;
+          
+          // Create clean form HTML for popup (with actual submit buttons)
           const cleanFormFields = fieldsArray.map(field => renderField(field, formStyle, formLanguage)).join('');
+          
+          // Reset flag for main page
+          window.codformCurrentlyInPopup = false;
           
           // Show only the popup button in main area - completely remove any borders
           container.innerHTML = `
@@ -1436,9 +1444,12 @@ function openFormPopup() {
   };
   closeButton.onclick = closeFormPopup;
   
-  // Add form content
+  // Set flag that we're in popup mode
+  window.codformCurrentlyInPopup = true;
+  
+  // Add form content with proper borders for popup
   modal.innerHTML = `
-    <div style="padding: 40px 30px 30px;">
+    <div style="padding: 40px 30px 30px; border: 1px solid #e5e5e5; border-radius: 12px; background: white;">
       ${window.codformPopupHTML || '<p>Form not available</p>'}
     </div>
   `;
@@ -1476,6 +1487,8 @@ function closeFormPopup() {
   if (overlay) {
     overlay.remove();
   }
+  // Reset popup mode flag
+  window.codformCurrentlyInPopup = false;
 }
 
 // Floating labels functionality
