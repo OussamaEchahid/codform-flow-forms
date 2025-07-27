@@ -218,15 +218,78 @@
   </div>
 </div>
 
+<script src="{{ 'codform-fixed.js' | asset_url }}"></script>
+
 <script>
+// إضافة وظيفة تحميل النموذج من الـ API
 (function() {
   'use strict';
   
-  console.log('🚀 CODFORM: Form initialization started');
+  var API_BASE_URL = 'https://lovable-forms-api.netlify.app/.netlify/functions/api-forms';
   
-  // Constants
-  const API_BASE_URL = 'https://lovable-forms-api.netlify.app/.netlify/functions/api-forms';
-  const DEFAULT_PRODUCT_ID = 'default';
+  function getProductId() {
+    var productId = '{{ product.id }}' || '{{ product.variants.first.id }}' || '{{ block.settings.product_id }}' || 'auto-detect';
+    return productId.trim();
+  }
+  
+  function getShopDomain() {
+    var shopDomain = '{{ shop.domain }}' || '{{ shop.permanent_domain }}' || 'auto-detect';
+    return shopDomain;
+  }
+  
+  function loadForm() {
+    var productId = getProductId();
+    var shopDomain = getShopDomain();
+    var url = API_BASE_URL + '/' + productId + '?shop=' + encodeURIComponent(shopDomain);
+    
+    fetch(url)
+      .then(function(response) { return response.json(); })
+      .then(function(data) {
+        if (data && data.fields) {
+          var container = document.querySelector('[data-form-preview-id="form-preview-stable"]');
+          if (container) {
+            var html = '';
+            for (var i = 0; i < data.fields.length; i++) {
+              html += renderSimpleField(data.fields[i]);
+            }
+            container.innerHTML = html;
+          }
+        }
+      })
+      .catch(function(error) {
+        console.log('Form loading error:', error);
+      });
+  }
+  
+  function renderSimpleField(field) {
+    if (!field) return '';
+    
+    if (field.type === 'form-title') {
+      return '<h2 style="text-align: center; margin: 16px 0; font-family: Cairo, sans-serif;">' + (field.label || 'Form Title') + '</h2>';
+    }
+    
+    if (['text', 'email', 'phone'].indexOf(field.type) !== -1) {
+      var inputType = field.type === 'email' ? 'email' : (field.type === 'phone' ? 'tel' : 'text');
+      return '<div style="margin-bottom: 16px;"><label style="display: block; margin-bottom: 8px; font-family: Cairo, sans-serif;">' + 
+             (field.label || 'Field') + '</label><input type="' + inputType + '" style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px;" /></div>';
+    }
+    
+    if (field.type === 'submit') {
+      return '<button type="submit" style="width: 100%; padding: 16px; background: #9b87f5; color: white; border: none; border-radius: 8px; font-size: 18px; cursor: pointer;">' + 
+             (field.label || 'Submit') + '</button>';
+    }
+    
+    return '';
+  }
+  
+  // تحميل النموذج عند جاهزية الصفحة
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadForm);
+  } else {
+    loadForm();
+  }
+})();
+</script>
 
   // Utility functions
   function getProductId() {
@@ -1031,21 +1094,20 @@
           direction: formDirection
         });
         
-        container.style.cssText = `
-          background-color: ${formBackgroundColor};
-          border: ${formBorderWidth} solid ${formBorderColor};
-          border-radius: ${formBorderRadius};
-          padding: ${formPaddingTop} ${formPaddingRight} ${formPaddingBottom} ${formPaddingLeft};
-          box-shadow: rgba(0, 0, 0, 0.05) 0px 4px 6px;
-          max-width: 500px;
-          margin: 20px auto;
-          font-family: inherit;
-          direction: ${formDirection};
-          box-sizing: border-box;
-          gap: ${formGap};
-          position: relative;
-          overflow: hidden;
-        `;
+        container.style.cssText = 
+          'background-color: ' + formBackgroundColor + '; ' +
+          'border: ' + formBorderWidth + ' solid ' + formBorderColor + '; ' +
+          'border-radius: ' + formBorderRadius + '; ' +
+          'padding: ' + formPaddingTop + ' ' + formPaddingRight + ' ' + formPaddingBottom + ' ' + formPaddingLeft + '; ' +
+          'box-shadow: rgba(0, 0, 0, 0.05) 0px 4px 6px; ' +
+          'max-width: 500px; ' +
+          'margin: 20px auto; ' +
+          'font-family: inherit; ' +
+          'direction: ' + formDirection + '; ' +
+          'box-sizing: border-box; ' +
+          'gap: ' + formGap + '; ' +
+          'position: relative; ' +
+          'overflow: hidden;';
         
         console.log('✅ CODFORM: Styles applied to container. Final container style:', container.style.cssText);
 
@@ -1902,7 +1964,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     input.addEventListener('focus', function() {
       this.style.borderColor = focusBorderColor;
-      this.style.boxShadow = `0 0 0 3px ${focusBorderColor}20`;
+      this.style.boxShadow = '0 0 0 3px ' + focusBorderColor + '20';
     });
     
     input.addEventListener('blur', function() {
