@@ -1733,25 +1733,22 @@ window.openFormPopup = function(event) {
         currency: '{{ shop.currency }}' || 'SAR'
       };
       
-      console.log('🎯 Loading quantity offers for popup with correct blockId:', popupBlockId);
-      console.log('📦 Container should be:', `quantity-offers-before-${popupBlockId}`);
-      console.log('📦 Container exists:', !!document.getElementById(`quantity-offers-before-${popupBlockId}`));
+      console.log('🎯 Starting popup quantity offers load...');
+      console.log('📦 ProductId:', productId);
+      console.log('🏪 Shop:', shopDomain);
       
-      // التأكد من وجود الحاوية قبل التحميل
-      const container = document.getElementById(`quantity-offers-before-${popupBlockId}`);
-      if (container) {
-        console.log('✅ Container found, loading offers...');
-        window.CodformQuantityOffers.loadWithProduct(popupBlockId, productId, shopDomain, formCurrency, productData);
-      } else {
-        console.error('❌ Container not found for popup offers:', `quantity-offers-before-${popupBlockId}`);
-        // إنشاء الحاوية إذا لم تكن موجودة
-        const newContainer = document.createElement('div');
-        newContainer.id = `quantity-offers-before-${popupBlockId}`;
-        newContainer.style.cssText = 'margin-bottom: 16px;';
-        formWrapper.insertBefore(newContainer, formElement);
-        console.log('🔧 Created missing container, retrying...');
-        window.CodformQuantityOffers.loadWithProduct(popupBlockId, productId, shopDomain, formCurrency, productData);
-      }
+      // إنشاء الحاوية مباشرة في النموذج المنبثق
+      const offersContainer = document.createElement('div');
+      offersContainer.id = 'popup-quantity-offers';
+      offersContainer.style.cssText = 'margin-bottom: 16px;';
+      
+      // إدراج الحاوية قبل النموذج
+      formWrapper.insertBefore(offersContainer, formElement);
+      console.log('🔧 Created offers container:', offersContainer.id);
+      
+      // استخدام blockId بسيط للنموذج المنبثق
+      const popupBlockId = 'popup-form';
+      window.CodformQuantityOffers.loadWithProduct(popupBlockId, productId, shopDomain, formCurrency, productData);
     }
   }, 200);
   popup.appendChild(modalContent);
