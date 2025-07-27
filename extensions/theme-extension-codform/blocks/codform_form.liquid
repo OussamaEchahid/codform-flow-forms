@@ -119,7 +119,7 @@ button[id^="codform-popup-btn"] {
   25%, 75% { opacity: 0.5; }
 }
 
-{%- comment -%} Animation Classes for popup buttons {%- endcomment -%}
+{%- comment -%} Animation Classes for popup buttons - FIXED {%- endcomment -%}
 .codform-popup-button.pulse-animation,
 button[id^="codform-popup-btn"].pulse-animation,
 .codform-popup-trigger.pulse-animation {
@@ -149,6 +149,8 @@ button[id^="codform-popup-btn"].flash-animation,
 .codform-popup-trigger.flash-animation {
   animation: flash 2s infinite !important;
 }
+
+{%- comment -%} Apply Cairo font to all popup related elements {%- endcomment -%}
 
 {%- comment -%} Completely remove borders from popup buttons and set Arabic font {%- endcomment -%}
 .codform-popup-button,
@@ -1174,6 +1176,8 @@ button[id^="codform-popup-btn"] *,
               }
             }
             
+            console.log('🎬 Animation class for popup button:', animationClass);
+            
             completeFormHTML = `
               <div class="codform-popup-only-mode" style="
                 display: flex;
@@ -1690,7 +1694,7 @@ window.openFormPopup = function(event) {
   // Create quantity offers containers for popup with correct IDs
   const quantityOffersBeforePopup = document.createElement('div');
   quantityOffersBeforePopup.id = `quantity-offers-before-${popupBlockId}`;
-  quantityOffersBeforePopup.style.cssText = 'margin-bottom: 16px; display: none;';
+  quantityOffersBeforePopup.style.cssText = 'margin-bottom: 16px;'; // Remove display: none
   
   // Generate form HTML with correct styling
   const formElement = document.createElement('form');
@@ -1730,6 +1734,7 @@ window.openFormPopup = function(event) {
       };
       
       console.log('🎯 Loading quantity offers for popup with correct blockId:', popupBlockId);
+      console.log('📦 Container should be:', `quantity-offers-before-${popupBlockId}`);
       window.CodformQuantityOffers.loadWithProduct(popupBlockId, productId, shopDomain, formCurrency, productData);
     }
   }, 100);
