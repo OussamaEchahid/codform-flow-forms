@@ -1,11 +1,11 @@
-// CODFORM Fixed JavaScript - No Template Literals
+// CODFORM Fixed JavaScript - Compatibility Mode
 (function() {
   'use strict';
   
-  console.log('🚀 CODFORM FIXED: Starting without syntax errors');
+  console.log('CODFORM FIXED: Starting without syntax errors');
   
   // Constants
-  const API_BASE_URL = 'https://lovable-forms-api.netlify.app/.netlify/functions/api-forms';
+  var API_BASE_URL = 'https://lovable-forms-api.netlify.app/.netlify/functions/api-forms';
   
   // Helper functions
   function getStyleValue(style, property, fallback) {
@@ -15,8 +15,7 @@
   
   // Icon SVG generator
   function getIconSvg(iconName, iconColor) {
-    const strokeStyle = 'width: 18px; height: 18px; stroke: ' + iconColor + '; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;';
-    const filledStyle = 'width: 18px; height: 18px; fill: ' + iconColor + '; stroke: none;';
+    var strokeStyle = 'width: 18px; height: 18px; stroke: ' + iconColor + '; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;';
     
     switch(iconName) {
       case 'user':
@@ -34,25 +33,25 @@
   function renderFieldFixed(field, formStyle, formLanguage) {
     if (!field || !field.type) return '';
     
-    const formDirection = (formLanguage === 'ar' || /[\u0600-\u06FF]/.test(field.label)) ? 'rtl' : 'ltr';
-    const baseFontSize = getStyleValue(formStyle, 'baseFontSize', '16px');
+    var formDirection = (formLanguage === 'ar' || /[\u0600-\u06FF]/.test(field.label)) ? 'rtl' : 'ltr';
+    var baseFontSize = getStyleValue(formStyle, 'baseFontSize', '16px');
     
     if (field.type === 'form-title') {
-      const title = field.label || 'Form Title';
-      const titleColor = getStyleValue(field.style, 'color', '#000000');
-      const titleFontSize = getStyleValue(field.style, 'fontSize', '24px');
-      const titleFontWeight = getStyleValue(field.style, 'fontWeight', 'bold');
+      var title = field.label || 'Form Title';
+      var titleColor = getStyleValue(field.style, 'color', '#000000');
+      var titleFontSize = getStyleValue(field.style, 'fontSize', '24px');
+      var titleFontWeight = getStyleValue(field.style, 'fontWeight', 'bold');
       
       return '<div class="form-title-field" style="color: ' + titleColor + '; font-size: ' + titleFontSize + '; font-weight: ' + titleFontWeight + '; text-align: center; margin: 16px 0; font-family: Cairo, sans-serif;">' + title + '</div>';
     }
     
-    if (['text', 'email', 'phone'].includes(field.type)) {
-      const label = field.label || 'Field';
-      const fieldId = field.id || 'field-' + Math.random().toString(36).substr(2, 9);
-      const required = field.required || false;
-      const placeholder = field.placeholder || '';
+    if (['text', 'email', 'phone'].indexOf(field.type) !== -1) {
+      var label = field.label || 'Field';
+      var fieldId = field.id || 'field-' + Math.random().toString(36).substr(2, 9);
+      var required = field.required || false;
+      var placeholder = field.placeholder || '';
       
-      let html = '<div class="codform-field-wrapper" style="margin-bottom: 16px; direction: ' + formDirection + ';">';
+      var html = '<div class="codform-field-wrapper" style="margin-bottom: 16px; direction: ' + formDirection + ';">';
       
       // Label
       html += '<label for="' + fieldId + '" style="display: block; color: #333; font-size: ' + baseFontSize + '; font-weight: 600; margin-bottom: 8px; font-family: Cairo, sans-serif;">';
@@ -61,7 +60,7 @@
       html += '</label>';
       
       // Input
-      const inputType = field.type === 'email' ? 'email' : (field.type === 'phone' ? 'tel' : 'text');
+      var inputType = field.type === 'email' ? 'email' : (field.type === 'phone' ? 'tel' : 'text');
       html += '<input type="' + inputType + '" id="' + fieldId + '" name="' + fieldId + '" placeholder="' + placeholder + '"';
       if (required) html += ' required';
       html += ' style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: ' + baseFontSize + '; font-family: Cairo, sans-serif; direction: ' + formDirection + ';" />';
@@ -71,12 +70,12 @@
     }
     
     if (field.type === 'submit') {
-      const buttonText = field.label || 'Submit';
-      const buttonStyle = field.style || {};
-      const backgroundColor = getStyleValue(buttonStyle, 'backgroundColor', '#9b87f5');
-      const textColor = getStyleValue(buttonStyle, 'textColor', '#ffffff');
+      var buttonText = field.label || 'Submit';
+      var buttonStyle = field.style || {};
+      var backgroundColor = getStyleValue(buttonStyle, 'backgroundColor', '#9b87f5');
+      var textColor = getStyleValue(buttonStyle, 'textColor', '#ffffff');
       
-      return '<div style="margin-top: 24px;"><button type="submit" style="width: 100%; padding: 16px; background-color: ' + backgroundColor + '; color: ' + textColor + '; border: none; border-radius: 8px; font-size: 18px; font-weight: 600; font-family: Cairo, sans-serif; cursor: pointer; transition: all 0.3s ease;" onmouseover="this.style.opacity=\'0.9\'" onmouseout="this.style.opacity=\'1\'">' + buttonText + '</button></div>';
+      return '<div style="margin-top: 24px;"><button type="submit" style="width: 100%; padding: 16px; background-color: ' + backgroundColor + '; color: ' + textColor + '; border: none; border-radius: 8px; font-size: 18px; font-weight: 600; font-family: Cairo, sans-serif; cursor: pointer; transition: all 0.3s ease;">' + buttonText + '</button></div>';
     }
     
     return '';
@@ -84,8 +83,8 @@
   
   // Popup functions
   window.codformOpenPopup = function() {
-    console.log('🎯 Opening popup');
-    const modal = document.getElementById('codform-popup-modal');
+    console.log('Opening popup');
+    var modal = document.getElementById('codform-popup-modal');
     if (modal) {
       modal.classList.add('active');
       document.body.style.overflow = 'hidden';
@@ -93,8 +92,8 @@
   };
   
   window.codformClosePopup = function() {
-    console.log('🎯 Closing popup');
-    const modal = document.getElementById('codform-popup-modal');
+    console.log('Closing popup');
+    var modal = document.getElementById('codform-popup-modal');
     if (modal) {
       modal.classList.remove('active');
       document.body.style.overflow = '';
@@ -103,21 +102,21 @@
   
   // Initialize form when ready
   function initializeCodform() {
-    console.log('✅ CODFORM FIXED: Ready to load forms');
+    console.log('CODFORM FIXED: Ready to load forms');
     
     // Add focus/blur effects to form inputs
-    const inputs = document.querySelectorAll('.codform-field-wrapper input, .codform-field-wrapper textarea');
-    inputs.forEach(input => {
-      input.addEventListener('focus', function() {
+    var inputs = document.querySelectorAll('.codform-field-wrapper input, .codform-field-wrapper textarea');
+    for (var i = 0; i < inputs.length; i++) {
+      inputs[i].addEventListener('focus', function() {
         this.style.borderColor = '#3b82f6';
         this.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.2)';
       });
       
-      input.addEventListener('blur', function() {
+      inputs[i].addEventListener('blur', function() {
         this.style.borderColor = '#d1d5db';
         this.style.boxShadow = 'none';
       });
-    });
+    }
   }
   
   // Start when DOM is ready
