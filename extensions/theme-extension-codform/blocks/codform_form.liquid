@@ -1271,9 +1271,16 @@
         
         // Show popup button if enabled
         if (popupButton && popupButton.enabled) {
-          // Remove any existing popup buttons to prevent duplicates
-          const existingButtons = container.parentNode.querySelectorAll('.codform-popup-button');
+          // Remove any existing popup buttons from the entire page to prevent duplicates
+          const existingButtons = document.querySelectorAll('.codform-popup-button');
           existingButtons.forEach(btn => btn.remove());
+          
+          // Remove popup buttons from all containers
+          const allContainers = document.querySelectorAll('.codform-form-container, .codform-dynamic-form');
+          allContainers.forEach(cont => {
+            const buttons = cont.querySelectorAll('.codform-popup-button');
+            buttons.forEach(btn => btn.remove());
+          });
           
           showPopupButton(popupButton, container);
         } else {
@@ -1283,7 +1290,7 @@
           container.classList.remove('popup-mode');
           
           // Remove any existing popup buttons when popup is disabled
-          const existingButtons = container.parentNode.querySelectorAll('.codform-popup-button');
+          const existingButtons = document.querySelectorAll('.codform-popup-button');
           existingButtons.forEach(btn => btn.remove());
           
           const popupButtonElement = document.getElementById('codform-popup-button');
@@ -1305,6 +1312,13 @@
       });
   }
 
+  // منع التحميل المتعدد للنموذج
+  if (window.codformFormLoaded) {
+    console.log('🔄 CODFORM: Form already loaded, skipping');
+    return;
+  }
+  window.codformFormLoaded = true;
+
   // تحميل النموذج عند تحميل DOM
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
@@ -1313,11 +1327,6 @@
   } else {
     setTimeout(loadCompleteForm, 500);
   }
-  
-  // أيضاً عند تحميل النافذة
-  window.addEventListener('load', () => {
-    setTimeout(loadCompleteForm, 1000);
-  });
   
   // Form submission handler
   window.handleFormSubmission = async function(event) {
@@ -1418,6 +1427,12 @@ function showPopupButton(popupConfig, formContainer) {
   console.log('🎯 CODFORM: Showing popup button in place of form:', popupConfig);
   
   if (formContainer && popupConfig) {
+    // تحقق من عدم وجود زر popup مسبقاً
+    if (formContainer.querySelector('.codform-popup-button')) {
+      console.log('🔄 CODFORM: Popup button already exists, skipping creation');
+      return;
+    }
+    
     // Store original form content for the popup
     window.originalFormContent = formContainer.innerHTML;
     
@@ -1557,15 +1572,22 @@ window.codformOpenPopup = function() {
   `;
   document.head.appendChild(style);
 
-  // Use original form content if available, otherwise get current content
+  // Use original form content if available, otherwise reload form
   const originalForm = window.originalFormContent;
   if (originalForm) {
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = originalForm;
     popup.appendChild(tempDiv);
   } else {
-    console.log('No original form content found');
-    return;
+    // إذا لم يكن هناك محتوى أصلي، قم بتحميل النموذج مباشرة
+    loadFormWithValidation().then(() => {
+      const currentForm = document.querySelector('.codform-dynamic-form');
+      if (currentForm) {
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = currentForm.innerHTML;
+        popup.appendChild(tempDiv);
+      }
+    });
   }
   
   // Add close button
