@@ -260,7 +260,7 @@
     return style[property] || fallback;
   }
 
-  // Enhanced field rendering with exact preview matching
+  // Enhanced field rendering with exact preview matching - FIXED VERSION WITHOUT TEMPLATE LITERALS
   function renderField(field, formStyle, formLanguage) {
     if (!field || !field.type) return '';
     
@@ -402,87 +402,88 @@
       const paddingRight = formDirection === 'rtl' ? (showIcon && hasIcon ? '40px' : '12px') : '12px';
       const paddingTopBottom = '10px';
       
-      html = `
-        <div class="codform-field-wrapper" style="
-              margin-bottom: 16px;
-              direction: ${formDirection};
-            ">
-              ${actualShowLabel && !isFloatingLabels ? `
-                <label for="${fieldId}" style="
-                  display: block;
-                  color: ${actualLabelColor};
-                  font-size: ${actualLabelFontSize};
-                  font-weight: 600;
-                  margin-bottom: 8px;
-                  font-family: 'Cairo', sans-serif;
-                ">
-              ${label}${required ? '<span style="color: #EF4444; margin-left: 4px;">*</span>' : ''}
-            </label>
-          ` : ''}
-          
-          <div style="position: relative;">
-            ${iconHtml}
-            ${isFloatingLabels && actualShowLabel ? `
-              <label for="${fieldId}" style="
-                position: absolute;
-                left: ${formDirection === 'rtl' ? 'auto' : (showIcon && hasIcon ? '40px' : '12px')};
-                right: ${formDirection === 'rtl' ? (showIcon && hasIcon ? '40px' : '12px') : 'auto'};
-                top: 50%;
-                transform: translateY(-50%);
-                color: #9CA3AF;
-                font-size: ${actualLabelFontSize};
-                font-family: 'Cairo', sans-serif;
-                pointer-events: none;
-                transition: all 0.2s ease;
-                background: white;
-                padding: 0 4px;
-                z-index: 10;
-              " class="floating-label">
-                ${label}${required ? '<span style="color: #EF4444; margin-left: 4px;">*</span>' : ''}
-              </label>
-            ` : ''}
-            <input
-              type="${inputType}"
-              id="${fieldId}"
-              name="${fieldId}"
-              placeholder="${isFloatingLabels ? '' : actualPlaceholder}"
-              ${required ? 'required' : ''}
-              style="
-                width: 100%;
-                background-color: #FFFFFF;
-                border: ${actualBorderWidth} solid ${actualBorderColor};
-                border-radius: ${actualBorderRadius};
-                padding: ${paddingTopBottom} ${paddingRight} ${paddingTopBottom} ${paddingLeft};
-                font-size: ${actualFontSize};
-                color: ${actualTextColor};
-                font-family: ${actualFontFamily};
-                outline: none;
-                transition: all 0.2s ease;
-                box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px;
-                min-height: 44px;
-                box-sizing: border-box;
-                direction: ${formDirection};
-                text-align: ${formDirection === 'rtl' ? 'right' : 'left'};
-              "
-              data-focus-border-color="${focusBorderColor}"
-              data-blur-border-color="${actualBorderColor}"
-            />
-          </div>
-          
-          <style>
-            /* Force proper font for ALL placeholder text in form */
-            .codform-field-wrapper input::placeholder,
-            .codform-field-wrapper textarea::placeholder,
-            input[type="text"]::placeholder,
-            input[type="email"]::placeholder,
-            input[type="tel"]::placeholder,
-            input[type="number"]::placeholder,
-            input[placeholder]::placeholder,
-            textarea[placeholder]::placeholder {
-              font-family: ${formDirection === 'rtl' ? "'Cairo', 'Noto Sans Arabic', sans-serif" : "'Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', sans-serif"} !important;
-              opacity: 0.7 !important;
-              font-weight: 400 !important;
-            }
+      html = '<div class="codform-field-wrapper" style="margin-bottom: 16px; direction: ' + formDirection + ';">';
+      
+      if (actualShowLabel && !isFloatingLabels) {
+        html += '<label for="' + fieldId + '" style="';
+        html += 'display: block;';
+        html += 'color: ' + actualLabelColor + ';';
+        html += 'font-size: ' + actualLabelFontSize + ';';
+        html += 'font-weight: 600;';
+        html += 'margin-bottom: 8px;';
+        html += 'font-family: Cairo, sans-serif;';
+        html += '">';
+        html += label;
+        if (required) html += '<span style="color: #EF4444; margin-left: 4px;">*</span>';
+        html += '</label>';
+      }
+      
+      html += '<div style="position: relative;">';
+      html += iconHtml;
+      
+      if (isFloatingLabels && actualShowLabel) {
+        html += '<label for="' + fieldId + '" style="';
+        html += 'position: absolute;';
+        html += 'left: ' + (formDirection === 'rtl' ? 'auto' : (showIcon && hasIcon ? '40px' : '12px')) + ';';
+        html += 'right: ' + (formDirection === 'rtl' ? (showIcon && hasIcon ? '40px' : '12px') : 'auto') + ';';
+        html += 'top: 50%;';
+        html += 'transform: translateY(-50%);';
+        html += 'color: #9CA3AF;';
+        html += 'font-size: ' + actualLabelFontSize + ';';
+        html += 'font-family: Cairo, sans-serif;';
+        html += 'pointer-events: none;';
+        html += 'transition: all 0.2s ease;';
+        html += 'background: white;';
+        html += 'padding: 0 4px;';
+        html += 'z-index: 10;';
+        html += '" class="floating-label">';
+        html += label;
+        if (required) html += '<span style="color: #EF4444; margin-left: 4px;">*</span>';
+        html += '</label>';
+      }
+            html += '<input';
+            html += ' type="' + inputType + '"';
+            html += ' id="' + fieldId + '"';
+            html += ' name="' + fieldId + '"';
+            html += ' placeholder="' + (isFloatingLabels ? '' : actualPlaceholder) + '"';
+            if (required) html += ' required';
+            html += ' style="';
+            html += 'width: 100%;';
+            html += 'background-color: #FFFFFF;';
+            html += 'border: ' + actualBorderWidth + ' solid ' + actualBorderColor + ';';
+            html += 'border-radius: ' + actualBorderRadius + ';';
+            html += 'padding: ' + paddingTopBottom + ' ' + paddingRight + ' ' + paddingTopBottom + ' ' + paddingLeft + ';';
+            html += 'font-size: ' + actualFontSize + ';';
+            html += 'color: ' + actualTextColor + ';';
+            html += 'font-family: ' + actualFontFamily + ';';
+            html += 'outline: none;';
+            html += 'transition: all 0.2s ease;';
+            html += 'box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px;';
+            html += 'min-height: 44px;';
+            html += 'box-sizing: border-box;';
+            html += 'direction: ' + formDirection + ';';
+            html += 'text-align: ' + (formDirection === 'rtl' ? 'right' : 'left') + ';';
+            html += '"';
+            html += ' data-focus-border-color="' + focusBorderColor + '"';
+            html += ' data-blur-border-color="' + actualBorderColor + '"';
+            html += ' />';
+            html += '</div>'; // close relative div
+            html += '</div>'; // close wrapper div
+            
+            html += '<style>';
+            html += '.codform-field-wrapper input::placeholder,';
+            html += '.codform-field-wrapper textarea::placeholder,';
+            html += 'input[type="text"]::placeholder,';
+            html += 'input[type="email"]::placeholder,';
+            html += 'input[type="tel"]::placeholder,';
+            html += 'input[type="number"]::placeholder,';
+            html += 'input[placeholder]::placeholder,';
+            html += 'textarea[placeholder]::placeholder {';
+            html += 'font-family: ' + (formDirection === 'rtl' ? 'Cairo, Noto Sans Arabic, sans-serif' : 'Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif') + ' !important;';
+            html += 'opacity: 0.7 !important;';
+            html += 'font-weight: 400 !important;';
+            html += '}';
+            html += '</style>';
             
             /* Force proper font for ALL input elements in form */
             .codform-field-wrapper input,
@@ -537,36 +538,43 @@
       // إعدادات لون الحدود عند التركيز من Global form styling
       const focusBorderColor = getStyleValue(formStyle, 'focusBorderColor', '#3b82f6');
       
-      html = `
-        <div class="codform-field-wrapper" style="
-          margin-bottom: 20px;
-          direction: ${formDirection};
-        ">
-          ${actualShowLabel && !isFloatingLabels ? `
-            <label for="${fieldId}" style="
-              display: block;
-              color: ${actualLabelColor};
-              font-size: ${actualLabelFontSize};
-              font-weight: ${actualLabelWeight};
-              margin-bottom: 8px;
-              font-family: 'Cairo', sans-serif;
-            ">
-              ${label}${required ? '<span style="color: #EF4444; margin-left: 4px;">*</span>' : ''}
-            </label>
-          ` : ''}
-          
-          <div style="position: relative;">
-            ${isFloatingLabels && actualShowLabel ? `
-              <label for="${fieldId}" style="
-                position: absolute;
-                left: ${formDirection === 'rtl' ? 'auto' : '12px'};
-                right: ${formDirection === 'rtl' ? '12px' : 'auto'};
-                top: 20px;
-                color: #9CA3AF;
-                font-size: ${actualLabelFontSize};
-                font-family: 'Cairo', sans-serif;
-                pointer-events: none;
-                transition: all 0.2s ease;
+      html = '<div class="codform-field-wrapper" style="margin-bottom: 20px; direction: ' + formDirection + ';">';
+      
+      if (actualShowLabel && !isFloatingLabels) {
+        html += '<label for="' + fieldId + '" style="';
+        html += 'display: block;';
+        html += 'color: ' + actualLabelColor + ';';
+        html += 'font-size: ' + actualLabelFontSize + ';';
+        html += 'font-weight: ' + actualLabelWeight + ';';
+        html += 'margin-bottom: 8px;';
+        html += 'font-family: Cairo, sans-serif;';
+        html += '">';
+        html += label;
+        if (required) html += '<span style="color: #EF4444; margin-left: 4px;">*</span>';
+        html += '</label>';
+      }
+      
+      html += '<div style="position: relative;">';
+      
+      if (isFloatingLabels && actualShowLabel) {
+        html += '<label for="' + fieldId + '" style="';
+        html += 'position: absolute;';
+        html += 'left: ' + (formDirection === 'rtl' ? 'auto' : '12px') + ';';
+        html += 'right: ' + (formDirection === 'rtl' ? '12px' : 'auto') + ';';
+        html += 'top: 20px;';
+        html += 'color: #9CA3AF;';
+        html += 'font-size: ' + actualLabelFontSize + ';';
+        html += 'font-family: Cairo, sans-serif;';
+        html += 'pointer-events: none;';
+        html += 'transition: all 0.2s ease;';
+        html += 'background: white;';
+        html += 'padding: 0 4px;';
+        html += 'z-index: 10;';
+        html += '" class="floating-label">';
+        html += label;
+        if (required) html += '<span style="color: #EF4444; margin-left: 4px;">*</span>';
+        html += '</label>';
+      }
                 background: white;
                 padding: 0 4px;
                 z-index: 10;
@@ -574,46 +582,46 @@
                 ${label}${required ? '<span style="color: #EF4444; margin-left: 4px;">*</span>' : ''}
               </label>
             ` : ''}
-          <textarea
-            id="${fieldId}"
-            name="${fieldId}"
-            placeholder="${isFloatingLabels ? '' : actualPlaceholder}"
-            ${required ? 'required' : ''}
-            rows="4"
-            style="
-              width: 100%;
-              background-color: #FFFFFF;
-              border: ${actualBorderWidth} solid ${actualBorderColor};
-              border-radius: ${actualBorderRadius};
-              padding: 10px 12px;
-              font-size: ${actualFontSize};
-              color: ${actualTextColor};
-              font-family: ${actualFontFamily};
-              outline: none;
-              transition: all 0.2s ease;
-              box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px;
-              resize: none;
-              min-height: 80px;
-              height: 80px;
-              box-sizing: border-box;
-              direction: ${formDirection};
-              text-align: ${formDirection === 'rtl' ? 'right' : 'left'};
-            "
-            data-focus-border-color="${focusBorderColor}"
-            data-blur-border-color="${actualBorderColor}"
-          ></textarea>
-          </div>
+          html += '<textarea';
+          html += ' id="' + fieldId + '"';
+          html += ' name="' + fieldId + '"';
+          html += ' placeholder="' + (isFloatingLabels ? '' : actualPlaceholder) + '"';
+          if (required) html += ' required';
+          html += ' rows="4"';
+          html += ' style="';
+          html += 'width: 100%;';
+          html += 'background-color: #FFFFFF;';
+          html += 'border: ' + actualBorderWidth + ' solid ' + actualBorderColor + ';';
+          html += 'border-radius: ' + actualBorderRadius + ';';
+          html += 'padding: 10px 12px;';
+          html += 'font-size: ' + actualFontSize + ';';
+          html += 'color: ' + actualTextColor + ';';
+          html += 'font-family: ' + actualFontFamily + ';';
+          html += 'outline: none;';
+          html += 'transition: all 0.2s ease;';
+          html += 'box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px;';
+          html += 'resize: none;';
+          html += 'min-height: 80px;';
+          html += 'height: 80px;';
+          html += 'box-sizing: border-box;';
+          html += 'direction: ' + formDirection + ';';
+          html += 'text-align: ' + (formDirection === 'rtl' ? 'right' : 'left') + ';';
+          html += '"';
+          html += ' data-focus-border-color="' + focusBorderColor + '"';
+          html += ' data-blur-border-color="' + actualBorderColor + '"';
+          html += '></textarea>';
+          html += '</div>'; // close relative div
           
-          ${field.helpText ? `
-            <p style="
-              margin-top: 6px;
-              font-size: 14px;
-              color: #6B7280;
-              font-family: 'Cairo', inherit;
-            ">${field.helpText}</p>
-          ` : ''}
-        </div>
-      `;
+          if (field.helpText) {
+            html += '<p style="';
+            html += 'margin-top: 6px;';
+            html += 'font-size: 14px;';
+            html += 'color: #6B7280;';
+            html += 'font-family: Cairo, inherit;';
+            html += '">' + field.helpText + '</p>';
+          }
+          
+          html += '</div>'; // close wrapper div
     }
     
     else if (field.type === 'submit') {
