@@ -156,8 +156,8 @@
     else if (field.type === 'textarea') {
       html = renderTextarea(field, formStyle, formDirection, baseFontSize, isFloatingLabels);
     }
-    // Submit Button
-    else if (field.type === 'submit-button') {
+    // Submit Button - FIXED
+    else if (field.type === 'submit' || field.type === 'submit-button') {
       html = renderSubmitButton(field, formStyle, formDirection);
     }
     // Radio Group
