@@ -144,6 +144,21 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     borderWidth: formStyle.borderWidth || '2px',
   };
 
+  const { formState } = useFormStore();
+  const popupButton = formState?.style?.popupButton;
+  const isPopupEnabled = popupButton?.enabled;
+
+  const getAnimationClass = (animation: string) => {
+    switch (animation) {
+      case 'pulse': return 'animate-pulse';
+      case 'bounce': return 'animate-bounce';
+      case 'shake': return 'animate-[shake_0.8s_infinite]';
+      case 'wiggle': return 'animate-[wiggle_2s_ease-in-out_infinite]';
+      case 'flash': return 'animate-[flash_2s_infinite]';
+      default: return '';
+    }
+  };
+
   return (
     <div>
       <div className="flex justify-between items-center mb-3">
@@ -169,19 +184,48 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
         }}
         dir={formStyle.formDirection || 'ltr'}
       >
-        <FormPreview 
-          key={`preview-${internalRefreshKey}`}
-          formTitle=""
-          formDescription=""
-          currentStep={currentStep}
-          totalSteps={totalSteps}
-          formStyle={previewFormStyle}
-          fields={processedFields}
-          formCountry={formCountry}
-          formPhonePrefix={formPhonePrefix}
-        >
-          <div></div>
-        </FormPreview>
+        {isPopupEnabled ? (
+          // عرض زر النافذة المنبثقة فقط
+          <div className="flex items-center justify-center min-h-[200px] bg-white rounded-lg border-2 border-dashed border-gray-300">
+            <div className="text-center">
+              <p className="text-gray-600 mb-4 text-sm">
+                {language === 'ar' ? 'معاينة زر النافذة المنبثقة' : 'Popup Button Preview'}
+              </p>
+              <Button
+                className={`inline-flex items-center gap-2 hover:scale-105 transition-transform ${getAnimationClass(popupButton.animation || 'none')}`}
+                style={{
+                  backgroundColor: popupButton.backgroundColor || '#9b87f5',
+                  color: popupButton.textColor || '#ffffff',
+                  borderRadius: popupButton.borderRadius || '8px',
+                  fontSize: popupButton.fontSize || '16px',
+                  padding: '12px 24px',
+                  fontWeight: '600'
+                }}
+              >
+                {popupButton.showIcon !== false && '🛒'}
+                {popupButton.text || (language === 'ar' ? 'اطلب الآن' : 'Order Now')}
+              </Button>
+              <p className="text-xs text-gray-500 mt-3">
+                {language === 'ar' ? 'الضغط على الزر سيفتح النموذج في نافذة منبثقة' : 'Clicking will open form in popup'}
+              </p>
+            </div>
+          </div>
+        ) : (
+          // عرض النموذج العادي
+          <FormPreview 
+            key={`preview-${internalRefreshKey}`}
+            formTitle=""
+            formDescription=""
+            currentStep={currentStep}
+            totalSteps={totalSteps}
+            formStyle={previewFormStyle}
+            fields={processedFields}
+            formCountry={formCountry}
+            formPhonePrefix={formPhonePrefix}
+          >
+            <div></div>
+          </FormPreview>
+        )}
       </div>
       
       <div className="mt-2 text-xs text-gray-500 p-2 rounded text-center">

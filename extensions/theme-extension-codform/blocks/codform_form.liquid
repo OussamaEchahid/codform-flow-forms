@@ -1237,16 +1237,32 @@ button[id^="codform-popup-btn"] *,
           const popupButtonContainer = document.getElementById('codform-popup-button-container');
           if (popupButtonContainer) {
             popupButtonContainer.style.display = 'block';
+            
+            // Get animation class
+            const getAnimationClass = (animation) => {
+              switch(animation) {
+                case 'pulse': return 'codform-animate-pulse';
+                case 'bounce': return 'codform-animate-bounce';
+                case 'shake': return 'codform-animate-shake';
+                case 'wiggle': return 'codform-animate-wiggle';
+                case 'flash': return 'codform-animate-flash';
+                default: return '';
+              }
+            };
+            
+            const animationClass = getAnimationClass(popupButton.animation);
+            
             popupButtonContainer.innerHTML = `
               <button type="button" id="codform-popup-btn-${Date.now()}" 
+                class="${animationClass}"
                 style="
                   background-color: ${popupButton.backgroundColor || '#9b87f5'};
                   color: ${popupButton.textColor || '#ffffff'};
                   border: none !important;
                   outline: none !important;
                   border-radius: ${popupButton.borderRadius || '8px'};
-                  font-size: ${popupButton.fontSize || '18px'};
-                  font-weight: ${popupButton.fontWeight || '600'};
+                  font-size: ${popupButton.fontSize || '16px'};
+                  font-weight: 600;
                   padding: 16px 32px;
                   cursor: pointer;
                   display: block;
