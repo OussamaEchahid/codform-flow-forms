@@ -897,6 +897,24 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
     console.log("Title update functionality has been removed");
   };
 
+  // Handle popup button configuration updates
+  const handlePopupButtonUpdate = (config: any) => {
+    const updatedStyle = {
+      ...formStyle,
+      popupButton: config
+    };
+    
+    setFormStyle(updatedStyle);
+    
+    // Update form state as well
+    setFormState({
+      ...formState,
+      style: updatedStyle
+    });
+    
+    setHasUnsavedChanges(true);
+  };
+
   // Show a loading screen during slow operations
   if (isLoading) {
     return (
@@ -1034,17 +1052,39 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
             </TabsContent>
             
             <TabsContent value="settings" className="flex-1 p-6 mt-0 overflow-y-auto">
-              <FormSettingsTab
-                formTitle={formTitle}
-                formDescription={formDescription}
-                country={formCountry}
-                currency={formCurrency}
-                phonePrefix={formPhonePrefix}
-                onTitleChange={setFormTitle}
-                onDescriptionChange={setFormDescription}
-                onCountryChange={handleCountryChange}
-                onCurrencyChange={handleCurrencyChange}
-              />
+              <div className="space-y-6">
+                <FormSettingsTab
+                  formTitle={formTitle}
+                  formDescription={formDescription}
+                  country={formCountry}
+                  currency={formCurrency}
+                  phonePrefix={formPhonePrefix}
+                  onTitleChange={setFormTitle}
+                  onDescriptionChange={setFormDescription}
+                  onCountryChange={handleCountryChange}
+                  onCurrencyChange={handleCurrencyChange}
+                />
+                
+                <PopupButtonManager 
+                  popupButton={formStyle.popupButton || {
+                    enabled: false,
+                    text: language === 'ar' ? 'اطلب الآن' : 'Order Now',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    textColor: '#ffffff',
+                    backgroundColor: '#9b87f5',
+                    borderColor: '#9b87f5',
+                    borderWidth: '2px',
+                    borderRadius: '8px',
+                    paddingY: '12px',
+                    animation: 'none',
+                    showIcon: false
+                  }}
+                  onUpdate={handlePopupButtonUpdate}
+                  fields={formElements}
+                  formStyle={formStyle}
+                />
+              </div>
             </TabsContent>
           </Tabs>
         </div>
