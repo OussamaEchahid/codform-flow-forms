@@ -235,6 +235,9 @@ button[id^="codform-popup-btn"] * {
     
     console.log('🎨 Rendering field:', field.type, field.id);
     
+    // Check if we're currently rendering inside a popup
+    const isInPopup = window.codformCurrentlyInPopup === true;
+    
     // Determine form direction
     let formDirection = 'ltr';
     if (formStyle && formStyle.formDirection) {
@@ -595,11 +598,14 @@ button[id^="codform-popup-btn"] * {
         }
       }
       
-      // If popup mode, use popup button settings instead
+      // Determine what settings to use based on context
       let finalButtonText, finalBgColor, finalTextColor, finalFontSize, finalBorderRadius;
       let finalAnimation = '';
       
-      if (isPopupMode && formStyle.popupButton) {
+      // If popup mode is enabled AND we're NOT in the popup (main page button), use popup button settings
+      // If we're IN the popup, use normal submit button settings
+      if (isPopupMode && !isInPopup && formStyle.popupButton) {
+        // Main page popup trigger button - use popup button settings
         finalButtonText = formStyle.popupButton.text || buttonText;
         finalBgColor = formStyle.popupButton.backgroundColor || formStyle?.primaryColor || 'rgb(155, 135, 245)';
         finalTextColor = formStyle.popupButton.textColor || 'rgb(255, 255, 255)';
@@ -618,7 +624,7 @@ button[id^="codform-popup-btn"] * {
           }
         }
       } else {
-        // Use normal submit button settings
+        // Normal submit button OR popup form submit button - use submit button settings
         const baseFontSize = getStyleValue(formStyle, 'baseFontSize', '16px');
         finalButtonText = buttonText;
         finalBgColor = getStyleValue(buttonStyle, 'backgroundColor', formStyle?.primaryColor || 'rgb(155, 135, 245)');
@@ -649,7 +655,7 @@ button[id^="codform-popup-btn"] * {
       
       // Icon handling
       const hasIcon = field.icon && field.icon !== 'none' && field.icon !== '';
-      const showIcon = isPopupMode ? 
+      const showIcon = (isPopupMode && !isInPopup) ? 
         (formStyle.popupButton?.showIcon !== false) : 
         getStyleValue(buttonStyle, 'showIcon', hasIcon);
       const iconColor = getStyleValue(buttonStyle, 'iconColor', finalTextColor);
@@ -664,9 +670,9 @@ button[id^="codform-popup-btn"] * {
       const buttonContent = `${iconHtml}${finalButtonText}`;
       
       // Button click handler - different for popup vs normal
-      // Check if we're actually inside a popup or just have popup enabled
-      const isActuallyInPopup = typeof window !== 'undefined' && window.codformCurrentlyInPopup === true;
-      const clickHandler = (isPopupMode && !isActuallyInPopup) ? 
+      // If popup mode is enabled AND we're NOT in popup, this should open popup
+      // If we're in popup or no popup mode, this should submit the form
+      const clickHandler = (isPopupMode && !isInPopup) ? 
         'onclick="openFormPopup(event)"' : 
         'type="submit"';
       
