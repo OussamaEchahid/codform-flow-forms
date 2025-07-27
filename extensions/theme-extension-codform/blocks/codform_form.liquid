@@ -1572,22 +1572,32 @@ window.codformOpenPopup = function() {
   `;
   document.head.appendChild(style);
 
-  // Use original form content if available, otherwise reload form
-  const originalForm = window.originalFormContent;
-  if (originalForm) {
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = originalForm;
-    popup.appendChild(tempDiv);
+  // Load the form content into popup
+  const formContainer = document.querySelector('.codform-dynamic-form');
+  if (formContainer) {
+    // Clone the form content
+    const formClone = formContainer.cloneNode(true);
+    formClone.style.margin = '0';
+    formClone.style.maxWidth = '100%';
+    popup.appendChild(formClone);
   } else {
-    // إذا لم يكن هناك محتوى أصلي، قم بتحميل النموذج مباشرة
-    loadFormWithValidation().then(() => {
-      const currentForm = document.querySelector('.codform-dynamic-form');
-      if (currentForm) {
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = currentForm.innerHTML;
-        popup.appendChild(tempDiv);
+    // If no form found, try to load it
+    console.log('🔍 CODFORM: No form found, attempting to load...');
+    const tempContainer = document.createElement('div');
+    tempContainer.innerHTML = '<p>Loading form...</p>';
+    popup.appendChild(tempContainer);
+    
+    // Try to load form content
+    setTimeout(() => {
+      const newForm = document.querySelector('.codform-dynamic-form');
+      if (newForm) {
+        tempContainer.innerHTML = '';
+        const formClone = newForm.cloneNode(true);
+        formClone.style.margin = '0';
+        formClone.style.maxWidth = '100%';
+        tempContainer.appendChild(formClone);
       }
-    });
+    }, 500);
   }
   
   // Add close button
