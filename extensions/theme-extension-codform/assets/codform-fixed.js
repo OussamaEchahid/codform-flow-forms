@@ -81,6 +81,19 @@
     return '';
   }
   
+  // Get shop domain function
+  function getShopDomain() {
+    try {
+      return 'astrem.myshopify.com';
+    } catch (error) {
+      console.error('Error getting shop domain', error);
+      return 'auto-detect';
+    }
+  }
+  
+  // Make it globally available
+  window.getShopDomain = getShopDomain;
+  
   // Popup functions
   window.codformOpenPopup = function() {
     console.log('Opening popup');
