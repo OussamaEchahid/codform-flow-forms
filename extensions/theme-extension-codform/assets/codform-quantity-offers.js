@@ -569,7 +569,15 @@ window.CodformQuantityOffers = (function() {
       shop = 'codmagnet.com';
     }
     
-    const container = document.getElementById(`quantity-offers-before-${blockId}`);
+    // للنموذج المنبثق، ابحث عن الحاوية المخصصة
+    let container;
+    if (blockId === 'popup-form') {
+      container = document.getElementById('popup-quantity-offers');
+      console.log('🔍 Looking for popup container:', !!container);
+    } else {
+      container = document.getElementById(`quantity-offers-before-${blockId}`);
+    }
+    
     if (!container) {
       console.error("❌ Container not found for product data loading!");
       return Promise.resolve({ success: false, error: "Container not found" });
