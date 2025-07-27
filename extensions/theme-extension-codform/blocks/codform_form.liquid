@@ -1174,7 +1174,7 @@ button[id^="codform-popup-btn"] *,
                     cursor: pointer;
                     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                     min-width: 200px;
-                    font-family: 'Cairo', sans-serif;
+                    font-family: ${formLanguage === 'ar' ? "'Cairo', 'Noto Sans Arabic', 'Amiri', sans-serif" : "'Inter', 'system-ui', sans-serif"};
                     display: inline-flex;
                     align-items: center;
                     justify-content: center;
@@ -1192,6 +1192,8 @@ button[id^="codform-popup-btn"] *,
               
               <!-- Hidden form for popup -->
               <div id="hidden-form-for-popup" style="display: none;">
+                <!-- Store form data for popup -->
+                <div id="popup-form-data" data-fields='${JSON.stringify(fieldsArray)}' data-style='${JSON.stringify(formStyle)}' data-language='${formLanguage}' data-product-id='${productId}'></div>
                 <form class="codform-form-fields" style="background: transparent; margin: 0; padding: 0;" 
                       id="codform-main-form" onsubmit="handleFormSubmission(event)">
                   ${fieldsArray.map(field => renderField(field, formStyle, formLanguage)).join('')}
@@ -1601,16 +1603,17 @@ window.openFormPopup = function(event) {
     animation: fadeIn 0.3s ease;
   `;
   
-  // Get form HTML from hidden div or main container
-  let formContainer = document.querySelector('#hidden-form-for-popup .codform-form-fields');
-  if (!formContainer) {
-    formContainer = document.querySelector('.codform-dynamic-form .codform-form-fields');
-  }
-  
-  if (!formContainer) {
-    console.error('❌ CODFORM: Form container not found');
+  // Get form data from hidden div
+  const formDataDiv = document.querySelector('#popup-form-data');
+  if (!formDataDiv) {
+    console.error('❌ CODFORM: Form data not found');
     return;
   }
+  
+  const fieldsArray = JSON.parse(formDataDiv.dataset.fields || '[]');
+  const formStyle = JSON.parse(formDataDiv.dataset.style || '{}');
+  const formLanguage = formDataDiv.dataset.language || 'en';
+  const productId = formDataDiv.dataset.productId || 'default';
   
   // Create modal content
   const modalContent = document.createElement('div');
@@ -1655,43 +1658,45 @@ window.openFormPopup = function(event) {
     }, 300);
   };
   
-  // Clone form content
-  const formClone = formContainer.cloneNode(true);
-  formClone.id = 'popup-form';
-  formClone.style.cssText = 'background: transparent; margin: 0; padding: 0;';
+  // Create form with quantity offers for popup
+  const formWrapper = document.createElement('div');
+  formWrapper.style.cssText = 'background: transparent; margin: 0; padding: 0;';
   
-  // Update submit handler for popup
-  const submitBtn = formClone.querySelector('.codform-submit-btn');
-  if (submitBtn) {
-    submitBtn.onclick = function(e) {
-      e.preventDefault();
-      
-      // Get form data from popup
-      const formInputs = formClone.querySelectorAll('input, textarea, select');
-      const formData = {};
-      
-      formInputs.forEach(input => {
-        if (input.name || input.id) {
-          const fieldKey = input.name || input.id;
-          if (input.type === 'checkbox') {
-            formData[fieldKey] = input.checked;
-          } else if (input.type === 'radio') {
-            if (input.checked) {
-              formData[fieldKey] = input.value;
-            }
-          } else {
-            formData[fieldKey] = input.value;
-          }
-        }
-      });
-      
-      // Submit the form
-      handleFormSubmissionPopup(formData, submitBtn, popup);
-    };
-  }
+  // Generate form HTML with all fields including quantity offers integration
+  let formHTML = `
+    <div id="quantity-offers-before-popup" style="margin-bottom: 16px;"></div>
+    <form class="codform-form-fields" style="background: transparent; margin: 0; padding: 0;" 
+          id="popup-form" onsubmit="handlePopupFormSubmission(event)">
+      ${fieldsArray.map(field => renderField(field, formStyle, formLanguage)).join('')}
+    </form>
+    <div id="quantity-offers-after-popup" style="margin-top: 16px;"></div>
+  `;
+  
+  formWrapper.innerHTML = formHTML;
   
   modalContent.appendChild(closeBtn);
-  modalContent.appendChild(formClone);
+  modalContent.appendChild(formWrapper);
+  
+  // Initialize quantity offers for popup after modal is added to DOM
+  setTimeout(() => {
+    if (window.CodformQuantityOffers && productId) {
+      const shopDomain = getShopDomain();
+      const blockId = `popup_${productId}`;
+      const formCurrency = formStyle?.currency || 'SAR';
+      
+      const productData = {
+        id: productId,
+        price: parseFloat('{{ product.price | divided_by: 100.0 }}') || 0,
+        comparePrice: parseFloat('{{ product.compare_at_price | divided_by: 100.0 }}') || 0,
+        title: '{{ product.title }}' || 'منتج',
+        image: '{{ product.featured_image | img_url: "400x400" }}' || '',
+        currency: '{{ shop.currency }}' || 'SAR'
+      };
+      
+      console.log('🎯 Loading quantity offers for popup:', { blockId, productId, shopDomain });
+      window.CodformQuantityOffers.loadWithProduct(blockId, productId, shopDomain, formCurrency, productData);
+    }
+  }, 100);
   popup.appendChild(modalContent);
   
   // Add to page
@@ -1706,6 +1711,34 @@ window.openFormPopup = function(event) {
 };
 
 // Handle popup form submission
+window.handlePopupFormSubmission = async function(event) {
+  event.preventDefault();
+  const form = event.target;
+  const submitBtn = form.querySelector('.codform-submit-btn, button[type="submit"]');
+  const popup = document.getElementById('codform-popup-modal');
+  
+  // Get form data from popup
+  const formInputs = form.querySelectorAll('input, textarea, select');
+  const formData = {};
+  
+  formInputs.forEach(input => {
+    if (input.name || input.id) {
+      const fieldKey = input.name || input.id;
+      if (input.type === 'checkbox') {
+        formData[fieldKey] = input.checked;
+      } else if (input.type === 'radio') {
+        if (input.checked) {
+          formData[fieldKey] = input.value;
+        }
+      } else {
+        formData[fieldKey] = input.value;
+      }
+    }
+  });
+  
+  handleFormSubmissionPopup(formData, submitBtn, popup);
+};
+
 async function handleFormSubmissionPopup(formData, submitBtn, popup) {
   console.log('🚀 CODFORM: Popup form submission started', formData);
   

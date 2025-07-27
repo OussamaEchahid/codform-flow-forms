@@ -50,9 +50,11 @@ const PopupButton: React.FC<PopupButtonProps> = ({ config, onScroll }) => {
       case 'bounce':
         return 'animate-bounce';
       case 'shake':
-        return 'animate-pulse'; // Use pulse as a substitute for shake
+        return 'animate-[shake_0.8s_infinite]';
       case 'wiggle':
-        return 'animate-pulse'; // Use pulse as a substitute for wiggle
+        return 'animate-[wiggle_2s_ease-in-out_infinite]';
+      case 'flash':
+        return 'animate-[flash_2s_infinite]';
       default:
         return '';
     }
@@ -77,7 +79,8 @@ const PopupButton: React.FC<PopupButtonProps> = ({ config, onScroll }) => {
         border: 'solid',
         boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
         backdropFilter: 'blur(10px)',
-        whiteSpace: 'nowrap'
+        whiteSpace: 'nowrap',
+        fontFamily: 'Cairo, Noto Sans Arabic, Inter, system-ui, sans-serif'
       }}
     >
       {buttonText}
