@@ -150,7 +150,7 @@ button[id^="codform-popup-btn"].flash-animation,
   animation: flash 2s infinite !important;
 }
 
-{%- comment -%} Complete removal of borders from popup buttons {%- endcomment -%}
+{%- comment -%} Completely remove borders from popup buttons and set Arabic font {%- endcomment -%}
 .codform-popup-button,
 button[id^="codform-popup-btn"],
 .codform-popup-trigger {
@@ -159,7 +159,7 @@ button[id^="codform-popup-btn"],
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
   padding: 12px 24px;
   cursor: pointer;
-  font-family: inherit;
+  font-family: 'Cairo', 'Noto Sans Arabic', 'Amiri', sans-serif !important;
   transition: all 0.3s ease;
   backdrop-filter: blur(10px);
   white-space: nowrap;
@@ -188,6 +188,14 @@ button[id^="codform-popup-btn"]:focus,
   border: 0px solid transparent !important;
   outline: 0px solid transparent !important;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25) !important;
+}
+
+{%- comment -%} Apply Cairo font to popup modal content {%- endcomment -%}
+#codform-popup-modal,
+#codform-popup-modal *,
+#codform-popup-overlay,
+#codform-popup-overlay * {
+  font-family: 'Cairo', 'Noto Sans Arabic', 'Amiri', sans-serif !important;
 }
 
 {%- comment -%} Completely remove borders from all popup button elements {%- endcomment -%}
@@ -1253,14 +1261,14 @@ button[id^="codform-popup-btn"] *,
           if (popupButtonContainer) {
             popupButtonContainer.style.display = 'block';
             
-            // Get animation class
+            // Get animation class that matches our CSS
             const getAnimationClass = (animation) => {
               switch(animation) {
-                case 'pulse': return 'codform-animate-pulse';
-                case 'bounce': return 'codform-animate-bounce';
-                case 'shake': return 'codform-animate-shake';
-                case 'wiggle': return 'codform-animate-wiggle';
-                case 'flash': return 'codform-animate-flash';
+                case 'pulse': return 'pulse-animation';
+                case 'bounce': return 'bounce-animation';
+                case 'shake': return 'shake-animation';
+                case 'wiggle': return 'wiggle-animation';
+                case 'flash': return 'flash-animation';
                 default: return '';
               }
             };
@@ -1671,42 +1679,60 @@ window.openFormPopup = function(event) {
     }, 300);
   };
   
-  // Create form with React component integration for popup
+  // Create form with quantity offers for popup
   const formWrapper = document.createElement('div');
   formWrapper.style.cssText = 'background: transparent; margin: 0; padding: 0;';
   
-  // Set flag to indicate we're in popup mode for React components
-  window.codformCurrentlyInPopup = true;
+  // Create quantity offers containers for popup
+  const quantityOffersBeforePopup = document.createElement('div');
+  quantityOffersBeforePopup.id = `quantity-offers-before-popup_${productId}`;
+  quantityOffersBeforePopup.style.cssText = 'margin-bottom: 16px;';
   
-  // Generate form HTML with React component integration
-  let formHTML = `
-    <div class="codform-popup-only-mode">
-      <div id="popup-react-root" data-product-id="${productId}" data-form-fields='${JSON.stringify(fieldsArray)}' data-form-style='${JSON.stringify(formStyle)}' data-form-language="${formLanguage}"></div>
-    </div>
+  const quantityOffersAfterPopup = document.createElement('div'); 
+  quantityOffersAfterPopup.id = `quantity-offers-after-popup_${productId}`;
+  quantityOffersAfterPopup.style.cssText = 'margin-top: 16px;';
+  
+  // Generate form HTML with correct styling
+  const formElement = document.createElement('form');
+  formElement.className = 'codform-form-fields';
+  formElement.id = 'popup-form';
+  formElement.style.cssText = `
+    background: transparent; 
+    margin: 0; 
+    padding: 0;
+    font-family: 'Cairo', 'Noto Sans Arabic', 'Amiri', sans-serif !important;
   `;
+  formElement.onsubmit = handlePopupFormSubmission;
   
-  formWrapper.innerHTML = formHTML;
+  // Generate fields HTML
+  formElement.innerHTML = fieldsArray.map(field => renderField(field, formStyle, formLanguage)).join('');
+  
+  // Assemble the complete form
+  formWrapper.appendChild(quantityOffersBeforePopup);
+  formWrapper.appendChild(formElement);
+  formWrapper.appendChild(quantityOffersAfterPopup);
+  
   modalContent.appendChild(closeBtn);
   modalContent.appendChild(formWrapper);
   
-  // Load React form with quantity offers integration
+  // Load quantity offers for popup after modal is added to DOM
   setTimeout(() => {
-    const reactRoot = document.getElementById('popup-react-root');
-    if (reactRoot && window.ReactDOM && window.React) {
-      const FormWithQuantityOffers = window.FormWithQuantityOffers;
-      if (FormWithQuantityOffers) {
-        const props = {
-          fields: fieldsArray,
-          formStyle: formStyle,
-          formCountry: formStyle?.currency || 'SAR',
-          formPhonePrefix: '+966',
-          productId: productId,
-          formId: productId
-        };
-        
-        console.log('🎯 Loading React form with quantity offers for popup');
-        window.ReactDOM.render(window.React.createElement(FormWithQuantityOffers, props), reactRoot);
-      }
+    if (window.CodformQuantityOffers && productId) {
+      const shopDomain = getShopDomain();
+      const blockId = `popup_${productId}`;
+      const formCurrency = formStyle?.currency || 'SAR';
+      
+      const productData = {
+        id: productId,
+        price: parseFloat('{{ product.price | divided_by: 100.0 }}') || 0,
+        comparePrice: parseFloat('{{ product.compare_at_price | divided_by: 100.0 }}') || 0,
+        title: '{{ product.title }}' || 'منتج',
+        image: '{{ product.featured_image | img_url: "400x400" }}' || '',
+        currency: '{{ shop.currency }}' || 'SAR'
+      };
+      
+      console.log('🎯 Loading quantity offers for popup:', { blockId, productId, shopDomain });
+      window.CodformQuantityOffers.loadWithProduct(blockId, productId, shopDomain, formCurrency, productData);
     }
   }, 100);
   popup.appendChild(modalContent);

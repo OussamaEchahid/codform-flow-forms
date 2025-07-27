@@ -52,13 +52,14 @@ window.CodformQuantityOffers = (function() {
       containerId: `quantity-offers-before-${blockId}`
     });
 
-    // البحث عن الحاوية
-    const container = document.getElementById(`quantity-offers-before-${blockId}`);
-    console.log("📦 Container search result:", {
-      found: !!container,
-      id: `quantity-offers-before-${blockId}`,
-      allContainers: Array.from(document.querySelectorAll('[id*="quantity-offers"]')).map(el => el.id)
-    });
+    // البحث عن الحاوية - نحاول أولاً الحاوية المحددة ثم البديلة للنموذج المنبثق
+    let container = document.getElementById(`quantity-offers-before-${blockId}`);
+    
+    // إذا لم نجد الحاوية الأساسية، تحقق من وجود حاوية النموذج المنبثق
+    if (!container && blockId.includes('popup_')) {
+      container = document.getElementById(`quantity-offers-before-${blockId}`) || 
+                  document.getElementById(`quantity-offers-after-${blockId}`);
+    }
     
     if (!container) {
       console.error("❌ Container not found:", `quantity-offers-before-${blockId}`);
