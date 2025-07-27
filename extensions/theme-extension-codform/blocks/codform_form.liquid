@@ -1348,16 +1348,25 @@ button[id^="codform-popup-btn"] *,
 
         // تحميل عروض الكمية بعد تحميل النموذج
         console.log('🎯 Attempting to load quantity offers...');
-        if (window.CodformQuantityOffers && window.CodformQuantityOffers.loadAndDisplayOffers) {
-          const shopDomain = getShopDomain();
-          console.log('🏪 Shop domain:', shopDomain, 'Product ID:', productId);
-          setTimeout(() => {
-            console.log('🚀 Loading quantity offers for form blockId with shop:', shopDomain);
-            window.CodformQuantityOffers.loadAndDisplayOffers('form', productId, shopDomain);
-          }, 3000);
-        } else {
-          console.error('❌ CodformQuantityOffers not available');
+        
+        // دالة للتحقق من توفر CodformQuantityOffers مع إعادة المحاولة
+        function waitForQuantityOffers(retries = 0) {
+          if (window.CodformQuantityOffers && window.CodformQuantityOffers.loadAndDisplayOffers) {
+            const shopDomain = getShopDomain();
+            console.log('✅ CodformQuantityOffers found! Shop domain:', shopDomain, 'Product ID:', productId);
+            setTimeout(() => {
+              console.log('🚀 Loading quantity offers for form blockId with shop:', shopDomain);
+              window.CodformQuantityOffers.loadAndDisplayOffers('form', productId, shopDomain);
+            }, 1000);
+          } else if (retries < 10) {
+            console.log(`⏳ Waiting for CodformQuantityOffers... (attempt ${retries + 1}/10)`);
+            setTimeout(() => waitForQuantityOffers(retries + 1), 500);
+          } else {
+            console.error('❌ CodformQuantityOffers not available after 10 retries');
+          }
         }
+        
+        waitForQuantityOffers();
 
         console.log('🎉 CODFORM: Form rendered successfully with quantity offers container');
       })
@@ -1628,7 +1637,7 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <!-- تحميل مدير عروض الكمية -->
-<script src="{{ 'codform-quantity-offers.js' | asset_url }}" defer></script>
+<script src="{{ 'codform-quantity-offers.js' | asset_url }}"></script>
 <script>
 // دالة لتوليد معرف فريد للبلوك
 function generateBlockId(productId) {
