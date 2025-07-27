@@ -650,6 +650,7 @@ button[id^="codform-popup-btn"] *,
       
       // If popup mode is enabled AND we're NOT in the popup (main page button), use popup button settings
       // If we're IN the popup, use normal submit button settings
+      // Apply styles for submit button
       if (isPopupMode && !isInPopup && formStyle.popupButton) {
         // Main page popup trigger button - use popup button settings
         finalButtonText = formStyle.popupButton.text || buttonText;
@@ -669,6 +670,26 @@ button[id^="codform-popup-btn"] *,
             default: finalAnimation = '';
           }
         }
+      } else {
+        // Regular form submit button - maintain original animations and font
+        finalButtonText = buttonText;
+        finalBgColor = formStyle?.primaryColor || 'rgb(155, 135, 245)';
+        finalTextColor = 'rgb(255, 255, 255)';
+        finalFontSize = '16px';
+        finalBorderRadius = '8px';
+        
+        // Apply regular form animations from formStyle if available
+        if (field.style?.animation && field.style.animation !== 'none') {
+          switch (field.style.animation) {
+            case 'pulse': finalAnimation = 'pulse-animation'; break;
+            case 'bounce': finalAnimation = 'bounce-animation'; break;
+            case 'shake': finalAnimation = 'shake-animation'; break;
+            case 'wiggle': finalAnimation = 'wiggle-animation'; break;
+            case 'flash': finalAnimation = 'flash-animation'; break;
+            default: finalAnimation = '';
+          }
+        }
+      }
       } else {
         // Normal submit button OR popup form submit button - use submit button settings
         const baseFontSize = getStyleValue(formStyle, 'baseFontSize', '16px');
@@ -742,7 +763,7 @@ button[id^="codform-popup-btn"] *,
               transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
               width: ${buttonWidth};
               min-height: ${buttonMinHeight};
-              font-family: inherit;
+              font-family: ${formDirection === 'rtl' ? "'Cairo', 'Noto Sans Arabic', 'Amiri', sans-serif" : "'Inter', 'system-ui', sans-serif"};
               display: inline-flex;
               align-items: center;
               justify-content: center;
@@ -1683,14 +1704,13 @@ window.openFormPopup = function(event) {
   const formWrapper = document.createElement('div');
   formWrapper.style.cssText = 'background: transparent; margin: 0; padding: 0;';
   
-  // Create quantity offers containers for popup
-  const quantityOffersBeforePopup = document.createElement('div');
-  quantityOffersBeforePopup.id = `quantity-offers-before-popup_${productId}`;
-  quantityOffersBeforePopup.style.cssText = 'margin-bottom: 16px;';
+  // Generate block ID for quantity offers container in popup
+  const popupBlockId = `popup_${productId}`;
   
-  const quantityOffersAfterPopup = document.createElement('div'); 
-  quantityOffersAfterPopup.id = `quantity-offers-after-popup_${productId}`;
-  quantityOffersAfterPopup.style.cssText = 'margin-top: 16px;';
+  // Create quantity offers containers for popup with correct IDs
+  const quantityOffersBeforePopup = document.createElement('div');
+  quantityOffersBeforePopup.id = `quantity-offers-before-${popupBlockId}`;
+  quantityOffersBeforePopup.style.cssText = 'margin-bottom: 16px; display: none;';
   
   // Generate form HTML with correct styling
   const formElement = document.createElement('form');
@@ -1710,7 +1730,6 @@ window.openFormPopup = function(event) {
   // Assemble the complete form
   formWrapper.appendChild(quantityOffersBeforePopup);
   formWrapper.appendChild(formElement);
-  formWrapper.appendChild(quantityOffersAfterPopup);
   
   modalContent.appendChild(closeBtn);
   modalContent.appendChild(formWrapper);
@@ -1719,7 +1738,6 @@ window.openFormPopup = function(event) {
   setTimeout(() => {
     if (window.CodformQuantityOffers && productId) {
       const shopDomain = getShopDomain();
-      const blockId = `popup_${productId}`;
       const formCurrency = formStyle?.currency || 'SAR';
       
       const productData = {
@@ -1731,8 +1749,8 @@ window.openFormPopup = function(event) {
         currency: '{{ shop.currency }}' || 'SAR'
       };
       
-      console.log('🎯 Loading quantity offers for popup:', { blockId, productId, shopDomain });
-      window.CodformQuantityOffers.loadWithProduct(blockId, productId, shopDomain, formCurrency, productData);
+      console.log('🎯 Loading quantity offers for popup with correct blockId:', popupBlockId);
+      window.CodformQuantityOffers.loadWithProduct(popupBlockId, productId, shopDomain, formCurrency, productData);
     }
   }, 100);
   popup.appendChild(modalContent);
