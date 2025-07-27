@@ -675,9 +675,9 @@
       
       // إنشاء border و padding صحيحة
       const buttonBorder = buttonBorderWidth !== '0px' && buttonBorderColor !== 'transparent' 
-        ? `${buttonBorderWidth} solid ${buttonBorderColor}` 
+        ? buttonBorderWidth + ' solid ' + buttonBorderColor 
         : 'none';
-      const buttonPadding = `${buttonPaddingY} ${buttonPaddingX}`;
+      const buttonPadding = buttonPaddingY + ' ' + buttonPaddingX;
       
       // إصلاح الحصول على fontWeight - التحقق من labelWeight أولاً ثم fontWeight
       const labelWeight = getStyleValue(buttonStyle, 'labelWeight', null);
@@ -694,12 +694,12 @@
       if (showIcon && hasIcon) {
         const iconSvg = getIconSvg(field.icon, iconColor);
         const iconMargin = iconPosition === 'left' ? 'margin-right: 8px;' : 'margin-left: 8px;';
-        iconHtml = `<span style="${iconMargin} display: inline-flex; align-items: center;">${iconSvg}</span>`;
+        iconHtml = '<span style="' + iconMargin + ' display: inline-flex; align-items: center;">' + iconSvg + '</span>';
       }
       
       const buttonContent = iconPosition === 'left' ? 
-        `${iconHtml}${buttonText}` : 
-        `${buttonText}${iconHtml}`;
+        iconHtml + buttonText : 
+        buttonText + iconHtml;
       
       html = `
         <div class="codform-submit-wrapper" style="
@@ -753,14 +753,14 @@
     console.log('🎨 ICON DEBUG: Creating icon:', iconName, 'with color:', iconColor);
     
     // Base styles for different icon types
-    const strokeStyle = `width: 18px; height: 18px; stroke: ${iconColor}; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;`;
-    const filledStyle = `width: 18px; height: 18px; fill: ${iconColor}; stroke: none;`;
+    const strokeStyle = 'width: 18px; height: 18px; stroke: ' + iconColor + '; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;';
+    const filledStyle = 'width: 18px; height: 18px; fill: ' + iconColor + '; stroke: none;';
     
     let svgResult = '';
     
     switch(iconName) {
       case 'user':
-        svgResult = `<svg xmlns="http://www.w3.org/2000/svg" style="${strokeStyle}" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`;
+        svgResult = '<svg xmlns="http://www.w3.org/2000/svg" style="' + strokeStyle + '" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>';
         break;
       case 'phone':
         svgResult = `<svg xmlns="http://www.w3.org/2000/svg" style="${strokeStyle}" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>`;
@@ -884,7 +884,7 @@
     
     // First check if this product has an associated form
     // محاولة البحث عن النموذج المحدد للمنتج أولاً، ثم البحث عن النموذج العام
-    fetch(`https://trlklwixfeaexhydzaue.supabase.co/rest/v1/shopify_product_settings?shop_id=eq.${shopDomain}&enabled=eq.true&select=*,forms(*)&or=(product_id.eq.${productId},product_id.eq.auto-detect)`, {
+    fetch('https://trlklwixfeaexhydzaue.supabase.co/rest/v1/shopify_product_settings?shop_id=eq.' + shopDomain + '&enabled=eq.true&select=*,forms(*)&or=(product_id.eq.' + productId + ',product_id.eq.auto-detect)', {
       headers: {
         'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
         'Content-Type': 'application/json'
@@ -1912,6 +1912,9 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 </script>
+
+<!-- Load Fixed JavaScript without syntax errors -->
+<script src="{{ 'codform-fixed.js' | asset_url }}" defer></script>
 
 <!-- تحميل مدير عروض الكمية -->
 <script src="{{ 'codform-quantity-offers.js' | asset_url }}" defer></script>
