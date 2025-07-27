@@ -1766,7 +1766,7 @@ window.CodformQuantityOffers = (function() {
 
       offerElement.style.cssText = `
         background-color: #ffffff;
-        border: ${index === 1 ? '2px solid #e5e7eb' : '2px solid #e5e7eb'};
+        border: 2px solid #e5e7eb;
         border-radius: 8px;
         padding: 12px;
         margin-bottom: 8px;
@@ -1775,9 +1775,28 @@ window.CodformQuantityOffers = (function() {
         justify-content: space-between;
         font-family: 'Cairo', system-ui, Arial, sans-serif;
         cursor: pointer;
-        direction: rtl;
-        ${index === 1 ? 'border-color: #22c55e; background-color: #f0fdf4;' : ''}
+        direction: ${window.currentFormData?.formLanguage === 'en' ? 'ltr' : 'rtl'};
+        transition: all 0.2s ease;
       `;
+
+      // إضافة إمكانية الاختيار
+      offerElement.onclick = function() {
+        // إزالة التحديد من العروض الأخرى
+        const allOffers = container.querySelectorAll('.quantity-offer-item');
+        allOffers.forEach(item => {
+          item.style.borderColor = '#e5e7eb';
+          item.style.backgroundColor = '#ffffff';
+        });
+        
+        // تحديد العرض المختار
+        this.style.borderColor = '#22c55e';
+        this.style.backgroundColor = '#f0fdf4';
+        
+        // حفظ العرض المختار
+        window.selectedQuantityOffer = offer;
+      };
+
+      offerElement.className = 'quantity-offer-item';
 
       // إنشاء المحتوى مع الصورة
       let imageHtml = '';
