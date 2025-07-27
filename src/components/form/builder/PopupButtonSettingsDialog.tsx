@@ -228,24 +228,20 @@ const PopupButtonSettingsDialog: React.FC<PopupButtonSettingsDialogProps> = ({
             ) : (
               <div className="bg-white rounded-lg p-6 border-2 border-dashed border-gray-300">
                 <div className="text-center mb-4 text-sm text-gray-600">
-                  {language === 'ar' ? 'زر الطلب في النموذج' : 'Order Button in Form'}
+                  {language === 'ar' ? 'زر النافذة المنبثقة كما سيظهر في المتجر' : 'Popup Button as it will appear in store'}
                 </div>
                 
-                {/* Simulated form with button */}
-                <div className="space-y-4">
-                  <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
-                  <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
-                  <div className="h-20 bg-gray-200 rounded animate-pulse"></div>
-                  
-                  {/* The actual order button */}
+                {/* Just the popup button - no simulated form */}
+                <div className="flex justify-center">
                   <Button
-                    className={`w-full inline-flex items-center justify-center gap-2 ${getAnimationClass((popupButton as any).animation || 'none')}`}
+                    className={`inline-flex items-center justify-center gap-2 ${getAnimationClass((popupButton as any).animation || 'none')}`}
                     style={{
                       backgroundColor: (popupButton as any).backgroundColor || '#9b87f5',
                       color: (popupButton as any).textColor || '#ffffff',
                       borderRadius: (popupButton as any).borderRadius || '8px',
                       fontSize: (popupButton as any).fontSize || '16px',
-                      padding: '12px 24px'
+                      padding: '12px 24px',
+                      minWidth: '200px'
                     }}
                   >
                     {(popupButton as any).showIcon !== false && '🛒'}
