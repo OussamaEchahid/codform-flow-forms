@@ -30,8 +30,19 @@ quantity offers integration, and popup functionality.
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 <style>
-{%- comment -%} Remove any borders from form containers when popup mode is enabled {%- endcomment -%}
+{%- comment -%} Default form styling {%- endcomment -%}
 [data-form-preview-id="form-preview-stable"] {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 24px;
+  margin: 16px 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+{%- comment -%} Remove borders only when in popup mode {%- endcomment -%}
+.codform-popup-only-mode [data-form-preview-id="form-preview-stable"],
+#codform-popup-overlay [data-form-preview-id="form-preview-stable"] {
   border: none !important;
   background: transparent !important;
   box-shadow: none !important;
