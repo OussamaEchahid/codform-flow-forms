@@ -1766,59 +1766,50 @@ window.CodformQuantityOffers = (function() {
 
       offerElement.style.cssText = `
         background-color: #ffffff;
-        border: 1px solid #e5e7eb;
-        border-radius: 12px;
-        padding: 20px;
-        margin-bottom: 16px;
+        border: ${index === 1 ? '2px solid #e5e7eb' : '2px solid #e5e7eb'};
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 8px;
         display: flex;
         align-items: center;
         justify-content: space-between;
         font-family: 'Cairo', system-ui, Arial, sans-serif;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         cursor: pointer;
         direction: rtl;
-        transition: all 0.3s ease;
-        ${index === 1 ? 'border: 2px solid #8b5cf6; background-color: #faf7ff; transform: scale(1.02);' : ''}
+        ${index === 1 ? 'border-color: #22c55e; background-color: #f0fdf4;' : ''}
       `;
 
       // إنشاء المحتوى مع الصورة
       let imageHtml = '';
       if (productImage) {
         imageHtml = `
-          <div style="flex-shrink: 0; margin-left: 16px;">
+          <div style="width: 48px; height: 48px; background: #f3f4f6; border-radius: 8px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; margin-left: 12px;">
             <img src="${productImage}" alt="${productTitle}" 
-                 style="width: 70px; height: 70px; object-fit: cover; border-radius: 10px; border: 1px solid #e5e7eb;"
-                 onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\\'width: 70px; height: 70px; background: #f3f4f6; display: flex; align-items: center; justify-content: center; border-radius: 10px; border: 1px solid #e5e7eb;\\'>📦</div>';">
+                 style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;"
+                 onerror="this.style.display='none'; this.parentElement.innerHTML='📦';">
           </div>
         `;
       } else {
         imageHtml = `
-          <div style="flex-shrink: 0; margin-left: 16px;">
-            <div style="width: 70px; height: 70px; background: #f3f4f6; display: flex; align-items: center; justify-content: center; border-radius: 10px; border: 1px solid #e5e7eb;">
-              📦
-            </div>
+          <div style="width: 48px; height: 48px; background: #f3f4f6; border-radius: 8px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; margin-left: 12px;">
+            📦
           </div>
         `;
       }
 
       offerElement.innerHTML = `
-        <div style="display: flex; align-items: center; width: 100%; gap: 12px;">
+        <div style="display: flex; align-items: center; gap: 12px;">
           ${imageHtml}
-          <div style="flex: 1; text-align: right;">
-            <div style="font-weight: 600; font-size: 16px; color: #000; margin-bottom: 8px;">
+          <div style="flex: 1;">
+            <div style="font-weight: 600; color: #000;">
               ${offer.text || `اشترِ ${offer.quantity || 1} قطعة`}
             </div>
-            <div style="display: flex; gap: 8px; align-items: center; justify-content: flex-end;">
-              ${offer.tag ? `<span style="background-color: #22c55e; color: white; padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: 600;">${offer.tag}</span>` : ''}
-              ${discountValue > 0 ? `<span style="background-color: #ef4444; color: white; padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: 600;">وفر ${discountValue}%</span>` : ''}
-            </div>
+            ${offer.tag ? `<div style="display: inline-block; background-color: #22c55e; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; margin-top: 4px;">${offer.tag}</div>` : ''}
           </div>
-          <div style="text-align: center; min-width: 120px;">
-            ${discountValue > 0 ? `<div style="font-size: 12px; color: #6b7280; text-decoration: line-through; margin-bottom: 4px;">${originalPrice.toFixed(2)} ${currencySymbol}</div>` : ''}
-            <div style="font-size: 18px; font-weight: bold; color: #000;">
+          <div style="text-align: right;">
+            <div style="font-weight: bold; font-size: 18px; color: #000;">
               ${totalPrice.toFixed(2)} ${currencySymbol}
             </div>
-            ${offer.quantity > 1 ? `<div style="font-size: 11px; color: #6b7280; margin-top: 2px;">${realPrice.toFixed(2)} ${currencySymbol} × ${offer.quantity}</div>` : ''}
           </div>
         </div>
       `;
