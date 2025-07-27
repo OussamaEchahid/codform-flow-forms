@@ -1,3 +1,11 @@
+{%- comment -%}
+===============================================================================
+Codform Form Block - Shopify Liquid Template
+===============================================================================
+This file renders dynamic forms for Shopify products with full Arabic support,
+quantity offers integration, and popup functionality.
+{%- endcomment -%}
+
 {% schema %}
 {
   "name": "Codform Form",
@@ -13,154 +21,145 @@
 }
 {% endschema %}
 
-<!-- Add Cairo font for Arabic text with strong specificity -->
+{%- comment -%}
+===============================================================================
+1. FONTS & BASE STYLES
+===============================================================================
+{%- endcomment -%}
+<!-- Cairo font for Arabic text support -->
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet">
+
 <style>
-  /* Force Cairo font for all Arabic text with high specificity */
-  .codform-arabic-text,
-  .codform-arabic-text *,
-  [dir="rtl"],
-  [dir="rtl"] *,
-  .codform-field-wrapper[dir="rtl"],
-  .codform-field-wrapper[dir="rtl"] * {
-    font-family: 'Cairo', 'Noto Sans Arabic', 'Amiri', sans-serif !important;
+{%- comment -%} Arabic Font Styles {%- endcomment -%}
+.codform-arabic-text,
+.codform-arabic-text *,
+[dir="rtl"],
+[dir="rtl"] *,
+.codform-field-wrapper[dir="rtl"],
+.codform-field-wrapper[dir="rtl"] * {
+  font-family: 'Cairo', 'Noto Sans Arabic', 'Amiri', sans-serif !important;
+}
+
+[dir="rtl"] input,
+[dir="rtl"] textarea,
+[dir="rtl"] label,
+[dir="rtl"] button {
+  font-family: 'Cairo', 'Noto Sans Arabic', 'Amiri', sans-serif !important;
+  font-feature-settings: "liga" 1, "kern" 1;
+  text-rendering: optimizeLegibility;
+}
+
+{%- comment -%} Animation Keyframes {%- endcomment -%}
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.3);
   }
-  
-  /* Ensure proper text rendering for Arabic */
-  [dir="rtl"] input,
-  [dir="rtl"] textarea,
-  [dir="rtl"] label,
-  [dir="rtl"] button {
-    font-family: 'Cairo', 'Noto Sans Arabic', 'Amiri', sans-serif !important;
-    font-feature-settings: "liga" 1, "kern" 1;
-    text-rendering: optimizeLegibility;
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 10px rgba(0, 0, 0, 0);
   }
-  
-  /* Animation CSS for submit buttons - EXACT MATCH FROM PREVIEW */
-  @keyframes pulse {
-    0% {
-      transform: scale(1);
-      box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.3);
-    }
-    
-    50% {
-      transform: scale(1.05);
-      box-shadow: 0 0 0 10px rgba(0, 0, 0, 0);
-    }
-    
-    100% {
-      transform: scale(1);
-      box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
-    }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
   }
-  
-  @keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    10%, 90% { transform: translateX(-2px); }
-    20%, 80% { transform: translateX(4px); }
-    30%, 50%, 70% { transform: translateX(-6px); }
-    40%, 60% { transform: translateX(6px); }
-  }
-  
-  @keyframes bounce {
-    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-    40% { transform: translateY(-10px); }
-    60% { transform: translateY(-5px); }
-  }
-  
-  @keyframes wiggle {
-    0%, 100% { transform: rotate(0deg); }
-    25% { transform: rotate(-5deg); }
-    50% { transform: rotate(0deg); }
-    75% { transform: rotate(5deg); }
-  }
-  
-  @keyframes flash {
-    0%, 50%, 100% { opacity: 1; }
-    25%, 75% { opacity: 0.5; }
-  }
-  
-  /* Animation classes with 2s duration */
-  .pulse-animation {
-    animation-duration: 2s !important;
-    animation: pulse 2s infinite !important;
-  }
-  
-  .bounce-animation {
-    animation-duration: 2s !important;
-    animation: bounce 2s infinite !important;
-  }
-  
-  .shake-animation {
-    animation-duration: 0.8s !important;
-    animation: shake 0.8s infinite !important;
-  }
-  
-  .wiggle-animation {
-    animation-duration: 2s !important;
-    animation: wiggle 2s ease-in-out infinite !important;
-  }
-  
-  .flash-animation {
-    animation-duration: 2s !important;
-    animation: flash 2s infinite !important;
-  }
-  
-  /* Popup Button Styles */
-  .codform-popup-button {
-    position: fixed;
-    z-index: 9999;
-    padding: 12px 24px;
-    border: 2px solid;
-    cursor: pointer;
-    font-family: inherit;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    backdrop-filter: blur(10px);
-    white-space: nowrap;
-  }
-  
-  .codform-popup-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
-  }
-  
-  .codform-popup-button:active {
-    transform: translateY(0);
-  }
-  
-  /* Popup Button Position Classes */
-  .popup-bottom-right {
-    bottom: 20px;
-    right: 20px;
-  }
-  
-  .popup-bottom-left {
-    bottom: 20px;
-    left: 20px;
-  }
-  
-  .popup-top-right {
-    top: 20px;
-    right: 20px;
-  }
-  
-  .popup-top-left {
-    top: 20px;
-    left: 20px;
-  }
-  
-  .popup-center {
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-  }
-  
-  .popup-center:hover {
-    transform: translate(-50%, -52px);
-  }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 90% { transform: translateX(-2px); }
+  20%, 80% { transform: translateX(4px); }
+  30%, 50%, 70% { transform: translateX(-6px); }
+  40%, 60% { transform: translateX(6px); }
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-10px); }
+  60% { transform: translateY(-5px); }
+}
+
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-5deg); }
+  50% { transform: rotate(0deg); }
+  75% { transform: rotate(5deg); }
+}
+
+@keyframes flash {
+  0%, 50%, 100% { opacity: 1; }
+  25%, 75% { opacity: 0.5; }
+}
+
+{%- comment -%} Animation Classes {%- endcomment -%}
+.pulse-animation {
+  animation-duration: 2s !important;
+  animation: pulse 2s infinite !important;
+}
+
+.bounce-animation {
+  animation-duration: 2s !important;
+  animation: bounce 2s infinite !important;
+}
+
+.shake-animation {
+  animation-duration: 0.8s !important;
+  animation: shake 0.8s infinite !important;
+}
+
+.wiggle-animation {
+  animation-duration: 2s !important;
+  animation: wiggle 2s ease-in-out infinite !important;
+}
+
+.flash-animation {
+  animation-duration: 2s !important;
+  animation: flash 2s infinite !important;
+}
+
+{%- comment -%} Popup Button Styles {%- endcomment -%}
+.codform-popup-button {
+  position: fixed;
+  z-index: 9999;
+  padding: 12px 24px;
+  border: 2px solid;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(10px);
+  white-space: nowrap;
+}
+
+.codform-popup-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+
+.codform-popup-button:active {
+  transform: translateY(0);
+}
+
+{%- comment -%} Popup Position Classes {%- endcomment -%}
+.popup-bottom-right { bottom: 20px; right: 20px; }
+.popup-bottom-left { bottom: 20px; left: 20px; }
+.popup-top-right { top: 20px; right: 20px; }
+.popup-top-left { top: 20px; left: 20px; }
+.popup-center {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+.popup-center:hover {
+  transform: translate(-50%, -52px);
+}
 </style>
 
+{%- comment -%}
+===============================================================================
+2. FORM CONTAINER
+===============================================================================
+{%- endcomment -%}
 <div data-form-preview-id="form-preview-stable">
   <!-- Form content will be loaded here -->
 </div>
@@ -171,14 +170,21 @@
   
   console.log('🚀 CODFORM: Form initialization started');
   
-  // Constants
+  {%- comment -%}
+  ===============================================================================
+  3. CONSTANTS & CONFIGURATION
+  ===============================================================================
+  {%- endcomment -%}
   const API_BASE_URL = 'https://lovable-forms-api.netlify.app/.netlify/functions/api-forms';
   const DEFAULT_PRODUCT_ID = 'default';
 
-  // Utility functions
+  {%- comment -%}
+  ===============================================================================
+  4. UTILITY FUNCTIONS
+  ===============================================================================
+  {%- endcomment -%}
   function getProductId() {
     try {
-      // الحصول على معرف المنتج من Shopify
       const productId = '{{ product.id }}' || '{{ product.variants.first.id }}' || '{{ block.settings.product_id }}' || 'auto-detect';
       console.log('🔍 معرف المنتج المكتشف:', productId);
       return productId.trim();
@@ -188,10 +194,8 @@
     }
   }
 
-  // Get current shop domain - FIXED to use actual shop domain
   window.getShopDomain = function() {
     try {
-      // Get the actual shop domain from Shopify - use dynamic shop domain
       const shopDomain = '{{ shop.domain }}' || '{{ shop.permanent_domain }}' || 'auto-detect';
       console.log('🏪 CODFORM: Using shop domain:', shopDomain);
       return shopDomain;
@@ -201,56 +205,58 @@
     }
   }
 
-  // Helper function to safely get style value with fallback
   function getStyleValue(style, property, fallback) {
     if (!style || typeof style !== 'object') return fallback;
     return style[property] || fallback;
   }
 
-  // Enhanced field rendering with exact preview matching
+  {%- comment -%}
+  ===============================================================================
+  5. FIELD RENDERING FUNCTIONS
+  ===============================================================================
+  {%- endcomment -%}
   function renderField(field, formStyle, formLanguage) {
     if (!field || !field.type) return '';
     
     console.log('🎨 Rendering field:', field.type, field.id);
     
-    // FIXED: Determine form direction properly - check multiple sources
+    // Determine form direction
     let formDirection = 'ltr';
     if (formStyle && formStyle.formDirection) {
       formDirection = formStyle.formDirection;
     } else if (formLanguage === 'ar') {
       formDirection = 'rtl';
     } else if (field.label && /[\u0600-\u06FF]/.test(field.label)) {
-      // Check if field label contains Arabic text
       formDirection = 'rtl';
     }
     
     console.log('🔄 CODFORM: Detected form direction:', formDirection);
     
-      // Enhanced label styling to match preview exactly - get base font size from form style
-      const baseFontSize = getStyleValue(formStyle, 'baseFontSize', '16px');
-      const labelStyle = field.style || {};
-      const showLabel = getStyleValue(labelStyle, 'showLabel', true);
-      const isFloatingLabels = getStyleValue(formStyle, 'floatingLabels', false);
-      
-      // Label styling to match preview exactly - scale with base font size
-      const labelColor = getStyleValue(labelStyle, 'labelColor', '#333333');
-      const labelFontSize = getStyleValue(labelStyle, 'labelFontSize', baseFontSize); // Use form base font size
-      const labelFontWeight = getStyleValue(labelStyle, 'labelFontWeight', '500');
+    // Base styling configuration
+    const baseFontSize = getStyleValue(formStyle, 'baseFontSize', '16px');
+    const labelStyle = field.style || {};
+    const showLabel = getStyleValue(labelStyle, 'showLabel', true);
+    const isFloatingLabels = getStyleValue(formStyle, 'floatingLabels', false);
     
-      // Field styling to match preview exactly - scale with base font size
-      const fieldBackgroundColor = '#FFFFFF';
-      const fieldBorderColor = getStyleValue(labelStyle, 'borderColor', '#D1D5DB');
-      const fieldBorderRadius = '8px';
-      const fieldFontSize = baseFontSize; // Use form base font size
-      const fieldTextColor = '#1F2937';
-      const fieldPadding = '12px 16px';
+    // Label styling
+    const labelColor = getStyleValue(labelStyle, 'labelColor', '#333333');
+    const labelFontSize = getStyleValue(labelStyle, 'labelFontSize', baseFontSize);
+    const labelFontWeight = getStyleValue(labelStyle, 'labelFontWeight', '500');
+    
+    // Field styling
+    const fieldBackgroundColor = '#FFFFFF';
+    const fieldBorderColor = getStyleValue(labelStyle, 'borderColor', '#D1D5DB');
+    const fieldBorderRadius = '8px';
+    const fieldFontSize = baseFontSize;
+    const fieldTextColor = '#1F2937';
+    const fieldPadding = '12px 16px';
     
     let html = '';
     
+    {%- comment -%} Form Title Field {%- endcomment -%}
     if (field.type === 'form-title') {
       const title = field.label || 'Form Title';
       
-      // Get title settings from field style or use defaults to match old version EXACTLY
       const titleColor = getStyleValue(field.style, 'color', '#000000');
       const titleFontSize = getStyleValue(field.style, 'fontSize', '24px');
       const titleFontWeight = getStyleValue(field.style, 'fontWeight', 'bold');
@@ -280,7 +286,7 @@
         </div>
       `;
     }
-    
+    {%- comment -%} Text Input Fields (text, email, phone) {%- endcomment -%}
     else if (['text', 'email', 'phone'].includes(field.type)) {
       const label = field.label || 'Text Field';
       const placeholder = field.placeholder || '';
@@ -292,19 +298,16 @@
       if (field.type === 'email') inputType = 'email';
       if (field.type === 'phone') inputType = 'tel';
       
-      // Enhanced styling to match preview exactly - get from field style
+      // Field style configuration
       const fieldStyle = field.style || {};
-      
-      // Label styling from field settings - match preview exactly - scale with base font size
       const baseFontSize = getStyleValue(formStyle, 'baseFontSize', '16px');
       const actualLabelColor = getStyleValue(fieldStyle, 'labelColor', '#333333');
       const actualLabelFontSize = getStyleValue(fieldStyle, 'labelFontSize', baseFontSize);  
       const actualLabelWeight = getStyleValue(fieldStyle, 'labelFontWeight', '500');
       const actualShowLabel = fieldStyle.showLabel !== undefined ? fieldStyle.showLabel : true;
       
-      // Field styling from field settings - match preview exactly - scale with base font size
+      // Field visual styling
       const actualTextColor = getStyleValue(fieldStyle, 'color', 'rgb(31, 41, 55)');
-      // استخدام إعدادات الحدود من Global form styling أولاً ثم Field styling
       const actualBorderColor = getStyleValue(fieldStyle, 'borderColor', getStyleValue(formStyle, 'fieldBorderColor', 'rgb(209, 213, 219)'));
       const actualBorderWidth = getStyleValue(fieldStyle, 'borderWidth', getStyleValue(formStyle, 'fieldBorderWidth', '1px'));
       const actualFontSize = getStyleValue(fieldStyle, 'fontSize', baseFontSize);
@@ -312,11 +315,9 @@
       const actualPaddingY = getStyleValue(fieldStyle, 'paddingY', '12px');
       const actualBorderRadius = getStyleValue(fieldStyle, 'borderRadius', getStyleValue(formStyle, 'fieldBorderRadius', '8px'));
       const actualPlaceholder = getStyleValue(fieldStyle, 'placeholder', placeholder);
-      
-      // إعدادات لون الحدود عند التركيز من Global form styling
       const focusBorderColor = getStyleValue(formStyle, 'focusBorderColor', '#3b82f6');
       
-      // Icon handling with preview settings
+      // Icon handling
       const hasIcon = field.icon && field.icon !== 'none' && field.icon !== '';
       const showIconInPreview = getStyleValue(fieldStyle, 'showIconInPreview', hasIcon);
       const showIcon = getStyleValue(fieldStyle, 'showIcon', hasIcon) && showIconInPreview;
@@ -324,7 +325,7 @@
       let iconHtml = '';
       if (showIcon && hasIcon) {
         const iconPosition = formDirection === 'rtl' ? 'right' : 'left';
-        const iconColor = getStyleValue(fieldStyle, 'iconColor', '#9b87f5'); // Match preview icon color
+        const iconColor = getStyleValue(fieldStyle, 'iconColor', '#9b87f5');
         const iconSvg = getIconSvg(field.icon, iconColor);
         iconHtml = `
           <div style="
@@ -344,7 +345,7 @@
         `;
       }
       
-      // Fixed padding based on direction and icons - match preview exactly
+      // Padding based on direction and icons
       const paddingLeft = formDirection === 'rtl' ? '12px' : (showIcon && hasIcon ? '40px' : '12px');
       const paddingRight = formDirection === 'rtl' ? (showIcon && hasIcon ? '40px' : '12px') : '12px';
       const paddingTopBottom = '10px';
@@ -417,7 +418,6 @@
           </div>
           
           <style>
-            /* Force proper font for ALL placeholder text in form */
             .codform-field-wrapper input::placeholder,
             .codform-field-wrapper textarea::placeholder,
             input[type="text"]::placeholder,
@@ -431,7 +431,6 @@
               font-weight: 400 !important;
             }
             
-            /* Force proper font for ALL input elements in form */
             .codform-field-wrapper input,
             .codform-field-wrapper textarea,
             input[type="text"],
@@ -453,26 +452,23 @@
         </div>
       `;
     }
-    
+    {%- comment -%} Textarea Field {%- endcomment -%}
     else if (field.type === 'textarea') {
       const label = field.label || 'Text Area';
       const placeholder = field.placeholder || '';
       const required = field.required || false;
       const fieldId = field.id || 'field-' + Math.random().toString(36).substr(2, 9);
       
-      // Enhanced styling to match preview exactly - get from field style
+      // Field style configuration
       const fieldStyle = field.style || {};
-      
-      // Label styling from field settings - match preview exactly - scale with base font size
       const baseFontSize = getStyleValue(formStyle, 'baseFontSize', '16px');
       const actualLabelColor = getStyleValue(fieldStyle, 'labelColor', 'rgb(51, 65, 85)');
       const actualLabelFontSize = getStyleValue(fieldStyle, 'labelFontSize', baseFontSize);  
       const actualLabelWeight = getStyleValue(fieldStyle, 'labelFontWeight', '500');
       const actualShowLabel = fieldStyle.showLabel !== undefined ? fieldStyle.showLabel : true;
       
-      // Field styling from field settings - match preview exactly - scale with base font size
+      // Visual styling
       const actualTextColor = getStyleValue(fieldStyle, 'color', 'rgb(31, 41, 55)');
-      // استخدام إعدادات الحدود من Global form styling أولاً ثم Field styling
       const actualBorderColor = getStyleValue(fieldStyle, 'borderColor', getStyleValue(formStyle, 'fieldBorderColor', 'rgb(209, 213, 219)'));
       const actualBorderWidth = getStyleValue(fieldStyle, 'borderWidth', getStyleValue(formStyle, 'fieldBorderWidth', '1px'));
       const actualFontSize = getStyleValue(fieldStyle, 'fontSize', baseFontSize);
@@ -480,8 +476,6 @@
       const actualPaddingY = getStyleValue(fieldStyle, 'paddingY', '12px');
       const actualBorderRadius = getStyleValue(fieldStyle, 'borderRadius', getStyleValue(formStyle, 'fieldBorderRadius', '8px'));
       const actualPlaceholder = getStyleValue(fieldStyle, 'placeholder', placeholder);
-      
-      // إعدادات لون الحدود عند التركيز من Global form styling
       const focusBorderColor = getStyleValue(formStyle, 'focusBorderColor', '#3b82f6');
       
       html = `
@@ -562,40 +556,28 @@
         </div>
       `;
     }
-    
+    {%- comment -%} Submit Button Field {%- endcomment -%}
     else if (field.type === 'submit') {
       const buttonText = field.label || 'Submit';
       const buttonStyle = field.style || {};
       
-      // Animation settings
+      // Animation configuration
       const showAnimation = getStyleValue(buttonStyle, 'animation', false);
       const animationType = getStyleValue(buttonStyle, 'animationType', 'pulse');
       
-      // Generate animation class based on animation type
       let animationClass = '';
       if (showAnimation) {
         switch (animationType) {
-          case 'pulse':
-            animationClass = 'pulse-animation';
-            break;
-          case 'bounce':
-            animationClass = 'bounce-animation';
-            break;
-          case 'shake':
-            animationClass = 'shake-animation';
-            break;
-          case 'wiggle':
-            animationClass = 'wiggle-animation';
-            break;
-          case 'flash':
-            animationClass = 'flash-animation';
-            break;
-          default:
-            animationClass = '';
+          case 'pulse': animationClass = 'pulse-animation'; break;
+          case 'bounce': animationClass = 'bounce-animation'; break;
+          case 'shake': animationClass = 'shake-animation'; break;
+          case 'wiggle': animationClass = 'wiggle-animation'; break;
+          case 'flash': animationClass = 'flash-animation'; break;
+          default: animationClass = '';
         }
       }
       
-      // Get all button styles from field settings to match preview exactly - scale with base font size
+      // Button styling configuration
       const baseFontSize = getStyleValue(formStyle, 'baseFontSize', '16px');
       const buttonBgColor = getStyleValue(buttonStyle, 'backgroundColor', formStyle?.primaryColor || 'rgb(155, 135, 245)');
       const buttonTextColor = getStyleValue(buttonStyle, 'color', 'rgb(255, 255, 255)');
@@ -606,24 +588,23 @@
       const buttonMinHeight = getStyleValue(buttonStyle, 'minHeight', '56px');
       const buttonBoxShadow = getStyleValue(buttonStyle, 'boxShadow', 'none');
       
-      // الحصول على إعدادات الحدود والحشو من field.style مباشرة
+      // Border and padding configuration
       const buttonBorderWidth = getStyleValue(buttonStyle, 'borderWidth', '0px');
       const buttonBorderColor = getStyleValue(buttonStyle, 'borderColor', 'transparent');
       const buttonPaddingY = getStyleValue(buttonStyle, 'paddingY', '15px');
       const buttonPaddingX = getStyleValue(buttonStyle, 'paddingX', '24px');
       
-      // إنشاء border و padding صحيحة
       const buttonBorder = buttonBorderWidth !== '0px' && buttonBorderColor !== 'transparent' 
         ? `${buttonBorderWidth} solid ${buttonBorderColor}` 
         : 'none';
       const buttonPadding = `${buttonPaddingY} ${buttonPaddingX}`;
       
-      // إصلاح الحصول على fontWeight - التحقق من labelWeight أولاً ثم fontWeight
+      // Font weight handling
       const labelWeight = getStyleValue(buttonStyle, 'labelWeight', null);
       const fontWeight = getStyleValue(buttonStyle, 'fontWeight', null);
       const actualButtonFontWeight = labelWeight || fontWeight || 'bold';
       
-      // Icon handling for submit button
+      // Icon handling
       const hasIcon = field.icon && field.icon !== 'none' && field.icon !== '';
       const showIcon = getStyleValue(buttonStyle, 'showIcon', hasIcon);
       const iconPosition = getStyleValue(buttonStyle, 'iconPosition', 'left');
@@ -671,12 +652,8 @@
               overflow: hidden;
               text-align: center;
             "
-            onmouseover="
-              this.style.opacity='0.9';
-            "
-            onmouseout="
-              this.style.opacity='1';
-            "
+            onmouseover="this.style.opacity='0.9';"
+            onmouseout="this.style.opacity='1';"
           >
             ${buttonContent}
           </button>
@@ -687,7 +664,11 @@
     return html;
   }
 
-  // Enhanced icon SVG generator with color support - COMPLETELY FIXED for Shopify
+  {%- comment -%}
+  ===============================================================================
+  6. ICON GENERATION SYSTEM
+  ===============================================================================
+  {%- endcomment -%}
   function getIconSvg(iconName, iconColor = '#9CA3AF') {
     console.log('🎨 ICON DEBUG: Creating icon:', iconName, 'with color:', iconColor);
     
