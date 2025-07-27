@@ -1188,30 +1188,8 @@ button[id^="codform-popup-btn"] * {
 
         // Check if popup mode is enabled
         if (popupButton && popupButton.enabled) {
-          console.log('🎯 POPUP MODE: Creating popup version with normal form inside');
-          
-          // Create NORMAL FORM (not popup mode) for inside the popup
-          let popupFormContent = '';
-          fieldsArray.forEach((field, index) => {
-            console.log(`🎨 CODFORM: Processing field ${index} for popup:`, field);
-            popupFormContent += renderField(field, formStyle, formLanguage);
-          });
-          
-          // Wrap popup form in proper form element with submit functionality and borders
-          const popupFormHTML = `
-            <div style="
-              border: 2px solid ${formStyle?.fieldBorderColor || '#D1D5DB'};
-              border-radius: ${formStyle?.fieldBorderRadius || '8px'};
-              padding: 20px;
-              background: white;
-              margin: 0;
-            ">
-              <form class="codform-form-fields" style="background: transparent; margin: 0; padding: 0;" 
-                    id="codform-popup-form" onsubmit="handleFormSubmission(event)">
-                ${popupFormContent}
-              </form>
-            </div>
-          `;
+          // Create clean form HTML for popup (without popup button)
+          const cleanFormFields = fieldsArray.map(field => renderField(field, formStyle, formLanguage)).join('');
           
           // Show only the popup button in main area - completely remove any borders
           container.innerHTML = `
@@ -1240,35 +1218,6 @@ button[id^="codform-popup-btn"] * {
                   width: 100%;
                   max-width: 500px;
                   margin: 0 auto;
-                  text-align: center;
-                  transition: all 0.3s ease;
-                  box-shadow: 0 3px 15px rgba(0,0,0,0.1);
-                  font-family: 'Cairo', Arial, sans-serif;
-                  box-sizing: border-box;
-                "
-                onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 25px rgba(0,0,0,0.15)';"
-                onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 3px 15px rgba(0,0,0,0.1)';"
-                onclick="openFormPopup()">
-                ${popupButton.showIcon !== false ? '🛒 ' : ''}${popupButton.text || 'Order Now'}
-              </button>
-            </div>
-          `;
-          
-          // Store the NORMAL FORM HTML for popup (with borders and submit button)
-          window.codformPopupHTML = popupFormHTML;
-        } else {
-          // Normal mode - show the complete form with borders
-          container.innerHTML = `
-            <div class="codform-dynamic-form" style="
-              border: 2px solid ${formStyle?.fieldBorderColor || '#D1D5DB'};
-              border-radius: ${formStyle?.fieldBorderRadius || '8px'};
-              padding: 20px;
-              background: white;
-            ">
-              ${completeFormHTML}
-            </div>
-          `;
-        }
                   text-align: center;
                   transition: all 0.3s ease;
                   box-shadow: 0 3px 15px rgba(0,0,0,0.1);
