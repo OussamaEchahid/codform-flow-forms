@@ -1009,8 +1009,9 @@ button[id^="codform-popup-btn"] *,
           return;
         }
 
-        // تجنب إعادة التحميل إذا كان النموذج محمل بالفعل
-        if (container.dataset.formLoaded === 'true') {
+        // تجنب إعادة التحميل إذا كان النموذج محمل بالفعل (لا ينطبق على النموذج المنبثق)
+        const isPopupContext = document.querySelector('.codform-popup-overlay') !== null;
+        if (container.dataset.formLoaded === 'true' && !isPopupContext) {
           console.log('📝 CODFORM: Form already loaded, skipping reload to preserve quantity offers');
           return;
         }
