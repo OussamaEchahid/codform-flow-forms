@@ -1636,10 +1636,11 @@ window.codformOpenPopup = function() {
   setTimeout(() => {
     const firstInput = popup.querySelector('input, textarea');
     if (firstInput) {
-        firstInput.focus();
-      }
-    }, 100);
-  }
+      firstInput.focus();
+    }
+  }, 100);
+  
+  console.log('CODFORM: Popup form displayed');
 };
 
 window.codformClosePopup = function() {
