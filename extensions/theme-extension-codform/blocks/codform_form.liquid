@@ -56,14 +56,22 @@ quantity offers integration, and popup functionality.
 [dir="rtl"],
 [dir="rtl"] *,
 .codform-field-wrapper[dir="rtl"],
-.codform-field-wrapper[dir="rtl"] * {
+.codform-field-wrapper[dir="rtl"] *,
+.codform-popup-button,
+.codform-popup-trigger,
+button[id^="codform-popup-btn"],
+#codform-popup-modal [dir="rtl"],
+#codform-popup-modal [dir="rtl"] * {
   font-family: 'Cairo', 'Noto Sans Arabic', 'Amiri', sans-serif !important;
 }
 
 [dir="rtl"] input,
 [dir="rtl"] textarea,
 [dir="rtl"] label,
-[dir="rtl"] button {
+[dir="rtl"] button,
+.codform-popup-button,
+.codform-popup-trigger,
+button[id^="codform-popup-btn"] {
   font-family: 'Cairo', 'Noto Sans Arabic', 'Amiri', sans-serif !important;
   font-feature-settings: "liga" 1, "kern" 1;
   text-rendering: optimizeLegibility;
@@ -111,29 +119,34 @@ quantity offers integration, and popup functionality.
   25%, 75% { opacity: 0.5; }
 }
 
-{%- comment -%} Animation Classes {%- endcomment -%}
-.pulse-animation {
-  animation-duration: 2s !important;
+{%- comment -%} Animation Classes for popup buttons {%- endcomment -%}
+.codform-popup-button.pulse-animation,
+button[id^="codform-popup-btn"].pulse-animation,
+.codform-popup-trigger.pulse-animation {
   animation: pulse 2s infinite !important;
 }
 
-.bounce-animation {
-  animation-duration: 2s !important;
+.codform-popup-button.bounce-animation,
+button[id^="codform-popup-btn"].bounce-animation,
+.codform-popup-trigger.bounce-animation {
   animation: bounce 2s infinite !important;
 }
 
-.shake-animation {
-  animation-duration: 0.8s !important;
+.codform-popup-button.shake-animation,
+button[id^="codform-popup-btn"].shake-animation,
+.codform-popup-trigger.shake-animation {
   animation: shake 0.8s infinite !important;
 }
 
-.wiggle-animation {
-  animation-duration: 2s !important;
+.codform-popup-button.wiggle-animation,
+button[id^="codform-popup-btn"].wiggle-animation,
+.codform-popup-trigger.wiggle-animation {
   animation: wiggle 2s ease-in-out infinite !important;
 }
 
-.flash-animation {
-  animation-duration: 2s !important;
+.codform-popup-button.flash-animation,
+button[id^="codform-popup-btn"].flash-animation,
+.codform-popup-trigger.flash-animation {
   animation: flash 2s infinite !important;
 }
 
@@ -1658,43 +1671,42 @@ window.openFormPopup = function(event) {
     }, 300);
   };
   
-  // Create form with quantity offers for popup
+  // Create form with React component integration for popup
   const formWrapper = document.createElement('div');
   formWrapper.style.cssText = 'background: transparent; margin: 0; padding: 0;';
   
-  // Generate form HTML with all fields including quantity offers integration
+  // Set flag to indicate we're in popup mode for React components
+  window.codformCurrentlyInPopup = true;
+  
+  // Generate form HTML with React component integration
   let formHTML = `
-    <div id="quantity-offers-before-popup" style="margin-bottom: 16px;"></div>
-    <form class="codform-form-fields" style="background: transparent; margin: 0; padding: 0;" 
-          id="popup-form" onsubmit="handlePopupFormSubmission(event)">
-      ${fieldsArray.map(field => renderField(field, formStyle, formLanguage)).join('')}
-    </form>
-    <div id="quantity-offers-after-popup" style="margin-top: 16px;"></div>
+    <div class="codform-popup-only-mode">
+      <div id="popup-react-root" data-product-id="${productId}" data-form-fields='${JSON.stringify(fieldsArray)}' data-form-style='${JSON.stringify(formStyle)}' data-form-language="${formLanguage}"></div>
+    </div>
   `;
   
   formWrapper.innerHTML = formHTML;
-  
   modalContent.appendChild(closeBtn);
   modalContent.appendChild(formWrapper);
   
-  // Initialize quantity offers for popup after modal is added to DOM
+  // Load React form with quantity offers integration
   setTimeout(() => {
-    if (window.CodformQuantityOffers && productId) {
-      const shopDomain = getShopDomain();
-      const blockId = `popup_${productId}`;
-      const formCurrency = formStyle?.currency || 'SAR';
-      
-      const productData = {
-        id: productId,
-        price: parseFloat('{{ product.price | divided_by: 100.0 }}') || 0,
-        comparePrice: parseFloat('{{ product.compare_at_price | divided_by: 100.0 }}') || 0,
-        title: '{{ product.title }}' || 'منتج',
-        image: '{{ product.featured_image | img_url: "400x400" }}' || '',
-        currency: '{{ shop.currency }}' || 'SAR'
-      };
-      
-      console.log('🎯 Loading quantity offers for popup:', { blockId, productId, shopDomain });
-      window.CodformQuantityOffers.loadWithProduct(blockId, productId, shopDomain, formCurrency, productData);
+    const reactRoot = document.getElementById('popup-react-root');
+    if (reactRoot && window.ReactDOM && window.React) {
+      const FormWithQuantityOffers = window.FormWithQuantityOffers;
+      if (FormWithQuantityOffers) {
+        const props = {
+          fields: fieldsArray,
+          formStyle: formStyle,
+          formCountry: formStyle?.currency || 'SAR',
+          formPhonePrefix: '+966',
+          productId: productId,
+          formId: productId
+        };
+        
+        console.log('🎯 Loading React form with quantity offers for popup');
+        window.ReactDOM.render(window.React.createElement(FormWithQuantityOffers, props), reactRoot);
+      }
     }
   }, 100);
   popup.appendChild(modalContent);

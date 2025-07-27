@@ -46,15 +46,15 @@ const PopupButton: React.FC<PopupButtonProps> = ({ config, onScroll }) => {
   const getAnimationClass = (animation: string) => {
     switch (animation) {
       case 'pulse':
-        return 'animate-pulse';
+        return 'pulse-animation';
       case 'bounce':
-        return 'animate-bounce';
+        return 'bounce-animation';
       case 'shake':
-        return 'animate-[shake_0.8s_infinite]';
+        return 'shake-animation';
       case 'wiggle':
-        return 'animate-[wiggle_2s_ease-in-out_infinite]';
+        return 'wiggle-animation';
       case 'flash':
-        return 'animate-[flash_2s_infinite]';
+        return 'flash-animation';
       default:
         return '';
     }
