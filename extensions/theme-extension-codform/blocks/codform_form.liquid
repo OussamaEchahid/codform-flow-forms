@@ -671,26 +671,6 @@ button[id^="codform-popup-btn"] *,
           }
         }
       } else {
-        // Regular form submit button - maintain original animations and font
-        finalButtonText = buttonText;
-        finalBgColor = formStyle?.primaryColor || 'rgb(155, 135, 245)';
-        finalTextColor = 'rgb(255, 255, 255)';
-        finalFontSize = '16px';
-        finalBorderRadius = '8px';
-        
-        // Apply regular form animations from formStyle if available
-        if (field.style?.animation && field.style.animation !== 'none') {
-          switch (field.style.animation) {
-            case 'pulse': finalAnimation = 'pulse-animation'; break;
-            case 'bounce': finalAnimation = 'bounce-animation'; break;
-            case 'shake': finalAnimation = 'shake-animation'; break;
-            case 'wiggle': finalAnimation = 'wiggle-animation'; break;
-            case 'flash': finalAnimation = 'flash-animation'; break;
-            default: finalAnimation = '';
-          }
-        }
-      }
-      } else {
         // Normal submit button OR popup form submit button - use submit button settings
         const baseFontSize = getStyleValue(formStyle, 'baseFontSize', '16px');
         finalButtonText = buttonText;
