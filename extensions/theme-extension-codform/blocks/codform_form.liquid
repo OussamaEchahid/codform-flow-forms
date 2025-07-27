@@ -1154,7 +1154,7 @@ button[id^="codform-popup-btn"] *,
           const isPopupMode = formStyle?.popupButton?.enabled || false;
           
           if (isPopupMode) {
-            console.log('🎯 POPUP MODE: Only showing popup button, hiding form');
+            console.log('🎯 POPUP MODE: Only showing popup button');
             
             // In popup mode, show only the popup button
             const popupButton = formStyle.popupButton;
@@ -1218,17 +1218,16 @@ button[id^="codform-popup-btn"] *,
                 </button>
               </div>
               
-              <!-- Hidden form for popup -->
-              <div id="hidden-form-for-popup" style="display: none;">
-                <!-- Store form data for popup -->
-                <div id="popup-form-data" data-fields='${JSON.stringify(fieldsArray)}' data-style='${JSON.stringify(formStyle)}' data-language='${formLanguage}' data-product-id='${productId}'></div>
+              <!-- Hidden complete form for popup use -->
+              <div id="hidden-complete-form-for-popup" style="display: none;">
                 ${quantityOffersContainerBefore}
                 <form class="codform-form-fields" style="background: transparent; margin: 0; padding: 0;" 
-                      id="codform-main-form" onsubmit="handleFormSubmission(event)">
+                      id="codform-popup-form" onsubmit="handleFormSubmission(event)">
                   ${fieldsArray.map(field => renderField(field, formStyle, formLanguage)).join('')}
                 </form>
                 ${quantityOffersContainerAfter}
               </div>
+            `;
             `;
           } else {
             console.log('📋 NORMAL MODE: Showing full form');
@@ -1574,25 +1573,22 @@ window.openFormPopup = function(event) {
     document.body.removeChild(popup);
   };
   
-  // Get the original form and copy it exactly
-  const originalForm = document.querySelector('[data-form-preview-id="form-preview-stable"]');
+  // Get the hidden complete form for popup
+  const hiddenForm = document.getElementById('hidden-complete-form-for-popup');
   
-  if (originalForm) {
-    // Clone the original form completely including quantity offers
-    const clonedForm = originalForm.cloneNode(true);
-    
-    // Clean up the styling for popup
-    clonedForm.style.background = 'transparent';
-    clonedForm.style.border = 'none';
-    clonedForm.style.boxShadow = 'none';
-    clonedForm.style.padding = '0';
-    clonedForm.style.margin = '0';
+  if (hiddenForm) {
+    // Clone the hidden form completely
+    const clonedForm = hiddenForm.cloneNode(true);
+    clonedForm.style.display = 'block';
+    clonedForm.id = 'popup-form-content';
     
     // Add to modal
     modalContent.appendChild(closeBtn);
     modalContent.appendChild(clonedForm);
     
-    // Make sure quantity offers are loaded in popup
+    console.log('✅ CODFORM: Popup form loaded from hidden template');
+    
+    // Load quantity offers for popup after rendering
     setTimeout(() => {
       const productId = '{{ product.id }}' || '{{ product.variants.first.id }}' || 'default';
       const shopDomain = getShopDomain();
@@ -1608,30 +1604,10 @@ window.openFormPopup = function(event) {
           currency: '{{ shop.currency }}' || 'SAR'
         };
         
-        console.log('🎯 Loading quantity offers for popup...');
-        
-        // Find quantity offers container in popup
-        const offersContainer = clonedForm.querySelector('.quantity-offers-container');
-        if (!offersContainer) {
-          // Create offers container if it doesn't exist
-          const newOffersContainer = document.createElement('div');
-          newOffersContainer.className = 'quantity-offers-container';
-          newOffersContainer.style.marginBottom = '16px';
-          
-          const submitBtn = clonedForm.querySelector('.codform-submit-btn');
-          if (submitBtn) {
-            submitBtn.parentNode.insertBefore(newOffersContainer, submitBtn);
-          } else {
-            clonedForm.appendChild(newOffersContainer);
-          }
-        }
-        
-        // Load offers for popup
-        window.CodformQuantityOffers.loadWithProduct('popup', productId, shopDomain, formCurrency, productData);
+        console.log('🎯 CODFORM: Loading quantity offers for popup...');
+        window.CodformQuantityOffers.loadWithProduct('popup-' + Date.now(), productId, shopDomain, formCurrency, productData);
       }
-    }, 100);
-    
-    console.log('✅ CODFORM: Form cloned successfully');
+    }, 200);
   } else {
     console.error('❌ CODFORM: Original form not found');
     modalContent.innerHTML = `
@@ -1747,57 +1723,58 @@ async function handleFormSubmissionPopup(formData, submitBtn, popup) {
   }
 }
 
+// دالة تحميل عروض الكمية
+function loadQuantityOffersForForm(productId, shopDomain) {
+  console.log('🎯 CODFORM: Starting quantity offers loading for:', { productId, shopDomain });
+  
+  if (!window.CodformQuantityOffers) {
+    console.log('❌ CODFORM: CodformQuantityOffers not available yet, retrying...');
+    setTimeout(() => loadQuantityOffersForForm(productId, shopDomain), 1000);
+    return;
+  }
+  
+  const formCurrency = '{{ shop.currency }}' || 'SAR';
+  const productData = {
+    id: productId,
+    price: parseFloat('{{ product.price | divided_by: 100.0 }}') || 0,
+    comparePrice: parseFloat('{{ product.compare_at_price | divided_by: 100.0 }}') || 0,
+    title: '{{ product.title }}' || 'منتج',
+    image: '{{ product.featured_image | img_url: "400x400" }}' || '',
+    currency: '{{ shop.currency }}' || 'SAR'
+  };
+  
+  console.log("🛍️ CODFORM: Loading quantity offers with product data:", productData);
+  
+  // تحميل العروض للنموذج الرئيسي
+  window.CodformQuantityOffers.loadWithProduct('main', productId, shopDomain, formCurrency, productData);
+  console.log("✅ CODFORM: Quantity offers loading initiated");
+}
+
 // تهيئة عروض الكمية عند تحميل الصفحة
 document.addEventListener('DOMContentLoaded', function() {
   console.log('🚀 CODFORM: DOM loaded, starting quantity offers initialization');
   
-  // انتظار حتى يتم إنهاء تحميل النموذج تماماً
+  // انتظار تحميل النموذج
   const waitForFormLoad = setInterval(function() {
     const formContainer = document.querySelector('[data-form-preview-id="form-preview-stable"]');
-    const quantityOffersContainer = document.querySelector('.quantity-offers-container');
-    
-    console.log('🔍 CODFORM: Searching for containers...', {
-      formContainer: !!formContainer,
-      quantityOffersContainer: !!quantityOffersContainer,
-      allContainers: document.querySelectorAll('.quantity-offers-container').length
-    });
     
     if (formContainer && !formContainer.dataset.quantityOffersLoaded) {
       const productId = '{{ product.id }}' || '{{ product.variants.first.id }}' || 'default';
       const shopDomain = getShopDomain();
       
-      console.log("🎯 CODFORM: Found form container, loading quantity offers:", { productId, shopDomain });
+      console.log("🎯 CODFORM: Found form container, loading quantity offers");
       
-      if (window.CodformQuantityOffers) {
-        const formCurrency = '{{ shop.currency }}' || 'SAR';
-        
-        const productData = {
-          id: productId,
-          price: parseFloat('{{ product.price | divided_by: 100.0 }}') || 0,
-          comparePrice: parseFloat('{{ product.compare_at_price | divided_by: 100.0 }}') || 0,
-          title: '{{ product.title }}' || 'منتج',
-          image: '{{ product.featured_image | img_url: "400x400" }}' || '',
-          currency: '{{ shop.currency }}' || 'SAR'
-        };
-        
-        console.log("🛍️ CODFORM: Loading quantity offers with product data:", productData);
-        
-        // Load quantity offers for the main form
-        window.CodformQuantityOffers.loadWithProduct('main', productId, shopDomain, formCurrency, productData);
-        formContainer.dataset.quantityOffersLoaded = 'true';
-        clearInterval(waitForFormLoad);
-        console.log("✅ CODFORM: Quantity offers loading initiated for main form");
-      } else {
-        console.log("❌ CODFORM: CodformQuantityOffers not available yet");
-      }
+      loadQuantityOffersForForm(productId, shopDomain);
+      formContainer.dataset.quantityOffersLoaded = 'true';
+      clearInterval(waitForFormLoad);
     }
-  }, 200);
+  }, 500);
   
-  // تنظيف الفاصل الزمني بعد 15 ثوان إذا لم يتم العثور على النموذج
+  // تنظيف الفاصل الزمني بعد 20 ثوان
   setTimeout(() => {
     clearInterval(waitForFormLoad);
     console.log("⏰ CODFORM: Timeout reached for quantity offers loading");
-  }, 15000);
+  }, 20000);
 });
 
 // Add CSS animations
