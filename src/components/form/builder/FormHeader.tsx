@@ -12,6 +12,7 @@ interface FormHeaderProps {
   isSaving: boolean;
   isPublishing: boolean;
   isPublished: boolean;
+  popupButtonManager?: React.ReactNode;
 }
 
 const FormHeader: React.FC<FormHeaderProps> = ({ 
@@ -20,7 +21,8 @@ const FormHeader: React.FC<FormHeaderProps> = ({
   onTemplateOpen, 
   isSaving,
   isPublishing,
-  isPublished
+  isPublished,
+  popupButtonManager
 }) => {
   const navigate = useNavigate();
   const { language } = useI18n();
@@ -38,6 +40,7 @@ const FormHeader: React.FC<FormHeaderProps> = ({
       </div>
       
       <div className="flex items-center gap-3">
+        {popupButtonManager}
         <Button 
           variant="outline"
           className="flex items-center gap-2"

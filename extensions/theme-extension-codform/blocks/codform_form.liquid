@@ -1395,47 +1395,69 @@
 function showPopupButton(popupConfig, formContainer) {
   console.log('🎯 CODFORM: Showing popup button in place of form:', popupConfig);
   
-  const popupButton = document.getElementById('codform-popup-button');
-  const popupButtonContainer = document.getElementById('codform-popup-button-container');
-  
-  if (popupButton && popupButtonContainer && formContainer) {
+  if (formContainer && popupConfig) {
     // Configure button text and styling
     const buttonText = popupConfig.showIcon ? 
       `🛒 ${popupConfig.text || 'Buy with Cash on Delivery'}` : 
       (popupConfig.text || 'Buy with Cash on Delivery');
     
-    popupButton.textContent = buttonText;
+    // Replace form container content with popup button
+    formContainer.innerHTML = `
+      <div style="padding: 20px; width: 100%;">
+        <button 
+          id="codform-popup-button"
+          onclick="window.codformOpenPopup()"
+          style="
+            width: 100%;
+            display: block;
+            background-color: ${popupConfig.backgroundColor || '#9b87f5'};
+            color: ${popupConfig.textColor || '#ffffff'};
+            border: ${popupConfig.borderWidth || '2px'} solid ${popupConfig.borderColor || '#9b87f5'};
+            border-radius: ${popupConfig.borderRadius || '8px'};
+            font-size: ${popupConfig.fontSize || '18px'};
+            font-weight: ${popupConfig.fontWeight || '600'};
+            padding: ${popupConfig.paddingY || '16px'} 24px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            text-align: center;
+            white-space: nowrap;
+            min-height: 60px;
+            line-height: 1.2;
+            font-family: inherit;
+          "
+          onmouseover="this.style.transform='scale(1.02)'; this.style.boxShadow='0 6px 20px rgba(0, 0, 0, 0.2)';"
+          onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 12px rgba(0, 0, 0, 0.15)';"
+        >
+          ${buttonText}
+        </button>
+      </div>
+    `;
     
-    // Apply custom styling while keeping the base button design
-    Object.assign(popupButton.style, {
-      fontSize: popupConfig.fontSize || '18px',
-      fontWeight: popupConfig.fontWeight || '600',
-      color: popupConfig.textColor || '#ffffff',
-      backgroundColor: popupConfig.backgroundColor || '#9b87f5',
-      borderColor: popupConfig.borderColor || '#9b87f5',
-      borderWidth: popupConfig.borderWidth || '2px',
-      borderRadius: popupConfig.borderRadius || '8px',
-      padding: `${popupConfig.paddingY || '16px'} 24px`
-    });
-    
-    // Add animation if specified
+    // Add animation class if specified
     if (popupConfig.animation && popupConfig.animation !== 'none') {
-      // Remove any existing animation classes
-      popupButton.classList.remove('pulse-animation', 'bounce-animation', 'shake-animation', 'wiggle-animation', 'flash-animation');
-      // Add the new animation class
-      popupButton.classList.add(`${popupConfig.animation}-animation`);
+      const button = document.getElementById('codform-popup-button');
+      if (button) {
+        // Add CSS animation classes
+        switch(popupConfig.animation) {
+          case 'pulse':
+            button.style.animation = 'pulse 2s infinite';
+            break;
+          case 'bounce':
+            button.style.animation = 'bounce 1s infinite';
+            break;
+          case 'shake':
+            button.style.animation = 'shake 0.5s infinite';
+            break;
+          case 'wiggle':
+            button.style.animation = 'wiggle 1s infinite';
+            break;
+        }
+      }
     }
     
-    // Show popup button container in place of form
-    popupButtonContainer.style.display = 'block';
     formContainer.classList.add('popup-mode');
-    
-    // Add click handler to open popup
-    popupButton.onclick = function() {
-      window.codformOpenPopup();
-    };
-    
-    console.log('✅ CODFORM: Popup button configured and shown in place of form');
+    console.log('✅ CODFORM: Popup button displayed in place of form');
   }
 }
 
