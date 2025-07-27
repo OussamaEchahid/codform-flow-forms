@@ -33,7 +33,6 @@ const FormHeader: React.FC<FormHeaderProps> = ({
   // Get popup button enabled state
   const isPopupEnabled = formState?.style?.popupButton?.enabled || false;
   
-  // Handle popup button click
   const handlePopupButtonClick = () => {
     // If not enabled, enable it first, then show settings
     if (!isPopupEnabled) {
@@ -45,7 +44,6 @@ const FormHeader: React.FC<FormHeaderProps> = ({
             ...formState.style?.popupButton,
             enabled: true,
             text: formState.style?.popupButton?.text || (language === 'ar' ? 'اطلب الآن' : 'Order Now'),
-            position: formState.style?.popupButton?.position || 'bottom-right',
             backgroundColor: formState.style?.popupButton?.backgroundColor || formState.style?.primaryColor || '#9b87f5',
             textColor: formState.style?.popupButton?.textColor || '#ffffff',
             borderColor: formState.style?.popupButton?.borderColor || formState.style?.primaryColor || '#9b87f5',

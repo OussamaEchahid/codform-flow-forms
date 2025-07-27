@@ -33,7 +33,6 @@ const PopupButtonSettingsDialog: React.FC<PopupButtonSettingsDialogProps> = ({
         popupButton: {
           enabled: false,
           text: language === 'ar' ? 'اطلب الآن' : 'Order Now',
-          position: 'bottom-right',
           backgroundColor: formState.style?.primaryColor || '#9b87f5',
           textColor: '#ffffff',
           borderColor: formState.style?.primaryColor || '#9b87f5',
@@ -51,14 +50,6 @@ const PopupButtonSettingsDialog: React.FC<PopupButtonSettingsDialogProps> = ({
     });
   };
 
-  const positionOptions = [
-    { value: 'bottom-right', label: language === 'ar' ? 'أسفل يمين' : 'Bottom Right' },
-    { value: 'bottom-left', label: language === 'ar' ? 'أسفل يسار' : 'Bottom Left' },
-    { value: 'top-right', label: language === 'ar' ? 'أعلى يمين' : 'Top Right' },
-    { value: 'top-left', label: language === 'ar' ? 'أعلى يسار' : 'Top Left' },
-    { value: 'center', label: language === 'ar' ? 'وسط الشاشة' : 'Center' }
-  ];
-
   const animationOptions = [
     { value: 'none', label: language === 'ar' ? 'بدون حركة' : 'None' },
     { value: 'pulse', label: language === 'ar' ? 'نبضة' : 'Pulse' },
@@ -67,24 +58,6 @@ const PopupButtonSettingsDialog: React.FC<PopupButtonSettingsDialogProps> = ({
     { value: 'wiggle', label: language === 'ar' ? 'تمايل' : 'Wiggle' },
     { value: 'flash', label: language === 'ar' ? 'وميض' : 'Flash' }
   ];
-
-  // Get position styles for preview
-  const getPositionPreviewStyle = (position: string) => {
-    switch (position) {
-      case 'bottom-right':
-        return { bottom: '20px', right: '20px' };
-      case 'bottom-left':
-        return { bottom: '20px', left: '20px' };
-      case 'top-right':
-        return { top: '20px', right: '20px' };
-      case 'top-left':
-        return { top: '20px', left: '20px' };
-      case 'center':
-        return { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
-      default:
-        return { bottom: '20px', right: '20px' };
-    }
-  };
 
   const getAnimationClass = (animation: string) => {
     switch (animation) {
@@ -115,12 +88,12 @@ const PopupButtonSettingsDialog: React.FC<PopupButtonSettingsDialogProps> = ({
               <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                 <div>
                   <Label className="text-base font-medium">
-                    {language === 'ar' ? 'تفعيل النافذة المنبثقة' : 'Enable Popup Button'}
+                    {language === 'ar' ? 'تفعيل النافذة المنبثقة' : 'Enable Popup Form'}
                   </Label>
                   <p className="text-sm text-gray-500 mt-1">
                     {language === 'ar' 
-                      ? 'إظهار زر عائم في المتجر للتمرير إلى النموذج'
-                      : 'Show floating button in store to scroll to form'
+                      ? 'زر الطلب سيفتح النموذج في نافذة منبثقة'
+                      : 'Order button will open form in popup modal'
                     }
                   </p>
                 </div>
@@ -143,28 +116,6 @@ const PopupButtonSettingsDialog: React.FC<PopupButtonSettingsDialogProps> = ({
                       onChange={(e) => updatePopupButton({ text: e.target.value })}
                       placeholder={language === 'ar' ? 'أدخل نص الزر' : 'Enter button text'}
                     />
-                  </div>
-
-                  {/* Position */}
-                  <div>
-                    <Label htmlFor="popup-position">
-                      {language === 'ar' ? 'موضع الزر' : 'Button Position'}
-                    </Label>
-                    <Select 
-                      value={(popupButton as any).position || 'bottom-right'} 
-                      onValueChange={(position) => updatePopupButton({ position })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {positionOptions.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
                   </div>
 
                   {/* Colors */}
@@ -273,21 +224,20 @@ const PopupButtonSettingsDialog: React.FC<PopupButtonSettingsDialogProps> = ({
                 </div>
               </div>
             ) : (
-              <div className="relative bg-gray-100 rounded-lg p-4 min-h-64 border">
+              <div className="bg-white rounded-lg p-6 border-2 border-dashed border-gray-300">
                 <div className="text-center mb-4 text-sm text-gray-600">
-                  {language === 'ar' ? 'محاكاة صفحة المتجر' : 'Store Page Simulation'}
+                  {language === 'ar' ? 'زر الطلب في النموذج' : 'Order Button in Form'}
                 </div>
                 
-                {/* Simulated button in preview */}
-                <div
-                  className={`absolute ${getAnimationClass((popupButton as any).animation || 'none')}`}
-                  style={{
-                    ...getPositionPreviewStyle((popupButton as any).position || 'bottom-right'),
-                    zIndex: 10
-                  }}
-                >
+                {/* Simulated form with button */}
+                <div className="space-y-4">
+                  <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="h-20 bg-gray-200 rounded animate-pulse"></div>
+                  
+                  {/* The actual order button */}
                   <Button
-                    className="inline-flex items-center gap-2 shadow-lg"
+                    className={`w-full inline-flex items-center justify-center gap-2 ${getAnimationClass((popupButton as any).animation || 'none')}`}
                     style={{
                       backgroundColor: (popupButton as any).backgroundColor || '#9b87f5',
                       color: (popupButton as any).textColor || '#ffffff',
@@ -301,11 +251,8 @@ const PopupButtonSettingsDialog: React.FC<PopupButtonSettingsDialogProps> = ({
                   </Button>
                 </div>
 
-                {/* Position indicator */}
-                <div className="absolute bottom-2 left-2 text-xs text-gray-500 bg-white px-2 py-1 rounded">
-                  {language === 'ar' ? 'الموضع:' : 'Position:'} {
-                    positionOptions.find(p => p.value === ((popupButton as any).position || 'bottom-right'))?.label
-                  }
+                <div className="mt-3 text-xs text-gray-500 text-center">
+                  {language === 'ar' ? 'عند الضغط على الزر سيفتح النموذج في نافذة منبثقة' : 'Clicking the button will open form in popup modal'}
                 </div>
               </div>
             )}
