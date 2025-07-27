@@ -219,29 +219,34 @@ const PopupButtonSettingsDialog: React.FC<PopupButtonSettingsDialogProps> = ({
             </div>
 
             {!isPopupEnabled ? (
-              <div className="flex items-center justify-center h-64 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300">
+              <div className="flex items-center justify-center h-64 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-200">
                 <div className="text-center text-gray-500">
-                  <MousePointer size={48} className="mx-auto mb-2 opacity-50" />
-                  <p>{language === 'ar' ? 'فعل الزر لرؤية المعاينة' : 'Enable button to see preview'}</p>
+                  <MousePointer size={48} className="mx-auto mb-3 opacity-50" />
+                  <p className="text-sm font-medium">{language === 'ar' ? 'فعل الزر لرؤية المعاينة' : 'Enable button to see preview'}</p>
                 </div>
               </div>
             ) : (
-              <div className="bg-white rounded-lg p-6 border-2 border-dashed border-gray-300">
-                <div className="text-center mb-4 text-sm text-gray-600">
-                  {language === 'ar' ? 'زر النافذة المنبثقة كما سيظهر في المتجر' : 'Popup Button as it will appear in store'}
+              <div className="bg-gradient-to-br from-white to-gray-50 rounded-xl p-8 border border-gray-200 shadow-sm">
+                <div className="text-center mb-6">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">
+                    {language === 'ar' ? 'زر النافذة المنبثقة' : 'Popup Button Preview'}
+                  </h4>
+                  <p className="text-xs text-gray-500">
+                    {language === 'ar' ? 'كما سيظهر في متجرك' : 'As it will appear in your store'}
+                  </p>
                 </div>
                 
-                {/* Just the popup button - no simulated form */}
                 <div className="flex justify-center">
                   <Button
-                    className={`inline-flex items-center justify-center gap-2 ${getAnimationClass((popupButton as any).animation || 'none')}`}
+                    className={`inline-flex items-center justify-center gap-2 hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl ${getAnimationClass((popupButton as any).animation || 'none')}`}
                     style={{
                       backgroundColor: (popupButton as any).backgroundColor || '#9b87f5',
                       color: (popupButton as any).textColor || '#ffffff',
                       borderRadius: (popupButton as any).borderRadius || '8px',
                       fontSize: (popupButton as any).fontSize || '16px',
-                      padding: '12px 24px',
-                      minWidth: '200px'
+                      padding: '14px 28px',
+                      minWidth: '200px',
+                      fontWeight: '600'
                     }}
                   >
                     {(popupButton as any).showIcon !== false && '🛒'}
@@ -249,30 +254,13 @@ const PopupButtonSettingsDialog: React.FC<PopupButtonSettingsDialogProps> = ({
                   </Button>
                 </div>
 
-                <div className="mt-3 text-xs text-gray-500 text-center">
-                  {language === 'ar' ? 'عند الضغط على الزر سيفتح النموذج في نافذة منبثقة' : 'Clicking the button will open form in popup modal'}
+                <div className="mt-4 text-center">
+                  <p className="text-xs text-gray-500 leading-relaxed">
+                    {language === 'ar' 
+                      ? 'الضغط على الزر سيفتح النموذج في نافذة منبثقة أنيقة' 
+                      : 'Clicking will open your form in an elegant popup modal'}
+                  </p>
                 </div>
-              </div>
-            )}
-
-            {/* Button Preview Card */}
-            {isPopupEnabled && (
-              <div className="p-4 bg-white rounded-lg border">
-                <Label className="text-sm font-medium text-gray-700 mb-3 block">
-                  {language === 'ar' ? 'مثال الزر' : 'Button Example'}
-                </Label>
-                <Button
-                  className={`inline-flex items-center gap-2 ${getAnimationClass((popupButton as any).animation || 'none')}`}
-                  style={{
-                    backgroundColor: (popupButton as any).backgroundColor || '#9b87f5',
-                    color: (popupButton as any).textColor || '#ffffff',
-                    borderRadius: (popupButton as any).borderRadius || '8px',
-                    fontSize: (popupButton as any).fontSize || '16px'
-                  }}
-                >
-                  {(popupButton as any).showIcon !== false && '🛒'}
-                  {(popupButton as any).text || (language === 'ar' ? 'اطلب الآن' : 'Order Now')}
-                </Button>
               </div>
             )}
           </div>
