@@ -106,59 +106,38 @@
     animation: flash 2s infinite !important;
   }
   
-  /* Popup Button Styles */
+  /* Popup Button Styles - In place of form, not floating */
   .codform-popup-button {
-    position: fixed;
-    z-index: 9999;
-    padding: 12px 24px;
+    width: 100%;
+    display: block;
+    padding: 16px 24px;
+    margin: 16px 0;
     border: 2px solid;
     cursor: pointer;
-    font-family: inherit;
+    font-family: 'Cairo', inherit;
+    font-size: 18px;
+    font-weight: 600;
+    text-align: center;
     transition: all 0.3s ease;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    backdrop-filter: blur(10px);
-    white-space: nowrap;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #9b87f5, #8b5cf6);
+    color: white;
+    position: relative;
+    overflow: hidden;
   }
-  
+
   .codform-popup-button:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
   }
-  
+
   .codform-popup-button:active {
     transform: translateY(0);
   }
   
-  /* Popup Button Position Classes */
-  .popup-bottom-right {
-    bottom: 20px;
-    right: 20px;
-  }
-  
-  .popup-bottom-left {
-    bottom: 20px;
-    left: 20px;
-  }
-  
-  .popup-top-right {
-    top: 20px;
-    right: 20px;
-  }
-  
-  .popup-top-left {
-    top: 20px;
-    left: 20px;
-  }
-  
-  .popup-center {
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-  }
-  
-  .popup-center:hover {
-    transform: translate(-50%, -52px);
-  }
+  /* Remove position classes - button is now inline */
   
   /* Popup Modal Styles */
   .codform-popup-modal {
@@ -222,10 +201,12 @@
   <!-- Form content will be loaded here -->
 </div>
 
-<!-- Popup Button (will be shown if popup mode is enabled) -->
-<button id="codform-popup-button" class="codform-popup-button" style="display: none;">
-  Buy with Cash on Delivery
-</button>
+<!-- Popup Button (will be shown in place of form when popup mode is enabled) -->
+<div id="codform-popup-button-container" style="display: none;">
+  <button id="codform-popup-button" class="codform-popup-button">
+    🛒 Buy with Cash on Delivery
+  </button>
+</div>
 
 <!-- Popup Modal -->
 <div id="codform-popup-modal" class="codform-popup-modal">
@@ -1274,18 +1255,14 @@
           </div>
         `;
         
-        // Create popup button if enabled
+        // Show popup button if enabled
         if (popupButton && popupButton.enabled) {
-          createPopupButton(popupButton, formStyle, container);
-          
-          // Hide the normal form container and show popup button
-          container.classList.add('popup-mode');
-          const popupButtonElement = document.getElementById('codform-popup-button');
-          if (popupButtonElement) {
-            popupButtonElement.style.display = 'block';
-          }
+          showPopupButton(popupButton, container);
         } else {
           // Ensure normal form is visible and popup button is hidden
+          const popupButtonContainer = document.getElementById('codform-popup-button-container');
+          if (popupButtonContainer) popupButtonContainer.style.display = 'none';
+          container.classList.remove('popup-mode');
           container.classList.remove('popup-mode');
           const popupButtonElement = document.getElementById('codform-popup-button');
           if (popupButtonElement) {
@@ -1414,54 +1391,52 @@
   
 })();
 
-// Popup Button Creation Function
-function createPopupButton(popupConfig, formStyle, formContainer) {
-  console.log('🎯 CODFORM: Creating popup button with config:', popupConfig);
+// Show Popup Button In Place of Form
+function showPopupButton(popupConfig, formContainer) {
+  console.log('🎯 CODFORM: Showing popup button in place of form:', popupConfig);
   
-  // Remove existing popup button if any
-  const existingButton = document.querySelector('.codform-popup-button');
-  if (existingButton) {
-    existingButton.remove();
+  const popupButton = document.getElementById('codform-popup-button');
+  const popupButtonContainer = document.getElementById('codform-popup-button-container');
+  
+  if (popupButton && popupButtonContainer && formContainer) {
+    // Configure button text and styling
+    const buttonText = popupConfig.showIcon ? 
+      `🛒 ${popupConfig.text || 'Buy with Cash on Delivery'}` : 
+      (popupConfig.text || 'Buy with Cash on Delivery');
+    
+    popupButton.textContent = buttonText;
+    
+    // Apply custom styling while keeping the base button design
+    Object.assign(popupButton.style, {
+      fontSize: popupConfig.fontSize || '18px',
+      fontWeight: popupConfig.fontWeight || '600',
+      color: popupConfig.textColor || '#ffffff',
+      backgroundColor: popupConfig.backgroundColor || '#9b87f5',
+      borderColor: popupConfig.borderColor || '#9b87f5',
+      borderWidth: popupConfig.borderWidth || '2px',
+      borderRadius: popupConfig.borderRadius || '8px',
+      padding: `${popupConfig.paddingY || '16px'} 24px`
+    });
+    
+    // Add animation if specified
+    if (popupConfig.animation && popupConfig.animation !== 'none') {
+      // Remove any existing animation classes
+      popupButton.classList.remove('pulse-animation', 'bounce-animation', 'shake-animation', 'wiggle-animation', 'flash-animation');
+      // Add the new animation class
+      popupButton.classList.add(`${popupConfig.animation}-animation`);
+    }
+    
+    // Show popup button container in place of form
+    popupButtonContainer.style.display = 'block';
+    formContainer.classList.add('popup-mode');
+    
+    // Add click handler to open popup
+    popupButton.onclick = function() {
+      window.codformOpenPopup();
+    };
+    
+    console.log('✅ CODFORM: Popup button configured and shown in place of form');
   }
-  
-  // Create popup button element
-  const popupButton = document.createElement('button');
-  popupButton.className = `codform-popup-button popup-${popupConfig.position || 'bottom-right'}`;
-  
-  // Add animation class if specified
-  if (popupConfig.animation && popupConfig.animation !== 'none') {
-    popupButton.classList.add(`${popupConfig.animation}-animation`);
-  }
-  
-  // Set button text with optional icon
-  let buttonText = popupConfig.text || 'Buy with Cash on Delivery';
-  if (popupConfig.showIcon) {
-    buttonText = '🛒 ' + buttonText;
-  }
-  popupButton.innerHTML = buttonText;
-  
-  // Apply styles
-  popupButton.style.cssText = `
-    background-color: ${popupConfig.backgroundColor || '#9b87f5'};
-    color: ${popupConfig.textColor || '#ffffff'};
-    border-color: ${popupConfig.borderColor || '#9b87f5'};
-    border-width: ${popupConfig.borderWidth || '2px'};
-    border-radius: ${popupConfig.borderRadius || '8px'};
-    font-size: ${popupConfig.fontSize || '16px'};
-    font-weight: ${popupConfig.fontWeight || '600'};
-    padding: ${popupConfig.paddingY || '12px'} 24px;
-  `;
-  
-  // Add click handler to open popup
-  popupButton.addEventListener('click', function() {
-    console.log('🎯 CODFORM: Popup button clicked, opening popup');
-    window.codformOpenPopup();
-  });
-  
-  // Add to document body
-  document.body.appendChild(popupButton);
-  
-  console.log('✅ CODFORM: Popup button created and added to page');
 }
 
 // Popup functionality
