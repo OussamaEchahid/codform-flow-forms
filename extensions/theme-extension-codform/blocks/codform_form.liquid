@@ -1450,7 +1450,8 @@ button[id^="codform-popup-btn"] *,
 })();
 
 // Popup Modal Functions
-function openFormPopup() {
+function openFormPopup(event) {
+  if (event) event.preventDefault();
   console.log('🎯 CODFORM: Opening form popup');
   
   // Create modal overlay
@@ -1611,7 +1612,7 @@ function generateBlockId(productId) {
 
 // Function to open form in popup modal
 window.openFormPopup = function(event) {
-  event.preventDefault();
+  if (event) event.preventDefault();
   
   // Create popup modal
   const popup = document.createElement('div');
