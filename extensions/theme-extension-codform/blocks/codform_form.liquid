@@ -464,8 +464,8 @@
                 direction: ${formDirection};
                 text-align: ${formDirection === 'rtl' ? 'right' : 'left'};
               "
-              onfocus="this.style.borderColor='#3b82f6'; this.style.boxShadow='0 0 0 3px rgba(59, 130, 246, 0.2)';"
-              onblur="this.style.borderColor='#d1d5db'; this.style.boxShadow='rgba(0, 0, 0, 0.05) 0px 1px 2px';"
+              data-focus-border-color="${focusBorderColor}"
+              data-blur-border-color="${actualBorderColor}"
             />
           </div>
           
@@ -599,8 +599,8 @@
               direction: ${formDirection};
               text-align: ${formDirection === 'rtl' ? 'right' : 'left'};
             "
-            onfocus="this.style.borderColor='#3b82f6'; this.style.boxShadow='0 0 0 3px rgba(59, 130, 246, 0.2)';"
-            onblur="this.style.borderColor='#d1d5db'; this.style.boxShadow='rgba(0, 0, 0, 0.05) 0px 1px 2px';"
+            data-focus-border-color="${focusBorderColor}"
+            data-blur-border-color="${actualBorderColor}"
           ></textarea>
           </div>
           
@@ -1884,6 +1884,23 @@ document.addEventListener('DOMContentLoaded', function() {
       // Initial check
       updateLabel();
     }
+  });
+  
+  // Add focus/blur handlers for form fields to maintain the same styling functionality
+  const formInputs = document.querySelectorAll('.codform-dynamic-form input, .codform-dynamic-form textarea');
+  formInputs.forEach(input => {
+    const focusBorderColor = input.getAttribute('data-focus-border-color') || '#3b82f6';
+    const blurBorderColor = input.getAttribute('data-blur-border-color') || '#d1d5db';
+    
+    input.addEventListener('focus', function() {
+      this.style.borderColor = focusBorderColor;
+      this.style.boxShadow = `0 0 0 3px ${focusBorderColor}20`;
+    });
+    
+    input.addEventListener('blur', function() {
+      this.style.borderColor = blurBorderColor;
+      this.style.boxShadow = 'rgba(0, 0, 0, 0.05) 0px 1px 2px';
+    });
   });
 });
 </script>
