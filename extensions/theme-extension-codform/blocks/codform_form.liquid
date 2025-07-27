@@ -1346,27 +1346,23 @@ button[id^="codform-popup-btn"] *,
         // حفظ بيانات النموذج مع العملة للاستخدام مع عروض الكمية
         window.currentFormData = data;
 
-        // تحميل عروض الكمية بعد تحميل النموذج
-        console.log('🎯 Attempting to load quantity offers...');
+        // تحميل عروض الكمية بعد تحميل النموذج  
+        console.log('🎯 Starting quantity offers loading...');
+        const shopDomain = getShopDomain();
         
-        // دالة للتحقق من توفر CodformQuantityOffers مع إعادة المحاولة
-        function waitForQuantityOffers(retries = 0) {
-          if (window.CodformQuantityOffers && window.CodformQuantityOffers.loadAndDisplayOffers) {
-            const shopDomain = getShopDomain();
-            console.log('✅ CodformQuantityOffers found! Shop domain:', shopDomain, 'Product ID:', productId);
-            setTimeout(() => {
-              console.log('🚀 Loading quantity offers for form blockId with shop:', shopDomain);
-              window.CodformQuantityOffers.loadAndDisplayOffers('form', productId, shopDomain);
-            }, 1000);
-          } else if (retries < 10) {
-            console.log(`⏳ Waiting for CodformQuantityOffers... (attempt ${retries + 1}/10)`);
-            setTimeout(() => waitForQuantityOffers(retries + 1), 500);
+        setTimeout(() => {
+          console.log('🚀 Calling quantity offers with:', {
+            blockId: 'form',
+            productId: productId,
+            shopDomain: shopDomain
+          });
+          
+          if (window.CodformQuantityOffers) {
+            window.CodformQuantityOffers.loadAndDisplayOffers('form', productId, shopDomain);
           } else {
-            console.error('❌ CodformQuantityOffers not available after 10 retries');
+            console.error('❌ CodformQuantityOffers still not available');
           }
-        }
-        
-        waitForQuantityOffers();
+        }, 2000);
 
         console.log('🎉 CODFORM: Form rendered successfully with quantity offers container');
       })
@@ -1636,8 +1632,138 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<!-- تحميل مدير عروض الكمية -->
-<script src="{{ 'codform-quantity-offers.js' | asset_url }}"></script>
+<!-- دمج كود عروض الكمية مباشرة -->
+<script>
+// CODFORM Quantity Offers Handler - مدمج مباشرة
+window.CodformQuantityOffers = (function() {
+  'use strict';
+
+  // دالة عرض quantity offers
+  function displayQuantityOffers(quantityOffersData, blockId, productId, defaultCurrency = 'SAR', productData = null) {
+    console.log("🎯 Starting quantity offers display for blockId:", blockId);
+    
+    if (!quantityOffersData || !quantityOffersData.offers || !Array.isArray(quantityOffersData.offers)) {
+      console.log("❌ Invalid quantity offers data");
+      return;
+    }
+
+    const offers = quantityOffersData.offers;
+    if (offers.length === 0) {
+      console.log("ℹ️ No offers to display");
+      return;
+    }
+
+    // البحث عن الحاوية
+    let container = document.getElementById(`quantity-offers-before-${blockId}`);
+    
+    if (!container) {
+      console.error("❌ Container not found:", `quantity-offers-before-${blockId}`);
+      const anyContainer = document.querySelector('[id*="quantity-offers"]');
+      if (anyContainer) {
+        console.log("🔧 Using alternative container:", anyContainer.id);
+        container = anyContainer;
+      } else {
+        console.error("❌ No quantity offers container found at all");
+        return;
+      }
+    }
+
+    console.log("✅ Container found:", container.id);
+
+    // مسح المحتوى السابق
+    container.innerHTML = '';
+    container.style.display = 'block';
+
+    // بيانات افتراضية للاختبار
+    const testPrice = 100;
+    const currency = 'SAR';
+    const currencySymbol = 'ر.س';
+
+    console.log("🎨 Creating offers display...");
+
+    // إنشاء عروض تجريبية
+    offers.forEach((offer, index) => {
+      const offerElement = document.createElement('div');
+      
+      let totalPrice = testPrice * (offer.quantity || 1);
+      let originalPrice = totalPrice;
+      
+      const discountValue = parseFloat(offer.discount || offer.discountValue || 0);
+      if (discountValue > 0) {
+        totalPrice = originalPrice - (originalPrice * discountValue / 100);
+      }
+
+      offerElement.style.cssText = `
+        background-color: #ffffff;
+        border: 2px solid ${index === 1 ? '#22c55e' : '#e5e7eb'};
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-family: 'Cairo', system-ui, Arial, sans-serif;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        cursor: pointer;
+        ${index === 1 ? 'background-color: #f0fdf4;' : ''}
+      `;
+
+      offerElement.innerHTML = `
+        <div style="flex: 1; text-align: right; direction: rtl;">
+          <div style="font-weight: 600; font-size: 16px; color: #000; margin-bottom: 8px;">
+            ${offer.text || `اشترِ ${offer.quantity || 1} قطعة`}
+          </div>
+          ${offer.tag ? `<span style="background-color: #22c55e; color: white; padding: 4px 8px; border-radius: 12px; font-size: 12px;">${offer.tag}</span>` : ''}
+        </div>
+        <div style="text-align: center; min-width: 100px;">
+          ${discountValue > 0 ? `<div style="font-size: 12px; color: #6b7280; text-decoration: line-through;">${originalPrice.toFixed(2)} ${currencySymbol}</div>` : ''}
+          <div style="font-size: 18px; font-weight: bold; color: #000;">
+            ${totalPrice.toFixed(2)} ${currencySymbol}
+          </div>
+        </div>
+      `;
+
+      container.appendChild(offerElement);
+    });
+
+    console.log("✅ Quantity offers displayed successfully");
+  }
+
+  // دالة تحميل وعرض العروض من API
+  async function loadAndDisplayOffers(blockId, productId, shop, formCurrency = 'SAR') {
+    try {
+      console.log("🌐 Loading quantity offers for:", { blockId, productId, shop });
+      
+      const apiUrl = `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/forms-product?shop=${encodeURIComponent(shop)}&product=${encodeURIComponent(productId)}`;
+      
+      const response = await fetch(apiUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log("📊 API Response:", data);
+      
+      if (data.success && data.quantity_offers && data.quantity_offers.offers && data.quantity_offers.offers.length > 0) {
+        console.log("✅ Quantity offers found, displaying...");
+        displayQuantityOffers(data.quantity_offers, blockId, productId, formCurrency);
+      } else {
+        console.log("ℹ️ No quantity offers found for this product");
+      }
+      
+    } catch (error) {
+      console.error('❌ Error loading quantity offers:', error);
+    }
+  }
+
+  return {
+    displayQuantityOffers,
+    loadAndDisplayOffers
+  };
+})();
+
+console.log("✅ CodformQuantityOffers loaded and ready!");
+</script>
 <script>
 // دالة لتوليد معرف فريد للبلوك
 function generateBlockId(productId) {
