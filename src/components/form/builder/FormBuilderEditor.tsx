@@ -515,13 +515,14 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
         console.warn("No active shop ID found, saving without shop association");
       }
       
-      // حفظ إعدادات النمط مع النموذج
+      // حفظ إعدادات النمط مع النموذج - استخدام formState.style بدلاً من formStyle المحلي
+      const currentStyle = formState.style || formStyle;
       const formData: Partial<FormData> = {
         title: formTitle,
         description: formDescription,
         data: [formStep],
         shop_id: activeShopId,
-        style: formStyle,
+        style: currentStyle, // استخدام النمط المحدث من formState
         country: formCountry,
         currency: formCurrency,
         phone_prefix: formPhonePrefix
@@ -540,7 +541,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
           ...formState,
           ...formData,
           id: currentFormId,
-          style: formStyle
+          style: currentStyle
         });
         
         // Reset unsaved changes flag
@@ -554,7 +555,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
             description: formDescription,
             data: [formStep] as any,
             shop_id: activeShopId,
-            style: formStyle as any,
+            style: currentStyle as any, // استخدام النمط المحدث
             country: formCountry,
             currency: formCurrency,
             phone_prefix: formPhonePrefix,
@@ -936,13 +937,20 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
               showIcon: true
             }}
             onUpdate={(config) => {
+              // تحديث formState و formStyle المحلي معاً
+              const updatedStyle = {
+                ...formState.style,
+                popupButton: config
+              };
+              
               setFormState({
                 ...formState,
-                style: {
-                  ...formState.style,
-                  popupButton: config
-                }
+                style: updatedStyle
               });
+              
+              // تحديث formStyle المحلي أيضاً
+              setFormStyle(updatedStyle);
+              setHasUnsavedChanges(true);
             }}
             fields={formElements}
             formStyle={formStyle}
