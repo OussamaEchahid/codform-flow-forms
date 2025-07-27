@@ -1238,12 +1238,12 @@ button[id^="codform-popup-btn"] *,
         
         // Wrap in form element with submission handler
         completeFormHTML += `
-          <div id="quantity-offers-before-${productId}" class="quantity-offers-container"></div>
+          <div id="quantity-offers-before-form" class="quantity-offers-container" style="margin: 16px 0;"></div>
           <form class="codform-form-fields" style="background: transparent; margin: 0; padding: 0;" 
                 id="codform-main-form" onsubmit="handleFormSubmission(event)">
             ${formContent}
           </form>
-          <div id="quantity-offers-after-${productId}" class="quantity-offers-container"></div>
+          <div id="quantity-offers-after-form" class="quantity-offers-container" style="margin: 16px 0;"></div>
         `;
           }
         } else {
@@ -1324,12 +1324,12 @@ button[id^="codform-popup-btn"] *,
           
           // Store clean form HTML for popup
           window.codformPopupHTML = `
-            <div id="quantity-offers-before-popup-form" class="quantity-offers-container"></div>
+            <div id="quantity-offers-before-popup-form" class="quantity-offers-container" style="margin: 16px 0;"></div>
             <form class="codform-form-fields" style="background: transparent; margin: 0; padding: 0;" 
                   id="codform-popup-form" onsubmit="handleFormSubmission(event)">
               ${cleanFormFields}
             </form>
-            <div id="quantity-offers-after-popup-form" class="quantity-offers-container"></div>
+            <div id="quantity-offers-after-popup-form" class="quantity-offers-container" style="margin: 16px 0;"></div>
           `;
         } else {
           // Normal mode - show the complete form
@@ -1350,8 +1350,9 @@ button[id^="codform-popup-btn"] *,
         if (window.CodformQuantityOffers && window.CodformQuantityOffers.loadAndDisplayOffers) {
           const shopDomain = getShopDomain();
           setTimeout(() => {
-            window.CodformQuantityOffers.loadAndDisplayOffers(productId, productId, shopDomain);
-          }, 1000);
+            console.log('🚀 Loading quantity offers for form blockId...');
+            window.CodformQuantityOffers.loadAndDisplayOffers('form', productId, shopDomain);
+          }, 2000);
         }
 
         console.log('🎉 CODFORM: Form rendered successfully with quantity offers container');
