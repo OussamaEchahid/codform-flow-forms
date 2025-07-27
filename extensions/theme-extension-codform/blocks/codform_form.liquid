@@ -1230,19 +1230,21 @@ button[id^="codform-popup-btn"] *,
           } else {
             console.log('📋 NORMAL MODE: Showing full form');
             
-            // Normal mode - show the full form
-            fieldsArray.forEach((field, index) => {
-              console.log(`🎨 CODFORM: Processing field ${index}:`, field);
-              formContent += renderField(field, formStyle, formLanguage);
-            });
-            
-            // Wrap in form element with submission handler
-            completeFormHTML += `
-              <form class="codform-form-fields" style="background: transparent; margin: 0; padding: 0;" 
-                    id="codform-main-form" onsubmit="handleFormSubmission(event)">
-                ${formContent}
-              </form>
-            `;
+        // Normal mode - show the full form
+        fieldsArray.forEach((field, index) => {
+          console.log(`🎨 CODFORM: Processing field ${index}:`, field);
+          formContent += renderField(field, formStyle, formLanguage);
+        });
+        
+        // Wrap in form element with submission handler
+        completeFormHTML += `
+          <div id="quantity-offers-before" class="quantity-offers-container"></div>
+          <form class="codform-form-fields" style="background: transparent; margin: 0; padding: 0;" 
+                id="codform-main-form" onsubmit="handleFormSubmission(event)">
+            ${formContent}
+          </form>
+          <div id="quantity-offers-after" class="quantity-offers-container"></div>
+        `;
           }
         } else {
           console.log('❌ CODFORM: No valid fields array found');
@@ -1322,10 +1324,12 @@ button[id^="codform-popup-btn"] *,
           
           // Store clean form HTML for popup
           window.codformPopupHTML = `
+            <div id="quantity-offers-before" class="quantity-offers-container"></div>
             <form class="codform-form-fields" style="background: transparent; margin: 0; padding: 0;" 
                   id="codform-popup-form" onsubmit="handleFormSubmission(event)">
               ${cleanFormFields}
             </form>
+            <div id="quantity-offers-after" class="quantity-offers-container"></div>
           `;
         } else {
           // Normal mode - show the complete form
