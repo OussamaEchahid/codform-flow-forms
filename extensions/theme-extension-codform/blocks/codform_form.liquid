@@ -1734,22 +1734,38 @@ window.openFormPopup = function(event) {
         currency: '{{ shop.currency }}' || 'SAR'
       };
       
-      console.log('🎯 Starting popup quantity offers load...');
+      console.log('🎯 FORCE LOADING popup quantity offers...');
       console.log('📦 ProductId:', productId);
       console.log('🏪 Shop:', shopDomain);
       
       // إنشاء الحاوية مباشرة في النموذج المنبثق
       const offersContainer = document.createElement('div');
       offersContainer.id = 'popup-quantity-offers';
-      offersContainer.style.cssText = 'margin-bottom: 16px;';
+      offersContainer.style.cssText = 'margin-bottom: 16px; border: 2px solid red; padding: 10px;';
       
       // إدراج الحاوية قبل النموذج
       formWrapper.insertBefore(offersContainer, formElement);
       console.log('🔧 Created offers container:', offersContainer.id);
       
-      // استخدام blockId بسيط للنموذج المنبثق
-      const popupBlockId = 'popup-form';
-      window.CodformQuantityOffers.loadWithProduct(popupBlockId, productId, shopDomain, formCurrency, productData);
+      // تحميل العروض مباشرة بدون تأخير
+      const apiUrl = `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/forms-product?shop=${encodeURIComponent(shopDomain)}&product=${encodeURIComponent(productId)}`;
+      console.log('🌐 DIRECT API Call:', apiUrl);
+      
+      fetch(apiUrl)
+        .then(response => response.json())
+        .then(data => {
+          console.log('✅ POPUP API Response:', data);
+          if (data.success && data.quantity_offers && data.quantity_offers.offers.length > 0) {
+            window.CodformQuantityOffers.display(data.quantity_offers, 'popup-form', productId, formCurrency, productData);
+            console.log('✅ FORCED quantity offers display complete');
+          } else {
+            offersContainer.innerHTML = '<div style="background: yellow; padding: 8px;">لا توجد عروض متاحة</div>';
+          }
+        })
+        .catch(error => {
+          console.error('❌ POPUP API Error:', error);
+          offersContainer.innerHTML = '<div style="background: red; color: white; padding: 8px;">خطأ في تحميل العروض</div>';
+        });
     }
   }, 200);
   popup.appendChild(modalContent);
