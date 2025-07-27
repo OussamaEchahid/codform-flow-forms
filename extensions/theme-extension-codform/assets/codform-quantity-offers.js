@@ -57,12 +57,28 @@ window.CodformQuantityOffers = (function() {
     
     // إذا لم نجد الحاوية الأساسية، تحقق من وجود حاوية النموذج المنبثق
     if (!container && blockId.includes('popup_')) {
+      console.log('🔍 Searching for popup container alternatives...');
       container = document.getElementById(`quantity-offers-before-${blockId}`) || 
-                  document.getElementById(`quantity-offers-after-${blockId}`);
+                  document.getElementById(`quantity-offers-after-${blockId}`) ||
+                  document.getElementById(`quantity-offers-inside-${blockId}`);
+    }
+    
+    // إذا لم تكن موجودة، حاول إنشاءها في النموذج المنبثق
+    if (!container && blockId.includes('popup_')) {
+      console.log('🔧 Creating missing popup container...');
+      const popupForm = document.getElementById('popup-form') || document.querySelector('.codform-form-fields');
+      if (popupForm && popupForm.parentNode) {
+        const newContainer = document.createElement('div');
+        newContainer.id = `quantity-offers-before-${blockId}`;
+        newContainer.style.cssText = 'margin-bottom: 16px;';
+        popupForm.parentNode.insertBefore(newContainer, popupForm);
+        container = newContainer;
+        console.log('✅ Created popup container:', newContainer.id);
+      }
     }
     
     if (!container) {
-      console.error("❌ Container not found:", `quantity-offers-before-${blockId}`);
+      console.error("❌ Container not found and couldn't create:", `quantity-offers-before-${blockId}`);
       // حاول البحث عن أي حاوية تحتوي على quantity-offers في اسمها
       const anyContainer = document.querySelector('[id*="quantity-offers"]');
       if (anyContainer) {

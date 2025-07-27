@@ -1735,9 +1735,25 @@ window.openFormPopup = function(event) {
       
       console.log('🎯 Loading quantity offers for popup with correct blockId:', popupBlockId);
       console.log('📦 Container should be:', `quantity-offers-before-${popupBlockId}`);
-      window.CodformQuantityOffers.loadWithProduct(popupBlockId, productId, shopDomain, formCurrency, productData);
+      console.log('📦 Container exists:', !!document.getElementById(`quantity-offers-before-${popupBlockId}`));
+      
+      // التأكد من وجود الحاوية قبل التحميل
+      const container = document.getElementById(`quantity-offers-before-${popupBlockId}`);
+      if (container) {
+        console.log('✅ Container found, loading offers...');
+        window.CodformQuantityOffers.loadWithProduct(popupBlockId, productId, shopDomain, formCurrency, productData);
+      } else {
+        console.error('❌ Container not found for popup offers:', `quantity-offers-before-${popupBlockId}`);
+        // إنشاء الحاوية إذا لم تكن موجودة
+        const newContainer = document.createElement('div');
+        newContainer.id = `quantity-offers-before-${popupBlockId}`;
+        newContainer.style.cssText = 'margin-bottom: 16px;';
+        formWrapper.insertBefore(newContainer, formElement);
+        console.log('🔧 Created missing container, retrying...');
+        window.CodformQuantityOffers.loadWithProduct(popupBlockId, productId, shopDomain, formCurrency, productData);
+      }
     }
-  }, 100);
+  }, 200);
   popup.appendChild(modalContent);
   
   // Add to page
