@@ -433,11 +433,13 @@
     const label = field.label || 'Submit';
     const fieldStyle = field.style || {};
     
-    const backgroundColor = getStyleValue(fieldStyle, 'backgroundColor', '#6366f1');
+    // استخدام القيم المحسنة من المعاينة بالضبط
+    const backgroundColor = getStyleValue(fieldStyle, 'backgroundColor', getStyleValue(formStyle, 'primaryColor', '#6366f1'));
     const textColor = getStyleValue(fieldStyle, 'color', '#FFFFFF');
-    const fontSize = getStyleValue(fieldStyle, 'fontSize', '16px');
-    const borderRadius = getStyleValue(fieldStyle, 'borderRadius', '8px');
-    const padding = getStyleValue(fieldStyle, 'padding', '12px 24px');
+    const fontSize = getStyleValue(fieldStyle, 'fontSize', getStyleValue(formStyle, 'baseFontSize', '16px'));
+    const borderRadius = getStyleValue(fieldStyle, 'borderRadius', getStyleValue(formStyle, 'fieldBorderRadius', '8px'));
+    const padding = getStyleValue(fieldStyle, 'padding', '14px 28px');
+    const fontWeight = getStyleValue(fieldStyle, 'fontWeight', '600');
     const buttonAnimation = getStyleValue(fieldStyle, 'animation', 'none');
     
     let animationClass = '';
@@ -454,17 +456,22 @@
             background-color: ${backgroundColor};
             color: ${textColor};
             font-size: ${fontSize};
-            font-weight: 600;
+            font-weight: ${fontWeight};
             padding: ${padding};
             border: none;
             border-radius: ${borderRadius};
             cursor: pointer;
             transition: all 0.2s ease;
             font-family: 'Cairo', sans-serif;
-            min-width: 120px;
+            min-width: 140px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            display: inline-block;
+            text-align: center;
+            text-decoration: none;
+            outline: none;
           "
-          onmouseover="this.style.opacity='0.9'"
-          onmouseout="this.style.opacity='1'"
+          onmouseover="this.style.opacity='0.9'; this.style.transform='translateY(-1px)'"
+          onmouseout="this.style.opacity='1'; this.style.transform='translateY(0px)'"
         >
           ${label}
         </button>
@@ -1011,7 +1018,7 @@ document.addEventListener('DOMContentLoaded', function() {
       
       console.log("🎯 Loading quantity offers after form is ready:", { productId, shopDomain, blockId });
       
-      if (window.CodformQuantityOffers) {
+      if (window.CodformQuantityOffers && window.CodformQuantityOffers.init) {
         const formCurrency = window.currentFormData?.formStyle?.currency || 'SAR';
         console.log("💰 Using form currency for quantity offers:", formCurrency);
         
