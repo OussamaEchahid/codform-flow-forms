@@ -938,42 +938,6 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
         isSaving={isSaving}
         isPublishing={isPublishing}
         isPublished={isPublished}
-        popupButtonManager={
-          <PopupButtonManager
-            popupButton={formState.style?.popupButton || {
-              enabled: false,
-              text: language === 'ar' ? 'اطلب الآن' : 'Order Now',
-              fontSize: '18px',
-              fontWeight: '600',
-              textColor: '#ffffff',
-              backgroundColor: '#9b87f5',
-              borderColor: '#9b87f5',
-              borderWidth: '2px',
-              borderRadius: '8px',
-              paddingY: '16px',
-              animation: 'none',
-              showIcon: true
-            }}
-            onUpdate={(config) => {
-              // تحديث formState و formStyle المحلي معاً
-              const updatedStyle = {
-                ...formState.style,
-                popupButton: config
-              };
-              
-              setFormState({
-                ...formState,
-                style: updatedStyle
-              });
-              
-              // تحديث formStyle المحلي أيضاً
-              setFormStyle(updatedStyle);
-              setHasUnsavedChanges(true);
-            }}
-            fields={formElements}
-            formStyle={formStyle}
-          />
-        }
       />
       
       <div className="grid grid-cols-12 min-h-[calc(100vh-64px)]">
