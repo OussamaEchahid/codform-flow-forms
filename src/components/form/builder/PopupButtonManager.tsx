@@ -305,18 +305,18 @@ const PopupButtonManager: React.FC<PopupButtonManagerProps> = ({
             </TabsContent>
 
             <TabsContent value="preview" className="flex-1 overflow-y-auto p-1">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
+              <div className="h-full">
                 {/* Live Preview */}
-                <Card>
+                <Card className="h-full">
                   <CardHeader>
-                    <CardTitle className="text-sm font-medium">
-                      {language === 'ar' ? 'معاينة مباشرة' : 'Live Preview'}
+                    <CardTitle className="text-lg font-medium flex items-center gap-2">
+                      👁️ {language === 'ar' ? 'معاينة مباشرة للزر' : 'Live Button Preview'}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="relative min-h-[200px] bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg border flex items-center justify-center p-4">
+                    <div className="relative min-h-[400px] bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg border flex items-center justify-center p-6">
                       {popupButton.enabled ? (
-                        <div className="w-full max-w-sm">
+                        <div className="w-full max-w-md">
                           <button
                             className={`w-full transition-all duration-300 transform hover:scale-105 ${
                               popupButton.animation !== 'none' ? `animate-${popupButton.animation}` : ''
@@ -328,74 +328,38 @@ const PopupButtonManager: React.FC<PopupButtonManagerProps> = ({
                               borderRadius: popupButton.borderRadius,
                               fontSize: popupButton.fontSize,
                               fontWeight: popupButton.fontWeight,
-                              padding: `${popupButton.paddingY} 24px`,
-                              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-                              minHeight: '50px'
+                              padding: `${popupButton.paddingY} 32px`,
+                              boxShadow: '0 8px 20px rgba(0, 0, 0, 0.15)',
+                              minHeight: '60px',
+                              cursor: 'pointer'
                             }}
                           >
                             {popupButton.showIcon ? '🛒 ' : ''}{popupButton.text}
                           </button>
+                          <div className="mt-4 text-center text-sm text-gray-500">
+                            {language === 'ar' 
+                              ? 'هذا هو شكل الزر الذي سيظهر في المتجر'
+                              : 'This is how the button will appear in your store'
+                            }
+                          </div>
                         </div>
                       ) : (
                         <div className="text-center text-gray-500">
-                          <div className="w-16 h-16 mx-auto mb-3 bg-gray-200 rounded-lg flex items-center justify-center">
-                            <Settings className="w-8 h-8 text-gray-400" />
+                          <div className="w-20 h-20 mx-auto mb-4 bg-gray-200 rounded-lg flex items-center justify-center">
+                            <Settings className="w-10 h-10 text-gray-400" />
                           </div>
-                          <p className="text-sm">
+                          <p className="text-lg font-medium mb-2">
                             {language === 'ar' 
-                              ? 'قم بتفعيل النموذج المنبثق لرؤية المعاينة' 
-                              : 'Enable popup form to see preview'
+                              ? 'النموذج المنبثق معطل' 
+                              : 'Popup Form Disabled'
                             }
                           </p>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Form Preview */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-sm font-medium">
-                      {language === 'ar' ? 'معاينة النموذج' : 'Form Preview'}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="min-h-[200px] bg-white rounded-lg border p-4 space-y-3">
-                      {fields && fields.length > 0 ? (
-                        <div className="space-y-3">
-                          {fields.slice(0, 3).map((field, index) => (
-                            <div key={index} className="space-y-1">
-                              <div className="text-xs text-gray-600 font-medium">
-                                {field.label || `Field ${index + 1}`}
-                              </div>
-                              <div className="h-8 bg-gray-100 rounded border"></div>
-                            </div>
-                          ))}
-                          {fields.length > 3 && (
-                            <div className="text-xs text-gray-400 text-center">
-                              {language === 'ar' 
-                                ? `و ${fields.length - 3} حقول أخرى...`
-                                : `+${fields.length - 3} more fields...`
-                              }
-                            </div>
-                          )}
-                          <div className="mt-4">
-                            <div className="h-10 bg-blue-500 rounded text-white flex items-center justify-center text-sm font-medium">
-                              {language === 'ar' ? 'إرسال الطلب' : 'Submit Order'}
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-center h-full text-gray-400">
-                          <div className="text-center">
-                            <div className="w-12 h-12 mx-auto mb-2 bg-gray-100 rounded flex items-center justify-center">
-                              📝
-                            </div>
-                            <p className="text-xs">
-                              {language === 'ar' ? 'لا توجد حقول' : 'No fields'}
-                            </p>
-                          </div>
+                          <p className="text-sm">
+                            {language === 'ar' 
+                              ? 'قم بتفعيل النموذج المنبثق لرؤية معاينة الزر' 
+                              : 'Enable popup form to see button preview'
+                            }
+                          </p>
                         </div>
                       )}
                     </div>
