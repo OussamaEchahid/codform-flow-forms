@@ -1222,10 +1222,12 @@ button[id^="codform-popup-btn"] *,
               <div id="hidden-form-for-popup" style="display: none;">
                 <!-- Store form data for popup -->
                 <div id="popup-form-data" data-fields='${JSON.stringify(fieldsArray)}' data-style='${JSON.stringify(formStyle)}' data-language='${formLanguage}' data-product-id='${productId}'></div>
+                ${quantityOffersContainerBefore}
                 <form class="codform-form-fields" style="background: transparent; margin: 0; padding: 0;" 
                       id="codform-main-form" onsubmit="handleFormSubmission(event)">
                   ${fieldsArray.map(field => renderField(field, formStyle, formLanguage)).join('')}
                 </form>
+                ${quantityOffersContainerAfter}
               </div>
             `;
           } else {
@@ -1239,7 +1241,7 @@ button[id^="codform-popup-btn"] *,
             });
             
             // Wrap in form element with submission handler and quantity offers
-            completeFormHTML += quantityOffersContainerBefore + `
+            completeFormHTML = quantityOffersContainerBefore + `
               <form class="codform-form-fields" style="background: transparent; margin: 0; padding: 0;" 
                     id="codform-main-form" onsubmit="handleFormSubmission(event)">
                 ${formFieldsHTML}
@@ -1747,16 +1749,24 @@ async function handleFormSubmissionPopup(formData, submitBtn, popup) {
 
 // تهيئة عروض الكمية عند تحميل الصفحة
 document.addEventListener('DOMContentLoaded', function() {
+  console.log('🚀 CODFORM: DOM loaded, starting quantity offers initialization');
+  
   // انتظار حتى يتم إنهاء تحميل النموذج تماماً
   const waitForFormLoad = setInterval(function() {
     const formContainer = document.querySelector('[data-form-preview-id="form-preview-stable"]');
     const quantityOffersContainer = document.querySelector('.quantity-offers-container');
     
-    if (formContainer && quantityOffersContainer && !formContainer.dataset.quantityOffersLoaded) {
+    console.log('🔍 CODFORM: Searching for containers...', {
+      formContainer: !!formContainer,
+      quantityOffersContainer: !!quantityOffersContainer,
+      allContainers: document.querySelectorAll('.quantity-offers-container').length
+    });
+    
+    if (formContainer && !formContainer.dataset.quantityOffersLoaded) {
       const productId = '{{ product.id }}' || '{{ product.variants.first.id }}' || 'default';
       const shopDomain = getShopDomain();
       
-      console.log("🎯 Loading quantity offers for main form:", { productId, shopDomain });
+      console.log("🎯 CODFORM: Found form container, loading quantity offers:", { productId, shopDomain });
       
       if (window.CodformQuantityOffers) {
         const formCurrency = '{{ shop.currency }}' || 'SAR';
@@ -1770,18 +1780,24 @@ document.addEventListener('DOMContentLoaded', function() {
           currency: '{{ shop.currency }}' || 'SAR'
         };
         
-        console.log("🛍️ Loading quantity offers with product data:", productData);
+        console.log("🛍️ CODFORM: Loading quantity offers with product data:", productData);
         
         // Load quantity offers for the main form
         window.CodformQuantityOffers.loadWithProduct('main', productId, shopDomain, formCurrency, productData);
         formContainer.dataset.quantityOffersLoaded = 'true';
         clearInterval(waitForFormLoad);
+        console.log("✅ CODFORM: Quantity offers loading initiated for main form");
+      } else {
+        console.log("❌ CODFORM: CodformQuantityOffers not available yet");
       }
     }
   }, 200);
   
   // تنظيف الفاصل الزمني بعد 15 ثوان إذا لم يتم العثور على النموذج
-  setTimeout(() => clearInterval(waitForFormLoad), 15000);
+  setTimeout(() => {
+    clearInterval(waitForFormLoad);
+    console.log("⏰ CODFORM: Timeout reached for quantity offers loading");
+  }, 15000);
 });
 
 // Add CSS animations
