@@ -58,19 +58,21 @@ window.CodformQuantityOffers = (function() {
     // للنموذج المنبثق، استخدم الحاوية المخصصة
     if (blockId === 'popup-form') {
       console.log('🔍 Looking for popup offers container...');
-      container = document.getElementById('popup-quantity-offers');
+      container = document.getElementById('quantity-offers-before-popup-form');
       console.log('📦 Popup container found:', !!container);
     }
     
     if (!container) {
-      console.error("❌ Container not found and couldn't create:", `quantity-offers-before-${blockId}`);
+      console.error("❌ Container not found:", `quantity-offers-before-${blockId}`);
       // حاول البحث عن أي حاوية تحتوي على quantity-offers في اسمها
       const anyContainer = document.querySelector('[id*="quantity-offers"]');
       if (anyContainer) {
-        console.log("🔧 Found alternative container:", anyContainer.id);
-        anyContainer.innerHTML = `<div style="background: red; color: white; padding: 10px;">DEBUG: العروض يجب أن تظهر هنا - Container ID: ${anyContainer.id} - Expected: quantity-offers-before-${blockId}</div>`;
+        console.log("🔧 Using alternative container:", anyContainer.id);
+        container = anyContainer;
+      } else {
+        console.error("❌ No quantity offers container found at all");
+        return;
       }
-      return;
     }
 
     // مسح المحتوى السابق

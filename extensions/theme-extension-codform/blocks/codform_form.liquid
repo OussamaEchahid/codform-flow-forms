@@ -1238,12 +1238,12 @@ button[id^="codform-popup-btn"] *,
         
         // Wrap in form element with submission handler
         completeFormHTML += `
-          <div id="quantity-offers-before-form" class="quantity-offers-container" style="margin: 16px 0;"></div>
+          <div id="quantity-offers-before-form" class="quantity-offers-container" style="margin: 16px 0; border: 2px solid red;"></div>
           <form class="codform-form-fields" style="background: transparent; margin: 0; padding: 0;" 
                 id="codform-main-form" onsubmit="handleFormSubmission(event)">
             ${formContent}
           </form>
-          <div id="quantity-offers-after-form" class="quantity-offers-container" style="margin: 16px 0;"></div>
+          <div id="quantity-offers-after-form" class="quantity-offers-container" style="margin: 16px 0; border: 2px solid blue;"></div>
         `;
           }
         } else {
@@ -1347,12 +1347,16 @@ button[id^="codform-popup-btn"] *,
         window.currentFormData = data;
 
         // تحميل عروض الكمية بعد تحميل النموذج
+        console.log('🎯 Attempting to load quantity offers...');
         if (window.CodformQuantityOffers && window.CodformQuantityOffers.loadAndDisplayOffers) {
           const shopDomain = getShopDomain();
+          console.log('🏪 Shop domain:', shopDomain, 'Product ID:', productId);
           setTimeout(() => {
-            console.log('🚀 Loading quantity offers for form blockId...');
+            console.log('🚀 Loading quantity offers for form blockId with shop:', shopDomain);
             window.CodformQuantityOffers.loadAndDisplayOffers('form', productId, shopDomain);
-          }, 2000);
+          }, 3000);
+        } else {
+          console.error('❌ CodformQuantityOffers not available');
         }
 
         console.log('🎉 CODFORM: Form rendered successfully with quantity offers container');
