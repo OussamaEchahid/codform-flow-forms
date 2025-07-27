@@ -1741,34 +1741,29 @@ window.openFormPopup = function(event) {
   
   // البحث عن النموذج الأصلي ونسخه بالكامل
   const originalFormContainer = document.querySelector('[data-form-preview-id="form-preview-stable"]');
-  const existingForm = document.querySelector('#codform-main-form, .codform-form-fields, form');
   
-  if (originalFormContainer && originalFormContainer.innerHTML.trim()) {
-    console.log('📋 CODFORM: Found original form container, copying content');
+  if (originalFormContainer && originalFormContainer.children.length > 0) {
+    console.log('📋 CODFORM: Found original form container, copying entire content');
     
-    // نسخ محتوى الحاوية الأصلية مباشرة
-    formElement.innerHTML = originalFormContainer.innerHTML;
+    // نسخ النموذج الأصلي بالكامل مع جميع العناصر
+    const clonedContainer = originalFormContainer.cloneNode(true);
     
-    // تطبيق الستايلات العربية
-    formElement.style.direction = 'rtl';
-    formElement.style.textAlign = 'right';
-    formElement.style.fontFamily = "'Cairo', 'Noto Sans Arabic', 'Amiri', sans-serif";
+    // إزالة الستايلات من الحاوية المنسوخة
+    clonedContainer.style.background = 'transparent';
+    clonedContainer.style.border = 'none';
+    clonedContainer.style.boxShadow = 'none';
+    clonedContainer.style.padding = '0';
+    clonedContainer.style.margin = '0';
     
-    console.log('✅ CODFORM: Successfully copied original form content');
+    // إضافة الستايلات العربية للنموذج المنسوخ
+    clonedContainer.style.direction = 'rtl';
+    clonedContainer.style.textAlign = 'right';
+    clonedContainer.style.fontFamily = "'Cairo', 'Noto Sans Arabic', 'Amiri', sans-serif";
     
-  } else if (existingForm && existingForm.innerHTML.trim()) {
-    console.log('📋 CODFORM: Found existing form, copying content');
+    // استبدال formElement بالنسخة المكتملة
+    formWrapper.appendChild(clonedContainer);
     
-    // نسخ محتوى النموذج الموجود
-    formElement.innerHTML = existingForm.innerHTML;
-    
-    // نسخ الستايلات المطبقة
-    const computedStyle = window.getComputedStyle(existingForm);
-    formElement.style.direction = computedStyle.direction || 'rtl';
-    formElement.style.textAlign = computedStyle.textAlign || 'right';
-    formElement.style.fontFamily = "'Cairo', 'Noto Sans Arabic', 'Amiri', sans-serif";
-    
-    console.log('✅ CODFORM: Successfully copied existing form with styling');
+    console.log('✅ CODFORM: Successfully copied complete original form');
     
   } else {
     console.log('📋 CODFORM: No existing form found, creating from field data');
@@ -1823,7 +1818,11 @@ window.openFormPopup = function(event) {
   
   // Assemble the complete form
   formWrapper.appendChild(quantityOffersBeforePopup);
-  formWrapper.appendChild(formElement);
+  
+  // Add formElement only if no cloned container was added
+  if (!formWrapper.querySelector('[data-form-preview-id="form-preview-stable"]')) {
+    formWrapper.appendChild(formElement);
+  }
   
   modalContent.appendChild(closeBtn);
   modalContent.appendChild(formWrapper);
