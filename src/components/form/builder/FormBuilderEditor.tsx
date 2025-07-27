@@ -478,19 +478,26 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
         console.warn("No active shop ID found, saving without shop association");
       }
       
-      // حفظ إعدادات النمط مع النموذج
+      
+      // حفظ إعدادات النمط مع النموذج - INCLUDING POPUP BUTTON
+      const completeFormStyle = {
+        ...formStyle,
+        popupButton: formState?.style?.popupButton || formStyle?.popupButton
+      };
+      
       const formData: Partial<FormData> = {
         title: formTitle,
         description: formDescription,
         data: [formStep],
         shop_id: activeShopId,
-        style: formStyle,
+        style: completeFormStyle,
         country: formCountry,
         currency: formCurrency,
         phone_prefix: formPhonePrefix
       };
       
-      console.log("Saving form with data:", formData);
+      console.log("Saving form with complete data:", formData);
+      console.log("PopupButton settings:", completeFormStyle.popupButton);
       
       // Update existing form
       const success = await saveForm(currentFormId, formData);
@@ -498,13 +505,16 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
       if (success) {
         toast.success(language === 'ar' ? 'تم حفظ النموذج بنجاح' : 'Form saved successfully');
         
-        // Update form state
+        // Update form state with complete data
         setFormState({
           ...formState,
           ...formData,
           id: currentFormId,
-          style: formStyle
+          style: completeFormStyle
         });
+        
+        // Update local formStyle too
+        setFormStyle(completeFormStyle);
         
         // Reset unsaved changes flag
         setHasUnsavedChanges(false);
@@ -517,7 +527,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
             description: formDescription,
             data: [formStep] as any,
             shop_id: activeShopId,
-            style: formStyle as any,
+            style: completeFormStyle as any, // Use complete style instead of formStyle
             country: formCountry,
             currency: formCurrency,
             phone_prefix: formPhonePrefix,
@@ -530,6 +540,13 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
           toast.error(language === 'ar' ? 'فشل حفظ النموذج' : 'Failed to save form');
         } else {
           toast.success(language === 'ar' ? 'تم حفظ النموذج بنجاح' : 'Form saved successfully');
+          
+          // Update form state with complete data here too
+          setFormState({
+            ...formState,
+            style: completeFormStyle
+          });
+          setFormStyle(completeFormStyle);
           setHasUnsavedChanges(false);
         }
       }

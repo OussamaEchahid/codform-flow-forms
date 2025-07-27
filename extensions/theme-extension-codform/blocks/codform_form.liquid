@@ -1076,21 +1076,100 @@ quantity offers integration, and popup functionality.
         }
         
         if (fieldsArray && Array.isArray(fieldsArray)) {
-          fieldsArray.forEach((field, index) => {
-            console.log(`🎨 CODFORM: Processing field ${index}:`, field);
-            formContent += renderField(field, formStyle, formLanguage);
-          });
+          // Check if popup mode is enabled
+          const isPopupMode = formStyle?.popupButton?.enabled || false;
+          
+          if (isPopupMode) {
+            console.log('🎯 POPUP MODE: Only showing popup button, hiding form');
+            
+            // In popup mode, show only the popup button
+            const popupButton = formStyle.popupButton;
+            const buttonText = popupButton.text || 'اطلب الآن';
+            const buttonBgColor = popupButton.backgroundColor || '#9b87f5';
+            const buttonTextColor = popupButton.textColor || '#ffffff';
+            const buttonFontSize = popupButton.fontSize || '18px';
+            const buttonBorderRadius = popupButton.borderRadius || '8px';
+            const showIcon = popupButton.showIcon !== false;
+            
+            // Apply animation if set
+            let animationClass = '';
+            if (popupButton.animation && popupButton.animation !== 'none') {
+              switch (popupButton.animation) {
+                case 'pulse': animationClass = 'pulse-animation'; break;
+                case 'bounce': animationClass = 'bounce-animation'; break;
+                case 'shake': animationClass = 'shake-animation'; break;
+                case 'wiggle': animationClass = 'wiggle-animation'; break;
+                case 'flash': animationClass = 'flash-animation'; break;
+                default: animationClass = '';
+              }
+            }
+            
+            completeFormHTML = `
+              <div class="codform-popup-only-mode" style="
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                min-height: 200px;
+                padding: 40px 20px;
+              ">
+                <button
+                  onclick="openFormPopup(event)"
+                  class="codform-popup-trigger ${animationClass}"
+                  style="
+                    background-color: ${buttonBgColor};
+                    color: ${buttonTextColor};
+                    font-size: ${buttonFontSize};
+                    font-weight: 600;
+                    padding: 16px 40px;
+                    border: none;
+                    border-radius: ${buttonBorderRadius};
+                    cursor: pointer;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    min-width: 200px;
+                    font-family: 'Cairo', sans-serif;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 10px;
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                    text-align: center;
+                  "
+                  onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(0, 0, 0, 0.25)';"
+                  onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0, 0, 0, 0.15)';"
+                >
+                  ${showIcon ? '🛒' : ''}
+                  ${buttonText}
+                </button>
+              </div>
+              
+              <!-- Hidden form for popup -->
+              <div id="hidden-form-for-popup" style="display: none;">
+                <form class="codform-form-fields" style="background: transparent; margin: 0; padding: 0;" 
+                      id="codform-main-form" onsubmit="handleFormSubmission(event)">
+                  ${fieldsArray.map(field => renderField(field, formStyle, formLanguage)).join('')}
+                </form>
+              </div>
+            `;
+          } else {
+            console.log('📋 NORMAL MODE: Showing full form');
+            
+            // Normal mode - show the full form
+            fieldsArray.forEach((field, index) => {
+              console.log(`🎨 CODFORM: Processing field ${index}:`, field);
+              formContent += renderField(field, formStyle, formLanguage);
+            });
+            
+            // Wrap in form element with submission handler
+            completeFormHTML += `
+              <form class="codform-form-fields" style="background: transparent; margin: 0; padding: 0;" 
+                    id="codform-main-form" onsubmit="handleFormSubmission(event)">
+                ${formContent}
+              </form>
+            `;
+          }
         } else {
           console.log('❌ CODFORM: No valid fields array found');
         }
-
-        // Wrap in form element with submission handler
-        completeFormHTML += `
-          <form class="codform-form-fields" style="background: transparent; margin: 0; padding: 0;" 
-                id="codform-main-form" onsubmit="handleFormSubmission(event)">
-            ${formContent}
-          </form>
-        `;
 
         // Set the complete HTML with offers container at top
         container.innerHTML = `
@@ -1358,8 +1437,12 @@ window.openFormPopup = function(event) {
     animation: fadeIn 0.3s ease;
   `;
   
-  // Get form HTML
-  const formContainer = document.querySelector('.codform-dynamic-form');
+  // Get form HTML from hidden div or main container
+  let formContainer = document.querySelector('#hidden-form-for-popup .codform-form-fields');
+  if (!formContainer) {
+    formContainer = document.querySelector('.codform-dynamic-form .codform-form-fields');
+  }
+  
   if (!formContainer) {
     console.error('❌ CODFORM: Form container not found');
     return;
@@ -1411,6 +1494,7 @@ window.openFormPopup = function(event) {
   // Clone form content
   const formClone = formContainer.cloneNode(true);
   formClone.id = 'popup-form';
+  formClone.style.cssText = 'background: transparent; margin: 0; padding: 0;';
   
   // Update submit handler for popup
   const submitBtn = formClone.querySelector('.codform-submit-btn');

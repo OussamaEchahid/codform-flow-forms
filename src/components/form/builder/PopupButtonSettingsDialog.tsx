@@ -26,27 +26,29 @@ const PopupButtonSettingsDialog: React.FC<PopupButtonSettingsDialogProps> = ({
   const isPopupEnabled = (popupButton as any).enabled || false;
 
   const updatePopupButton = (updates: any) => {
+    const newStyle = {
+      ...formState.style,
+      popupButton: {
+        enabled: false,
+        text: language === 'ar' ? 'اطلب الآن' : 'Order Now',
+        backgroundColor: formState.style?.primaryColor || '#9b87f5',
+        textColor: '#ffffff',
+        borderColor: formState.style?.primaryColor || '#9b87f5',
+        borderWidth: '2px',
+        borderRadius: '8px',
+        fontSize: '16px',
+        fontWeight: '600',
+        paddingY: '12px',
+        showIcon: true,
+        animation: 'none',
+        ...formState.style?.popupButton,
+        ...updates
+      }
+    };
+    
     setFormState({
       ...formState,
-      style: {
-        ...formState.style,
-        popupButton: {
-          enabled: false,
-          text: language === 'ar' ? 'اطلب الآن' : 'Order Now',
-          backgroundColor: formState.style?.primaryColor || '#9b87f5',
-          textColor: '#ffffff',
-          borderColor: formState.style?.primaryColor || '#9b87f5',
-          borderWidth: '2px',
-          borderRadius: '8px',
-          fontSize: '16px',
-          fontWeight: '600',
-          paddingY: '12px',
-          showIcon: true,
-          animation: 'none',
-          ...formState.style?.popupButton,
-          ...updates
-        }
-      }
+      style: newStyle
     });
   };
 
