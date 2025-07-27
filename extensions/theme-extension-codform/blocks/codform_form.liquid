@@ -118,40 +118,45 @@ quantity offers integration, and popup functionality.
 }
 
 {%- comment -%} Popup Button Styles {%- endcomment -%}
-.codform-popup-button {
-  position: fixed;
-  z-index: 9999;
+.codform-popup-button,
+button[id^="codform-popup-btn"] {
+  border: none !important;
+  outline: none !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
   padding: 12px 24px;
-  border: 2px solid;
   cursor: pointer;
   font-family: inherit;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   backdrop-filter: blur(10px);
   white-space: nowrap;
 }
 
-.codform-popup-button:hover {
+.codform-popup-button:hover,
+button[id^="codform-popup-btn"]:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25) !important;
+  border: none !important;
+  outline: none !important;
 }
 
-.codform-popup-button:active {
+.codform-popup-button:active,
+button[id^="codform-popup-btn"]:active {
   transform: translateY(0);
+  border: none !important;
+  outline: none !important;
 }
 
-{%- comment -%} Popup Position Classes {%- endcomment -%}
-.popup-bottom-right { bottom: 20px; right: 20px; }
-.popup-bottom-left { bottom: 20px; left: 20px; }
-.popup-top-right { top: 20px; right: 20px; }
-.popup-top-left { top: 20px; left: 20px; }
-.popup-center {
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+.codform-popup-button:focus,
+button[id^="codform-popup-btn"]:focus {
+  border: none !important;
+  outline: none !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25) !important;
 }
-.popup-center:hover {
-  transform: translate(-50%, -52px);
+
+{%- comment -%} Remove any inherited button styles {%- endcomment -%}
+button[id^="codform-popup-btn"] * {
+  border: none !important;
+  outline: none !important;
 }
 </style>
 
@@ -1173,14 +1178,18 @@ quantity offers integration, and popup functionality.
 
         // Check if popup mode is enabled
         if (popupButton && popupButton.enabled) {
-          // Show only the popup button
+          // Create clean form HTML for popup (without popup button)
+          const cleanFormFields = fieldsArray.map(field => renderField(field, formStyle, formLanguage)).join('');
+          
+          // Show only the popup button in main area
           container.innerHTML = `
             <div style="width: 100%; padding: 20px 0; text-align: center;">
               <button type="button" id="codform-popup-btn-${Date.now()}" 
                 style="
                   background-color: ${popupButton.backgroundColor || '#9b87f5'};
                   color: ${popupButton.textColor || '#ffffff'};
-                  border: none;
+                  border: none !important;
+                  outline: none !important;
                   border-radius: ${popupButton.borderRadius || '8px'};
                   font-size: ${popupButton.fontSize || '18px'};
                   font-weight: ${popupButton.fontWeight || '600'};
@@ -1194,6 +1203,7 @@ quantity offers integration, and popup functionality.
                   transition: all 0.3s ease;
                   box-shadow: 0 3px 15px rgba(0,0,0,0.1);
                   font-family: 'Cairo', Arial, sans-serif;
+                  box-sizing: border-box;
                 "
                 onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 25px rgba(0,0,0,0.15)';"
                 onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 3px 15px rgba(0,0,0,0.1)';"
@@ -1203,11 +1213,12 @@ quantity offers integration, and popup functionality.
             </div>
           `;
           
-          // Store form HTML for popup
+          // Store clean form HTML for popup
           window.codformPopupHTML = `
-            <div class="codform-dynamic-form">
-              ${completeFormHTML}
-            </div>
+            <form class="codform-form-fields" style="background: transparent; margin: 0; padding: 0;" 
+                  id="codform-popup-form" onsubmit="handleFormSubmission(event)">
+              ${cleanFormFields}
+            </form>
           `;
         } else {
           // Normal mode - show the complete form
