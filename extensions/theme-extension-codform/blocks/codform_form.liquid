@@ -1276,19 +1276,21 @@
             ${completeFormHTML}
           </div>
         `;
-        
-        // CRITICAL: Store original form content immediately after building it
-        const formContainer = container.querySelector('.codform-dynamic-form');
-        if (formContainer) {
-          window.originalFormContent = formContainer.innerHTML;
-          window.originalFormClasses = formContainer.className;
-          window.originalFormStyle = formContainer.style.cssText;
-          console.log('💾 CODFORM: Original form content stored after building');
-          console.log('📝 CODFORM: Stored content length:', window.originalFormContent.length);
-          console.log('📝 CODFORM: Stored content preview:', window.originalFormContent.substring(0, 200));
-        } else {
-          console.error('❌ CODFORM: Could not find form container to store content');
-        }
+
+        // Wait for the DOM to update, then store original content
+        setTimeout(() => {
+          const actualFormContainer = container.querySelector('.codform-dynamic-form');
+          if (actualFormContainer && actualFormContainer.innerHTML.length > 100) {
+            window.originalFormContent = actualFormContainer.innerHTML;
+            window.originalFormClasses = actualFormContainer.className;
+            window.originalFormStyle = actualFormContainer.style.cssText;
+            console.log('💾 CODFORM: Original form content stored after DOM update');
+            console.log('📝 CODFORM: Stored content length:', window.originalFormContent.length);
+            console.log('📝 CODFORM: Content preview:', window.originalFormContent.substring(0, 200));
+          } else {
+            console.error('❌ CODFORM: Form container not ready or empty after DOM update');
+          }
+        }, 100);
         
         // Show popup button if enabled
         if (popupButton && popupButton.enabled) {
@@ -1516,13 +1518,18 @@ function showPopupButton(popupConfig, formContainer) {
       return;
     }
     
-    // Ensure original content is stored (should already be stored after form building)
-    if (!window.originalFormContent) {
-      console.log('💾 CODFORM: Storing original form content for popup (backup)');
-      window.originalFormContent = formContainer.innerHTML;
-      window.originalFormClasses = formContainer.className;
-      window.originalFormStyle = formContainer.style.cssText;
-      console.log('📝 CODFORM: Backup stored content length:', window.originalFormContent.length);
+    // Ensure original content is stored and form is ready
+    if (!window.originalFormContent || window.originalFormContent.length < 100) {
+      console.log('⏳ CODFORM: Waiting for form content to be ready...');
+      // Wait a bit more for form to be fully loaded
+      setTimeout(() => {
+        if (formContainer && formContainer.innerHTML.length > 100) {
+          window.originalFormContent = formContainer.innerHTML;
+          window.originalFormClasses = formContainer.className;
+          window.originalFormStyle = formContainer.style.cssText;
+          console.log('💾 CODFORM: Backup stored content length:', window.originalFormContent.length);
+        }
+      }, 200);
     } else {
       console.log('✅ CODFORM: Original form content already available');
       console.log('📝 CODFORM: Available content length:', window.originalFormContent.length);
