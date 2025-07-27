@@ -1662,7 +1662,7 @@ window.openFormPopup = function(event) {
     return;
   }
   
-  // Create modal content
+  // Create modal content with proper RTL styling
   const modalContent = document.createElement('div');
   modalContent.style.cssText = `
     background: white;
@@ -1674,6 +1674,9 @@ window.openFormPopup = function(event) {
     padding: 24px;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
     animation: slideIn 0.3s ease;
+    direction: rtl;
+    text-align: right;
+    font-family: 'Cairo', 'Noto Sans Arabic', 'Amiri', sans-serif;
   `;
   
   // Close button
@@ -1707,7 +1710,14 @@ window.openFormPopup = function(event) {
   
   // Create form with quantity offers for popup
   const formWrapper = document.createElement('div');
-  formWrapper.style.cssText = 'background: transparent; margin: 0; padding: 0;';
+  formWrapper.style.cssText = `
+    background: transparent; 
+    margin: 0; 
+    padding: 20px;
+    direction: rtl;
+    text-align: right;
+    font-family: 'Cairo', 'Noto Sans Arabic', 'Amiri', sans-serif;
+  `;
   
   // Generate block ID for quantity offers container in popup
   const popupBlockId = `popup_${productId}`;
@@ -1729,12 +1739,26 @@ window.openFormPopup = function(event) {
   `;
   formElement.onsubmit = handlePopupFormSubmission;
   
-  // Generate fields HTML - use existing form if available
-  const existingForm = document.querySelector('#codform-main-form');
+  // Generate fields HTML - copy from existing form with all styling
+  const existingForm = document.querySelector('#codform-main-form, .codform-form-fields');
   if (existingForm) {
+    // نسخ كامل للنموذج مع جميع الستايلات
     formElement.innerHTML = existingForm.innerHTML;
+    
+    // نسخ جميع الستايلات المطبقة
+    const computedStyle = window.getComputedStyle(existingForm);
+    formElement.style.direction = computedStyle.direction || 'rtl';
+    formElement.style.textAlign = computedStyle.textAlign || 'right';
+    formElement.style.fontFamily = "Cairo, 'Noto Sans Arabic', 'Amiri', sans-serif";
+    
+    console.log('📋 CODFORM: Copied existing form with styling');
   } else {
-    // Fallback: create basic form structure
+    console.log('📋 CODFORM: Creating fallback form structure');
+    // إنشاء نموذج احتياطي مع ستايلات عربية صحيحة
+    formElement.style.direction = 'rtl';
+    formElement.style.textAlign = 'right';
+    formElement.style.fontFamily = "Cairo, 'Noto Sans Arabic', 'Amiri', sans-serif";
+    
     formElement.innerHTML = fieldsArray.map(field => {
       if (field.type === 'submit') {
         return `<button type="submit" style="
@@ -1744,15 +1768,38 @@ window.openFormPopup = function(event) {
           border: none;
           border-radius: 8px;
           font-size: 16px;
+          font-weight: 600;
           cursor: pointer;
           width: 100%;
           margin-top: 16px;
-        ">${field.label || 'Submit'}</button>`;
+          font-family: Cairo, 'Noto Sans Arabic', sans-serif;
+          transition: all 0.3s ease;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">${field.label || 'إرسال الطلب'}</button>`;
       }
-      return `<div style="margin-bottom: 16px;">
-        <label style="display: block; margin-bottom: 4px; font-weight: 500;">${field.label || ''}</label>
-        <input type="${field.type || 'text'}" name="${field.name || ''}" 
-               style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px;" 
+      return `<div style="margin-bottom: 16px; direction: rtl; text-align: right;">
+        <label style="
+          display: block; 
+          margin-bottom: 8px; 
+          font-weight: 500;
+          color: #374151;
+          font-family: Cairo, 'Noto Sans Arabic', sans-serif;
+        ">${field.label || ''}</label>
+        <input type="${field.type || 'text'}" 
+               name="${field.name || ''}" 
+               placeholder="${field.placeholder || ''}"
+               style="
+                 width: 100%; 
+                 padding: 12px; 
+                 border: 2px solid #e5e7eb; 
+                 border-radius: 8px;
+                 font-family: Cairo, 'Noto Sans Arabic', sans-serif;
+                 direction: rtl;
+                 text-align: right;
+                 transition: border-color 0.3s ease;
+               " 
+               onfocus="this.style.borderColor='#9b87f5'"
+               onblur="this.style.borderColor='#e5e7eb'"
                ${field.required ? 'required' : ''} />
       </div>`;
     }).join('');
@@ -1787,7 +1834,7 @@ window.openFormPopup = function(event) {
       // إنشاء الحاوية مباشرة في النموذج المنبثق
       const offersContainer = document.createElement('div');
       offersContainer.id = 'popup-quantity-offers';
-      offersContainer.style.cssText = 'margin-bottom: 16px; border: 2px solid red; padding: 10px;';
+      offersContainer.style.cssText = 'margin-bottom: 16px;';
       
       // إدراج الحاوية قبل النموذج
       formWrapper.insertBefore(offersContainer, formElement);
