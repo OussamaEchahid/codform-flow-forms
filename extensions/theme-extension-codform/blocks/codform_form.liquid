@@ -1576,13 +1576,21 @@ function openFormPopup(event) {
     }
   });
   
-  // Focus first input
+  // Focus first input and load quantity offers for popup
   setTimeout(() => {
     const firstInput = modal.querySelector('input, textarea');
     if (firstInput) {
       firstInput.focus();
     }
-  }, 100);
+    
+    // تحميل عروض الكمية للنافذة المنبثقة
+    if (window.CodformQuantityOffers) {
+      const shopDomain = window.getShopDomain ? window.getShopDomain() : 'astrem.myshopify.com';
+      const productId = '{{ product.id }}' || '{{ product.variants.first.id }}' || 'auto-detect';
+      console.log('🚀 Loading quantity offers for popup with:', { productId, shopDomain });
+      window.CodformQuantityOffers.loadAndDisplayOffers('popup-form', productId, shopDomain, 'SAR', window.currentFormData);
+    }
+  }, 500);
 }
 
 function closeFormPopup() {
@@ -1638,6 +1646,10 @@ document.addEventListener('DOMContentLoaded', function() {
 window.CodformQuantityOffers = (function() {
   'use strict';
 
+// CODFORM Quantity Offers Handler - مدمج مباشرة
+window.CodformQuantityOffers = (function() {
+  'use strict';
+
   // دالة عرض quantity offers
   function displayQuantityOffers(quantityOffersData, blockId, productId, defaultCurrency = 'SAR', productData = null) {
     console.log("🎯 Starting quantity offers display for blockId:", blockId);
@@ -1674,23 +1686,48 @@ window.CodformQuantityOffers = (function() {
     container.innerHTML = '';
     container.style.display = 'block';
 
-    // بيانات افتراضية للاختبار
-    const testPrice = 100;
-    const currency = 'SAR';
-    const currencySymbol = 'ر.س';
+    // استخدام البيانات الحقيقية من النموذج
+    const realProductData = productData || window.currentFormData || {};
+    const hasRealPrice = realProductData.price && parseFloat(realProductData.price) > 0;
+    const productPrice = hasRealPrice ? parseFloat(realProductData.price) : 100;
+    const productCurrency = realProductData.currency || 'USD';
+    const productImage = realProductData.image || realProductData.featuredImage;
+    const productTitle = realProductData.title || 'المنتج';
+    
+    // تحويل العملة
+    function convertCurrency(amount, fromCurrency, toCurrency) {
+      const exchangeRates = {
+        'USD': { 'SAR': 3.75, 'MAD': 10.0, 'USD': 1 },
+        'SAR': { 'USD': 0.27, 'MAD': 2.67, 'SAR': 1 },
+        'MAD': { 'USD': 0.10, 'SAR': 0.375, 'MAD': 1 }
+      };
+      
+      if (fromCurrency === toCurrency) return amount;
+      const rate = exchangeRates[fromCurrency]?.[toCurrency];
+      return rate ? amount * rate : amount;
+    }
 
-    console.log("🎨 Creating offers display...");
+    const realPrice = convertCurrency(productPrice, productCurrency, defaultCurrency);
+    const currencySymbol = defaultCurrency === 'USD' ? '$' : 
+                          defaultCurrency === 'SAR' ? 'ر.س' : 
+                          defaultCurrency === 'MAD' ? 'د.م' : defaultCurrency;
 
-    // إنشاء عروض تجريبية
+    console.log("💰 Using real price:", realPrice, defaultCurrency, "from original:", productPrice, productCurrency);
+
+    // إنشاء العروض
     offers.forEach((offer, index) => {
       const offerElement = document.createElement('div');
       
-      let totalPrice = testPrice * (offer.quantity || 1);
+      let totalPrice = realPrice * (offer.quantity || 1);
       let originalPrice = totalPrice;
       
       const discountValue = parseFloat(offer.discount || offer.discountValue || 0);
-      if (discountValue > 0) {
+      const discountType = offer.discountType || 'percentage';
+      
+      if (discountType === 'percentage' && discountValue > 0) {
         totalPrice = originalPrice - (originalPrice * discountValue / 100);
+      } else if (discountType === 'fixed' && discountValue > 0) {
+        totalPrice = Math.max(0, originalPrice - discountValue);
       }
 
       offerElement.style.cssText = `
@@ -1705,20 +1742,39 @@ window.CodformQuantityOffers = (function() {
         font-family: 'Cairo', system-ui, Arial, sans-serif;
         box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         cursor: pointer;
+        direction: rtl;
         ${index === 1 ? 'background-color: #f0fdf4;' : ''}
       `;
 
-      offerElement.innerHTML = `
-        <div style="flex: 1; text-align: right; direction: rtl;">
-          <div style="font-weight: 600; font-size: 16px; color: #000; margin-bottom: 8px;">
-            ${offer.text || `اشترِ ${offer.quantity || 1} قطعة`}
+      // إنشاء المحتوى مع الصورة
+      let imageHtml = '';
+      if (productImage) {
+        imageHtml = `
+          <div style="flex-shrink: 0; margin-left: 12px;">
+            <img src="${productImage}" alt="${productTitle}" 
+                 style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; border: 1px solid #e5e7eb;">
           </div>
-          ${offer.tag ? `<span style="background-color: #22c55e; color: white; padding: 4px 8px; border-radius: 12px; font-size: 12px;">${offer.tag}</span>` : ''}
-        </div>
-        <div style="text-align: center; min-width: 100px;">
-          ${discountValue > 0 ? `<div style="font-size: 12px; color: #6b7280; text-decoration: line-through;">${originalPrice.toFixed(2)} ${currencySymbol}</div>` : ''}
-          <div style="font-size: 18px; font-weight: bold; color: #000;">
-            ${totalPrice.toFixed(2)} ${currencySymbol}
+        `;
+      }
+
+      offerElement.innerHTML = `
+        <div style="display: flex; align-items: center; width: 100%; gap: 12px;">
+          ${imageHtml}
+          <div style="flex: 1; text-align: right;">
+            <div style="font-weight: 600; font-size: 16px; color: #000; margin-bottom: 8px;">
+              ${offer.text || `اشترِ ${offer.quantity || 1} قطعة`}
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center; justify-content: flex-end;">
+              ${offer.tag ? `<span style="background-color: #22c55e; color: white; padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: 600;">${offer.tag}</span>` : ''}
+              ${discountValue > 0 ? `<span style="background-color: #ef4444; color: white; padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: 600;">وفر ${discountValue}%</span>` : ''}
+            </div>
+          </div>
+          <div style="text-align: center; min-width: 120px;">
+            ${discountValue > 0 ? `<div style="font-size: 12px; color: #6b7280; text-decoration: line-through; margin-bottom: 4px;">${originalPrice.toFixed(2)} ${currencySymbol}</div>` : ''}
+            <div style="font-size: 18px; font-weight: bold; color: #000;">
+              ${totalPrice.toFixed(2)} ${currencySymbol}
+            </div>
+            ${offer.quantity > 1 ? `<div style="font-size: 11px; color: #6b7280; margin-top: 2px;">${realPrice.toFixed(2)} ${currencySymbol} × ${offer.quantity}</div>` : ''}
           </div>
         </div>
       `;
@@ -1726,7 +1782,7 @@ window.CodformQuantityOffers = (function() {
       container.appendChild(offerElement);
     });
 
-    console.log("✅ Quantity offers displayed successfully");
+    console.log("✅ Quantity offers displayed successfully with real prices and images");
   }
 
   // دالة تحميل وعرض العروض من API
