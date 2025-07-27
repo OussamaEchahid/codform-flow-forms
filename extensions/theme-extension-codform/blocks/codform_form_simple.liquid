@@ -1,6 +1,6 @@
 {% schema %}
 {
-  "name": "Codform Form",
+  "name": "Codform Form Simple",
   "target": "section",
   "settings": [
     {
@@ -107,7 +107,6 @@
     font-size: 16px;
     background: white;
     color: #1F2937;
-    box-sizing: border-box;
   }
 
   .simple-submit {
@@ -123,10 +122,6 @@
     text-align: center;
     margin-top: 16px;
   }
-  
-  .simple-submit:hover {
-    background: #8b5cf6;
-  }
 </style>
 
 <div id="codform-container">
@@ -136,6 +131,7 @@
 <script>
 console.log('🚀 CODFORM SIMPLE: Starting...');
 
+// محاولة تحميل النموذج من API
 function loadSimpleForm() {
   const productId = '{{ product.id }}' || '8076722929851';
   const shop = 'astrem.myshopify.com';
@@ -150,6 +146,7 @@ function loadSimpleForm() {
       const container = document.getElementById('codform-container');
       if (!container) return;
       
+      // التحقق من تفعيل popup
       const isPopup = data.style && data.style.popupButton && data.style.popupButton.enabled;
       
       if (isPopup) {
@@ -162,6 +159,7 @@ function loadSimpleForm() {
     })
     .catch(error => {
       console.error('❌ Error loading form:', error);
+      // عرض نموذج افتراضي
       showDefaultForm();
     });
 }
@@ -175,57 +173,31 @@ function showPopupButton(container, data) {
     </button>
   `;
   
+  // حفظ بيانات النموذج للاستخدام في popup
   window.savedFormData = data;
-  console.log('✅ Popup button created');
 }
 
 function showNormalForm(container, data) {
   let formHtml = '<div class="simple-form">';
   
-  formHtml += `
-    <div class="simple-field">
-      <label class="simple-label">الاسم</label>
-      <input class="simple-input" type="text" placeholder="أدخل اسمك" required>
-    </div>
-    <div class="simple-field">
-      <label class="simple-label">رقم الهاتف</label>
-      <input class="simple-input" type="tel" placeholder="أدخل رقم الهاتف" required>
-    </div>
-    <button class="simple-submit" type="submit">اطلب الآن</button>
-  `;
-  
-  formHtml += '</div>';
-  container.innerHTML = formHtml;
-}
-
-function showDefaultForm() {
-  const container = document.getElementById('codform-container');
-  if (container) {
-    showNormalForm(container, {});
-  }
-}
-
-window.openFormPopup = function() {
-  console.log('🎯 Opening popup...');
-  
-  const overlay = document.createElement('div');
-  overlay.className = 'codform-popup-overlay';
-  
-  const modal = document.createElement('div');
-  modal.className = 'codform-popup-modal';
-  
-  const closeBtn = document.createElement('button');
-  closeBtn.className = 'codform-close-btn';
-  closeBtn.innerHTML = '✕';
-  closeBtn.onclick = function() {
-    document.body.removeChild(overlay);
-  };
-  
-  modal.appendChild(closeBtn);
-  
-  const formDiv = document.createElement('div');
-  formDiv.innerHTML = `
-    <div class="simple-form">
+  if (data.fields && data.fields.length > 0) {
+    data.fields.forEach(field => {
+      if (field.type === 'text' || field.type === 'email' || field.type === 'phone') {
+        formHtml += `
+          <div class="simple-field">
+            <label class="simple-label">${field.label || 'Field'}</label>
+            <input class="simple-input" type="${field.type}" placeholder="${field.placeholder || ''}" ${field.required ? 'required' : ''}>
+          </div>
+        `;
+      } else if (field.type === 'submit') {
+        formHtml += `
+          <button class="simple-submit" type="submit">${field.label || 'إرسال'}</button>
+        `;
+      }
+    });
+  } else {
+    // نموذج افتراضي
+    formHtml += `
       <div class="simple-field">
         <label class="simple-label">الاسم</label>
         <input class="simple-input" type="text" placeholder="أدخل اسمك" required>
@@ -235,15 +207,77 @@ window.openFormPopup = function() {
         <input class="simple-input" type="tel" placeholder="أدخل رقم الهاتف" required>
       </div>
       <button class="simple-submit" type="submit">اطلب الآن</button>
-    </div>
-  `;
+    `;
+  }
   
-  modal.appendChild(formDiv);
+  formHtml += '</div>';
+  container.innerHTML = formHtml;
+}
+
+function showDefaultForm() {
+  const container = document.getElementById('codform-container');
+  if (container) {
+    container.innerHTML = `
+      <div class="simple-form">
+        <div class="simple-field">
+          <label class="simple-label">الاسم</label>
+          <input class="simple-input" type="text" placeholder="أدخل اسمك" required>
+        </div>
+        <div class="simple-field">
+          <label class="simple-label">رقم الهاتف</label>
+          <input class="simple-input" type="tel" placeholder="أدخل رقم الهاتف" required>
+        </div>
+        <button class="simple-submit" type="submit">اطلب الآن</button>
+      </div>
+    `;
+  }
+}
+
+// دالة فتح popup
+window.openFormPopup = function() {
+  console.log('🎯 Opening popup...');
+  
+  // إنشاء overlay
+  const overlay = document.createElement('div');
+  overlay.className = 'codform-popup-overlay';
+  
+  // إنشاء modal
+  const modal = document.createElement('div');
+  modal.className = 'codform-popup-modal';
+  
+  // زر الإغلاق
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'codform-close-btn';
+  closeBtn.innerHTML = '✕';
+  closeBtn.onclick = function() {
+    document.body.removeChild(overlay);
+  };
+  
+  modal.appendChild(closeBtn);
+  
+  // محتوى النموذج
+  if (window.savedFormData) {
+    showNormalForm(modal, window.savedFormData);
+  } else {
+    modal.innerHTML += `
+      <div class="simple-form">
+        <div class="simple-field">
+          <label class="simple-label">الاسم</label>
+          <input class="simple-input" type="text" placeholder="أدخل اسمك" required>
+        </div>
+        <div class="simple-field">
+          <label class="simple-label">رقم الهاتف</label>
+          <input class="simple-input" type="tel" placeholder="أدخل رقم الهاتف" required>
+        </div>
+        <button class="simple-submit" type="submit">اطلب الآن</button>
+      </div>
+    `;
+  }
+  
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
   
-  console.log('✅ Popup opened successfully');
-  
+  // إغلاق عند النقر خارج المحتوى
   overlay.onclick = function(e) {
     if (e.target === overlay) {
       document.body.removeChild(overlay);
@@ -251,6 +285,7 @@ window.openFormPopup = function() {
   };
 };
 
+// تحميل النموذج عند تحميل الصفحة
 document.addEventListener('DOMContentLoaded', loadSimpleForm);
 
 console.log('✅ CODFORM SIMPLE: Initialized');
