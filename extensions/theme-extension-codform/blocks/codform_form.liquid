@@ -1312,6 +1312,14 @@ button[id^="codform-popup-btn"] *,
             `;
           }
           
+          // Store global form data for popup access
+          window.codformGlobalData = {
+            fields: fieldsArray,
+            style: formStyle,
+            language: formLanguage,
+            productId: productId
+          };
+          
           // Store clean form HTML for popup
           window.codformPopupHTML = `
             <form class="codform-form-fields" style="background: transparent; margin: 0; padding: 0;" 
@@ -1631,17 +1639,28 @@ window.openFormPopup = function(event) {
     animation: fadeIn 0.3s ease;
   `;
   
-  // Get form data from hidden div
-  const formDataDiv = document.querySelector('#popup-form-data');
+  // Get form data from hidden div or use global variables
+  let formDataDiv = document.querySelector('#popup-form-data');
+  let fieldsArray, formStyle, formLanguage, productId;
+  
   if (!formDataDiv) {
-    console.error('❌ CODFORM: Form data not found');
-    return;
+    console.log('📋 CODFORM: Form data div not found, using global data');
+    // Use global variables if available
+    fieldsArray = window.codformGlobalData?.fields || [];
+    formStyle = window.codformGlobalData?.style || {};
+    formLanguage = window.codformGlobalData?.language || 'ar';
+    productId = window.codformGlobalData?.productId || 'default';
+  } else {
+    fieldsArray = JSON.parse(formDataDiv.dataset.fields || '[]');
+    formStyle = JSON.parse(formDataDiv.dataset.style || '{}');
+    formLanguage = formDataDiv.dataset.language || 'en';
+    productId = formDataDiv.dataset.productId || 'default';
   }
   
-  const fieldsArray = JSON.parse(formDataDiv.dataset.fields || '[]');
-  const formStyle = JSON.parse(formDataDiv.dataset.style || '{}');
-  const formLanguage = formDataDiv.dataset.language || 'en';
-  const productId = formDataDiv.dataset.productId || 'default';
+  if (!fieldsArray || fieldsArray.length === 0) {
+    console.error('❌ CODFORM: No form fields available');
+    return;
+  }
   
   // Create modal content
   const modalContent = document.createElement('div');
