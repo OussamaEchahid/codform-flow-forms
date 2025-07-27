@@ -50,23 +50,6 @@ quantity offers integration, and popup functionality.
   margin: 0 !important;
 }
 
-{%- comment -%} Popup button styling - no borders {%- endcomment -%}
-.codform-popup-trigger,
-button[id^="codform-popup-btn"] {
-  border: none !important;
-  outline: none !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
-}
-
-{%- comment -%} Form inside popup modal should have borders {%- endcomment -%}
-#codform-popup-overlay .codform-form-fields {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
 {%- comment -%} Arabic Font Styles {%- endcomment -%}
 .codform-arabic-text,
 .codform-arabic-text *,
@@ -154,12 +137,12 @@ button[id^="codform-popup-btn"] {
   animation: flash 2s infinite !important;
 }
 
-{%- comment -%} Enhanced popup button styles {%- endcomment -%}
+{%- comment -%} Complete removal of borders from popup buttons {%- endcomment -%}
 .codform-popup-button,
 button[id^="codform-popup-btn"],
 .codform-popup-trigger {
-  border: none !important;
-  outline: none !important;
+  border: 0px solid transparent !important;
+  outline: 0px solid transparent !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
   padding: 12px 24px;
   cursor: pointer;
@@ -174,32 +157,32 @@ button[id^="codform-popup-btn"]:hover,
 .codform-popup-trigger:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25) !important;
-  border: none !important;
-  outline: none !important;
+  border: 0px solid transparent !important;
+  outline: 0px solid transparent !important;
 }
 
 .codform-popup-button:active,
 button[id^="codform-popup-btn"]:active,
 .codform-popup-trigger:active {
   transform: translateY(0);
-  border: none !important;
-  outline: none !important;
+  border: 0px solid transparent !important;
+  outline: 0px solid transparent !important;
 }
 
 .codform-popup-button:focus,
 button[id^="codform-popup-btn"]:focus,
 .codform-popup-trigger:focus {
-  border: none !important;
-  outline: none !important;
+  border: 0px solid transparent !important;
+  outline: 0px solid transparent !important;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25) !important;
 }
 
-{%- comment -%} Remove any inherited button styles from popup buttons {%- endcomment -%}
+{%- comment -%} Completely remove borders from all popup button elements {%- endcomment -%}
 button[id^="codform-popup-btn"] *,
 .codform-popup-trigger *,
 .codform-popup-button * {
-  border: none !important;
-  outline: none !important;
+  border: 0px solid transparent !important;
+  outline: 0px solid transparent !important;
 }
 </style>
 
@@ -1486,9 +1469,9 @@ function openFormPopup() {
   // Set flag that we're in popup mode
   window.codformCurrentlyInPopup = true;
   
-  // Add form content with proper borders for popup
+  // Add form content with proper styling for popup
   modal.innerHTML = `
-    <div style="padding: 40px 30px 30px;">
+    <div style="padding: 30px; background: white; border-radius: 12px;">
       ${window.codformPopupHTML || '<p>Form not available</p>'}
     </div>
   `;
