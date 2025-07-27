@@ -595,11 +595,15 @@ button[id^="codform-popup-btn"] * {
         }
       }
       
-      // If popup mode, use popup button settings instead
+      // Check if we're actually inside a popup or just have popup enabled
+      const isActuallyInPopup = typeof window !== 'undefined' && window.codformCurrentlyInPopup === true;
+      
+      // Button settings based on context
       let finalButtonText, finalBgColor, finalTextColor, finalFontSize, finalBorderRadius;
       let finalAnimation = '';
       
-      if (isPopupMode && formStyle.popupButton) {
+      if (isPopupMode && !isActuallyInPopup) {
+        // We're on main page with popup enabled - use popup button settings
         finalButtonText = formStyle.popupButton.text || buttonText;
         finalBgColor = formStyle.popupButton.backgroundColor || formStyle?.primaryColor || 'rgb(155, 135, 245)';
         finalTextColor = formStyle.popupButton.textColor || 'rgb(255, 255, 255)';
@@ -618,7 +622,7 @@ button[id^="codform-popup-btn"] * {
           }
         }
       } else {
-        // Use normal submit button settings
+        // We're in normal mode or inside popup - use normal submit button settings
         const baseFontSize = getStyleValue(formStyle, 'baseFontSize', '16px');
         finalButtonText = buttonText;
         finalBgColor = getStyleValue(buttonStyle, 'backgroundColor', formStyle?.primaryColor || 'rgb(155, 135, 245)');
@@ -1212,6 +1216,7 @@ button[id^="codform-popup-btn"] * {
               outline: none !important;
             ">
               <button type="button" id="codform-popup-btn-${Date.now()}" 
+                class="${popupButton.animation && popupButton.animation !== 'none' ? popupButton.animation + '-animation' : ''}"
                 style="
                   background-color: ${popupButton.backgroundColor || '#9b87f5'};
                   color: ${popupButton.textColor || '#ffffff'};
