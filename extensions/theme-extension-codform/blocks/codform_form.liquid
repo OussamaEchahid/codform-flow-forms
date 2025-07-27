@@ -1584,12 +1584,37 @@ function openFormPopup(event) {
     }
     
     // تحميل عروض الكمية للنافذة المنبثقة
-    if (window.CodformQuantityOffers) {
-      const shopDomain = window.getShopDomain ? window.getShopDomain() : 'astrem.myshopify.com';
-      const productId = '{{ product.id }}' || '{{ product.variants.first.id }}' || 'auto-detect';
-      console.log('🚀 Loading quantity offers for popup with:', { productId, shopDomain });
-      window.CodformQuantityOffers.loadAndDisplayOffers('popup-form', productId, shopDomain, 'SAR', window.currentFormData);
+    console.log('🔄 Starting quantity offers for popup...');
+    
+    // التأكد من وجود CodformQuantityOffers
+    function waitForQuantityOffersPopup() {
+      if (window.CodformQuantityOffers) {
+        const shopDomain = window.getShopDomain ? window.getShopDomain() : 'astrem.myshopify.com';
+        const productId = '{{ product.id }}' || '{{ product.variants.first.id }}' || 'auto-detect';
+        console.log('🚀 Loading quantity offers for popup with:', { productId, shopDomain });
+        
+        // إنشاء حاوية للعروض في النافذة المنبثقة
+        const popupContainer = document.createElement('div');
+        popupContainer.id = 'quantity-offers-before-popup-form';
+        popupContainer.style.cssText = 'margin-bottom: 16px; border: 2px solid blue;';
+        
+        // البحث عن submit button في النافذة المنبثقة وإدراج العروض قبلها
+        const submitButton = modal.querySelector('button[type="submit"], input[type="submit"], [onclick*="submit"]');
+        if (submitButton) {
+          submitButton.parentNode.insertBefore(popupContainer, submitButton);
+          console.log('✅ Popup quantity offers container created');
+          
+          window.CodformQuantityOffers.loadAndDisplayOffers('popup-form', productId, shopDomain, 'SAR', window.currentFormData);
+        } else {
+          console.log('❌ Submit button not found in popup');
+        }
+      } else {
+        console.log('⏳ Waiting for CodformQuantityOffers in popup...');
+        setTimeout(waitForQuantityOffersPopup, 200);
+      }
     }
+    
+    waitForQuantityOffersPopup();
   }, 500);
 }
 
@@ -1642,10 +1667,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <!-- دمج كود عروض الكمية مباشرة -->
 <script>
-// CODFORM Quantity Offers Handler - مدمج مباشرة
-window.CodformQuantityOffers = (function() {
-  'use strict';
-
 // CODFORM Quantity Offers Handler - مدمج مباشرة
 window.CodformQuantityOffers = (function() {
   'use strict';
@@ -1786,7 +1807,7 @@ window.CodformQuantityOffers = (function() {
   }
 
   // دالة تحميل وعرض العروض من API
-  async function loadAndDisplayOffers(blockId, productId, shop, formCurrency = 'SAR') {
+  async function loadAndDisplayOffers(blockId, productId, shop, formCurrency = 'SAR', productData = null) {
     try {
       console.log("🌐 Loading quantity offers for:", { blockId, productId, shop });
       
@@ -1802,7 +1823,8 @@ window.CodformQuantityOffers = (function() {
       
       if (data.success && data.quantity_offers && data.quantity_offers.offers && data.quantity_offers.offers.length > 0) {
         console.log("✅ Quantity offers found, displaying...");
-        displayQuantityOffers(data.quantity_offers, blockId, productId, formCurrency);
+        // تمرير بيانات المنتج المُستلمة
+        displayQuantityOffers(data.quantity_offers, blockId, productId, formCurrency, productData);
       } else {
         console.log("ℹ️ No quantity offers found for this product");
       }
@@ -2111,13 +2133,16 @@ document.addEventListener('DOMContentLoaded', function() {
           price: parseFloat('{{ product.price | divided_by: 100.0 }}') || 0,
           comparePrice: parseFloat('{{ product.compare_at_price | divided_by: 100.0 }}') || 0,
           title: '{{ product.title }}' || 'منتج',
-          image: '{{ product.featured_image | img_url: '400x400' }}' || '',
+          image: '{{ product.featured_image | img_url: "400x400" }}' || '',
           currency: '{{ shop.currency }}' || 'SAR'
         };
         
         console.log("🛍️ تمرير بيانات المنتج لعروض الكمية:", productData);
         
-        window.CodformQuantityOffers.loadWithProduct(blockId, productId, shopDomain, formCurrency, productData);
+        // حفظ بيانات المنتج في متغير عام لاستخدامها في النافذة المنبثقة
+        window.currentFormData = Object.assign(window.currentFormData || {}, productData);
+        
+        window.CodformQuantityOffers.loadAndDisplayOffers(blockId, productId, shopDomain, formCurrency, productData);
         formContainer.dataset.quantityOffersLoaded = 'true';
         clearInterval(waitForFormLoad);
       }
