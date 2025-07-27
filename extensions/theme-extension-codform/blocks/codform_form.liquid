@@ -1179,21 +1179,52 @@
         
         let fieldsArray = [];
         
-        // Try different possible data structures
+        // Debug: Check data structure
+        console.log('🔍 CODFORM: Checking data structure:', {
+          hasFields: !!data.fields,
+          fieldsLength: data.fields ? data.fields.length : 0,
+          hasForm: !!data.form,
+          hasData: !!data.data,
+          dataType: Array.isArray(data.data) ? 'array' : typeof data.data,
+          dataLength: Array.isArray(data.data) ? data.data.length : 'not array',
+          firstDataItem: Array.isArray(data.data) && data.data.length > 0 ? data.data[0] : null
+        });
+        
+        // Try different possible data structures - ENHANCED LOGIC
         if (data.fields && Array.isArray(data.fields)) {
           fieldsArray = data.fields;
           console.log('✅ CODFORM: Found fields in data.fields');
         } else if (data.form && data.form.fields && Array.isArray(data.form.fields)) {
           fieldsArray = data.form.fields;
           console.log('✅ CODFORM: Found fields in data.form.fields');
+        } else if (data.data && Array.isArray(data.data)) {
+          // NEW: Handle case where data is array of steps or direct fields
+          console.log('🔍 CODFORM: Processing data array with length:', data.data.length);
+          
+          if (data.data.length > 0) {
+            const firstItem = data.data[0];
+            console.log('🔍 CODFORM: First data item:', firstItem);
+            
+            // Check if items are steps with fields
+            if (firstItem && firstItem.fields && Array.isArray(firstItem.fields)) {
+              fieldsArray = data.data.flatMap(step => step.fields || []);
+              console.log('✅ CODFORM: Found fields in data array steps');
+            } 
+            // Check if items are direct field objects
+            else if (firstItem && firstItem.type && firstItem.id) {
+              fieldsArray = data.data;
+              console.log('✅ CODFORM: Found direct fields in data array');
+            }
+            // Check if first item has nested data
+            else if (firstItem && firstItem.data && Array.isArray(firstItem.data)) {
+              fieldsArray = firstItem.data;
+              console.log('✅ CODFORM: Found fields in nested data');
+            }
+          }
         } else if (data.form && data.form.data && Array.isArray(data.form.data)) {
           // Handle case where fields are in form.data
           fieldsArray = data.form.data.flatMap(step => step.fields || []);
           console.log('✅ CODFORM: Found fields in data.form.data steps');
-        } else if (data.data && Array.isArray(data.data)) {
-          // Handle case where data is array of steps
-          fieldsArray = data.data.flatMap(step => step.fields || []);
-          console.log('✅ CODFORM: Found fields in data.data steps');
         } else if (data.form && Array.isArray(data.form)) {
           fieldsArray = data.form;
           console.log('✅ CODFORM: Found fields in data.form array');
