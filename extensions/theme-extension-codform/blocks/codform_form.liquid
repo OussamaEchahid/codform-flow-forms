@@ -971,6 +971,14 @@
           hasData: !!data.data
         });
         
+        // CRITICAL FIX: Store the form data globally for popup usage
+        window.lastFormData = {
+          data: data,
+          style: data.style || {},
+          language: data.language || 'en'
+        };
+        console.log('💾 CODFORM: Form data stored globally for popup:', window.lastFormData);
+        
         const container = document.querySelector('[data-form-preview-id="form-preview-stable"]');
         if (!container) {
           console.log('❌ CODFORM: Form container not found');
@@ -1419,6 +1427,68 @@
       alert('خطأ في إرسال الطلب. يرجى المحاولة مرة أخرى.');
     }
   };
+
+// Function to recreate form from stored data
+function createFormFromData(formData) {
+  console.log('🔨 CODFORM: Recreating form from data:', formData);
+  
+  // Handle different data structures - check multiple possible sources for fields
+  let fields = null;
+  if (formData && formData.data && formData.data.fields) {
+    fields = formData.data.fields;
+  } else if (formData && formData.fields) {
+    fields = formData.fields;
+  } else if (formData && formData.data && formData.data.data && formData.data.data.fields) {
+    fields = formData.data.data.fields;
+  }
+  
+  if (!fields || !Array.isArray(fields) || fields.length === 0) {
+    console.error('❌ CODFORM: No valid fields found in form data:', formData);
+    return null;
+  }
+  
+  console.log('✅ CODFORM: Found fields for recreation:', fields.length, 'fields');
+  
+  const container = document.createElement('div');
+  container.className = 'codform-dynamic-form';
+  container.style.cssText = `
+    background-color: ${formData.style?.backgroundColor || '#FFFFFF'};
+    padding: ${formData.style?.paddingTop || '20px'} ${formData.style?.paddingRight || '20px'} ${formData.style?.paddingBottom || '20px'} ${formData.style?.paddingLeft || '20px'};
+    border: ${formData.style?.borderWidth || '2px'} solid ${formData.style?.borderColor || '#9b87f5'};
+    border-radius: ${formData.style?.borderRadius || '1.5rem'};
+    direction: ${formData.style?.formDirection || 'ltr'};
+    font-family: 'Cairo', sans-serif;
+    max-width: 500px;
+    margin: 20px auto;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  `;
+  
+  // Add form fields
+  fields.forEach(field => {
+    const fieldHtml = renderField(field, formData.style, formData.language);
+    if (fieldHtml) {
+      const fieldDiv = document.createElement('div');
+      fieldDiv.innerHTML = fieldHtml;
+      container.appendChild(fieldDiv.firstElementChild);
+    }
+  });
+  
+  // Add submit button if exists
+  if (fields.some(f => f.type === 'submit')) {
+    const submitField = fields.find(f => f.type === 'submit');
+    if (submitField) {
+      const submitHtml = renderField(submitField, formData.style, formData.language);
+      if (submitHtml) {
+        const submitDiv = document.createElement('div');
+        submitDiv.innerHTML = submitHtml;
+        container.appendChild(submitDiv.firstElementChild);
+      }
+    }
+  }
+  
+  console.log('✅ CODFORM: Form recreated successfully');
+  return container;
+}
   
 })();
 
@@ -1433,8 +1503,13 @@ function showPopupButton(popupConfig, formContainer) {
       return;
     }
     
-    // Store original form content for the popup
+    // Store original form content AND data for the popup - this is critical!
+    console.log('💾 CODFORM: Storing original form content and data for popup');
     window.originalFormContent = formContainer.innerHTML;
+    if (window.lastFormData) {
+      window.storedFormData = JSON.parse(JSON.stringify(window.lastFormData));
+      console.log('✅ CODFORM: Form data stored for popup:', window.storedFormData);
+    }
     
     // Configure button text and styling
     const buttonText = popupConfig.showIcon ? 
@@ -1573,31 +1648,71 @@ window.codformOpenPopup = function() {
   document.head.appendChild(style);
 
   // Load the form content into popup
-  const formContainer = document.querySelector('.codform-dynamic-form');
-  if (formContainer) {
-    // Clone the form content
-    const formClone = formContainer.cloneNode(true);
-    formClone.style.margin = '0';
-    formClone.style.maxWidth = '100%';
-    popup.appendChild(formClone);
-  } else {
-    // If no form found, try to load it
-    console.log('🔍 CODFORM: No form found, attempting to load...');
-    const tempContainer = document.createElement('div');
-    tempContainer.innerHTML = '<p>Loading form...</p>';
-    popup.appendChild(tempContainer);
-    
-    // Try to load form content
-    setTimeout(() => {
-      const newForm = document.querySelector('.codform-dynamic-form');
-      if (newForm) {
-        tempContainer.innerHTML = '';
-        const formClone = newForm.cloneNode(true);
-        formClone.style.margin = '0';
-        formClone.style.maxWidth = '100%';
-        tempContainer.appendChild(formClone);
+  console.log('🔍 CODFORM: Loading form content into popup...');
+  
+  // First check for stored form data - most reliable method
+  if (window.lastFormData) {
+    console.log('✅ CODFORM: Using stored form data to recreate form');
+    const recreatedForm = createFormFromData(window.lastFormData);
+    if (recreatedForm) {
+      console.log('✅ CODFORM: Form recreated successfully from stored data');
+      popup.appendChild(recreatedForm);
+    } else {
+      console.error('❌ CODFORM: Failed to recreate form from stored data, trying fallback');
+      // Try original content as fallback
+      if (window.originalFormContent) {
+        console.log('🔄 CODFORM: Using stored original form content as fallback');
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = window.originalFormContent;
+        tempDiv.style.margin = '0';
+        tempDiv.style.maxWidth = '100%';
+        popup.appendChild(tempDiv);
+      } else {
+        const errorDiv = document.createElement('div');
+        errorDiv.innerHTML = '<p style="text-align: center; color: #666;">خطأ في تحميل النموذج</p>';
+        popup.appendChild(errorDiv);
       }
-    }, 500);
+    }
+  } else if (window.originalFormContent) {
+    console.log('✅ CODFORM: Using stored original form content');
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = window.originalFormContent;
+    tempDiv.style.margin = '0';
+    tempDiv.style.maxWidth = '100%';
+    popup.appendChild(tempDiv);
+  } else {
+    // Fallback: try to find existing form container
+    const formContainer = document.querySelector('.codform-dynamic-form');
+    if (formContainer && !formContainer.classList.contains('popup-mode')) {
+      console.log('✅ CODFORM: Using existing form container');
+      const formClone = formContainer.cloneNode(true);
+      formClone.style.margin = '0';
+      formClone.style.maxWidth = '100%';
+      popup.appendChild(formClone);
+    } else {
+      // Last resort: recreate form from stored data
+      console.log('🔄 CODFORM: Recreating form from stored data...');
+      console.log('🔄 CODFORM: Available stored data:', window.lastFormData);
+      
+      if (window.lastFormData) {
+        const recreatedForm = createFormFromData(window.lastFormData);
+        if (recreatedForm) {
+          console.log('✅ CODFORM: Form recreated successfully from stored data');
+          popup.appendChild(recreatedForm);
+        } else {
+          console.error('❌ CODFORM: Failed to recreate form from stored data');
+          const errorDiv = document.createElement('div');
+          errorDiv.innerHTML = '<p style="text-align: center; color: #666;">خطأ في تحميل النموذج</p>';
+          popup.appendChild(errorDiv);
+        }
+      } else {
+        console.error('❌ CODFORM: No stored form data available');
+        const errorDiv = document.createElement('div');
+        errorDiv.innerHTML = '<p style="text-align: center; color: #666;">لم يتم العثور على النموذج</p>';
+        popup.appendChild(errorDiv);
+      }
+    }
+  }
   }
   
   // Add close button
