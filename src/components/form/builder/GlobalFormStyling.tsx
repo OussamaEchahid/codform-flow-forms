@@ -27,22 +27,8 @@ interface GlobalFormStylingProps {
     fieldBorderColor?: string;
     fieldBorderWidth?: string;
     fieldBorderRadius?: string;
-    popupButton?: {
-      enabled: boolean;
-      text: string;
-      fontSize: string;
-      fontWeight: string;
-      textColor: string;
-      backgroundColor: string;
-      borderColor: string;
-      borderWidth: string;
-      borderRadius: string;
-      paddingY: string;
-      animation: string;
-      showIcon: boolean;
-    };
   };
-  onStyleChange: (key: string, value: string | boolean | object) => void;
+  onStyleChange: (key: string, value: string | boolean) => void;
 }
 
 const GlobalFormStyling: React.FC<GlobalFormStylingProps> = ({ formStyle, onStyleChange }) => {
@@ -324,7 +310,6 @@ const GlobalFormStyling: React.FC<GlobalFormStylingProps> = ({ formStyle, onStyl
             />
           </div>
         </div>
-
           </CardContent>
         </CollapsibleContent>
       </Card>

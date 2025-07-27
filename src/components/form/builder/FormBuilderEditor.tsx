@@ -13,7 +13,6 @@ import FormPreviewPanel from '@/components/form/builder/FormPreviewPanel';
 import FormTemplatesDialog from '@/components/form/FormTemplatesDialog';
 import FormSettingsTab from '@/components/form/builder/FormSettingsTab';
 import GlobalFormStyling from '@/components/form/builder/GlobalFormStyling';
-import PopupButtonManager from '@/components/form/builder/PopupButtonManager';
 import { useShopify } from '@/hooks/useShopify';
 import { COUNTRIES, getCountryByCode } from '@/lib/constants/countries-currencies';
 import { 
@@ -88,7 +87,6 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
   const { formState, setFormState } = useFormStore();
   
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
-  const [isPopupFormDialogOpen, setIsPopupFormDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isPublished, setIsPublished] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
@@ -411,25 +409,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
                 paddingRight: formData.style.paddingRight || '20px',
                 formGap: formData.style.formGap || '16px',
                 formDirection: formData.style.formDirection || 'ltr',
-                floatingLabels: formData.style.floatingLabels || false,
-                focusBorderColor: formData.style.focusBorderColor || '#9b87f5',
-                fieldBorderColor: formData.style.fieldBorderColor || '#e2e8f0',
-                fieldBorderWidth: formData.style.fieldBorderWidth || '1px',
-                fieldBorderRadius: formData.style.fieldBorderRadius || '8px',
-                popupButton: formData.style.popupButton || {
-                  enabled: false,
-                  text: language === 'ar' ? 'اطلب الآن' : 'Order Now',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  textColor: '#ffffff',
-                  backgroundColor: '#9b87f5',
-                  borderColor: '#9b87f5',
-                  borderWidth: '2px',
-                  borderRadius: '8px',
-                  paddingY: '12px',
-                  animation: 'none',
-                  showIcon: false
-                }
+                floatingLabels: formData.style.floatingLabels || false
               });
             } else {
               // قيم افتراضية إذا كان النمط مفقودًا
@@ -447,25 +427,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
                 paddingRight: '20px',
                 formGap: '16px',
                 formDirection: 'ltr',
-                floatingLabels: false,
-                focusBorderColor: '#9b87f5',
-                fieldBorderColor: '#e2e8f0',
-                fieldBorderWidth: '1px',
-                fieldBorderRadius: '8px',
-                popupButton: {
-                  enabled: false,
-                  text: language === 'ar' ? 'اطلب الآن' : 'Order Now',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  textColor: '#ffffff',
-                  backgroundColor: '#9b87f5',
-                  borderColor: '#9b87f5',
-                  borderWidth: '2px',
-                  borderRadius: '8px',
-                  paddingY: '12px',
-                  animation: 'none',
-                  showIcon: false
-                }
+                floatingLabels: false
               });
             }
           } else {
@@ -516,14 +478,13 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
         console.warn("No active shop ID found, saving without shop association");
       }
       
-      // حفظ إعدادات النمط مع النموذج - استخدام formState.style بدلاً من formStyle المحلي
-      const currentStyle = formState.style || formStyle;
+      // حفظ إعدادات النمط مع النموذج
       const formData: Partial<FormData> = {
         title: formTitle,
         description: formDescription,
         data: [formStep],
         shop_id: activeShopId,
-        style: currentStyle, // استخدام النمط المحدث من formState
+        style: formStyle,
         country: formCountry,
         currency: formCurrency,
         phone_prefix: formPhonePrefix
@@ -542,7 +503,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
           ...formState,
           ...formData,
           id: currentFormId,
-          style: currentStyle
+          style: formStyle
         });
         
         // Reset unsaved changes flag
@@ -556,7 +517,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
             description: formDescription,
             data: [formStep] as any,
             shop_id: activeShopId,
-            style: currentStyle as any, // استخدام النمط المحدث
+            style: formStyle as any,
             country: formCountry,
             currency: formCurrency,
             phone_prefix: formPhonePrefix,
@@ -819,7 +780,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
   };
 
   // Handle individual style property updates
-  const handleStylePropertyChange = (key: string, value: string | boolean | object) => {
+  const handleStylePropertyChange = (key: string, value: string | boolean) => {
     setFormStyle(prevStyle => ({
       ...prevStyle,
       [key]: value
@@ -898,24 +859,6 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
     console.log("Title update functionality has been removed");
   };
 
-  // Handle popup button configuration updates
-  const handlePopupButtonUpdate = (config: any) => {
-    const updatedStyle = {
-      ...formStyle,
-      popupButton: config
-    };
-    
-    setFormStyle(updatedStyle);
-    
-    // Update form state as well
-    setFormState({
-      ...formState,
-      style: updatedStyle
-    });
-    
-    setHasUnsavedChanges(true);
-  };
-
   // Show a loading screen during slow operations
   if (isLoading) {
     return (
@@ -936,7 +879,6 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
         onSave={handleSave}
         onPublish={handlePublish}
         onTemplateOpen={() => setIsTemplateDialogOpen(true)}
-        onPopupFormOpen={() => setIsPopupFormDialogOpen(true)}
         isSaving={isSaving}
         isPublishing={isPublishing}
         isPublished={isPublished}
@@ -1018,39 +960,17 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
             </TabsContent>
             
             <TabsContent value="settings" className="flex-1 p-6 mt-0 overflow-y-auto">
-              <div className="space-y-6">
-                <FormSettingsTab
-                  formTitle={formTitle}
-                  formDescription={formDescription}
-                  country={formCountry}
-                  currency={formCurrency}
-                  phonePrefix={formPhonePrefix}
-                  onTitleChange={setFormTitle}
-                  onDescriptionChange={setFormDescription}
-                  onCountryChange={handleCountryChange}
-                  onCurrencyChange={handleCurrencyChange}
-                />
-                
-                <PopupButtonManager 
-                  popupButton={formStyle.popupButton || {
-                    enabled: false,
-                    text: language === 'ar' ? 'اطلب الآن' : 'Order Now',
-                    fontSize: '16px',
-                    fontWeight: '600',
-                    textColor: '#ffffff',
-                    backgroundColor: '#9b87f5',
-                    borderColor: '#9b87f5',
-                    borderWidth: '2px',
-                    borderRadius: '8px',
-                    paddingY: '12px',
-                    animation: 'none',
-                    showIcon: false
-                  }}
-                  onUpdate={handlePopupButtonUpdate}
-                  fields={formElements}
-                  formStyle={formStyle}
-                />
-              </div>
+              <FormSettingsTab
+                formTitle={formTitle}
+                formDescription={formDescription}
+                country={formCountry}
+                currency={formCurrency}
+                phonePrefix={formPhonePrefix}
+                onTitleChange={setFormTitle}
+                onDescriptionChange={setFormDescription}
+                onCountryChange={handleCountryChange}
+                onCurrencyChange={handleCurrencyChange}
+              />
             </TabsContent>
           </Tabs>
         </div>
@@ -1063,44 +983,6 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
           onSelect={handleSelectTemplate} 
           onClose={() => setIsTemplateDialogOpen(false)}
         />
-      </Dialog>
-
-      {/* Popup Form Dialog */}
-      <Dialog open={isPopupFormDialogOpen} onOpenChange={setIsPopupFormDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <PopupButtonManager
-            popupButton={formState.style?.popupButton || {
-              enabled: false,
-              text: language === 'ar' ? 'اطلب الآن' : 'Order Now',
-              fontSize: '18px',
-              fontWeight: '600',
-              textColor: '#ffffff',
-              backgroundColor: '#9b87f5',
-              borderColor: '#9b87f5',
-              borderWidth: '2px',
-              borderRadius: '8px',
-              paddingY: '16px',
-              animation: 'none',
-              showIcon: true
-            }}
-            onUpdate={(config) => {
-              const updatedStyle = {
-                ...formState.style,
-                popupButton: config
-              };
-              
-              setFormState({
-                ...formState,
-                style: updatedStyle
-              });
-              
-              setFormStyle(updatedStyle);
-              setHasUnsavedChanges(true);
-            }}
-            fields={formElements}
-            formStyle={formStyle}
-          />
-        </DialogContent>
       </Dialog>
 
       {isFieldEditorOpen && currentEditingField && (

@@ -2,14 +2,13 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { Save, FileCheck, FileText, Settings } from 'lucide-react';
+import { Save, FileCheck, FileText } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 
 interface FormHeaderProps {
   onSave: () => void;
   onPublish: () => void;
   onTemplateOpen: () => void;
-  onPopupFormOpen: () => void;
   isSaving: boolean;
   isPublishing: boolean;
   isPublished: boolean;
@@ -18,8 +17,7 @@ interface FormHeaderProps {
 const FormHeader: React.FC<FormHeaderProps> = ({ 
   onSave, 
   onPublish, 
-  onTemplateOpen,
-  onPopupFormOpen, 
+  onTemplateOpen, 
   isSaving,
   isPublishing,
   isPublished
@@ -34,15 +32,9 @@ const FormHeader: React.FC<FormHeaderProps> = ({
           {language === 'ar' ? 'لوحة التحكم' : 'Dashboard'}
         </Button>
         <div className="h-4 w-[1px] bg-gray-300"></div>
-        <Button 
-          variant="outline"
-          size="sm"
-          onClick={onPopupFormOpen}
-          className="flex items-center gap-2"
-        >
-          <Settings size={16} />
-          {language === 'ar' ? 'تفعيل النموذج المنبثق' : 'Enable Popup Form'}
-        </Button>
+        <div className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full flex items-center gap-2">
+          <span>{language === 'ar' ? 'نموذج كـ نافذة منبثقة' : 'Form as popup'}</span>
+        </div>
       </div>
       
       <div className="flex items-center gap-3">

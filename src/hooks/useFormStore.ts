@@ -17,24 +17,6 @@ export interface FormStyle {
   formGap?: string;
   formDirection?: 'ltr' | 'rtl';
   floatingLabels?: boolean;
-  focusBorderColor?: string;
-  fieldBorderColor?: string;
-  fieldBorderWidth?: string;
-  fieldBorderRadius?: string;
-  popupButton?: {
-    enabled: boolean;
-    text: string;
-    fontSize: string;
-    fontWeight: string;
-    textColor: string;
-    backgroundColor: string;
-    borderColor: string;
-    borderWidth: string;
-    borderRadius: string;
-    paddingY: string;
-    animation: string;
-    showIcon: boolean;
-  };
 }
 
 export interface FormState {
@@ -109,14 +91,6 @@ export const useFormStore = create<FormStore>((set) => ({
     if (form.style) {
       // Deep copy to prevent reference issues
       const newStyleProps = JSON.parse(JSON.stringify(form.style));
-      
-      // Special handling for popupButton to ensure proper merging
-      if (newStyleProps.popupButton && updatedStyle.popupButton) {
-        newStyleProps.popupButton = {
-          ...updatedStyle.popupButton,
-          ...newStyleProps.popupButton
-        };
-      }
       
       // Apply the style updates, ensuring fontSize is preserved
       updatedStyle = {

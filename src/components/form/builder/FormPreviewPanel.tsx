@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import PopupButton from '@/components/form/preview/PopupButton';
 import { Button } from '@/components/ui/button';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
@@ -187,19 +186,6 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           </div>
         </form>
       </CardContent>
-      
-      {/* Popup Button Preview */}
-      {formStyle.popupButton?.enabled && (
-        <PopupButton 
-          config={formStyle.popupButton}
-          onScroll={() => {
-            const formElement = document.querySelector('.max-w-md');
-            if (formElement) {
-              formElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-          }}
-        />
-      )}
     </Card>
   );
 };
