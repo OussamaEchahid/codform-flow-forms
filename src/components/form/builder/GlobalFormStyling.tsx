@@ -30,7 +30,6 @@ interface GlobalFormStylingProps {
     popupButton?: {
       enabled: boolean;
       text: string;
-      position: string;
       fontSize: string;
       fontWeight: string;
       textColor: string;
@@ -350,7 +349,6 @@ const GlobalFormStyling: React.FC<GlobalFormStylingProps> = ({ formStyle, onStyl
                   borderWidth: formStyle.popupButton?.borderWidth || '2px',
                   fontSize: formStyle.popupButton?.fontSize || '16px',
                   fontWeight: formStyle.popupButton?.fontWeight || '600',
-                  position: formStyle.popupButton?.position || 'bottom-right',
                   paddingY: formStyle.popupButton?.paddingY || '12px',
                   animation: formStyle.popupButton?.animation || 'none',
                   showIcon: formStyle.popupButton?.showIcon || false
@@ -378,27 +376,6 @@ const GlobalFormStyling: React.FC<GlobalFormStylingProps> = ({ formStyle, onStyl
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Position</Label>
-                <Select
-                  value={formStyle.popupButton?.position || 'bottom-right'}
-                  onValueChange={(value) => onStyleChange('popupButton', {
-                    ...formStyle.popupButton,
-                    position: value
-                  })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="bottom-right">Bottom Right</SelectItem>
-                    <SelectItem value="bottom-left">Bottom Left</SelectItem>
-                    <SelectItem value="top-right">Top Right</SelectItem>
-                    <SelectItem value="top-left">Top Left</SelectItem>
-                    <SelectItem value="center">Center</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
 
               <div className="space-y-2">
                 <Label className="flex items-center justify-between text-sm font-medium">

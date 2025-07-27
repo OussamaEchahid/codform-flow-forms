@@ -410,7 +410,24 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
                 formGap: formData.style.formGap || '16px',
                 formDirection: formData.style.formDirection || 'ltr',
                 floatingLabels: formData.style.floatingLabels || false,
-                popupButton: formData.style.popupButton || undefined
+                focusBorderColor: formData.style.focusBorderColor || '#9b87f5',
+                fieldBorderColor: formData.style.fieldBorderColor || '#e2e8f0',
+                fieldBorderWidth: formData.style.fieldBorderWidth || '1px',
+                fieldBorderRadius: formData.style.fieldBorderRadius || '8px',
+                popupButton: formData.style.popupButton || {
+                  enabled: false,
+                  text: language === 'ar' ? 'اطلب الآن' : 'Order Now',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  textColor: '#ffffff',
+                  backgroundColor: '#9b87f5',
+                  borderColor: '#9b87f5',
+                  borderWidth: '2px',
+                  borderRadius: '8px',
+                  paddingY: '12px',
+                  animation: 'none',
+                  showIcon: false
+                }
               });
             } else {
               // قيم افتراضية إذا كان النمط مفقودًا
@@ -428,7 +445,25 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
                 paddingRight: '20px',
                 formGap: '16px',
                 formDirection: 'ltr',
-                floatingLabels: false
+                floatingLabels: false,
+                focusBorderColor: '#9b87f5',
+                fieldBorderColor: '#e2e8f0',
+                fieldBorderWidth: '1px',
+                fieldBorderRadius: '8px',
+                popupButton: {
+                  enabled: false,
+                  text: language === 'ar' ? 'اطلب الآن' : 'Order Now',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  textColor: '#ffffff',
+                  backgroundColor: '#9b87f5',
+                  borderColor: '#9b87f5',
+                  borderWidth: '2px',
+                  borderRadius: '8px',
+                  paddingY: '12px',
+                  animation: 'none',
+                  showIcon: false
+                }
               });
             }
           } else {

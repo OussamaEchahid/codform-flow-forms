@@ -1052,6 +1052,122 @@
         
         console.log('✅ CODFORM: Styles applied to container. Final container style:', container.style.cssText);
 
+        // Check if popup button is enabled
+        console.log('🎯 CODFORM: Checking popup button settings:', popupButton);
+        const isPopupEnabled = popupButton?.enabled === true;
+        
+        if (isPopupEnabled) {
+          console.log('🎯 CODFORM: Popup mode enabled, hiding form and showing button');
+          // Hide the normal form and show popup button
+          container.style.display = 'none';
+          
+          // Create popup button
+          const popupButtonElement = document.createElement('button');
+          popupButtonElement.textContent = popupButton.showIcon ? `🛒 ${popupButton.text}` : popupButton.text;
+          popupButtonElement.style.cssText = `
+            background-color: ${popupButton.backgroundColor || '#9b87f5'};
+            color: ${popupButton.textColor || '#ffffff'};
+            border: ${popupButton.borderWidth || '2px'} solid ${popupButton.borderColor || '#9b87f5'};
+            border-radius: ${popupButton.borderRadius || '8px'};
+            font-size: ${popupButton.fontSize || '16px'};
+            font-weight: ${popupButton.fontWeight || '600'};
+            padding: ${popupButton.paddingY || '12px'} 24px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            display: block;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            margin: 20px auto;
+            max-width: 300px;
+          `;
+          
+          // Add animation class
+          if (popupButton.animation && popupButton.animation !== 'none') {
+            popupButtonElement.classList.add(`${popupButton.animation}-animation`);
+          }
+          
+          // Add hover effect
+          popupButtonElement.addEventListener('mouseenter', function() {
+            this.style.transform = 'scale(1.02)';
+            this.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.2)';
+          });
+          
+          popupButtonElement.addEventListener('mouseleave', function() {
+            this.style.transform = 'scale(1)';
+            this.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+          });
+          
+          // Insert button in the same container
+          const sectionElement = document.querySelector('[data-section-id="{{ section.id }}"]');
+          if (sectionElement) {
+            sectionElement.appendChild(popupButtonElement);
+          }
+          
+          // Add click event to show form popup
+          popupButtonElement.addEventListener('click', function() {
+            // Show the form container as popup
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+              position: fixed;
+              top: 0;
+              left: 0;
+              width: 100%;
+              height: 100%;
+              background-color: rgba(0, 0, 0, 0.5);
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              z-index: 9999;
+            `;
+            
+            const modalContent = document.createElement('div');
+            modalContent.style.cssText = `
+              background: white;
+              border-radius: 12px;
+              padding: 20px;
+              max-width: 90vw;
+              max-height: 90vh;
+              overflow-y: auto;
+              position: relative;
+            `;
+            
+            // Clone the form
+            const formClone = container.cloneNode(true);
+            formClone.style.display = 'block';
+            formClone.style.margin = '0';
+            modalContent.appendChild(formClone);
+            
+            // Add close button
+            const closeBtn = document.createElement('button');
+            closeBtn.innerHTML = '×';
+            closeBtn.style.cssText = `
+              position: absolute;
+              top: 10px;
+              right: 15px;
+              background: none;
+              border: none;
+              font-size: 24px;
+              cursor: pointer;
+              color: #666;
+            `;
+            closeBtn.onclick = () => modal.remove();
+            modalContent.appendChild(closeBtn);
+            
+            modal.appendChild(modalContent);
+            document.body.appendChild(modal);
+            
+            // Close on background click
+            modal.onclick = (e) => {
+              if (e.target === modal) modal.remove();
+            };
+          });
+          
+          // Skip normal form rendering since we're in popup mode
+          return;
+        }
+
         // Generate and insert form content
         let formContent = '';
         

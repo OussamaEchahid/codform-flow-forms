@@ -17,10 +17,13 @@ export interface FormStyle {
   formGap?: string;
   formDirection?: 'ltr' | 'rtl';
   floatingLabels?: boolean;
+  focusBorderColor?: string;
+  fieldBorderColor?: string;
+  fieldBorderWidth?: string;
+  fieldBorderRadius?: string;
   popupButton?: {
     enabled: boolean;
     text: string;
-    position: string;
     fontSize: string;
     fontWeight: string;
     textColor: string;
