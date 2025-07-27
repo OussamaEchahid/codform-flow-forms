@@ -1622,6 +1622,8 @@ function generateBlockId(productId) {
 window.openFormPopup = function(event) {
   if (event) event.preventDefault();
   
+  console.log('🚀 CODFORM: Opening popup form');
+  
   // Create popup modal
   const popup = document.createElement('div');
   popup.id = 'codform-popup-modal';
@@ -1639,41 +1641,18 @@ window.openFormPopup = function(event) {
     animation: fadeIn 0.3s ease;
   `;
   
-  // Get form data from hidden div or use global variables
-  let formDataDiv = document.querySelector('#popup-form-data');
-  let fieldsArray, formStyle, formLanguage, productId;
-  
-  if (!formDataDiv) {
-    console.log('📋 CODFORM: Form data div not found, using global data');
-    // Use global variables if available
-    fieldsArray = window.codformGlobalData?.fields || [];
-    formStyle = window.codformGlobalData?.style || {};
-    formLanguage = window.codformGlobalData?.language || 'ar';
-    productId = window.codformGlobalData?.productId || 'default';
-  } else {
-    fieldsArray = JSON.parse(formDataDiv.dataset.fields || '[]');
-    formStyle = JSON.parse(formDataDiv.dataset.style || '{}');
-    formLanguage = formDataDiv.dataset.language || 'en';
-    productId = formDataDiv.dataset.productId || 'default';
-  }
-  
-  if (!fieldsArray || fieldsArray.length === 0) {
-    console.error('❌ CODFORM: No form fields available');
-    return;
-  }
-  
-  // Create modal content with proper RTL styling
+  // Create modal content
   const modalContent = document.createElement('div');
   modalContent.style.cssText = `
     background: white;
     border-radius: 12px;
-    max-width: 90%;
+    max-width: 500px;
+    width: 90%;
     max-height: 90%;
     overflow-y: auto;
     position: relative;
     padding: 24px;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-    animation: slideIn 0.3s ease;
     direction: rtl;
     text-align: right;
     font-family: 'Cairo', 'Noto Sans Arabic', 'Amiri', sans-serif;
@@ -1702,130 +1681,54 @@ window.openFormPopup = function(event) {
   `;
   
   closeBtn.onclick = function() {
-    popup.style.animation = 'fadeOut 0.3s ease';
-    setTimeout(() => {
-      document.body.removeChild(popup);
-    }, 300);
+    document.body.removeChild(popup);
   };
   
-  // Create form with quantity offers for popup
-  const formWrapper = document.createElement('div');
-  formWrapper.style.cssText = `
-    background: transparent; 
-    margin: 0; 
-    padding: 20px;
-    direction: rtl;
-    text-align: right;
-    font-family: 'Cairo', 'Noto Sans Arabic', 'Amiri', sans-serif;
-  `;
+  // Get the original form and copy it exactly
+  const originalForm = document.querySelector('[data-form-preview-id="form-preview-stable"]');
   
-  // Generate block ID for quantity offers container in popup
-  const popupBlockId = `popup_${productId}`;
-  
-  // Create quantity offers containers for popup with correct IDs
-  const quantityOffersBeforePopup = document.createElement('div');
-  quantityOffersBeforePopup.id = `quantity-offers-before-${popupBlockId}`;
-  quantityOffersBeforePopup.style.cssText = 'margin-bottom: 16px;'; // Remove display: none
-  
-  // Generate form HTML with correct styling
-  const formElement = document.createElement('form');
-  formElement.className = 'codform-form-fields';
-  formElement.id = 'popup-form';
-  formElement.style.cssText = `
-    background: transparent; 
-    margin: 0; 
-    padding: 0;
-    font-family: 'Cairo', 'Noto Sans Arabic', 'Amiri', sans-serif !important;
-  `;
-  formElement.onsubmit = handlePopupFormSubmission;
-  
-  // البحث عن النموذج الأصلي ونسخه بالكامل
-  const originalFormContainer = document.querySelector('[data-form-preview-id="form-preview-stable"]');
-  
-  if (originalFormContainer && originalFormContainer.children.length > 0) {
-    console.log('📋 CODFORM: Found original form container, copying entire content');
+  if (originalForm) {
+    // Clone the original form completely
+    const clonedForm = originalForm.cloneNode(true);
     
-    // نسخ النموذج الأصلي بالكامل مع جميع العناصر
-    const clonedContainer = originalFormContainer.cloneNode(true);
+    // Clean up the styling for popup
+    clonedForm.style.background = 'transparent';
+    clonedForm.style.border = 'none';
+    clonedForm.style.boxShadow = 'none';
+    clonedForm.style.padding = '0';
+    clonedForm.style.margin = '0';
     
-    // إزالة الستايلات من الحاوية المنسوخة
-    clonedContainer.style.background = 'transparent';
-    clonedContainer.style.border = 'none';
-    clonedContainer.style.boxShadow = 'none';
-    clonedContainer.style.padding = '0';
-    clonedContainer.style.margin = '0';
+    // Add to modal
+    modalContent.appendChild(closeBtn);
+    modalContent.appendChild(clonedForm);
     
-    // إضافة الستايلات العربية للنموذج المنسوخ
-    clonedContainer.style.direction = 'rtl';
-    clonedContainer.style.textAlign = 'right';
-    clonedContainer.style.fontFamily = "'Cairo', 'Noto Sans Arabic', 'Amiri', sans-serif";
-    
-    // استبدال formElement بالنسخة المكتملة
-    formWrapper.appendChild(clonedContainer);
-    
-    console.log('✅ CODFORM: Successfully copied complete original form');
-    
+    console.log('✅ CODFORM: Form cloned successfully');
   } else {
-    console.log('📋 CODFORM: No existing form found, creating from field data');
-    
-    // إنشاء النموذج من البيانات كخيار احتياطي
-    formElement.style.direction = 'rtl';
-    formElement.style.textAlign = 'right';
-    formElement.style.fontFamily = "'Cairo', 'Noto Sans Arabic', 'Amiri', sans-serif";
-    
-    // استخدام renderField لإنشاء الحقول
-    window.codformCurrentlyInPopup = true;
-    
-    formElement.innerHTML = fieldsArray.map(field => {
-      if (field.type === 'submit') {
-        return `<button type="submit" style="
-          background-color: ${formStyle.submitButtonStyle?.backgroundColor || '#9b87f5'};
-          color: ${formStyle.submitButtonStyle?.color || 'white'};
-          padding: 12px 24px;
-          border: none;
-          border-radius: 8px;
-          font-size: 16px;
-          font-weight: 600;
-          cursor: pointer;
-          width: 100%;
-          margin-top: 16px;
-          font-family: 'Cairo', 'Noto Sans Arabic', 'Amiri', sans-serif;
-          transition: all 0.3s ease;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">${field.label || 'إرسال الطلب'}</button>`;
-      }
-      return renderField(field, formStyle, formLanguage);
-    }).join('');
-    
-    window.codformCurrentlyInPopup = false;
-    
-    console.log('✅ CODFORM: Created form from field data');
-  }
-  
-  // التأكد من أن النموذج يحتوي على محتوى
-  if (!formElement.innerHTML.trim()) {
-    console.error('❌ CODFORM: Form element is empty, adding fallback content');
-    formElement.innerHTML = `
-      <div style="direction: rtl; text-align: right; font-family: 'Cairo', sans-serif;">
-        <div style="margin-bottom: 16px;">
-          <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #374151;">الاسم الكامل</label>
-          <input type="text" name="fullName" style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-family: 'Cairo', sans-serif;" />
-        </div>
-        <button type="submit" style="background-color: #9b87f5; color: white; padding: 12px 24px; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; width: 100%; font-family: 'Cairo', sans-serif;">إرسال الطلب</button>
+    console.error('❌ CODFORM: Original form not found');
+    modalContent.innerHTML = `
+      <button onclick="document.body.removeChild(document.getElementById('codform-popup-modal'))" style="position: absolute; top: 12px; right: 12px; background: none; border: none; font-size: 24px; cursor: pointer;">✕</button>
+      <div style="direction: rtl; text-align: right; font-family: 'Cairo', sans-serif; padding: 20px;">
+        <h3>نموذج الطلب</h3>
+        <form onsubmit="handlePopupFormSubmission(event)">
+          <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: 600;">الاسم الكامل *</label>
+            <input type="text" name="fullName" required style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 16px; font-family: 'Cairo', sans-serif;" />
+          </div>
+          <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: 600;">رقم الهاتف *</label>
+            <input type="tel" name="phone" required style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 16px; font-family: 'Cairo', sans-serif;" />
+          </div>
+          <button type="submit" style="background-color: #9b87f5; color: white; padding: 12px 24px; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; width: 100%; font-family: 'Cairo', sans-serif;">إرسال الطلب</button>
+        </form>
       </div>
     `;
   }
   
-  // Assemble the complete form
-  formWrapper.appendChild(quantityOffersBeforePopup);
+  popup.appendChild(modalContent);
+  document.body.appendChild(popup);
   
-  // Add formElement only if no cloned container was added
-  if (!formWrapper.querySelector('[data-form-preview-id="form-preview-stable"]')) {
-    formWrapper.appendChild(formElement);
-  }
-  
-  modalContent.appendChild(closeBtn);
-  modalContent.appendChild(formWrapper);
+  console.log('✅ CODFORM: Popup opened successfully');
+};
   
   // Load quantity offers for popup after modal is added to DOM
   setTimeout(() => {
