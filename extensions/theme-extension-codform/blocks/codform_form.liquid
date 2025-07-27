@@ -225,6 +225,38 @@ button[id^="codform-popup-btn"] *,
 {%- endcomment -%}
 <div data-form-preview-id="form-preview-stable">
   <!-- Form content will be loaded here -->
+  <div style="padding: 20px; background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); margin: 20px 0; font-family: 'Cairo', sans-serif; direction: rtl;">
+    <h3 style="margin-bottom: 20px; color: #333; text-align: center; font-size: 24px; font-weight: bold;">اطلب الآن</h3>
+    
+    <!-- حاوية عروض الكمية -->
+    <div id="quantity-offers-container" class="quantity-offers-container" style="margin-bottom: 20px;"></div>
+    
+    <form onsubmit="handleFormSubmission(event)" style="max-width: 400px; margin: 0 auto;">
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333; text-align: right;">الاسم الكامل *</label>
+        <input type="text" name="fullName" required style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 16px; font-family: 'Cairo', sans-serif; text-align: right;" placeholder="ادخل اسمك الكامل" />
+      </div>
+      
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333; text-align: right;">رقم الهاتف *</label>
+        <input type="tel" name="phone" required style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 16px; font-family: 'Cairo', sans-serif; text-align: right;" placeholder="ادخل رقم الهاتف" />
+      </div>
+      
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333; text-align: right;">المدينة</label>
+        <input type="text" name="city" style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 16px; font-family: 'Cairo', sans-serif; text-align: right;" placeholder="ادخل المدينة" />
+      </div>
+      
+      <div style="margin-bottom: 20px;">
+        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333; text-align: right;">العنوان الكامل</label>
+        <textarea name="address" rows="3" style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 16px; font-family: 'Cairo', sans-serif; resize: vertical; text-align: right;" placeholder="ادخل العنوان الكامل"></textarea>
+      </div>
+      
+      <button type="submit" class="codform-submit-btn" style="background-color: #9b87f5; color: white; padding: 16px 24px; border: none; border-radius: 8px; font-size: 18px; font-weight: 600; cursor: pointer; width: 100%; font-family: 'Cairo', sans-serif; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(155, 135, 245, 0.3);">
+        🛒 إرسال الطلب
+      </button>
+    </form>
+  </div>
 </div>
 
 <script>
@@ -257,7 +289,8 @@ button[id^="codform-popup-btn"] *,
     }
   }
 
-  window.getShopDomain = function() {
+  // تعريف دالة getShopDomain بشكل عام
+  function getShopDomain() {
     try {
       const shopDomain = '{{ shop.domain }}' || '{{ shop.permanent_domain }}' || 'auto-detect';
       console.log('🏪 CODFORM: Using shop domain:', shopDomain);
@@ -267,6 +300,9 @@ button[id^="codform-popup-btn"] *,
       return 'auto-detect';
     }
   }
+  
+  // تعيين الدالة للـ window للوصول العام
+  window.getShopDomain = getShopDomain;
 
   function getStyleValue(style, property, fallback) {
     if (!style || typeof style !== 'object') return fallback;
@@ -1723,9 +1759,9 @@ async function handleFormSubmissionPopup(formData, submitBtn, popup) {
   }
 }
 
-// دالة تحميل عروض الكمية
+// دالة تحميل عروض الكمية المبسطة
 function loadQuantityOffersForForm(productId, shopDomain) {
-  console.log('🎯 CODFORM: Starting quantity offers loading for:', { productId, shopDomain });
+  console.log('🎯 CODFORM: Loading quantity offers for:', { productId, shopDomain });
   
   if (!window.CodformQuantityOffers) {
     console.log('❌ CODFORM: CodformQuantityOffers not available yet, retrying...');
@@ -1733,48 +1769,33 @@ function loadQuantityOffersForForm(productId, shopDomain) {
     return;
   }
   
-  const formCurrency = '{{ shop.currency }}' || 'SAR';
+  const formCurrency = '{{ shop.currency }}' || 'MAD';
   const productData = {
     id: productId,
     price: parseFloat('{{ product.price | divided_by: 100.0 }}') || 0,
     comparePrice: parseFloat('{{ product.compare_at_price | divided_by: 100.0 }}') || 0,
     title: '{{ product.title }}' || 'منتج',
     image: '{{ product.featured_image | img_url: "400x400" }}' || '',
-    currency: '{{ shop.currency }}' || 'SAR'
+    currency: formCurrency
   };
   
   console.log("🛍️ CODFORM: Loading quantity offers with product data:", productData);
   
-  // تحميل العروض للنموذج الرئيسي
-  window.CodformQuantityOffers.loadWithProduct('main', productId, shopDomain, formCurrency, productData);
+  // تحميل العروض مباشرة للحاوية الموجودة
+  window.CodformQuantityOffers.loadWithProduct('simple-form', productId, shopDomain, formCurrency, productData);
   console.log("✅ CODFORM: Quantity offers loading initiated");
 }
 
 // تهيئة عروض الكمية عند تحميل الصفحة
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('🚀 CODFORM: DOM loaded, starting quantity offers initialization');
+  console.log('🚀 CODFORM: DOM loaded, initializing quantity offers');
   
-  // انتظار تحميل النموذج
-  const waitForFormLoad = setInterval(function() {
-    const formContainer = document.querySelector('[data-form-preview-id="form-preview-stable"]');
-    
-    if (formContainer && !formContainer.dataset.quantityOffersLoaded) {
-      const productId = '{{ product.id }}' || '{{ product.variants.first.id }}' || 'default';
-      const shopDomain = getShopDomain();
-      
-      console.log("🎯 CODFORM: Found form container, loading quantity offers");
-      
-      loadQuantityOffersForForm(productId, shopDomain);
-      formContainer.dataset.quantityOffersLoaded = 'true';
-      clearInterval(waitForFormLoad);
-    }
-  }, 500);
-  
-  // تنظيف الفاصل الزمني بعد 20 ثوان
+  // تحميل العروض بعد تأخير بسيط
   setTimeout(() => {
-    clearInterval(waitForFormLoad);
-    console.log("⏰ CODFORM: Timeout reached for quantity offers loading");
-  }, 20000);
+    const productId = getProductId();
+    const shopDomain = getShopDomain();
+    loadQuantityOffersForForm(productId, shopDomain);
+  }, 2000);
 });
 
 // Add CSS animations
