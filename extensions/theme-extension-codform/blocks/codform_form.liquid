@@ -30,6 +30,16 @@ quantity offers integration, and popup functionality.
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 <style>
+{%- comment -%} Remove any borders from form containers when popup mode is enabled {%- endcomment -%}
+[data-form-preview-id="form-preview-stable"] {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
 {%- comment -%} Arabic Font Styles {%- endcomment -%}
 .codform-arabic-text,
 .codform-arabic-text *,
@@ -1181,9 +1191,18 @@ button[id^="codform-popup-btn"] * {
           // Create clean form HTML for popup (without popup button)
           const cleanFormFields = fieldsArray.map(field => renderField(field, formStyle, formLanguage)).join('');
           
-          // Show only the popup button in main area
+          // Show only the popup button in main area - completely remove any borders
           container.innerHTML = `
-            <div style="width: 100%; padding: 20px 0; text-align: center;">
+            <div style="
+              width: 100%; 
+              padding: 20px 0; 
+              text-align: center; 
+              border: none !important; 
+              background: transparent !important; 
+              box-shadow: none !important;
+              margin: 0;
+              outline: none !important;
+            ">
               <button type="button" id="codform-popup-btn-${Date.now()}" 
                 style="
                   background-color: ${popupButton.backgroundColor || '#9b87f5'};
