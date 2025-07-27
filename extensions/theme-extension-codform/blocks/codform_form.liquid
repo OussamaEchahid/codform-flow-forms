@@ -1284,6 +1284,10 @@
           window.originalFormClasses = formContainer.className;
           window.originalFormStyle = formContainer.style.cssText;
           console.log('💾 CODFORM: Original form content stored after building');
+          console.log('📝 CODFORM: Stored content length:', window.originalFormContent.length);
+          console.log('📝 CODFORM: Stored content preview:', window.originalFormContent.substring(0, 200));
+        } else {
+          console.error('❌ CODFORM: Could not find form container to store content');
         }
         
         // Show popup button if enabled
@@ -1518,6 +1522,10 @@ function showPopupButton(popupConfig, formContainer) {
       window.originalFormContent = formContainer.innerHTML;
       window.originalFormClasses = formContainer.className;
       window.originalFormStyle = formContainer.style.cssText;
+      console.log('📝 CODFORM: Backup stored content length:', window.originalFormContent.length);
+    } else {
+      console.log('✅ CODFORM: Original form content already available');
+      console.log('📝 CODFORM: Available content length:', window.originalFormContent.length);
     }
     console.log('✅ CODFORM: Original form content available for popup');
     
@@ -1659,9 +1667,13 @@ window.codformOpenPopup = function() {
 
   // Load the form content into popup - use original HTML directly
   console.log('🔍 CODFORM: Loading original form content into popup...');
+  console.log('🔍 CODFORM: Available window.originalFormContent:', !!window.originalFormContent);
+  console.log('🔍 CODFORM: Content length:', window.originalFormContent ? window.originalFormContent.length : 0);
   
-  if (window.originalFormContent) {
+  if (window.originalFormContent && window.originalFormContent.length > 0) {
     console.log('✅ CODFORM: Using stored original form content');
+    console.log('📝 CODFORM: Content preview:', window.originalFormContent.substring(0, 300));
+    
     const formDiv = document.createElement('div');
     formDiv.innerHTML = window.originalFormContent;
     formDiv.className = window.originalFormClasses || 'codform-dynamic-form';
@@ -1679,8 +1691,10 @@ window.codformOpenPopup = function() {
     
     popup.appendChild(formDiv);
     console.log('✅ CODFORM: Original form content loaded successfully');
+    console.log('📝 CODFORM: Popup content after adding form:', popup.innerHTML.length);
   } else {
-    console.error('❌ CODFORM: No original form content available');
+    console.error('❌ CODFORM: No original form content available or content is empty');
+    console.error('❌ CODFORM: window.originalFormContent:', window.originalFormContent);
     const errorDiv = document.createElement('div');
     errorDiv.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">خطأ في تحميل النموذج</p>';
     popup.appendChild(errorDiv);
