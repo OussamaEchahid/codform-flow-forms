@@ -476,8 +476,8 @@ window.CodformQuantityOffers = (function() {
       
       console.log('🖼️ Image container order for RTL:', {
         formDirection,
-        imageOrder: formDirection === 'rtl' ? '1' : '2',
-        textOrder: formDirection === 'rtl' ? '2' : '1'
+        imageOrder: formDirection === 'rtl' ? '2' : '1',
+        textOrder: formDirection === 'rtl' ? '1' : '2'
       });
 
       // تحسين إدارة الصور
