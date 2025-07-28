@@ -286,17 +286,17 @@ button[id^="codform-popup-btn"] *,
     // Check if we're currently rendering inside a popup
     const isInPopup = window.codformCurrentlyInPopup === true;
     
-    // Determine form direction
+    // Determine form direction - better detection
     let formDirection = 'ltr';
     if (formStyle && formStyle.formDirection) {
       formDirection = formStyle.formDirection;
-    } else if (formLanguage === 'ar') {
+    } else if (formLanguage === 'ar' || (formLanguage && formLanguage.includes('ar'))) {
       formDirection = 'rtl';
-    } else if (field.label && /[\u0600-\u06FF]/.test(field.label)) {
+    } else if (field.label && /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(field.label)) {
       formDirection = 'rtl';
     }
     
-    console.log('🔄 CODFORM: Detected form direction:', formDirection);
+    console.log('🔄 CODFORM: Detected form direction:', formDirection, 'for language:', formLanguage);
     
     // Base styling configuration
     const baseFontSize = getStyleValue(formStyle, 'baseFontSize', '16px');
@@ -1358,7 +1358,7 @@ button[id^="codform-popup-btn"] *,
           });
           
           if (window.CodformQuantityOffers) {
-            window.CodformQuantityOffers.loadAndDisplayOffers('form', productId, shopDomain);
+            window.CodformQuantityOffers.loadAndDisplayOffers('form', productId, shopDomain, '{{ shop.currency }}' || 'SAR', null, formDirection);
           } else {
             console.error('❌ CodformQuantityOffers still not available');
           }
@@ -1604,7 +1604,7 @@ function openFormPopup(event) {
           submitButton.parentNode.insertBefore(popupContainer, submitButton);
           console.log('✅ Popup quantity offers container created');
           
-          window.CodformQuantityOffers.loadAndDisplayOffers('popup-form', productId, shopDomain, 'SAR', window.currentFormData);
+          window.CodformQuantityOffers.loadAndDisplayOffers('popup-form', productId, shopDomain, 'SAR', window.currentFormData, formDirection);
         } else {
           console.log('❌ Submit button not found in popup');
         }
@@ -2177,7 +2177,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // حفظ بيانات المنتج في متغير عام لاستخدامها في النافذة المنبثقة
         window.currentFormData = Object.assign(window.currentFormData || {}, productData);
         
-        window.CodformQuantityOffers.loadAndDisplayOffers(blockId, productId, shopDomain, formCurrency, productData);
+        window.CodformQuantityOffers.loadAndDisplayOffers(blockId, productId, shopDomain, formCurrency, productData, formDirection);
         formContainer.dataset.quantityOffersLoaded = 'true';
         clearInterval(waitForFormLoad);
       }

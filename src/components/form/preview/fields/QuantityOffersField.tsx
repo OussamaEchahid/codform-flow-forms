@@ -33,6 +33,7 @@ interface QuantityOffersFieldProps {
   formId?: string;
   productData?: ProductData;
   currency?: string;
+  formDirection?: 'ltr' | 'rtl';
 }
 
 const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({ 
@@ -41,7 +42,8 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
   productId,
   formId,
   productData,
-  currency = 'SAR'
+  currency = 'SAR',
+  formDirection = 'ltr'
 }) => {
   console.log('🎯 QuantityOffersField - LOGICAL SOLUTION - Product Data:', {
     productData,
@@ -135,7 +137,7 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
   }
 
   return (
-    <div className="space-y-2 mb-4">
+    <div className="space-y-2 mb-4" style={{ direction: formDirection }}>
       {offers.map((offer, index) => {
         const totalPrice = calculatePrice(offer);
         const originalPrice = realPrice * offer.quantity;
@@ -157,9 +159,12 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
                 ? 'border-green-500 bg-green-50 shadow-sm' 
                 : 'border-gray-200 bg-white'
             }`}
-            style={{ backgroundColor: isHighlighted ? '#f0fdf4' : styling.backgroundColor }}
+            style={{ 
+              backgroundColor: isHighlighted ? '#f0fdf4' : styling.backgroundColor,
+              direction: formDirection 
+            }}
           >
-            <div className="flex items-center space-x-3">
+            <div className={`flex items-center ${formDirection === 'rtl' ? 'space-x-reverse space-x-3' : 'space-x-3'}`}>
               <div className="w-12 h-12 bg-gray-100 rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden">
                 {productImage ? (
                   <img 
@@ -187,11 +192,11 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
               <div>
                 <div 
                   className="font-semibold"
-                  style={{ color: styling.textColor }}
+                  style={{ color: styling.textColor, textAlign: formDirection === 'rtl' ? 'right' : 'left' }}
                 >
                   {offer.text || `Buy ${offer.quantity} Item${offer.quantity > 1 ? 's' : ''}`}
                 </div>
-                <div className="flex items-center gap-2 mt-1">
+                <div className={`flex items-center gap-2 mt-1 ${formDirection === 'rtl' ? 'justify-end' : 'justify-start'}`}>
                   {offer.tag && (
                     <div 
                       className="inline-block px-2 py-1 rounded text-xs font-medium text-white"
@@ -209,21 +214,21 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
               </div>
             </div>
 
-            <div className="text-right">
+            <div className={formDirection === 'rtl' ? 'text-left' : 'text-right'}>
               {isDiscounted && (
                 <div className="text-sm line-through text-gray-400">
-                  {originalPrice.toFixed(2)} {displayCurrency}
+                  {formDirection === 'rtl' ? `${displayCurrency} ${originalPrice.toFixed(2)}` : `${originalPrice.toFixed(2)} ${displayCurrency}`}
                 </div>
               )}
               <div 
                 className="font-bold text-lg"
                 style={{ color: styling.priceColor }}
               >
-                {totalPrice.toFixed(2)} {displayCurrency}
+                {formDirection === 'rtl' ? `${displayCurrency} ${totalPrice.toFixed(2)}` : `${totalPrice.toFixed(2)} ${displayCurrency}`}
               </div>
               {offer.quantity > 1 && (
                 <div className="text-xs text-gray-500 mt-1">
-                  {realPrice.toFixed(2)} {displayCurrency} × {offer.quantity}
+                  {formDirection === 'rtl' ? `${offer.quantity} × ${displayCurrency} ${realPrice.toFixed(2)}` : `${realPrice.toFixed(2)} ${displayCurrency} × ${offer.quantity}`}
                 </div>
               )}
             </div>

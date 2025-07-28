@@ -31,7 +31,7 @@ window.CodformQuantityOffers = (function() {
   }
 
   // دالة عرض quantity offers مع استخدام البيانات الصحيحة من API
-  function displayQuantityOffers(quantityOffersData, blockId, productId, defaultCurrency = 'SAR', productData = null) {
+  function displayQuantityOffers(quantityOffersData, blockId, productId, defaultCurrency = 'SAR', productData = null, formDirection = null) {
     console.log("🎯 PRECISE FIX - Starting quantity offers display");
     
     // التحقق من صحة البيانات
@@ -229,21 +229,24 @@ window.CodformQuantityOffers = (function() {
         this.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
       });
 
-      // تخطيط صحيح للعربية - الصورة على اليسار، النص على اليمين، السعر في المنتصف
+      // تحديد اتجاه التخطيط بناءً على اللغة
+      const isRTL = formDirection === 'rtl' || (!formDirection && defaultCurrency === 'SAR') || 
+                   (!formDirection && (quantityOffersData.language === 'ar' || /[\u0600-\u06FF]/.test(offer.text || '')));
+      
       const contentWrapper = document.createElement('div');
       contentWrapper.style.cssText = `
         display: flex;
         align-items: center;
         width: 100%;
         gap: 12px;
-        direction: rtl;
+        direction: ${isRTL ? 'rtl' : 'ltr'};
         cursor: pointer;
       `;
 
-      // الصورة على اليسار (ترتيب 1)
+      // ترتيب الصورة حسب الاتجاه
       const imageSection = document.createElement('div');
       imageSection.style.cssText = `
-        order: 1;
+        order: ${isRTL ? 1 : 1};
         flex-shrink: 0;
       `;
       
@@ -266,30 +269,30 @@ window.CodformQuantityOffers = (function() {
         imageSection.appendChild(imageElement);
       }
 
-      // محتوى النص (ترتيب 2 - على اليمين)
+      // محتوى النص مع اتجاه ديناميكي
       const textContent = document.createElement('div');
       textContent.style.cssText = `
         flex: 1;
-        text-align: right;
-        direction: rtl;
+        text-align: ${isRTL ? 'right' : 'left'};
+        direction: ${isRTL ? 'rtl' : 'ltr'};
         order: 2;
       `;
 
-      // النص الرئيسي
+      // النص الرئيسي مع اتجاه ديناميكي
       const mainText = document.createElement('div');
       mainText.style.cssText = `
         font-weight: 600;
         font-size: 16px;
         color: ${styling.textColor};
         margin-bottom: 8px;
-        direction: rtl;
-        text-align: right;
+        direction: ${isRTL ? 'rtl' : 'ltr'};
+        text-align: ${isRTL ? 'right' : 'left'};
       `;
       mainText.textContent = offer.text || `اشترِ ${offer.quantity || 1} قطعة`;
 
-      // العلامات
+      // العلامات مع اتجاه ديناميكي
       const tagsContainer = document.createElement('div');
-      tagsContainer.style.cssText = 'display: flex; gap: 8px; align-items: center;';
+      tagsContainer.style.cssText = `display: flex; gap: 8px; align-items: center; justify-content: ${isRTL ? 'flex-end' : 'flex-start'};`;
 
       if (offer.tag) {
         const tagElement = document.createElement('span');
@@ -351,10 +354,10 @@ window.CodformQuantityOffers = (function() {
       textContent.appendChild(mainText);
       textContent.appendChild(tagsContainer);
 
-      // قسم الأسعار (ترتيب 3 - في المنتصف)
+      // قسم الأسعار مع اتجاه ديناميكي
       const priceSection = document.createElement('div');
       priceSection.style.cssText = `
-        text-align: center;
+        text-align: ${isRTL ? 'left' : 'right'};
         min-width: 100px;
         direction: ltr;
         order: 3;
@@ -370,7 +373,7 @@ window.CodformQuantityOffers = (function() {
           margin-bottom: 4px;
           direction: ltr;
         `;
-        originalPriceElement.textContent = `${originalPrice.toFixed(2)} ${currencySymbol}`;
+        originalPriceElement.textContent = isRTL ? `${currencySymbol} ${originalPrice.toFixed(2)}` : `${originalPrice.toFixed(2)} ${currencySymbol}`;
         priceSection.appendChild(originalPriceElement);
       }
 
@@ -382,7 +385,7 @@ window.CodformQuantityOffers = (function() {
         color: ${styling.priceColor};
         direction: ltr;
       `;
-      finalPriceElement.textContent = `${totalPrice.toFixed(2)} ${currencySymbol}`;
+      finalPriceElement.textContent = isRTL ? `${currencySymbol} ${totalPrice.toFixed(2)}` : `${totalPrice.toFixed(2)} ${currencySymbol}`;
       priceSection.appendChild(finalPriceElement);
 
       // السعر لكل قطعة
@@ -394,7 +397,7 @@ window.CodformQuantityOffers = (function() {
           margin-top: 2px;
           direction: ltr;
         `;
-        perItemElement.textContent = `${realPrice.toFixed(2)} ${currencySymbol} × ${offer.quantity}`;
+        perItemElement.textContent = isRTL ? `${offer.quantity} × ${currencySymbol} ${realPrice.toFixed(2)}` : `${realPrice.toFixed(2)} ${currencySymbol} × ${offer.quantity}`;
         priceSection.appendChild(perItemElement);
       }
 
@@ -422,7 +425,7 @@ window.CodformQuantityOffers = (function() {
   }
 
   // دالة تحميل وعرض العروض من API مع تحسينات
-  async function loadAndDisplayOffers(blockId, productId, shop, formCurrency = 'SAR', passedProductData = null) {
+  async function loadAndDisplayOffers(blockId, productId, shop, formCurrency = 'SAR', passedProductData = null, formDirection = null) {
     try {
       // استخدام النطاق الحقيقي من Shopify
       if (!shop) {
@@ -466,7 +469,8 @@ window.CodformQuantityOffers = (function() {
           blockId, 
           actualProductId, // استخدام معرف المنتج من العرض
           data.form?.currency || 'SAR',
-          data.product // البيانات الحقيقية من API
+          data.product, // البيانات الحقيقية من API
+          formDirection
         );
         
         return { success: true, offers: data.quantity_offers };
@@ -586,7 +590,7 @@ window.CodformQuantityOffers = (function() {
     }
     
     console.log("📦 Container found, loading offers with product data...");
-    return loadAndDisplayOffers(blockId, productId, shop, formCurrency, productData);
+    return loadAndDisplayOffers(blockId, productId, shop, formCurrency, productData, null);
   }
 
   // Public API

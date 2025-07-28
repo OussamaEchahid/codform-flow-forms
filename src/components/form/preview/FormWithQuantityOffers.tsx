@@ -174,9 +174,12 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
   const insideFormOffers = quantityOffers.filter(offer => offer.position === 'inside_form');
   const afterFormOffers = quantityOffers.filter(offer => offer.position === 'after_form');
 
+  // تحديد اتجاه النموذج
+  const formDirection = formStyle?.formDirection || 'ltr';
+
   const renderQuantityOffers = (offers: QuantityOffer[]) => {
     return offers.map(offer => (
-      <div key={offer.id} className="space-y-2 mb-4">
+      <div key={offer.id} className="space-y-2 mb-4" style={{ direction: formDirection }}>
         {offer.offers.map((singleOffer, index) => {
           // استخدام السعر الفعلي للمنتج من Shopify
           const basePrice = productData?.price || 0; // استخدام السعر الفعلي من المنتج
@@ -202,8 +205,9 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
               className={`p-3 rounded-lg border-2 flex items-center justify-between transition-all cursor-pointer hover:shadow-md ${
                 isHighlighted ? 'border-green-500 bg-green-50 shadow-sm' : 'border-gray-200 bg-white'
               }`}
+              style={{ direction: formDirection }}
             >
-              <div className="flex items-center space-x-3">
+              <div className={`flex items-center ${formDirection === 'rtl' ? 'space-x-reverse space-x-3' : 'space-x-3'}`}>
                 <div className="w-12 h-12 bg-gray-100 rounded-lg flex-shrink-0 flex items-center justify-center">
                   <svg className="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 2L3 7v11a1 1 0 001 1h3a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1h3a1 1 0 001-1V7l-7-5z" clipRule="evenodd" />
@@ -213,27 +217,32 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
                 <div>
                   <div 
                     className="font-semibold"
-                    style={{ color: offer.styling?.textColor || '#000000' }}
+                    style={{ 
+                      color: offer.styling?.textColor || '#000000',
+                      textAlign: formDirection === 'rtl' ? 'right' : 'left'
+                    }}
                   >
                     {singleOffer.text || `Buy ${singleOffer.quantity} Item${singleOffer.quantity > 1 ? 's' : ''}`}
                   </div>
-                  {singleOffer.tag && (
-                    <div 
-                      className="inline-block px-2 py-1 rounded text-xs font-medium text-white mt-1"
-                      style={{ backgroundColor: offer.styling?.tagColor || '#22c55e' }}
-                    >
-                      {singleOffer.tag}
-                    </div>
-                  )}
-                  {savingsPercentage > 0 && (
-                    <div className="inline-block px-2 py-1 rounded text-xs font-medium text-white bg-green-500 mt-1 ml-2">
-                      Save {savingsPercentage}%
-                    </div>
-                  )}
+                  <div className={`flex items-center gap-2 mt-1 ${formDirection === 'rtl' ? 'justify-end' : 'justify-start'}`}>
+                    {singleOffer.tag && (
+                      <div 
+                        className="inline-block px-2 py-1 rounded text-xs font-medium text-white"
+                        style={{ backgroundColor: offer.styling?.tagColor || '#22c55e' }}
+                      >
+                        {singleOffer.tag}
+                      </div>
+                    )}
+                    {savingsPercentage > 0 && (
+                      <div className="inline-block px-2 py-1 rounded text-xs font-medium text-white bg-green-500">
+                        Save {savingsPercentage}%
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
-               <div className="text-right">
+              <div className={formDirection === 'rtl' ? 'text-left' : 'text-right'}>
                 {isDiscounted && (
                  <div className="text-sm line-through text-gray-400">
                     {formatPrice(originalPrice)}
