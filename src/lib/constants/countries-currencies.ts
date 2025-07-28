@@ -14,6 +14,7 @@ export interface Currency {
   name: string;
   nameAr: string;
   symbol: string;
+  exchangeRate: number; // معدل التحويل مقابل الدولار الأمريكي
 }
 
 export const COUNTRIES: Country[] = [
@@ -364,250 +365,291 @@ export const CURRENCIES: Currency[] = [
     code: 'SAR',
     name: 'Saudi Riyal',
     nameAr: 'ريال سعودي',
-    symbol: '﷼'
+    symbol: '﷼',
+    exchangeRate: 3.75
   },
   {
     code: 'AED',
     name: 'UAE Dirham',
     nameAr: 'درهم إماراتي',
-    symbol: 'د.إ'
+    symbol: 'د.إ',
+    exchangeRate: 3.67
   },
   {
     code: 'EGP',
     name: 'Egyptian Pound',
     nameAr: 'جنيه مصري',
-    symbol: 'ج.م'
+    symbol: 'ج.م',
+    exchangeRate: 30.85
   },
   {
     code: 'QAR',
     name: 'Qatari Riyal',
     nameAr: 'ريال قطري',
-    symbol: 'ر.ق'
+    symbol: 'ر.ق',
+    exchangeRate: 3.64
   },
   {
     code: 'KWD',
     name: 'Kuwaiti Dinar',
     nameAr: 'دينار كويتي',
-    symbol: 'د.ك'
+    symbol: 'د.ك',
+    exchangeRate: 0.31
   },
   {
     code: 'BHD',
     name: 'Bahraini Dinar',
     nameAr: 'دينار بحريني',
-    symbol: 'د.ب'
+    symbol: 'د.ب',
+    exchangeRate: 0.38
   },
   {
     code: 'OMR',
     name: 'Omani Rial',
     nameAr: 'ريال عماني',
-    symbol: 'ر.ع'
+    symbol: 'ر.ع',
+    exchangeRate: 0.38
   },
   {
     code: 'JOD',
     name: 'Jordanian Dinar',
     nameAr: 'دينار أردني',
-    symbol: 'د.أ'
+    symbol: 'د.أ',
+    exchangeRate: 0.71
   },
   {
     code: 'LBP',
     name: 'Lebanese Pound',
     nameAr: 'ليرة لبنانية',
-    symbol: 'ل.ل'
+    symbol: 'ل.ل',
+    exchangeRate: 89500
   },
   {
     code: 'MAD',
     name: 'Moroccan Dirham',
     nameAr: 'درهم مغربي',
-    symbol: 'د.م'
+    symbol: 'د.م',
+    exchangeRate: 9.85
   },
   {
     code: 'TND',
     name: 'Tunisian Dinar',
     nameAr: 'دينار تونسي',
-    symbol: 'د.ت'
+    symbol: 'د.ت',
+    exchangeRate: 3.15
   },
   {
     code: 'DZD',
     name: 'Algerian Dinar',
     nameAr: 'دينار جزائري',
-    symbol: 'د.ج'
+    symbol: 'د.ج',
+    exchangeRate: 134.25
   },
   {
     code: 'USD',
     name: 'US Dollar',
     nameAr: 'دولار أمريكي',
-    symbol: '$'
+    symbol: '$',
+    exchangeRate: 1.0
   },
   {
     code: 'EUR',
     name: 'Euro',
     nameAr: 'يورو',
-    symbol: '€'
+    symbol: '€',
+    exchangeRate: 0.92
   },
   {
     code: 'GBP',
     name: 'British Pound',
     nameAr: 'جنيه إسترليني',
-    symbol: '£'
+    symbol: '£',
+    exchangeRate: 0.79
   },
   {
     code: 'CAD',
     name: 'Canadian Dollar',
     nameAr: 'دولار كندي',
-    symbol: 'C$'
+    symbol: 'C$',
+    exchangeRate: 1.43
   },
   {
     code: 'AUD',
     name: 'Australian Dollar',
     nameAr: 'دولار أسترالي',
-    symbol: 'A$'
+    symbol: 'A$',
+    exchangeRate: 1.57
   },
   // عملات أمريكا اللاتينية
   {
     code: 'MXN',
     name: 'Mexican Peso',
     nameAr: 'بيزو مكسيكي',
-    symbol: '$'
+    symbol: '$',
+    exchangeRate: 20.15
   },
   {
     code: 'BRL',
     name: 'Brazilian Real',
     nameAr: 'ريال برازيلي',
-    symbol: 'R$'
+    symbol: 'R$',
+    exchangeRate: 6.05
   },
   {
     code: 'ARS',
     name: 'Argentine Peso',
     nameAr: 'بيزو أرجنتيني',
-    symbol: '$'
+    symbol: '$',
+    exchangeRate: 1005.5
   },
   {
     code: 'CLP',
     name: 'Chilean Peso',
     nameAr: 'بيزو تشيلي',
-    symbol: '$'
+    symbol: '$',
+    exchangeRate: 975.2
   },
   {
     code: 'COP',
     name: 'Colombian Peso',
     nameAr: 'بيزو كولومبي',
-    symbol: '$'
+    symbol: '$',
+    exchangeRate: 4285.5
   },
   {
     code: 'PEN',
     name: 'Peruvian Sol',
     nameAr: 'سول بيروفي',
-    symbol: 'S/'
+    symbol: 'S/',
+    exchangeRate: 3.75
   },
   {
     code: 'VES',
     name: 'Venezuelan Bolívar',
     nameAr: 'بوليفار فنزويلي',
-    symbol: 'Bs.'
+    symbol: 'Bs.',
+    exchangeRate: 36500000
   },
   {
     code: 'UYU',
     name: 'Uruguayan Peso',
     nameAr: 'بيزو أوروغوياني',
-    symbol: '$U'
+    symbol: '$U',
+    exchangeRate: 40.25
   },
   // عملات الخليج والشرق الأوسط الإضافية
   {
     code: 'IQD',
     name: 'Iraqi Dinar',
     nameAr: 'دينار عراقي',
-    symbol: 'ع.د'
+    symbol: 'ع.د',
+    exchangeRate: 1310
   },
   {
     code: 'IRR',
     name: 'Iranian Rial',
     nameAr: 'ريال إيراني',
-    symbol: '﷼'
+    symbol: '﷼',
+    exchangeRate: 42100
   },
   {
     code: 'TRY',
     name: 'Turkish Lira',
     nameAr: 'ليرة تركية',
-    symbol: '₺'
+    symbol: '₺',
+    exchangeRate: 34.15
   },
   {
     code: 'ILS',
     name: 'Israeli Shekel',
     nameAr: 'شيكل إسرائيلي',
-    symbol: '₪'
+    symbol: '₪',
+    exchangeRate: 3.67
   },
   {
     code: 'SYP',
     name: 'Syrian Pound',
     nameAr: 'ليرة سورية',
-    symbol: 'ل.س'
+    symbol: 'ل.س',
+    exchangeRate: 13000
   },
   {
     code: 'YER',
     name: 'Yemeni Rial',
     nameAr: 'ريال يمني',
-    symbol: '﷼'
+    symbol: '﷼',
+    exchangeRate: 250
   },
   // عملات أفريقيا
   {
     code: 'NGN',
     name: 'Nigerian Naira',
     nameAr: 'نايرا نيجيرية',
-    symbol: '₦'
+    symbol: '₦',
+    exchangeRate: 1675
   },
   {
     code: 'ZAR',
     name: 'South African Rand',
     nameAr: 'راند جنوب أفريقي',
-    symbol: 'R'
+    symbol: 'R',
+    exchangeRate: 18.45
   },
   {
     code: 'KES',
     name: 'Kenyan Shilling',
     nameAr: 'شلن كيني',
-    symbol: 'KSh'
+    symbol: 'KSh',
+    exchangeRate: 130.5
   },
   {
     code: 'GHS',
     name: 'Ghanaian Cedi',
     nameAr: 'سيدي غاني',
-    symbol: '₵'
+    symbol: '₵',
+    exchangeRate: 15.85
   },
   {
     code: 'ETB',
     name: 'Ethiopian Birr',
     nameAr: 'بر إثيوبي',
-    symbol: 'Br'
+    symbol: 'Br',
+    exchangeRate: 125.5
   },
   {
     code: 'TZS',
     name: 'Tanzanian Shilling',
     nameAr: 'شلن تنزاني',
-    symbol: 'TSh'
+    symbol: 'TSh',
+    exchangeRate: 2515
   },
   {
     code: 'UGX',
     name: 'Ugandan Shilling',
     nameAr: 'شلن أوغندي',
-    symbol: 'USh'
+    symbol: 'USh',
+    exchangeRate: 3785
   },
   {
     code: 'ZWL',
     name: 'Zimbabwean Dollar',
     nameAr: 'دولار زيمبابوي',
-    symbol: 'Z$'
+    symbol: 'Z$',
+    exchangeRate: 322
   },
   {
     code: 'ZMW',
     name: 'Zambian Kwacha',
     nameAr: 'كواشا زامبية',
-    symbol: 'ZK'
+    symbol: 'ZK',
+    exchangeRate: 27.85
   },
   {
     code: 'RWF',
     name: 'Rwandan Franc',
     nameAr: 'فرنك رواندي',
-    symbol: 'FRw'
+    symbol: 'FRw',
+    exchangeRate: 1385
   }
 ];
 
@@ -659,5 +701,44 @@ export const validatePhoneNumber = (phone: string, countryCode: string): boolean
       return /^(20)?1[0125]\d{8}$/.test(cleanPhone);
     default:
       return cleanPhone.length >= 8 && cleanPhone.length <= 15;
+  }
+};
+
+// دالة تحويل العملة
+export const convertCurrency = (amount: number, fromCurrency: string, toCurrency: string): number => {
+  const fromCurr = getCurrencyByCode(fromCurrency);
+  const toCurr = getCurrencyByCode(toCurrency);
+  
+  if (!fromCurr || !toCurr) return amount;
+  
+  // تحويل للدولار أولاً ثم للعملة المطلوبة
+  const usdAmount = amount / fromCurr.exchangeRate;
+  return usdAmount * toCurr.exchangeRate;
+};
+
+// دالة تنسيق السعر حسب العملة
+export const formatPrice = (amount: number, currencyCode: string, language: 'en' | 'ar' = 'en'): string => {
+  const currency = getCurrencyByCode(currencyCode);
+  if (!currency) return amount.toString();
+  
+  // تنسيق الرقم حسب العملة
+  let formattedAmount = '';
+  
+  if (currency.code === 'KWD' || currency.code === 'BHD' || currency.code === 'OMR') {
+    // العملات التي تستخدم 3 منازل عشرية
+    formattedAmount = amount.toFixed(3);
+  } else if (currency.code === 'CLP' || currency.code === 'VES' || currency.code === 'LBP') {
+    // العملات التي لا تستخدم منازل عشرية
+    formattedAmount = Math.round(amount).toString();
+  } else {
+    // باقي العملات (منزلتان عشريتان)
+    formattedAmount = amount.toFixed(2);
+  }
+  
+  // إضافة رمز العملة
+  if (language === 'ar') {
+    return `${formattedAmount} ${currency.symbol}`;
+  } else {
+    return `${currency.symbol} ${formattedAmount}`;
   }
 };

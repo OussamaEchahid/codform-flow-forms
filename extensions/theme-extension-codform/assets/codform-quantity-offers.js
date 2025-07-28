@@ -6,17 +6,53 @@
 window.CodformQuantityOffers = (function() {
   'use strict';
 
-  // دالة تحويل العملة مع الأسعار الدقيقة
+  // دالة تحويل العملة مع الأسعار الدقيقة والصحيحة لجميع الدول
   function convertCurrency(amount, fromCurrency, toCurrency) {
     console.log(`🔄 Starting conversion: ${amount} from ${fromCurrency} to ${toCurrency}`);
     
-    // معدلات التحويل الدقيقة والصحيحة
+    // معدلات التحويل الدقيقة والصحيحة لجميع العملات المدعومة
     const exchangeRates = {
-      'USD': { 'SAR': 3.75, 'MAD': 10.0, 'USD': 1, 'AED': 3.67, 'EUR': 0.85 },
-      'SAR': { 'USD': 0.267, 'MAD': 2.67, 'SAR': 1, 'AED': 0.98, 'EUR': 0.227 },
-      'MAD': { 'USD': 0.1, 'SAR': 0.375, 'MAD': 1, 'AED': 0.37, 'EUR': 0.085 },
-      'AED': { 'USD': 0.272, 'SAR': 1.02, 'MAD': 2.72, 'AED': 1, 'EUR': 0.231 },
-      'EUR': { 'USD': 1.18, 'SAR': 4.43, 'MAD': 11.8, 'AED': 4.33, 'EUR': 1 }
+      'USD': 1.0,
+      'SAR': 3.75,
+      'AED': 3.67,
+      'EGP': 30.85,
+      'QAR': 3.64,
+      'KWD': 0.31,
+      'BHD': 0.38,
+      'OMR': 0.38,
+      'JOD': 0.71,
+      'LBP': 89500,
+      'MAD': 9.85,
+      'TND': 3.15,
+      'DZD': 134.25,
+      'EUR': 0.92,
+      'GBP': 0.79,
+      'CAD': 1.43,
+      'AUD': 1.57,
+      'MXN': 20.15,
+      'BRL': 6.05,
+      'ARS': 1005.5,
+      'CLP': 975.2,
+      'COP': 4285.5,
+      'PEN': 3.75,
+      'VES': 36500000,
+      'UYU': 40.25,
+      'IQD': 1310,
+      'IRR': 42100,
+      'TRY': 34.15,
+      'ILS': 3.67,
+      'SYP': 13000,
+      'YER': 250,
+      'NGN': 1675,
+      'ZAR': 18.45,
+      'KES': 130.5,
+      'GHS': 15.85,
+      'ETB': 125.5,
+      'TZS': 2515,
+      'UGX': 3785,
+      'ZWL': 322,
+      'ZMW': 27.85,
+      'RWF': 1385
     };
     
     // تنظيف أسماء العملات
@@ -29,10 +65,16 @@ window.CodformQuantityOffers = (function() {
       return amount;
     }
     
-    const rate = exchangeRates[fromCurrency]?.[toCurrency];
-    if (rate) {
-      const convertedAmount = amount * rate;
-      console.log(`✅ CONVERSION SUCCESS: ${amount} ${fromCurrency} → ${convertedAmount.toFixed(2)} ${toCurrency} (rate: ${rate})`);
+    // التحويل عبر الدولار الأمريكي كعملة أساسية
+    const fromRate = exchangeRates[fromCurrency];
+    const toRate = exchangeRates[toCurrency];
+    
+    if (fromRate && toRate) {
+      // تحويل للدولار أولاً ثم للعملة المطلوبة
+      const usdAmount = amount / fromRate;
+      const convertedAmount = usdAmount * toRate;
+      console.log(`✅ CONVERSION SUCCESS: ${amount} ${fromCurrency} → ${convertedAmount.toFixed(2)} ${toCurrency}`);
+      console.log(`🔄 Via USD: ${amount} → ${usdAmount.toFixed(4)} USD → ${convertedAmount.toFixed(2)} ${toCurrency}`);
       return convertedAmount;
     }
     
@@ -194,11 +236,22 @@ window.CodformQuantityOffers = (function() {
       finalImage: productImage
     });
 
-    // رمز العملة الصحيح
-    const currencySymbol = defaultCurrency === 'USD' ? '$' : 
-                          defaultCurrency === 'SAR' ? 'ر.س' : 
-                          defaultCurrency === 'MAD' ? 'د.م' : 
-                          defaultCurrency;
+    // رموز العملات الصحيحة لجميع الدول
+    const getCurrencySymbol = (currency) => {
+      const symbols = {
+        'USD': '$', 'SAR': 'ر.س', 'AED': 'د.إ', 'EGP': 'ج.م', 'QAR': 'ر.ق',
+        'KWD': 'د.ك', 'BHD': 'د.ب', 'OMR': 'ر.ع', 'JOD': 'د.أ', 'LBP': 'ل.ل',
+        'MAD': 'د.م', 'TND': 'د.ت', 'DZD': 'د.ج', 'EUR': '€', 'GBP': '£',
+        'CAD': 'C$', 'AUD': 'A$', 'MXN': '$', 'BRL': 'R$', 'ARS': '$',
+        'CLP': '$', 'COP': '$', 'PEN': 'S/', 'VES': 'Bs.', 'UYU': '$U',
+        'IQD': 'ع.د', 'IRR': '﷼', 'TRY': '₺', 'ILS': '₪', 'SYP': 'ل.س',
+        'YER': '﷼', 'NGN': '₦', 'ZAR': 'R', 'KES': 'KSh', 'GHS': '₵',
+        'ETB': 'Br', 'TZS': 'TSh', 'UGX': 'USh', 'ZWL': 'Z$', 'ZMW': 'ZK', 'RWF': 'FRw'
+      };
+      return symbols[currency] || currency;
+    };
+    
+    const currencySymbol = getCurrencySymbol(defaultCurrency);
 
     // حاوية العروض - نفس تصميم المعاينة بالضبط
     const offersContainer = document.createElement('div');
@@ -426,6 +479,7 @@ window.CodformQuantityOffers = (function() {
           font-size: 12px;
           font-weight: 500;
           display: inline-block;
+          margin-top: 4px;
         `;
         tagElement.textContent = offer.tag;
         tagsContainer.appendChild(tagElement);
