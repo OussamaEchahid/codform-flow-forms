@@ -211,22 +211,58 @@ button[id^="codform-popup-btn"] *,
 
 {%- comment -%}
 ===============================================================================
-QUANTITY OFFERS SCRIPT LOADER
+QUANTITY OFFERS SCRIPT - FIXED IMPLEMENTATION
 ===============================================================================
 {%- endcomment -%}
 <script>
-  // تحميل ملف عروض الكمية
-  (function loadQuantityOffersScript() {
+console.log('🔧 CODFORM: Starting quantity offers script loader...');
+
+// تحميل ملف عروض الكمية مع handling للأخطاء
+(function() {
+  'use strict';
+  
+  function tryLoadQuantityScript() {
+    // إنشاء script element جديد
     const script = document.createElement('script');
+    script.type = 'text/javascript';
+    script.async = true;
+    
+    // محاولة الـ path الرئيسي أولاً
     script.src = '{{ "codform-quantity-offers.js" | asset_url }}';
+    
     script.onload = function() {
-      console.log('✅ CODFORM: Quantity offers script loaded successfully');
+      console.log('✅ CODFORM: Quantity offers script loaded successfully from primary path');
+      console.log('🎯 CODFORM: CodformQuantityOffers available:', !!window.CodformQuantityOffers);
     };
+    
     script.onerror = function() {
-      console.error('❌ CODFORM: Failed to load quantity offers script');
+      console.error('❌ CODFORM: Failed to load quantity offers script from primary path');
+      console.log('🔄 CODFORM: Attempting alternative loading...');
+      
+      // محاولة تحميل الملف بطريقة أخرى
+      const fallbackScript = document.createElement('script');
+      fallbackScript.src = '{{ "codform-quantity-offers.js" | asset_url }}?v=' + Date.now();
+      fallbackScript.onload = function() {
+        console.log('✅ CODFORM: Quantity offers script loaded via fallback');
+      };
+      fallbackScript.onerror = function() {
+        console.error('❌ CODFORM: All loading attempts failed');
+      };
+      document.head.appendChild(fallbackScript);
     };
+    
+    // إضافة الـ script للـ head
     document.head.appendChild(script);
-  })();
+    console.log('📦 CODFORM: Script element added to head');
+  }
+  
+  // تحميل الـ script عند تحميل DOM أو مباشرة إذا كان محملاً
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', tryLoadQuantityScript);
+  } else {
+    tryLoadQuantityScript();
+  }
+})();
 </script>
 
 {%- comment -%}
