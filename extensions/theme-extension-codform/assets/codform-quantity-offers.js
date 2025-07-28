@@ -229,9 +229,11 @@ window.CodformQuantityOffers = (function() {
         this.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
       });
 
-      // تحديد اتجاه التخطيط بناءً على اللغة
-      const isRTL = formDirection === 'rtl' || (!formDirection && defaultCurrency === 'SAR') || 
-                   (!formDirection && (quantityOffersData.language === 'ar' || /[\u0600-\u06FF]/.test(offer.text || '')));
+      // تحديد اتجاه التخطيط بناءً على اللغة بطريقة أكثر دقة
+      const isRTL = formDirection === 'rtl' || 
+                   (!formDirection && (defaultCurrency === 'SAR' || defaultCurrency === 'MAD')) ||
+                   (!formDirection && quantityOffersData.language === 'ar') ||
+                   (!formDirection && /[\u0600-\u06FF]/.test(offer.text || ''));
       
       const contentWrapper = document.createElement('div');
       contentWrapper.style.cssText = `
@@ -371,7 +373,8 @@ window.CodformQuantityOffers = (function() {
           color: #6b7280;
           text-decoration: line-through;
           margin-bottom: 4px;
-          direction: ltr;
+          direction: ${isRTL ? 'rtl' : 'ltr'};
+          text-align: ${isRTL ? 'left' : 'right'};
         `;
         originalPriceElement.textContent = isRTL ? `${currencySymbol} ${originalPrice.toFixed(2)}` : `${originalPrice.toFixed(2)} ${currencySymbol}`;
         priceSection.appendChild(originalPriceElement);
@@ -383,7 +386,8 @@ window.CodformQuantityOffers = (function() {
         font-size: 18px;
         font-weight: bold;
         color: ${styling.priceColor};
-        direction: ltr;
+        direction: ${isRTL ? 'rtl' : 'ltr'};
+        text-align: ${isRTL ? 'left' : 'right'};
       `;
       finalPriceElement.textContent = isRTL ? `${currencySymbol} ${totalPrice.toFixed(2)}` : `${totalPrice.toFixed(2)} ${currencySymbol}`;
       priceSection.appendChild(finalPriceElement);
@@ -395,7 +399,8 @@ window.CodformQuantityOffers = (function() {
           font-size: 11px;
           color: #6b7280;
           margin-top: 2px;
-          direction: ltr;
+          direction: ${isRTL ? 'rtl' : 'ltr'};
+          text-align: ${isRTL ? 'left' : 'right'};
         `;
         perItemElement.textContent = isRTL ? `${offer.quantity} × ${currencySymbol} ${realPrice.toFixed(2)}` : `${realPrice.toFixed(2)} ${currencySymbol} × ${offer.quantity}`;
         priceSection.appendChild(perItemElement);
