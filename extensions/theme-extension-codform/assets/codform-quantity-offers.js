@@ -102,22 +102,33 @@ window.CodformQuantityOffers = (function() {
       console.log("🛍️ Using global product data:", actualProductData);
     }
     
-    // الحصول على السعر الحقيقي للمنتج وعملته
-    // السعر الحقيقي هو 10 درهم مغربي حسب المثال المعطى
-    const originalProductPrice = actualProductData?.price ? parseFloat(actualProductData.price) : 10.0;
-    const originalProductCurrency = actualProductData?.currency || 'MAD';
-    const formCurrency = defaultCurrency;
+    // الحصول على السعر الحقيقي للمنتج وعملته من البيانات الفعلية
+    let productPrice = 10.0; // قيمة افتراضية
+    let productCurrency = 'MAD'; // عملة افتراضية
+    
+    // استخدام السعر من بيانات المنتج الحقيقية إذا كانت موجودة
+    if (actualProductData && actualProductData.price) {
+      productPrice = parseFloat(actualProductData.price);
+      productCurrency = actualProductData.currency || 'MAD';
+    } else if (actualProductData && actualProductData.variants && actualProductData.variants.length > 0) {
+      // إذا كان المنتج له variants، استخدم سعر أول variant
+      const firstVariant = actualProductData.variants[0];
+      if (firstVariant.price) {
+        productPrice = parseFloat(firstVariant.price);
+        productCurrency = firstVariant.currency || actualProductData.currency || 'MAD';
+      }
+    }
     
     // تحويل السعر من عملة المنتج الأصلية إلى عملة النموذج
-    // مثال: 10 درهم مغربي → 3.66 ريال سعودي
-    const realPrice = convertCurrency(originalProductPrice, originalProductCurrency, formCurrency);
+    const realPrice = convertCurrency(productPrice, productCurrency, formCurrency);
     
-    console.log("💰 CORRECT Price Logic:", {
-      originalProductPrice: originalProductPrice,
-      originalProductCurrency: originalProductCurrency,
-      formCurrency: formCurrency,
+    console.log("💰 REAL Product Price Logic:", {
+      actualProductData: actualProductData,
+      originalPrice: productPrice,
+      originalCurrency: productCurrency,
+      targetCurrency: formCurrency,
       convertedPrice: realPrice,
-      conversionExample: `${originalProductPrice} ${originalProductCurrency} → ${realPrice} ${formCurrency}`
+      conversionDetails: `${productPrice} ${productCurrency} → ${realPrice} ${formCurrency}`
     });
     
     // بيانات المنتج
@@ -253,17 +264,17 @@ window.CodformQuantityOffers = (function() {
         }
       });
 
-      // الجانب الأيسر: الصورة والنص - ترتيب صحيح لـ RTL
+      // الجانب الأيسر: الصورة والنص - إصلاح الاتجاه
       const leftSection = document.createElement('div');
       leftSection.style.cssText = `
         display: flex;
         align-items: center;
         gap: 12px;
-        flex-direction: ${formDirection === 'rtl' ? 'row' : 'row'};
-        order: ${formDirection === 'rtl' ? '2' : '1'};
+        flex-direction: row;
+        order: ${formDirection === 'rtl' ? '1' : '1'};
       `;
 
-      // الصورة - نفس حجم المعاينة 48px مع تحسين العرض
+      // الصورة - نفس حجم المعاينة 48px مع إصلاح الموضع
       const imageContainer = document.createElement('div');
       imageContainer.style.cssText = `
         width: 48px;
@@ -276,7 +287,7 @@ window.CodformQuantityOffers = (function() {
         justify-content: center;
         overflow: hidden;
         border: 1px solid #e5e7eb;
-        order: ${formDirection === 'rtl' ? '1' : '1'};
+        order: ${formDirection === 'rtl' ? '2' : '1'};
       `;
 
       // تحسين إدارة الصور
@@ -339,6 +350,7 @@ window.CodformQuantityOffers = (function() {
         display: flex;
         flex-direction: column;
         gap: 4px;
+        order: ${formDirection === 'rtl' ? '1' : '2'};
       `;
 
       // النص الرئيسي
@@ -398,7 +410,7 @@ window.CodformQuantityOffers = (function() {
       leftSection.appendChild(imageContainer);
       leftSection.appendChild(textContainer);
 
-      // الجانب الأيمن: الأسعار
+      // الجانب الأيمن: الأسعار - إصلاح الاتجاه
       const priceSection = document.createElement('div');
       priceSection.style.cssText = `
         text-align: ${formDirection === 'rtl' ? 'left' : 'right'};
@@ -406,6 +418,7 @@ window.CodformQuantityOffers = (function() {
         flex-direction: column;
         align-items: ${formDirection === 'rtl' ? 'flex-start' : 'flex-end'};
         gap: 2px;
+        order: ${formDirection === 'rtl' ? '2' : '2'};
       `;
 
       // السعر الأصلي (إذا كان هناك خصم)
