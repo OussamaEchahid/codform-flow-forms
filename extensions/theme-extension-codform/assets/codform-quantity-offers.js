@@ -1,6 +1,6 @@
 /**
- * CODFORM Quantity Offers Handler - FINAL MATCHING FIX
- * إصلاح نهائي لمطابقة المعاينة بالضبط - الصورة، السعر، والتخطيط RTL
+ * CODFORM Quantity Offers Handler - EXACT PREVIEW MATCH
+ * مطابقة دقيقة 100% للمعاينة في الحجم والتصميم والسعر
  */
 
 window.CodformQuantityOffers = (function() {
@@ -40,9 +40,9 @@ window.CodformQuantityOffers = (function() {
     return amount;
   }
 
-  // دالة عرض quantity offers مطابقة للمعاينة بالضبط
-  function displayQuantityOffers(quantityOffersData, blockId, productId, defaultCurrency = 'SAR', productData = null, formDirection = null) {
-    console.log("🎯 FINAL MATCHING FIX - Starting quantity offers display");
+  // دالة عرض quantity offers مطابقة بالضبط للمعاينة
+  function displayQuantityOffers(quantityOffersData, blockId, productId, defaultCurrency = 'SAR', productData = null, formDirection = 'rtl') {
+    console.log("🎯 EXACT PREVIEW MATCH - Starting quantity offers display");
     
     // التحقق من صحة البيانات
     if (!quantityOffersData || !quantityOffersData.offers || !Array.isArray(quantityOffersData.offers)) {
@@ -91,7 +91,7 @@ window.CodformQuantityOffers = (function() {
       backgroundColor: quantityOffersData.styling?.backgroundColor || '#ffffff',
       textColor: quantityOffersData.styling?.textColor || '#000000',
       tagColor: quantityOffersData.styling?.tagColor || '#22c55e',
-      priceColor: quantityOffersData.styling?.priceColor || '#1a1a1a'
+      priceColor: quantityOffersData.styling?.priceColor || '#000000'
     };
 
     // استخدام بيانات المنتج المرسلة أولاً، ثم من API، ثم القيم الافتراضية
@@ -144,6 +144,7 @@ window.CodformQuantityOffers = (function() {
     
     // بيانات المنتج
     const productTitle = actualProductData?.title || 'المنتج';
+    const productImage = actualProductData?.image || actualProductData?.featuredImage || actualProductData?.images?.[0];
 
     // رمز العملة الصحيح
     const currencySymbol = currency === 'USD' ? '$' : 
@@ -151,12 +152,15 @@ window.CodformQuantityOffers = (function() {
                           currency === 'MAD' ? 'د.م' : 
                           currency;
 
-    // عرض العروض مع التخطيط الصحيح مطابق للمعاينة
+    // حاوية العروض - نفس تصميم المعاينة بالضبط
+    const offersContainer = document.createElement('div');
+    offersContainer.style.cssText = `
+      margin-bottom: 16px;
+      direction: ${formDirection === 'rtl' ? 'rtl' : 'ltr'};
+    `;
+
+    // عرض العروض مع التخطيط المطابق للمعاينة بالضبط
     offers.forEach((offer, index) => {
-      const offerElement = document.createElement('div');
-      offerElement.setAttribute('data-offer-id', offer.id || index);
-      offerElement.setAttribute('data-quantity', offer.quantity);
-      
       // حساب السعر النهائي مع الخصم
       let totalPrice = realPrice * (offer.quantity || 1);
       let originalPrice = totalPrice;
@@ -174,7 +178,10 @@ window.CodformQuantityOffers = (function() {
         savingsPercentage = Math.round((discountValue / originalPrice) * 100);
       }
 
-      console.log("💰 FINAL Price calculation:", {
+      const isDiscounted = savingsPercentage > 0;
+      const isHighlighted = index === 1;
+
+      console.log("💰 Price calculation:", {
         quantity: offer.quantity,
         realPrice,
         originalPrice,
@@ -184,275 +191,244 @@ window.CodformQuantityOffers = (function() {
         savingsPercentage
       });
 
+      // عنصر العرض - نفس التصميم والحجم بالضبط من المعاينة
+      const offerElement = document.createElement('div');
+      offerElement.setAttribute('data-offer-id', offer.id || index);
+      offerElement.setAttribute('data-quantity', offer.quantity);
       offerElement.setAttribute('data-total-price', totalPrice.toFixed(2));
       
-      // التخطيط الجديد مطابق للمعاينة مع RTL صحيح
+      // التصميم المطابق للمعاينة بالضبط
       offerElement.style.cssText = `
-        background: ${index === 1 ? 'linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%)' : 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)'};
-        border: 2px solid ${index === 1 ? '#0ea5e9' : '#e2e8f0'};
-        border-radius: 16px;
-        padding: 20px 24px;
-        margin-bottom: 16px;
+        padding: 12px;
+        border-radius: 8px;
+        border: 2px solid ${isHighlighted ? '#22c55e' : '#e5e7eb'};
+        background-color: ${isHighlighted ? '#f0fdf4' : styling.backgroundColor};
         display: flex;
         align-items: center;
         justify-content: space-between;
-        font-family: 'Cairo', 'Tajawal', system-ui, Arial, sans-serif;
-        box-shadow: 0 4px 16px rgba(0,0,0,0.1);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: all 0.3s ease;
         cursor: pointer;
-        position: relative;
-        direction: rtl !important;
-        text-align: right !important;
-        min-height: 100px;
+        margin-bottom: 8px;
+        direction: ${formDirection === 'rtl' ? 'rtl' : 'ltr'};
+        box-shadow: ${isHighlighted ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none'};
       `;
 
       // تأثيرات hover
       offerElement.addEventListener('mouseenter', function() {
-        this.style.transform = 'translateY(-4px)';
-        this.style.boxShadow = '0 8px 24px rgba(0,0,0,0.15)';
+        this.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
       });
 
       offerElement.addEventListener('mouseleave', function() {
-        this.style.transform = 'translateY(0)';
-        this.style.boxShadow = '0 4px 16px rgba(0,0,0,0.1)';
+        this.style.boxShadow = isHighlighted ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none';
       });
 
-      // الحاوية الرئيسية للمحتوى
-      const contentWrapper = document.createElement('div');
-      contentWrapper.style.cssText = `
-        display: flex !important;
-        align-items: center !important;
-        width: 100% !important;
-        gap: 20px !important;
-        direction: rtl !important;
-        text-align: right !important;
-        justify-content: space-between !important;
+      // الجانب الأيسر: الصورة والنص
+      const leftSection = document.createElement('div');
+      leftSection.style.cssText = `
+        display: flex;
+        align-items: center;
+        gap: ${formDirection === 'rtl' ? '12px' : '12px'};
+        flex-direction: ${formDirection === 'rtl' ? 'row-reverse' : 'row'};
       `;
 
-      // 1. قسم الصورة (يسار للRTL)
-      const imageSection = document.createElement('div');
-      imageSection.style.cssText = `
+      // الصورة - نفس حجم المعاينة 48px
+      const imageContainer = document.createElement('div');
+      imageContainer.style.cssText = `
+        width: 48px;
+        height: 48px;
+        background-color: #f3f4f6;
+        border-radius: 8px;
         flex-shrink: 0;
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 80px;
-        height: 80px;
+        overflow: hidden;
       `;
-      
-      // البحث عن صورة المنتج من مصادر متعددة
-      let imageUrl = null;
-      
-      if (actualProductData) {
-        imageUrl = actualProductData.image || 
-                  actualProductData.featuredImage || 
-                  actualProductData.images?.[0] ||
-                  actualProductData.featured_image;
-      }
-      
-      // استخدام صورة أو placeholder جميل
-      if (!imageUrl) {
-        console.log("🖼️ No product image found, creating elegant placeholder");
-        const placeholderDiv = document.createElement('div');
-        placeholderDiv.style.cssText = `
-          width: 80px;
-          height: 80px;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          border-radius: 16px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: white;
-          font-size: 28px;
-          font-weight: bold;
-          border: 3px solid rgba(255,255,255,0.3);
-          box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-        `;
-        placeholderDiv.textContent = '🛍️';
-        imageSection.appendChild(placeholderDiv);
-      } else {
-        console.log("🖼️ Using product image:", imageUrl);
+
+      if (productImage) {
         const imageElement = document.createElement('img');
-        imageElement.src = imageUrl;
+        imageElement.src = productImage;
         imageElement.alt = productTitle;
         imageElement.style.cssText = `
-          width: 80px;
-          height: 80px;
+          width: 100%;
+          height: 100%;
           object-fit: cover;
-          border-radius: 16px;
-          border: 3px solid rgba(0,0,0,0.1);
-          display: block;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+          border-radius: 8px;
         `;
         imageElement.onerror = function() {
-          console.log("❌ Image failed to load, using elegant placeholder");
-          this.outerHTML = `
-            <div style="
-              width: 80px;
-              height: 80px;
-              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-              border-radius: 16px;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              color: white;
-              font-size: 28px;
-              font-weight: bold;
-              border: 3px solid rgba(255,255,255,0.3);
-              box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-            ">🛍️</div>
+          console.log('❌ Image failed to load, showing icon');
+          this.style.display = 'none';
+          const svgIcon = document.createElement('div');
+          svgIcon.innerHTML = `
+            <svg class="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd" />
+            </svg>
           `;
+          svgIcon.style.cssText = 'width: 24px; height: 24px; color: #9ca3af;';
+          imageContainer.appendChild(svgIcon);
         };
-        imageSection.appendChild(imageElement);
+        imageContainer.appendChild(imageElement);
+      } else {
+        // أيقونة افتراضية
+        const svgIcon = document.createElement('div');
+        svgIcon.innerHTML = `
+          <svg class="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd" />
+          </svg>
+        `;
+        svgIcon.style.cssText = 'width: 24px; height: 24px; color: #9ca3af;';
+        imageContainer.appendChild(svgIcon);
       }
 
-      // 2. قسم النص الوسطي
-      const textContent = document.createElement('div');
-      textContent.style.cssText = `
-        flex: 1 !important;
-        text-align: right !important;
-        direction: rtl !important;
-        margin: 0 20px !important;
-        display: flex !important;
-        flex-direction: column !important;
-        gap: 12px !important;
+      // النص والعلامات
+      const textContainer = document.createElement('div');
+      textContainer.style.cssText = `
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
       `;
 
       // النص الرئيسي
       const mainText = document.createElement('div');
       mainText.style.cssText = `
-        font-weight: 700 !important;
-        font-size: 18px !important;
-        color: ${styling.textColor} !important;
-        direction: rtl !important;
-        text-align: right !important;
-        font-family: 'Cairo', 'Tajawal', system-ui, Arial, sans-serif !important;
-        line-height: 1.4 !important;
+        font-weight: 600;
+        color: ${styling.textColor};
+        text-align: ${formDirection === 'rtl' ? 'right' : 'left'};
+        font-size: 14px;
+        line-height: 1.2;
       `;
       mainText.textContent = offer.text || `اشترِ ${offer.quantity || 1} قطعة`;
 
       // العلامات والتوفير
       const tagsContainer = document.createElement('div');
       tagsContainer.style.cssText = `
-        display: flex !important; 
-        gap: 10px !important; 
-        align-items: center !important; 
-        justify-content: flex-start !important;
-        direction: rtl !important;
-        flex-wrap: wrap !important;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        justify-content: ${formDirection === 'rtl' ? 'flex-end' : 'flex-start'};
+        margin-top: 4px;
       `;
 
       if (offer.tag) {
-        const tagElement = document.createElement('span');
+        const tagElement = document.createElement('div');
         tagElement.style.cssText = `
           background-color: ${styling.tagColor};
           color: white;
-          padding: 6px 12px;
-          border-radius: 20px;
+          padding: 2px 8px;
+          border-radius: 4px;
           font-size: 12px;
-          font-weight: 600;
-          font-family: 'Cairo', system-ui, Arial, sans-serif;
+          font-weight: 500;
+          display: inline-block;
         `;
         tagElement.textContent = offer.tag;
         tagsContainer.appendChild(tagElement);
       }
 
       if (savingsPercentage > 0) {
-        const savingsElement = document.createElement('span');
+        const savingsElement = document.createElement('div');
         savingsElement.style.cssText = `
-          background-color: #ef4444;
+          background-color: #22c55e;
           color: white;
-          padding: 6px 12px;
-          border-radius: 20px;
+          padding: 2px 8px;
+          border-radius: 4px;
           font-size: 12px;
-          font-weight: 600;
-          font-family: 'Cairo', system-ui, Arial, sans-serif;
+          font-weight: 500;
+          display: inline-block;
         `;
         savingsElement.textContent = `وفر ${savingsPercentage}%`;
         tagsContainer.appendChild(savingsElement);
       }
 
-      textContent.appendChild(mainText);
-      textContent.appendChild(tagsContainer);
+      textContainer.appendChild(mainText);
+      textContainer.appendChild(tagsContainer);
 
-      // 3. قسم الأسعار (يمين للRTL)
+      leftSection.appendChild(imageContainer);
+      leftSection.appendChild(textContainer);
+
+      // الجانب الأيمن: الأسعار
       const priceSection = document.createElement('div');
       priceSection.style.cssText = `
-        text-align: right !important;
-        min-width: 160px !important;
-        direction: rtl !important;
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: flex-end !important;
-        gap: 8px !important;
-        font-family: 'Cairo', 'Tajawal', system-ui, Arial, sans-serif !important;
+        text-align: ${formDirection === 'rtl' ? 'left' : 'right'};
+        display: flex;
+        flex-direction: column;
+        align-items: ${formDirection === 'rtl' ? 'flex-start' : 'flex-end'};
+        gap: 2px;
       `;
 
       // السعر الأصلي (إذا كان هناك خصم)
-      if (savingsPercentage > 0) {
+      if (isDiscounted) {
         const originalPriceElement = document.createElement('div');
         originalPriceElement.style.cssText = `
-          font-size: 16px !important;
-          color: #9ca3af !important;
-          text-decoration: line-through !important;
-          direction: rtl !important;
-          text-align: right !important;
-          font-family: 'Cairo', 'Tajawal', system-ui, Arial, sans-serif !important;
-          font-weight: 500 !important;
+          font-size: 14px;
+          color: #9ca3af;
+          text-decoration: line-through;
+          font-weight: 400;
         `;
-        originalPriceElement.textContent = `${originalPrice.toFixed(2)} ${currencySymbol}`;
+        originalPriceElement.textContent = formDirection === 'rtl' 
+          ? `${currencySymbol} ${originalPrice.toFixed(2)}`
+          : `${originalPrice.toFixed(2)} ${currencySymbol}`;
         priceSection.appendChild(originalPriceElement);
       }
 
-      // السعر النهائي الصحيح - مطابق للمعاينة
+      // السعر النهائي
       const finalPriceElement = document.createElement('div');
       finalPriceElement.style.cssText = `
-        font-size: 24px !important;
-        font-weight: 900 !important;
-        color: #1a1a1a !important;
-        direction: rtl !important;
-        text-align: right !important;
-        font-family: 'Cairo', 'Tajawal', system-ui, Arial, sans-serif !important;
-        line-height: 1.2 !important;
-        text-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        font-size: 18px;
+        font-weight: 700;
+        color: ${styling.priceColor};
+        line-height: 1.2;
       `;
+      finalPriceElement.textContent = formDirection === 'rtl' 
+        ? `${currencySymbol} ${totalPrice.toFixed(2)}`
+        : `${totalPrice.toFixed(2)} ${currencySymbol}`;
+      priceSection.appendChild(finalPriceElement);
+
+      // السعر للقطعة الواحدة (إذا كانت الكمية أكثر من 1)
+      if (offer.quantity > 1) {
+        const unitPriceElement = document.createElement('div');
+        unitPriceElement.style.cssText = `
+          font-size: 12px;
+          color: #6b7280;
+          margin-top: 2px;
+          font-weight: 400;
+        `;
+        unitPriceElement.textContent = formDirection === 'rtl' 
+          ? `${offer.quantity} × ${currencySymbol} ${realPrice.toFixed(2)}`
+          : `${realPrice.toFixed(2)} ${currencySymbol} × ${offer.quantity}`;
+        priceSection.appendChild(unitPriceElement);
+      }
+
+      // تجميع العناصر
+      offerElement.appendChild(leftSection);
+      offerElement.appendChild(priceSection);
       
-      // عرض السعر الصحيح من الحسابات
-      finalPriceElement.textContent = `${totalPrice.toFixed(2)} ${currencySymbol}`;
-      
-      console.log("💰 FINAL PRICE DISPLAY:", {
+      offersContainer.appendChild(offerElement);
+
+      console.log("💰 FINAL PREVIEW MATCH - Price display:", {
         totalPrice: totalPrice,
         display: finalPriceElement.textContent,
         calculation: `${realPrice} x ${offer.quantity} - discount = ${totalPrice.toFixed(2)}`
       });
-      
-      priceSection.appendChild(finalPriceElement);
-
-      // تجميع العناصر بترتيب RTL: صورة، نص، سعر
-      contentWrapper.appendChild(imageSection);
-      contentWrapper.appendChild(textContent);
-      contentWrapper.appendChild(priceSection);
-      
-      // إضافة المحتوى الكامل إلى العنصر الرئيسي
-      offerElement.appendChild(contentWrapper);
-      container.appendChild(offerElement);
     });
+
+    // إضافة حاوية العروض إلى الحاوية الرئيسية
+    container.appendChild(offersContainer);
 
     // إضافة animation للظهور
     container.style.opacity = '0';
-    container.style.transform = 'translateY(20px)';
+    container.style.transform = 'translateY(10px)';
     
     setTimeout(() => {
-      container.style.transition = 'all 0.5s ease-out';
+      container.style.transition = 'all 0.3s ease-out';
       container.style.opacity = '1';
       container.style.transform = 'translateY(0)';
     }, 50);
 
-    console.log("✅ FINAL MATCHING FIX - Quantity offers displayed perfectly matching preview");
+    console.log("✅ EXACT PREVIEW MATCH - Quantity offers displayed with identical styling");
   }
 
   // دالة تحميل وعرض العروض من API
-  async function loadAndDisplayOffers(blockId, productId, shop, formCurrency = 'SAR', passedProductData = null, formDirection = null) {
+  async function loadAndDisplayOffers(blockId, productId, shop, formCurrency = 'SAR', passedProductData = null, formDirection = 'rtl') {
     try {
       if (!shop) {
         shop = (typeof Shopify !== 'undefined' && Shopify.shop) ? Shopify.shop : 'codmagnet.com';
@@ -509,7 +485,7 @@ window.CodformQuantityOffers = (function() {
 
   // دالة تشخيص
   function debugOffers(blockId, productId) {
-    console.log("🔧 FINAL MATCHING DEBUG - Starting diagnosis...");
+    console.log("🔧 EXACT PREVIEW MATCH DEBUG - Starting diagnosis...");
     
     const container = document.getElementById(`quantity-offers-before-${blockId}`);
     const shop = window.Shopify?.shop || 'codmagnet.com';
@@ -541,6 +517,6 @@ window.CodformQuantityOffers = (function() {
 
 // دالة عامة للتشخيص
 window.debugQuantityOffers = function(blockId, productId) {
-  console.log("🔧 Manual debug called - FINAL MATCHING FIX");
+  console.log("🔧 Manual debug called - EXACT PREVIEW MATCH");
   return window.CodformQuantityOffers.debug(blockId, productId);
 };
