@@ -491,7 +491,6 @@ window.CodformQuantityOffers = (function() {
           font-size: 12px;
           font-weight: 500;
           display: inline-block;
-          margin-top: 4px;
         `;
         tagElement.textContent = offer.tag;
         tagsContainer.appendChild(tagElement);
