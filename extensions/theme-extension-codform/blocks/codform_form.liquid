@@ -1238,7 +1238,7 @@ button[id^="codform-popup-btn"] *,
         
         // Wrap in form element with submission handler
         completeFormHTML += `
-          <div id="quantity-offers-before-form" class="quantity-offers-container" style="margin: 16px 0; border: 2px solid red;"></div>
+          <div id="quantity-offers-before-form" class="quantity-offers-container" style="margin: 16px 0;"></div>
           <form class="codform-form-fields" style="background: transparent; margin: 0; padding: 0;" 
                 id="codform-main-form" onsubmit="handleFormSubmission(event)">
             ${formContent}
@@ -1817,15 +1817,17 @@ window.CodformQuantityOffers = (function() {
       }
 
       offerElement.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 12px;">
-          ${imageHtml}
-          <div style="flex: 1;">
-            <div style="font-weight: 600; color: #000;">
-              ${offer.text || `اشترِ ${offer.quantity || 1} قطعة`}
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            ${imageHtml}
+            <div>
+              <div style="font-weight: 600; color: #000;">
+                ${offer.text || `اشترِ ${offer.quantity || 1} قطعة`}
+              </div>
+              ${offer.tag ? `<div style="display: inline-block; background-color: #22c55e; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; margin-top: 4px;">${offer.tag}</div>` : ''}
             </div>
-            ${offer.tag ? `<div style="display: inline-block; background-color: #22c55e; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; margin-top: 4px;">${offer.tag}</div>` : ''}
           </div>
-          <div style="text-align: right;">
+          <div style="text-align: ${window.currentFormData?.formLanguage === 'en' ? 'left' : 'right'};">
             <div style="font-weight: bold; font-size: 18px; color: #000;">
               ${totalPrice.toFixed(2)} ${currencySymbol}
             </div>
