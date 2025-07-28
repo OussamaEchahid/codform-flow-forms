@@ -2151,8 +2151,22 @@ async function handleFormSubmissionPopup(formData, submitBtn, popup) {
   }
 }
 
-// تهيئة عروض الكمية عند تحميل الصفحة
-document.addEventListener('DOMContentLoaded', function() {
+// تحميل ملف العروض الكمية أولاً
+(function() {
+  const script = document.createElement('script');
+  script.src = 'https://cdn.jsdelivr.net/gh/Codmagnet/codformapp@main/quantity-offers.js';
+  script.onload = function() {
+    console.log("✅ Quantity offers script loaded successfully");
+    initializeQuantityOffers();
+  };
+  script.onerror = function() {
+    console.error("❌ Failed to load quantity offers script");
+  };
+  document.head.appendChild(script);
+})();
+
+// دالة تهيئة عروض الكمية
+function initializeQuantityOffers() {
   // انتظار حتى يتم إنهاء تحميل النموذج تماماً
   const waitForFormLoad = setInterval(function() {
     const formContainer = document.querySelector('.codform-dynamic-form');
@@ -2192,6 +2206,31 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // تنظيف الفاصل الزمني بعد 10 ثوان إذا لم يتم العثور على النموذج
   setTimeout(() => clearInterval(waitForFormLoad), 10000);
+  }, 100);
+}
+
+// تهيئة عروض الكمية عند تحميل الصفحة
+document.addEventListener('DOMContentLoaded', function() {
+  console.log("🔍 DOM loaded, checking for quantity offers script...");
+  // إذا لم يتم تحميل السكريبت بعد، حاول مرة أخرى
+  if (typeof window.CodformQuantityOffers === 'undefined') {
+    console.log("🔄 Quantity offers not loaded, attempting to load...");
+    (function() {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/gh/Codmagnet/codformapp@main/quantity-offers.js';
+      script.onload = function() {
+        console.log("✅ Quantity offers script loaded successfully");
+        initializeQuantityOffers();
+      };
+      script.onerror = function() {
+        console.error("❌ Failed to load quantity offers script");
+      };
+      document.head.appendChild(script);
+    })();
+  } else {
+    console.log("✅ Quantity offers already available");
+    initializeQuantityOffers();
+  }
 });
 
 // Add CSS animations
