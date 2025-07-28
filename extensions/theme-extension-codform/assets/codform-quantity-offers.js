@@ -94,17 +94,24 @@ window.CodformQuantityOffers = (function() {
         || document.querySelector(`[data-block-id="${blockId}"]`);
       
       if (formContainer) {
-        // فحص محتوى النموذج لتحديد الاتجاه
-        const formText = formContainer.textContent || '';
-        const parentForm = formContainer.closest('form') || formContainer.closest('[dir]');
+        // فحص النموذج الرئيسي والعناصر المحيطة
+        const parentForm = formContainer.closest('form') || formContainer.closest('[dir]') || document.body;
+        const formText = (formContainer.textContent || '') + (parentForm.textContent || '');
         
-        // تحديد الاتجاه بناءً على خاصية dir أو محتوى النص
+        // تحديد الاتجاه بناءً على خاصية dir أولاً
         if (parentForm && parentForm.dir) {
           formDirection = parentForm.dir;
+        } else if (parentForm && parentForm.getAttribute('lang')) {
+          // فحص لغة النموذج
+          const lang = parentForm.getAttribute('lang').toLowerCase();
+          formDirection = ['ar', 'he', 'fa', 'ur'].includes(lang) ? 'rtl' : 'ltr';
         } else {
           // فحص النص للكشف عن الأحرف العربية
           const arabicRegex = /[\u0600-\u06FF\u0750-\u077F]/;
-          formDirection = arabicRegex.test(formText) ? 'rtl' : 'ltr';
+          const arabicChars = (formText.match(arabicRegex) || []).length;
+          const totalChars = formText.replace(/\s/g, '').length;
+          // إذا كان أكثر من 30% من النص عربي، استخدم RTL
+          formDirection = (arabicChars / totalChars) > 0.3 ? 'rtl' : 'ltr';
         }
       } else {
         formDirection = 'ltr'; // افتراضي
