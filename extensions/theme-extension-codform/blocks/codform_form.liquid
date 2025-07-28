@@ -211,6 +211,26 @@ button[id^="codform-popup-btn"] *,
 
 {%- comment -%}
 ===============================================================================
+QUANTITY OFFERS SCRIPT LOADER
+===============================================================================
+{%- endcomment -%}
+<script>
+  // تحميل ملف عروض الكمية
+  (function loadQuantityOffersScript() {
+    const script = document.createElement('script');
+    script.src = '{{ "codform-quantity-offers.js" | asset_url }}';
+    script.onload = function() {
+      console.log('✅ CODFORM: Quantity offers script loaded successfully');
+    };
+    script.onerror = function() {
+      console.error('❌ CODFORM: Failed to load quantity offers script');
+    };
+    document.head.appendChild(script);
+  })();
+</script>
+
+{%- comment -%}
+===============================================================================
 2. POPUP BUTTON CONTAINER (separate from form)
 ===============================================================================
 {%- endcomment -%}
