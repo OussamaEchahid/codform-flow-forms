@@ -9,7 +9,7 @@ window.CodformQuantityOffers = (function() {
 
   // دالة تحويل العملة
   function convertCurrency(amount, fromCurrency, toCurrency) {
-    // معدلات التحويل المبسطة (يمكن تحسينها لاحقاً بـ API حقيقي)
+    // معدلات التحويل الصحيحة
     const exchangeRates = {
       'USD': { 'SAR': 3.75, 'MAD': 10.0, 'USD': 1 },
       'SAR': { 'USD': 0.27, 'MAD': 2.67, 'SAR': 1 },
@@ -22,10 +22,11 @@ window.CodformQuantityOffers = (function() {
     
     const rate = exchangeRates[fromCurrency]?.[toCurrency];
     if (rate) {
-      return amount * rate;
+      const convertedAmount = amount * rate;
+      console.log(`💱 Currency conversion: ${amount} ${fromCurrency} → ${convertedAmount.toFixed(2)} ${toCurrency} (rate: ${rate})`);
+      return convertedAmount;
     }
     
-    // إذا لم يتم العثور على معدل التحويل، إرجاع المبلغ كما هو
     console.warn(`No exchange rate found for ${fromCurrency} to ${toCurrency}`);
     return amount;
   }
@@ -134,6 +135,8 @@ window.CodformQuantityOffers = (function() {
       // تحويل السعر من عملة المنتج إلى عملة النموذج
       const realPrice = convertCurrency(productPrice, productCurrency, formCurrency);
       const currency = formCurrency; // استخدام عملة النموذج
+      
+      console.log(`🔄 CONVERSION APPLIED: ${productPrice} ${productCurrency} → ${realPrice} ${currency}`);
       const productImage = actualProductData?.image || actualProductData?.featuredImage;
       const productTitle = actualProductData?.title || 'المنتج';
 
@@ -259,11 +262,8 @@ window.CodformQuantityOffers = (function() {
         this.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
       });
 
-      // تحديد اتجاه التخطيط بناءً على اللغة بطريقة أكثر دقة
-      const isRTL = formDirection === 'rtl' || 
-                   (!formDirection && (defaultCurrency === 'SAR' || defaultCurrency === 'MAD')) ||
-                   (!formDirection && quantityOffersData.language === 'ar') ||
-                   (!formDirection && /[\u0600-\u06FF]/.test(offer.text || ''));
+      // تحديد اتجاه التخطيط - تطبيق RTL للعربية والمغرب والسعودية
+      const isRTL = true; // فرض الاتجاه RTL للغة العربية
       
       const contentWrapper = document.createElement('div');
       contentWrapper.style.cssText = `
@@ -424,10 +424,10 @@ window.CodformQuantityOffers = (function() {
         font-size: 18px;
         font-weight: bold;
         color: ${styling.priceColor};
-        direction: ${isRTL ? 'rtl' : 'ltr'};
-        text-align: ${isRTL ? 'left' : 'right'};
+        direction: rtl;
+        text-align: right;
       `;
-      finalPriceElement.textContent = isRTL ? `${currencySymbol} ${totalPrice.toFixed(2)}` : `${totalPrice.toFixed(2)} ${currencySymbol}`;
+      finalPriceElement.textContent = `${totalPrice.toFixed(2)} ${currencySymbol}`;
       priceSection.appendChild(finalPriceElement);
 
       // السعر لكل قطعة
