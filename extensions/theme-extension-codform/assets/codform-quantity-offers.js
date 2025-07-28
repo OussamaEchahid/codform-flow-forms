@@ -98,20 +98,65 @@ window.CodformQuantityOffers = (function() {
         const parentForm = formContainer.closest('form') || formContainer.closest('[dir]') || document.body;
         const formText = (formContainer.textContent || '') + (parentForm.textContent || '');
         
-        // تحديد الاتجاه بناءً على خاصية dir أولاً
-        if (parentForm && parentForm.dir) {
-          formDirection = parentForm.dir;
-        } else if (parentForm && parentForm.getAttribute('lang')) {
-          // فحص لغة النموذج
+        // تحسين منطق تحديد اتجاه النص للدقة الكاملة
+        const blockElement = document.getElementById(blockId);
+        
+        // 1. فحص dir attribute على البلوك المحدد أولاً
+        if (blockElement && blockElement.getAttribute('dir')) {
+          formDirection = blockElement.getAttribute('dir');
+          console.log('🎯 Direction from block dir:', formDirection);
+        }
+        // 2. فحص dir على النموذج المباشر
+        else if (parentForm && parentForm.getAttribute('dir')) {
+          formDirection = parentForm.getAttribute('dir');
+          console.log('🎯 Direction from form dir:', formDirection);
+        }
+        // 3. فحص lang attribute على البلوك أولاً
+        else if (blockElement && blockElement.getAttribute('lang')) {
+          const blockLang = blockElement.getAttribute('lang').toLowerCase();
+          formDirection = ['ar', 'he', 'fa', 'ur'].includes(blockLang) ? 'rtl' : 'ltr';
+          console.log('🎯 Direction from block lang:', blockLang, '→', formDirection);
+        }
+        // 4. فحص lang على النموذج
+        else if (parentForm && parentForm.getAttribute('lang')) {
           const lang = parentForm.getAttribute('lang').toLowerCase();
           formDirection = ['ar', 'he', 'fa', 'ur'].includes(lang) ? 'rtl' : 'ltr';
-        } else {
-          // فحص النص للكشف عن الأحرف العربية
-          const arabicRegex = /[\u0600-\u06FF\u0750-\u077F]/;
+          console.log('🎯 Direction from form lang:', lang, '→', formDirection);
+        }
+        // 5. الكشف الذكي عن المحتوى العربي في البلوك المحدد فقط
+        else if (blockElement) {
+          // جمع النصوص من البلوك المحدد فقط
+          const blockSpecificText = Array.from(blockElement.querySelectorAll('*'))
+            .filter(el => !el.querySelector('*')) // النصوص الورقية فقط
+            .map(el => el.textContent)
+            .join(' ')
+            .trim();
+          
+          const arabicPattern = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/g;
+          const arabicMatches = blockSpecificText.match(arabicPattern) || [];
+          const nonSpaceChars = blockSpecificText.replace(/\s+/g, '').length;
+          
+          if (nonSpaceChars > 0) {
+            const arabicPercentage = (arabicMatches.length / nonSpaceChars) * 100;
+            console.log('🎯 Block text analysis:', {
+              text: blockSpecificText.substring(0, 50) + '...',
+              arabicChars: arabicMatches.length,
+              totalChars: nonSpaceChars,
+              percentage: arabicPercentage.toFixed(1) + '%'
+            });
+            
+            // استخدام نسبة أعلى للدقة (40% بدلاً من 30%)
+            formDirection = arabicPercentage > 40 ? 'rtl' : 'ltr';
+            console.log('🎯 Direction from content analysis:', formDirection);
+          }
+        }
+        // 6. الرجوع للفحص العام كملاذ أخير
+        else {
+          const arabicRegex = /[\u0600-\u06FF\u0750-\u077F]/g;
           const arabicChars = (formText.match(arabicRegex) || []).length;
           const totalChars = formText.replace(/\s/g, '').length;
-          // إذا كان أكثر من 30% من النص عربي، استخدم RTL
-          formDirection = (arabicChars / totalChars) > 0.3 ? 'rtl' : 'ltr';
+          formDirection = totalChars > 0 && (arabicChars / totalChars) > 0.4 ? 'rtl' : 'ltr';
+          console.log('🎯 Direction from fallback analysis:', formDirection);
         }
       } else {
         formDirection = 'ltr'; // افتراضي
