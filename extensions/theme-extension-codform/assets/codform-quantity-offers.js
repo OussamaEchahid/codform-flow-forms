@@ -368,8 +368,14 @@ window.CodformQuantityOffers = (function() {
         flex-direction: row;
         order: 1;
       `;
+      
+      console.log('🔍 Direction and layout debug:', {
+        formDirection,
+        isRTL: formDirection === 'rtl',
+        layoutType: 'Arabic layout setup'
+      });
 
-      // الصورة - نفس حجم المعاينة 48px
+      // الصورة - يجب أن تكون على اليمين في العربية (order: 1)
       const imageContainer = document.createElement('div');
       imageContainer.style.cssText = `
         width: 48px;
@@ -382,8 +388,14 @@ window.CodformQuantityOffers = (function() {
         justify-content: center;
         overflow: hidden;
         border: 1px solid #e5e7eb;
-        order: 2;
+        order: ${formDirection === 'rtl' ? '1' : '2'};
       `;
+      
+      console.log('🖼️ Image container order for RTL:', {
+        formDirection,
+        imageOrder: formDirection === 'rtl' ? '1' : '2',
+        textOrder: formDirection === 'rtl' ? '2' : '1'
+      });
 
       // تحسين إدارة الصور
       let imageDisplayed = false;
@@ -439,13 +451,13 @@ window.CodformQuantityOffers = (function() {
         }
       }
 
-      // النص والعلامات
+      // النص والعلامات - يجب أن تكون على اليسار في العربية (order: 2)
       const textContainer = document.createElement('div');
       textContainer.style.cssText = `
         display: flex;
         flex-direction: column;
         gap: 4px;
-        order: 1;
+        order: ${formDirection === 'rtl' ? '2' : '1'};
       `;
 
       // النص الرئيسي - نفس حجم المعاينة بالضبط
