@@ -83,8 +83,39 @@ window.CodformQuantityOffers = (function() {
   }
 
   // دالة عرض quantity offers مطابقة بالضبط للمعاينة
-  function displayQuantityOffers(quantityOffersData, blockId, productId, defaultCurrency = 'SAR', productData = null, formDirection = 'rtl') {
+  function displayQuantityOffers(quantityOffersData, blockId, productId, defaultCurrency = 'SAR', productData = null, formDirection = null) {
     console.log("🎯 EXACT PREVIEW MATCH - Starting quantity offers display");
+    
+    // تحديد اتجاه النموذج بناءً على محتواه الفعلي
+    if (!formDirection) {
+      // البحث عن النموذج المرتبط بهذا blockId
+      const formContainer = document.getElementById(`quantity-offers-before-${blockId}`) 
+        || document.querySelector(`#${blockId}`) 
+        || document.querySelector(`[data-block-id="${blockId}"]`);
+      
+      if (formContainer) {
+        // فحص محتوى النموذج لتحديد الاتجاه
+        const formText = formContainer.textContent || '';
+        const parentForm = formContainer.closest('form') || formContainer.closest('[dir]');
+        
+        // تحديد الاتجاه بناءً على خاصية dir أو محتوى النص
+        if (parentForm && parentForm.dir) {
+          formDirection = parentForm.dir;
+        } else {
+          // فحص النص للكشف عن الأحرف العربية
+          const arabicRegex = /[\u0600-\u06FF\u0750-\u077F]/;
+          formDirection = arabicRegex.test(formText) ? 'rtl' : 'ltr';
+        }
+      } else {
+        formDirection = 'ltr'; // افتراضي
+      }
+    }
+    
+    console.log("🧭 Form direction detected:", {
+      blockId,
+      formDirection,
+      method: 'dynamic detection'
+    });
     
     // التحقق من صحة البيانات
     if (!quantityOffersData || !quantityOffersData.offers || !Array.isArray(quantityOffersData.offers)) {
@@ -599,7 +630,7 @@ window.CodformQuantityOffers = (function() {
   }
 
   // دالة تحميل وعرض العروض من API
-  async function loadAndDisplayOffers(blockId, productId, shop, formCurrency = 'SAR', passedProductData = null, formDirection = 'rtl') {
+  async function loadAndDisplayOffers(blockId, productId, shop, formCurrency = 'SAR', passedProductData = null, formDirection = null) {
     try {
       if (!shop) {
         shop = (typeof Shopify !== 'undefined' && Shopify.shop) ? Shopify.shop : 'codmagnet.com';
