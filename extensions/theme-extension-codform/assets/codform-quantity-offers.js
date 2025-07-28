@@ -449,13 +449,13 @@ window.CodformQuantityOffers = (function() {
         layoutType: 'Separate elements layout'
       });
 
-      // النص والعلامات - منفصل تماماً (order: 1 للـ RTL)
+      // النص والعلامات - في الوسط دائماً (order: 2)
       const textContainer = document.createElement('div');
       textContainer.style.cssText = `
         display: flex;
         flex-direction: column;
         gap: 4px;
-        order: ${formDirection === 'rtl' ? '1' : '3'};
+        order: 2;
       `;
 
       // النص الرئيسي
@@ -523,7 +523,7 @@ window.CodformQuantityOffers = (function() {
         justify-content: center;
         overflow: hidden;
         border: 1px solid #e5e7eb;
-        order: ${formDirection === 'rtl' ? '2' : '1'};
+        order: 1;
       `;
       
       console.log('🖼️ Separate elements order:', {
@@ -595,7 +595,7 @@ window.CodformQuantityOffers = (function() {
         flex-direction: column;
         align-items: ${formDirection === 'rtl' ? 'flex-start' : 'flex-end'};
         gap: 2px;
-        order: ${formDirection === 'rtl' ? '3' : '2'};
+        order: 3;
       `;
 
       // السعر الأصلي (إذا كان هناك خصم)
