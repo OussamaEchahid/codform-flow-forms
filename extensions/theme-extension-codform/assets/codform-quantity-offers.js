@@ -106,16 +106,33 @@ window.CodformQuantityOffers = (function() {
     let productPrice = 10.0; // قيمة افتراضية
     let productCurrency = 'MAD'; // عملة افتراضية
     
-    // استخدام السعر من بيانات المنتج الحقيقية إذا كانت موجودة
+    // محاولة الحصول على السعر الحقيقي من مصادر متعددة
     if (actualProductData && actualProductData.price) {
       productPrice = parseFloat(actualProductData.price);
       productCurrency = actualProductData.currency || 'MAD';
+      console.log("💰 Price from product data:", productPrice, productCurrency);
     } else if (actualProductData && actualProductData.variants && actualProductData.variants.length > 0) {
       // إذا كان المنتج له variants، استخدم سعر أول variant
       const firstVariant = actualProductData.variants[0];
       if (firstVariant.price) {
         productPrice = parseFloat(firstVariant.price);
         productCurrency = firstVariant.currency || actualProductData.currency || 'MAD';
+        console.log("💰 Price from variant:", productPrice, productCurrency);
+      }
+    } else {
+      // محاولة الحصول على السعر من DOM إذا لم تكن البيانات متوفرة
+      try {
+        const priceElement = document.querySelector('.price, [class*="price"], [data-price]');
+        if (priceElement) {
+          const priceText = priceElement.textContent || priceElement.getAttribute('data-price');
+          const priceMatch = priceText.match(/[\d,]+\.?\d*/);
+          if (priceMatch) {
+            productPrice = parseFloat(priceMatch[0].replace(',', ''));
+            console.log("💰 Price from DOM:", productPrice);
+          }
+        }
+      } catch (e) {
+        console.log("⚠️ Could not extract price from DOM");
       }
     }
     
