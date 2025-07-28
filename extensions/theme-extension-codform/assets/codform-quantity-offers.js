@@ -119,9 +119,9 @@ window.CodformQuantityOffers = (function() {
     const hasFormPrice = formPrice && parseFloat(formPrice) > 0;
     const hasRealPrice = actualProductData && actualProductData.price && parseFloat(actualProductData.price) > 0;
     
-    // أولوية للسعر من إعدادات النموذج، ثم سعر المنتج الأصلي، ثم السعر الافتراضي
-    const productPrice = hasFormPrice ? parseFloat(formPrice) : 
-                        hasRealPrice ? parseFloat(actualProductData.price) : 5000;
+    // استخدام السعر الحقيقي للمنتج دائماً إذا كان متوفراً
+    const productPrice = hasRealPrice ? parseFloat(actualProductData.price) : 
+                        hasFormPrice ? parseFloat(formPrice) : 3.66;
     
     console.log("💰 Price selection logic:", {
       formPriceFromOffers,
@@ -213,25 +213,62 @@ window.CodformQuantityOffers = (function() {
         box-shadow: ${isHighlighted ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none'};
       `;
 
+      // إضافة وظيفة النقر لاختيار العرض
+      offerElement.addEventListener('click', function() {
+        // إزالة التحديد من جميع العروض
+        const allOffers = container.querySelectorAll('[data-offer-id]');
+        allOffers.forEach(el => {
+          el.style.borderColor = '#e5e7eb';
+          el.style.backgroundColor = styling.backgroundColor;
+          el.style.boxShadow = 'none';
+        });
+        
+        // تحديد العرض المختار
+        this.style.borderColor = '#22c55e';
+        this.style.backgroundColor = '#f0fdf4';
+        this.style.boxShadow = '0 2px 8px rgba(34, 197, 94, 0.2)';
+        
+        // تحديث كمية المنتج في النموذج
+        const quantity = this.getAttribute('data-quantity');
+        const totalPrice = this.getAttribute('data-total-price');
+        
+        console.log(`✅ Selected offer: ${quantity} items for ${totalPrice} ${currencySymbol}`);
+        
+        // إرسال حدث لتحديث النموذج
+        window.dispatchEvent(new CustomEvent('quantityOfferSelected', {
+          detail: {
+            offerId: this.getAttribute('data-offer-id'),
+            quantity: parseInt(quantity),
+            totalPrice: parseFloat(totalPrice),
+            currency: currency
+          }
+        }));
+      });
+
       // تأثيرات hover
       offerElement.addEventListener('mouseenter', function() {
-        this.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+        if (this.style.borderColor !== 'rgb(34, 197, 94)') {
+          this.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+        }
       });
 
       offerElement.addEventListener('mouseleave', function() {
-        this.style.boxShadow = isHighlighted ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none';
+        if (this.style.borderColor !== 'rgb(34, 197, 94)') {
+          this.style.boxShadow = isHighlighted ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none';
+        }
       });
 
-      // الجانب الأيسر: الصورة والنص
+      // الجانب الأيسر: الصورة والنص - ترتيب صحيح لـ RTL
       const leftSection = document.createElement('div');
       leftSection.style.cssText = `
         display: flex;
         align-items: center;
-        gap: ${formDirection === 'rtl' ? '12px' : '12px'};
-        flex-direction: ${formDirection === 'rtl' ? 'row-reverse' : 'row'};
+        gap: 12px;
+        flex-direction: ${formDirection === 'rtl' ? 'row' : 'row'};
+        order: ${formDirection === 'rtl' ? '2' : '1'};
       `;
 
-      // الصورة - نفس حجم المعاينة 48px
+      // الصورة - نفس حجم المعاينة 48px مع تحسين العرض
       const imageContainer = document.createElement('div');
       imageContainer.style.cssText = `
         width: 48px;
@@ -243,41 +280,62 @@ window.CodformQuantityOffers = (function() {
         align-items: center;
         justify-content: center;
         overflow: hidden;
+        border: 1px solid #e5e7eb;
+        order: ${formDirection === 'rtl' ? '1' : '1'};
       `;
 
-      if (productImage) {
+      // تحسين إدارة الصور
+      let imageDisplayed = false;
+      
+      // محاولة تحميل الصورة الأساسية
+      if (productImage && productImage.trim() !== '') {
         const imageElement = document.createElement('img');
-        imageElement.src = productImage;
+        
+        // تنظيف رابط الصورة
+        let cleanImageUrl = productImage.trim();
+        if (cleanImageUrl.startsWith('//')) {
+          cleanImageUrl = 'https:' + cleanImageUrl;
+        }
+        
+        imageElement.src = cleanImageUrl;
         imageElement.alt = productTitle;
         imageElement.style.cssText = `
           width: 100%;
           height: 100%;
           object-fit: cover;
-          border-radius: 8px;
+          border-radius: 7px;
         `;
-        imageElement.onerror = function() {
-          console.log('❌ Image failed to load, showing icon');
-          this.style.display = 'none';
-          const svgIcon = document.createElement('div');
-          svgIcon.innerHTML = `
-            <svg class="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd" />
-            </svg>
-          `;
-          svgIcon.style.cssText = 'width: 24px; height: 24px; color: #9ca3af;';
-          imageContainer.appendChild(svgIcon);
+        
+        imageElement.onload = function() {
+          console.log('✅ Product image loaded successfully:', cleanImageUrl);
+          imageDisplayed = true;
         };
+        
+        imageElement.onerror = function() {
+          console.log('❌ Primary image failed, trying fallback');
+          this.remove();
+          showFallbackIcon();
+        };
+        
         imageContainer.appendChild(imageElement);
       } else {
-        // أيقونة افتراضية
-        const svgIcon = document.createElement('div');
-        svgIcon.innerHTML = `
-          <svg class="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd" />
-          </svg>
-        `;
-        svgIcon.style.cssText = 'width: 24px; height: 24px; color: #9ca3af;';
-        imageContainer.appendChild(svgIcon);
+        showFallbackIcon();
+      }
+      
+      function showFallbackIcon() {
+        if (!imageDisplayed) {
+          const iconElement = document.createElement('div');
+          iconElement.innerHTML = `📦`;
+          iconElement.style.cssText = `
+            font-size: 20px;
+            color: #9ca3af;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          `;
+          imageContainer.appendChild(iconElement);
+          console.log('📦 Using fallback icon for product image');
+        }
       }
 
       // النص والعلامات
