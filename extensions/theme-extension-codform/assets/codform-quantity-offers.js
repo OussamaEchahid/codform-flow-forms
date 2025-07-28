@@ -442,23 +442,75 @@ window.CodformQuantityOffers = (function() {
         }
       });
 
-      // الجانب الأيسر: الصورة والنص - إصلاح الاتجاه للعربية
-      const leftSection = document.createElement('div');
-      leftSection.style.cssText = `
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        flex-direction: row;
-        order: 1;
-      `;
-      
+      // إنشاء عناصر منفصلة للنص والصورة في RTL
       console.log('🔍 Direction and layout debug:', {
         formDirection,
         isRTL: formDirection === 'rtl',
-        layoutType: 'Arabic layout setup'
+        layoutType: 'Separate elements layout'
       });
 
-      // الصورة - يجب أن تكون على اليمين في العربية (order: 1)
+      // النص والعلامات - منفصل تماماً (order: 1 للـ RTL)
+      const textContainer = document.createElement('div');
+      textContainer.style.cssText = `
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        order: ${formDirection === 'rtl' ? '1' : '3'};
+      `;
+
+      // النص الرئيسي
+      const mainText = document.createElement('div');
+      mainText.style.cssText = `
+        font-weight: 600;
+        color: ${styling.textColor};
+        text-align: ${formDirection === 'rtl' ? 'right' : 'left'};
+        font-size: 16px;
+        line-height: 1.4;
+      `;
+      mainText.textContent = offer.text || `اشترِ ${offer.quantity || 1} قطعة`;
+
+      // العلامات والتوفير
+      const tagsContainer = document.createElement('div');
+      tagsContainer.style.cssText = `
+        display: flex;
+        gap: 8px;
+        margin-top: 4px;
+      `;
+
+      if (offer.tag) {
+        const tagElement = document.createElement('div');
+        tagElement.style.cssText = `
+          background-color: ${styling.tagColor};
+          color: white;
+          padding: 2px 8px;
+          border-radius: 4px;
+          font-size: 12px;
+          font-weight: 500;
+          display: inline-block;
+        `;
+        tagElement.textContent = offer.tag;
+        tagsContainer.appendChild(tagElement);
+      }
+
+      if (savingsPercentage > 0) {
+        const savingsElement = document.createElement('div');
+        savingsElement.style.cssText = `
+          background-color: #22c55e;
+          color: white;
+          padding: 2px 8px;
+          border-radius: 4px;
+          font-size: 12px;
+          font-weight: 500;
+          display: inline-block;
+        `;
+        savingsElement.textContent = `وفر ${savingsPercentage}%`;
+        tagsContainer.appendChild(savingsElement);
+      }
+
+      textContainer.appendChild(mainText);
+      textContainer.appendChild(tagsContainer);
+
+      // الصورة - منفصلة تماماً (order: 2 للـ RTL)
       const imageContainer = document.createElement('div');
       imageContainer.style.cssText = `
         width: 48px;
@@ -474,10 +526,11 @@ window.CodformQuantityOffers = (function() {
         order: ${formDirection === 'rtl' ? '2' : '1'};
       `;
       
-      console.log('🖼️ Image container order for RTL:', {
+      console.log('🖼️ Separate elements order:', {
         formDirection,
         imageOrder: formDirection === 'rtl' ? '2' : '1',
-        textOrder: formDirection === 'rtl' ? '1' : '2'
+        textOrder: formDirection === 'rtl' ? '1' : '3',
+        priceOrder: formDirection === 'rtl' ? '3' : '2'
       });
 
       // تحسين إدارة الصور
@@ -534,71 +587,7 @@ window.CodformQuantityOffers = (function() {
         }
       }
 
-      // النص والعلامات - يجب أن تكون على اليسار في العربية (order: 2)
-      const textContainer = document.createElement('div');
-      textContainer.style.cssText = `
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-        order: ${formDirection === 'rtl' ? '1' : '2'};
-      `;
-
-      // النص الرئيسي - نفس حجم المعاينة بالضبط
-      const mainText = document.createElement('div');
-      mainText.style.cssText = `
-        font-weight: 600;
-        color: ${styling.textColor};
-        text-align: ${formDirection === 'rtl' ? 'right' : 'left'};
-        font-size: 16px;
-        line-height: 1.4;
-      `;
-      mainText.textContent = offer.text || `اشترِ ${offer.quantity || 1} قطعة`;
-
-      // العلامات والتوفير
-      const tagsContainer = document.createElement('div');
-      tagsContainer.style.cssText = `
-        display: flex;
-        gap: 8px;
-        margin-top: 4px;
-      `;
-
-      if (offer.tag) {
-        const tagElement = document.createElement('div');
-        tagElement.style.cssText = `
-          background-color: ${styling.tagColor};
-          color: white;
-          padding: 2px 8px;
-          border-radius: 4px;
-          font-size: 12px;
-          font-weight: 500;
-          display: inline-block;
-        `;
-        tagElement.textContent = offer.tag;
-        tagsContainer.appendChild(tagElement);
-      }
-
-      if (savingsPercentage > 0) {
-        const savingsElement = document.createElement('div');
-        savingsElement.style.cssText = `
-          background-color: #22c55e;
-          color: white;
-          padding: 2px 8px;
-          border-radius: 4px;
-          font-size: 12px;
-          font-weight: 500;
-          display: inline-block;
-        `;
-        savingsElement.textContent = `وفر ${savingsPercentage}%`;
-        tagsContainer.appendChild(savingsElement);
-      }
-
-      textContainer.appendChild(mainText);
-      textContainer.appendChild(tagsContainer);
-
-      leftSection.appendChild(imageContainer);
-      leftSection.appendChild(textContainer);
-
-      // الجانب الأيمن: الأسعار - إصلاح الاتجاه
+      // الأسعار - منفصلة تماماً (order: 3 للـ RTL)
       const priceSection = document.createElement('div');
       priceSection.style.cssText = `
         text-align: ${formDirection === 'rtl' ? 'left' : 'right'};
@@ -606,7 +595,7 @@ window.CodformQuantityOffers = (function() {
         flex-direction: column;
         align-items: ${formDirection === 'rtl' ? 'flex-start' : 'flex-end'};
         gap: 2px;
-        order: ${formDirection === 'rtl' ? '2' : '2'};
+        order: ${formDirection === 'rtl' ? '3' : '2'};
       `;
 
       // السعر الأصلي (إذا كان هناك خصم)
@@ -652,8 +641,9 @@ window.CodformQuantityOffers = (function() {
         priceSection.appendChild(unitPriceElement);
       }
 
-      // تجميع العناصر
-      offerElement.appendChild(leftSection);
+      // تجميع العناصر منفصلة
+      offerElement.appendChild(textContainer);
+      offerElement.appendChild(imageContainer);
       offerElement.appendChild(priceSection);
       
       offersContainer.appendChild(offerElement);
