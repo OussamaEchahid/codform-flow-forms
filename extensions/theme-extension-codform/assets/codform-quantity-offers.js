@@ -96,8 +96,23 @@ window.CodformQuantityOffers = (function() {
         console.log("🛍️ Using global product data:", actualProductData);
       }
       
+      // استخدام السعر من إعدادات النموذج إذا كان متوفراً، وإلا استخدم سعر المنتج الأصلي
+      const formPrice = quantityOffersData.price || quantityOffersData.formPrice;
+      const hasFormPrice = formPrice && parseFloat(formPrice) > 0;
       const hasRealPrice = actualProductData && actualProductData.price && parseFloat(actualProductData.price) > 0;
-      const productPrice = hasRealPrice ? parseFloat(actualProductData.price) : 5000;
+      
+      // أولوية للسعر من إعدادات النموذج، ثم سعر المنتج الأصلي، ثم السعر الافتراضي
+      const productPrice = hasFormPrice ? parseFloat(formPrice) : 
+                          hasRealPrice ? parseFloat(actualProductData.price) : 5000;
+      
+      console.log("💰 Price selection logic:", {
+        formPrice,
+        hasFormPrice,
+        originalProductPrice: actualProductData?.price,
+        hasRealPrice,
+        selectedPrice: productPrice,
+        source: hasFormPrice ? 'form settings' : hasRealPrice ? 'original product' : 'fallback'
+      });
       const productCurrency = actualProductData?.currency || 'USD';
       const formCurrency = defaultCurrency; // عملة النموذج
       
@@ -356,13 +371,15 @@ window.CodformQuantityOffers = (function() {
       textContent.appendChild(mainText);
       textContent.appendChild(tagsContainer);
 
-      // قسم الأسعار مع اتجاه ديناميكي
+      // قسم الأسعار مع اتجاه ديناميكي ومسافات مناسبة
       const priceSection = document.createElement('div');
       priceSection.style.cssText = `
         text-align: ${isRTL ? 'left' : 'right'};
-        min-width: 100px;
-        direction: ltr;
+        min-width: 120px;
+        direction: ${isRTL ? 'rtl' : 'ltr'};
         order: 3;
+        padding: ${isRTL ? '0 0 0 12px' : '0 12px 0 0'};
+        margin: ${isRTL ? '0 0 0 8px' : '0 8px 0 0'};
       `;
 
       // السعر الأصلي (إذا كان هناك خصم)
