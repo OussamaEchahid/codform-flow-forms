@@ -96,8 +96,21 @@ window.CodformQuantityOffers = (function() {
         console.log("🛍️ Using global product data:", actualProductData);
       }
       
-      // استخدام السعر من إعدادات النموذج إذا كان متوفراً، وإلا استخدم سعر المنتج الأصلي
-      const formPrice = quantityOffersData.price || quantityOffersData.formPrice;
+      // البحث عن السعر في بيانات العروض (من إعدادات النموذج)
+      let formPriceFromOffers = null;
+      
+      // البحث في العروض عن السعر المحدد
+      if (quantityOffersData.offers && Array.isArray(quantityOffersData.offers)) {
+        for (const offer of quantityOffersData.offers) {
+          if (offer.basePrice && parseFloat(offer.basePrice) > 0) {
+            formPriceFromOffers = parseFloat(offer.basePrice);
+            break;
+          }
+        }
+      }
+      
+      // البحث في البيانات العامة للنموذج
+      const formPrice = formPriceFromOffers || quantityOffersData.price || quantityOffersData.formPrice || quantityOffersData.basePrice;
       const hasFormPrice = formPrice && parseFloat(formPrice) > 0;
       const hasRealPrice = actualProductData && actualProductData.price && parseFloat(actualProductData.price) > 0;
       
@@ -106,12 +119,14 @@ window.CodformQuantityOffers = (function() {
                           hasRealPrice ? parseFloat(actualProductData.price) : 5000;
       
       console.log("💰 Price selection logic:", {
+        formPriceFromOffers,
         formPrice,
         hasFormPrice,
         originalProductPrice: actualProductData?.price,
         hasRealPrice,
         selectedPrice: productPrice,
-        source: hasFormPrice ? 'form settings' : hasRealPrice ? 'original product' : 'fallback'
+        source: hasFormPrice ? 'form settings' : hasRealPrice ? 'original product' : 'fallback',
+        quantityOffersData: quantityOffersData
       });
       const productCurrency = actualProductData?.currency || 'USD';
       const formCurrency = defaultCurrency; // عملة النموذج
@@ -378,8 +393,12 @@ window.CodformQuantityOffers = (function() {
         min-width: 120px;
         direction: ${isRTL ? 'rtl' : 'ltr'};
         order: 3;
-        padding: ${isRTL ? '0 0 0 12px' : '0 12px 0 0'};
-        margin: ${isRTL ? '0 0 0 8px' : '0 8px 0 0'};
+        padding: ${isRTL ? '0 0 0 16px' : '0 16px 0 0'};
+        margin: ${isRTL ? '0 0 0 12px' : '0 12px 0 0'};
+        display: flex;
+        flex-direction: column;
+        align-items: ${isRTL ? 'flex-start' : 'flex-end'};
+        gap: 4px;
       `;
 
       // السعر الأصلي (إذا كان هناك خصم)
