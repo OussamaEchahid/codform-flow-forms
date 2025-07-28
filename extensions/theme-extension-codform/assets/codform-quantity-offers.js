@@ -312,7 +312,7 @@ window.CodformQuantityOffers = (function() {
         display: flex;
         align-items: center;
         gap: 12px;
-        flex-direction: ${formDirection === 'rtl' ? 'row-reverse' : 'row'};
+        flex-direction: ${formDirection === 'rtl' ? 'row' : 'row'};
         order: 1;
       `;
 
@@ -329,7 +329,7 @@ window.CodformQuantityOffers = (function() {
         justify-content: center;
         overflow: hidden;
         border: 1px solid #e5e7eb;
-        order: ${formDirection === 'rtl' ? '1' : '1'};
+        order: ${formDirection === 'rtl' ? '2' : '1'};
       `;
 
       // تحسين إدارة الصور
@@ -392,17 +392,17 @@ window.CodformQuantityOffers = (function() {
         display: flex;
         flex-direction: column;
         gap: 4px;
-        order: ${formDirection === 'rtl' ? '2' : '2'};
+        order: ${formDirection === 'rtl' ? '1' : '2'};
       `;
 
-      // النص الرئيسي
+      // النص الرئيسي - نفس حجم المعاينة بالضبط
       const mainText = document.createElement('div');
       mainText.style.cssText = `
         font-weight: 600;
         color: ${styling.textColor};
         text-align: ${formDirection === 'rtl' ? 'right' : 'left'};
-        font-size: 14px;
-        line-height: 1.2;
+        font-size: 16px;
+        line-height: 1.4;
       `;
       mainText.textContent = offer.text || `اشترِ ${offer.quantity || 1} قطعة`;
 
