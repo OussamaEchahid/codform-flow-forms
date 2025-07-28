@@ -456,6 +456,8 @@ window.CodformQuantityOffers = (function() {
         flex-direction: column;
         gap: 4px;
         order: 2;
+        align-items: ${formDirection === 'rtl' ? 'flex-end' : 'flex-start'};
+        text-align: ${formDirection === 'rtl' ? 'right' : 'left'};
       `;
 
       // النص الرئيسي
