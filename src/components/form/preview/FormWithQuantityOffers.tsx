@@ -202,11 +202,22 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
               className={`p-3 rounded-lg border-2 flex items-center justify-between transition-all cursor-pointer hover:shadow-md ${
                 isHighlighted ? 'border-green-500 bg-green-50 shadow-sm' : 'border-gray-200 bg-white'
               }`}
+              style={{ direction: formStyle?.formDirection === 'ltr' ? 'ltr' : 'rtl' }}
             >
-              <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 bg-gray-100 rounded-lg flex-shrink-0 flex items-center justify-center">
-                  <svg className="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 2L3 7v11a1 1 0 001 1h3a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1h3a1 1 0 001-1V7l-7-5z" clipRule="evenodd" />
+              <div className={`flex items-center ${formStyle?.formDirection === 'ltr' ? 'space-x-3' : 'space-x-reverse space-x-3'}`}>
+                <div className="w-12 h-12 bg-gray-100 rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden">
+                  {productData && (
+                    <img 
+                      src={`https://cdn.shopify.com/s/files/1/0656/4085/7787/files/O1CN01IXqrZC2NY9HqUCYZ5__2215864519974-0-cib_jpg.webp?v=1747421954`}
+                      alt={'Product'}
+                      className="w-full h-full object-cover rounded-lg"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  )}
+                  <svg className="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 20 20" style={{ display: productData ? 'none' : 'block' }}>
+                    <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
                   </svg>
                 </div>
                 
@@ -233,7 +244,7 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
                 </div>
               </div>
 
-               <div className="text-right">
+               <div className={`${formStyle?.formDirection === 'ltr' ? 'text-left' : 'text-right'}`}>
                 {isDiscounted && (
                  <div className="text-sm line-through text-gray-400">
                     {formatPrice(originalPrice)}
