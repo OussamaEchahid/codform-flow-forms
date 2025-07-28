@@ -7,27 +7,37 @@
 window.CodformQuantityOffers = (function() {
   'use strict';
 
-  // دالة تحويل العملة
+  // دالة تحويل العملة مع الأسعار الدقيقة
   function convertCurrency(amount, fromCurrency, toCurrency) {
-    // معدلات التحويل الصحيحة
+    console.log(`🔄 Starting conversion: ${amount} from ${fromCurrency} to ${toCurrency}`);
+    
+    // معدلات التحويل الدقيقة والصحيحة
     const exchangeRates = {
-      'USD': { 'SAR': 3.75, 'MAD': 10.0, 'USD': 1 },
-      'SAR': { 'USD': 0.27, 'MAD': 2.67, 'SAR': 1 },
-      'MAD': { 'USD': 0.10, 'SAR': 0.375, 'MAD': 1 }
+      'USD': { 'SAR': 3.75, 'MAD': 10.0, 'USD': 1, 'AED': 3.67, 'EUR': 0.85 },
+      'SAR': { 'USD': 0.267, 'MAD': 2.67, 'SAR': 1, 'AED': 0.98, 'EUR': 0.227 },
+      'MAD': { 'USD': 0.1, 'SAR': 0.375, 'MAD': 1, 'AED': 0.37, 'EUR': 0.085 },
+      'AED': { 'USD': 0.272, 'SAR': 1.02, 'MAD': 2.72, 'AED': 1, 'EUR': 0.231 },
+      'EUR': { 'USD': 1.18, 'SAR': 4.43, 'MAD': 11.8, 'AED': 4.33, 'EUR': 1 }
     };
     
+    // تنظيف أسماء العملات
+    fromCurrency = (fromCurrency || 'USD').toString().toUpperCase().trim();
+    toCurrency = (toCurrency || 'MAD').toString().toUpperCase().trim();
+    
+    // إذا كانت نفس العملة
     if (fromCurrency === toCurrency) {
+      console.log(`✅ Same currency, returning: ${amount} ${toCurrency}`);
       return amount;
     }
     
     const rate = exchangeRates[fromCurrency]?.[toCurrency];
     if (rate) {
       const convertedAmount = amount * rate;
-      console.log(`💱 Currency conversion: ${amount} ${fromCurrency} → ${convertedAmount.toFixed(2)} ${toCurrency} (rate: ${rate})`);
+      console.log(`✅ CONVERSION SUCCESS: ${amount} ${fromCurrency} → ${convertedAmount.toFixed(2)} ${toCurrency} (rate: ${rate})`);
       return convertedAmount;
     }
     
-    console.warn(`No exchange rate found for ${fromCurrency} to ${toCurrency}`);
+    console.warn(`❌ CONVERSION FAILED: No rate for ${fromCurrency} to ${toCurrency}, using original amount`);
     return amount;
   }
 
@@ -262,17 +272,19 @@ window.CodformQuantityOffers = (function() {
         this.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
       });
 
-      // تحديد اتجاه التخطيط - تطبيق RTL للعربية والمغرب والسعودية
-      const isRTL = true; // فرض الاتجاه RTL للغة العربية
+      // فرض الاتجاه RTL تماماً للعربية مع إصلاح التخطيط
+      const isRTL = true; // فرض الاتجاه RTL نهائياً
       
       const contentWrapper = document.createElement('div');
       contentWrapper.style.cssText = `
-        display: flex;
-        align-items: center;
-        width: 100%;
-        gap: 12px;
-        direction: ${isRTL ? 'rtl' : 'ltr'};
+        display: flex !important;
+        align-items: center !important;
+        width: 100% !important;
+        gap: 16px !important;
+        direction: rtl !important;
+        text-align: right !important;
         cursor: pointer;
+        flex-direction: row !important;
       `;
 
       // ترتيب الصورة حسب الاتجاه
@@ -301,30 +313,39 @@ window.CodformQuantityOffers = (function() {
         imageSection.appendChild(imageElement);
       }
 
-      // محتوى النص مع اتجاه ديناميكي
+      // محتوى النص مع إجبار الاتجاه RTL
       const textContent = document.createElement('div');
       textContent.style.cssText = `
-        flex: 1;
-        text-align: ${isRTL ? 'right' : 'left'};
-        direction: ${isRTL ? 'rtl' : 'ltr'};
-        order: 2;
+        flex: 1 !important;
+        text-align: right !important;
+        direction: rtl !important;
+        order: 2 !important;
+        margin: 0 12px !important;
       `;
 
-      // النص الرئيسي مع اتجاه ديناميكي
+      // النص الرئيسي مع إجبار RTL
       const mainText = document.createElement('div');
       mainText.style.cssText = `
-        font-weight: 600;
-        font-size: 16px;
-        color: ${styling.textColor};
-        margin-bottom: 8px;
-        direction: ${isRTL ? 'rtl' : 'ltr'};
-        text-align: ${isRTL ? 'right' : 'left'};
+        font-weight: 600 !important;
+        font-size: 16px !important;
+        color: ${styling.textColor} !important;
+        margin-bottom: 8px !important;
+        direction: rtl !important;
+        text-align: right !important;
+        font-family: 'Cairo', system-ui, Arial, sans-serif !important;
       `;
       mainText.textContent = offer.text || `اشترِ ${offer.quantity || 1} قطعة`;
 
-      // العلامات مع اتجاه ديناميكي
+      // العلامات مع إجبار RTL
       const tagsContainer = document.createElement('div');
-      tagsContainer.style.cssText = `display: flex; gap: 8px; align-items: center; justify-content: ${isRTL ? 'flex-end' : 'flex-start'};`;
+      tagsContainer.style.cssText = `
+        display: flex !important; 
+        gap: 8px !important; 
+        align-items: center !important; 
+        justify-content: flex-end !important;
+        direction: rtl !important;
+        flex-wrap: wrap !important;
+      `;
 
       if (offer.tag) {
         const tagElement = document.createElement('span');
@@ -386,46 +407,50 @@ window.CodformQuantityOffers = (function() {
       textContent.appendChild(mainText);
       textContent.appendChild(tagsContainer);
 
-      // قسم الأسعار مع اتجاه ديناميكي ومسافات مناسبة
+      // قسم الأسعار مع إجبار اتجاه RTL والتخطيط الصحيح
       const priceSection = document.createElement('div');
       priceSection.style.cssText = `
-        text-align: ${isRTL ? 'right' : 'right'};
-        min-width: 120px;
-        direction: ${isRTL ? 'rtl' : 'ltr'};
-        order: 3;
-        padding: ${isRTL ? '0 20px 0 0' : '0 0 0 20px'};
-        margin: ${isRTL ? '0 16px 0 0' : '0 0 0 16px'};
-        display: flex;
-        flex-direction: column;
-        align-items: ${isRTL ? 'flex-end' : 'flex-end'};
-        gap: 6px;
-        border-left: ${isRTL ? 'none' : '1px solid #e5e7eb'};
-        border-right: ${isRTL ? '1px solid #e5e7eb' : 'none'};
+        text-align: right !important;
+        min-width: 140px !important;
+        direction: rtl !important;
+        order: 3 !important;
+        padding: 0 !important;
+        margin: 0 16px 0 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: flex-end !important;
+        gap: 8px !important;
+        border-right: 2px solid #e5e7eb !important;
+        padding-right: 16px !important;
+        font-family: 'Cairo', system-ui, Arial, sans-serif !important;
       `;
 
       // السعر الأصلي (إذا كان هناك خصم)
       if (savingsPercentage > 0) {
         const originalPriceElement = document.createElement('div');
         originalPriceElement.style.cssText = `
-          font-size: 12px;
-          color: #6b7280;
-          text-decoration: line-through;
-          margin-bottom: 4px;
-          direction: ${isRTL ? 'rtl' : 'ltr'};
-          text-align: ${isRTL ? 'left' : 'right'};
+          font-size: 14px !important;
+          color: #9ca3af !important;
+          text-decoration: line-through !important;
+          margin-bottom: 4px !important;
+          direction: rtl !important;
+          text-align: right !important;
+          font-family: 'Cairo', system-ui, Arial, sans-serif !important;
         `;
-        originalPriceElement.textContent = isRTL ? `${currencySymbol} ${originalPrice.toFixed(2)}` : `${originalPrice.toFixed(2)} ${currencySymbol}`;
+        originalPriceElement.textContent = `${originalPrice.toFixed(2)} ${currencySymbol}`;
         priceSection.appendChild(originalPriceElement);
       }
 
-      // السعر النهائي الصحيح
+      // السعر النهائي مع إجبار الاتجاه والتنسيق
       const finalPriceElement = document.createElement('div');
       finalPriceElement.style.cssText = `
-        font-size: 18px;
-        font-weight: bold;
-        color: ${styling.priceColor};
-        direction: rtl;
-        text-align: right;
+        font-size: 20px !important;
+        font-weight: bold !important;
+        color: ${styling.priceColor} !important;
+        direction: rtl !important;
+        text-align: right !important;
+        font-family: 'Cairo', system-ui, Arial, sans-serif !important;
+        line-height: 1.2 !important;
       `;
       finalPriceElement.textContent = `${totalPrice.toFixed(2)} ${currencySymbol}`;
       priceSection.appendChild(finalPriceElement);
