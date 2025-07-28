@@ -151,7 +151,7 @@ window.CodformQuantityOffers = (function() {
     // بيانات المنتج
     const productTitle = actualProductData?.title || 'المنتج';
     
-    // تحسين الحصول على صورة المنتج
+    // تحسين الحصول على صورة المنتج من مصادر متعددة
     let productImage = null;
     if (actualProductData) {
       productImage = actualProductData.image || 
@@ -159,6 +159,31 @@ window.CodformQuantityOffers = (function() {
                     actualProductData.featuredImage ||
                     (actualProductData.images && actualProductData.images.length > 0 ? actualProductData.images[0] : null) ||
                     (actualProductData.variants && actualProductData.variants.length > 0 && actualProductData.variants[0].image ? actualProductData.variants[0].image : null);
+    }
+    
+    // محاولة الحصول على الصورة من DOM إذا لم تكن متوفرة في البيانات
+    if (!productImage) {
+      try {
+        const imageSelectors = [
+          'img[src*="product"]',
+          '.product-image img',
+          '[class*="product"] img',
+          'img[alt*="product"]',
+          '.featured-image img',
+          'img[src*="shopify"]'
+        ];
+        
+        for (const selector of imageSelectors) {
+          const imgElement = document.querySelector(selector);
+          if (imgElement && imgElement.src && imgElement.src.trim() !== '') {
+            productImage = imgElement.src;
+            console.log("🖼️ Found product image from DOM:", productImage);
+            break;
+          }
+        }
+      } catch (e) {
+        console.log("⚠️ Could not extract image from DOM");
+      }
     }
     
     console.log("🖼️ Product Image Debug:", {
@@ -281,17 +306,17 @@ window.CodformQuantityOffers = (function() {
         }
       });
 
-      // الجانب الأيسر: الصورة والنص - إصلاح الاتجاه
+      // الجانب الأيسر: الصورة والنص - إصلاح الاتجاه للعربية
       const leftSection = document.createElement('div');
       leftSection.style.cssText = `
         display: flex;
         align-items: center;
         gap: 12px;
-        flex-direction: row;
-        order: ${formDirection === 'rtl' ? '1' : '1'};
+        flex-direction: ${formDirection === 'rtl' ? 'row-reverse' : 'row'};
+        order: 1;
       `;
 
-      // الصورة - نفس حجم المعاينة 48px مع إصلاح الموضع
+      // الصورة - نفس حجم المعاينة 48px مع إصلاح الموضع للعربية
       const imageContainer = document.createElement('div');
       imageContainer.style.cssText = `
         width: 48px;
@@ -304,7 +329,7 @@ window.CodformQuantityOffers = (function() {
         justify-content: center;
         overflow: hidden;
         border: 1px solid #e5e7eb;
-        order: ${formDirection === 'rtl' ? '2' : '1'};
+        order: ${formDirection === 'rtl' ? '1' : '1'};
       `;
 
       // تحسين إدارة الصور
@@ -367,7 +392,7 @@ window.CodformQuantityOffers = (function() {
         display: flex;
         flex-direction: column;
         gap: 4px;
-        order: ${formDirection === 'rtl' ? '1' : '2'};
+        order: ${formDirection === 'rtl' ? '2' : '2'};
       `;
 
       // النص الرئيسي
