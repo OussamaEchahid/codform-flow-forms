@@ -369,7 +369,7 @@ window.CodformQuantityOffers = (function() {
         order: 1;
       `;
 
-      // الصورة - نفس حجم المعاينة 48px مع إصلاح الموضع للعربية
+      // الصورة - نفس حجم المعاينة 48px
       const imageContainer = document.createElement('div');
       imageContainer.style.cssText = `
         width: 48px;
@@ -382,7 +382,7 @@ window.CodformQuantityOffers = (function() {
         justify-content: center;
         overflow: hidden;
         border: 1px solid #e5e7eb;
-        order: ${formDirection === 'rtl' ? '2' : '1'};
+        order: 2;
       `;
 
       // تحسين إدارة الصور
@@ -445,7 +445,7 @@ window.CodformQuantityOffers = (function() {
         display: flex;
         flex-direction: column;
         gap: 4px;
-        order: ${formDirection === 'rtl' ? '1' : '2'};
+        order: 1;
       `;
 
       // النص الرئيسي - نفس حجم المعاينة بالضبط
