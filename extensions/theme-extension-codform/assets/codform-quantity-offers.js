@@ -393,7 +393,7 @@ window.CodformQuantityOffers = (function() {
         transition: all 0.3s ease;
         cursor: pointer;
         margin-bottom: 8px;
-        direction: ${formDirection === 'rtl' ? 'rtl' : 'ltr'};
+        direction: ${formDirection};
         box-shadow: ${isHighlighted ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none'};
       `;
 
