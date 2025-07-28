@@ -1735,17 +1735,22 @@ window.CodformQuantityOffers = (function() {
       title: productTitle
     });
     
-    // تحويل العملة
+    // تحويل العملة - إصلاح المعدلات
     function convertCurrency(amount, fromCurrency, toCurrency) {
+      console.log(`🔄 Converting: ${amount} from ${fromCurrency} to ${toCurrency}`);
+      
       const exchangeRates = {
-        'USD': { 'SAR': 3.75, 'MAD': 10.0, 'USD': 1 },
-        'SAR': { 'USD': 0.27, 'MAD': 2.67, 'SAR': 1 },
-        'MAD': { 'USD': 0.10, 'SAR': 0.375, 'MAD': 1 }
+        'USD': { 'SAR': 3.75, 'MAD': 10.0, 'USD': 1, 'AED': 3.67 },
+        'SAR': { 'USD': 0.267, 'MAD': 2.67, 'SAR': 1, 'AED': 0.98 },
+        'MAD': { 'USD': 0.1, 'SAR': 0.375, 'MAD': 1, 'AED': 0.37 },
+        'AED': { 'USD': 0.272, 'SAR': 1.02, 'MAD': 2.7, 'AED': 1 }
       };
       
       if (fromCurrency === toCurrency) return amount;
       const rate = exchangeRates[fromCurrency]?.[toCurrency];
-      return rate ? amount * rate : amount;
+      const converted = rate ? amount * rate : amount;
+      console.log(`✅ Converted: ${amount} ${fromCurrency} → ${converted.toFixed(2)} ${toCurrency}`);
+      return converted;
     }
 
     const realPrice = convertCurrency(productPrice, productCurrency, defaultCurrency);
@@ -1782,7 +1787,7 @@ window.CodformQuantityOffers = (function() {
         justify-content: space-between;
         font-family: 'Cairo', system-ui, Arial, sans-serif;
         cursor: pointer;
-        direction: ${window.currentFormData?.formLanguage === 'en' ? 'ltr' : 'rtl'};
+        direction: rtl !important;
         transition: all 0.2s ease;
       `;
 
