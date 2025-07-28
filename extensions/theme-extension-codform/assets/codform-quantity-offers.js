@@ -389,16 +389,18 @@ window.CodformQuantityOffers = (function() {
       // قسم الأسعار مع اتجاه ديناميكي ومسافات مناسبة
       const priceSection = document.createElement('div');
       priceSection.style.cssText = `
-        text-align: ${isRTL ? 'left' : 'right'};
+        text-align: ${isRTL ? 'right' : 'right'};
         min-width: 120px;
         direction: ${isRTL ? 'rtl' : 'ltr'};
         order: 3;
-        padding: ${isRTL ? '0 0 0 16px' : '0 16px 0 0'};
-        margin: ${isRTL ? '0 0 0 12px' : '0 12px 0 0'};
+        padding: ${isRTL ? '0 20px 0 0' : '0 0 0 20px'};
+        margin: ${isRTL ? '0 16px 0 0' : '0 0 0 16px'};
         display: flex;
         flex-direction: column;
-        align-items: ${isRTL ? 'flex-start' : 'flex-end'};
-        gap: 4px;
+        align-items: ${isRTL ? 'flex-end' : 'flex-end'};
+        gap: 6px;
+        border-left: ${isRTL ? 'none' : '1px solid #e5e7eb'};
+        border-right: ${isRTL ? '1px solid #e5e7eb' : 'none'};
       `;
 
       // السعر الأصلي (إذا كان هناك خصم)
@@ -584,16 +586,37 @@ window.CodformQuantityOffers = (function() {
         console.log("✅ Quantity offers data received:", data);
         
         if (data && data.success && data.quantity_offers) {
-          // إنشاء بيانات المنتج الافتراضية
+          // استخدام السعر من بيانات النموذج إذا كان متوفراً
+          let formPrice = null;
+          let productTitle = 'Gift Card';
+          
+          // البحث عن السعر في عروض الكمية
+          if (data.quantity_offers.offers && Array.isArray(data.quantity_offers.offers)) {
+            for (const offer of data.quantity_offers.offers) {
+              if (offer.basePrice && parseFloat(offer.basePrice) > 0) {
+                formPrice = parseFloat(offer.basePrice);
+                console.log("💰 Found price from offers:", formPrice);
+                break;
+              }
+            }
+          }
+          
+          // البحث في بيانات النموذج الأخرى
+          if (!formPrice && data.quantity_offers.price) {
+            formPrice = parseFloat(data.quantity_offers.price);
+            console.log("💰 Found price from form data:", formPrice);
+          }
+          
+          // إنشاء بيانات المنتج مع السعر الصحيح
           const productData = {
             id: productId,
-            title: 'Gift Card',
-            price: 1000, // قيمة افتراضية
+            title: productTitle,
+            price: formPrice || 1000, // استخدام السعر من النموذج أو قيمة افتراضية
             currency: formCurrency,
             image: 'https://cdn.shopify.com/shop-files/gift_card_400x400.png?v=1'
           };
           
-          console.log("🎯 Displaying quantity offers for product:", productId);
+          console.log("🎯 Displaying quantity offers with price:", productData.price, "for product:", productId);
           displayQuantityOffers(data.quantity_offers, blockId, productId, formCurrency, productData);
         } else {
           console.log("ℹ️ No quantity offers found or data incomplete");
