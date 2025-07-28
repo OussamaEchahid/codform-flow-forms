@@ -687,7 +687,7 @@ window.CodformQuantityOffers = (function() {
   // Public API
   return {
     display: displayQuantityOffers,
-    load: loadAndDisplayOffers,
+    loadAndDisplayOffers: loadAndDisplayOffers,
     loadWithCurrency: loadAndDisplayOffersWithCurrency,
     loadWithProduct: loadAndDisplayOffersWithProduct,
     debug: debugOffers
