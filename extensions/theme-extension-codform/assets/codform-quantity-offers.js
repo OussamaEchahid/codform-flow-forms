@@ -120,15 +120,15 @@ window.CodformQuantityOffers = (function() {
     }
     
     // تحويل السعر من عملة المنتج الأصلية إلى عملة النموذج
-    const realPrice = convertCurrency(productPrice, productCurrency, formCurrency);
+    const realPrice = convertCurrency(productPrice, productCurrency, defaultCurrency);
     
     console.log("💰 REAL Product Price Logic:", {
       actualProductData: actualProductData,
       originalPrice: productPrice,
       originalCurrency: productCurrency,
-      targetCurrency: formCurrency,
+      targetCurrency: defaultCurrency,
       convertedPrice: realPrice,
-      conversionDetails: `${productPrice} ${productCurrency} → ${realPrice} ${formCurrency}`
+      conversionDetails: `${productPrice} ${productCurrency} → ${realPrice} ${defaultCurrency}`
     });
     
     // بيانات المنتج
@@ -153,10 +153,10 @@ window.CodformQuantityOffers = (function() {
     });
 
     // رمز العملة الصحيح
-    const currencySymbol = formCurrency === 'USD' ? '$' : 
-                          formCurrency === 'SAR' ? 'ر.س' : 
-                          formCurrency === 'MAD' ? 'د.م' : 
-                          formCurrency;
+    const currencySymbol = defaultCurrency === 'USD' ? '$' : 
+                          defaultCurrency === 'SAR' ? 'ر.س' : 
+                          defaultCurrency === 'MAD' ? 'د.م' : 
+                          defaultCurrency;
 
     // حاوية العروض - نفس تصميم المعاينة بالضبط
     const offersContainer = document.createElement('div');
@@ -246,7 +246,7 @@ window.CodformQuantityOffers = (function() {
             offerId: this.getAttribute('data-offer-id'),
             quantity: parseInt(quantity),
             totalPrice: parseFloat(totalPrice),
-            currency: formCurrency
+            currency: defaultCurrency
           }
         }));
       });
