@@ -117,6 +117,74 @@ window.CodformQuantityOffers = (function() {
         productPrice = parseFloat(firstVariant.price);
         productCurrency = firstVariant.currency || actualProductData.currency || 'MAD';
       }
+    } else {
+      // محاولة الحصول على السعر من DOM كآخر حل
+      const priceSelectors = [
+        '.price', 
+        '.money', 
+        '[data-price]', 
+        '.product-price', 
+        '.price-current',
+        '.price-item',
+        '.price-now',
+        '[class*="price"]',
+        '.product__price',
+        '.price__current',
+        '.regular-price'
+      ];
+      
+      for (const selector of priceSelectors) {
+        const priceElement = document.querySelector(selector);
+        if (priceElement) {
+          const priceText = priceElement.textContent.replace(/[^\d.,]/g, '');
+          const price = parseFloat(priceText.replace(',', '.'));
+          if (!isNaN(price) && price > 0) {
+            productPrice = price;
+            // محاولة تحديد العملة من النص
+            const fullText = priceElement.textContent;
+            if (fullText.includes('$')) productCurrency = 'USD';
+            else if (fullText.includes('ر.س') || fullText.includes('SAR')) productCurrency = 'SAR';
+            else if (fullText.includes('د.م') || fullText.includes('MAD')) productCurrency = 'MAD';
+            break;
+          }
+        }
+      }
+      
+    }
+    
+    // تحسين الحصول على صورة المنتج
+    let productImage = null;
+    if (actualProductData) {
+      productImage = actualProductData.image || 
+                    actualProductData.featured_image || 
+                    actualProductData.featuredImage ||
+                    (actualProductData.images && actualProductData.images.length > 0 ? actualProductData.images[0] : null) ||
+                    (actualProductData.variants && actualProductData.variants.length > 0 && actualProductData.variants[0].image ? actualProductData.variants[0].image : null);
+    }
+    
+    // محاولة إضافية للحصول على صورة المنتج من DOM إذا لم تكن موجودة
+    if (!productImage) {
+      const imageSelectors = [
+        '.product__media img',
+        '.product-media img',
+        '.product-image img',
+        '.product-photo img',
+        '.product-single__photo img',
+        '.featured-image img',
+        '.main-product-image img',
+        '[data-product-image]',
+        '.product__featured-image img'
+      ];
+      
+      for (const selector of imageSelectors) {
+        const imgElement = document.querySelector(selector);
+        if (imgElement && imgElement.src) {
+          productImage = imgElement.src;
+          console.log('🖼️ Found product image from DOM:', productImage);
+          break;
+        }
+      }
+    }
     }
     
     // تحويل السعر من عملة المنتج الأصلية إلى عملة النموذج
@@ -133,16 +201,6 @@ window.CodformQuantityOffers = (function() {
     
     // بيانات المنتج
     const productTitle = actualProductData?.title || 'المنتج';
-    
-    // تحسين الحصول على صورة المنتج
-    let productImage = null;
-    if (actualProductData) {
-      productImage = actualProductData.image || 
-                    actualProductData.featured_image || 
-                    actualProductData.featuredImage ||
-                    (actualProductData.images && actualProductData.images.length > 0 ? actualProductData.images[0] : null) ||
-                    (actualProductData.variants && actualProductData.variants.length > 0 && actualProductData.variants[0].image ? actualProductData.variants[0].image : null);
-    }
     
     console.log("🖼️ Product Image Debug:", {
       hasProductData: !!actualProductData,
