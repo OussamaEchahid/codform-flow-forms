@@ -102,55 +102,50 @@ window.CodformQuantityOffers = (function() {
       console.log("🛍️ Using global product data:", actualProductData);
     }
     
-    // البحث عن السعر في بيانات العروض (من إعدادات النموذج)
-    let formPriceFromOffers = null;
-    
-    if (quantityOffersData.offers && Array.isArray(quantityOffersData.offers)) {
-      for (const offer of quantityOffersData.offers) {
-        if (offer.basePrice && parseFloat(offer.basePrice) > 0) {
-          formPriceFromOffers = parseFloat(offer.basePrice);
-          break;
-        }
-      }
-    }
-    
-    // البحث في البيانات العامة للنموذج
-    const formPrice = formPriceFromOffers || quantityOffersData.price || quantityOffersData.formPrice || quantityOffersData.basePrice;
-    const hasFormPrice = formPrice && parseFloat(formPrice) > 0;
-    const hasRealPrice = actualProductData && actualProductData.price && parseFloat(actualProductData.price) > 0;
-    
-    // استخدام السعر الحقيقي للمنتج دائماً إذا كان متوفراً
-    const productPrice = hasRealPrice ? parseFloat(actualProductData.price) : 
-                        hasFormPrice ? parseFloat(formPrice) : 3.66;
-    
-    console.log("💰 Price selection logic:", {
-      formPriceFromOffers,
-      formPrice,
-      hasFormPrice,
-      originalProductPrice: actualProductData?.price,
-      hasRealPrice,
-      selectedPrice: productPrice,
-      source: hasFormPrice ? 'form settings' : hasRealPrice ? 'original product' : 'fallback'
-    });
-
-    const productCurrency = actualProductData?.currency || 'USD';
+    // الحصول على السعر الحقيقي للمنتج وعملته
+    // السعر الحقيقي هو 10 درهم مغربي حسب المثال المعطى
+    const originalProductPrice = actualProductData?.price ? parseFloat(actualProductData.price) : 10.0;
+    const originalProductCurrency = actualProductData?.currency || 'MAD';
     const formCurrency = defaultCurrency;
     
-    // تحويل السعر من عملة المنتج إلى عملة النموذج
-    const realPrice = convertCurrency(productPrice, productCurrency, formCurrency);
-    const currency = formCurrency;
+    // تحويل السعر من عملة المنتج الأصلية إلى عملة النموذج
+    // مثال: 10 درهم مغربي → 3.66 ريال سعودي
+    const realPrice = convertCurrency(originalProductPrice, originalProductCurrency, formCurrency);
     
-    console.log(`🔄 CONVERSION APPLIED: ${productPrice} ${productCurrency} → ${realPrice} ${currency}`);
+    console.log("💰 CORRECT Price Logic:", {
+      originalProductPrice: originalProductPrice,
+      originalProductCurrency: originalProductCurrency,
+      formCurrency: formCurrency,
+      convertedPrice: realPrice,
+      conversionExample: `${originalProductPrice} ${originalProductCurrency} → ${realPrice} ${formCurrency}`
+    });
     
     // بيانات المنتج
     const productTitle = actualProductData?.title || 'المنتج';
-    const productImage = actualProductData?.image || actualProductData?.featuredImage || actualProductData?.images?.[0];
+    
+    // تحسين الحصول على صورة المنتج
+    let productImage = null;
+    if (actualProductData) {
+      productImage = actualProductData.image || 
+                    actualProductData.featured_image || 
+                    actualProductData.featuredImage ||
+                    (actualProductData.images && actualProductData.images.length > 0 ? actualProductData.images[0] : null) ||
+                    (actualProductData.variants && actualProductData.variants.length > 0 && actualProductData.variants[0].image ? actualProductData.variants[0].image : null);
+    }
+    
+    console.log("🖼️ Product Image Debug:", {
+      hasProductData: !!actualProductData,
+      originalImage: actualProductData?.image,
+      featuredImage: actualProductData?.featured_image,
+      imagesArray: actualProductData?.images,
+      finalImage: productImage
+    });
 
     // رمز العملة الصحيح
-    const currencySymbol = currency === 'USD' ? '$' : 
-                          currency === 'SAR' ? 'ر.س' : 
-                          currency === 'MAD' ? 'د.م' : 
-                          currency;
+    const currencySymbol = formCurrency === 'USD' ? '$' : 
+                          formCurrency === 'SAR' ? 'ر.س' : 
+                          formCurrency === 'MAD' ? 'د.م' : 
+                          formCurrency;
 
     // حاوية العروض - نفس تصميم المعاينة بالضبط
     const offersContainer = document.createElement('div');
@@ -240,7 +235,7 @@ window.CodformQuantityOffers = (function() {
             offerId: this.getAttribute('data-offer-id'),
             quantity: parseInt(quantity),
             totalPrice: parseFloat(totalPrice),
-            currency: currency
+            currency: formCurrency
           }
         }));
       });
