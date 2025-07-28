@@ -475,9 +475,7 @@ window.CodformQuantityOffers = (function() {
       const tagsContainer = document.createElement('div');
       tagsContainer.style.cssText = `
         display: flex;
-        align-items: center;
         gap: 8px;
-        justify-content: ${formDirection === 'rtl' ? 'flex-end' : 'flex-start'};
         margin-top: 4px;
       `;
 
