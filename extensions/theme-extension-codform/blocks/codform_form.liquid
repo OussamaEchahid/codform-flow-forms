@@ -1717,22 +1717,17 @@ window.CodformQuantityOffers = (function() {
     // استخدام البيانات الحقيقية من النموذج مع التأكد من وجود السعر الصحيح
     const realProductData = productData || window.currentFormData || {};
     
-    // استخدام السعر الأصلي بالدولار قبل تحويل Shopify
-    const liquidPrice = parseFloat('{{ product.price | divided_by: 100.0 }}') || 0;
-    const liquidCurrency = '{{ shop.currency }}' || 'SAR';
-    
-    // السعر الأصلي بالدولار (قبل تحويل Shopify)
-    const originalUSDPrice = 37.5; // السعر الأصلي بالدولار
+    // استخدام البيانات الحقيقية من النموذج مع التأكد من وجود السعر الصحيح
     const realProductData = productData || window.currentFormData || {};
     
-    console.log("💰 Shopify data:", { liquidPrice, liquidCurrency });
-    console.log("💰 Using original USD price:", originalUSDPrice);
-    
+    // استخدام السعر من Shopify Liquid مباشرة كقيمة افتراضية صحيحة
+    const liquidPrice = parseFloat('{{ product.price | divided_by: 100.0 }}') || 0;
+    const liquidCurrency = '{{ shop.currency }}' || 'SAR';
     const liquidImage = '{{ product.featured_image | img_url: "300x300" }}' || '';
     const liquidTitle = '{{ product.title }}' || 'المنتج';
     
-    const productPrice = originalUSDPrice; // استخدام السعر الأصلي بالدولار
-    const productCurrency = 'USD'; // العملة الأصلية
+    const productPrice = realProductData.price || liquidPrice;
+    const productCurrency = realProductData.currency || liquidCurrency;
     const productImage = realProductData.image || realProductData.featuredImage || liquidImage;
     const productTitle = realProductData.title || liquidTitle;
     

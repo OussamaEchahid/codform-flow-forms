@@ -196,20 +196,22 @@ window.CodformQuantityOffers = (function() {
       
       offerElement.setAttribute('data-total-price', calculatedTotalPrice.toFixed(2));
       offerElement.style.cssText = `
-        background-color: ${styling.backgroundColor};
-        border: 2px solid ${index === 1 ? '#22c55e' : '#e5e7eb'};
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        border: 2px solid ${index === 1 ? '#3b82f6' : '#e2e8f0'};
         border-radius: 12px;
-        padding: 16px;
+        padding: 16px 20px;
         margin-bottom: 12px;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        font-family: 'Cairo', system-ui, Arial, sans-serif;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        transition: all 0.3s ease;
+        font-family: 'Cairo', 'Tajawal', system-ui, Arial, sans-serif;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         cursor: pointer;
         position: relative;
-        ${index === 1 ? 'background-color: #f0fdf4;' : ''}
+        direction: rtl !important;
+        text-align: right !important;
+        ${index === 1 ? 'background: linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%);' : ''}
       `;
 
       // إضافة وظيفة التحديد
