@@ -426,7 +426,7 @@ window.CodformQuantityOffers = (function() {
         justify-content: center;
         overflow: hidden;
         border: 1px solid #e5e7eb;
-        order: ${formDirection === 'rtl' ? '1' : '2'};
+        order: ${formDirection === 'rtl' ? '2' : '1'};
       `;
       
       console.log('🖼️ Image container order for RTL:', {
@@ -495,7 +495,7 @@ window.CodformQuantityOffers = (function() {
         display: flex;
         flex-direction: column;
         gap: 4px;
-        order: ${formDirection === 'rtl' ? '2' : '1'};
+        order: ${formDirection === 'rtl' ? '1' : '2'};
       `;
 
       // النص الرئيسي - نفس حجم المعاينة بالضبط
