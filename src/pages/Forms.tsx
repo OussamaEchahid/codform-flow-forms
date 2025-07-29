@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useI18n } from '@/lib/i18n';
-import { useSimpleShopifyAuth } from '@/hooks/useSimpleShopifyAuth';
+import { useAuth } from '@/components/layout/AuthProvider';
 import AppSidebar from '@/components/layout/AppSidebar';
 import FormBuilderDashboard from '@/components/form/builder/FormBuilderDashboard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,9 +19,13 @@ import {
 const Forms = () => {
   const navigate = useNavigate();
   const { language } = useI18n();
-  const { currentStore, loading } = useSimpleShopifyAuth();
+  const { shop: currentStore, isShopifyAuthenticated, loading } = useAuth();
 
-  console.log('📄 Forms page - Current store:', currentStore);
+  console.log('📄 Forms page - Current store:', currentStore, 'Authenticated:', isShopifyAuthenticated);
+
+  // Use direct localStorage check as fallback
+  const storeFromStorage = localStorage.getItem('current_shopify_store');
+  const activeStore = currentStore || storeFromStorage;
 
   if (loading) {
     return (
@@ -54,11 +58,11 @@ const Forms = () => {
 
           {/* حالة المتجر */}
           <div className="mb-6">
-            {currentStore ? (
+            {activeStore ? (
               <Alert className="border-green-200 bg-green-50">
                 <CheckCircle className="h-4 w-4 text-green-600" />
                 <AlertDescription className="text-green-800">
-                  <strong>متصل بالمتجر:</strong> {currentStore}
+                  <strong>متصل بالمتجر:</strong> {activeStore}
                 </AlertDescription>
               </Alert>
             ) : (
@@ -82,9 +86,9 @@ const Forms = () => {
           </div>
 
           {/* المحتوى الرئيسي */}
-          {currentStore ? (
+          {activeStore ? (
             <FormBuilderDashboard 
-              key={`dashboard-${currentStore}`} 
+              key={`dashboard-${activeStore}`} 
               initialForms={[]} 
               forceRefresh={false}
             />
@@ -158,7 +162,7 @@ const Forms = () => {
           )}
 
           {/* رسالة ترحيب للمستخدمين الجدد */}
-          {!currentStore && (
+          {!activeStore && (
             <Card className="mt-8 border-2 border-dashed border-muted-foreground/25">
               <CardHeader className="text-center">
                 <StoreIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
