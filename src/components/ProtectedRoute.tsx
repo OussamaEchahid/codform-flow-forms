@@ -47,7 +47,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   // في حالة وجود متجر Shopify متصل بدون مستخدم مصادق
   if (shop && shopifyConnected && !user && requireAuth) {
-    return <Navigate to="/shopify-account-link" replace />;
+    return <Navigate to="/shopify-auto-connect" replace />;
   }
 
   // في حالة عدم وجود مصادقة أو متجر
