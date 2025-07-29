@@ -20,6 +20,7 @@ const Dashboard = () => {
   const [isFirstVisit, setIsFirstVisit] = useState(false);
   const [authenticationChecked, setAuthenticationChecked] = useState(false);
   const [userHasStores, setUserHasStores] = useState<boolean | null>(null);
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   
   // استخدام النظام المبسط
   const { activeStore, isConnected, switchToStore } = useSimpleShopify();
@@ -28,6 +29,14 @@ const Dashboard = () => {
   useEffect(() => {
     const checkAuthentication = async () => {
       console.log('🔐 Checking Dashboard authentication...');
+      
+      // انتظار تحميل بيانات المستخدم قليلاً
+      if (isLoadingAuth) {
+        console.log('⏳ Still loading user data...');
+        // انتظار قليل ثم إعادة المحاولة
+        setTimeout(() => setIsLoadingAuth(false), 1000);
+        return;
+      }
       
       // التحقق من المصادقة أولاً
       if (!user) {
@@ -54,7 +63,7 @@ const Dashboard = () => {
     };
 
     checkAuthentication();
-  }, [user, navigate]);
+  }, [user, isLoadingAuth]);
   
   useEffect(() => {
     // التحقق من معلمات URL للتوجيه من شوبيفاي
