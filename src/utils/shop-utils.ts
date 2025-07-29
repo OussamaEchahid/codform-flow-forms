@@ -4,63 +4,41 @@
  * تتبع ترتيب أولوية واضح مع التحقق من صحة المتاجر
  */
 export const getActiveShopId = (): string | null => {
-  console.log('🔍 getActiveShopId: بدء البحث عن المتجر النشط...');
+  console.log('🔍 البحث عن معرف المتجر النشط...');
   
-  // الترتيب الموحد للبحث عن shop_id - إضافة جميع المفاتيح المحتملة
-  const shopIdKeys = [
-    'simple_active_store', 
-    'shopify_store', 
-    'active_shop',
-    'current_shopify_store',
-    'shopify_shop_domain',
-    'selected_store'
-  ];
+  // البحث في جميع مفاتيح localStorage
+  const allValues: Array<{ key: string; value: string }> = [];
   
-  // طباعة جميع القيم المحفوظة أولاً
-  console.log('🔍 جميع القيم في localStorage:');
-  shopIdKeys.forEach(key => {
-    const value = localStorage.getItem(key);
-    console.log(`  ${key}: ${value}`);
-  });
-  
-  // تجميع جميع القيم للمقارنة
-  const allValues = [];
-  for (const key of shopIdKeys) {
-    const value = localStorage.getItem(key);
-    if (value && value.trim()) {
-      const trimmedValue = value.trim();
-      allValues.push({ key, value: trimmedValue });
-      console.log(`📋 Retrieved store from cache: ${trimmedValue} (from ${key})`);
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key) {
+        const value = localStorage.getItem(key);
+        console.log(`🗝️ ${key}: ${value}`);
+        
+        if (value && value.trim() && value !== 'null' && value !== 'undefined') {
+          allValues.push({ key, value: value.trim() });
+        }
+      }
     }
+  } catch (error) {
+    console.error('❌ خطأ في قراءة localStorage:', error);
   }
   
   console.log(`🔍 عدد القيم الموجودة: ${allValues.length}`);
   
-  // إذا لم توجد قيم في localStorage، استخدم المتجر الافتراضي
-  if (allValues.length === 0) {
-    const defaultStore = 'test-klawi.myshopify.com'; // المتجر الذي رأيناه في console
-    console.log(`🔧 لم توجد قيم في localStorage، استخدام المتجر الافتراضي: ${defaultStore}`);
-    
-    // تعيين المتجر الافتراضي
-    setActiveShopId(defaultStore);
-    return defaultStore;
-  }
-  
-  // البحث عن أول متجر صحيح
+  // البحث عن أول متجر Shopify صحيح
   for (const item of allValues) {
-    console.log(`🔍 التحقق من صحة المتجر: ${item.value}`);
-    if (validateShopId(item.value)) {
-      console.log(`✅ Found active store: ${item.value}`);
+    if (item.value.includes('.myshopify.com') && validateShopId(item.value)) {
+      console.log(`✅ تم العثور على متجر صحيح: ${item.value} من ${item.key}`);
       
-      // تنظيف وتوحيد localStorage
+      // تنظيف وتوحيد جميع مفاتيح المتجر
       cleanupAndSetActiveStore(item.value);
       return item.value;
-    } else {
-      console.warn(`❌ تم تجاهل shop_id غير صحيح من ${item.key}: ${item.value}`);
     }
   }
   
-  console.error('❌ No shop ID found');
+  console.log('⚠️ لم يتم العثور على متجر صحيح');
   return null;
 };
 

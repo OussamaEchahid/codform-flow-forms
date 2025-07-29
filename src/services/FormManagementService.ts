@@ -52,21 +52,45 @@ export class FormManagementService {
   // Get current active shop ID from localStorage directly
   private getActiveShopId(): string | null {
     try {
-      // البحث في جميع المصادر المحتملة للمتجر النشط
-      const activeStore = localStorage.getItem('active_shopify_store') || 
-                         localStorage.getItem('current_shopify_store') ||
-                         localStorage.getItem('simple_active_store') ||
-                         localStorage.getItem('shopify_store');
+      // البحث في جميع المصادر المحتملة للمتجر النشط بترتيب الأولوية
+      const sources = [
+        'active_shopify_store',
+        'current_shopify_store', 
+        'simple_active_store',
+        'shopify_store'
+      ];
       
-      if (activeStore && activeStore.trim() && activeStore !== 'null' && activeStore !== 'undefined') {
-        console.log(`📍 Active shop ID found: ${activeStore.trim()}`);
-        return activeStore.trim();
+      console.log('🔍 البحث عن المتجر النشط في localStorage...');
+      
+      for (const source of sources) {
+        const value = localStorage.getItem(source);
+        console.log(`📋 ${source}: ${value}`);
+        
+        if (value && value.trim() && value !== 'null' && value !== 'undefined') {
+          console.log(`✅ تم العثور على المتجر النشط من ${source}: ${value.trim()}`);
+          return value.trim();
+        }
       }
       
-      console.log('⚠️ No active store found in localStorage');
+      // البحث في جميع مفاتيح localStorage للعثور على متجر Shopify صالح
+      console.log('🔍 البحث في جميع مفاتيح localStorage...');
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.includes('shop')) {
+          const value = localStorage.getItem(key);
+          console.log(`🗝️ ${key}: ${value}`);
+          
+          if (value && value.includes('.myshopify.com') && value !== 'null') {
+            console.log(`✅ تم العثور على متجر في ${key}: ${value}`);
+            return value.trim();
+          }
+        }
+      }
+      
+      console.log('⚠️ لم يتم العثور على متجر نشط في localStorage');
       return null;
     } catch (error) {
-      console.error('❌ Error getting active store from localStorage:', error);
+      console.error('❌ خطأ في الحصول على المتجر النشط:', error);
       return null;
     }
   }
