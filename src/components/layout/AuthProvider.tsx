@@ -29,8 +29,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeStore, setActiveStore] = useState<string | null>(null);
-  const [shops, setShops] = useState<string[] | null>(null);
+  
+  // قراءة فورية من localStorage
+  const [activeStore, setActiveStore] = useState<string | null>(
+    () => localStorage.getItem('current_shopify_store')
+  );
+  const [shops, setShops] = useState<string[] | null>(
+    () => {
+      const store = localStorage.getItem('current_shopify_store');
+      return store ? [store] : null;
+    }
+  );
 
   // دالة للحصول على المتجر من URL parameters عند القدوم من Shopify
   const getShopFromUrl = (): string | null => {
@@ -257,15 +266,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const shopifyConnected = !!activeStore && !!shops && shops.length > 0;
+  // تأكد من وجود المتجر النشط
+  const currentStore = activeStore || localStorage.getItem('current_shopify_store');
+  const currentShops = shops || (currentStore ? [currentStore] : null);
+  const shopifyConnected = !!currentStore && !!currentShops && currentShops.length > 0;
 
   const value = {
     user,
     session,
     loading,
     shopifyConnected,
-    shop: activeStore,
-    shops,
+    shop: currentStore,
+    shops: currentShops,
     signOut,
     signIn,
     signUp,

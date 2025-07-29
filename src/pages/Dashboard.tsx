@@ -32,6 +32,16 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { user, shops, shop, shopifyConnected } = useAuth();
   const { language } = useI18n();
+  
+  // إظهار حالة الاتصال بوضوح
+  console.log('🎯 Dashboard - Auth State:', {
+    user: !!user,
+    shops,
+    shop,
+    shopifyConnected,
+    localStorage: localStorage.getItem('current_shopify_store')
+  });
+  
   const [stats, setStats] = useState<DashboardStats>({
     totalForms: 0,
     totalOrders: 0,
