@@ -122,23 +122,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (storeList.length > 0) {
         const activeStore = simpleShopifyConnectionManager.getActiveStore();
         
-        // إذا لم يكن هناك متجر نشط في localStorage أو المتجر غير موجود في القائمة
+        console.log('🔄 مزامنة المتاجر - المتجر النشط الحالي:', activeStore);
+        console.log('🔄 المتاجر المتوفرة:', storeList);
+        
+        // إذا لم يكن هناك متجر نشط أو المتجر غير موجود في القائمة
         if (!activeStore || !storeList.includes(activeStore)) {
           const firstStore = storeList[0];
-          console.log(`🔄 تعيين المتجر النشط: ${firstStore}`);
+          console.log(`🔄 تعيين المتجر النشط الجديد: ${firstStore}`);
           
           // تحديث localStorage مع المتجر الأول
           simpleShopifyConnectionManager.setActiveStore(firstStore);
           localStorage.setItem('shopify_connected', 'true');
-          localStorage.setItem('simple_active_store', firstStore);
-          localStorage.setItem('active_shop', firstStore);
         } else {
           // التأكد من أن حالة الاتصال محدثة
+          console.log(`✅ المتجر النشط صحيح: ${activeStore}`);
           localStorage.setItem('shopify_connected', 'true');
         }
       } else {
         // لا توجد متاجر متصلة
-        console.log('❌ لا توجد متاجر متصلة');
+        console.log('❌ لا توجد متاجر متصلة - قطع الاتصال');
         simpleShopifyConnectionManager.disconnect();
       }
     } catch (error) {

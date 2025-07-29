@@ -77,38 +77,58 @@ serve(async (req) => {
 
         console.log('🔍 Looking for stores for user:', userId);
 
-        // البحث في المتاجر المرتبطة بالمستخدم أو المتاجر النشطة التي لها access_token
-        const { data, error } = await supabase
+        // أولاً: الحصول على جميع المتاجر النشطة
+        const { data: allStores, error: fetchError } = await supabase
           .from('shopify_stores')
           .select('shop, is_active, updated_at, access_token, user_id')
-          .or(`user_id.eq.${userId},and(is_active.eq.true,access_token.neq.null,access_token.neq.'')`)
           .eq('is_active', true)
+          .neq('access_token', 'null')
+          .neq('access_token', '')
+          .not('access_token', 'is', null)
           .order('updated_at', { ascending: false });
 
-        if (error) {
-          console.error('❌ Error fetching stores:', error);
+        if (fetchError) {
+          console.error('❌ Error fetching stores:', fetchError);
           return new Response(
-            JSON.stringify({ success: false, error: error.message }),
+            JSON.stringify({ success: false, error: fetchError.message }),
             { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
 
-        console.log('📋 Found stores:', data?.length || 0);
+        console.log('📋 Found stores:', allStores?.length || 0);
 
-        // تحديث المتاجر غير المرتبطة لتكون مرتبطة بالمستخدم الحالي
-        if (data && data.length > 0) {
-          const unlinkedStores = data.filter(store => !store.user_id);
-          if (unlinkedStores.length > 0) {
-            console.log('🔗 Linking unlinked stores to user:', userId);
-            await supabase
-              .from('shopify_stores')
-              .update({ user_id: userId })
-              .in('shop', unlinkedStores.map(store => store.shop));
+        // ثانياً: ربط جميع المتاجر النشطة بالمستخدم الحالي
+        if (allStores && allStores.length > 0) {
+          console.log('🔗 Linking all active stores to current user:', userId);
+          
+          const { error: updateError } = await supabase
+            .from('shopify_stores')
+            .update({ user_id: userId })
+            .eq('is_active', true)
+            .neq('access_token', 'null')
+            .neq('access_token', '')
+            .not('access_token', 'is', null);
+
+          if (updateError) {
+            console.error('❌ Error updating store ownership:', updateError);
+          } else {
+            console.log('✅ Successfully linked all stores to user');
           }
+
+          // إرجاع المتاجر مع المعلومات المحدثة
+          const updatedStores = allStores.map(store => ({
+            ...store,
+            user_id: userId // تحديث user_id في النتيجة
+          }));
+
+          return new Response(
+            JSON.stringify({ success: true, stores: updatedStores }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
         }
 
         return new Response(
-          JSON.stringify({ success: true, stores: data || [] }),
+          JSON.stringify({ success: true, stores: [] }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }

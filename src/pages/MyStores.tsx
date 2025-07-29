@@ -120,17 +120,27 @@ const MyStores = () => {
 
   const handleSwitchStore = async (shopDomain: string) => {
     try {
+      console.log(`🔄 تبديل إلى المتجر: ${shopDomain}`);
+      
+      // تحديث المتجر النشط في localStorage
       simpleShopifyConnectionManager.setActiveStore(shopDomain);
-      console.log(`✅ Successfully switched to store: ${shopDomain}`);
+      
+      // التأكد من أن المتجر تم تعيينه بنجاح
+      const newActiveStore = simpleShopifyConnectionManager.getActiveStore();
+      console.log(`✅ تم التبديل بنجاح إلى: ${newActiveStore}`);
       
       toast({
         title: "تم التبديل بنجاح",
         description: `تم التبديل إلى ${shopDomain}`,
       });
       
-      window.location.reload();
+      // إعادة تحميل الصفحة لتحديث جميع المكونات
+      setTimeout(() => {
+        window.location.href = '/dashboard';
+      }, 1000);
+      
     } catch (error) {
-      console.error('Error switching store:', error);
+      console.error('❌ خطأ في التبديل:', error);
       toast({
         title: "خطأ في التبديل",
         description: "فشل في التبديل إلى المتجر",
