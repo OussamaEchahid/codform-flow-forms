@@ -63,14 +63,15 @@ const Dashboard = () => {
     
     if (!user?.id) {
       console.log('❌ لا يوجد معرف مستخدم');
+      setIsLoading(false);
       return;
     }
     
     let formsCount = 0;
-    let ordersCount = 0;
+    let submissionsCount = 0;
     
     try {
-      // جلب عدد النماذج
+      // جلب عدد النماذج للمستخدم
       const { data: formsData, error: formsError } = await supabase
         .from('forms')
         .select('id')
@@ -80,19 +81,31 @@ const Dashboard = () => {
       
       if (!formsError && formsData) {
         formsCount = formsData.length;
+      } else if (formsError) {
+        console.error('❌ خطأ في جلب النماذج:', formsError);
       }
       
-      // جلب عدد الطلبات من form_submissions
-      const { data: ordersData, error: ordersError } = await supabase
+      // جلب عدد الإرسالات من form_submissions
+      const { data: submissionsData, error: submissionsError } = await supabase
         .from('form_submissions')
-        .select('id')
-        .eq('user_id', user.id);
+        .select('id, form_id')
+        .not('form_id', 'is', null);
       
-      console.log('📋 نتائج الطلبات:', { ordersData, ordersError });
+      console.log('📋 نتائج الإرسالات:', { submissionsData, submissionsError });
       
-      if (!ordersError && ordersData) {
-        ordersCount = ordersData.length;
+      if (!submissionsError && submissionsData) {
+        // تصفية الإرسالات التي تنتمي للمستخدم عن طريق النماذج
+        const userFormIds = formsData?.map(f => f.id.toString()) || [];
+        submissionsCount = submissionsData.filter(s => userFormIds.includes(s.form_id)).length;
+      } else if (submissionsError) {
+        console.error('❌ خطأ في جلب الإرسالات:', submissionsError);
       }
+      
+      console.log('📊 إحصائيات مفصلة:', {
+        formsCount,
+        submissionsCount,
+        storesCount: shops?.length || 0
+      });
       
     } catch (error) {
       console.error('❌ خطأ في جلب البيانات:', error);
@@ -104,14 +117,16 @@ const Dashboard = () => {
     setStats({
       totalStores: storesCount,
       totalForms: formsCount,
-      totalOrders: ordersCount,
+      totalOrders: submissionsCount,
       activeStore: shop
     });
+
+    setIsLoading(false);
     
     console.log('✅ إحصائيات لوحة التحكم النهائية:', {
       stores: storesCount,
       forms: formsCount,
-      orders: ordersCount,
+      orders: submissionsCount,
       activeStore: shop,
       shopifyConnected
     });
