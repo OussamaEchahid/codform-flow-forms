@@ -90,20 +90,23 @@ export class FormManagementService {
         timestamp: new Date().toISOString()
       });
 
-      // For Shopify users, use shop_id to filter forms, for traditional auth users, use user_id
       let query = supabase
         .from('forms')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (session?.user?.id) {
-        // Traditional authentication - filter by user_id
-        console.log(`🔑 Using traditional auth - filtering by user_id: ${session.user.id}`);
+      if (session?.user?.id && activeShopId) {
+        // User has both traditional auth AND active shop - get forms for both
+        console.log(`🔄 Using hybrid auth - user_id: ${session.user.id} OR shop_id: ${activeShopId}`);
+        query = query.or(`user_id.eq.${session.user.id},shop_id.eq.${activeShopId}`);
+      } else if (session?.user?.id) {
+        // Traditional authentication only - filter by user_id
+        console.log(`🔑 Using traditional auth only - filtering by user_id: ${session.user.id}`);
         query = query.eq('user_id', session.user.id);
       } else if (activeShopId) {
-        // Shopify authentication - filter by shop_id
-        console.log(`🏪 Using Shopify auth - filtering by shop_id: ${activeShopId}`);
-        query = query.eq('shop_id', activeShopId);
+        // Shopify authentication only - use default user with shop_id
+        console.log(`🏪 Using Shopify auth only - default user with shop_id: ${activeShopId}`);
+        query = query.eq('user_id', '36d7eb85-0c45-4b4f-bea1-a9cb732ca893').eq('shop_id', activeShopId);
       } else {
         console.log('⚠️ No authentication found - returning empty forms list');
         return [];
@@ -158,13 +161,23 @@ export class FormManagementService {
       
       // Determine user identifier based on auth type
       let userIdForForm: string;
+      let shopIdForForm: string | null = null;
       
-      if (session?.user?.id) {
-        // Traditional authentication - use user ID
+      if (session?.user?.id && activeShopId) {
+        // User has traditional auth AND active shop - use both
         userIdForForm = session.user.id;
+        shopIdForForm = activeShopId;
+        console.log('🔄 Creating form with traditional auth + shop:', { userId: userIdForForm, shopId: shopIdForForm });
+      } else if (session?.user?.id) {
+        // Traditional authentication only
+        userIdForForm = session.user.id;
+        shopIdForForm = null;
+        console.log('🔑 Creating form with traditional auth only:', { userId: userIdForForm });
       } else if (activeShopId) {
-        // Shopify authentication - use a default user ID but set shop_id
-        userIdForForm = '36d7eb85-0c45-4b4f-bea1-a9cb732ca893'; // Default user for Shopify stores
+        // Shopify authentication only - use default user ID but set shop_id
+        userIdForForm = '36d7eb85-0c45-4b4f-bea1-a9cb732ca893';
+        shopIdForForm = activeShopId;
+        console.log('🏪 Creating form with Shopify auth only:', { shopId: shopIdForForm });
       } else {
         throw new Error('No user authentication found');
       }
@@ -173,7 +186,7 @@ export class FormManagementService {
         title: formData.title,
         description: formData.description,
         data: (formData.data || []) as any,
-        shop_id: formData.shop_id || activeShopId,
+        shop_id: shopIdForForm || formData.shop_id,
         user_id: userIdForForm,
         is_published: false
       }).select('id').single();

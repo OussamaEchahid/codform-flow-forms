@@ -92,10 +92,20 @@ const FormList: React.FC<FormListProps> = ({
       setIsLoadingProducts(true);
       
       try {
-        // Get all product settings - simplified query
+        // Get active shop to filter properly
+        const activeShop = localStorage.getItem('current_shopify_store');
+        
+        if (!activeShop) {
+          console.log('⚠️ No active shop found, showing forms without products');
+          setEnhancedForms(forms);
+          return;
+        }
+        
+        // Get all product settings for this shop and these forms
         const { data: productSettings, error } = await supabase
           .from('shopify_product_settings')
-          .select('form_id, product_id')
+          .select('form_id, product_id, shop_id')
+          .eq('shop_id', activeShop)
           .in('form_id', forms.map(form => form.id));
           
         if (error) {
@@ -113,7 +123,9 @@ const FormList: React.FC<FormListProps> = ({
           return acc;
         }, {} as Record<string, string[]>) || {};
         
-        // Enhance the forms with product count only (no detailed fetch to reduce API calls)
+        console.log('📊 Product associations found:', productsByForm);
+        
+        // Enhance the forms with product count
         const formsWithProducts = forms.map(form => {
           const productIds = productsByForm[form.id] || [];
           const associatedProducts = productIds.map(id => ({
@@ -127,6 +139,12 @@ const FormList: React.FC<FormListProps> = ({
             associatedProducts
           };
         });
+        
+        console.log('✅ Enhanced forms with products:', formsWithProducts.map(f => ({ 
+          id: f.id, 
+          title: f.title, 
+          productsCount: f.associatedProducts?.length || 0 
+        })));
         
         setEnhancedForms(formsWithProducts);
       } catch (error) {
