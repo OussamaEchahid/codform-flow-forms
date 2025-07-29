@@ -108,8 +108,9 @@ const FormList: React.FC<FormListProps> = ({
         // Get all product settings for this shop and these forms
         const { data: productSettings, error } = await supabase
           .from('shopify_product_settings')
-          .select('form_id, product_id, shop_id')
+          .select('form_id, product_id, shop_id, enabled')
           .eq('shop_id', activeShop)
+          .eq('enabled', true)
           .in('form_id', forms.map(form => form.id));
           
         if (error) {
@@ -165,7 +166,7 @@ const FormList: React.FC<FormListProps> = ({
     }, 500);
     
     return () => clearTimeout(timeoutId);
-  }, [forms.length, offlineMode]); // Only depend on forms.length, not the entire forms array
+  }, [forms, offlineMode]); // Depend on forms array to trigger refresh when forms change
 
   const handlePublishToggle = async (formId: string, currentStatus: boolean) => {
     if (isOperating) {
