@@ -57,31 +57,20 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [selectedFormForProducts, setSelectedFormForProducts] = useState<{ id: string; title: string } | null>(null);
   
-  // Fetch forms data and create default form if none exist
+  // Fetch forms data only once on initial load or when forceRefresh changes
   const initializeData = useCallback(async () => {
     if (isInitialized && !forceRefresh) return;
     
     setIsLoading(true);
     try {
       await fetchForms();
-      
-      // إذا لم توجد نماذج، قم بإنشاء نموذج افتراضي
-      if (forms.length === 0) {
-        console.log('🆕 No forms found, creating default form...');
-        const defaultForm = await createDefaultForm();
-        if (defaultForm) {
-          console.log('✅ Default form created successfully');
-          await fetchForms(); // تحديث قائمة النماذج
-        }
-      }
-      
       setIsInitialized(true);
     } catch (error) {
       console.error('Error initializing forms data:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [fetchForms, createDefaultForm, forceRefresh, isInitialized, forms.length]);
+  }, [fetchForms, forceRefresh, isInitialized]);
   
   useEffect(() => {
     initializeData();
@@ -184,37 +173,38 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
     form.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
   
-  const handleCreateForm = async () => {
-    try {
-      setIsLoading(true);
-      console.log('🆕 Creating new form...');
-      const newForm = await createDefaultForm();
-      if (newForm) {
-        console.log('✅ New form created successfully');
-        toast.success(language === 'ar' ? 'تم إنشاء النموذج بنجاح' : 'Form created successfully');
-        // التوجه إلى صفحة تحرير النموذج الجديد
-        navigate(`/form-builder/${newForm.id}`);
-      } else {
-        toast.error(language === 'ar' ? 'فشل في إنشاء النموذج' : 'Failed to create form');
-      }
-    } catch (error) {
-      console.error('Error creating form:', error);
-      toast.error(language === 'ar' ? 'خطأ في إنشاء النموذج' : 'Error creating form');
-    } finally {
-      setIsLoading(false);
-    }
+  const handleCreateForm = () => {
+    // فتح النافذة المنبثقة لاختيار تفاصيل النموذج
+    setIsNewFormDialogOpen(true);
   };
   
   const handleDeleteForm = async (formId: string) => {
     try {
+      setIsLoading(true);
+      console.log('🗑️ Deleting form:', formId);
+      
+      // حذف النموذج من قاعدة البيانات أولاً
       const success = await deleteForm(formId);
       if (success) {
+        // تحديث الحالة المحلية فوراً
+        setFormList(prevForms => {
+          const updatedForms = prevForms.filter(form => form.id !== formId);
+          console.log('✅ Updated local forms after deletion:', updatedForms.length);
+          return updatedForms;
+        });
+        
         toast.success(language === 'ar' ? 'تم حذف النموذج بنجاح' : 'Form deleted successfully');
-        // The forms state will be updated automatically via the hook
+        
+        // إعادة جلب النماذج من قاعدة البيانات للتأكد
+        setTimeout(() => {
+          fetchForms();
+        }, 1000);
       }
     } catch (error) {
       console.error('Error deleting form:', error);
       toast.error(language === 'ar' ? 'فشل حذف النموذج' : 'Failed to delete form');
+    } finally {
+      setIsLoading(false);
     }
   };
   
@@ -565,7 +555,11 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
       {/* New Form Product Dialog */}
       <NewFormProductDialog 
         open={isNewFormDialogOpen} 
-        onClose={() => setIsNewFormDialogOpen(false)} 
+        onClose={() => {
+          setIsNewFormDialogOpen(false);
+          // إعادة جلب النماذج بعد إنشاء نموذج جديد
+          fetchForms();
+        }} 
       />
 
       {/* Product Management Modal */}

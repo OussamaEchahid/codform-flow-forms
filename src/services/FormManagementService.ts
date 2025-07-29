@@ -290,6 +290,14 @@ export class FormManagementService {
       
       console.log('✅ تم حذف النموذج بنجاح من قاعدة البيانات');
       
+      // تنظيف cache النماذج المحلي
+      try {
+        localStorage.removeItem('cached_forms');
+        console.log('🧹 تم مسح cache النماذج المحلي');
+      } catch (e) {
+        console.warn('تعذر مسح cache النماذج:', e);
+      }
+      
       toast.success('تم حذف النموذج بنجاح');
       return true;
     } catch (error) {

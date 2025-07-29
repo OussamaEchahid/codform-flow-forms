@@ -426,16 +426,26 @@ export const useFormTemplates = () => {
   const deleteForm = async (formId: string) => {
     try {
       setIsLoading(true);
+      console.log('🗑️ Hook: Starting form deletion for ID:', formId);
+      
       const success = await formManagementService.deleteForm(formId);
       
       if (success) {
-        // Remove from local state immediately
-        setForms(prevForms => prevForms.filter(form => form.id !== formId));
+        console.log('✅ Hook: Form deleted successfully from service');
+        // إزالة النموذج من الحالة المحلية فوراً
+        setForms(prevForms => {
+          const updatedForms = prevForms.filter(form => form.id !== formId);
+          console.log('🔄 Hook: Updated forms list, new count:', updatedForms.length);
+          return updatedForms;
+        });
+        
         return true;
       }
       
+      console.log('❌ Hook: Form deletion failed in service');
       return false;
     } catch (error) {
+      console.error('❌ Hook: Error in deleteForm:', error);
       return false;
     } finally {
       setIsLoading(false);
