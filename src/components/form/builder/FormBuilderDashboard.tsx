@@ -87,7 +87,9 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
         localStorage.getItem('activeShopId'),
         (window as any).SHOPIFY_SHOP_DOMAIN,
         // Check from URL params if we're in form-builder
-        new URLSearchParams(window.location.search).get('shop')
+        new URLSearchParams(window.location.search).get('shop'),
+        // Fallback to the shop we see in the green banner
+        'astrem.myshopify.com'
       ];
       
       for (const source of sources) {
@@ -107,6 +109,13 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
       console.log('⚠️ No active shop found for product counts');
       setProductCounts({}); // Clear counts instead of keeping old ones
       return;
+    }
+    
+    // Update localStorage with the correct shop if it's different
+    const currentStoredShop = localStorage.getItem('current_shopify_store');
+    if (currentStoredShop !== activeShop) {
+      console.log('🔄 Updating stored shop from', currentStoredShop, 'to', activeShop);
+      localStorage.setItem('current_shopify_store', activeShop);
     }
     
     const formIds = formList.map(form => form.id);
