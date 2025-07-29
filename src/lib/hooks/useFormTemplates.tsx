@@ -143,10 +143,23 @@ export const useFormTemplates = () => {
         shop_id: shopId,
       };
 
-      // Insert into Supabase
+      // Determine user authentication approach
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user?.id) {
-        toast.error('يجب تسجيل الدخول أولاً');
+      
+      // For Shopify stores without traditional auth, use default user ID
+      let userIdForForm: string;
+      let shopIdForForm: string | null = null;
+      
+      if (session?.user?.id) {
+        // Traditional authentication
+        userIdForForm = session.user.id;
+        shopIdForForm = shopId;
+      } else if (shopId) {
+        // Shopify authentication - use default user
+        userIdForForm = '36d7eb85-0c45-4b4f-bea1-a9cb732ca893';
+        shopIdForForm = shopId;
+      } else {
+        toast.error('لم يتم العثور على مصادقة صالحة');
         return null;
       }
 
@@ -158,8 +171,8 @@ export const useFormTemplates = () => {
           description: template.description,
           data: template.data as any,
           is_published: false,
-          shop_id: shopId,
-          user_id: session.user.id
+          shop_id: shopIdForForm,
+          user_id: userIdForForm
         });
 
       if (error) {
@@ -293,10 +306,22 @@ export const useFormTemplates = () => {
         shop_id: shopId,
       };
       
-      // Insert the form into database
+      // Insert the form into database using same logic as template creation
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user?.id) {
-        toast.error('يجب تسجيل الدخول أولاً');
+      
+      let userIdForForm: string;
+      let shopIdForForm: string | null = null;
+      
+      if (session?.user?.id) {
+        // Traditional authentication
+        userIdForForm = session.user.id;
+        shopIdForForm = shopId;
+      } else if (shopId) {
+        // Shopify authentication - use default user
+        userIdForForm = '36d7eb85-0c45-4b4f-bea1-a9cb732ca893';
+        shopIdForForm = shopId;
+      } else {
+        toast.error('لم يتم العثور على مصادقة صالحة');
         return null;
       }
 
@@ -308,8 +333,8 @@ export const useFormTemplates = () => {
           description: formData.description,
           data: formData.data as any,
           is_published: false,
-          shop_id: shopId,
-          user_id: session.user.id
+          shop_id: shopIdForForm,
+          user_id: userIdForForm
         });
       
       if (error) {

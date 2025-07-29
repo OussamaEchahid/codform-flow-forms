@@ -369,10 +369,14 @@ export class FormManagementService {
       
       // Add proper filters based on auth type
       if (session?.user?.id) {
+        // Traditional authentication - filter by actual user
         query = query.eq('user_id', session.user.id);
+      } else if (activeShopId) {
+        // Shopify authentication - filter by default user AND shop_id
+        query = query.eq('user_id', '36d7eb85-0c45-4b4f-bea1-a9cb732ca893').eq('shop_id', activeShopId);
       } else {
-        // For Shopify stores, use default user
-        query = query.eq('user_id', '36d7eb85-0c45-4b4f-bea1-a9cb732ca893');
+        // No authentication found
+        throw new Error('لم يتم العثور على مصادقة صالحة');
       }
       
       const { data, error } = await this.fetchWithRetry(async () => {
