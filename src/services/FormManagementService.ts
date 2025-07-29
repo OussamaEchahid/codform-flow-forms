@@ -82,37 +82,31 @@ export class FormManagementService {
       const { data: { session } } = await supabase.auth.getSession();
       const activeShopId = this.getActiveShopId();
       
-      // الحصول على معرف المستخدم من Shopify authentication
-      const shopifyUserIdentifier = getUserIdentifier();
-      
       console.log('🔍 Fetching forms with context:', {
         hasSession: !!session,
         traditionalUserId: session?.user?.id,
-        shopifyUserIdentifier,
         activeShopId,
         isAuthenticated: isUserAuthenticated(),
         timestamp: new Date().toISOString()
       });
 
-      // التحقق من وجود مصادقة صالحة
-      if (!isUserAuthenticated() && !session?.user?.id) {
-        console.log('⚠️ No authentication found - returning empty forms list');
-        return [];
-      }
-
-      // استخدام معرف المستخدم المناسب (تقليدي أو Shopify)
-      const finalUserIdentifier = session?.user?.id || shopifyUserIdentifier;
-
+      // For Shopify users, use shop_id to filter forms, for traditional auth users, use user_id
       let query = supabase
         .from('forms')
         .select('*')
-        .eq('user_id', finalUserIdentifier)
         .order('created_at', { ascending: false });
 
-      // Apply additional filtering by shop if available
-      if (activeShopId) {
-        console.log(`🎯 Additional filtering by shop_id: ${activeShopId}`);
+      if (session?.user?.id) {
+        // Traditional authentication - filter by user_id
+        console.log(`🔑 Using traditional auth - filtering by user_id: ${session.user.id}`);
+        query = query.eq('user_id', session.user.id);
+      } else if (activeShopId) {
+        // Shopify authentication - filter by shop_id
+        console.log(`🏪 Using Shopify auth - filtering by shop_id: ${activeShopId}`);
         query = query.eq('shop_id', activeShopId);
+      } else {
+        console.log('⚠️ No authentication found - returning empty forms list');
+        return [];
       }
 
       const { data, error } = await query;
@@ -137,7 +131,8 @@ export class FormManagementService {
         phone_prefix: (form as any).phone_prefix
       }));
 
-      console.log(`✅ Successfully fetched ${forms.length} forms for user: ${finalUserIdentifier} ${activeShopId ? `(shop: ${activeShopId})` : ''}`);
+      const userIdentifierForLog = session?.user?.id || activeShopId || 'unknown';
+      console.log(`✅ Successfully fetched ${forms.length} forms for user: ${userIdentifierForLog}`);
       
       // Cache forms for offline usage
       try {
@@ -158,12 +153,19 @@ export class FormManagementService {
     shop_id?: string;
   }): Promise<string> {
     try {
-      // الحصول على معرف المستخدم
-      const shopifyUserIdentifier = getUserIdentifier();
       const { data: { session } } = await supabase.auth.getSession();
-      const finalUserIdentifier = session?.user?.id || shopifyUserIdentifier;
+      const activeShopId = this.getActiveShopId();
       
-      if (!finalUserIdentifier) {
+      // Determine user identifier based on auth type
+      let userIdForForm: string;
+      
+      if (session?.user?.id) {
+        // Traditional authentication - use user ID
+        userIdForForm = session.user.id;
+      } else if (activeShopId) {
+        // Shopify authentication - use a default user ID but set shop_id
+        userIdForForm = '36d7eb85-0c45-4b4f-bea1-a9cb732ca893'; // Default user for Shopify stores
+      } else {
         throw new Error('No user authentication found');
       }
 
@@ -171,8 +173,8 @@ export class FormManagementService {
         title: formData.title,
         description: formData.description,
         data: (formData.data || []) as any,
-        shop_id: formData.shop_id,
-        user_id: finalUserIdentifier,
+        shop_id: formData.shop_id || activeShopId,
+        user_id: userIdForForm,
         is_published: false
       }).select('id').single();
 
