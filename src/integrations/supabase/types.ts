@@ -461,6 +461,16 @@ export type Database = {
         Args: { p_shop: string }
         Returns: Json
       }
+      get_stores_by_email: {
+        Args: { p_email: string }
+        Returns: {
+          shop: string
+          email: string
+          is_active: boolean
+          updated_at: string
+          access_token: string
+        }[]
+      }
       get_user_stores: {
         Args: { p_user_id: string }
         Returns: {

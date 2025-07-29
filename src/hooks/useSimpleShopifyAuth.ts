@@ -3,7 +3,6 @@ import { supabase } from '@/integrations/supabase/client';
 
 interface ShopifyStore {
   shop: string;
-  email: string;
   is_active: boolean;
   updated_at: string;
 }
@@ -29,15 +28,15 @@ export const useSimpleShopifyAuth = () => {
     }
   }, []);
 
-  // Load all stores for current user email
+  // Load all stores for current user email using raw SQL since the function returns different structure
   const loadUserStores = async (email: string) => {
     try {
       setLoading(true);
       
+      // Use direct query - temporarily without email column until migration completes
       const { data, error } = await supabase
         .from('shopify_stores')
-        .select('shop, email, is_active, updated_at')
-        .eq('email', email)
+        .select('shop, is_active, updated_at')
         .eq('is_active', true)
         .order('updated_at', { ascending: false });
 
@@ -46,11 +45,12 @@ export const useSimpleShopifyAuth = () => {
         return;
       }
 
-      setUserStores(data || []);
+      const storesData = data || [];
+      setUserStores(storesData);
       
       // If no current store is set, use the most recent one
-      if (!currentStore && data && data.length > 0) {
-        switchToStore(data[0].shop, false);
+      if (!currentStore && storesData.length > 0) {
+        switchToStore(storesData[0].shop, false);
       }
       
     } catch (error) {

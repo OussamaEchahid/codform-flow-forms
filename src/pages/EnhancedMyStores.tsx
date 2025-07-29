@@ -1,177 +1,179 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  ExternalLink, 
-  Store as StoreIcon, 
-  CheckCircle, 
-  AlertCircle, 
-  Zap,
-  Power,
-  ArrowLeft,
-  RefreshCw,
-  Plus
-} from 'lucide-react';
-import { useI18n } from '@/lib/i18n';
-import { toast } from '@/hooks/use-toast';
-import { useShopifyStores } from '@/hooks/useShopifyStores';
-import AppSidebar from '@/components/layout/AppSidebar';
+import { Store, ArrowRight, Plus, ExternalLink } from 'lucide-react';
+import { useSimpleShopifyAuth } from '@/hooks/useSimpleShopifyAuth';
 
 const EnhancedMyStores = () => {
-  const navigate = useNavigate();
-  const { language } = useI18n();
   const { 
-    stores, 
-    activeStore, 
-    isLoading, 
-    error, 
-    switchStore, 
-    refreshStores,
+    currentStore, 
+    userStores, 
+    userEmail, 
+    loading, 
+    isConnected, 
     totalStores,
-    isConnected 
-  } = useShopifyStores();
+    switchToStore,
+    disconnect
+  } = useSimpleShopifyAuth();
 
-  const handleSwitchStore = async (shopDomain: string) => {
-    const success = await switchStore(shopDomain);
-    if (success) {
-      toast({
-        title: "تم التبديل بنجاح",
-        description: `تم التبديل إلى ${shopDomain}`,
-      });
-      setTimeout(() => navigate('/dashboard'), 1000);
-    } else {
-      toast({
-        title: "خطأ في التبديل",
-        description: "فشل في التبديل إلى المتجر",
-        variant: "destructive"
-      });
-    }
-  };
-
-  if (isLoading) {
+  if (loading) {
     return (
-      <div className="flex min-h-screen bg-[#F8F9FB]" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-        <AppSidebar />
-        <div className="flex-1 p-6">
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">جاري تحميل المتاجر...</p>
-          </div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-slate-600">جاري تحميل متاجرك...</p>
         </div>
       </div>
     );
   }
 
-  if (error) {
+  if (!isConnected) {
     return (
-      <div className="flex min-h-screen bg-[#F8F9FB]" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-        <AppSidebar />
-        <div className="flex-1 p-6">
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl font-bold text-slate-800">
+              🏪 متاجرك
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6 text-center">
+            <p className="text-slate-600">
+              لا توجد متاجر متصلة بحسابك حالياً
+            </p>
+            
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => window.open('https://admin.shopify.com', '_blank')}
+            >
+              <ExternalLink className="w-4 h-4 mr-2" />
+              فتح Shopify Admin
+            </Button>
+            
+            <p className="text-xs text-slate-500">
+              يرجى فتح التطبيق من داخل متجرك في Shopify
+            </p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen bg-[#F8F9FB]" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-      <AppSidebar />
-      <div className="flex-1 p-6">
-        <div className="max-w-7xl mx-auto">
-          <Button 
-            variant="ghost" 
-            onClick={() => navigate('/dashboard')}
-            className="mb-4 text-muted-foreground hover:text-primary"
-          >
-            <ArrowLeft className="h-4 w-4 ml-2" />
-            العودة إلى لوحة التحكم
-          </Button>
-          
-          <div className="flex justify-between items-center mb-8">
-            <div>
-              <h1 className="text-3xl font-bold mb-2">متاجري ({totalStores})</h1>
-              <p className="text-muted-foreground">إدارة متاجر Shopify المرتبطة بحسابك</p>
-            </div>
-            <div className="flex gap-2">
-              <Button onClick={refreshStores} variant="outline">
-                <RefreshCw className="h-4 w-4 mr-2" />
-                تحديث
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="max-w-4xl mx-auto space-y-6">
+        {/* Header */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                  <Store className="w-6 h-6" />
+                  متاجري
+                </CardTitle>
+                {userEmail && (
+                  <p className="text-slate-600 mt-1">
+                    البريد الإلكتروني: {userEmail}
+                  </p>
+                )}
+                <p className="text-sm text-slate-500">
+                  إجمالي المتاجر: {totalStores}
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={disconnect}
+                className="text-red-600 border-red-200 hover:bg-red-50"
+              >
+                قطع الاتصال
               </Button>
-              <Button onClick={() => navigate('/shopify-stores')} className="bg-blue-600 hover:bg-blue-700">
-                <Plus className="h-4 w-4 mr-2" />
-                ربط متجر جديد
-              </Button>
             </div>
-          </div>
+          </CardHeader>
+        </Card>
 
-          {activeStore && (
-            <Alert className="border-green-200 bg-green-50 mb-6">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              <AlertDescription className="text-green-800">
-                <strong>متصل بـ:</strong> {activeStore}
-              </AlertDescription>
-            </Alert>
-          )}
+        {/* Current Store */}
+        {currentStore && (
+          <Card className="border-primary/20 bg-primary/5">
+            <CardHeader>
+              <CardTitle className="text-lg text-primary">
+                المتجر النشط حالياً
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                    <Store className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-slate-800">{currentStore}</h3>
+                    <Badge variant="secondary" className="mt-1">نشط</Badge>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open(`https://${currentStore}/admin`, '_blank')}
+                >
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  فتح لوحة التحكم
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {stores.map((store) => {
-              const isCurrentStore = store.shop === activeStore;
-              return (
-                <Card key={store.shop} className={`transition-all hover:shadow-lg ${isCurrentStore ? 'border-green-500 bg-green-50' : ''}`}>
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <StoreIcon className="h-5 w-5 text-blue-600" />
-                      <div className="flex gap-2">
-                        {isCurrentStore && (
-                          <Badge variant="default" className="bg-green-600">نشط</Badge>
-                        )}
-                        <Badge variant="default" className="bg-blue-600">متصل</Badge>
+        {/* All Stores */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">جميع متاجرك</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {userStores.map((store) => (
+                <div
+                  key={store.shop}
+                  className={`p-4 rounded-lg border transition-colors ${
+                    store.shop === currentStore
+                      ? 'border-primary bg-primary/5'
+                      : 'border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center">
+                        <Store className="w-4 h-4 text-slate-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-medium text-slate-800">{store.shop}</h3>
+                        <p className="text-xs text-slate-500">
+                          آخر تحديث: {new Date(store.updated_at).toLocaleDateString('ar')}
+                        </p>
                       </div>
                     </div>
-                    <CardTitle className="text-lg">{store.shop}</CardTitle>
-                    <CardDescription>
-                      آخر تحديث: {new Date(store.updated_at).toLocaleDateString('ar-EG')}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    {isCurrentStore ? (
-                      <Button variant="outline" disabled className="w-full">
-                        <CheckCircle className="h-4 w-4 mr-2" />
-                        متصل حالياً
-                      </Button>
-                    ) : (
-                      <Button 
-                        onClick={() => handleSwitchStore(store.shop)}
-                        className="w-full bg-green-600 hover:bg-green-700"
-                      >
-                        <Zap className="h-4 w-4 mr-2" />
-                        تبديل إليه
-                      </Button>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-
-          {stores.length === 0 && (
-            <div className="text-center py-12">
-              <StoreIcon className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-xl font-semibold mb-2">لا توجد متاجر مضافة</h3>
-              <p className="text-muted-foreground mb-6">ابدأ بربط أول متجر Shopify لحسابك</p>
-              <Button onClick={() => navigate('/shopify-stores')} className="bg-blue-600 hover:bg-blue-700">
-                <Plus className="h-4 w-4 mr-2" />
-                ربط متجر جديد
-              </Button>
+                    
+                    <div className="flex items-center gap-2">
+                      {store.shop === currentStore ? (
+                        <Badge className="bg-green-100 text-green-800">نشط</Badge>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => switchToStore(store.shop)}
+                        >
+                          <ArrowRight className="w-4 h-4 mr-1" />
+                          تبديل
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
-          )}
-        </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
