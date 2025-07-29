@@ -29,7 +29,7 @@ interface DashboardStats {
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, shops, shop } = useAuth();
   const { language } = useI18n();
   const [stats, setStats] = useState<DashboardStats>({
     totalForms: 0,
@@ -48,82 +48,57 @@ const Dashboard = () => {
   }, [user]);
 
   const loadDashboardData = async () => {
-    if (!user?.id) return;
+    console.log('🔄 بدء تحميل بيانات لوحة التحكم للمستخدم:', user?.id);
     
-    setIsLoading(true);
+    // استخدام البيانات من AuthProvider مباشرة
+    const authStores = shops || [];
+    const authActiveStore = shop;
+    
+    console.log('📋 المتاجر من AuthProvider:', authStores);
+    console.log('🎯 المتجر النشط من AuthProvider:', authActiveStore);
+    
+    let formsCount = 0;
+    let ordersCount = 0;
+    
     try {
-      console.log('🔄 بدء تحميل بيانات لوحة التحكم...');
-
-      // جلب البيانات مباشرة بدون تعقيدات TypeScript
-      console.log('🔍 جلب المتاجر للمستخدم:', user.id);
+      // جلب عدد النماذج
+      const { data: formsData, error: formsError } = await supabase
+        .from('forms')
+        .select('id')
+        .eq('user_id', user?.id);
       
-      // استخدام طريقة مبسطة لجلب البيانات
-      let storesCount = 0;
-      let formsCount = 0; 
-      let ordersCount = 0;
-
-      try {
-        // عد المتاجر
-        const storesResponse = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/rest/v1/shopify_stores?user_id=eq.${user.id}&is_active=eq.true&select=shop`, {
-          headers: {
-            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
-            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
-          }
-        });
-        const storesData = await storesResponse.json();
-        storesCount = storesData?.length || 0;
-
-        // عد النماذج  
-        const formsResponse = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/rest/v1/forms?user_id=eq.${user.id}&select=id`, {
-          headers: {
-            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
-            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
-          }
-        });
-        const formsData = await formsResponse.json();
-        formsCount = formsData?.length || 0;
-
-        // تعيين متجر نشط إذا وجدت متاجر
-        if (storesCount > 0 && storesData?.[0]?.shop) {
-          const activeStore = simpleShopifyConnectionManager.getActiveStore();
-          if (!activeStore) {
-            simpleShopifyConnectionManager.setActiveStore(storesData[0].shop);
-            console.log(`🎯 تم تعيين ${storesData[0].shop} كمتجر نشط`);
-          }
-        }
-      } catch (err) {
-        console.error('خطأ في جلب البيانات:', err);
+      if (!formsError && formsData) {
+        formsCount = formsData.length;
       }
-
-      console.log('📊 الإحصائيات:', { stores: storesCount, forms: formsCount, orders: ordersCount });
-
-      // تحديث الإحصائيات
-      const activeStore = simpleShopifyConnectionManager.getActiveStore();
       
-      setStats({
-        totalStores: storesCount || 0,
-        totalForms: formsCount || 0,
-        totalOrders: ordersCount || 0,
-        activeStore: activeStore
-      });
-
-      console.log('✅ إحصائيات لوحة التحكم:', {
-        stores: storesCount || 0,
-        forms: formsCount || 0,
-        orders: ordersCount || 0,
-        activeStore: activeStore
-      });
-
+      // جلب عدد الطلبات من form_submissions
+      const { data: ordersData, error: ordersError } = await supabase
+        .from('form_submissions')
+        .select('id')
+        .eq('user_id', user?.id);
+      
+      if (!ordersError && ordersData) {
+        ordersCount = ordersData.length;
+      }
+      
     } catch (error) {
-      console.error('❌ خطأ في تحميل بيانات لوحة التحكم:', error);
-      toast({
-        title: "خطأ في تحميل البيانات",
-        description: "فشل في تحميل بيانات لوحة التحكم",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
+      console.error('❌ خطأ في جلب البيانات:', error);
     }
+    
+    // تحديث الإحصائيات
+    setStats({
+      totalStores: authStores.length,
+      totalForms: formsCount,
+      totalOrders: ordersCount,
+      activeStore: authActiveStore
+    });
+    
+    console.log('✅ إحصائيات لوحة التحكم:', {
+      stores: authStores.length,
+      forms: formsCount,
+      orders: ordersCount,
+      activeStore: authActiveStore
+    });
   };
 
   if (isLoading) {
