@@ -266,10 +266,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // تأكد من وجود المتجر النشط
+  // تأكد من وجود المتجر النشط حتى لو لم يكن المستخدم مسجل دخول
   const currentStore = activeStore || localStorage.getItem('current_shopify_store');
   const currentShops = shops || (currentStore ? [currentStore] : null);
-  const shopifyConnected = !!currentStore && !!currentShops && currentShops.length > 0;
+  
+  // إظهار الاتصال إذا كان المتجر موجود في localStorage حتى لو لم يكن المستخدم مسجل دخول
+  const shopifyConnected = !!currentStore;
+
+  console.log('🔍 AuthProvider Value:', {
+    user: !!user,
+    currentStore,
+    currentShops,
+    shopifyConnected,
+    localStorage: localStorage.getItem('current_shopify_store')
+  });
 
   const value = {
     user,
