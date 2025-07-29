@@ -19,20 +19,14 @@ import NotFound from "@/pages/NotFound";
 import ShopifyRedirect from "@/pages/ShopifyRedirect";
 import Shopify from "@/pages/Shopify";
 
-import Auth from "@/pages/Auth";
 import ShopifyCallback from "@/pages/ShopifyCallback";
-import ShopifyStores from "@/pages/ShopifyStores";
 import Settings from "@/pages/Settings";
 import OrderSettings from "@/pages/OrderSettings";
 import GeneralSettings from "@/pages/GeneralSettings";
 import SpamSettings from "@/pages/SpamSettings";
 import PlansSettings from "@/pages/PlansSettings";
 import QuantityOffers from "@/pages/QuantityOffers";
-import LandingPages from "@/pages/LandingPages";
-import MyStores from "@/pages/MyStores";
-import Login from "@/pages/Login";
-import ShopifyAccountLink from "@/pages/ShopifyAccountLink";
-import Profile from "@/pages/Profile";
+import EnhancedMyStores from "@/pages/EnhancedMyStores";
 
 // Components
 import { Toaster } from "@/components/ui/toaster"; 
@@ -141,37 +135,21 @@ function AppRoutes() {
       <Route path="/" element={<Index />} />
       <Route path="/shopify" element={<Shopify />} />
       <Route path="/shopify-connect" element={<Shopify />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/shopify-account-link" element={<ShopifyAccountLink />} />
-      <Route path="/profile" element={<Profile />} />
-      
-      <Route path="/shopify-redirect" element={<ShopifyRedirect />} />
-      <Route path="/auth/*" element={<Auth />} />
-      
-      {/* إضافة طريق callback بشكل واضح */}
       <Route path="/shopify-callback" element={<ShopifyCallback />} />
+      <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/forms" element={<Forms />} />
+      <Route path="/form-builder/:formId?" element={<FormBuilderPage />} />
+      <Route path="/orders" element={<Orders />} />
+      <Route path="/orders/list" element={<OrdersList />} />
+      <Route path="/orders/abandoned" element={<AbandonedOrders />} />
+      <Route path="/orders/channels" element={<OrdersChannels />} />
+      <Route path="/my-stores" element={<EnhancedMyStores />} />
       <Route path="/settings" element={<Settings />} />
-              <Route path="/settings/orders" element={<OrderSettings />} />
-              <Route path="/settings/general" element={<GeneralSettings />} />
-              <Route path="/settings/spam" element={<SpamSettings />} />
-              <Route path="/settings/plans" element={<PlansSettings />} />
-              <Route path="/quantity-offers" element={<QuantityOffers />} />
-      
-      {/* المسارات المحمية التي تتطلب مصادقة لكن بشكل أكثر تساهلاً */}
-      <Route element={<ProtectedRoute requireAuth={true} />}>
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/forms" element={<Forms />} />
-        <Route path="/form-builder/:formId?" element={<FormBuilderPage />} />
-        <Route path="/orders" element={<Orders />} />
-        <Route path="/orders/list" element={<OrdersList />} />
-        <Route path="/orders/abandoned" element={<AbandonedOrders />} />
-        <Route path="/orders/channels" element={<OrdersChannels />} />
-        <Route path="/landing-pages" element={<LandingPages />} />
-        <Route path="/my-stores" element={<MyStores />} />
-      </Route>
-      
-      {/* المسارات التي لا تتطلب المصادقة بشكل صارم ولكن تستخدم حالة المصادقة إذا كانت متاحة */}
-      <Route path="/shopify-stores" element={<ShopifyStores />} />
+      <Route path="/settings/orders" element={<OrderSettings />} />
+      <Route path="/settings/general" element={<GeneralSettings />} />
+      <Route path="/settings/spam" element={<SpamSettings />} />
+      <Route path="/settings/plans" element={<PlansSettings />} />
+      <Route path="/settings/quantity-offers" element={<QuantityOffers />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
