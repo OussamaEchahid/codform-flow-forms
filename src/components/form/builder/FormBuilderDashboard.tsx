@@ -61,9 +61,14 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
     if (isInitialized && !forceRefresh) return;
     
     setIsLoading(true);
-    await fetchForms();
-    setIsInitialized(true);
-    setIsLoading(false);
+    try {
+      await fetchForms();
+      setIsInitialized(true);
+    } catch (error) {
+      console.error('Error initializing forms data:', error);
+    } finally {
+      setIsLoading(false);
+    }
   }, [fetchForms, forceRefresh, isInitialized]);
   
   useEffect(() => {

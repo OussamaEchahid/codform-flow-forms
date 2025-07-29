@@ -36,35 +36,54 @@ const MyStores = () => {
   const [stores, setStores] = useState<Store[]>([]);
   const [loading, setLoading] = useState(true);
   const [connectingStore, setConnectingStore] = useState<string | null>(null);
-  const { user, session, isShopifyAuthenticated } = useAuth();
+  const { user, session, isShopifyAuthenticated, shop: activeShop, shopifyUserEmail } = useAuth();
 
   useEffect(() => {
     // تحميل المتاجر في جميع الحالات (مع أو بدون مصادقة تقليدية)
     fetchUserStores();
-  }, [user, session, isShopifyAuthenticated]);
+  }, [user, session, isShopifyAuthenticated, activeShop]);
 
   const fetchUserStores = async () => {
     try {
       setLoading(true);
       
-      // الحصول على المتجر النشط من UnifiedStoreManager
-      const activeStore = UnifiedStoreManager.getActiveStore();
-      const userEmail = localStorage.getItem('shopify_user_email');
+      console.log('📦 Auth state:', {
+        activeShop,
+        isShopifyAuthenticated,
+        shopifyUserEmail,
+        hasUser: !!user,
+        hasSession: !!session
+      });
       
-      console.log('📦 المتجر النشط من localStorage:', activeStore);
-      console.log('📧 إيميل المستخدم من localStorage:', userEmail);
-      
-      if (activeStore) {
-        // إنشاء قائمة المتاجر بناءً على المتجر النشط
+      // إذا كان هناك متجر نشط من AuthProvider
+      if (isShopifyAuthenticated && activeShop) {
         const storesList = [{
-          shop: activeStore,
+          shop: activeShop,
           is_active: true,
           updated_at: new Date().toISOString(),
           access_token: 'active',
-          user_id: userEmail || 'shopify_user'
+          user_id: shopifyUserEmail || user?.email || 'shopify_user'
         }];
         
-        console.log('✅ تم تحديد المتاجر:', storesList);
+        console.log('✅ تم تحديد المتاجر من AuthProvider:', storesList);
+        setStores(storesList);
+        return;
+      }
+      
+      // Fallback: البحث في localStorage
+      const fallbackStore = UnifiedStoreManager.getActiveStore();
+      const userEmail = localStorage.getItem('shopify_user_email');
+      
+      if (fallbackStore) {
+        const storesList = [{
+          shop: fallbackStore,
+          is_active: true,
+          updated_at: new Date().toISOString(),
+          access_token: 'active',
+          user_id: userEmail || user?.email || 'shopify_user'
+        }];
+        
+        console.log('✅ تم تحديد المتاجر من localStorage:', storesList);
         setStores(storesList);
       } else {
         console.log('⚠️ لم يتم العثور على متاجر');
