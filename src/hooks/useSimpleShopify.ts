@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ShopifyProduct } from '@/lib/shopify/types';
 import { shopifyStores, shopifySupabase } from '@/lib/shopify/supabase-client';
-import { simpleShopifyConnectionManager } from '@/lib/shopify/simple-connection-manager';
+import UnifiedStoreManager from '@/utils/unified-store-manager';
 import { toast } from '@/hooks/use-toast';
 
 // Hook مبسط لإدارة Shopify بدون تعقيدات
@@ -14,8 +14,8 @@ export const useSimpleShopify = () => {
 
   // تحديد المتجر النشط عند بدء التطبيق
   useEffect(() => {
-    const store = simpleShopifyConnectionManager.getActiveStore();
-    const connected = simpleShopifyConnectionManager.isConnected();
+    const store = UnifiedStoreManager.getActiveStore();
+    const connected = UnifiedStoreManager.isConnected();
     
     setActiveStore(store);
     setIsConnected(connected);
@@ -28,8 +28,8 @@ export const useSimpleShopify = () => {
     try {
       console.log(`🔄 Switching to store: ${shopDomain}`);
       
-      // استخدام المدير المبسط
-      simpleShopifyConnectionManager.setActiveStore(shopDomain);
+      // استخدام المدير الموحد
+      UnifiedStoreManager.setActiveStore(shopDomain);
       
       // تحديث الحالة المحلية
       setActiveStore(shopDomain);
@@ -63,7 +63,7 @@ export const useSimpleShopify = () => {
     try {
       console.log('🔌 Disconnecting...');
       
-      simpleShopifyConnectionManager.disconnect();
+      UnifiedStoreManager.clearActiveStore();
       
       setActiveStore(null);
       setIsConnected(false);
@@ -202,7 +202,7 @@ export const useSimpleShopify = () => {
   // معلومات التصحيح
   const getDebugInfo = useCallback(() => {
     return {
-      ...simpleShopifyConnectionManager.getDebugInfo(),
+      ...UnifiedStoreManager.getDiagnosticInfo(),
       hookState: {
         activeStore,
         isConnected,

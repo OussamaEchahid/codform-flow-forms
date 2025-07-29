@@ -16,7 +16,7 @@ import { useI18n } from '@/lib/i18n';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/layout/AuthProvider';
 import { supabase } from '@/integrations/supabase/client';
-import { simpleShopifyConnectionManager } from '@/lib/shopify/simple-connection-manager';
+import UnifiedStoreManager from '@/utils/unified-store-manager';
 
 interface Store {
   shop: string;
@@ -82,7 +82,7 @@ const SimpleStoreManager = () => {
     }
   };
 
-  const currentStore = simpleShopifyConnectionManager.getActiveStore();
+  const currentStore = UnifiedStoreManager.getActiveStore();
 
 
   // ربط متجر جديد
@@ -132,19 +132,24 @@ const SimpleStoreManager = () => {
     }
   };
 
-  // تبديل إلى متجر
+  // تبديل إلى متجر باستخدام النظام الموحد
   const handleSwitchStore = async (shopDomain: string) => {
     try {
-      simpleShopifyConnectionManager.setActiveStore(shopDomain);
-      console.log(`✅ Successfully switched to store: ${shopDomain}`);
+      const success = UnifiedStoreManager.switchStore(shopDomain, false);
       
-      toast({
-        title: "تم التبديل بنجاح",
-        description: `تم التبديل إلى ${shopDomain}`,
-      });
-      
-      // إعادة تحميل لتحديث الواجهة
-      window.location.reload();
+      if (success) {
+        console.log(`✅ Successfully switched to store: ${shopDomain}`);
+        
+        toast({
+          title: "تم التبديل بنجاح",
+          description: `تم التبديل إلى ${shopDomain}`,
+        });
+        
+        // إعادة تحميل لتحديث الواجهة
+        setTimeout(() => window.location.reload(), 500);
+      } else {
+        throw new Error('Failed to switch store');
+      }
     } catch (error) {
       console.error('Error switching store:', error);
       toast({
@@ -155,18 +160,15 @@ const SimpleStoreManager = () => {
     }
   };
 
-  // قطع الاتصال من جميع المتاجر
+  // قطع الاتصال من جميع المتاجر باستخدام النظام الموحد
   const handleDisconnectAll = () => {
     try {
-      // تنظيف localStorage
-      localStorage.removeItem('shopify_store');
-      localStorage.removeItem('shopify_connected');
-      localStorage.removeItem('simple_active_store');
+      // تنظيف شامل باستخدام النظام الموحد
+      UnifiedStoreManager.clearActiveStore();
       
-      // إعادة تحميل الصفحة
       toast({
         title: "تم قطع الاتصال",
-        description: "تم قطع الاتصال من جميع المتاجر",
+        description: "تم قطع الاتصال من جميع المتاجر وتنظيف جميع البيانات",
       });
       
       setTimeout(() => {
@@ -177,23 +179,14 @@ const SimpleStoreManager = () => {
     }
   };
 
-  // عرض معلومات التصحيح
+  // عرض معلومات التصحيح باستخدام النظام الموحد
   const showDebugInfo = () => {
-    const activeStore = simpleShopifyConnectionManager.getActiveStore();
-    console.log('🐛 Debug Info:', { 
-      currentStore, 
-      activeStore,
-      storesCount: stores.length,
-      localStorage: {
-        shopify_store: localStorage.getItem('shopify_store'),
-        simple_active_store: localStorage.getItem('simple_active_store'),
-        shopify_connected: localStorage.getItem('shopify_connected')
-      }
-    });
+    const diagnosticInfo = UnifiedStoreManager.getDiagnosticInfo();
+    console.log('🐛 Unified Debug Info:', diagnosticInfo);
     
     toast({
-      title: "معلومات التصحيح",
-      description: `تم طباعة المعلومات في وحدة التحكم. المتجر النشط: ${activeStore || 'لا يوجد'}`,
+      title: "معلومات التصحيح الشاملة",
+      description: `تم طباعة المعلومات في وحدة التحكم. المتجر النشط: ${diagnosticInfo.activeStore || 'لا يوجد'}`,
     });
   };
 

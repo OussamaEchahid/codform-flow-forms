@@ -5,14 +5,21 @@ export class UnifiedStoreManager {
   // مفتاح واحد أساسي لجميع العمليات
   private static readonly STORE_KEY = 'active_shopify_store';
   
-  // المفاتيح القديمة التي يجب تنظيفها
+  // المفاتيح المتضاربة - تحديث شامل لجميع المفاتيح المكتشفة
   private static readonly LEGACY_KEYS = [
     'current_shopify_store',
     'shopify_store', 
     'shopify_active_store',
     'simple_active_store',
     'shopify_temp_store',
-    'activeShopId'
+    'activeShopId',
+    'shopify_connected',
+    'connectionStatusKey',
+    'storageKey',
+    'shop',
+    'selectedStore',
+    'connectedStore',
+    'activeShopifyStore'
   ];
 
   // حالة الكاش للأداء
@@ -165,34 +172,43 @@ export class UnifiedStoreManager {
   }
 
   /**
-   * تنظيف شامل لجميع البيانات
+   * تنظيف شامل لجميع البيانات - محسن للتعامل مع جميع المفاتيح المتضاربة
    */
-  private static performFullCleanup(): void {
+  static performFullCleanup(): void {
     try {
-      // مسح المفتاح الأساسي
-      localStorage.removeItem(this.STORE_KEY);
+      console.log('🧹 Starting comprehensive cleanup...');
       
-      // مسح جميع المفاتيح القديمة
+      // مسح المفتاح الأساسي مؤقتاً
+      const currentStore = localStorage.getItem(this.STORE_KEY);
+      
+      // مسح جميع المفاتيح المتضاربة بما في ذلك الأساسي
       this.LEGACY_KEYS.forEach(key => {
         localStorage.removeItem(key);
       });
 
-      // مسح بيانات الاتصال
-      localStorage.removeItem('shopify_connected');
-      localStorage.removeItem('shopify_connection_status');
-      localStorage.removeItem('shopify_connection_timestamp');
-      localStorage.removeItem('shopify_connecting');
-      localStorage.removeItem('shopify_connection_success');
+      // مسح جميع بيانات Shopify المرتبطة
+      const shopifyKeys = [
+        'shopify_connected',
+        'shopify_connection_status', 
+        'shopify_connection_timestamp',
+        'shopify_connecting',
+        'shopify_connection_success',
+        'shopify_last_error',
+        'shopify_recovery_attempt',
+        'shopify_failsafe',
+        'shopify_token_error',
+        'shopify_user_email',
+        'shopify_auth_token',
+        'simple_connection_status'
+      ];
       
-      // مسح بيانات الأخطاء
-      localStorage.removeItem('shopify_last_error');
-      localStorage.removeItem('shopify_recovery_attempt');
-      localStorage.removeItem('shopify_failsafe');
-      localStorage.removeItem('shopify_token_error');
+      shopifyKeys.forEach(key => {
+        localStorage.removeItem(key);
+      });
 
-      console.log('🧹 Full cleanup completed');
+      console.log('✅ Comprehensive cleanup completed - all conflicting keys removed');
     } catch (error) {
-      console.error('❌ Error during full cleanup:', error);
+      console.error('❌ Error during comprehensive cleanup:', error);
     }
   }
 

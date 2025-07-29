@@ -35,7 +35,8 @@ import { shopifyConnectionManager } from "@/lib/shopify/connection-manager";
 import { shopifyConnectionService } from "@/services/ShopifyConnectionService";
 import { fixShopifyConnectionState } from "@/utils/fix-shopify-state";
 import ShopifyAutoConnector from "@/components/shopify/ShopifyAutoConnector";
-import { simpleShopifyConnectionManager } from "@/lib/shopify/simple-connection-manager";
+import UnifiedStoreManager from "@/utils/unified-store-manager";
+import StoreMaintenance from "@/utils/store-maintenance";
 
 // إعداد عميل الاستعلام مع معالجة أفضل للأخطاء
 const queryClient = new QueryClient({
@@ -57,9 +58,9 @@ const ProtectedRoute = ({ requireAuth = true }: { requireAuth?: boolean }) => {
     return <div className="flex items-center justify-center h-screen">جاري التحميل...</div>;
   }
   
-  // Enhanced connection checking using simple connection manager
-  const simpleActiveStore = simpleShopifyConnectionManager.getActiveStore();
-  const simpleConnected = simpleShopifyConnectionManager.isConnected();
+  // Enhanced connection checking using unified store manager
+  const simpleActiveStore = UnifiedStoreManager.getActiveStore();
+  const simpleConnected = UnifiedStoreManager.isConnected();
   const activeStore = shopifyConnectionManager.getActiveStore();
   const localStorageConnected = localStorage.getItem('shopify_connected') === 'true';
   const localStorageShop = localStorage.getItem('shopify_store');
@@ -166,11 +167,9 @@ function App() {
     if (connected === 'true' && shopParam) {
       console.log('🎉 Shopify connection successful for shop:', shopParam);
       
-      // استخدم النظام المبسط لحفظ المتجر
-      import('@/lib/shopify/simple-connection-manager').then(({ simpleShopifyConnectionManager }) => {
-        simpleShopifyConnectionManager.setActiveStore(shopParam);
-        console.log('✅ Shop saved using simple connection manager');
-      });
+      // استخدم النظام الموحد لحفظ المتجر
+      UnifiedStoreManager.setActiveStore(shopParam);
+      console.log('✅ Shop saved using unified store manager');
       
       // Show success toast
       toast.success(`✅ نجح الاتصال بالمتجر ${shopParam}`, {
@@ -185,7 +184,10 @@ function App() {
 
   // Clean placeholder tokens and validate connection on startup
   React.useEffect(() => {
-    console.log("App mounted, cleaning tokens and validating connection");
+    console.log("App mounted, performing store maintenance and validating connection");
+    
+    // تشغيل الصيانة الشاملة أولاً
+    StoreMaintenance.performHealthCheck();
     
     // تحقق من وجود معاملات الاتصال في الـ URL
     const urlParams = new URLSearchParams(window.location.search);

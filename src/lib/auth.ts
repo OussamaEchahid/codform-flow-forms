@@ -1,6 +1,6 @@
 
 import React, { useContext } from 'react';
-import { simpleShopifyConnectionManager } from '@/lib/shopify/simple-connection-manager';
+import UnifiedStoreManager from '@/utils/unified-store-manager';
 
 // تحديث واجهة السياق لدعم النظام المبسط
 export interface AuthContextType {
@@ -26,9 +26,9 @@ export const AuthContext = React.createContext<AuthContextType>({
 export const useAuth = () => {
   const context = useContext(AuthContext);
   
-  // استخدام النظام المبسط كمصدر للحقيقة
-  const activeStore = simpleShopifyConnectionManager.getActiveStore();
-  const isConnected = simpleShopifyConnectionManager.isConnected();
+  // استخدام النظام الموحد كمصدر للحقيقة
+  const activeStore = UnifiedStoreManager.getActiveStore();
+  const isConnected = UnifiedStoreManager.isConnected();
   
   // إذا كان المدير المبسط يقول أن هناك اتصال، استخدم هذه المعلومات
   if (isConnected && activeStore) {

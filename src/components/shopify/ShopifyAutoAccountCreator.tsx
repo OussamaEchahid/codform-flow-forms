@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { parseShopifyParams } from '@/utils/shopify-helpers';
-import { simpleShopifyConnectionManager } from '@/lib/shopify/simple-connection-manager';
+import UnifiedStoreManager from '@/utils/unified-store-manager';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -79,7 +79,7 @@ const ShopifyAutoAccountCreator: React.FC<ShopifyAutoAccountCreatorProps> = ({ o
       console.log('✅ Auto account creation successful:', autoAccountResult);
       
       // Update connection manager
-      simpleShopifyConnectionManager.setActiveStore(shopDomain);
+      UnifiedStoreManager.setActiveStore(shopDomain);
       
       // Auto login if session data is available
       if (autoAccountResult.session?.access_token) {

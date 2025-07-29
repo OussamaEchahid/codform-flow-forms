@@ -3,7 +3,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
-import { simpleShopifyConnectionManager } from '@/lib/shopify/simple-connection-manager';
+import UnifiedStoreManager from '@/utils/unified-store-manager';
 
 export interface StoreValidationResult {
   isValid: boolean;
@@ -28,7 +28,7 @@ export async function validateCurrentStore(userId: string): Promise<StoreValidat
     });
 
     const availableStores = response.data?.stores?.map((store: any) => store.shop) || [];
-    const currentStore = simpleShopifyConnectionManager.getActiveStore();
+    const currentStore = UnifiedStoreManager.getActiveStore();
     
     console.log('📋 المتاجر المتاحة:', availableStores);
     console.log('🏪 المتجر النشط الحالي:', currentStore);
@@ -77,14 +77,14 @@ export async function fixStoreConnection(userId: string): Promise<boolean> {
       console.log(`🔄 إصلاح المتجر النشط إلى: ${validation.recommendedStore}`);
       
       // مسح البيانات القديمة وتعيين المتجر الجديد
-      simpleShopifyConnectionManager.setActiveStore(validation.recommendedStore);
+      UnifiedStoreManager.setActiveStore(validation.recommendedStore);
       localStorage.setItem('shopify_connected', 'true');
       
       console.log('✅ تم إصلاح المتجر النشط بنجاح');
       return true;
     } else {
       console.log('❌ لا توجد متاجر متاحة للإصلاح');
-      simpleShopifyConnectionManager.disconnect();
+      UnifiedStoreManager.clearActiveStore();
       return false;
     }
     
