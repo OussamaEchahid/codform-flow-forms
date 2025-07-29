@@ -31,8 +31,8 @@ const Dashboard = () => {
       
       // التحقق من المصادقة أولاً
       if (!user) {
-        console.log('❌ No authenticated user - redirecting to auth');
-        navigate('/auth');
+        console.log('❌ No authenticated user');
+        // لا نقوم بالتوجيه هنا - دع ProtectedRoute يتعامل مع هذا
         return;
       }
       

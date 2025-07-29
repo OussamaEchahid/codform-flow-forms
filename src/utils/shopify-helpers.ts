@@ -33,6 +33,9 @@ export function parseShopifyParams(): {
     shopParam.includes('.myshopify.com')
   ));
   
+  console.log('🔍 Shopify params detection - FULL URL:', window.location.href);
+  console.log('🔍 Shopify params detection - SEARCH:', window.location.search);
+  console.log('🔍 Shopify params detection - ALL PARAMS:', Object.fromEntries(params.entries()));
   console.log('🔍 Shopify params detection:', {
     shopParam,
     hmac: !!hmac,
