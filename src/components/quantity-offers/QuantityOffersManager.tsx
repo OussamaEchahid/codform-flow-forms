@@ -102,7 +102,6 @@ const QuantityOffersManager: React.FC = () => {
         .from('forms')
         .select('id, title')
         .eq('shop_id', currentStore)
-        .eq('is_published', true)
         .order('created_at', { ascending: false });
 
       if (error) {

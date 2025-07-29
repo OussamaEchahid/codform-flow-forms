@@ -93,13 +93,17 @@ const FormList: React.FC<FormListProps> = ({
       
       try {
         // Get active shop to filter properly
-        const activeShop = localStorage.getItem('current_shopify_store');
+        const activeShop = localStorage.getItem('current_shopify_store') || 
+                          localStorage.getItem('activeShopId') ||
+                          (window as any).SHOPIFY_SHOP_DOMAIN;
         
         if (!activeShop) {
           console.log('⚠️ No active shop found, showing forms without products');
           setEnhancedForms(forms);
           return;
         }
+        
+        console.log('🏪 Using active shop for product associations:', activeShop);
         
         // Get all product settings for this shop and these forms
         const { data: productSettings, error } = await supabase
