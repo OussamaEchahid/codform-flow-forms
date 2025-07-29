@@ -14,8 +14,9 @@ import {
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/components/layout/AuthProvider';
 import { supabase } from '@/integrations/supabase/client';
-import { useShopifyStoreSync } from '@/hooks/useShopifyStoreSync';
+import { simpleShopifyConnectionManager } from '@/lib/shopify/simple-connection-manager';
 
 interface Store {
   shop: string;
@@ -27,17 +28,66 @@ interface Store {
 
 const SimpleStoreManager = () => {
   const { language } = useI18n();
+  const [stores, setStores] = useState<Store[]>([]);
+  const [loading, setLoading] = useState(true);
   const [connectingStore, setConnectingStore] = useState<string | null>(null);
-  
-  const {
-    stores,
-    loading,
-    currentStore,
-    loadStores,
-    switchToStore,
-    disconnectAll,
-    getActiveStore
-  } = useShopifyStoreSync();
+  const { user, session } = useAuth();
+
+  useEffect(() => {
+    // التحقق من المصادقة قبل جلب البيانات
+    if (user && session) {
+      fetchUserStores();
+    } else {
+      setLoading(false);
+    }
+  }, [user, session]);
+
+  const fetchUserStores = async () => {
+    try {
+      setLoading(true);
+
+      if (!user?.id) {
+        console.error('لا يوجد مستخدم مصادق');
+        return;
+      }
+
+      // جلب المتاجر الخاصة بالمستخدم المصادق فقط
+      const response = await fetch(
+        `https://trlklwixfeaexhydzaue.supabase.co/rest/v1/shopify_stores?user_id=eq.${user.id}&is_active=eq.true&select=*&order=updated_at.desc`,
+        {
+          headers: {
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
+            'Authorization': `Bearer ${session?.access_token}`,
+            'Content-Type': 'application/json',
+          }
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (error) {
+        throw error;
+      }
+
+      setStores(data || []);
+      
+    } catch (err: any) {
+      console.error('Error fetching user stores:', err);
+      toast({
+        title: "خطأ في تحميل المتاجر",
+        description: "فشل في تحميل المتاجر المرتبطة بحسابك",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const currentStore = simpleShopifyConnectionManager.getActiveStore();
 
 
   // ربط متجر جديد
@@ -89,28 +139,52 @@ const SimpleStoreManager = () => {
 
   // تبديل إلى متجر
   const handleSwitchStore = async (shopDomain: string) => {
-    const success = switchToStore(shopDomain);
-    
-    if (success) {
+    try {
+      simpleShopifyConnectionManager.setActiveStore(shopDomain);
       console.log(`✅ Successfully switched to store: ${shopDomain}`);
+      
+      toast({
+        title: "تم التبديل بنجاح",
+        description: `تم التبديل إلى ${shopDomain}`,
+      });
+      
+      // إعادة تحميل لتحديث الواجهة
+      window.location.reload();
+    } catch (error) {
+      console.error('Error switching store:', error);
+      toast({
+        title: "خطأ في التبديل",
+        description: "فشل في التبديل إلى المتجر",
+        variant: "destructive"
+      });
     }
   };
 
   // قطع الاتصال من جميع المتاجر
   const handleDisconnectAll = () => {
-    const success = disconnectAll();
-    
-    if (success) {
+    try {
+      // تنظيف localStorage
+      localStorage.removeItem('shopify_store');
+      localStorage.removeItem('shopify_connected');
+      localStorage.removeItem('simple_active_store');
+      
       // إعادة تحميل الصفحة
+      toast({
+        title: "تم قطع الاتصال",
+        description: "تم قطع الاتصال من جميع المتاجر",
+      });
+      
       setTimeout(() => {
         window.location.reload();
       }, 1000);
+    } catch (error) {
+      console.error('Error disconnecting:', error);
     }
   };
 
   // عرض معلومات التصحيح
   const showDebugInfo = () => {
-    const activeStore = getActiveStore();
+    const activeStore = simpleShopifyConnectionManager.getActiveStore();
     console.log('🐛 Debug Info:', { 
       currentStore, 
       activeStore,

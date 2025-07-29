@@ -1,38 +1,59 @@
-import React, { useContext } from 'react';
+import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { AuthContext } from '@/components/layout/AuthProvider';
+import { useAuth } from '@/components/layout/AuthProvider';
 import { Loader2 } from 'lucide-react';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
+  requireAuth?: boolean; // إضافة خيار لتطبيق المصادقة الصارمة
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { user, loading, shopifyConnected, shop } = useContext(AuthContext);
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
+  children, 
+  requireAuth = true 
+}) => {
+  const { user, loading, shopifyConnected, shop, session } = useAuth();
 
-  // Show loading spinner while checking authentication
+  // عرض شاشة التحميل أثناء فحص المصادقة
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p>جاري التحميل...</p>
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-muted-foreground">جاري التحميل...</p>
         </div>
       </div>
     );
   }
 
-  // إذا كان هناك متجر shopify متصل بدون مستخدم مصادق، وجه لصفحة ربط الحساب
-  if (shop && shopifyConnected && !user) {
+  // فرض المصادقة الصارمة
+  if (requireAuth) {
+    // التحقق من صحة الجلسة
+    if (!session || !user) {
+      return <Navigate to="/auth" replace />;
+    }
+
+    // التحقق من انتهاء الجلسة (24 ساعة)
+    const sessionAge = Date.now() - new Date(session.refresh_token).getTime();
+    const maxSessionAge = 24 * 60 * 60 * 1000; // 24 ساعة
+    
+    if (sessionAge > maxSessionAge) {
+      // انتهت صلاحية الجلسة
+      return <Navigate to="/auth?expired=true" replace />;
+    }
+  }
+
+  // في حالة وجود متجر Shopify متصل بدون مستخدم مصادق
+  if (shop && shopifyConnected && !user && requireAuth) {
     return <Navigate to="/shopify-account-link" replace />;
   }
 
-  // Redirect to login if not authenticated and no Shopify store
-  if (!user && !shop) {
-    return <Navigate to="/login" replace />;
+  // في حالة عدم وجود مصادقة أو متجر
+  if (!user && !shop && requireAuth) {
+    return <Navigate to="/auth" replace />;
   }
 
-  // Render protected content
+  // عرض المحتوى المحمي
   return <>{children}</>;
 };
 

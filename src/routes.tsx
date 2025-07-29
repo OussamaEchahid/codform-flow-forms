@@ -42,7 +42,7 @@ export const routes: RouteObject[] = [
   {
     path: '/dashboard',
     element: (
-      <ProtectedRoute>
+      <ProtectedRoute requireAuth={true}>
         <Dashboard />
       </ProtectedRoute>
     ),
@@ -50,7 +50,7 @@ export const routes: RouteObject[] = [
   {
     path: '/forms',
     element: (
-      <ProtectedRoute>
+      <ProtectedRoute requireAuth={true}>
         <Forms />
       </ProtectedRoute>
     ),
@@ -61,7 +61,15 @@ export const routes: RouteObject[] = [
   },
   {
     path: '/my-stores',
-    Component: MyStores,
+    element: (
+      <ProtectedRoute requireAuth={true}>
+        <MyStores />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/auth',
+    Component: Auth,
   },
   {
     path: '/form-builder',

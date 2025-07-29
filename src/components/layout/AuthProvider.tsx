@@ -1,598 +1,220 @@
-import React, { createContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { shopifyStores } from '@/lib/shopify/supabase-client';
-import { detectCurrentShop, parseShopifyParams } from '@/utils/shopify-helpers';
-import { toast } from 'sonner';
-import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
-import { shopifyConnectionService } from '@/services/ShopifyConnectionService';
-import ShopifyAutoAccountCreator from '@/components/shopify/ShopifyAutoAccountCreator';
-
-interface AuthProviderProps {
-  children: React.ReactNode;
-}
+import { simpleShopifyConnectionManager } from '@/lib/shopify/simple-connection-manager';
 
 interface AuthContextType {
-  user: any;
+  user: User | null;
+  session: Session | null;
   loading: boolean;
   shopifyConnected: boolean;
   shop: string | null;
   shops: string[] | null;
-  setShop: (shopDomain: string) => void;
-  signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  signIn: (email: string, password: string) => Promise<{ error?: any }>;
+  signUp: (email: string, password: string) => Promise<{ error?: any }>;
+  setShop?: (shop: string) => void;
 }
 
-export const AuthContext = createContext<AuthContextType>({
-  user: null,
-  loading: true,
-  shopifyConnected: false,
-  shop: null,
-  shops: null,
-  setShop: () => {},
-  signIn: async () => {},
-  signOut: async () => {},
-});
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<any>(null);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+
+// دالة تنظيف بيانات المصادقة
+const cleanupAuthState = () => {
+  Object.keys(localStorage).forEach((key) => {
+    if (key.startsWith('supabase.auth.') || key.includes('sb-') || key.startsWith('shopify_')) {
+      localStorage.removeItem(key);
+    }
+  });
+};
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [shop, setShop] = useState<string | null>(null);
   const [shops, setShops] = useState<string[] | null>(null);
-  const [shopifyConnected, setShopifyConnected] = useState(false);
-  const [showAutoCreator, setShowAutoCreator] = useState(false);
-  const [lastSyncTime, setLastSyncTime] = useState<number>(0);
-  const syncAttempts = useRef(0);
-  const lastErrorHash = useRef<string>('');
-  const inRecoveryMode = useRef(false);
-  
-  // Circuit breaker to prevent too many sync attempts
-  const MAX_SYNC_ATTEMPTS = 5;
-  const SYNC_INTERVAL = 30000; // 30 seconds instead of 3 seconds
-  const RECOVERY_TIMEOUT = 300000; // 5 minutes
-  const SYNC_ATTEMPT_RESET = 60000; // Reset attempt counter after 1 minute of successful syncs
-
-  // Function to detect and store shop
-  const setupShopFromUrl = async () => {
-    // First try to get shop from URL (highest priority)
-    const { shopDomain, isShopifyRequest } = parseShopifyParams();
-    
-    console.log("Checking shop from URL:", { shopDomain, isShopifyRequest });
-    
-    if (shopDomain && isShopifyRequest) {
-      console.log("Found shop in URL, setting as active and clearing others:", shopDomain);
-      
-      // If shop from URL is different from current shop, clear other stores
-      if (shop !== shopDomain) {
-        // Clear other stores and only keep this one
-        shopifyConnectionManager.clearAllStores();
-      }
-      
-      shopifyConnectionManager.addOrUpdateStore(shopDomain, true);
-      
-      // Also update database to ensure this store is active
-      await shopifyConnectionService.forceActivateStore(shopDomain);
-      
-      setShop(shopDomain);
-      setShopifyConnected(true);
-      
-      // Reset circuit breaker on successful URL shop detection
-      syncAttempts.current = 0;
-      inRecoveryMode.current = false;
-      
-      return true;
-    }
-    
-    // If not in URL, check connection manager first
-    const activeStore = shopifyConnectionManager.getActiveStore();
-    if (activeStore) {
-      console.log("Setting active shop from connection manager:", activeStore);
-      setShop(activeStore);
-      setShopifyConnected(true);
-      
-      // Get all stores for the shops list
-      const allStores = shopifyConnectionManager.getAllStores();
-      if (allStores && allStores.length > 0) {
-        setShops(allStores.map(store => store.domain));
-      }
-      
-      return true;
-    }
-    
-    // As fallback check localStorage (legacy approach)
-    const storedShop = localStorage.getItem('shopify_store');
-    const isConnected = localStorage.getItem('shopify_connected') === 'true';
-    
-    if (storedShop && isConnected) {
-      console.log("Setting shop from localStorage (legacy):", storedShop);
-      setShop(storedShop);
-      setShopifyConnected(true);
-      
-      // Add to connection manager
-      shopifyConnectionManager.addOrUpdateStore(storedShop, true);
-      
-      // Update shops list
-      setShops([storedShop]);
-      
-      return true;
-    }
-    
-    return false;
-  };
-
-  // Handler for setting active shop
-  const handleSetShop = async (shopDomain: string) => {
-    try {
-      if (!shopDomain) return;
-      
-      console.log("Explicitly setting active shop to:", shopDomain);
-      
-      // First, clear any old connection data to avoid conflicts
-      localStorage.removeItem('shopify_store');
-      localStorage.removeItem('shopify_connected');
-      
-      // Update in connection manager
-      shopifyConnectionManager.clearAllStores();
-      shopifyConnectionManager.addOrUpdateStore(shopDomain, true);
-      
-      // Update state
-      setShop(shopDomain);
-      setShopifyConnected(true);
-      
-      // Update localStorage
-      localStorage.setItem('shopify_store', shopDomain);
-      localStorage.setItem('shopify_connected', 'true');
-      
-      // Update list of shops
-      setShops([shopDomain]);
-      
-      // Reset circuit breaker states
-      syncAttempts.current = 0;
-      inRecoveryMode.current = false;
-      lastErrorHash.current = '';
-      
-      console.log(`Active shop set to: ${shopDomain}`);
-    } catch (error) {
-      console.error("Error setting active shop:", error);
-      toast.error("حدث خطأ أثناء تعيين المتجر النشط");
-    }
-  };
-
-  // Load shops from database - only for authenticated users
-  const loadShopsFromDatabase = async () => {
-    try {
-      // Check if user is authenticated first
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session?.user) {
-        console.log('No authenticated user - cannot load shops from database');
-        return;
-      }
-      
-      // Use direct API call to avoid TypeScript issues
-      const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/rest/v1/shopify_stores?user_id=eq.${session.user.id}&select=shop,is_active,updated_at&order=is_active.desc,updated_at.desc`, {
-        headers: {
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      
-      if (data && data.length > 0) {
-        console.log("Loaded shops from database:", data);
-        
-        // First check URL parameters (highest priority)
-        const { shopDomain } = parseShopifyParams();
-        
-        if (shopDomain) {
-          // If URL has shop parameter, prioritize it
-          const foundInDb = data.some(store => store.shop === shopDomain);
-          if (!foundInDb) {
-            console.log("Shop from URL not found in database, will add it");
-          }
-          
-          // Clear existing stores to avoid confusion
-          shopifyConnectionManager.clearAllStores();
-          
-          setShop(shopDomain);
-          setShopifyConnected(true);
-          setShops([shopDomain]);
-          
-          // Update localStorage
-          localStorage.setItem('shopify_store', shopDomain);
-          localStorage.setItem('shopify_connected', 'true');
-        } else {
-          // Update connection manager with database shops
-          data.forEach(storeRecord => {
-            shopifyConnectionManager.addOrUpdateStore(storeRecord.shop, storeRecord.is_active);
-          });
-          
-          // Use active shop from database
-          const activeShop = data.find(store => store.is_active)?.shop || data[0].shop;
-          
-          setShop(activeShop);
-          setShopifyConnected(true);
-          setShops(data.map(store => store.shop));
-          
-          // Update localStorage
-          localStorage.setItem('shopify_store', activeShop);
-          localStorage.setItem('shopify_connected', 'true');
-        }
-      }
-    } catch (error) {
-      console.error("Error loading shops from database:", error);
-    }
-  };
-
-  // Function to forcibly synchronize connection state with circuit breaker
-  const syncConnectionState = async () => {
-    // Don't sync if in recovery mode
-    if (inRecoveryMode.current) {
-      console.log("In recovery mode, skipping connection sync");
-      return false;
-    }
-    
-    // Only sync if enough time has passed since last sync
-    const now = Date.now();
-    if (now - lastSyncTime < SYNC_INTERVAL) {
-      return false;
-    }
-    
-    // Check if we've reached max attempts and enter recovery mode if needed
-    if (syncAttempts.current >= MAX_SYNC_ATTEMPTS) {
-      console.log(`Too many sync attempts (${syncAttempts.current}), entering recovery mode`);
-      inRecoveryMode.current = true;
-      localStorage.setItem('shopify_recovery_mode', 'true');
-      
-      // Force enable bypass auth as a last resort
-      localStorage.setItem('bypass_auth', 'true');
-      
-      // Schedule recovery mode exit
-      setTimeout(() => {
-        console.log("Exiting recovery mode");
-        inRecoveryMode.current = false;
-        syncAttempts.current = 0;
-        localStorage.removeItem('shopify_recovery_mode');
-      }, RECOVERY_TIMEOUT);
-      
-      return false;
-    }
-    
-    setLastSyncTime(now);
-    syncAttempts.current += 1;
-    
-    // Check localStorage first as the most reliable source
-    const storedShop = localStorage.getItem('shopify_store');
-    const isConnected = localStorage.getItem('shopify_connected') === 'true';
-    
-    // Check connection manager
-    const activeStore = shopifyConnectionManager.getActiveStore();
-    const allStores = shopifyConnectionManager.getAllStores();
-    
-    // Create an error hash to detect repeated errors
-    const stateHash = JSON.stringify({
-      storedShop, 
-      isConnected, 
-      activeStore, 
-      shopCount: allStores.length,
-      shop, 
-      shopifyConnected
-    });
-    
-    // If same error state persists, increase attempt count
-    if (stateHash === lastErrorHash.current) {
-      console.log("Same connection state issue detected, incrementing attempt counter");
-    } else {
-      // If state changed, update hash and reset counter if it was successful
-      lastErrorHash.current = stateHash;
-      
-      // If valid connection exists, consider resetting attempt counter
-      if ((storedShop && isConnected) || activeStore) {
-        // Only reset counter if this is a valid state for a while
-        setTimeout(() => {
-          if (!inRecoveryMode.current) {
-            syncAttempts.current = 0;
-            console.log("Connection appears stable, reset sync attempts counter");
-          }
-        }, SYNC_ATTEMPT_RESET);
-      }
-    }
-    
-    console.log("Synchronizing connection state:", {
-      localStorage: { storedShop, isConnected },
-      connectionManager: { activeStore, storeCount: allStores.length },
-      currentState: { shop, shopifyConnected },
-      syncAttempts: syncAttempts.current,
-      inRecovery: inRecoveryMode.current,
-      timestamp: now
-    });
-    
-    // If any valid source shows a connection, update state to match
-    if ((storedShop && isConnected) || activeStore) {
-      const shopToUse = activeStore || storedShop;
-      
-      if (shopToUse) {
-        setShop(shopToUse);
-        setShopifyConnected(true);
-        
-        if (allStores && allStores.length > 0) {
-          setShops(allStores.map(store => store.domain));
-        } else if (shopToUse) {
-          setShops([shopToUse]);
-        }
-        
-        // Ensure localStorage and connection manager are in sync
-        if (!isConnected || storedShop !== shopToUse) {
-          localStorage.setItem('shopify_store', shopToUse);
-          localStorage.setItem('shopify_connected', 'true');
-        }
-        
-        if (!activeStore || activeStore !== shopToUse) {
-          shopifyConnectionManager.addOrUpdateStore(shopToUse, true);
-        }
-        
-        console.log("Connection state synchronized to connected with shop:", shopToUse);
-        return true;
-      }
-    } else if (shopifyConnected || shop) {
-      // If we have no connection data but state says connected, correct the state
-      console.log("No connection data found but state says connected, correcting state");
-      setShopifyConnected(false);
-      setShop(null);
-      return true;
-    }
-    
-    return false;
-  };
-
-  // Full connection reset to fix issues
-  const resetEntireConnectionState = async () => {
-    try {
-      console.log("Performing full connection state reset");
-      
-      // Clear localStorage
-      localStorage.removeItem('shopify_store');
-      localStorage.removeItem('shopify_connected');
-      localStorage.removeItem('shopify_temp_store');
-      localStorage.removeItem('shopify_recovery_mode');
-      
-      // Reset connection manager
-      shopifyConnectionManager.clearAllStores();
-      
-      // Reset state
-      setShop(null);
-      setShopifyConnected(false);
-      setShops(null);
-      
-      // Reset circuit breaker
-      syncAttempts.current = 0;
-      inRecoveryMode.current = false;
-      lastErrorHash.current = '';
-      
-      // Delay before trying to reload data
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Try to load from URL or database
-      const fromUrl = await setupShopFromUrl();
-      if (!fromUrl) {
-        await loadShopsFromDatabase();
-      }
-      
-      console.log("Connection state reset complete");
-    } catch (error) {
-      console.error("Error during connection reset:", error);
-    }
-  };
 
   useEffect(() => {
-    const setupAuth = async () => {
-      try {
-        setLoading(true);
-        
-        // Check for Shopify connection and auto account creation
-        const { shopDomain, isShopifyRequest } = parseShopifyParams();
-        if (shopDomain && isShopifyRequest && !user) {
-          console.log('🔗 Shopify connection detected, starting auto account creation:', shopDomain);
-          setShowAutoCreator(true);
-          setLoading(false);
-          return; // Don't continue with normal initialization
-        } else if (shopDomain && isShopifyRequest) {
-          console.log("URL contains Shopify parameters:", shopDomain);
-          // Clear any other stores to avoid confusion
-          shopifyConnectionManager.clearAllStores();
-          
-          // Set as connected
-          setShop(shopDomain);
-          setShopifyConnected(true);
-          setShops([shopDomain]);
-          
-          // Update localStorage
-          localStorage.setItem('shopify_store', shopDomain);
-          localStorage.setItem('shopify_connected', 'true');
-        } else {
-          // Setup Shopify shop from other sources
-          const shopConnected = await setupShopFromUrl();
-          
-          if (shopConnected) {
-            // Get the active store again to ensure it's updated
-            const activeStore = shopifyConnectionManager.getActiveStore();
-            if (activeStore) {
-              setShop(activeStore);
-              setShopifyConnected(true);
-              
-              // Get all stores for the shops list
-              const allStores = shopifyConnectionManager.getAllStores();
-              if (allStores && allStores.length > 0) {
-                setShops(allStores.map(store => store.domain));
-              } else {
-                setShops([activeStore]);
-              }
-              
-              // Update localStorage
-              localStorage.setItem('shopify_store', activeStore);
-              localStorage.setItem('shopify_connected', 'true');
-            }
-          }
-        
-        // Development mode: Only set shop connection, no auto user creation
-        if (process.env.NODE_ENV === 'development' && !shopConnected && !shop) {
-          console.log("Development mode: Using default shop (authentication required)");
-          const defaultShop = 'dev-store.myshopify.com';
-          shopifyConnectionManager.addOrUpdateStore(defaultShop, true);
-          
-          setShop(defaultShop);
-          setShopifyConnected(true);
-          setShops([defaultShop]);
-          
-          // Update localStorage
-          localStorage.setItem('shopify_store', defaultShop);
-          localStorage.setItem('shopify_connected', 'true');
-          
-          // No automatic user creation - require proper login
-        }
-        }
-        
-        // Try to load all shops from database
-        await loadShopsFromDatabase();
-        
-        // After all attempts, forcibly synchronize state
-        await syncConnectionState();
-        
-        // Check for existing session
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (session) {
-          setUser(session.user);
-          
-          // Link current shop to authenticated user
-          if (shop && session.user) {
-            try {
-              await supabase.functions.invoke('link-store-to-user', {
-                body: { 
-                  shop, 
-                  user_id: session.user.id, 
-                  email: session.user.email || `shopify@${shop.replace('.myshopify.com', '')}.app`
-                }
-              });
-              console.log('✅ Shop linked to authenticated user:', shop, session.user.id);
-            } catch (error) {
-              console.error('❌ Failed to link shop to user:', error);
-            }
-          }
-        } else if (shop) {
-          // إذا كان هناك متجر بدون مستخدم مصادق، وجه للصفحة الخاصة بربط الحساب
-          console.log("🔐 Store found without authenticated user, redirecting to account link page");
-          // تأخير للسماح للصفحة بالتحميل قبل التوجيه
-          setTimeout(() => {
-            if (window.location.pathname !== '/shopify-account-link') {
-              window.location.href = '/shopify-account-link';
-            }
-          }, 1000);
-        }
-      } catch (error) {
-        console.error("Error setting up auth:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    let isMounted = true;
 
-    setupAuth();
-
-    // Listen for auth changes
-    const { data: authListener } = supabase.auth.onAuthStateChange(
+    // إعداد مستمع تغييرات المصادقة أولاً
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        if (event === 'SIGNED_IN' && session) {
-          setUser(session.user);
-        } else if (event === 'SIGNED_OUT') {
-          setUser(null);
-          // Don't clear Shopify connection when signing out
+        if (!isMounted) return;
+        
+        console.log('Auth state changed:', event, session?.user?.email);
+        
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        // في حالة تسجيل الدخول بنجاح، جلب المتاجر
+        if (event === 'SIGNED_IN' && session?.user) {
+          setTimeout(() => {
+            if (isMounted) {
+              fetchUserStores(session.user.id);
+            }
+          }, 0);
         }
+        
+        // في حالة تسجيل الخروج، تنظيف البيانات
+        if (event === 'SIGNED_OUT') {
+          setShops(null);
+          cleanupAuthState();
+        }
+        
+        setLoading(false);
       }
     );
 
-    // Listen for URL changes to detect shop parameter
-    const handleUrlChange = () => {
-      const { shopDomain, isShopifyRequest } = parseShopifyParams();
-      if (shopDomain && isShopifyRequest && shopDomain !== shop) {
-        console.log("URL changed with new shop:", shopDomain);
-        handleSetShop(shopDomain);
+    // جلب الجلسة الحالية
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!isMounted) return;
+      
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        fetchUserStores(session.user.id);
       }
-    };
-
-    // Use the popstate event to detect URL changes
-    window.addEventListener('popstate', handleUrlChange);
-
-    // Perform regular checks to make sure connection state is synchronized
-    // But with reduced frequency and with circuit breaker
-    const intervalId = setInterval(() => {
-      // Only run when not loading
-      if (!loading) {
-        syncConnectionState();
-      }
-    }, SYNC_INTERVAL);
-
-    // Expose emergency reset function globally for debugging
-    (window as any).resetShopifyConnection = resetEntireConnectionState;
+      
+      setLoading(false);
+    });
 
     return () => {
-      authListener.subscription.unsubscribe();
-      window.removeEventListener('popstate', handleUrlChange);
-      clearInterval(intervalId);
+      isMounted = false;
+      subscription.unsubscribe();
     };
   }, []);
 
+  const fetchUserStores = async (userId: string) => {
+    try {
+      if (!userId) return;
+      
+      const response = await fetch(
+        `https://trlklwixfeaexhydzaue.supabase.co/rest/v1/shopify_stores?user_id=eq.${userId}&is_active=eq.true&select=shop,is_active`,
+        {
+          headers: {
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
+            'Authorization': `Bearer ${session?.access_token}`,
+            'Content-Type': 'application/json',
+          }
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const storeList = data?.map((store: any) => store.shop) || [];
+      setShops(storeList);
+      
+      // إذا كان هناك متجر نشط، اجعله المتجر الحالي
+      if (storeList.length > 0) {
+        const activeStore = simpleShopifyConnectionManager.getActiveStore();
+        if (!activeStore || !storeList.includes(activeStore)) {
+          simpleShopifyConnectionManager.setActiveStore(storeList[0]);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching user stores:', error);
+    }
+  };
+
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      toast.error(`خطأ في تسجيل الدخول: ${error.message}`);
-      throw error;
+    try {
+      setLoading(true);
+      
+      // تنظيف الحالة القديمة
+      cleanupAuthState();
+      
+      // محاولة تسجيل خروج عام
+      try {
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch (err) {
+        // تجاهل الأخطاء
+      }
+      
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) {
+        setLoading(false);
+        return { error };
+      }
+      
+      return { error: null };
+    } catch (error) {
+      setLoading(false);
+      return { error };
+    }
+  };
+
+  const signUp = async (email: string, password: string) => {
+    try {
+      setLoading(true);
+      
+      // تنظيف الحالة القديمة
+      cleanupAuthState();
+      
+      const redirectUrl = `${window.location.origin}/`;
+      
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: redirectUrl
+        }
+      });
+      
+      setLoading(false);
+      return { error };
+    } catch (error) {
+      setLoading(false);
+      return { error };
     }
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      toast.error(`خطأ في تسجيل الخروج: ${error.message}`);
-      throw error;
+    try {
+      cleanupAuthState();
+      await supabase.auth.signOut({ scope: 'global' });
+      // إعادة تحميل كاملة للصفحة لضمان تنظيف الحالة
+      window.location.href = '/auth';
+    } catch (error) {
+      console.error('Error signing out:', error);
+      // في حالة فشل تسجيل الخروج، توجيه إلى صفحة تسجيل الدخول
+      window.location.href = '/auth';
     }
   };
 
-  const contextValue = {
+  // التحقق من حالة اتصال Shopify
+  const activeStore = simpleShopifyConnectionManager.getActiveStore();
+  const isShopifyConnected = simpleShopifyConnectionManager.isConnected();
+  
+  const shopifyConnected = isShopifyConnected && !!activeStore;
+  const shop = activeStore;
+
+  const value = {
     user,
+    session,
     loading,
     shopifyConnected,
     shop,
     shops,
-    setShop: handleSetShop,
-    signIn,
     signOut,
+    signIn,
+    signUp,
   };
 
-  // Show auto account creator for Shopify users without accounts
-  if (showAutoCreator) {
-    return (
-      <AuthContext.Provider value={contextValue}>
-        <ShopifyAutoAccountCreator 
-          onComplete={(success) => {
-            setShowAutoCreator(false);
-            if (success) {
-              // Reload the session after successful account creation
-              window.location.reload();
-            }
-          }} 
-        />
-      </AuthContext.Provider>
-    );
-  }
-
-  return (
-    <AuthContext.Provider value={contextValue}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

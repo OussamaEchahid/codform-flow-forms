@@ -1,141 +1,289 @@
-
-import { useEffect, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { toast } from 'sonner';
-import { AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Loader2, ExternalLink } from 'lucide-react';
+import { useAuth } from '@/components/layout/AuthProvider';
+import { toast } from '@/hooks/use-toast';
 
 const Auth = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const [debug, setDebug] = useState<any>({});
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { user, signIn, signUp } = useAuth();
+
+  const isExpired = searchParams.get('expired') === 'true';
+
   useEffect(() => {
-    const processAuth = async () => {
-      const searchParams = new URLSearchParams(location.search);
-      let shop = searchParams.get('shop');
-      
-      // Log diagnostic info
-      const debugInfo = {
-        shop,
-        fullUrl: window.location.href,
-        pathname: window.location.pathname,
-        search: window.location.search,
-        origin: window.location.origin,
-        authParams: Object.fromEntries(searchParams.entries()),
-        referrer: document.referrer || "none",
-        userAgent: navigator.userAgent,
-      };
-      
-      setDebug(debugInfo);
-      console.log("Auth page loaded with params:", debugInfo);
-      
-      // Clean Shopify store URL if it contains a protocol
-      if (shop) {
-        if (shop.startsWith('http')) {
-          try {
-            const url = new URL(shop);
-            shop = url.hostname;
-            console.log("Cleaned shop URL:", shop);
-          } catch (e) {
-            console.error("Error cleaning shop URL:", e);
-          }
+    // إذا كان المستخدم مصادق، توجيه إلى لوحة التحكم
+    if (user) {
+      navigate('/dashboard');
+    }
+  }, [user, navigate]);
+
+  useEffect(() => {
+    if (isExpired) {
+      toast({
+        title: "انتهت صلاحية الجلسة",
+        description: "تم تسجيل خروجك تلقائياً. يرجى تسجيل الدخول مرة أخرى.",
+        variant: "destructive"
+      });
+    }
+  }, [isExpired]);
+
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const validatePassword = (password: string) => {
+    return password.length >= 6;
+  };
+
+  const handleSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    if (!validateEmail(email)) {
+      setError('يرجى إدخال بريد إلكتروني صحيح');
+      return;
+    }
+
+    if (!validatePassword(password)) {
+      setError('كلمة المرور يجب أن تكون 6 أحرف على الأقل');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const { error } = await signIn(email, password);
+
+      if (error) {
+        if (error.message.includes('Invalid login credentials')) {
+          setError('بيانات تسجيل الدخول غير صحيحة');
+        } else if (error.message.includes('Email not confirmed')) {
+          setError('يرجى تأكيد البريد الإلكتروني أولاً');
+        } else {
+          setError('حدث خطأ في تسجيل الدخول');
         }
-        
-        // Ensure the address ends with myshopify.com
-        if (!shop.endsWith('myshopify.com')) {
-          if (!shop.includes('.')) {
-            shop = `${shop}.myshopify.com`;
-            console.log("Added myshopify.com suffix:", shop);
-          }
-        }
-        
-        // Save temporary store in localStorage
-        try {
-          localStorage.setItem('shopify_temp_store', shop);
-          console.log("Saved temporary shop:", shop);
-        } catch (e) {
-          console.error("Error saving temp shop:", e);
-        }
-        
-        // Redirect to ShopifyRedirect with the cleaned parameter
-        const redirectUrl = `/shopify-redirect?shop=${encodeURIComponent(shop)}&_t=${Date.now()}&_r=${Math.random().toString().substring(2)}`;
-        console.log("Redirecting to:", redirectUrl);
-        navigate(redirectUrl);
-      } else {
-        // If there's no shop parameter, show error
-        setError("لم يتم توفير معلمة متجر Shopify. يرجى العودة واتباع الخطوات الصحيحة لتثبيت التطبيق.");
+        return;
       }
-    };
-    
-    processAuth();
-  }, [location, navigate]);
-  
-  // Improved with better error handling
-  const handleBackToShopify = () => {
-    navigate('/shopify');
+
+      toast({
+        title: "تم تسجيل الدخول بنجاح",
+        description: "مرحباً بك في لوحة التحكم",
+      });
+
+      // إعادة تحميل كاملة للصفحة
+      window.location.href = '/dashboard';
+    } catch (error) {
+      setError('حدث خطأ غير متوقع');
+    } finally {
+      setLoading(false);
+    }
   };
-  
-  const handleBackToDashboard = () => {
-    navigate('/dashboard');
+
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    if (!validateEmail(email)) {
+      setError('يرجى إدخال بريد إلكتروني صحيح');
+      return;
+    }
+
+    if (!validatePassword(password)) {
+      setError('كلمة المرور يجب أن تكون 6 أحرف على الأقل');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError('كلمتا المرور غير متطابقتين');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const { error } = await signUp(email, password);
+
+      if (error) {
+        if (error.message.includes('User already registered')) {
+          setError('هذا البريد الإلكتروني مسجل بالفعل');
+        } else {
+          setError('حدث خطأ في إنشاء الحساب');
+        }
+        return;
+      }
+
+      toast({
+        title: "تم إنشاء الحساب بنجاح",
+        description: "يرجى التحقق من بريدك الإلكتروني لتأكيد الحساب",
+      });
+
+    } catch (error) {
+      setError('حدث خطأ غير متوقع');
+    } finally {
+      setLoading(false);
+    }
   };
-  
-  // If there's an error, show error message and navigation buttons
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-gray-50" dir="rtl">
-        <div className="text-center bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
-          <div className="flex justify-center mb-4">
-            <div className="p-3 rounded-lg bg-red-100">
-              <AlertCircle className="h-8 w-8 text-red-600" />
-            </div>
-          </div>
-          <h1 className="text-2xl font-bold mb-4">خطأ في المصادقة</h1>
-          <div className="bg-red-100 text-red-700 p-4 rounded-lg mb-4">
-            {error}
-          </div>
-          
-          <div className="space-y-3">
-            <Button 
-              className="w-full"
-              onClick={handleBackToShopify}
-            >
-              العودة إلى صفحة الاتصال بـ Shopify
-            </Button>
-            
-            <Button 
-              variant="outline"
-              onClick={handleBackToDashboard}
-              className="w-full"
-            >
-              العودة إلى لوحة التحكم
-            </Button>
-          </div>
-          
-          <div className="mt-4 p-4 bg-gray-100 rounded text-left text-xs overflow-auto max-h-40">
-            <p className="font-bold mb-2">معلومات التصحيح:</p>
-            <pre>{JSON.stringify(debug, null, 2)}</pre>
-          </div>
-        </div>
-      </div>
-    );
-  }
-  
+
+  const handleShopifyRedirect = () => {
+    // رابط للتوجه إلى Shopify
+    const shopifyUrl = 'https://admin.shopify.com';
+    window.open(shopifyUrl, '_blank');
+  };
+
   return (
-    <div className="flex items-center justify-center h-screen bg-gray-50" dir="rtl">
-      <div className="text-center bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
-        <h1 className="text-2xl font-bold mb-4">جاري المصادقة...</h1>
-        <div className="flex justify-center mb-6">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
-        </div>
-        <p className="mb-4">يرجى الانتظار بينما نقوم بمصادقة متجر Shopify الخاص بك...</p>
-        
-        <div className="mt-4 p-4 bg-gray-100 rounded text-left text-xs overflow-auto max-h-40">
-          <p className="font-bold mb-2">معلومات التصحيح:</p>
-          <pre>{JSON.stringify(debug, null, 2)}</pre>
-        </div>
-      </div>
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl font-bold">مرحباً بك</CardTitle>
+          <CardDescription>
+            سجل دخولك أو أنشئ حساباً جديداً للوصول إلى لوحة التحكم
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent>
+          <Tabs defaultValue="signin" className="space-y-4">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="signin">تسجيل الدخول</TabsTrigger>
+              <TabsTrigger value="signup">إنشاء حساب</TabsTrigger>
+            </TabsList>
+
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            <TabsContent value="signin" className="space-y-4">
+              <form onSubmit={handleSignIn} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="signin-email">البريد الإلكتروني</Label>
+                  <Input
+                    id="signin-email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="example@domain.com"
+                    required
+                    disabled={loading}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="signin-password">كلمة المرور</Label>
+                  <Input
+                    id="signin-password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                    disabled={loading}
+                  />
+                </div>
+
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      جاري تسجيل الدخول...
+                    </>
+                  ) : (
+                    'تسجيل الدخول'
+                  )}
+                </Button>
+              </form>
+            </TabsContent>
+
+            <TabsContent value="signup" className="space-y-4">
+              <form onSubmit={handleSignUp} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="signup-email">البريد الإلكتروني</Label>
+                  <Input
+                    id="signup-email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="example@domain.com"
+                    required
+                    disabled={loading}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="signup-password">كلمة المرور</Label>
+                  <Input
+                    id="signup-password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                    disabled={loading}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="confirm-password">تأكيد كلمة المرور</Label>
+                  <Input
+                    id="confirm-password"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                    disabled={loading}
+                  />
+                </div>
+
+                <div className="text-sm text-muted-foreground">
+                  <p>متطلبات كلمة المرور:</p>
+                  <ul className="list-disc list-inside mt-1 space-y-1">
+                    <li>6 أحرف على الأقل</li>
+                  </ul>
+                </div>
+
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      جاري إنشاء الحساب...
+                    </>
+                  ) : (
+                    'إنشاء حساب جديد'
+                  )}
+                </Button>
+              </form>
+            </TabsContent>
+          </Tabs>
+
+          <div className="mt-6 pt-6 border-t">
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={handleShopifyRedirect}
+            >
+              <ExternalLink className="mr-2 h-4 w-4" />
+              اضغط هنا للتوجه إلى Shopify
+            </Button>
+            <p className="text-xs text-muted-foreground text-center mt-2">
+              افتح التطبيق من داخل متجر Shopify للربط التلقائي
+            </p>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
