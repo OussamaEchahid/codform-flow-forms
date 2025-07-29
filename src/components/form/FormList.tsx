@@ -270,12 +270,77 @@ const FormList: React.FC<FormListProps> = ({
   const handleCloseProductModal = () => {
     setIsProductModalOpen(false);
     setSelectedFormForProducts(null);
-    // Refresh the enhanced forms to show updated product associations
-    if (onRefresh) {
-      setTimeout(() => {
-        window.location.reload();
-      }, 500);
-    }
+    
+    // Force re-fetch of product associations immediately
+    setTimeout(() => {
+      const fetchProductAssociations = async () => {
+        if (!forms.length || offlineMode) return;
+        
+        console.log('🔄 إعادة جلب المنتجات المرتبطة بعد إغلاق المودال');
+        setIsLoadingProducts(true);
+        
+        try {
+          const activeShop = localStorage.getItem('current_shopify_store') || 
+                            localStorage.getItem('activeShopId') ||
+                            'test-klawi.myshopify.com';
+          
+          if (!activeShop) {
+            setEnhancedForms(forms);
+            return;
+          }
+          
+          const { data: productSettings, error } = await supabase
+            .from('shopify_product_settings')
+            .select('form_id, product_id, shop_id, enabled')
+            .eq('shop_id', activeShop)
+            .eq('enabled', true)
+            .in('form_id', forms.map(form => form.id));
+            
+          if (error) {
+            console.error('❌ خطأ في جلب إعدادات المنتج:', error);
+            setEnhancedForms(forms);
+            return;
+          }
+          
+          const productsByForm = productSettings?.reduce((acc, setting) => {
+            if (!acc[setting.form_id]) {
+              acc[setting.form_id] = [];
+            }
+            acc[setting.form_id].push(setting.product_id);
+            return acc;
+          }, {} as Record<string, string[]>) || {};
+          
+          const formsWithProducts = forms.map(form => {
+            const productIds = productsByForm[form.id] || [];
+            const associatedProducts = productIds.map(id => ({
+              id: String(id).replace('gid://shopify/Product/', ''),
+              title: `منتج ${String(id).replace('gid://shopify/Product/', '')}`,
+              image: '/placeholder.svg'
+            }));
+            
+            return {
+              ...form,
+              associatedProducts
+            };
+          });
+          
+          console.log('✅ تم تحديث النماذج بالمنتجات الجديدة:', formsWithProducts.map(f => ({ 
+            id: f.id, 
+            title: f.title, 
+            productsCount: f.associatedProducts?.length || 0 
+          })));
+          
+          setEnhancedForms(formsWithProducts);
+        } catch (error) {
+          console.error('❌ خطأ في إعادة جلب المنتجات:', error);
+          setEnhancedForms(forms);
+        } finally {
+          setIsLoadingProducts(false);
+        }
+      };
+      
+      fetchProductAssociations();
+    }, 100);
   };
 
   if (isLoading) {

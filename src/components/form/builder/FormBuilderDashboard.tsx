@@ -258,8 +258,11 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
   const handleCloseProductModal = () => {
     setIsProductModalOpen(false);
     setSelectedFormForProducts(null);
-    // Refresh product counts after closing modal
-    fetchProductCounts();
+    // Force immediate refresh of product counts after closing modal
+    setTimeout(() => {
+      console.log('🔄 إعادة جلب عداد المنتجات بعد إغلاق المودال');
+      fetchProductCounts();
+    }, 100);
   };
   
   if (isLoading) {
