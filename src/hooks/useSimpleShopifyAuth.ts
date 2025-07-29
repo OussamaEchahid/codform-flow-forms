@@ -8,31 +8,35 @@ interface ShopifyStore {
 }
 
 export const useSimpleShopifyAuth = () => {
-  const [currentStore, setCurrentStore] = useState<string | null>(null);
+  const [currentStore, setCurrentStore] = useState<string | null>(() => {
+    // قراءة فورية من localStorage عند إنشاء الـ state
+    return localStorage.getItem('current_shopify_store') || null;
+  });
   const [userStores, setUserStores] = useState<ShopifyStore[]>([]);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [userEmail, setUserEmail] = useState<string | null>(() => {
+    return localStorage.getItem('shopify_user_email') || null;
+  });
+  const [loading, setLoading] = useState(false);
 
-  // Load current store from localStorage
+  // تحديث فوري للـ state عند تغيير localStorage
   useEffect(() => {
     const store = localStorage.getItem('current_shopify_store');
     const email = localStorage.getItem('shopify_user_email');
     
-    console.log('🔍 SimpleShopifyAuth - Loading from localStorage:', { store, email });
+    console.log('🔍 SimpleShopifyAuth - Loading from localStorage:', { store, email, currentStore });
     
-    setCurrentStore(store);
-    setUserEmail(email);
+    if (store !== currentStore) {
+      setCurrentStore(store);
+    }
+    if (email !== userEmail) {
+      setUserEmail(email);
+    }
     
     if (store) {
-      // إذا كان هناك متجر، اعتبره متصل
+      // إذا كان هناك متجر، أنشئ قائمة المتاجر فوراً
       setUserStores([{ shop: store, is_active: true, updated_at: new Date().toISOString() }]);
-      setLoading(false);
-    } else if (email) {
-      loadUserStores(email);
-    } else {
-      setLoading(false);
     }
-  }, []);
+  }, [currentStore, userEmail]);
 
   // Load all stores for current user email using raw SQL since the function returns different structure
   const loadUserStores = async (email: string) => {
@@ -120,7 +124,8 @@ export const useSimpleShopifyAuth = () => {
 
   // Check if user is "logged in" (has a connected store)
   const isConnected = () => {
-    return !!(currentStore && userEmail);
+    const store = currentStore || localStorage.getItem('current_shopify_store');
+    return !!store;
   };
 
   // Disconnect (clear all data)
