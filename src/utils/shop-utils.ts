@@ -14,26 +14,59 @@ export const getActiveShopId = (): string | null => {
     'selected_store'
   ];
   
+  // تجميع جميع القيم للمقارنة
+  const allValues = [];
   for (const key of shopIdKeys) {
     const value = localStorage.getItem(key);
     if (value && value.trim()) {
       const trimmedValue = value.trim();
-      
+      allValues.push({ key, value: trimmedValue });
       console.log(`📋 Retrieved store from cache: ${trimmedValue}`);
+    }
+  }
+  
+  // البحث عن أول متجر صحيح
+  for (const item of allValues) {
+    if (validateShopId(item.value)) {
+      console.log(`✅ Found active store: ${item.value}`);
       
-      // التحقق من صحة المتجر قبل إرجاعه
-      if (validateShopId(trimmedValue)) {
-        console.log(`✅ Found active store: ${trimmedValue}`);
-        return trimmedValue;
-      } else {
-        console.warn(`❌ تم تجاهل shop_id غير صحيح من ${key}: ${trimmedValue}`);
-        // لا نحذف المعرف هنا لأنه قد يكون صحيح لكن بصيغة مختلفة
-      }
+      // تنظيف وتوحيد localStorage
+      cleanupAndSetActiveStore(item.value);
+      return item.value;
+    } else {
+      console.warn(`❌ تم تجاهل shop_id غير صحيح من ${item.key}: ${item.value}`);
     }
   }
   
   console.error('❌ No shop ID found');
   return null;
+};
+
+/**
+ * تنظيف وتوحيد localStorage بالمتجر الصحيح
+ */
+const cleanupAndSetActiveStore = (correctShopId: string): void => {
+  try {
+    // تنظيف جميع المفاتيح أولاً
+    const keys = [
+      'simple_active_store', 
+      'shopify_store', 
+      'active_shop',
+      'current_shopify_store',
+      'shopify_shop_domain',
+      'selected_store'
+    ];
+    
+    // تعيين المتجر الصحيح في جميع المفاتيح
+    keys.forEach(key => {
+      localStorage.setItem(key, correctShopId);
+    });
+    
+    localStorage.setItem('shopify_connected', 'true');
+    console.log(`🧹 تم تنظيف وتوحيد localStorage مع المتجر: ${correctShopId}`);
+  } catch (error) {
+    console.error('❌ Error cleaning localStorage:', error);
+  }
 };
 
 /**
