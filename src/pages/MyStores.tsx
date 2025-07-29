@@ -125,24 +125,19 @@ const MyStores = () => {
 
   const handleSwitchStore = async (shopDomain: string) => {
     try {
-      console.log(`🔄 تبديل إلى المتجر: ${shopDomain}`);
+      console.log(`🚨 FORCE SWITCH إلى المتجر: ${shopDomain}`);
       
-      // تحديث المتجر النشط باستخدام UnifiedStoreManager
-      const success = UnifiedStoreManager.setActiveStore(shopDomain);
+      // استخدام التنظيف الإجباري الجديد
+      const success = UnifiedStoreManager.forceCleanupAndSet(shopDomain);
       
-      // التأكد من أن المتجر تم تعيينه بنجاح
-      const newActiveStore = UnifiedStoreManager.getActiveStore();
-      console.log(`✅ تم التبديل بنجاح إلى: ${newActiveStore}`, 'Success:', success);
-      
-      toast({
-        title: "تم التبديل بنجاح",
-        description: `تم التبديل إلى ${shopDomain}`,
-      });
-      
-      // إعادة تحميل الصفحة لتحديث جميع المكونات
-      setTimeout(() => {
-        window.location.href = '/dashboard';
-      }, 1000);
+      if (success) {
+        toast({
+          title: "جاري التبديل...",
+          description: `جاري التبديل إلى ${shopDomain} مع تنظيف شامل`,
+        });
+      } else {
+        throw new Error('فشل التنظيف الإجباري');
+      }
       
     } catch (error) {
       console.error('❌ خطأ في التبديل:', error);

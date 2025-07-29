@@ -19,7 +19,10 @@ export class UnifiedStoreManager {
     'shop',
     'selectedStore',
     'connectedStore',
-    'activeShopifyStore'
+    'activeShopifyStore',
+    'shopify_connected_stores',
+    'cached_forms',
+    'language'
   ];
 
   // حالة الكاش للأداء
@@ -178,12 +181,12 @@ export class UnifiedStoreManager {
     try {
       console.log('🧹 Starting comprehensive cleanup...');
       
-      // مسح المفتاح الأساسي مؤقتاً
-      const currentStore = localStorage.getItem(this.STORE_KEY);
-      
-      // مسح جميع المفاتيح المتضاربة بما في ذلك الأساسي
+      // مسح جميع المفاتيح المتضاربة أولاً
       this.LEGACY_KEYS.forEach(key => {
-        localStorage.removeItem(key);
+        if (localStorage.getItem(key)) {
+          console.log(`🗑️ Removing conflicting key: ${key}`);
+          localStorage.removeItem(key);
+        }
       });
 
       // مسح جميع بيانات Shopify المرتبطة
@@ -203,7 +206,10 @@ export class UnifiedStoreManager {
       ];
       
       shopifyKeys.forEach(key => {
-        localStorage.removeItem(key);
+        if (localStorage.getItem(key)) {
+          console.log(`🗑️ Removing Shopify key: ${key}`);
+          localStorage.removeItem(key);
+        }
       });
 
       console.log('✅ Comprehensive cleanup completed - all conflicting keys removed');
@@ -239,7 +245,45 @@ export class UnifiedStoreManager {
    * مسح الكاش
    */
   private static invalidateCache(): void {
+    console.log('🗑️ Cache invalidated');
     this.cache = { store: null, timestamp: 0 };
+  }
+
+  /**
+   * تنظيف فوري وإجباري لحل التضارب
+   */
+  static forceCleanupAndSet(store: string): boolean {
+    try {
+      console.log('🚨 FORCE CLEANUP AND SET:', store);
+      
+      // مسح كامل فوري
+      this.performFullCleanup();
+      this.invalidateCache();
+      
+      // انتظار قصير للتأكد من المسح
+      setTimeout(() => {
+        // تعيين المتجر الجديد
+        localStorage.setItem(this.STORE_KEY, store);
+        localStorage.setItem('shopify_connected', 'true');
+        localStorage.setItem('shopify_connection_status', 'connected');
+        
+        // تحديث الكاش
+        this.updateCache(store);
+        
+        // إطلاق الأحداث
+        this.emitStoreChangeEvents(store);
+        
+        console.log('✅ FORCE SET COMPLETED:', store);
+        
+        // إعادة تحميل الصفحة للتأكد
+        window.location.reload();
+      }, 100);
+      
+      return true;
+    } catch (error) {
+      console.error('❌ Error in force cleanup and set:', error);
+      return false;
+    }
   }
 
   /**
