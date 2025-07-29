@@ -45,7 +45,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(session?.user ?? null);
         
         if (event === 'SIGNED_IN' && session?.user) {
-          // جلب المتاجر
+          // أولاً، تحقق من وجود متجر في localStorage
+          const cachedStore = localStorage.getItem('shopify_store');
+          console.log('Cached store from localStorage:', cachedStore);
+          
+          if (cachedStore) {
+            // تأكد من أن المتجر موجود في قاعدة البيانات
+            // @ts-ignore - temporary fix for type issue
+            const { data: existingStore } = await supabase
+              .from('shopify_stores')
+              .select('shop, user_id')
+              .eq('shop', cachedStore)
+              .single();
+            
+            // @ts-ignore - temporary fix for type issue
+            if (!existingStore || existingStore.user_id !== session.user.id) {
+              console.log('Linking cached store to current user:', cachedStore);
+              // ربط المتجر بالمستخدم الحالي
+              // @ts-ignore - temporary fix for type issue
+              await supabase
+                .from('shopify_stores')
+                .upsert({
+                  shop: cachedStore,
+                  user_id: session.user.id,
+                  is_active: true,
+                  updated_at: new Date().toISOString()
+                });
+            }
+            
+            // تعيين المتجر كنشط فوراً
+            setActiveStore(cachedStore);
+            setShops([cachedStore]);
+            localStorage.setItem('shopify_connected', 'true');
+            console.log('✅ Store connection established:', cachedStore);
+          }
+          
+           // جلب جميع المتاجر من قاعدة البيانات
           try {
             // @ts-ignore - temporary fix for type issue
             const { data: stores, error } = await supabase
@@ -59,13 +94,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               const storeList = stores.map(s => s.shop);
               setShops(storeList);
               
-              // تعيين أول متجر كنشط
-              if (storeList.length > 0) {
+              // إذا لم يكن هناك متجر نشط، اختر الأول
+              if (!cachedStore && storeList.length > 0) {
                 const firstStore = storeList[0];
                 setActiveStore(firstStore);
                 localStorage.setItem('shopify_store', firstStore);
                 localStorage.setItem('shopify_connected', 'true');
-                console.log(`✅ Active store set: ${firstStore}`);
+                console.log(`✅ Default store set: ${firstStore}`);
               }
             }
           } catch (err) {
