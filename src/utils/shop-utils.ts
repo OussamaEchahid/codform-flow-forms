@@ -4,27 +4,35 @@
  * تتبع ترتيب أولوية واضح مع التحقق من صحة المتاجر
  */
 export const getActiveShopId = (): string | null => {
-  // الترتيب الموحد للبحث عن shop_id
-  const shopIdKeys = ['simple_active_store', 'shopify_store', 'active_shop'];
+  // الترتيب الموحد للبحث عن shop_id - إضافة جميع المفاتيح المحتملة
+  const shopIdKeys = [
+    'simple_active_store', 
+    'shopify_store', 
+    'active_shop',
+    'current_shopify_store',  // إضافة هذا المفتاح المفقود
+    'shopify_shop_domain',
+    'selected_store'
+  ];
   
   for (const key of shopIdKeys) {
     const value = localStorage.getItem(key);
     if (value && value.trim()) {
       const trimmedValue = value.trim();
       
+      console.log(`📋 Retrieved store from cache: ${trimmedValue}`);
+      
       // التحقق من صحة المتجر قبل إرجاعه
       if (validateShopId(trimmedValue)) {
-        console.log(`🏪 استخدام shop_id صحيح من ${key}: ${trimmedValue}`);
+        console.log(`✅ Found active store: ${trimmedValue}`);
         return trimmedValue;
       } else {
         console.warn(`❌ تم تجاهل shop_id غير صحيح من ${key}: ${trimmedValue}`);
-        // إزالة المعرف غير الصحيح
-        localStorage.removeItem(key);
+        // لا نحذف المعرف هنا لأنه قد يكون صحيح لكن بصيغة مختلفة
       }
     }
   }
   
-  console.warn('⚠️ لم يتم العثور على shop_id صحيح في localStorage');
+  console.error('❌ No shop ID found');
   return null;
 };
 
