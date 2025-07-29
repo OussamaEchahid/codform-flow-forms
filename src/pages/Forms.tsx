@@ -1,9 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/components/layout/AuthProvider';
 import { useI18n } from '@/lib/i18n';
-import { simpleShopifyConnectionManager } from '@/lib/shopify/simple-connection-manager';
+import { useSimpleShopifyAuth } from '@/hooks/useSimpleShopifyAuth';
 import AppSidebar from '@/components/layout/AppSidebar';
 import FormBuilderDashboard from '@/components/form/builder/FormBuilderDashboard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,35 +15,15 @@ import {
   CheckCircle,
   Store as StoreIcon
 } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
 
 const Forms = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const { language } = useI18n();
-  const [isLoading, setIsLoading] = useState(true);
-  const [activeStore, setActiveStore] = useState<string | null>(null);
+  const { currentStore, loading } = useSimpleShopifyAuth();
 
-  useEffect(() => {
-    // التحقق من المتجر النشط من localStorage مباشرة
-    const getStoreFromStorage = () => {
-      return localStorage.getItem('current_shopify_store') || 
-             localStorage.getItem('shopify_store') || 
-             null;
-    };
-    
-    const store = getStoreFromStorage();
-    setActiveStore(store);
-    setIsLoading(false);
-    
-    console.log('📄 Forms page loaded:', {
-      store,
-      localStorage: localStorage.getItem('current_shopify_store'),
-      connectionManager: simpleShopifyConnectionManager.getActiveStore()
-    });
-  }, []);
+  console.log('📄 Forms page - Current store:', currentStore);
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
@@ -75,11 +54,11 @@ const Forms = () => {
 
           {/* حالة المتجر */}
           <div className="mb-6">
-            {activeStore ? (
+            {currentStore ? (
               <Alert className="border-green-200 bg-green-50">
                 <CheckCircle className="h-4 w-4 text-green-600" />
                 <AlertDescription className="text-green-800">
-                  <strong>متصل بالمتجر:</strong> {activeStore}
+                  <strong>متصل بالمتجر:</strong> {currentStore}
                 </AlertDescription>
               </Alert>
             ) : (
@@ -103,9 +82,9 @@ const Forms = () => {
           </div>
 
           {/* المحتوى الرئيسي */}
-          {activeStore ? (
+          {currentStore ? (
             <FormBuilderDashboard 
-              key={`dashboard-${activeStore}`} 
+              key={`dashboard-${currentStore}`} 
               initialForms={[]} 
               forceRefresh={false}
             />
@@ -179,7 +158,7 @@ const Forms = () => {
           )}
 
           {/* رسالة ترحيب للمستخدمين الجدد */}
-          {!activeStore && (
+          {!currentStore && (
             <Card className="mt-8 border-2 border-dashed border-muted-foreground/25">
               <CardHeader className="text-center">
                 <StoreIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />

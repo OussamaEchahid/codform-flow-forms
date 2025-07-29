@@ -16,8 +16,9 @@ export const useShopifyProducts = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadProducts = async () => {
-    const currentStore = localStorage.getItem('current_shopify_store');
+  const loadProducts = async (shopDomain?: string) => {
+    // استخدام المتجر المُمرر أو الحصول عليه من localStorage
+    const currentStore = shopDomain || localStorage.getItem('current_shopify_store');
     
     if (!currentStore) {
       setError('No store connected');
@@ -56,8 +57,8 @@ export const useShopifyProducts = () => {
     }
   };
 
-  const getProductById = async (productId: string) => {
-    const currentStore = localStorage.getItem('current_shopify_store');
+  const getProductById = async (productId: string, shopDomain?: string) => {
+    const currentStore = shopDomain || localStorage.getItem('current_shopify_store');
     
     if (!currentStore) {
       throw new Error('No store connected');

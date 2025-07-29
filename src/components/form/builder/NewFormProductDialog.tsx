@@ -202,7 +202,7 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
       const newFormId = uuidv4();
       
       // Get the active shop ID
-      const shopId = shop || localStorage.getItem('shopify_store') || null;
+      const shopId = shop || localStorage.getItem('current_shopify_store') || null;
       
       if (!shopId) {
         toast.error(language === 'ar' ? 'لم يتم العثور على متجر نشط' : 'No active shop found');

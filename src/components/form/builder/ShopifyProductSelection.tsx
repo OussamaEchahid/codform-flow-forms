@@ -49,7 +49,7 @@ const ShopifyProductSelection: React.FC<ShopifyProductSelectionProps> = ({
     const fetchProducts = async () => {
       try {
         // التحقق من وجود متجر نشط قبل تحميل المنتجات
-        const activeShop = shop || localStorage.getItem('shopify_store');
+        const activeShop = shop || localStorage.getItem('current_shopify_store');
         if (!activeShop) {
           console.log('⚠️ لا يوجد متجر نشط، تخطي تحميل المنتجات');
           toast.error(language === 'ar' 
