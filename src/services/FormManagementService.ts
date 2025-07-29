@@ -350,17 +350,29 @@ export class FormManagementService {
     }
     
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const activeShopId = this.getActiveShopId();
+      
+      let query = supabase
+        .from('forms')
+        .select('*')
+        .eq('id', formId);
+      
+      // Add proper filters based on auth type
+      if (session?.user?.id) {
+        query = query.eq('user_id', session.user.id);
+      } else {
+        // For Shopify stores, use default user
+        query = query.eq('user_id', '36d7eb85-0c45-4b4f-bea1-a9cb732ca893');
+      }
+      
       const { data, error } = await this.fetchWithRetry(async () => {
-        return await supabase
-          .from('forms')
-          .select('*')
-          .eq('id', formId)
-          .single();
+        return await query.maybeSingle(); // Use maybeSingle instead of single
       });
       
       if (error) {
         console.error('Error loading form:', error);
-        throw new Error('خطأ في تحميل النموذج');
+        return null; // Return null instead of throwing
       }
       
       if (!data) {

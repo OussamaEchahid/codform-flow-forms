@@ -369,6 +369,13 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
             
             console.log('📋 Loaded elements before processing:', loadedElements);
             
+            // If no elements loaded, create default elements immediately
+            if (loadedElements.length === 0) {
+              console.log('⚡ No elements found, creating default elements');
+              loadedElements = createDefaultForm();
+              console.log('✨ Created default elements:', loadedElements);
+            }
+            
             // إذا لم يكن هناك زر إرسال، أضفه
             const needsSubmitButton = !loadedElements.some(f => f.type === 'submit');
             

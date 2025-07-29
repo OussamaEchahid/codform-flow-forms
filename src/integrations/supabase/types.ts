@@ -514,6 +514,10 @@ export type Database = {
         Args: { p_shop: string; p_user_id?: string; p_email?: string }
         Returns: boolean
       }
+      load_form_with_fallback: {
+        Args: { form_id: string }
+        Returns: Json
+      }
       update_default_store_connection: {
         Args: Record<PropertyKey, never>
         Returns: string
