@@ -97,6 +97,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       if (!userId) return;
       
+      console.log('🔄 جاري جلب متاجر المستخدم من قاعدة البيانات...');
+      
+      // استخدام edge function للحصول على المتاجر
       const response = await supabase.functions.invoke('store-link-manager', {
         body: {
           action: 'get_stores',
@@ -105,22 +108,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (response.error) {
-        throw new Error(response.error.message || 'Error fetching stores');
+        console.error('❌ خطأ في جلب المتاجر:', response.error);
+        return;
       }
 
       const { data } = response;
       const storeList = data?.stores?.map((store: any) => store.shop) || [];
+      
+      console.log('📋 المتاجر المستلمة:', storeList);
       setShops(storeList);
       
-      // إذا كان هناك متجر نشط، اجعله المتجر الحالي
+      // مزامنة حالة localStorage مع قاعدة البيانات
       if (storeList.length > 0) {
         const activeStore = simpleShopifyConnectionManager.getActiveStore();
+        
+        // إذا لم يكن هناك متجر نشط في localStorage أو المتجر غير موجود في القائمة
         if (!activeStore || !storeList.includes(activeStore)) {
-          simpleShopifyConnectionManager.setActiveStore(storeList[0]);
+          const firstStore = storeList[0];
+          console.log(`🔄 تعيين المتجر النشط: ${firstStore}`);
+          
+          // تحديث localStorage مع المتجر الأول
+          simpleShopifyConnectionManager.setActiveStore(firstStore);
+          localStorage.setItem('shopify_connected', 'true');
+          localStorage.setItem('simple_active_store', firstStore);
+          localStorage.setItem('active_shop', firstStore);
+        } else {
+          // التأكد من أن حالة الاتصال محدثة
+          localStorage.setItem('shopify_connected', 'true');
         }
+      } else {
+        // لا توجد متاجر متصلة
+        console.log('❌ لا توجد متاجر متصلة');
+        simpleShopifyConnectionManager.disconnect();
       }
     } catch (error) {
-      console.error('Error fetching user stores:', error);
+      console.error('❌ خطأ في جلب متاجر المستخدم:', error);
     }
   };
 
