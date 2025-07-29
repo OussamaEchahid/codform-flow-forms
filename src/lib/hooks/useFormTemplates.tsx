@@ -149,6 +149,12 @@ export const useFormTemplates = () => {
       };
 
       // Insert into Supabase
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user?.id) {
+        toast.error('يجب تسجيل الدخول أولاً');
+        return null;
+      }
+
       const { error } = await supabase
         .from('forms')
         .insert({
@@ -158,7 +164,7 @@ export const useFormTemplates = () => {
           data: template.data as any,
           is_published: false,
           shop_id: shopId,
-          user_id: user?.id || 'anonymous'
+          user_id: session.user.id
         });
 
       if (error) {
@@ -293,6 +299,12 @@ export const useFormTemplates = () => {
       };
       
       // Insert the form into database
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user?.id) {
+        toast.error('يجب تسجيل الدخول أولاً');
+        return null;
+      }
+
       const { error } = await supabase
         .from('forms')
         .insert({
@@ -302,7 +314,7 @@ export const useFormTemplates = () => {
           data: formData.data as any,
           is_published: false,
           shop_id: shopId,
-          user_id: user?.id || 'anonymous'
+          user_id: session.user.id
         });
       
       if (error) {

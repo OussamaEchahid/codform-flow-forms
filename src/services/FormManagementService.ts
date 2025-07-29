@@ -76,24 +76,21 @@ export class FormManagementService {
         timestamp: new Date().toISOString()
       });
 
+      if (!session?.user?.id) {
+        console.log('⚠️ No authenticated user - returning empty forms list');
+        return [];
+      }
+
       let query = supabase
         .from('forms')
         .select('*')
+        .eq('user_id', session.user.id)
         .order('created_at', { ascending: false });
 
-      // Apply filtering with clear priority
+      // Apply additional filtering by shop if available
       if (activeShopId) {
-        // Priority 1: Filter by shop_id if available (most specific)
-        console.log(`🎯 Filtering by shop_id: ${activeShopId}`);
+        console.log(`🎯 Additional filtering by shop_id: ${activeShopId}`);
         query = query.eq('shop_id', activeShopId);
-      } else if (session?.user?.id) {
-        // Priority 2: Filter by user_id if no shop but user exists
-        console.log(`👤 Filtering by user_id: ${session.user.id}`);
-        query = query.eq('user_id', session.user.id);
-      } else {
-        // No context available - return empty array
-        console.log('⚠️ No shop_id or user_id available - returning empty forms list');
-        return [];
       }
 
       const { data, error } = await query;
@@ -118,7 +115,7 @@ export class FormManagementService {
         phone_prefix: (form as any).phone_prefix
       }));
 
-      console.log(`✅ Successfully fetched ${forms.length} forms for ${activeShopId ? `shop: ${activeShopId}` : `user: ${session?.user?.id}`}`);
+      console.log(`✅ Successfully fetched ${forms.length} forms for user: ${session.user.id} ${activeShopId ? `(shop: ${activeShopId})` : ''}`);
       
       // Cache forms for offline usage
       try {

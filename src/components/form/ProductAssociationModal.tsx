@@ -124,6 +124,13 @@ export function ProductAssociationModal({
     try {
       console.log('🔗 Linking product:', productId, 'to form:', formId, 'store:', currentStore);
       
+      // Get current user ID
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user?.id) {
+        toast.error('يجب تسجيل الدخول أولاً');
+        return;
+      }
+      
       // First check if already linked to this form
       const { data: existingForForm, error: checkFormError } = await supabase
         .from('shopify_product_settings')
@@ -164,13 +171,14 @@ export function ProductAssociationModal({
         return;
       }
 
-      // Use upsert to handle potential race conditions
+      // Use upsert to handle potential race conditions with user_id
       const { data, error } = await supabase
         .from('shopify_product_settings')
         .upsert({
           shop_id: currentStore,
           product_id: productId,
           form_id: formId,
+          user_id: session.user.id, // تأكد من تعيين user_id
           enabled: true
         }, {
           onConflict: 'shop_id,product_id',
