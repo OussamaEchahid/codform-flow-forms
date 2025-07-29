@@ -307,6 +307,19 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
         return;
       }
       
+      // Publish the form first so that product associations can work
+      const { error: publishError } = await supabase
+        .from('forms')
+        .update({ is_published: true })
+        .eq('id', newFormId);
+      
+      if (publishError) {
+        console.error("Error publishing form:", publishError);
+        toast.error(language === 'ar' ? 'خطأ في نشر النموذج' : 'Error publishing form');
+        setIsCreating(false);
+        return;
+      }
+
       // Create product associations only if products are selected
       if (selectedProducts.length > 0) {
         const productSettings = [];
@@ -347,6 +360,8 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
             console.error("Error creating product associations:", associationError);
             toast.error(language === 'ar' ? 'خطأ في ربط المنتجات' : 'Error associating products');
             // Continue anyway - we'll navigate to the form editor
+          } else {
+            console.log(`✅ تم ربط ${productSettings.length} منتج بنجاح بالنموذج ${newFormId}`);
           }
         }
       }
