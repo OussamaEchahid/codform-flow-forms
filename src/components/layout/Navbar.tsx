@@ -9,11 +9,22 @@ import { useAuth } from '@/components/layout/AuthProvider';
 const Navbar = () => {
   const { isShopifyAuthenticated, shopifyUserEmail, shop: currentStore, signOut } = useAuth();
 
+  // Use localStorage fallback for store detection
+  const storeFromStorage = localStorage.getItem('current_shopify_store');
+  const emailFromStorage = localStorage.getItem('shopify_user_email');
+  const activeStore = currentStore || storeFromStorage;
+  const activeEmail = shopifyUserEmail || emailFromStorage;
+  const hasConnection = !!(activeStore && (isShopifyAuthenticated || storeFromStorage));
+
   console.log('🔍 Navbar - Auth state:', { 
     currentStore, 
+    storeFromStorage,
+    activeStore,
     shopifyUserEmail, 
+    emailFromStorage,
+    activeEmail,
     isShopifyAuthenticated,
-    fromLocalStorage: localStorage.getItem('current_shopify_store')
+    hasConnection
   });
 
   const handleDisconnect = async () => {
@@ -33,7 +44,7 @@ const Navbar = () => {
               <Link to="/dashboard">لوحة التحكم</Link>
             </Button>
             
-            {isShopifyAuthenticated && currentStore ? (
+            {hasConnection && activeStore ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Avatar className="h-8 w-8 cursor-pointer">
@@ -44,8 +55,8 @@ const Navbar = () => {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem disabled className="flex flex-col items-start">
-                    <span className="font-medium">{currentStore}</span>
-                    {shopifyUserEmail && <span className="text-xs text-muted-foreground">{shopifyUserEmail}</span>}
+                    <span className="font-medium">{activeStore}</span>
+                    {activeEmail && <span className="text-xs text-muted-foreground">{activeEmail}</span>}
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link to="/my-stores" className="flex items-center">

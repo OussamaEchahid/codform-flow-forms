@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import SettingsLayout from '@/components/layout/SettingsLayout';
+import AppSidebar from '@/components/layout/AppSidebar';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Trash2, Package, FileText, Settings, Eye, AlertCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useI18n } from '@/lib/i18n';
 import { useAuth } from '@/components/layout/AuthProvider';
 import { supabase } from '@/integrations/supabase/client';
@@ -94,6 +95,15 @@ const QuantityOffers = () => {
   // Use the same store detection logic as other pages
   const storeFromStorage = localStorage.getItem('current_shopify_store');
   const effectiveStore = currentStore || activeStore || storeFromStorage;
+  
+  console.log('🔍 QuantityOffers - Store state:', {
+    currentStore,
+    activeStore,
+    storeFromStorage,
+    effectiveStore,
+    isShopifyAuthenticated,
+    isConnected
+  });
   const [currentStep, setCurrentStep] = useState<'form' | 'product' | 'settings'>('form');
   const [forms, setForms] = useState<Form[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -518,9 +528,33 @@ const QuantityOffers = () => {
     }
   };
 
+  // Check if user has access based on store connection
+  if (!effectiveStore) {
+    return (
+      <div className="flex min-h-screen bg-[#F8F9FB]">
+        <AppSidebar />
+        <div className="flex-1 flex items-center justify-center">
+          <Card className="max-w-md w-full mx-4">
+            <CardContent className="p-6 text-center">
+              <Package className="mx-auto h-12 w-12 mb-4 text-muted-foreground" />
+              <h2 className="text-xl font-bold mb-2">يجب ربط متجر Shopify</h2>
+              <p className="text-muted-foreground mb-4">
+                للوصول إلى العروض الكمية، يجب ربط متجر Shopify أولاً
+              </p>
+              <Button asChild>
+                <Link to="/my-stores">إدارة المتاجر</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <SettingsLayout>
-      <div className="p-6">
+    <div className="flex min-h-screen bg-[#F8F9FB]">
+      <AppSidebar />
+      <div className="flex-1 p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold">{t('quantityOffers')}</h1>
@@ -1012,7 +1046,7 @@ const QuantityOffers = () => {
           </div>
         )}
       </div>
-    </SettingsLayout>
+    </div>
   );
 };
 
