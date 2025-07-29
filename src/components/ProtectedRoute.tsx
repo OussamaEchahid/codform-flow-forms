@@ -5,14 +5,14 @@ import { Loader2 } from 'lucide-react';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requireAuth?: boolean; // إضافة خيار لتطبيق المصادقة الصارمة
+  requireAuth?: boolean;
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
   children, 
   requireAuth = true 
 }) => {
-  const { user, loading, shopifyConnected, shop, session } = useAuth();
+  const { user, loading } = useAuth();
 
   // عرض شاشة التحميل أثناء فحص المصادقة
   if (loading) {
@@ -26,32 +26,27 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     );
   }
 
-  // فرض المصادقة الصارمة
-  if (requireAuth) {
-    // التحقق من صحة الجلسة
-    if (!session || !user) {
-      return <Navigate to="/auth" replace />;
+  // التحقق من المصادقة بطريقة مبسطة
+  if (requireAuth && !user) {
+    // فحص إذا كان هناك معاملات Shopify في URL للتوجيه للربط التلقائي
+    const urlParams = new URLSearchParams(window.location.search);
+    const shopParam = urlParams.get('shop');
+    const autoConnect = urlParams.get('auto_connect');
+    
+    console.log('🔐 ProtectedRoute - No user found, checking for Shopify params:', {
+      shop: shopParam,
+      auto_connect: autoConnect,
+      currentPath: window.location.pathname
+    });
+    
+    // إذا كان هناك معاملات Shopify ولسنا في صفحة الربط التلقائي، وجه للربط التلقائي
+    if ((shopParam || autoConnect) && !window.location.pathname.includes('/shopify-auto-connect')) {
+      console.log('🔗 Redirecting to shopify-auto-connect');
+      return <Navigate to={`/shopify-auto-connect${window.location.search}`} replace />;
     }
-
-    // التحقق من انتهاء الجلسة (24 ساعة من آخر تفاعل)
-    if (session.expires_at) {
-      const expiresAt = new Date(session.expires_at * 1000);
-      const now = new Date();
-      
-      if (now > expiresAt) {
-        // انتهت صلاحية الجلسة
-        return <Navigate to="/auth?expired=true" replace />;
-      }
-    }
-  }
-
-  // في حالة وجود متجر Shopify متصل بدون مستخدم مصادق
-  if (shop && shopifyConnected && !user && requireAuth) {
-    return <Navigate to="/shopify-auto-connect" replace />;
-  }
-
-  // في حالة عدم وجود مصادقة أو متجر
-  if (!user && !shop && requireAuth) {
+    
+    // في جميع الحالات الأخرى، وجه لصفحة المصادقة
+    console.log('🔐 Redirecting to auth page');
     return <Navigate to="/auth" replace />;
   }
 
