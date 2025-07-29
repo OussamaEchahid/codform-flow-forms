@@ -1,0 +1,323 @@
+// وحدة إدارة المتاجر الموحدة - الحل الشامل لجميع مشاكل التبديل
+// يحل محل جميع أنظمة إدارة المتاجر المتضاربة
+
+export class UnifiedStoreManager {
+  // مفتاح واحد أساسي لجميع العمليات
+  private static readonly STORE_KEY = 'active_shopify_store';
+  
+  // المفاتيح القديمة التي يجب تنظيفها
+  private static readonly LEGACY_KEYS = [
+    'current_shopify_store',
+    'shopify_store', 
+    'shopify_active_store',
+    'simple_active_store',
+    'shopify_temp_store',
+    'activeShopId'
+  ];
+
+  // حالة الكاش للأداء
+  private static cache: {
+    store: string | null;
+    timestamp: number;
+  } = { store: null, timestamp: 0 };
+
+  private static readonly CACHE_DURATION = 30000; // 30 ثانية
+
+  /**
+   * الحصول على المتجر النشط
+   */
+  static getActiveStore(): string | null {
+    try {
+      const now = Date.now();
+      
+      // فحص الكاش أولاً
+      if (this.cache.store && (now - this.cache.timestamp) < this.CACHE_DURATION) {
+        // تحقق إضافي من التطابق
+        const currentStore = localStorage.getItem(this.STORE_KEY);
+        if (currentStore === this.cache.store) {
+          console.log('📋 Retrieved store from cache:', this.cache.store);
+          return this.cache.store;
+        }
+        // إذا لم يتطابق، امسح الكاش
+        this.invalidateCache();
+      }
+
+      // فحص المفتاح الأساسي
+      const primaryStore = localStorage.getItem(this.STORE_KEY);
+      if (primaryStore && primaryStore.trim()) {
+        const cleanStore = primaryStore.trim();
+        this.updateCache(cleanStore);
+        this.cleanupLegacyKeys();
+        console.log('✅ Found active store:', cleanStore);
+        return cleanStore;
+      }
+
+      // فحص المفاتيح القديمة والترقية
+      for (const key of this.LEGACY_KEYS) {
+        const store = localStorage.getItem(key);
+        if (store && store.trim()) {
+          const cleanStore = store.trim();
+          console.log(`🔄 Migrating store from "${key}" to unified system:`, cleanStore);
+          this.setActiveStore(cleanStore);
+          return cleanStore;
+        }
+      }
+
+      console.log('⚠️ No active store found');
+      return null;
+    } catch (error) {
+      console.error('❌ Error getting active store:', error);
+      return null;
+    }
+  }
+
+  /**
+   * تعيين المتجر النشط
+   */
+  static setActiveStore(store: string): boolean {
+    try {
+      if (!store || !store.trim()) {
+        console.warn('⚠️ Cannot set empty store');
+        return false;
+      }
+
+      const cleanStore = store.trim();
+      
+      // التحقق من صحة تنسيق المتجر
+      if (!this.isValidStoreFormat(cleanStore)) {
+        console.error('❌ Invalid store format:', cleanStore);
+        return false;
+      }
+
+      console.log('🔄 Setting active store:', cleanStore);
+
+      // تنظيف شامل أولاً
+      this.performFullCleanup();
+
+      // تعيين المتجر الجديد
+      localStorage.setItem(this.STORE_KEY, cleanStore);
+      localStorage.setItem('shopify_connected', 'true');
+      localStorage.setItem('shopify_connection_status', 'connected');
+      localStorage.setItem('shopify_connection_timestamp', Date.now().toString());
+
+      // تحديث الكاش
+      this.updateCache(cleanStore);
+
+      // إطلاق الأحداث
+      this.emitStoreChangeEvents(cleanStore);
+
+      console.log('✅ Store set successfully:', cleanStore);
+      return true;
+    } catch (error) {
+      console.error('❌ Error setting active store:', error);
+      return false;
+    }
+  }
+
+  /**
+   * مسح المتجر النشط
+   */
+  static clearActiveStore(): boolean {
+    try {
+      console.log('🧹 Clearing active store...');
+      
+      this.performFullCleanup();
+      this.invalidateCache();
+      this.emitStoreChangeEvents(null);
+      
+      console.log('✅ Store cleared successfully');
+      return true;
+    } catch (error) {
+      console.error('❌ Error clearing active store:', error);
+      return false;
+    }
+  }
+
+  /**
+   * التحقق من حالة الاتصال
+   */
+  static isConnected(): boolean {
+    const store = this.getActiveStore();
+    const connected = localStorage.getItem('shopify_connected') === 'true';
+    return !!(store && connected);
+  }
+
+  /**
+   * التحقق من صحة تنسيق المتجر
+   */
+  static isValidStoreFormat(store: string): boolean {
+    if (!store || !store.trim()) return false;
+    const shopifyPattern = /^[a-zA-Z0-9\-]+\.myshopify\.com$/;
+    return shopifyPattern.test(store.trim());
+  }
+
+  /**
+   * تبديل المتجر مع إعادة تحميل الصفحة
+   */
+  static switchStore(store: string, reload = true): boolean {
+    const success = this.setActiveStore(store);
+    if (success && reload) {
+      setTimeout(() => {
+        window.location.href = '/dashboard';
+      }, 500);
+    }
+    return success;
+  }
+
+  /**
+   * تنظيف شامل لجميع البيانات
+   */
+  private static performFullCleanup(): void {
+    try {
+      // مسح المفتاح الأساسي
+      localStorage.removeItem(this.STORE_KEY);
+      
+      // مسح جميع المفاتيح القديمة
+      this.LEGACY_KEYS.forEach(key => {
+        localStorage.removeItem(key);
+      });
+
+      // مسح بيانات الاتصال
+      localStorage.removeItem('shopify_connected');
+      localStorage.removeItem('shopify_connection_status');
+      localStorage.removeItem('shopify_connection_timestamp');
+      localStorage.removeItem('shopify_connecting');
+      localStorage.removeItem('shopify_connection_success');
+      
+      // مسح بيانات الأخطاء
+      localStorage.removeItem('shopify_last_error');
+      localStorage.removeItem('shopify_recovery_attempt');
+      localStorage.removeItem('shopify_failsafe');
+      localStorage.removeItem('shopify_token_error');
+
+      console.log('🧹 Full cleanup completed');
+    } catch (error) {
+      console.error('❌ Error during full cleanup:', error);
+    }
+  }
+
+  /**
+   * تنظيف المفاتيح القديمة فقط
+   */
+  private static cleanupLegacyKeys(): void {
+    try {
+      this.LEGACY_KEYS.forEach(key => {
+        localStorage.removeItem(key);
+      });
+    } catch (error) {
+      console.error('❌ Error cleaning legacy keys:', error);
+    }
+  }
+
+  /**
+   * تحديث الكاش
+   */
+  private static updateCache(store: string | null): void {
+    this.cache = {
+      store,
+      timestamp: Date.now()
+    };
+  }
+
+  /**
+   * مسح الكاش
+   */
+  private static invalidateCache(): void {
+    this.cache = { store: null, timestamp: 0 };
+  }
+
+  /**
+   * إطلاق أحداث تغيير المتجر
+   */
+  private static emitStoreChangeEvents(store: string | null): void {
+    try {
+      // حدث عام لتغيير المتجر
+      window.dispatchEvent(new CustomEvent('storeChanged', {
+        detail: { store, timestamp: Date.now() }
+      }));
+
+      // حدث خاص بـ Shopify
+      window.dispatchEvent(new CustomEvent('shopifyStoreChanged', {
+        detail: { activeStore: store, timestamp: Date.now() }
+      }));
+
+      // حدث للنظام الموحد
+      window.dispatchEvent(new CustomEvent('unifiedStoreChanged', {
+        detail: { store, timestamp: Date.now() }
+      }));
+    } catch (error) {
+      console.error('❌ Error emitting store change events:', error);
+    }
+  }
+
+  /**
+   * مراقبة تغييرات المتجر
+   */
+  static onStoreChange(callback: (store: string | null) => void): () => void {
+    const handler = (event: CustomEvent) => {
+      callback(event.detail.store);
+    };
+
+    window.addEventListener('unifiedStoreChanged', handler as EventListener);
+    
+    return () => {
+      window.removeEventListener('unifiedStoreChanged', handler as EventListener);
+    };
+  }
+
+  /**
+   * الحصول على معلومات التشخيص
+   */
+  static getDiagnosticInfo(): any {
+    return {
+      activeStore: this.getActiveStore(),
+      isConnected: this.isConnected(),
+      cache: this.cache,
+      localStorage: {
+        [this.STORE_KEY]: localStorage.getItem(this.STORE_KEY),
+        shopify_connected: localStorage.getItem('shopify_connected'),
+        shopify_connection_status: localStorage.getItem('shopify_connection_status')
+      },
+      legacyKeys: this.LEGACY_KEYS.reduce((acc, key) => {
+        acc[key] = localStorage.getItem(key);
+        return acc;
+      }, {} as any)
+    };
+  }
+
+  /**
+   * تنظيف عام وإصلاح شامل
+   */
+  static performMaintenance(): void {
+    console.log('🔧 Performing system maintenance...');
+    
+    // جمع المعلومات الحالية
+    const currentStore = this.getActiveStore();
+    
+    // تنظيف شامل
+    this.performFullCleanup();
+    this.invalidateCache();
+    
+    // إعادة تعيين المتجر إذا كان موجوداً
+    if (currentStore && this.isValidStoreFormat(currentStore)) {
+      this.setActiveStore(currentStore);
+    }
+    
+    console.log('✅ System maintenance completed');
+  }
+}
+
+// تصدير مبسط للاستخدام السريع
+export const {
+  getActiveStore,
+  setActiveStore,
+  clearActiveStore,
+  isConnected,
+  switchStore,
+  onStoreChange,
+  getDiagnosticInfo,
+  performMaintenance
+} = UnifiedStoreManager;
+
+// تصدير الكلاس الكامل
+export default UnifiedStoreManager;

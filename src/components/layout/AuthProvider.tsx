@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { StoreManager } from '@/utils/store-manager';
+import UnifiedStoreManager from '@/utils/unified-store-manager';
 
 interface AuthContextType {
   user: User | null;
@@ -43,22 +43,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
   
-  // الحالة الأساسية - تعتمد على StoreManager
-  const [activeStore, setActiveStore] = useState<string | null>(() => StoreManager.getActiveStore());
+  // الحالة الأساسية - تعتمد على UnifiedStoreManager
+  const [activeStore, setActiveStore] = useState<string | null>(() => UnifiedStoreManager.getActiveStore());
   const [shopifyUserEmail, setShopifyUserEmail] = useState<string | null>(() => getEmailFromLocalStorage());
   const [shops, setShops] = useState<string[] | null>(() => {
-    const store = StoreManager.getActiveStore();
+    const store = UnifiedStoreManager.getActiveStore();
     return store ? [store] : null;
   });
   
-  // مراقبة تغييرات المتجر باستخدام StoreManager
+  // مراقبة تغييرات المتجر باستخدام UnifiedStoreManager
   useEffect(() => {
     const updateFromStorage = () => {
-      const currentStore = StoreManager.getActiveStore();
+      const currentStore = UnifiedStoreManager.getActiveStore();
       const currentEmail = getEmailFromLocalStorage();
       
       if (currentStore !== activeStore) {
-        console.log('📱 AuthProvider - Store updated via StoreManager:', currentStore);
+        console.log('📱 AuthProvider - Store updated via UnifiedStoreManager:', currentStore);
         setActiveStore(currentStore);
         setShops(currentStore ? [currentStore] : null);
       }
@@ -73,8 +73,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     updateFromStorage();
     
     // مراقبة تغييرات المتجر
-    const unsubscribe = StoreManager.onStoreChange((store) => {
-      console.log('📱 AuthProvider - Store changed via StoreManager:', store);
+    const unsubscribe = UnifiedStoreManager.onStoreChange((store) => {
+      console.log('📱 AuthProvider - Store changed via UnifiedStoreManager:', store);
       setActiveStore(store);
       setShops(store ? [store] : null);
     });
@@ -145,8 +145,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
-    // Clear all Shopify data using StoreManager
-    StoreManager.cleanup();
+    // Clear all Shopify data using UnifiedStoreManager
+    UnifiedStoreManager.clearActiveStore();
     localStorage.removeItem('shopify_user_email');
     localStorage.removeItem('shopify_connected');
     
@@ -162,10 +162,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const setShop = (shop: string) => {
-    StoreManager.setActiveStore(shop);
-    setActiveStore(shop);
-    setShops([shop]);
-    console.log('🏪 Shop set to:', shop);
+    const success = UnifiedStoreManager.setActiveStore(shop);
+    if (success) {
+      setActiveStore(shop);
+      setShops([shop]);
+    }
+    console.log('🏪 Shop set to:', shop, 'Success:', success);
   };
 
   // تحديد حالة المصادقة عبر Shopify - إذا كان هناك متجر نشط فالمستخدم مصادق عليه
