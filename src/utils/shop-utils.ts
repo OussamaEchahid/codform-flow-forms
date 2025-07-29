@@ -4,15 +4,24 @@
  * تتبع ترتيب أولوية واضح مع التحقق من صحة المتاجر
  */
 export const getActiveShopId = (): string | null => {
+  console.log('🔍 getActiveShopId: بدء البحث عن المتجر النشط...');
+  
   // الترتيب الموحد للبحث عن shop_id - إضافة جميع المفاتيح المحتملة
   const shopIdKeys = [
     'simple_active_store', 
     'shopify_store', 
     'active_shop',
-    'current_shopify_store',  // إضافة هذا المفتاح المفقود
+    'current_shopify_store',
     'shopify_shop_domain',
     'selected_store'
   ];
+  
+  // طباعة جميع القيم المحفوظة أولاً
+  console.log('🔍 جميع القيم في localStorage:');
+  shopIdKeys.forEach(key => {
+    const value = localStorage.getItem(key);
+    console.log(`  ${key}: ${value}`);
+  });
   
   // تجميع جميع القيم للمقارنة
   const allValues = [];
@@ -21,12 +30,15 @@ export const getActiveShopId = (): string | null => {
     if (value && value.trim()) {
       const trimmedValue = value.trim();
       allValues.push({ key, value: trimmedValue });
-      console.log(`📋 Retrieved store from cache: ${trimmedValue}`);
+      console.log(`📋 Retrieved store from cache: ${trimmedValue} (from ${key})`);
     }
   }
   
+  console.log(`🔍 عدد القيم الموجودة: ${allValues.length}`);
+  
   // البحث عن أول متجر صحيح
   for (const item of allValues) {
+    console.log(`🔍 التحقق من صحة المتجر: ${item.value}`);
     if (validateShopId(item.value)) {
       console.log(`✅ Found active store: ${item.value}`);
       
