@@ -37,6 +37,11 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
   const [selectedLanguage, setSelectedLanguage] = useState<SupportedLanguage>('ar');
   const [isCreating, setIsCreating] = useState(false);
   
+  // Debug: Add console log for dialog state
+  useEffect(() => {
+    console.log('🎯 NewFormProductDialog state changed - open:', open);
+  }, [open]);
+  
   // Reset selections when dialog opens
   useEffect(() => {
     if (open) {
