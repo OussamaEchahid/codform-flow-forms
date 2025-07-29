@@ -68,11 +68,6 @@ const SimpleStoreManager = () => {
       }
 
       const data = await response.json();
-
-      if (error) {
-        throw error;
-      }
-
       setStores(data || []);
       
     } catch (err: any) {
