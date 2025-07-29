@@ -251,7 +251,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     activeStore: null as string | null
   });
 
-  // مراقبة تغييرات localStorage وإصلاح حالة المتجر
+  // مراقبة تغييرات localStorage وإصلاح حالة المتجر (بدون فحص دوري)
   useEffect(() => {
     const checkShopifyConnection = () => {
       // إذا لم تكن هناك متاجر، اقطع الاتصال
@@ -279,16 +279,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         connected: isConnected && !!activeStore,
         activeStore
       });
-
-      console.log('🔍 حالة الاتصال:', { activeStore, connected: isConnected, shopsCount: shops.length });
     };
 
     checkShopifyConnection();
-    
-    // فحص دوري كل ثانية
-    const interval = setInterval(checkShopifyConnection, 1000);
-    
-    return () => clearInterval(interval);
   }, [shops]);
   
   const shopifyConnected = shopifyState.connected;

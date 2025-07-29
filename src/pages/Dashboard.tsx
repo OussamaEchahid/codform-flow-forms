@@ -132,44 +132,36 @@ const Dashboard = () => {
           </div>
 
           {/* حالة الاتصال بالمتجر */}
-          <div className="mb-6">
-            {stats.activeStore ? (
-              <Alert className="border-green-200 bg-green-50">
-                <CheckCircle className="h-4 w-4 text-green-600" />
-                <AlertDescription className="text-green-800">
-                  <strong>متصل بالمتجر:</strong> {stats.activeStore}
-                </AlertDescription>
-              </Alert>
-            ) : (
-              <Alert className="border-red-200 bg-red-50">
-                <AlertCircle className="h-4 w-4 text-red-600" />
-                <AlertDescription className="text-red-800">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <strong>جلسة منتهية الصلاحية.</strong> يرجى تسجيل الدخول مرة أخرى.
-                    </div>
-                    <div className="flex gap-2">
+          {user && (
+            <div className="mb-6">
+              {stats.activeStore ? (
+                <Alert className="border-green-200 bg-green-50">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <AlertDescription className="text-green-800">
+                    <strong>متصل بالمتجر:</strong> {stats.activeStore}
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <Alert className="border-orange-200 bg-orange-50">
+                  <AlertCircle className="h-4 w-4 text-orange-600" />
+                  <AlertDescription className="text-orange-800">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <strong>لا يوجد متجر نشط.</strong> يرجى ربط متجر Shopify أولاً.
+                      </div>
                       <Button 
                         size="sm" 
-                        variant="outline"
-                        onClick={() => cleanupAuthState()}
-                        className="border-red-300 text-red-700 hover:bg-red-100"
+                        onClick={() => navigate('/my-stores')}
+                        className="bg-orange-600 hover:bg-orange-700"
                       >
-                        تنظيف البيانات
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        onClick={() => forceSignOut(supabase)}
-                        className="bg-red-600 hover:bg-red-700"
-                      >
-                        تسجيل دخول جديد
+                        ربط متجر
                       </Button>
                     </div>
-                  </div>
-                </AlertDescription>
-              </Alert>
-            )}
-          </div>
+                  </AlertDescription>
+                </Alert>
+              )}
+            </div>
+          )}
 
           {/* إحصائيات سريعة */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">

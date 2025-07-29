@@ -61,21 +61,17 @@ class SimpleShopifyConnectionManager {
         const stored = localStorage.getItem(key);
         if (stored && stored !== 'null' && stored !== 'codmagnet.com' && stored.trim() !== '') {
           activeStore = stored;
-          console.log(`🔍 وجد متجر نشط في ${key}: ${stored}`);
           break;
         }
       }
       
-      // إذا وجدنا متجر، تأكد من مزامنة جميع المفاتيح
+      // إذا وجدنا متجر، تأكد من مزامنة جميع المفاتيح (بدون تسجيل متكرر)
       if (activeStore) {
-        console.log(`✅ تم العثور على متجر نشط: ${activeStore}`);
         // مزامنة جميع مفاتيح المتجر النشط
         localStorage.setItem(this.ACTIVE_STORE_KEY, activeStore);
         localStorage.setItem('shopify_store', activeStore);
         localStorage.setItem('active_shop', activeStore);
         localStorage.setItem('shopify_connected', 'true');
-      } else {
-        console.log('❌ لم يتم العثور على متجر نشط');
       }
       
       return activeStore;
