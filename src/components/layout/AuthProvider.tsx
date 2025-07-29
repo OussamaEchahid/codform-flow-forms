@@ -215,12 +215,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // التحقق من حالة اتصال Shopify
-  const activeStore = simpleShopifyConnectionManager.getActiveStore();
-  const isShopifyConnected = simpleShopifyConnectionManager.isConnected();
+  // التحقق من حالة اتصال Shopify بطريقة أكثر دقة
+  const [shopifyState, setShopifyState] = useState({
+    connected: false,
+    activeStore: null as string | null
+  });
+
+  // مراقبة تغييرات localStorage
+  useEffect(() => {
+    const checkShopifyConnection = () => {
+      const activeStore = simpleShopifyConnectionManager.getActiveStore();
+      const isConnected = simpleShopifyConnectionManager.isConnected();
+      
+      console.log('🔍 فحص حالة اتصال Shopify:', { activeStore, isConnected });
+      
+      setShopifyState({
+        connected: isConnected && !!activeStore,
+        activeStore
+      });
+    };
+
+    // فحص فوري
+    checkShopifyConnection();
+    
+    // فحص دوري كل ثانية للتأكد من التزامن
+    const interval = setInterval(checkShopifyConnection, 1000);
+    
+    // مراقبة تغييرات localStorage
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key && (e.key.includes('shopify') || e.key.includes('active'))) {
+        console.log('📦 تغيير في localStorage:', e.key, e.newValue);
+        setTimeout(checkShopifyConnection, 100);
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
   
-  const shopifyConnected = isShopifyConnected && !!activeStore;
-  const shop = activeStore;
+  const shopifyConnected = shopifyState.connected;
+  const shop = shopifyState.activeStore;
 
   const value = {
     user,

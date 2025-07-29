@@ -32,7 +32,7 @@ interface DashboardStats {
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, shopifyConnected, shop } = useAuth();
   const { t, language } = useI18n();
   const [stats, setStats] = useState<DashboardStats>({
     totalForms: 0,
@@ -135,11 +135,11 @@ const Dashboard = () => {
 
           {/* حالة الاتصال بالمتجر */}
           <div className="mb-6">
-            {stats.activeStore ? (
+            {shopifyConnected && shop ? (
               <Alert className="border-green-200 bg-green-50">
                 <CheckCircle className="h-4 w-4 text-green-600" />
                 <AlertDescription className="text-green-800">
-                  <strong>متصل بالمتجر:</strong> {stats.activeStore}
+                  <strong>متصل بالمتجر:</strong> {shop}
                 </AlertDescription>
               </Alert>
             ) : (
