@@ -90,8 +90,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(session);
         setUser(session?.user ?? null);
         
-        if (event === 'SIGNED_IN' && session?.user) {
-          // خطوة 1: تحقق من وجود متجر في URL (القدوم من Shopify)
+        if (session?.user) {
+          // تحقق فوري من localStorage عند أي تسجيل دخول
+          const cachedStore = localStorage.getItem('current_shopify_store');
+          console.log('🔍 Checking localStorage for store:', cachedStore);
+          
+          if (cachedStore) {
+            console.log('🏪 Found cached store, setting as active:', cachedStore);
+            setActiveStore(cachedStore);
+            setShops([cachedStore]);
+            
+            // تأكد من ربط المتجر بالمستخدم في قاعدة البيانات
+            await linkStoreToUser(cachedStore, session.user.id);
+          }
+          
+          // تحقق من وجود متجر في URL (القدوم من Shopify)
           const shopFromUrl = getShopFromUrl();
           if (shopFromUrl) {
             console.log('🏪 Shop detected from URL:', shopFromUrl);
@@ -106,18 +119,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             localStorage.setItem('shopify_connected', 'true');
             
             console.log('✅ Store connection established from URL:', shopFromUrl);
-          } else {
-            // خطوة 2: تحقق من localStorage
-            const cachedStore = localStorage.getItem('current_shopify_store');
-            if (cachedStore) {
-              console.log('🏪 Using cached store:', cachedStore);
-              setActiveStore(cachedStore);
-              setShops([cachedStore]);
-            }
+          }
+          
+          // جلب جميع المتاجر من قاعدة البيانات
+          const userStores = await fetchUserStores(session.user.id);
+          if (userStores.length > 0) {
+            setShops(userStores);
             
-            // خطوة 3: جلب جميع المتاجر من قاعدة البيانات
-            const userStores = await fetchUserStores(session.user.id);
-            if (userStores.length > 0 && !cachedStore) {
+            // إذا لم يكن هناك متجر نشط محفوظ، استخدم الأول من القاعدة
+            if (!cachedStore && !shopFromUrl) {
               const firstStore = userStores[0];
               setActiveStore(firstStore);
               localStorage.setItem('current_shopify_store', firstStore);
@@ -148,21 +158,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setSession(session);
           setUser(session.user);
           
-          // تحقق من وجود متجر محفوظ
+          // تحقق فوري من localStorage
           const cachedStore = localStorage.getItem('current_shopify_store');
+          console.log('🔍 Initial session - cached store:', cachedStore);
+          
           if (cachedStore) {
+            console.log('🏪 Setting active store from cache:', cachedStore);
             setActiveStore(cachedStore);
             setShops([cachedStore]);
-          } else {
-            // جلب المتاجر من قاعدة البيانات
-            const userStores = await fetchUserStores(session.user.id);
-            if (userStores.length > 0) {
+            
+            // تأكد من ربط المتجر بالمستخدم في قاعدة البيانات
+            await linkStoreToUser(cachedStore, session.user.id);
+          }
+          
+          // جلب المتاجر من قاعدة البيانات
+          const userStores = await fetchUserStores(session.user.id);
+          if (userStores.length > 0) {
+            setShops(userStores);
+            
+            // إذا لم يكن هناك متجر نشط محفوظ، استخدم الأول
+            if (!cachedStore) {
               const firstStore = userStores[0];
               setActiveStore(firstStore);
               localStorage.setItem('current_shopify_store', firstStore);
               localStorage.setItem('shopify_connected', 'true');
+              console.log('✅ Setting first store from database:', firstStore);
             }
           }
+        } else if (!session?.user) {
+          // إذا لم يكن هناك مستخدم مسجل دخول
+          setActiveStore(null);
+          setShops(null);
         }
         
         setLoading(false);
