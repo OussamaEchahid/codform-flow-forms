@@ -30,7 +30,7 @@ interface DashboardStats {
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { user, shops, shop, shopifyConnected } = useAuth();
+  const { user, shops, shop, shopifyConnected, isShopifyAuthenticated } = useAuth();
   const { language } = useI18n();
   
   // إظهار حالة الاتصال بوضوح
@@ -39,6 +39,7 @@ const Dashboard = () => {
     shops,
     shop,
     shopifyConnected,
+    isShopifyAuthenticated,
     localStorage: localStorage.getItem('current_shopify_store')
   });
   
@@ -51,15 +52,20 @@ const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (user) {
+    // تحميل البيانات إذا كان المستخدم مصادق عليه (تقليدي أو Shopify)
+    if (user || isShopifyAuthenticated) {
       loadDashboardData();
     } else {
       setIsLoading(false);
     }
-  }, [user?.id]); // Only depend on user ID
+  }, [user?.id, isShopifyAuthenticated]); // Depend on both auth types
 
   const loadDashboardData = async () => {
-    if (!user?.id) {
+    // في حالة Shopify authentication، استخدم activeStore كـ user identifier
+    const activeStore = localStorage.getItem('current_shopify_store');
+    const userIdentifier = user?.id || activeStore;
+    
+    if (!userIdentifier) {
       setIsLoading(false);
       return;
     }
@@ -72,7 +78,7 @@ const Dashboard = () => {
       let formsQuery = supabase
         .from('forms')
         .select('id')
-        .eq('user_id', user.id);
+        .eq('user_id', userIdentifier);
       
       // إذا كان هناك متجر نشط، فلتر النماذج حسب المتجر
       if (shop) {
@@ -167,7 +173,7 @@ const Dashboard = () => {
           </div>
 
           {/* حالة الاتصال بالمتجر - إظهار واضح */}
-          {user && (
+          {(user || isShopifyAuthenticated) && (
             <div className="mb-6">
               {/* التحقق من localStorage مباشرة للتأكد */}
               {(() => {

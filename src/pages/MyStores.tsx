@@ -36,15 +36,16 @@ const MyStores = () => {
   const [stores, setStores] = useState<Store[]>([]);
   const [loading, setLoading] = useState(true);
   const [connectingStore, setConnectingStore] = useState<string | null>(null);
-  const { user, session } = useAuth();
+  const { user, session, isShopifyAuthenticated } = useAuth();
 
   useEffect(() => {
-    if (user && session) {
+    // أولوية للـ Shopify authentication، ثم للـ traditional authentication
+    if (isShopifyAuthenticated || (user && session)) {
       fetchUserStores();
     } else {
       setLoading(false);
     }
-  }, [user, session]);
+  }, [user, session, isShopifyAuthenticated]);
 
   const fetchUserStores = async () => {
     try {
