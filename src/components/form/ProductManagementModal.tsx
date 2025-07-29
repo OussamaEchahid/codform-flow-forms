@@ -51,38 +51,37 @@ const ProductManagementModal: React.FC<ProductManagementModalProps> = ({
       const shopId = cleanShopId(rawShopId);
       console.log(`🔍 جلب المنتجات للمتجر: ${shopId}`);
 
-      // Fetch all products from Shopify
-      const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-products`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M`
-        },
-        body: JSON.stringify({
+      // Fetch all products from Shopify using the correct function
+      const { data, error: productsError } = await supabase.functions.invoke('shopify-products-fixed', {
+        body: { 
           shop: shopId
-        })
+        }
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.products) {
-          const transformedProducts: ShopifyProduct[] = data.products.map((product: any) => {
-            const getImageUrl = (imageData: any): string => {
-              if (typeof imageData === 'string') return imageData;
-              if (imageData && typeof imageData === 'object' && imageData.src) return imageData.src;
-              return '/placeholder.svg';
-            };
+      if (productsError) {
+        console.error('❌ خطأ في جلب المنتجات:', productsError);
+        toast.error('فشل في تحميل المنتجات من Shopify');
+      } else if (data?.success && data?.products) {
+        const transformedProducts: ShopifyProduct[] = data.products.map((product: any) => {
+          const getImageUrl = (imageData: any): string => {
+            if (typeof imageData === 'string') return imageData;
+            if (imageData && typeof imageData === 'object' && imageData.src) return imageData.src;
+            return '/placeholder.svg';
+          };
 
-            return {
-              id: String(product.id).replace('gid://shopify/Product/', ''),
-              title: product.title || `منتج ${product.id}`,
-              handle: product.handle || '',
-              image: getImageUrl(product.featuredImage) || getImageUrl(product.image) || '/placeholder.svg',
-              status: 'active' as const
-            };
-          });
-          setProducts(transformedProducts);
-        }
+          return {
+            id: String(product.id).replace('gid://shopify/Product/', ''),
+            title: product.title || `منتج ${product.id}`,
+            handle: product.handle || '',
+            image: getImageUrl(product.featuredImage) || getImageUrl(product.image) || '/placeholder.svg',
+            status: 'active' as const
+          };
+        });
+        setProducts(transformedProducts);
+        console.log('✅ تم تحميل المنتجات بنجاح:', transformedProducts.length);
+      } else {
+        console.log('⚠️ لم يتم العثور على منتجات في المتجر');
+        setProducts([]);
       }
 
       // Fetch linked products for this form AND shop
