@@ -353,6 +353,8 @@ const QuantityOffersManager: React.FC = () => {
       console.log('💾 Saving quantity offer:', offerData);
       
       if (isCreating) {
+        const { data: { user } } = await supabase.auth.getUser();
+        
         const { error } = await supabase
           .from('quantity_offers')
           .insert({
@@ -363,7 +365,8 @@ const QuantityOffersManager: React.FC = () => {
             styling: offerData.styling,
             position: offerData.position,
             enabled: offerData.enabled,
-            custom_selector: offerData.custom_selector
+            custom_selector: offerData.custom_selector,
+            user_id: user?.id  // Add user_id to satisfy RLS policy
           });
           
         if (error) {
