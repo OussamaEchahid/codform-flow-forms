@@ -29,7 +29,7 @@ interface DashboardStats {
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { user, shops, shop } = useAuth();
+  const { user, shops, shop, shopifyConnected } = useAuth();
   const { language } = useI18n();
   const [stats, setStats] = useState<DashboardStats>({
     totalForms: 0,
@@ -49,13 +49,14 @@ const Dashboard = () => {
 
   const loadDashboardData = async () => {
     console.log('🔄 بدء تحميل بيانات لوحة التحكم للمستخدم:', user?.id);
+    console.log('📋 المتاجر من AuthProvider:', shops);
+    console.log('🎯 المتجر النشط من AuthProvider:', shop);
+    console.log('✅ حالة الاتصال بـ Shopify:', shopifyConnected);
     
-    // استخدام البيانات من AuthProvider مباشرة
-    const authStores = shops || [];
-    const authActiveStore = shop;
-    
-    console.log('📋 المتاجر من AuthProvider:', authStores);
-    console.log('🎯 المتجر النشط من AuthProvider:', authActiveStore);
+    if (!user?.id) {
+      console.log('❌ لا يوجد معرف مستخدم');
+      return;
+    }
     
     let formsCount = 0;
     let ordersCount = 0;
@@ -65,7 +66,9 @@ const Dashboard = () => {
       const { data: formsData, error: formsError } = await supabase
         .from('forms')
         .select('id')
-        .eq('user_id', user?.id);
+        .eq('user_id', user.id);
+      
+      console.log('📝 نتائج النماذج:', { formsData, formsError });
       
       if (!formsError && formsData) {
         formsCount = formsData.length;
@@ -75,7 +78,9 @@ const Dashboard = () => {
       const { data: ordersData, error: ordersError } = await supabase
         .from('form_submissions')
         .select('id')
-        .eq('user_id', user?.id);
+        .eq('user_id', user.id);
+      
+      console.log('📋 نتائج الطلبات:', { ordersData, ordersError });
       
       if (!ordersError && ordersData) {
         ordersCount = ordersData.length;
@@ -85,19 +90,22 @@ const Dashboard = () => {
       console.error('❌ خطأ في جلب البيانات:', error);
     }
     
+    const storesCount = shops?.length || 0;
+    
     // تحديث الإحصائيات
     setStats({
-      totalStores: authStores.length,
+      totalStores: storesCount,
       totalForms: formsCount,
       totalOrders: ordersCount,
-      activeStore: authActiveStore
+      activeStore: shop
     });
     
-    console.log('✅ إحصائيات لوحة التحكم:', {
-      stores: authStores.length,
+    console.log('✅ إحصائيات لوحة التحكم النهائية:', {
+      stores: storesCount,
       forms: formsCount,
       orders: ordersCount,
-      activeStore: authActiveStore
+      activeStore: shop,
+      shopifyConnected
     });
   };
 
