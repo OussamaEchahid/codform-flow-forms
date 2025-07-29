@@ -75,10 +75,13 @@ serve(async (req) => {
           );
         }
 
+        console.log('🔍 Looking for stores for user:', userId);
+
+        // البحث في المتاجر المرتبطة بالمستخدم أو المتاجر النشطة التي لها access_token
         const { data, error } = await supabase
           .from('shopify_stores')
-          .select('shop, is_active, updated_at, access_token')
-          .eq('user_id', userId)
+          .select('shop, is_active, updated_at, access_token, user_id')
+          .or(`user_id.eq.${userId},and(is_active.eq.true,access_token.neq.null,access_token.neq.'')`)
           .eq('is_active', true)
           .order('updated_at', { ascending: false });
 
@@ -88,6 +91,20 @@ serve(async (req) => {
             JSON.stringify({ success: false, error: error.message }),
             { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
+        }
+
+        console.log('📋 Found stores:', data?.length || 0);
+
+        // تحديث المتاجر غير المرتبطة لتكون مرتبطة بالمستخدم الحالي
+        if (data && data.length > 0) {
+          const unlinkedStores = data.filter(store => !store.user_id);
+          if (unlinkedStores.length > 0) {
+            console.log('🔗 Linking unlinked stores to user:', userId);
+            await supabase
+              .from('shopify_stores')
+              .update({ user_id: userId })
+              .in('shop', unlinkedStores.map(store => store.shop));
+          }
         }
 
         return new Response(

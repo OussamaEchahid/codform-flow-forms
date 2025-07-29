@@ -58,7 +58,7 @@ const Dashboard = () => {
       // الحصول على المتجر النشط
       const activeStore = simpleShopifyConnectionManager.getActiveStore();
 
-      // جلب المتاجر
+      // جلب المتاجر أولاً
       const storesResponse = await supabase.functions.invoke('store-link-manager', {
         body: {
           action: 'get_stores',
@@ -66,32 +66,51 @@ const Dashboard = () => {
         }
       });
 
-      // جلب النماذج
+      // إذا وجدت المتاجر، تأكد من وجود متجر نشط
+      const storesList = storesResponse.data?.stores || [];
+      console.log('📋 المتاجر المستلمة:', storesList);
+
+      // تأكد من وجود متجر نشط إذا كانت هناك متاجر متوفرة
+      if (storesList.length > 0 && !activeStore) {
+        const firstStore = storesList[0].shop;
+        console.log('🔄 تعيين المتجر النشط تلقائياً:', firstStore);
+        simpleShopifyConnectionManager.setActiveStore(firstStore);
+      }
+
+      // جلب النماذج - البحث في جميع النماذج المرتبطة بالمستخدم أو المتاجر
       const { data: forms, error: formsError } = await supabase
         .from('forms')
-        .select('id')
-        .eq('user_id', user?.id);
+        .select('id, user_id, shop_id')
+        .or(`user_id.eq.${user?.id},shop_id.in.(${storesList.map(s => `"${s.shop}"`).join(',')})`);
 
-      // جلب الطلبات من جدول form_submissions
-      const { data: orders, error: ordersError } = await supabase
+      if (formsError) {
+        console.error('❌ خطأ في جلب النماذج:', formsError);
+      }
+
+      // جلب الطلبات من form_submissions
+      const { data: submissions, error: submissionsError } = await supabase
         .from('form_submissions')
-        .select('id')
-        .eq('user_id', user?.id);
+        .select('id, form_id')
+        .in('form_id', (forms || []).map(f => f.id));
 
-      const storesList = storesResponse.data?.stores || [];
+      if (submissionsError) {
+        console.error('❌ خطأ في جلب الطلبات:', submissionsError);
+      }
+
+      const totalOrders = submissions?.length || 0;
 
       setStats({
         totalForms: forms?.length || 0,
-        totalOrders: orders?.length || 0,
+        totalOrders: totalOrders,
         totalStores: storesList.length,
-        activeStore
+        activeStore: simpleShopifyConnectionManager.getActiveStore()
       });
 
       console.log('📊 Dashboard stats loaded:', {
         forms: forms?.length || 0,
-        orders: orders?.length || 0,
+        orders: totalOrders,
         stores: storesList.length,
-        activeStore
+        activeStore: simpleShopifyConnectionManager.getActiveStore()
       });
 
     } catch (error) {
