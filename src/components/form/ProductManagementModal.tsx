@@ -42,14 +42,18 @@ const ProductManagementModal: React.FC<ProductManagementModalProps> = ({
   const fetchProductsAndLinks = async () => {
     setIsLoading(true);
     try {
+      console.log('🔍 ProductManagementModal: بدء جلب البيانات...');
       const rawShopId = getActiveShopId();
+      console.log('🔍 ProductManagementModal: rawShopId =', rawShopId);
+      
       if (!rawShopId) {
         toast.error('لم يتم العثور على معرف المتجر');
-        console.error('❌ No shop ID found');
+        console.error('❌ ProductManagementModal: No shop ID found');
         return;
       }
       
       const shopId = cleanShopId(rawShopId);
+      console.log('🔍 ProductManagementModal: shopId after cleaning =', shopId);
       console.log(`🔍 جلب المنتجات للمتجر: ${shopId}`);
 
       // Fetch all products from Shopify using the correct function
