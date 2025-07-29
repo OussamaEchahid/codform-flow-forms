@@ -1,182 +1,202 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
-import AppSidebar from '@/components/layout/AppSidebar';
-import { useAuth } from '@/lib/auth';
-import { useI18n } from '@/lib/i18n';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/components/layout/AuthProvider';
+import { useI18n } from '@/lib/i18n';
+import { simpleShopifyConnectionManager } from '@/lib/shopify/simple-connection-manager';
+import AppSidebar from '@/components/layout/AppSidebar';
 import FormBuilderDashboard from '@/components/form/builder/FormBuilderDashboard';
-import { Loader2, AlertCircle, WifiOff, RefreshCw } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { 
+  FileText, 
+  Plus, 
+  AlertCircle, 
+  CheckCircle,
+  Store as StoreIcon
+} from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 
 const Forms = () => {
-  const { user, shopifyConnected, shop } = useAuth();
-  const { language } = useI18n();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { language } = useI18n();
   const [isLoading, setIsLoading] = useState(true);
-  const [hasShopifyConnected, setHasShopifyConnected] = useState(false);
-  const [forms, setForms] = useState([]);
-  const [currentShop, setCurrentShop] = useState<string | null>(null);
-  const [isDataFetched, setIsDataFetched] = useState(false);
-  const [networkError, setNetworkError] = useState(false);
-  const [retryAttempt, setRetryAttempt] = useState(0);
+  const [activeStore, setActiveStore] = useState<string | null>(null);
 
-  // تحديد الوصول - مطلوب مصادقة المستخدم
-  const hasAccess = !!user;
-
-  // Simplified connection check - let useFormTemplates handle form fetching
-  const checkShopifyConnection = useCallback(async () => {
-    if (isDataFetched && !networkError && retryAttempt === 0) return;
-    
-    setIsLoading(true);
-    try {
-      const shopFromLocalStorage = localStorage.getItem('shopify_store');
-      const isConnectedFromLocalStorage = localStorage.getItem('shopify_connected') === 'true';
-      
-      setHasShopifyConnected(shopifyConnected || isConnectedFromLocalStorage);
-      
-      const activeShop = shop || shopFromLocalStorage;
-      setCurrentShop(activeShop);
-      
-      if (activeShop) {
-        console.log("Active shop found:", activeShop);
-        setHasShopifyConnected(true);
-        setNetworkError(false);
-      }
-      
-      setIsDataFetched(true);
-      
-    } catch (error) {
-      console.error("Error in checkShopifyConnection:", error);
-      setNetworkError(true);
-    } finally {
-      setIsLoading(false);
-      if (retryAttempt > 0) {
-        setRetryAttempt(0);
-      }
-    }
-  }, [shop, shopifyConnected, isDataFetched, networkError, retryAttempt]);
-  
   useEffect(() => {
-    checkShopifyConnection();
-  }, [checkShopifyConnection]);
+    // التحقق من المتجر النشط
+    const store = simpleShopifyConnectionManager.getActiveStore();
+    setActiveStore(store);
+    setIsLoading(false);
+    
+    console.log('📄 Forms page loaded, active store:', store);
+  }, []);
 
-  // Function to manually retry connection
-  const retryConnection = () => {
-    setRetryAttempt(prev => prev + 1);
-    toast.info(language === 'ar' 
-      ? 'جاري محاولة الاتصال بالخادم...' 
-      : 'Attempting to connect to server...');
-  };
-
-  // Handle bypass access for development or testing
-  const enableBypass = () => {
-    localStorage.setItem('bypass_auth', 'true');
-    setHasShopifyConnected(true);
-    toast.success(language === 'ar' 
-      ? 'تم تفعيل وضع التجاوز. يمكنك الاستمرار في إدارة النماذج' 
-      : 'Bypass mode activated. You can continue managing forms.');
-  };
-
-  // Render loading state while checking connection
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2 text-lg">
-          {language === 'ar' ? 'جاري التحميل...' : 'Loading...'}
-        </span>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">جاري تحميل النماذج...</p>
+        </div>
       </div>
     );
   }
 
-  // إعادة توجيه إلى صفحة المصادقة إذا لم يكن المستخدم مصادقاً - ProtectedRoute سيتعامل مع هذا
-  if (!hasAccess) {
-    return null;
-  }
-
-  // Show the forms dashboard
   return (
-    <div className="flex min-h-screen bg-[#F8F9FB]">
+    <div className="flex min-h-screen bg-[#F8F9FB]" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <AppSidebar />
       
-      {/* Network Error Banner */}
-      {networkError && (
-        <div className="absolute top-0 left-0 right-0 z-50 px-4 py-2">
-          <Alert variant="destructive" className="bg-red-50 border-red-200">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription className="text-red-700 flex justify-between items-center">
-              <div className="flex items-center">
-                <WifiOff className="h-4 w-4 mr-2" />
-                <span>
-                  {language === 'ar' 
-                    ? 'فشل الاتصال بالخادم. بعض الوظائف قد لا تعمل.'
-                    : 'Failed to connect to server. Some features may not work.'}
-                </span>
-              </div>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={retryConnection}
-                className="ml-2 flex items-center"
-              >
-                <RefreshCw className="h-3 w-3 mr-1" />
-                {language === 'ar' ? 'إعادة المحاولة' : 'Retry'}
-              </Button>
-            </AlertDescription>
-          </Alert>
+      <div className="flex-1 p-6">
+        <div className="max-w-7xl mx-auto">
+          {/* العنوان الرئيسي */}
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold mb-2">
+              {language === 'ar' ? 'إدارة النماذج' : 'Form Management'}
+            </h1>
+            <p className="text-muted-foreground">
+              {language === 'ar' 
+                ? 'إنشاء وإدارة النماذج الخاصة بمنتجاتك' 
+                : 'Create and manage forms for your products'}
+            </p>
+          </div>
+
+          {/* حالة المتجر */}
+          <div className="mb-6">
+            {activeStore ? (
+              <Alert className="border-green-200 bg-green-50">
+                <CheckCircle className="h-4 w-4 text-green-600" />
+                <AlertDescription className="text-green-800">
+                  <strong>متصل بالمتجر:</strong> {activeStore}
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <Alert className="border-amber-200 bg-amber-50">
+                <AlertCircle className="h-4 w-4 text-amber-600" />
+                <AlertDescription className="text-amber-800 flex items-center justify-between">
+                  <span>
+                    <strong>لا يوجد متجر نشط.</strong> يرجى ربط متجر Shopify لإدارة النماذج.
+                  </span>
+                  <Button 
+                    size="sm" 
+                    onClick={() => navigate('/my-stores')}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    <StoreIcon className="h-4 w-4 mr-2" />
+                    إدارة المتاجر
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
+
+          {/* المحتوى الرئيسي */}
+          {activeStore ? (
+            <FormBuilderDashboard 
+              key={`dashboard-${activeStore}`} 
+              initialForms={[]} 
+              forceRefresh={false}
+            />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {/* بطاقة إنشاء نموذج جديد */}
+              <Card className="border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 transition-colors">
+                <CardHeader className="text-center">
+                  <div className="mx-auto h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center mb-4">
+                    <Plus className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <CardTitle className="text-lg">إنشاء نموذج جديد</CardTitle>
+                  <CardDescription>
+                    ابدأ بإنشاء نموذج جديد لمنتجاتك
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="text-center">
+                  <Button 
+                    disabled
+                    className="w-full bg-gray-400 cursor-not-allowed"
+                  >
+                    يتطلب ربط متجر أولاً
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* بطاقة استيراد نموذج */}
+              <Card className="border-2 border-dashed border-muted-foreground/25">
+                <CardHeader className="text-center">
+                  <div className="mx-auto h-12 w-12 rounded-full bg-green-100 flex items-center justify-center mb-4">
+                    <FileText className="h-6 w-6 text-green-600" />
+                  </div>
+                  <CardTitle className="text-lg">استيراد نموذج</CardTitle>
+                  <CardDescription>
+                    استيراد نموذج من قالب موجود
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="text-center">
+                  <Button 
+                    variant="outline" 
+                    disabled
+                    className="w-full cursor-not-allowed"
+                  >
+                    يتطلب ربط متجر أولاً
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* بطاقة القوالب */}
+              <Card className="border-2 border-dashed border-muted-foreground/25">
+                <CardHeader className="text-center">
+                  <div className="mx-auto h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center mb-4">
+                    <FileText className="h-6 w-6 text-purple-600" />
+                  </div>
+                  <CardTitle className="text-lg">قوالب جاهزة</CardTitle>
+                  <CardDescription>
+                    اختر من مجموعة قوالب جاهزة
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="text-center">
+                  <Button 
+                    variant="outline" 
+                    disabled
+                    className="w-full cursor-not-allowed"
+                  >
+                    يتطلب ربط متجر أولاً
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* رسالة ترحيب للمستخدمين الجدد */}
+          {!activeStore && (
+            <Card className="mt-8 border-2 border-dashed border-muted-foreground/25">
+              <CardHeader className="text-center">
+                <StoreIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <CardTitle className="text-xl">ابدأ بربط متجر Shopify</CardTitle>
+                <CardDescription className="text-base">
+                  لإنشاء وإدارة النماذج، تحتاج لربط متجر Shopify أولاً
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="text-center">
+                <div className="space-y-4">
+                  <Button 
+                    size="lg" 
+                    onClick={() => navigate('/my-stores')}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    <StoreIcon className="h-5 w-5 mr-2" />
+                    إدارة المتاجر
+                  </Button>
+                  <p className="text-sm text-muted-foreground">
+                    بعد ربط المتجر، ستتمكن من إنشاء نماذج لمنتجاتك
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
-      )}
-      
-      {/* Connection warning banner */}
-      {!shopifyConnected && hasShopifyConnected && !networkError && (
-        <div className="absolute top-0 left-0 right-0 z-50 px-4 py-2">
-          <Alert variant="warning" className="bg-amber-50 border-amber-200">
-            <AlertDescription className="text-amber-700 flex justify-between items-center">
-              <span>
-                {language === 'ar' 
-                  ? 'يرجى التحقق من اتصال Shopify الخاص بك'
-                  : 'Please verify your Shopify connection'}
-              </span>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => navigate('/shopify-connect')}
-                className="ml-2"
-              >
-                {language === 'ar' ? 'التحقق من الاتصال' : 'Verify Connection'}
-              </Button>
-            </AlertDescription>
-          </Alert>
-        </div>
-      )}
-      
-      <div className="flex-1">
-        <FormBuilderDashboard 
-          key={`dashboard-${currentShop}`} 
-          initialForms={[]} 
-          forceRefresh={false}
-          offlineMode={networkError}
-          onRetryConnection={retryConnection}
-          retryCount={retryAttempt}
-        />
       </div>
-      
-      {/* Debug info in development mode */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="fixed bottom-2 right-2 p-2 bg-gray-100 text-xs rounded opacity-70 hover:opacity-100">
-          <div>User: {user?.id || 'None'}</div>
-          <div>Shop: {currentShop || 'None'}</div>
-          <div>Auth Context Connected: {shopifyConnected ? 'Yes' : 'No'}</div>
-          <div>Local Storage Connected: {localStorage.getItem('shopify_connected') === 'true' ? 'Yes' : 'No'}</div>
-          <div>Forms Count: {forms.length}</div>
-          <div>Data Fetched: {isDataFetched ? 'Yes' : 'No'}</div>
-          <div>Network Error: {networkError ? 'Yes' : 'No'}</div>
-          <div>Retry Attempt: {retryAttempt}</div>
-        </div>
-      )}
     </div>
   );
 };
