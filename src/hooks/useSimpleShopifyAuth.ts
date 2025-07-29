@@ -116,19 +116,37 @@ export const useSimpleShopifyAuth = () => {
         return false;
       }
 
-      const email = data.email;
+      const { email, user_id, auth_token, shop } = data;
+      
+      // If we got an auth token, sign in the user
+      if (auth_token) {
+        try {
+          const { data: authData, error: authError } = await supabase.auth.setSession({
+            access_token: auth_token,
+            refresh_token: auth_token // Using same token for both
+          });
+          
+          if (!authError && authData.session) {
+            console.log(`🔑 User signed in automatically: ${email}`);
+          } else {
+            console.log('⚠️ Could not auto-sign in, but store connected');
+          }
+        } catch (authErr) {
+          console.log('⚠️ Auth token setup failed, but store connected:', authErr);
+        }
+      }
       
       // Save user email and current store
       localStorage.setItem('shopify_user_email', email);
-      localStorage.setItem('current_shopify_store', shopDomain);
+      localStorage.setItem('current_shopify_store', shop);
       
       setUserEmail(email);
-      setCurrentStore(shopDomain);
+      setCurrentStore(shop);
       
       // Reload user stores
       await loadUserStores(email);
       
-      console.log(`✅ Store connected: ${shopDomain} for email: ${email}`);
+      console.log(`✅ Store connected and user signed in: ${shop} for email: ${email}`);
       return true;
       
     } catch (error) {

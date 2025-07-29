@@ -13,6 +13,9 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error?: any }>;
   signUp: (email: string, password: string) => Promise<{ error?: any }>;
   setShop?: (shop: string) => void;
+  // إضافة معلومات المستخدم المستخلصة من Shopify
+  isShopifyAuthenticated: boolean;
+  shopifyUserEmail: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -202,9 +205,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
           }
         } else if (!session?.user) {
-          // إذا لم يكن هناك مستخدم مسجل دخول
-          setActiveStore(null);
-          setShops(null);
+          // إذا لم يكن هناك مستخدم مسجل دخول، تحقق من وجود متجر Shopify
+          const cachedStore = getStoreFromLocalStorage();
+          const cachedEmail = localStorage.getItem('shopify_user_email');
+          
+          console.log('🔍 No user session, checking Shopify data:', { cachedStore, cachedEmail });
+          
+          if (cachedStore && cachedEmail) {
+            // يوجد متجر محفوظ، اعتبر هذا كنوع من المصادقة
+            console.log('🏪 Found Shopify store without auth session, treating as valid connection');
+            setActiveStore(cachedStore);
+            setShops([cachedStore]);
+            
+            // محاولة إنشاء حالة "مسجل دخول من Shopify"
+            // سنعتبر وجود متجر Shopify ملف صالح كنوع من المصادقة
+            console.log('🔑 Treating Shopify store as authenticated state');
+          } else {
+            // لا يوجد بيانات Shopify
+            setActiveStore(null);
+            setShops(null);
+          }
         }
         
         setLoading(false);
@@ -289,6 +309,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   // إظهار الاتصال إذا كان المتجر موجود
   const shopifyConnected = !!currentStore;
+  
+  // حالة المصادقة عبر Shopify
+  const shopifyUserEmail = localStorage.getItem('shopify_user_email');
+  const isShopifyAuthenticated = !!(currentStore && shopifyUserEmail);
 
   console.log('🔍 AuthProvider Final Values:', {
     user: !!user,
@@ -296,7 +320,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     activeStore,
     fromLocalStorage: getStoreFromLocalStorage(),
     currentShops,
-    shopifyConnected
+    shopifyConnected,
+    isShopifyAuthenticated,
+    shopifyUserEmail
   });
 
   const value = {
@@ -309,6 +335,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signOut,
     signIn,
     signUp,
+    isShopifyAuthenticated,
+    shopifyUserEmail
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

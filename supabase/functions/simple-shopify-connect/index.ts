@@ -56,13 +56,69 @@ serve(async (req) => {
       console.log(`📧 Using fallback email: ${shopOwnerEmail}`)
     }
 
-    // Store the shop connection with email
+    // Create or get user by email
+    let userId: string | null = null
+    let authToken: string | null = null
+
+    // Check if user exists
+    const { data: existingUser } = await supabase.auth.admin.getUserByEmail(shopOwnerEmail)
+    
+    if (existingUser.user) {
+      // User exists, generate session token
+      userId = existingUser.user.id
+      console.log(`👤 Found existing user: ${userId}`)
+      
+      // Create session for existing user
+      const { data: sessionData, error: sessionError } = await supabase.auth.admin.generateLink({
+        type: 'magiclink',
+        email: shopOwnerEmail,
+        options: {
+          redirectTo: `${Deno.env.get('SUPABASE_URL')?.replace('/rest/v1', '')}/auth/v1/callback`
+        }
+      })
+      
+      if (!sessionError && sessionData.properties?.access_token) {
+        authToken = sessionData.properties.access_token
+        console.log(`🔑 Generated session token for existing user`)
+      }
+    } else {
+      // Create new user
+      const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
+        email: shopOwnerEmail,
+        password: Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8),
+        email_confirm: true
+      })
+
+      if (createError) {
+        console.error('❌ Error creating user:', createError)
+      } else if (newUser.user) {
+        userId = newUser.user.id
+        console.log(`👤 Created new user: ${userId}`)
+        
+        // Generate session token for new user
+        const { data: sessionData, error: sessionError } = await supabase.auth.admin.generateLink({
+          type: 'magiclink',
+          email: shopOwnerEmail,
+          options: {
+            redirectTo: `${Deno.env.get('SUPABASE_URL')?.replace('/rest/v1', '')}/auth/v1/callback`
+          }
+        })
+        
+        if (!sessionError && sessionData.properties?.access_token) {
+          authToken = sessionData.properties.access_token
+          console.log(`🔑 Generated session token for new user`)
+        }
+      }
+    }
+
+    // Store the shop connection with user_id
     const { error: storeError } = await supabase
       .from('shopify_stores')
       .upsert({
         shop,
         access_token,
         email: shopOwnerEmail,
+        user_id: userId,
         is_active: true,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -85,6 +141,8 @@ serve(async (req) => {
         success: true,
         shop,
         email: shopOwnerEmail,
+        user_id: userId,
+        auth_token: authToken,
         message: 'متجر متصل بنجاح'
       }),
       { 

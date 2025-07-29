@@ -4,17 +4,24 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { User, LogOut, Settings, Store } from 'lucide-react';
-import { useSimpleShopifyAuth } from '@/hooks/useSimpleShopifyAuth';
+import { useAuth } from '@/components/layout/AuthProvider';
 
 const Navbar = () => {
-  const { currentStore, userEmail, isConnected, disconnect } = useSimpleShopifyAuth();
+  const { isShopifyAuthenticated, shopifyUserEmail, shop: currentStore, signOut } = useAuth();
 
-  console.log('🔍 Navbar - Shopify connection:', { 
+  console.log('🔍 Navbar - Auth state:', { 
     currentStore, 
-    userEmail, 
-    isConnected,
+    shopifyUserEmail, 
+    isShopifyAuthenticated,
     fromLocalStorage: localStorage.getItem('current_shopify_store')
   });
+
+  const handleDisconnect = async () => {
+    localStorage.removeItem('current_shopify_store');
+    localStorage.removeItem('shopify_user_email');
+    localStorage.removeItem('shopify_connected');
+    window.location.reload();
+  };
 
   return (
     <nav className="bg-white shadow">
@@ -26,7 +33,7 @@ const Navbar = () => {
               <Link to="/dashboard">لوحة التحكم</Link>
             </Button>
             
-            {isConnected && currentStore ? (
+            {isShopifyAuthenticated && currentStore ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Avatar className="h-8 w-8 cursor-pointer">
@@ -38,7 +45,7 @@ const Navbar = () => {
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem disabled className="flex flex-col items-start">
                     <span className="font-medium">{currentStore}</span>
-                    {userEmail && <span className="text-xs text-muted-foreground">{userEmail}</span>}
+                    {shopifyUserEmail && <span className="text-xs text-muted-foreground">{shopifyUserEmail}</span>}
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link to="/my-stores" className="flex items-center">
@@ -52,7 +59,7 @@ const Navbar = () => {
                       الإعدادات
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={disconnect} className="flex items-center">
+                  <DropdownMenuItem onClick={handleDisconnect} className="flex items-center">
                     <LogOut className="h-4 w-4 mr-2" />
                     قطع الاتصال
                   </DropdownMenuItem>
