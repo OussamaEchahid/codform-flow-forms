@@ -126,7 +126,8 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
       const { data, error } = await supabase
         .from('shopify_product_settings')
         .select('form_id, product_id')
-        .eq('shop_id', activeShop)  // تأكد من تفلير بالمتجر النشط
+        .eq('shop_id', activeShop)
+        .eq('enabled', true)  // Only count enabled product associations
         .in('form_id', formIds);
         
       if (error) {
@@ -152,10 +153,6 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
       console.error('❌ Error fetching product counts:', error);
     }
   }, [formList.length, offlineMode]); // Only depend on formList.length
-  
-  useEffect(() => {
-    fetchProductCounts();
-  }, [fetchProductCounts]);
   
   useEffect(() => {
     fetchProductCounts();
