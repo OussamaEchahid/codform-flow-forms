@@ -45,6 +45,7 @@ const ProductManagementModal: React.FC<ProductManagementModalProps> = ({
       const rawShopId = getActiveShopId();
       if (!rawShopId) {
         toast.error('لم يتم العثور على معرف المتجر');
+        console.error('❌ No shop ID found');
         return;
       }
       
@@ -52,15 +53,20 @@ const ProductManagementModal: React.FC<ProductManagementModalProps> = ({
       console.log(`🔍 جلب المنتجات للمتجر: ${shopId}`);
 
       // Fetch all products from Shopify using the correct function
+      console.log('📡 استدعاء دالة shopify-products-fixed...');
+      
       const { data, error: productsError } = await supabase.functions.invoke('shopify-products-fixed', {
         body: { 
           shop: shopId
         }
       });
 
+      console.log('📊 نتيجة استدعاء shopify-products-fixed:', { data, error: productsError });
+
       if (productsError) {
         console.error('❌ خطأ في جلب المنتجات:', productsError);
-        toast.error('فشل في تحميل المنتجات من Shopify');
+        toast.error('فشل في تحميل المنتجات من Shopify: ' + productsError.message);
+        setProducts([]);
       } else if (data?.success && data?.products) {
         const transformedProducts: ShopifyProduct[] = data.products.map((product: any) => {
           const getImageUrl = (imageData: any): string => {
@@ -73,29 +79,37 @@ const ProductManagementModal: React.FC<ProductManagementModalProps> = ({
             id: String(product.id).replace('gid://shopify/Product/', ''),
             title: product.title || `منتج ${product.id}`,
             handle: product.handle || '',
-            image: getImageUrl(product.featuredImage) || getImageUrl(product.image) || '/placeholder.svg',
+            image: getImageUrl(product.image) || '/placeholder.svg',
             status: 'active' as const
           };
         });
         setProducts(transformedProducts);
         console.log('✅ تم تحميل المنتجات بنجاح:', transformedProducts.length);
       } else {
-        console.log('⚠️ لم يتم العثور على منتجات في المتجر');
+        console.log('⚠️ لم يتم العثور على منتجات في المتجر أو فشل في الاستجابة');
+        console.log('📊 البيانات المستلمة:', data);
         setProducts([]);
+        toast.error('لا توجد منتجات في المتجر أو حدث خطأ في التحميل');
       }
 
       // Fetch linked products for this form AND shop
+      console.log(`🔗 جلب المنتجات المرتبطة للنموذج: ${formId} والمتجر: ${shopId}`);
+      
       const { data: linkedData, error: linkedError } = await supabase
         .from('shopify_product_settings')
         .select('product_id')
         .eq('form_id', formId)
         .eq('shop_id', shopId);
 
+      console.log('📊 نتيجة جلب المنتجات المرتبطة:', { linkedData, error: linkedError });
+
       if (linkedError) {
         console.error('خطأ في جلب المنتجات المرتبطة:', linkedError);
+        toast.error('فشل في تحميل المنتجات المرتبطة');
       } else {
         const linkedIds = new Set(linkedData.map(item => item.product_id));
         setLinkedProducts(linkedIds);
+        console.log('✅ تم تحميل المنتجات المرتبطة:', linkedIds.size);
       }
     } catch (error) {
       console.error('خطأ في جلب البيانات:', error);
