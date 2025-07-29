@@ -308,8 +308,8 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
         style: defaultStyle
       });
 
-      // Navigate to the new form
-      navigate(`/forms/${newFormId}`);
+      // Navigate to the new form editor
+      navigate(`/form-builder/${newFormId}`);
 
       // Update rest of the form data in the background
       setTimeout(async () => {
@@ -345,6 +345,14 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
           const formData = await loadForm(id);
           
           if (formData) {
+            console.log('✅ Form data loaded successfully:', {
+              formId: id,
+              title: formData.title,
+              fieldsCount: formData.data?.flatMap(step => step.fields)?.length || 0,
+              hasData: !!formData.data,
+              dataStructure: formData.data
+            });
+            
             setFormTitle(formData.title);
             setFormDescription(formData.description || '');
             
@@ -355,6 +363,8 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
             
             // Load form elements
             let loadedElements = formData.data?.flatMap(step => step.fields) || [];
+            
+            console.log('📋 Loaded elements before processing:', loadedElements);
             
             // إذا لم يكن هناك زر إرسال، أضفه
             const needsSubmitButton = !loadedElements.some(f => f.type === 'submit');
@@ -385,6 +395,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
             // Ensure form title exists and is first
             loadedElements = ensureFormTitleExists(loadedElements);
             
+            console.log('📋 Final elements to set:', loadedElements);
             setFormElements(loadedElements);
             setIsPublished(!!formData.isPublished || !!formData.is_published);
             
