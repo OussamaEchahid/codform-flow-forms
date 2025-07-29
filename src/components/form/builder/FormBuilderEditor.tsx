@@ -288,7 +288,9 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
       const activeStore = localStorage.getItem('current_shopify_store');
       const userIdentifier = shopifyIntegration.user?.id || shopifyUserEmail || activeStore || 'anonymous';
       
-      // Start with bare minimum fields for faster creation
+      console.log('🎯 Creating form with default fields:', defaultFields);
+      
+      // Start with full form data including default fields
       const newFormId = await formManagementService.createForm({
         title: formTitle,
         description: formDescription,
@@ -316,7 +318,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
       setTimeout(async () => {
         await supabase.from('forms').update({
           style: defaultStyle as any
-        }).eq('id', newId);
+        }).eq('id', newFormId);
       }, 500);
 
       toast.success(language === 'ar' ? 'تم إنشاء نموذج جديد بنجاح' : 'New form created successfully');

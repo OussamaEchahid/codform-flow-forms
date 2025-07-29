@@ -38,8 +38,8 @@ const Navbar = () => {
     <nav className="bg-white shadow">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
-          <Link to="/" className="text-xl font-bold">CODMagnet</Link>
-          <div className="flex items-center space-x-4">
+          <Link to="/" className="text-xl font-bold text-primary">CODMagnet</Link>
+          <div className="flex items-center space-x-4 rtl:space-x-reverse gap-4">
             <Button asChild>
               <Link to="/dashboard">لوحة التحكم</Link>
             </Button>
