@@ -43,44 +43,6 @@ const Navbar = () => {
             <Button asChild>
               <Link to="/dashboard">لوحة التحكم</Link>
             </Button>
-            
-            {hasConnection && activeStore ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Avatar className="h-8 w-8 cursor-pointer">
-                    <AvatarFallback>
-                      <Store className="h-4 w-4" />
-                    </AvatarFallback>
-                  </Avatar>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem disabled className="flex flex-col items-start">
-                    <span className="font-medium">{activeStore}</span>
-                    {activeEmail && <span className="text-xs text-muted-foreground">{activeEmail}</span>}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to="/my-stores" className="flex items-center">
-                      <Store className="h-4 w-4 mr-2" />
-                      متاجري
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to="/settings" className="flex items-center">
-                      <Settings className="h-4 w-4 mr-2" />
-                      الإعدادات
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleDisconnect} className="flex items-center">
-                    <LogOut className="h-4 w-4 mr-2" />
-                    قطع الاتصال
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <Button asChild variant="outline">
-                <Link to="/shopify">ربط متجر Shopify</Link>
-              </Button>
-            )}
           </div>
         </div>
       </div>

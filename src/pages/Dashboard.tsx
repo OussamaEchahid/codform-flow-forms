@@ -131,14 +131,39 @@ const Dashboard = () => {
       
       <div className="flex-1 p-6">
         <div className="max-w-7xl mx-auto">
-          {/* العنوان الرئيسي */}
+          {/* العنوان الرئيسي مع البروفايل */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold mb-2">
-              مرحباً بك في لوحة التحكم
-            </h1>
-            <p className="text-muted-foreground">
-              إدارة متاجرك ونماذجك وطلباتك من مكان واحد
-            </p>
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <h1 className="text-3xl font-bold mb-2">
+                  مرحباً بك في لوحة التحكم
+                </h1>
+                <p className="text-muted-foreground">
+                  إدارة متاجرك ونماذجك وطلباتك من مكان واحد
+                </p>
+              </div>
+              
+              {/* أيقونة البروفايل */}
+              {(() => {
+                const activeStore = localStorage.getItem('current_shopify_store');
+                const userEmail = localStorage.getItem('shopify_user_email');
+                
+                if (activeStore) {
+                  return (
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <p className="font-medium text-sm">{activeStore}</p>
+                        {userEmail && <p className="text-xs text-muted-foreground">{userEmail}</p>}
+                      </div>
+                      <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center">
+                        <StoreIcon className="h-6 w-6 text-white" />
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+            </div>
           </div>
 
           {/* حالة الاتصال بالمتجر - إظهار واضح */}

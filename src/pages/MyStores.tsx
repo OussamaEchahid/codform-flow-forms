@@ -49,44 +49,26 @@ const MyStores = () => {
   const fetchUserStores = async () => {
     try {
       setLoading(true);
-      console.log('📦 جاري تحميل المتاجر للمستخدم:', user?.email);
-
-      // أولاً: التحقق من صحة المتجر النشط
-      const { validateCurrentStore, fixStoreConnection } = await import('@/utils/store-validation');
-      const validation = await validateCurrentStore(user?.id!);
       
-      console.log('🔍 نتيجة التحقق من المتاجر:', validation);
-
-      // إصلاح المتجر إذا لزم الأمر
-      if (!validation.isValid && validation.recommendedStore) {
-        console.log('🔧 إصلاح اتصال المتجر...');
-        await fixStoreConnection(user?.id!);
-      }
-
-      // ثانياً: جلب المتاجر من قاعدة البيانات
-      const response = await supabase.functions.invoke('store-link-manager', {
-        body: {
-          action: 'get_stores',
-          userId: user?.id
-        }
-      });
-
-      if (response.error) {
-        throw new Error(response.error.message);
-      }
-
-      if (response.data?.stores) {
-        const storesList = response.data.stores;
-        console.log('✅ تم تحميل المتاجر:', storesList);
-        setStores(storesList);
+      // الحصول على المتجر النشط من localStorage
+      const activeStore = localStorage.getItem('current_shopify_store');
+      const userEmail = localStorage.getItem('shopify_user_email');
+      
+      console.log('📦 المتجر النشط من localStorage:', activeStore);
+      console.log('📧 إيميل المستخدم من localStorage:', userEmail);
+      
+      if (activeStore) {
+        // إنشاء قائمة المتاجر بناءً على المتجر النشط
+        const storesList = [{
+          shop: activeStore,
+          is_active: true,
+          updated_at: new Date().toISOString(),
+          access_token: 'active',
+          user_id: userEmail || 'shopify_user'
+        }];
         
-        // التأكد من مزامنة المتجر النشط
-        const currentStore = simpleShopifyConnectionManager.getActiveStore();
-        if (!currentStore && storesList.length > 0) {
-          const firstStore = storesList[0].shop;
-          console.log(`🔄 تعيين المتجر النشط تلقائياً: ${firstStore}`);
-          simpleShopifyConnectionManager.setActiveStore(firstStore);
-        }
+        console.log('✅ تم تحديد المتاجر:', storesList);
+        setStores(storesList);
       } else {
         console.log('⚠️ لم يتم العثور على متاجر');
         setStores([]);
