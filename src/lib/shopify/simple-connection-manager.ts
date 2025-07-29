@@ -84,6 +84,98 @@ class SimpleShopifyConnectionManager {
       return null;
     }
   }
+
+  /**
+   * الحصول على جميع المتاجر المحفوظة من قاعدة البيانات
+   */
+  public async getAllStores(): Promise<string[]> {
+    try {
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { data: stores, error } = await supabase
+        .from('shopify_stores')
+        .select('shop')
+        .eq('is_active', true)
+        .order('updated_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching stores:', error);
+        return [];
+      }
+
+      return stores ? stores.map(s => s.shop) : [];
+    } catch (error) {
+      console.error('Error getting all stores:', error);
+      return [];
+    }
+  }
+
+  /**
+   * التحقق من صحة المتجر النشط ضد قاعدة البيانات
+   */
+  public async validateActiveStore(): Promise<boolean> {
+    try {
+      const currentStore = this.getActiveStore();
+      if (!currentStore) {
+        console.log('❌ لا يوجد متجر نشط محلياً');
+        return false;
+      }
+
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { data: storeData, error } = await supabase
+        .from('shopify_stores')
+        .select('shop, access_token, is_active')
+        .eq('shop', currentStore)
+        .eq('is_active', true)
+        .single();
+
+      if (error || !storeData) {
+        console.log(`❌ المتجر ${currentStore} غير موجود في قاعدة البيانات`);
+        return false;
+      }
+
+      console.log(`✅ المتجر ${currentStore} صحيح ونشط`);
+      return true;
+    } catch (error) {
+      console.error('Error validating active store:', error);
+      return false;
+    }
+  }
+
+  /**
+   * إصلاح حالة المتجر النشط تلقائياً
+   */
+  public async autoFixActiveStore(): Promise<boolean> {
+    try {
+      console.log('🔧 بدء إصلاح حالة المتجر النشط...');
+      
+      // التحقق من صحة المتجر الحالي
+      const isValid = await this.validateActiveStore();
+      if (isValid) {
+        console.log('✅ المتجر النشط صحيح - لا حاجة للإصلاح');
+        return true;
+      }
+
+      // الحصول على جميع المتاجر المتاحة
+      const availableStores = await this.getAllStores();
+      if (availableStores.length === 0) {
+        console.log('❌ لا توجد متاجر متاحة في قاعدة البيانات');
+        this.disconnect();
+        return false;
+      }
+
+      // تعيين أول متجر متاح كمتجر نشط
+      const firstStore = availableStores[0];
+      console.log(`🔄 تعيين المتجر ${firstStore} كمتجر نشط`);
+      this.setActiveStore(firstStore);
+      
+      console.log('✅ تم إصلاح حالة المتجر النشط بنجاح');
+      return true;
+      
+    } catch (error) {
+      console.error('Error fixing active store:', error);
+      return false;
+    }
+  }
   
   /**
    * التحقق من وجود اتصال

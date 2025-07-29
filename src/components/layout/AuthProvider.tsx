@@ -230,31 +230,62 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     activeStore: null as string | null
   });
 
-  // مراقبة تغييرات localStorage
+  // مراقبة تغييرات localStorage وإصلاح حالة المتجر
   useEffect(() => {
-    const checkShopifyConnection = () => {
-      const activeStore = simpleShopifyConnectionManager.getActiveStore();
-      const isConnected = simpleShopifyConnectionManager.isConnected();
-      
-      console.log('🔍 فحص حالة اتصال Shopify:', { activeStore, isConnected });
-      
-      setShopifyState({
-        connected: isConnected && !!activeStore,
-        activeStore
-      });
+    const checkAndFixShopifyConnection = async () => {
+      try {
+        // التحقق من وجود متاجر
+        if (!shops || shops.length === 0) {
+          console.log('❌ لا توجد متاجر متاحة');
+          setShopifyState({
+            connected: false,
+            activeStore: null
+          });
+          return;
+        }
+
+        // محاولة إصلاح حالة المتجر النشط تلقائياً
+        console.log('🔧 فحص وإصلاح حالة المتجر النشط...');
+        const fixResult = await simpleShopifyConnectionManager.autoFixActiveStore();
+        
+        if (!fixResult) {
+          console.log('❌ فشل في إصلاح حالة المتجر النشط');
+          setShopifyState({
+            connected: false,
+            activeStore: null
+          });
+          return;
+        }
+
+        const activeStore = simpleShopifyConnectionManager.getActiveStore();
+        const isConnected = simpleShopifyConnectionManager.isConnected();
+        
+        console.log('🔍 فحص حالة اتصال Shopify:', { activeStore, isConnected });
+        
+        setShopifyState({
+          connected: isConnected && !!activeStore,
+          activeStore
+        });
+      } catch (error) {
+        console.error('Error checking Shopify connection:', error);
+        setShopifyState({
+          connected: false,
+          activeStore: null
+        });
+      }
     };
 
     // فحص فوري
-    checkShopifyConnection();
+    checkAndFixShopifyConnection();
     
-    // فحص دوري كل 500ms للتأكد من التزامن السريع
-    const interval = setInterval(checkShopifyConnection, 500);
+    // فحص دوري كل 2 ثانية مع الإصلاح التلقائي
+    const interval = setInterval(checkAndFixShopifyConnection, 2000);
     
     // مراقبة تغييرات localStorage
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key && (e.key.includes('shopify') || e.key.includes('active'))) {
         console.log('📦 تغيير في localStorage:', e.key, e.newValue);
-        setTimeout(checkShopifyConnection, 100);
+        setTimeout(checkAndFixShopifyConnection, 100);
       }
     };
     
@@ -264,7 +295,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       clearInterval(interval);
       window.removeEventListener('storage', handleStorageChange);
     };
-  }, []);
+  }, [shops]);
   
   const shopifyConnected = shopifyState.connected;
   const shop = shopifyState.activeStore;
