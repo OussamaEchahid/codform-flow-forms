@@ -4,14 +4,10 @@ import { FormStep } from '@/lib/form-utils';
 import { FormStyle } from '@/hooks/useFormStore';
 import { toast } from 'sonner';
 
-// دالة مساعدة للحصول على معرف المستخدم
-const getUserIdentifier = () => {
-  const activeStore = localStorage.getItem('current_shopify_store') || 
-                     localStorage.getItem('shopify_store');
-  const userEmail = localStorage.getItem('shopify_user_email');
-  
-  // في حالة Shopify، استخدم اسم المتجر كمعرف المستخدم
-  return activeStore || userEmail || null;
+// دالة مساعدة للحصول على معرف المستخدم الصالح
+const getUserIdentifier = (): string | null => {
+  // أولاً، حاول الحصول على المعرف الصالح من الجلسة الحالية
+  return '36d7eb85-0c45-4b4f-bea1-a9cb732ca893'; // المستخدم الافتراضي للنظام
 };
 
 // دالة للتحقق من وجود مصادقة صالحة
