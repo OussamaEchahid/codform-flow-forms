@@ -43,6 +43,54 @@ const Navbar = () => {
             <Button asChild>
               <Link to="/dashboard">لوحة التحكم</Link>
             </Button>
+            
+            {/* عرض معلومات المستخدم والمتجر */}
+            {hasConnection ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback>
+                        {activeEmail ? activeEmail.charAt(0).toUpperCase() : activeStore?.charAt(0).toUpperCase() || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
+                  <div className="flex flex-col space-y-1 p-2">
+                    {activeEmail && (
+                      <p className="text-sm font-medium leading-none">{activeEmail}</p>
+                    )}
+                    {activeStore && (
+                      <p className="text-xs leading-none text-muted-foreground">
+                        <Store className="inline w-3 h-3 mr-1" />
+                        {activeStore}
+                      </p>
+                    )}
+                  </div>
+                  <DropdownMenuItem asChild>
+                    <Link to="/settings" className="w-full">
+                      <Settings className="mr-2 h-4 w-4" />
+                      الإعدادات
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/my-stores" className="w-full">
+                      <Store className="mr-2 h-4 w-4" />
+                      متاجري
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleDisconnect}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    قطع الاتصال
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button asChild>
+                <Link to="/shopify">ربط متجر</Link>
+              </Button>
+            )}
           </div>
         </div>
       </div>

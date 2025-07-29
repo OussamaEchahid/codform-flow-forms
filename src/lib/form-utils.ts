@@ -67,6 +67,8 @@ export interface FormField {
   inputFor?: string;
   errorMessage?: string;
   content?: string;
+  title?: string;
+  subtitle?: string;
   src?: string;
   alt?: string;
   width?: string | number;

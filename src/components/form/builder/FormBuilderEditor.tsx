@@ -130,10 +130,11 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
     
     // إضافة عنوان النموذج كعنصر أول
     fields.push({
-      type: 'form-title' as FormFieldType,
+      type: 'formTitle' as FormFieldType,
       id: `form-title-${Date.now()}`,
       label: language === 'ar' ? 'عنوان النموذج' : 'Form Title',
-      content: language === 'ar' ? 'املأ النموذج للدفع عند الاستلام' : 'Fill the form for cash on delivery',
+      title: language === 'ar' ? 'اطلب منتجك الآن' : 'Order Your Product Now',
+      subtitle: language === 'ar' ? 'احصل على أفضل الأسعار' : 'Get the best prices',
       style: {
         fontSize: '1.5rem',
         fontWeight: '600',
@@ -154,7 +155,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
     
     // إضافة حقل رقم الهاتف
     fields.push({
-      type: 'phone' as FormFieldType,
+      type: 'text' as FormFieldType,
       id: `phone-${Date.now()}-2`,
       label: language === 'ar' ? 'رقم الهاتف' : 'Phone number',
       placeholder: language === 'ar' ? 'رقم الهاتف' : 'Phone number',
