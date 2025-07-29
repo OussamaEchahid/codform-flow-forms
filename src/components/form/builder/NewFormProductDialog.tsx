@@ -352,9 +352,13 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
         
         // Only insert if we have new associations to create
         if (productSettings.length > 0) {
+          // Use upsert instead of insert to avoid conflicts
           const { error: associationError } = await supabase
             .from('shopify_product_settings')
-            .insert(productSettings);
+            .upsert(productSettings, {
+              onConflict: 'shop_id,product_id',
+              ignoreDuplicates: false
+            });
           
           if (associationError) {
             console.error("Error creating product associations:", associationError);
