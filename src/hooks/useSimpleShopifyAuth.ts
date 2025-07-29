@@ -8,35 +8,51 @@ interface ShopifyStore {
 }
 
 export const useSimpleShopifyAuth = () => {
-  const [currentStore, setCurrentStore] = useState<string | null>(() => {
-    // قراءة فورية من localStorage عند إنشاء الـ state
-    return localStorage.getItem('current_shopify_store') || null;
-  });
+  // قراءة مباشرة من localStorage في كل مرة
+  const getCurrentStore = () => localStorage.getItem('current_shopify_store');
+  const getCurrentEmail = () => localStorage.getItem('shopify_user_email');
+  
+  const [currentStore, setCurrentStore] = useState<string | null>(getCurrentStore());
   const [userStores, setUserStores] = useState<ShopifyStore[]>([]);
-  const [userEmail, setUserEmail] = useState<string | null>(() => {
-    return localStorage.getItem('shopify_user_email') || null;
-  });
+  const [userEmail, setUserEmail] = useState<string | null>(getCurrentEmail());
   const [loading, setLoading] = useState(false);
 
-  // تحديث فوري للـ state عند تغيير localStorage
+  // مراقبة تغييرات localStorage
   useEffect(() => {
-    const store = localStorage.getItem('current_shopify_store');
-    const email = localStorage.getItem('shopify_user_email');
-    
-    console.log('🔍 SimpleShopifyAuth - Loading from localStorage:', { store, email, currentStore });
-    
-    if (store !== currentStore) {
+    const handleStorageChange = () => {
+      const store = getCurrentStore();
+      const email = getCurrentEmail();
+      
+      console.log('🔄 Storage changed:', { store, email });
+      
       setCurrentStore(store);
-    }
-    if (email !== userEmail) {
       setUserEmail(email);
-    }
+      
+      if (store) {
+        setUserStores([{ shop: store, is_active: true, updated_at: new Date().toISOString() }]);
+      }
+    };
+
+    // استمع لتغييرات localStorage من نوافذ أخرى
+    window.addEventListener('storage', handleStorageChange);
     
-    if (store) {
-      // إذا كان هناك متجر، أنشئ قائمة المتاجر فوراً
-      setUserStores([{ shop: store, is_active: true, updated_at: new Date().toISOString() }]);
-    }
-  }, [currentStore, userEmail]);
+    // تحقق دوري كل ثانية للتأكد من التزامن
+    const interval = setInterval(() => {
+      const store = getCurrentStore();
+      if (store !== currentStore) {
+        console.log('🔄 Store changed via polling:', store);
+        setCurrentStore(store);
+        if (store) {
+          setUserStores([{ shop: store, is_active: true, updated_at: new Date().toISOString() }]);
+        }
+      }
+    }, 1000);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
+  }, [currentStore]);
 
   // Load all stores for current user email using raw SQL since the function returns different structure
   const loadUserStores = async (email: string) => {
@@ -59,7 +75,8 @@ export const useSimpleShopifyAuth = () => {
       setUserStores(storesData);
       
       // If no current store is set, use the most recent one
-      if (!currentStore && storesData.length > 0) {
+      const store = getCurrentStore();
+      if (!store && storesData.length > 0) {
         switchToStore(storesData[0].shop, false);
       }
       
@@ -124,7 +141,7 @@ export const useSimpleShopifyAuth = () => {
 
   // Check if user is "logged in" (has a connected store)
   const isConnected = () => {
-    const store = currentStore || localStorage.getItem('current_shopify_store');
+    const store = currentStore || getCurrentStore();
     return !!store;
   };
 
@@ -140,16 +157,27 @@ export const useSimpleShopifyAuth = () => {
     console.log('🚪 Disconnected from all stores');
   };
 
+  // Always get fresh data from localStorage
+  const freshCurrentStore = getCurrentStore();
+  const freshUserEmail = getCurrentEmail();
+
+  console.log('🔍 SimpleShopifyAuth state:', {
+    currentStore: freshCurrentStore,
+    userStores: userStores.length,
+    userEmail: freshUserEmail,
+    isConnected: !!freshCurrentStore
+  });
+
   return {
-    currentStore,
+    currentStore: freshCurrentStore, // استخدم القيم الطازجة
     userStores,
-    userEmail,
+    userEmail: freshUserEmail,
     loading,
-    isConnected: isConnected(),
+    isConnected: !!freshCurrentStore,
     totalStores: userStores.length,
     switchToStore,
     connectStore,
     disconnect,
-    refreshStores: () => userEmail ? loadUserStores(userEmail) : null
+    refreshStores: () => freshUserEmail ? loadUserStores(freshUserEmail) : null
   };
 };
