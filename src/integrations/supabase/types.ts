@@ -476,6 +476,10 @@ export type Database = {
           subscription_status: string
         }[]
       }
+      is_session_valid: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       link_active_store_to_user: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -484,6 +488,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      link_store_by_email: {
+        Args: { p_shop: string; p_email: string }
+        Returns: boolean
+      }
       link_store_to_user: {
         Args: { p_shop: string; p_user_id?: string; p_email?: string }
         Returns: boolean
@@ -491,6 +499,10 @@ export type Database = {
       update_default_store_connection: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      user_owns_store: {
+        Args: { p_shop_id: string }
+        Returns: boolean
       }
     }
     Enums: {
