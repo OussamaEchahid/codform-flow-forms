@@ -54,9 +54,16 @@ Deno.serve(async (req) => {
 
     console.log(`🏪 Fetching products for shop: ${shop}`);
 
-    // استخدام الدالة الجديدة للحصول على معلومات المتجر
-    const { data: storeInfo, error: storeError } = await supabase
-      .rpc('get_store_products_public', { p_shop: shop });
+    // Get store info directly from database using service role
+    const { data: storeData, error: storeError } = await supabase
+      .from('shopify_stores')
+      .select('shop, access_token, is_active')
+      .eq('shop', shop)
+      .eq('is_active', true)
+      .not('access_token', 'is', null)
+      .neq('access_token', '')
+      .neq('access_token', 'placeholder_token')
+      .single();
 
     if (storeError) {
       console.error('❌ Database error:', storeError);
@@ -72,12 +79,12 @@ Deno.serve(async (req) => {
       );
     }
 
-    if (!storeInfo?.success) {
-      console.error('❌ Store not found:', storeInfo?.error);
+    if (!storeData) {
+      console.error('❌ Store not found');
       return new Response(
         JSON.stringify({ 
-          error: storeInfo?.error || 'Store not found',
-          message: storeInfo?.message || 'المتجر غير موجود أو غير نشط'
+          error: 'STORE_NOT_FOUND',
+          message: 'المتجر غير موجود أو غير نشط'
         }),
         { 
           status: 404, 
@@ -86,7 +93,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const accessToken = storeInfo.access_token;
+    const accessToken = storeData.access_token;
     console.log(`✅ Store found with valid token: ${shop}`);
 
     // جلب المنتجات من Shopify API
