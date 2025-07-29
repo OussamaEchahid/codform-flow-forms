@@ -30,16 +30,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   
-  // قراءة فورية من localStorage
-  const [activeStore, setActiveStore] = useState<string | null>(
-    () => localStorage.getItem('current_shopify_store')
-  );
-  const [shops, setShops] = useState<string[] | null>(
-    () => {
-      const store = localStorage.getItem('current_shopify_store');
-      return store ? [store] : null;
+  // دالة مساعدة للحصول على المتجر من localStorage
+  const getStoreFromLocalStorage = (): string | null => {
+    try {
+      return localStorage.getItem('current_shopify_store') || 
+             localStorage.getItem('shopify_store') || 
+             null;
+    } catch {
+      return null;
     }
-  );
+  };
+  
+  // قراءة فورية من localStorage مع retry
+  const [activeStore, setActiveStore] = useState<string | null>(getStoreFromLocalStorage);
+  const [shops, setShops] = useState<string[] | null>(() => {
+    const store = getStoreFromLocalStorage();
+    return store ? [store] : null;
+  });
 
   // دالة للحصول على المتجر من URL parameters عند القدوم من Shopify
   const getShopFromUrl = (): string | null => {
@@ -266,19 +273,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // تأكد من وجود المتجر النشط حتى لو لم يكن المستخدم مسجل دخول
-  const currentStore = activeStore || localStorage.getItem('current_shopify_store');
+  // تأكد من وجود المتجر النشط مع محاولات متعددة للقراءة
+  const currentStore = activeStore || getStoreFromLocalStorage();
   const currentShops = shops || (currentStore ? [currentStore] : null);
   
-  // إظهار الاتصال إذا كان المتجر موجود في localStorage حتى لو لم يكن المستخدم مسجل دخول
+  // تحديث الـ state إذا وُجد متجر في localStorage لكن لا يوجد في الـ state
+  React.useEffect(() => {
+    const storedStore = getStoreFromLocalStorage();
+    if (storedStore && !activeStore) {
+      console.log('📍 Updating activeStore from localStorage:', storedStore);
+      setActiveStore(storedStore);
+      setShops([storedStore]);
+    }
+  }, [activeStore]);
+  
+  // إظهار الاتصال إذا كان المتجر موجود
   const shopifyConnected = !!currentStore;
 
-  console.log('🔍 AuthProvider Value:', {
+  console.log('🔍 AuthProvider Final Values:', {
     user: !!user,
     currentStore,
+    activeStore,
+    fromLocalStorage: getStoreFromLocalStorage(),
     currentShops,
-    shopifyConnected,
-    localStorage: localStorage.getItem('current_shopify_store')
+    shopifyConnected
   });
 
   const value = {
