@@ -79,13 +79,33 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
   const fetchProductCounts = useCallback(async () => {
     if (formList.length === 0 || offlineMode) return;
     
-    // Get active shop ID
-    const activeShop = localStorage.getItem('current_shopify_store') || 
-                      localStorage.getItem('activeShopId') ||
-                      (window as any).SHOPIFY_SHOP_DOMAIN;
+    // Get active shop ID from multiple sources
+    const getActiveShopId = (): string | null => {
+      // Try multiple sources for the active shop
+      const sources = [
+        localStorage.getItem('current_shopify_store'),
+        localStorage.getItem('activeShopId'),
+        (window as any).SHOPIFY_SHOP_DOMAIN,
+        // Check from URL params if we're in form-builder
+        new URLSearchParams(window.location.search).get('shop')
+      ];
+      
+      for (const source of sources) {
+        if (source && source.trim() !== '') {
+          console.log('🏪 Found active shop from source:', source);
+          return source.trim();
+        }
+      }
+      
+      console.warn('⚠️ No active shop found from any source');
+      return null;
+    };
+    
+    const activeShop = getActiveShopId();
     
     if (!activeShop) {
       console.log('⚠️ No active shop found for product counts');
+      setProductCounts({}); // Clear counts instead of keeping old ones
       return;
     }
     
