@@ -211,7 +211,7 @@ const AppSidebar = () => {
               isActive
             }) => cn('flex items-center gap-3 px-4 py-2 rounded-lg transition-colors', isActive ? 'bg-[#2A2E36] text-[#9b87f5]' : 'text-gray-400 hover:bg-[#2A2E36] hover:text-[#9b87f5]')}>
                 <Package size={20} />
-                <span>{t('quantityOffers')}</span>
+                <span>{language === 'ar' ? 'العروض الكمية' : 'Quantity Offers'}</span>
               </NavLink>
             </li>
             

@@ -123,7 +123,8 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
   );
   
   const handleCreateForm = () => {
-    setIsNewFormDialogOpen(true);
+    // الانتقال مباشرة إلى صفحة Form Builder بدلاً من فتح dialog
+    navigate('/form-builder');
   };
   
   const handleDeleteForm = async (formId: string) => {

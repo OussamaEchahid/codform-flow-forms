@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Trash2, Package, FileText, Settings, Eye, AlertCircle } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
+import { useAuth } from '@/components/layout/AuthProvider';
 import { supabase } from '@/integrations/supabase/client';
 import { useSimpleShopify } from '@/hooks/useSimpleShopify';
 import { toast } from 'sonner';
@@ -87,7 +88,12 @@ interface QuantityOfferData {
 
 const QuantityOffers = () => {
   const { t } = useI18n();
+  const { shop: currentStore, isShopifyAuthenticated } = useAuth();
   const { products: shopifyProducts, loadProducts, loading: shopifyLoading, isConnected, activeStore } = useSimpleShopify();
+  
+  // Use the same store detection logic as other pages
+  const storeFromStorage = localStorage.getItem('current_shopify_store');
+  const effectiveStore = currentStore || activeStore || storeFromStorage;
   const [currentStep, setCurrentStep] = useState<'form' | 'product' | 'settings'>('form');
   const [forms, setForms] = useState<Form[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -116,15 +122,14 @@ const QuantityOffers = () => {
     loadForms();
     loadExistingOffers();
     loadStoreCurrency();
-    if (isConnected && activeStore) {
+    if ((isConnected || effectiveStore) && effectiveStore) {
       loadProducts();
     }
   }, [isConnected, activeStore]);
 
   const loadStoreCurrency = async () => {
     try {
-      const activeShop = activeStore || localStorage.getItem('simple_active_store');
-      if (!activeShop) return;
+      if (!effectiveStore) return;
 
       // Get store currency from products API - the currency is usually included with product data
       const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-products`, {
@@ -134,7 +139,7 @@ const QuantityOffers = () => {
           'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M`
         },
         body: JSON.stringify({
-          shop: activeShop
+          shop: effectiveStore
         })
       });
 
@@ -156,7 +161,7 @@ const QuantityOffers = () => {
       }
       
       setStoreCurrency(currency);
-      console.log('✅ Store currency set to:', currency, 'for shop:', activeShop);
+      console.log('✅ Store currency set to:', currency, 'for shop:', effectiveStore);
       
     } catch (error) {
       console.warn('Could not fetch store currency, using default MAD:', error);
@@ -168,28 +173,26 @@ const QuantityOffers = () => {
 
   const loadForms = async () => {
     try {
-      const activeShop = activeStore || localStorage.getItem('simple_active_store');
-      
-      if (!activeShop) {
+      if (!effectiveStore) {
         console.log('🚫 No active store - forms will not be loaded');
         setForms([]);
         return;
       }
 
-      console.log(`📋 Loading forms for active store: ${activeShop}`);
+      console.log(`📋 Loading forms for active store: ${effectiveStore}`);
       
       const { data, error } = await supabase
         .from('forms')
         .select('*')
         .eq('is_published', true)
-        .eq('shop_id', activeShop);
+        .eq('shop_id', effectiveStore);
 
       if (error) {
         console.error('❌ Error loading forms:', error);
         throw error;
       }
       
-      console.log(`✅ Loaded ${data?.length || 0} forms for store: ${activeShop}`);
+      console.log(`✅ Loaded ${data?.length || 0} forms for store: ${effectiveStore}`);
       setForms((data || []).map(form => ({
         id: form.id,
         title: form.title,
@@ -205,10 +208,9 @@ const QuantityOffers = () => {
 
   const loadExistingOffers = async () => {
     try {
-      const activeShop = activeStore || localStorage.getItem('simple_active_store');
-      if (!activeShop) return;
+      if (!effectiveStore) return;
 
-      console.log('🔍 Loading existing offers for store:', activeShop);
+      console.log('🔍 Loading existing offers for store:', effectiveStore);
       
       const { data, error } = await (supabase as any)
         .from('quantity_offers')
@@ -216,7 +218,7 @@ const QuantityOffers = () => {
           *,
           forms(title)
         `)
-        .eq('shop_id', activeShop);
+        .eq('shop_id', effectiveStore);
 
       if (error) {
         console.error('❌ Error loading existing offers:', error);
@@ -254,7 +256,7 @@ const QuantityOffers = () => {
         .from('shopify_product_settings')
         .select('product_id')
         .eq('form_id', formId)
-        .eq('shop_id', activeStore || localStorage.getItem('simple_active_store') || '');
+        .eq('shop_id', effectiveStore || '');
 
       if (error) {
         console.warn('Error loading form products:', error);
@@ -279,7 +281,7 @@ const QuantityOffers = () => {
         .from('quantity_offers')
         .select('*')
         .eq('form_id', formId)
-        .eq('shop_id', activeStore || localStorage.getItem('simple_active_store') || '');
+        .eq('shop_id', effectiveStore || '');
 
       if (error) {
         console.warn('Error loading existing quantity offers:', error);
@@ -394,14 +396,13 @@ const QuantityOffers = () => {
 
     setLoading(true);
     try {
-      const activeShop = activeStore || localStorage.getItem('simple_active_store');
-      if (!activeShop) {
+      if (!effectiveStore) {
         throw new Error('No active shop found');
       }
 
       // Prepare data for saving
       const offerData = {
-        shop_id: activeShop,
+        shop_id: effectiveStore,
         product_id: selectedProduct.id,
         form_id: selectedForm.id,
         enabled: quantityOffer.enabled,

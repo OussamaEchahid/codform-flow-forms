@@ -87,6 +87,10 @@ export const routes: RouteObject[] = [
     Component: PlansSettings
   },
   {
+    path: '/quantity-offers',
+    Component: QuantityOffers
+  },
+  {
     path: '/settings/quantity-offers',
     Component: QuantityOffers
   },
