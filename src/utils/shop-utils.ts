@@ -66,26 +66,24 @@ export const cleanShopId = (shopId: string): string => {
 export const validateShopId = (shopId: string): boolean => {
   if (!shopId) return false;
   
-  // التحقق الصارم: يجب أن ينتهي بـ .myshopify.com
-  if (!shopId.endsWith('.myshopify.com')) {
-    console.warn('❌ معرف المتجر غير صحيح - ليس متجر Shopify:', shopId);
-    return false;
+  // قبول أي متجر يحتوي على .myshopify.com أو اسم متجر بسيط
+  const cleaned = cleanShopId(shopId);
+  
+  // إذا كان النطاق ينتهي بـ .myshopify.com، فهو صحيح
+  if (cleaned.endsWith('.myshopify.com')) {
+    const storeName = cleaned.replace('.myshopify.com', '');
+    if (storeName && storeName.length >= 3) {
+      return true;
+    }
   }
   
-  // يجب أن يحتوي على نص قبل .myshopify.com
-  const storeName = shopId.replace('.myshopify.com', '');
-  if (!storeName || storeName.length < 3) {
-    console.warn('❌ اسم المتجر قصير جداً:', storeName);
-    return false;
+  // إذا كان مجرد اسم متجر بدون النطاق الكامل، قبله أيضاً
+  if (cleaned && cleaned.length >= 3 && !cleaned.includes('.')) {
+    return true;
   }
   
-  // التحقق من عدم وجود نطاقات عادية مثل .com، .net، إلخ
-  if (storeName.includes('.') && !storeName.endsWith('myshopify')) {
-    console.warn('❌ النطاق يبدو كنطاق عادي وليس متجر Shopify:', shopId);
-    return false;
-  }
-  
-  return true;
+  console.warn('❌ معرف المتجر غير صحيح:', shopId);
+  return false;
 };
 
 /**
