@@ -51,14 +51,18 @@ export const useFormTemplates = () => {
       const activeStore = shop || 
                          localStorage.getItem('active_shopify_store') || 
                          localStorage.getItem('current_shopify_store') ||
-                         localStorage.getItem('simple_active_store');
+                         localStorage.getItem('simple_active_store') ||
+                         localStorage.getItem('shopify_store');
       
-      if (activeStore && activeStore.trim() && activeStore !== 'null') {
+      if (activeStore && activeStore.trim() && activeStore !== 'null' && activeStore !== 'undefined') {
+        console.log(`🏪 Active shop found in useFormTemplates: ${activeStore.trim()}`);
         return activeStore.trim();
       }
+      
+      console.log('⚠️ No active shop found in useFormTemplates');
       return '';
     } catch (error) {
-      console.error('Error getting active store:', error);
+      console.error('❌ Error getting active store in useFormTemplates:', error);
       return shop || '';
     }
   };

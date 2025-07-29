@@ -49,23 +49,24 @@ export class FormManagementService {
     throw lastError;
   }
 
-  // Get current active shop ID using UnifiedStoreManager
+  // Get current active shop ID from localStorage directly
   private getActiveShopId(): string | null {
     try {
-      // استيراد مباشر من localStorage بدلاً من require
+      // البحث في جميع المصادر المحتملة للمتجر النشط
       const activeStore = localStorage.getItem('active_shopify_store') || 
                          localStorage.getItem('current_shopify_store') ||
-                         localStorage.getItem('simple_active_store');
+                         localStorage.getItem('simple_active_store') ||
+                         localStorage.getItem('shopify_store');
       
-      if (activeStore && activeStore.trim() && activeStore !== 'null') {
-        console.log(`📍 Active shop ID: ${activeStore}`);
+      if (activeStore && activeStore.trim() && activeStore !== 'null' && activeStore !== 'undefined') {
+        console.log(`📍 Active shop ID found: ${activeStore.trim()}`);
         return activeStore.trim();
       }
       
-      console.log('⚠️ No active store found');
+      console.log('⚠️ No active store found in localStorage');
       return null;
     } catch (error) {
-      console.error('❌ Error getting active store:', error);
+      console.error('❌ Error getting active store from localStorage:', error);
       return null;
     }
   }

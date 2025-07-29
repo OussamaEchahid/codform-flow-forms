@@ -22,9 +22,10 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
-import UnifiedStoreManager from '@/utils/unified-store-manager';
+// تمت إزالة استيراد UnifiedStoreManager لحل مشكلة require
 import NewFormProductDialog from './NewFormProductDialog';
 import ProductManagementModal from '../ProductManagementModal';
+import DefaultFormMessage from '@/components/dashboard/DefaultFormMessage';
 
 interface FormBuilderDashboardProps {
   initialForms?: any[];
@@ -42,7 +43,7 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
   retryCount = 0
 }) => {
   const navigate = useNavigate();
-  const { forms, fetchForms, deleteForm } = useFormTemplates();
+  const { forms, fetchForms, deleteForm, createDefaultForm } = useFormTemplates();
   const { t, language } = useI18n();
   
   const [searchTerm, setSearchTerm] = useState('');
@@ -56,20 +57,31 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [selectedFormForProducts, setSelectedFormForProducts] = useState<{ id: string; title: string } | null>(null);
   
-  // Fetch forms data only once on initial load or when forceRefresh changes
+  // Fetch forms data and create default form if none exist
   const initializeData = useCallback(async () => {
     if (isInitialized && !forceRefresh) return;
     
     setIsLoading(true);
     try {
       await fetchForms();
+      
+      // إذا لم توجد نماذج، قم بإنشاء نموذج افتراضي
+      if (forms.length === 0) {
+        console.log('🆕 No forms found, creating default form...');
+        const defaultForm = await createDefaultForm();
+        if (defaultForm) {
+          console.log('✅ Default form created successfully');
+          await fetchForms(); // تحديث قائمة النماذج
+        }
+      }
+      
       setIsInitialized(true);
     } catch (error) {
       console.error('Error initializing forms data:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [fetchForms, forceRefresh, isInitialized]);
+  }, [fetchForms, createDefaultForm, forceRefresh, isInitialized, forms.length]);
   
   useEffect(() => {
     initializeData();
@@ -125,12 +137,8 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
       return;
     }
     
-    // التأكد من أن UnifiedStoreManager يدير المتجر بشكل صحيح
-    const currentStoredShop = UnifiedStoreManager.getActiveStore();
-    if (currentStoredShop !== activeShop && activeShop) {
-      console.log('🔄 Updating active shop via UnifiedStoreManager from', currentStoredShop, 'to', activeShop);
-      UnifiedStoreManager.setActiveStore(activeShop);
-    }
+    // تحقق من صحة المتجر النشط مباشرة من localStorage
+    console.log('✅ Using active shop for product counts:', activeShop);
     
     const formIds = formList.map(form => form.id);
     
@@ -176,9 +184,25 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
     form.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
   
-  const handleCreateForm = () => {
-    // فتح النافذة المنبثقة لاختيار تفاصيل النموذج
-    setIsNewFormDialogOpen(true);
+  const handleCreateForm = async () => {
+    try {
+      setIsLoading(true);
+      console.log('🆕 Creating new form...');
+      const newForm = await createDefaultForm();
+      if (newForm) {
+        console.log('✅ New form created successfully');
+        toast.success(language === 'ar' ? 'تم إنشاء النموذج بنجاح' : 'Form created successfully');
+        // التوجه إلى صفحة تحرير النموذج الجديد
+        navigate(`/form-builder/${newForm.id}`);
+      } else {
+        toast.error(language === 'ar' ? 'فشل في إنشاء النموذج' : 'Failed to create form');
+      }
+    } catch (error) {
+      console.error('Error creating form:', error);
+      toast.error(language === 'ar' ? 'خطأ في إنشاء النموذج' : 'Error creating form');
+    } finally {
+      setIsLoading(false);
+    }
   };
   
   const handleDeleteForm = async (formId: string) => {
@@ -254,6 +278,11 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
         <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
       </div>
     );
+  }
+
+  // إذا لم توجد نماذج، عرض رسالة ترحيبية
+  if (filteredForms.length === 0 && !searchTerm) {
+    return <DefaultFormMessage onCreateForm={handleCreateForm} isLoading={isLoading} />;
   }
 
   return (
