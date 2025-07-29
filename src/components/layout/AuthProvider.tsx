@@ -238,8 +238,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // فحص فوري
     checkShopifyConnection();
     
-    // فحص دوري كل ثانية للتأكد من التزامن
-    const interval = setInterval(checkShopifyConnection, 1000);
+    // فحص دوري كل 500ms للتأكد من التزامن السريع
+    const interval = setInterval(checkShopifyConnection, 500);
     
     // مراقبة تغييرات localStorage
     const handleStorageChange = (e: StorageEvent) => {

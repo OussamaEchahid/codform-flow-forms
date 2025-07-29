@@ -46,15 +46,39 @@ class SimpleShopifyConnectionManager {
    */
   public getActiveStore(): string | null {
     try {
-      const stored = localStorage.getItem(this.ACTIVE_STORE_KEY);
+      // قائمة مفاتيح البحث بترتيب الأولوية
+      const searchKeys = [
+        this.ACTIVE_STORE_KEY,
+        'shopify_store', 
+        'active_shop',
+        'shopify_active_store'
+      ];
       
-      // إذا كان المخزن codmagnet.com، فهذا خطأ - احذفه
-      if (stored === 'codmagnet.com') {
-        localStorage.removeItem(this.ACTIVE_STORE_KEY);
-        return null;
+      let activeStore: string | null = null;
+      
+      // البحث في كل مفتاح حتى نجد متجر صالح
+      for (const key of searchKeys) {
+        const stored = localStorage.getItem(key);
+        if (stored && stored !== 'null' && stored !== 'codmagnet.com' && stored.trim() !== '') {
+          activeStore = stored;
+          console.log(`🔍 وجد متجر نشط في ${key}: ${stored}`);
+          break;
+        }
       }
       
-      return stored;
+      // إذا وجدنا متجر، تأكد من مزامنة جميع المفاتيح
+      if (activeStore) {
+        console.log(`✅ تم العثور على متجر نشط: ${activeStore}`);
+        // مزامنة جميع مفاتيح المتجر النشط
+        localStorage.setItem(this.ACTIVE_STORE_KEY, activeStore);
+        localStorage.setItem('shopify_store', activeStore);
+        localStorage.setItem('active_shop', activeStore);
+        localStorage.setItem('shopify_connected', 'true');
+      } else {
+        console.log('❌ لم يتم العثور على متجر نشط');
+      }
+      
+      return activeStore;
     } catch (error) {
       console.error('Error getting active store:', error);
       return null;
