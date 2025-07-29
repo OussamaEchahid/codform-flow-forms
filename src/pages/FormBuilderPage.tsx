@@ -35,8 +35,8 @@ const FormBuilderPage = () => {
     hasAccess: !!activeStore
   });
 
-  // التحقق من الوصول بناءً على وجود متجر نشط
-  const hasAccess = !!activeStore;
+  // التحقق من الوصول بناءً على وجود متجر نشط أو المصادقة
+  const hasAccess = !!activeStore || isShopifyAuthenticated;
 
   // التبديل بين العلامات عند تغيير formId
   useEffect(() => {

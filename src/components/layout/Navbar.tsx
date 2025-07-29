@@ -14,7 +14,7 @@ const Navbar = () => {
   const emailFromStorage = localStorage.getItem('shopify_user_email');
   const activeStore = currentStore || storeFromStorage;
   const activeEmail = shopifyUserEmail || emailFromStorage;
-  const hasConnection = !!(activeStore && (isShopifyAuthenticated || storeFromStorage));
+  const hasConnection = !!activeStore;
 
   console.log('🔍 Navbar - Auth state:', { 
     currentStore, 
