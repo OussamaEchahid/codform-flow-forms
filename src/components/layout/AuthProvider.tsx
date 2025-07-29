@@ -43,60 +43,58 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return null;
     }
   };
+
+  // دالة مساعدة للحصول على الإيميل من localStorage  
+  const getEmailFromLocalStorage = (): string | null => {
+    try {
+      return localStorage.getItem('shopify_user_email') || null;
+    } catch {
+      return null;
+    }
+  };
   
-  // قراءة فورية من localStorage مع retry
-  const [activeStore, setActiveStore] = useState<string | null>(getStoreFromLocalStorage);
+  // الحالة الأساسية - تعتمد على localStorage في المقام الأول
+  const [activeStore, setActiveStore] = useState<string | null>(() => getStoreFromLocalStorage());
+  const [shopifyUserEmail, setShopifyUserEmail] = useState<string | null>(() => getEmailFromLocalStorage());
   const [shops, setShops] = useState<string[] | null>(() => {
     const store = getStoreFromLocalStorage();
     return store ? [store] : null;
   });
-
-  // دالة للحصول على المتجر من URL parameters عند القدوم من Shopify
-  const getShopFromUrl = (): string | null => {
-    const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get('shop');
-  };
-
-  // دالة مبسطة لجلب المتاجر من قاعدة البيانات
-  const fetchUserStores = async (userId: string) => {
-    try {
-      // @ts-ignore - temporary fix for type issue
-      const { data: stores, error } = await supabase
-        .from('shopify_stores')
-        .select('shop')
-        .eq('user_id', userId)
-        .eq('is_active', true)
-        .order('updated_at', { ascending: false });
-
-      if (!error && stores) {
-        const storeList = stores.map(s => s.shop);
-        setShops(storeList);
-        return storeList;
+  
+  // مراقبة localStorage للتحديثات الفورية
+  useEffect(() => {
+    const updateFromStorage = () => {
+      const currentStore = getStoreFromLocalStorage();
+      const currentEmail = getEmailFromLocalStorage();
+      
+      if (currentStore !== activeStore) {
+        console.log('📱 AuthProvider - Store updated from localStorage:', currentStore);
+        setActiveStore(currentStore);
+        setShops(currentStore ? [currentStore] : null);
       }
-    } catch (err) {
-      console.error('Error fetching stores:', err);
-    }
-    return [];
-  };
+      
+      if (currentEmail !== shopifyUserEmail) {
+        console.log('📧 AuthProvider - Email updated from localStorage:', currentEmail);
+        setShopifyUserEmail(currentEmail);
+      }
+    };
+    
+    // تحديث فوري
+    updateFromStorage();
+    
+    // مراقبة تغييرات localStorage
+    window.addEventListener('storage', updateFromStorage);
+    
+    // تحديث دوري كل ثانية للتأكد من التزامن
+    const interval = setInterval(updateFromStorage, 1000);
+    
+    return () => {
+      window.removeEventListener('storage', updateFromStorage);
+      clearInterval(interval);
+    };
+  }, [activeStore, shopifyUserEmail]);
 
-  // دالة مبسطة لربط المتجر بالمستخدم
-  const linkStoreToUser = async (shop: string, userId: string) => {
-    try {
-      // @ts-ignore - temporary fix for type issue
-      await supabase
-        .from('shopify_stores')
-        .upsert({
-          shop,
-          user_id: userId,
-          is_active: true,
-          updated_at: new Date().toISOString()
-        });
-      console.log('✅ Store linked to user:', shop);
-    } catch (err) {
-      console.error('Error linking store:', err);
-    }
-  };
-
+  // إعداد المصادقة التقليدية (اختيارية)
   useEffect(() => {
     let isMounted = true;
 
@@ -108,133 +106,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         setSession(session);
         setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          // تحقق فوري من localStorage عند أي تسجيل دخول
-          const cachedStore = localStorage.getItem('current_shopify_store');
-          console.log('🔍 Checking localStorage for store:', cachedStore);
-          
-          if (cachedStore) {
-            console.log('🏪 Found cached store, setting as active:', cachedStore);
-            setActiveStore(cachedStore);
-            setShops([cachedStore]);
-            
-            // تأكد من ربط المتجر بالمستخدم في قاعدة البيانات
-            await linkStoreToUser(cachedStore, session.user.id);
-          }
-          
-          // تحقق من وجود متجر في URL (القدوم من Shopify)
-          const shopFromUrl = getShopFromUrl();
-          if (shopFromUrl) {
-            console.log('🏪 Shop detected from URL:', shopFromUrl);
-            
-            // ربط المتجر بالمستخدم فوراً
-            await linkStoreToUser(shopFromUrl, session.user.id);
-            
-            // تعيين المتجر كنشط
-            setActiveStore(shopFromUrl);
-            setShops([shopFromUrl]);
-            localStorage.setItem('current_shopify_store', shopFromUrl);
-            localStorage.setItem('shopify_connected', 'true');
-            
-            console.log('✅ Store connection established from URL:', shopFromUrl);
-          }
-          
-          // جلب جميع المتاجر من قاعدة البيانات
-          const userStores = await fetchUserStores(session.user.id);
-          if (userStores.length > 0) {
-            setShops(userStores);
-            
-            // إذا لم يكن هناك متجر نشط محفوظ، استخدم الأول من القاعدة
-            if (!cachedStore && !shopFromUrl) {
-              const firstStore = userStores[0];
-              setActiveStore(firstStore);
-              localStorage.setItem('current_shopify_store', firstStore);
-              localStorage.setItem('shopify_connected', 'true');
-              console.log('✅ Using first store from database:', firstStore);
-            }
-          }
-        }
-        
-        if (event === 'SIGNED_OUT') {
-          setShops(null);
-          setActiveStore(null);
-          localStorage.removeItem('current_shopify_store');
-          localStorage.removeItem('shopify_connected');
-          console.log('🚪 User signed out, cleared store data');
-        }
-        
         setLoading(false);
       }
     );
 
-    // جلب الجلسة الحالية عند البداية
-    const getInitialSession = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (!error && session?.user && isMounted) {
-          setSession(session);
-          setUser(session.user);
-          
-          // تحقق فوري من localStorage
-          const cachedStore = localStorage.getItem('current_shopify_store');
-          console.log('🔍 Initial session - cached store:', cachedStore);
-          
-          if (cachedStore) {
-            console.log('🏪 Setting active store from cache:', cachedStore);
-            setActiveStore(cachedStore);
-            setShops([cachedStore]);
-            
-            // تأكد من ربط المتجر بالمستخدم في قاعدة البيانات
-            await linkStoreToUser(cachedStore, session.user.id);
-          }
-          
-          // جلب المتاجر من قاعدة البيانات
-          const userStores = await fetchUserStores(session.user.id);
-          if (userStores.length > 0) {
-            setShops(userStores);
-            
-            // إذا لم يكن هناك متجر نشط محفوظ، استخدم الأول
-            if (!cachedStore) {
-              const firstStore = userStores[0];
-              setActiveStore(firstStore);
-              localStorage.setItem('current_shopify_store', firstStore);
-              localStorage.setItem('shopify_connected', 'true');
-              console.log('✅ Setting first store from database:', firstStore);
-            }
-          }
-        } else if (!session?.user) {
-          // إذا لم يكن هناك مستخدم مسجل دخول، تحقق من وجود متجر Shopify
-          const cachedStore = getStoreFromLocalStorage();
-          const cachedEmail = localStorage.getItem('shopify_user_email');
-          
-          console.log('🔍 No user session, checking Shopify data:', { cachedStore, cachedEmail });
-          
-          if (cachedStore && cachedEmail) {
-            // يوجد متجر محفوظ، اعتبر هذا كنوع من المصادقة
-            console.log('🏪 Found Shopify store without auth session, treating as valid connection');
-            setActiveStore(cachedStore);
-            setShops([cachedStore]);
-            
-            // محاولة إنشاء حالة "مسجل دخول من Shopify"
-            // سنعتبر وجود متجر Shopify ملف صالح كنوع من المصادقة
-            console.log('🔑 Treating Shopify store as authenticated state');
-          } else {
-            // لا يوجد بيانات Shopify
-            setActiveStore(null);
-            setShops(null);
-          }
-        }
-        
-        setLoading(false);
-      } catch (error) {
-        console.error('Error getting initial session:', error);
+    // تحقق من الجلسة الحالية
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (isMounted) {
+        setSession(session);
+        setUser(session?.user ?? null);
         setLoading(false);
       }
-    };
-
-    getInitialSession();
+    });
 
     return () => {
       isMounted = false;
@@ -243,101 +126,81 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    try {
-      setLoading(true);
-      
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      
-      if (error) {
-        setLoading(false);
-        return { error };
-      }
-      
-      return { error: null };
-    } catch (error) {
-      setLoading(false);
-      return { error };
-    }
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    return { error };
   };
 
   const signUp = async (email: string, password: string) => {
-    try {
-      setLoading(true);
-      
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/`
-        }
-      });
-      
-      setLoading(false);
-      return { error };
-    } catch (error) {
-      setLoading(false);
-      return { error };
-    }
+    const redirectUrl = `${window.location.origin}/`;
+    
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: redirectUrl
+      }
+    });
+    return { error };
   };
 
   const signOut = async () => {
-    try {
-      await supabase.auth.signOut({ scope: 'global' });
-      window.location.href = '/auth';
-    } catch (error) {
-      console.error('Error signing out:', error);
-      window.location.href = '/auth';
-    }
+    // Clear all Shopify data
+    localStorage.removeItem('current_shopify_store');
+    localStorage.removeItem('shopify_user_email');
+    localStorage.removeItem('shopify_connected');
+    
+    // Clear state
+    setActiveStore(null);
+    setShopifyUserEmail(null);
+    setShops(null);
+    
+    // Sign out from Supabase (optional)
+    await supabase.auth.signOut();
+    
+    console.log('🚪 Signed out and cleared all data');
   };
 
-  // تأكد من وجود المتجر النشط مع محاولات متعددة للقراءة
-  const currentStore = activeStore || getStoreFromLocalStorage();
-  const currentShops = shops || (currentStore ? [currentStore] : null);
-  
-  // تحديث الـ state إذا وُجد متجر في localStorage لكن لا يوجد في الـ state
-  React.useEffect(() => {
-    const storedStore = getStoreFromLocalStorage();
-    if (storedStore && !activeStore) {
-      console.log('📍 Updating activeStore from localStorage:', storedStore);
-      setActiveStore(storedStore);
-      setShops([storedStore]);
-    }
-  }, [activeStore]);
-  
-  // إظهار الاتصال إذا كان المتجر موجود
-  const shopifyConnected = !!currentStore;
-  
-  // حالة المصادقة عبر Shopify
-  const shopifyUserEmail = localStorage.getItem('shopify_user_email');
-  const isShopifyAuthenticated = !!(currentStore && shopifyUserEmail);
+  const setShop = (shop: string) => {
+    localStorage.setItem('current_shopify_store', shop);
+    setActiveStore(shop);
+    setShops([shop]);
+    console.log('🏪 Shop set to:', shop);
+  };
 
-  console.log('🔍 AuthProvider Final Values:', {
-    user: !!user,
-    currentStore,
+  // تحديد حالة المصادقة عبر Shopify
+  const isShopifyAuthenticated = !!(activeStore && (shopifyUserEmail || getEmailFromLocalStorage()));
+  const shopifyConnected = !!activeStore;
+
+  console.log('🔍 AuthProvider state:', {
     activeStore,
-    fromLocalStorage: getStoreFromLocalStorage(),
-    currentShops,
-    shopifyConnected,
+    shopifyUserEmail,
     isShopifyAuthenticated,
-    shopifyUserEmail
+    shopifyConnected,
+    hasTraditionalAuth: !!user,
+    loading
   });
 
-  const value = {
-    user,
-    session,
-    loading,
-    shopifyConnected,
-    shop: currentStore,
-    shops: currentShops,
-    signOut,
-    signIn,
-    signUp,
-    isShopifyAuthenticated,
-    shopifyUserEmail
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        session,
+        loading,
+        shopifyConnected,
+        shop: activeStore,
+        shops,
+        signOut,
+        signIn,
+        signUp,
+        setShop,
+        isShopifyAuthenticated,
+        shopifyUserEmail,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 };

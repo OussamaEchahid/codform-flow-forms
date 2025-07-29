@@ -149,6 +149,7 @@ function AppRoutes() {
       <Route path="/settings/general" element={<GeneralSettings />} />
       <Route path="/settings/spam" element={<SpamSettings />} />
       <Route path="/settings/plans" element={<PlansSettings />} />
+      <Route path="/quantity-offers" element={<QuantityOffers />} />
       <Route path="/settings/quantity-offers" element={<QuantityOffers />} />
       <Route path="*" element={<NotFound />} />
     </Routes>

@@ -15,19 +15,28 @@ import { toast } from 'sonner';
 const FormBuilderPage = () => {
   const { formId } = useParams();
   const navigate = useNavigate();
-  const { shop: currentStore, isShopifyAuthenticated } = useAuth();
+  const { shop: currentStore, isShopifyAuthenticated, loading } = useAuth();
   const { t, language } = useI18n();
   const { fetchForms } = useFormTemplates();
   
-  // Use the same store detection logic as other pages
+  // التحقق من وجود متجر نشط
   const storeFromStorage = localStorage.getItem('current_shopify_store');
   const activeStore = currentStore || storeFromStorage;
   
   const [activeTab, setActiveTab] = useState<'dashboard' | 'editor'>(formId ? 'editor' : 'dashboard');
   const [associatedProducts, setAssociatedProducts] = useState<Array<{id: string, title: string}>>([]);
 
+  console.log('📄 FormBuilderPage - Store state:', {
+    currentStore,
+    storeFromStorage,
+    activeStore,
+    isShopifyAuthenticated,
+    loading,
+    hasAccess: !!activeStore
+  });
+
   // التحقق من الوصول بناءً على وجود متجر نشط
-  const hasAccess = !!(activeStore && (isShopifyAuthenticated || storeFromStorage));
+  const hasAccess = !!activeStore;
 
   // التبديل بين العلامات عند تغيير formId
   useEffect(() => {
@@ -38,7 +47,16 @@ const FormBuilderPage = () => {
     }
   }, [formId]);
 
-  // عرض صفحة محدودة الوصول إذا لم يكن هناك اتصال
+  // عرض loading أثناء التحميل
+  if (loading) {
+    return (
+      <div className="flex min-h-screen bg-[#F8F9FB] items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  // عرض صفحة محدودة الوصول إذا لم يكن هناك متجر نشط
   if (!hasAccess) {
     return (
       <div className="flex flex-col items-center justify-center h-screen">
