@@ -141,39 +141,58 @@ const Dashboard = () => {
             </p>
           </div>
 
-          {/* حالة الاتصال بالمتجر */}
+          {/* حالة الاتصال بالمتجر - إظهار واضح */}
           {user && (
             <div className="mb-6">
-              {shop ? (
-                <Alert className="border-green-200 bg-green-50">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                  <AlertDescription className="text-green-800">
-                    <strong>متصل بالمتجر:</strong> {shop}
-                  </AlertDescription>
-                </Alert>
-              ) : (
-                <Alert className="border-orange-200 bg-orange-50">
-                  <AlertCircle className="h-4 w-4 text-orange-600" />
-                  <AlertDescription className="text-orange-800">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <strong>لا يوجد متجر نشط.</strong> يرجى ربط متجر Shopify أولاً.
-                      </div>
-                      <Button 
-                        size="sm" 
-                        onClick={() => navigate('/my-stores')}
-                        className="bg-orange-600 hover:bg-orange-700"
-                      >
-                        ربط متجر
-                      </Button>
-                    </div>
-                  </AlertDescription>
-                </Alert>
-              )}
+              {/* التحقق من localStorage مباشرة للتأكد */}
+              {(() => {
+                const storeFromStorage = localStorage.getItem('current_shopify_store');
+                const connectedStore = shop || storeFromStorage;
+                
+                if (connectedStore) {
+                  return (
+                    <Alert className="border-green-200 bg-green-50">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <AlertDescription className="text-green-800">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <strong>✅ متصل بالمتجر:</strong> {connectedStore}
+                            <br />
+                            <small className="text-green-600">الاتصال نشط ويعمل بشكل صحيح</small>
+                          </div>
+                          <div className="bg-green-100 px-3 py-1 rounded-full">
+                            <span className="text-green-800 font-medium">نشط</span>
+                          </div>
+                        </div>
+                      </AlertDescription>
+                    </Alert>
+                  );
+                } else {
+                  return (
+                    <Alert className="border-orange-200 bg-orange-50">
+                      <AlertCircle className="h-4 w-4 text-orange-600" />
+                      <AlertDescription className="text-orange-800">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <strong>❌ لا يوجد متجر نشط.</strong> يرجى ربط متجر Shopify أولاً.
+                          </div>
+                          <Button 
+                            size="sm" 
+                            onClick={() => navigate('/my-stores')}
+                            className="bg-orange-600 hover:bg-orange-700"
+                          >
+                            ربط متجر
+                          </Button>
+                        </div>
+                      </AlertDescription>
+                    </Alert>
+                  );
+                }
+              })()}
             </div>
           )}
 
-          {/* إحصائيات سريعة */}
+          {/* إحصائيات سريعة - تحديث فوري */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -181,9 +200,18 @@ const Dashboard = () => {
                 <StoreIcon className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stats.totalStores}</div>
+                <div className="text-2xl font-bold">
+                  {(() => {
+                    const storeFromStorage = localStorage.getItem('current_shopify_store');
+                    return (shop || storeFromStorage) ? 1 : 0;
+                  })()}
+                </div>
                 <p className="text-xs text-muted-foreground">
-                  متاجر Shopify مرتبطة
+                  {(() => {
+                    const storeFromStorage = localStorage.getItem('current_shopify_store');
+                    const connectedStore = shop || storeFromStorage;
+                    return connectedStore ? `متصل بـ ${connectedStore}` : 'متاجر Shopify مرتبطة';
+                  })()}
                 </p>
               </CardContent>
             </Card>
