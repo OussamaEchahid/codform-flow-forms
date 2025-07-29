@@ -104,7 +104,14 @@ const MyStores = () => {
     }
   };
 
-  const currentStore = simpleShopifyConnectionManager.getActiveStore();
+  // قراءة مباشرة من localStorage للاتساق مع الصفحات الأخرى
+  const getActiveStoreFromStorage = () => {
+    return localStorage.getItem('current_shopify_store') || 
+           localStorage.getItem('shopify_store') || 
+           null;
+  };
+  
+  const currentStore = getActiveStoreFromStorage() || simpleShopifyConnectionManager.getActiveStore();
 
   const handleConnectStore = async (shopDomain: string) => {
     setConnectingStore(shopDomain);
@@ -246,45 +253,62 @@ const MyStores = () => {
             </div>
           ) : (
             <>
-              {/* الحالة الحالية */}
+              {/* الحالة الحالية - تحديث فوري */}
               <div className="mb-6">
-                {currentStore ? (
-                  <Alert className="border-green-200 bg-green-50">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    <AlertDescription className="text-green-800 flex items-center justify-between">
-                      <span>
-                        <strong>متصل بـ:</strong> {currentStore}
-                      </span>
-                      <div className="flex gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={showDebugInfo}
-                          className="text-blue-600 border-blue-300 hover:bg-blue-50"
-                        >
-                          <Settings className="h-3 w-3 mr-1" />
-                          تصحيح
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={handleDisconnectAll}
-                          className="text-red-600 border-red-300 hover:bg-red-50"
-                        >
-                          <Power className="h-3 w-3 mr-1" />
-                          قطع الاتصال
-                        </Button>
-                      </div>
-                    </AlertDescription>
-                  </Alert>
-                ) : (
-                  <Alert className="border-amber-200 bg-amber-50">
-                    <AlertCircle className="h-4 w-4 text-amber-600" />
-                    <AlertDescription className="text-amber-800">
-                      <strong>لا يوجد اتصال نشط.</strong> يرجى اختيار متجر من القائمة أدناه.
-                    </AlertDescription>
-                  </Alert>
-                )}
+                {(() => {
+                  // التحقق من localStorage مباشرة
+                  const activeStore = getActiveStoreFromStorage();
+                  console.log('🔍 MyStores - Active store check:', {
+                    activeStore,
+                    currentStore,
+                    localStorage: localStorage.getItem('current_shopify_store'),
+                    stores: stores.map(s => s.shop)
+                  });
+                  
+                  if (activeStore) {
+                    return (
+                      <Alert className="border-green-200 bg-green-50">
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        <AlertDescription className="text-green-800 flex items-center justify-between">
+                          <span>
+                            <strong>✅ متصل بـ:</strong> {activeStore}
+                            <br />
+                            <small className="text-green-600">الاتصال نشط ويعمل بشكل صحيح</small>
+                          </span>
+                          <div className="flex gap-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={showDebugInfo}
+                              className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                            >
+                              <Settings className="h-3 w-3 mr-1" />
+                              تصحيح
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={handleDisconnectAll}
+                              className="text-red-600 border-red-300 hover:bg-red-50"
+                            >
+                              <Power className="h-3 w-3 mr-1" />
+                              قطع الاتصال
+                            </Button>
+                          </div>
+                        </AlertDescription>
+                      </Alert>
+                    );
+                  } else {
+                    return (
+                      <Alert className="border-amber-200 bg-amber-50">
+                        <AlertCircle className="h-4 w-4 text-amber-600" />
+                        <AlertDescription className="text-amber-800">
+                          <strong>❌ لا يوجد اتصال نشط.</strong> يرجى اختيار متجر من القائمة أدناه.
+                        </AlertDescription>
+                      </Alert>
+                    );
+                  }
+                })()}
               </div>
 
               {/* قائمة المتاجر */}

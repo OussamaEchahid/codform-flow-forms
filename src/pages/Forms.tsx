@@ -26,12 +26,22 @@ const Forms = () => {
   const [activeStore, setActiveStore] = useState<string | null>(null);
 
   useEffect(() => {
-    // التحقق من المتجر النشط
-    const store = simpleShopifyConnectionManager.getActiveStore();
+    // التحقق من المتجر النشط من localStorage مباشرة
+    const getStoreFromStorage = () => {
+      return localStorage.getItem('current_shopify_store') || 
+             localStorage.getItem('shopify_store') || 
+             null;
+    };
+    
+    const store = getStoreFromStorage();
     setActiveStore(store);
     setIsLoading(false);
     
-    console.log('📄 Forms page loaded, active store:', store);
+    console.log('📄 Forms page loaded:', {
+      store,
+      localStorage: localStorage.getItem('current_shopify_store'),
+      connectionManager: simpleShopifyConnectionManager.getActiveStore()
+    });
   }, []);
 
   if (isLoading) {
