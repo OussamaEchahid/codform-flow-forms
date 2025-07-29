@@ -79,11 +79,11 @@ const FormList: React.FC<FormListProps> = ({
     }
   }, [retryCount, retryAttempts]);
 
-  // Fetch associated products for each form
+  // Fetch associated products for each form - with reduced frequency
   useEffect(() => {
     const fetchProductAssociations = async () => {
       if (!forms.length || offlineMode) {
-        console.log('Skipping product fetch - no forms or offline mode', { formsCount: forms.length, offlineMode });
+        console.log('Skipping product fetch - no forms or offline mode');
         setEnhancedForms(forms);
         return;
       }
@@ -92,10 +92,10 @@ const FormList: React.FC<FormListProps> = ({
       setIsLoadingProducts(true);
       
       try {
-        // Get all product settings
+        // Get all product settings - simplified query
         const { data: productSettings, error } = await supabase
           .from('shopify_product_settings')
-          .select('*')
+          .select('form_id, product_id')
           .in('form_id', forms.map(form => form.id));
           
         if (error) {
@@ -103,8 +103,6 @@ const FormList: React.FC<FormListProps> = ({
           setEnhancedForms(forms);
           return;
         }
-        
-        console.log('✅ تم جلب إعدادات المنتج:', productSettings);
         
         // Group product IDs by form ID
         const productsByForm = productSettings?.reduce((acc, setting) => {
@@ -115,111 +113,14 @@ const FormList: React.FC<FormListProps> = ({
           return acc;
         }, {} as Record<string, string[]>) || {};
         
-        console.log('📊 تجميع المنتجات حسب النموذج:', productsByForm);
-        
-        // Get all unique product IDs
-        const allProductIds = [...new Set(productSettings?.map(s => s.product_id) || [])];
-        
-        if (allProductIds.length === 0) {
-          console.log('⚠️ لا توجد معرفات منتجات، استخدام النماذج كما هي');
-          setEnhancedForms(forms);
-          return;
-        }
-        
-        console.log('🎯 جلب تفاصيل المنتجات للمعرفات:', allProductIds);
-        
-        const shopId = localStorage.getItem('shopify_store');
-        if (!shopId) {
-          console.error('❌ لم يتم العثور على معرف المتجر في localStorage');
-          setEnhancedForms(forms);
-          return;
-        }
-        
-        // Fetch product details from Shopify API via our edge function
-        const productsMap = new Map<string, { id: string; title: string; image: string }>();
-        
-        try {
-          console.log('🚀 استدعاء edge function مع:', { shop: shopId, productIds: allProductIds });
-          
-          const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-products`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M`
-            },
-            body: JSON.stringify({
-              shop: shopId,
-              productIds: allProductIds
-            })
-          });
-          
-          console.log('📡 استجابة edge function:', response.status);
-          
-          if (response.ok) {
-            const data = await response.json();
-            console.log('📦 بيانات استجابة edge function:', data);
-            
-            if (data.success && data.products) {
-              data.products.forEach((product: any) => {
-                const originalId = String(product.id);
-                const cleanId = originalId.replace('gid://shopify/Product/', '');
-                
-                let imageUrl = '/placeholder.svg';
-                
-                if (product.featuredImage) {
-                  imageUrl = product.featuredImage;
-                } else if (product.images && product.images.length > 0) {
-                  imageUrl = product.images[0];
-                } else if (product.image) {
-                  imageUrl = product.image;
-                }
-                
-                console.log('🔧 معالجة المنتج:', { 
-                  originalId, 
-                  cleanId, 
-                  title: product.title, 
-                  image: imageUrl
-                });
-                
-                const productData = {
-                  id: cleanId,
-                  title: product.title || `منتج ${cleanId}`,
-                  image: imageUrl
-                };
-                
-                productsMap.set(cleanId, productData);
-                productsMap.set(originalId, productData);
-              });
-              
-              console.log('🗺️ خريطة المنتجات المنشأة:', productsMap);
-            } else {
-              console.error('❌ edge function أرجع استجابة غير ناجحة:', data);
-            }
-          } else {
-            console.error('❌ خطأ HTTP في edge function:', response.status, response.statusText);
-          }
-        } catch (fetchError) {
-          console.error('❌ خطأ في استدعاء edge function:', fetchError);
-        }
-        
-        // Enhance the forms with associated products
+        // Enhance the forms with product count only (no detailed fetch to reduce API calls)
         const formsWithProducts = forms.map(form => {
           const productIds = productsByForm[form.id] || [];
-          console.log(`📋 النموذج ${form.id} يحتوي على معرفات المنتجات:`, productIds);
-          
-          const associatedProducts = productIds.map(id => {
-            const product = productsMap.get(id) || productsMap.get(String(id).replace('gid://shopify/Product/', ''));
-            if (!product) {
-              return {
-                id: String(id).replace('gid://shopify/Product/', ''),
-                title: `منتج ${String(id).replace('gid://shopify/Product/', '')}`,
-                image: '/placeholder.svg'
-              };
-            }
-            return product;
-          });
-          
-          console.log(`📋 المنتجات المرتبطة النهائية للنموذج ${form.id}:`, associatedProducts);
+          const associatedProducts = productIds.map(id => ({
+            id: String(id).replace('gid://shopify/Product/', ''),
+            title: `منتج ${String(id).replace('gid://shopify/Product/', '')}`,
+            image: '/placeholder.svg'
+          }));
           
           return {
             ...form,
@@ -227,7 +128,6 @@ const FormList: React.FC<FormListProps> = ({
           };
         });
         
-        console.log('🎉 النماذج المحسّنة النهائية:', formsWithProducts);
         setEnhancedForms(formsWithProducts);
       } catch (error) {
         console.error('❌ خطأ في تحسين النماذج بالمنتجات:', error);
@@ -237,8 +137,13 @@ const FormList: React.FC<FormListProps> = ({
       }
     };
     
-    fetchProductAssociations();
-  }, [forms, offlineMode]);
+    // Only fetch if forms actually changed, and debounce it
+    const timeoutId = setTimeout(() => {
+      fetchProductAssociations();
+    }, 500);
+    
+    return () => clearTimeout(timeoutId);
+  }, [forms.length, offlineMode]); // Only depend on forms.length, not the entire forms array
 
   const handlePublishToggle = async (formId: string, currentStatus: boolean) => {
     if (isOperating) {

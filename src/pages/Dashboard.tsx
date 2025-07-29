@@ -41,28 +41,15 @@ const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    console.log('🔴 Dashboard useEffect - user:', user?.id);
-    console.log('🔴 Dashboard useEffect - shops:', shops);
-    console.log('🔴 Dashboard useEffect - shop:', shop);
-    console.log('🔴 Dashboard useEffect - shopifyConnected:', shopifyConnected);
-    
     if (user) {
-      console.log('✅ User exists, calling loadDashboardData');
       loadDashboardData();
     } else {
-      console.log('❌ No user, setting loading to false');
       setIsLoading(false);
     }
-  }, [user, shops, shop, shopifyConnected]);
+  }, [user?.id]); // Only depend on user ID
 
   const loadDashboardData = async () => {
-    console.log('🔄 بدء تحميل بيانات لوحة التحكم للمستخدم:', user?.id);
-    console.log('📋 المتاجر من AuthProvider:', shops);
-    console.log('🎯 المتجر النشط من AuthProvider:', shop);
-    console.log('✅ حالة الاتصال بـ Shopify:', shopifyConnected);
-    
     if (!user?.id) {
-      console.log('❌ لا يوجد معرف مستخدم');
       setIsLoading(false);
       return;
     }
@@ -84,12 +71,8 @@ const Dashboard = () => {
       
       const { data: formsData, error: formsError } = await formsQuery;
       
-      console.log('📝 نتائج النماذج للمتجر', shop, ':', { formsData, formsError });
-      
       if (!formsError && formsData) {
         formsCount = formsData.length;
-      } else if (formsError) {
-        console.error('❌ خطأ في جلب النماذج:', formsError);
       }
       
       // جلب عدد الإرسالات للنماذج الخاصة بالمتجر النشط
@@ -99,20 +82,10 @@ const Dashboard = () => {
           .select('id, form_id')
           .in('form_id', formsData.map(f => f.id.toString()));
         
-        console.log('📋 نتائج الإرسالات للمتجر', shop, ':', { submissionsData, submissionsError });
-        
         if (!submissionsError && submissionsData) {
           submissionsCount = submissionsData.length;
-        } else if (submissionsError) {
-          console.error('❌ خطأ في جلب الإرسالات:', submissionsError);
         }
       }
-      
-      console.log('📊 إحصائيات مفصلة للمتجر', shop, ':', {
-        formsCount,
-        submissionsCount,
-        storesCount: shops?.length || 0
-      });
       
     } catch (error) {
       console.error('❌ خطأ في جلب البيانات:', error);
@@ -129,14 +102,6 @@ const Dashboard = () => {
     });
 
     setIsLoading(false);
-    
-    console.log('✅ إحصائيات لوحة التحكم النهائية:', {
-      stores: storesCount,
-      forms: formsCount,
-      orders: submissionsCount,
-      activeStore: shop,
-      shopifyConnected
-    });
   };
 
   if (isLoading) {

@@ -76,20 +76,15 @@ export const useFormTemplates = () => {
           const parsedForms = JSON.parse(cachedForms);
           if (Array.isArray(parsedForms) && parsedForms.length > 0) {
             setForms(parsedForms);
-            toast.warning('جاري استخدام النماذج المخزنة محليًا، قد لا تكون محدثة');
           }
         } catch (e) {
           console.error('Error parsing cached forms:', e);
         }
       }
-      
-      if (!cachedForms) {
-        toast.error('تعذر الاتصال بالخادم وعدم وجود نماذج مخزنة محليًا');
-      }
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, []); // Remove all dependencies to reduce refetching
 
   // Watch for shop changes and refetch forms
   useEffect(() => {

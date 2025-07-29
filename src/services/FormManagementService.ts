@@ -52,14 +52,12 @@ export class FormManagementService {
     
     for (const source of sources) {
       const shopId = localStorage.getItem(source);
-      console.log(`  - ${source}: ${shopId}`);
       if (shopId && shopId !== 'null' && shopId.trim() !== '') {
         console.log(`📍 Using active shop ID from ${source}: ${shopId}`);
         return shopId;
       }
     }
     
-    console.log('⚠️ No active shop ID found in any localStorage key');
     return null;
   }
 

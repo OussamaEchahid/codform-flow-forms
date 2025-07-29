@@ -106,9 +106,13 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
       
       setProductCounts(counts);
     } catch (error) {
-      console.error('Error in fetchProductCounts:', error);
+      console.error('Error fetching product counts:', error);
     }
-  }, [formList, offlineMode]);
+  }, [formList.length, offlineMode]); // Only depend on formList.length
+  
+  useEffect(() => {
+    fetchProductCounts();
+  }, [fetchProductCounts]);
   
   useEffect(() => {
     fetchProductCounts();
