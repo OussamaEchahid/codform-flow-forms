@@ -63,6 +63,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               await autoLinkOrphanStores(session.user.id);
               // ربط المتجر من URL إذا وُجد
               await linkStoreFromUrl(session.user.id);
+              // إزالة علامة الحاجة للربط
+              localStorage.removeItem('shopify_needs_linking');
             }
           }, 0);
         }
@@ -91,9 +93,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         // إذا وجدنا shop في URL، احفظه فوراً
         if (shopFromUrl) {
-          console.log(`🏪 وجدت متجر في URL: ${shopFromUrl} - سيتم حفظه`);
+          console.log(`🏪 وجدت متجر في URL: ${shopFromUrl} - سيتم حفظه وربطه`);
           simpleShopifyConnectionManager.setActiveStore(shopFromUrl);
           localStorage.setItem('shopify_url_shop', shopFromUrl);
+          localStorage.setItem('shopify_needs_linking', 'true');
         }
         
         // إذا وجدنا host، حاول استخراج shop منه
@@ -105,6 +108,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               console.log(`🏪 استخراج متجر من host: ${shopFromHost}`);
               simpleShopifyConnectionManager.setActiveStore(shopFromHost);
               localStorage.setItem('shopify_url_shop', shopFromHost);
+              localStorage.setItem('shopify_needs_linking', 'true');
             }
           } catch (error) {
             console.error('❌ خطأ في فك تشفير host:', error);
@@ -115,6 +119,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         if (error) {
           console.error('❌ خطأ في جلب الجلسة:', error);
+          
+          // إذا كان هناك متجر من URL ولا توجد جلسة، أجبر تسجيل الدخول المجهول
+          if (localStorage.getItem('shopify_needs_linking') === 'true') {
+            console.log('🔐 لا توجد جلسة نشطة لكن هناك متجر يحتاج ربط - تسجيل دخول مجهول');
+            await handleAnonymousSignIn();
+          }
+          
           setLoading(false);
           return;
         }
@@ -133,6 +144,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           await autoLinkOrphanStores(session.user.id);
           // ربط المتجر من URL إذا وُجد
           await linkStoreFromUrl(session.user.id);
+        } else if (localStorage.getItem('shopify_needs_linking') === 'true') {
+          // إذا لا توجد جلسة لكن هناك متجر يحتاج ربط، أجبر تسجيل الدخول
+          console.log('🔐 لا توجد جلسة لكن هناك متجر يحتاج ربط - تسجيل دخول مجهول');
+          await handleAnonymousSignIn();
         } else {
           console.log('❌ لا يوجد مستخدم نشط');
         }
@@ -273,6 +288,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (error) {
       console.error('❌ خطأ في ربط المتجر من URL:', error);
+    }
+  };
+
+  // تسجيل دخول مجهول لربط المتجر
+  const handleAnonymousSignIn = async () => {
+    try {
+      console.log('🔐 بدء تسجيل دخول مجهول لربط المتجر...');
+      
+      // إنشاء حساب مجهول مؤقت
+      const randomEmail = `temp_${Date.now()}@tempuser.com`;
+      const randomPassword = `temp_${Math.random().toString(36)}`;
+      
+      const { data, error } = await supabase.auth.signUp({
+        email: randomEmail,
+        password: randomPassword,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`
+        }
+      });
+      
+      if (error) {
+        console.error('❌ خطأ في تسجيل الدخول المجهول:', error);
+        // إذا فشل التسجيل، حاول تسجيل الدخول العادي
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email: randomEmail,
+          password: randomPassword
+        });
+        
+        if (signInError) {
+          console.error('❌ فشل تسجيل الدخول المجهول تماماً');
+          return;
+        }
+      }
+      
+      console.log('✅ تم تسجيل الدخول المجهول بنجاح');
+      
+    } catch (error) {
+      console.error('❌ خطأ في معالجة تسجيل الدخول المجهول:', error);
     }
   };
 
