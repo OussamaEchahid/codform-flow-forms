@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/components/layout/AuthProvider';
 import { useI18n } from '@/lib/i18n';
 import { supabase } from '@/integrations/supabase/client';
+import { cleanupAuthState, forceSignOut } from '@/utils/auth-cleanup';
 import { simpleShopifyConnectionManager } from '@/lib/shopify/simple-connection-manager';
 import AppSidebar from '@/components/layout/AppSidebar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -153,19 +154,31 @@ const Dashboard = () => {
                 </AlertDescription>
               </Alert>
             ) : (
-              <Alert className="border-amber-200 bg-amber-50">
-                <AlertCircle className="h-4 w-4 text-amber-600" />
-                <AlertDescription className="text-amber-800 flex items-center justify-between">
-                  <span>
-                    <strong>لا يوجد متجر نشط.</strong> يرجى ربط متجر Shopify أولاً.
-                  </span>
-                  <Button 
-                    size="sm" 
-                    onClick={() => navigate('/my-stores')}
-                    className="bg-blue-600 hover:bg-blue-700"
-                  >
-                    إدارة المتاجر
-                  </Button>
+              <Alert className="border-red-200 bg-red-50">
+                <AlertCircle className="h-4 w-4 text-red-600" />
+                <AlertDescription className="text-red-800">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <strong>جلسة منتهية الصلاحية.</strong> يرجى تسجيل الدخول مرة أخرى.
+                    </div>
+                    <div className="flex gap-2">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => cleanupAuthState()}
+                        className="border-red-300 text-red-700 hover:bg-red-100"
+                      >
+                        تنظيف البيانات
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        onClick={() => forceSignOut(supabase)}
+                        className="bg-red-600 hover:bg-red-700"
+                      >
+                        تسجيل دخول جديد
+                      </Button>
+                    </div>
+                  </div>
                 </AlertDescription>
               </Alert>
             )}
