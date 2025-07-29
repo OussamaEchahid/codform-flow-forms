@@ -93,8 +93,8 @@ export class FormManagementService {
 
       if (session?.user?.id && activeShopId) {
         // User has both traditional auth AND active shop - get forms for both
-        console.log(`🔄 Using hybrid auth - user_id: ${session.user.id} OR shop_id: ${activeShopId}`);
-        query = query.or(`user_id.eq.${session.user.id},shop_id.eq.${activeShopId}`);
+        console.log(`🔄 Using hybrid auth - user_id: ${session.user.id} OR (default_user AND shop_id: ${activeShopId})`);
+        query = query.or(`user_id.eq.${session.user.id},and(user_id.eq.36d7eb85-0c45-4b4f-bea1-a9cb732ca893,shop_id.eq.${activeShopId})`);
       } else if (session?.user?.id) {
         // Traditional authentication only - filter by user_id
         console.log(`🔑 Using traditional auth only - filtering by user_id: ${session.user.id}`);
