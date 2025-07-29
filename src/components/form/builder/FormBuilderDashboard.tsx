@@ -87,10 +87,14 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
     
     // استخدام UnifiedStoreManager للحصول على المتجر النشط
     const getActiveShopId = (): string | null => {      
-      const activeShop = UnifiedStoreManager.getActiveStore();
-      if (activeShop) {
-        console.log('🏪 Found active shop from UnifiedStoreManager:', activeShop);
-        return activeShop;
+      try {
+        const activeShop = UnifiedStoreManager.getActiveStore();
+        if (activeShop) {
+          console.log('🏪 Found active shop from UnifiedStoreManager:', activeShop);
+          return activeShop;
+        }
+      } catch (error) {
+        console.error('Error getting active shop:', error);
       }
       
       // Fallback للمصادر الأخرى في حالة الضرورة فقط

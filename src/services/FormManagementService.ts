@@ -51,10 +51,10 @@ export class FormManagementService {
 
   // Get current active shop ID using UnifiedStoreManager
   private getActiveShopId(): string | null {
-    // Import UnifiedStoreManager here to avoid circular dependency
     try {
-      const { getActiveStore } = require('@/utils/unified-store-manager');
-      const activeStore = getActiveStore();
+      // استيراد UnifiedStoreManager بطريقة صحيحة
+      const UnifiedStoreManager = require('@/utils/unified-store-manager').default;
+      const activeStore = UnifiedStoreManager.getActiveStore();
       
       if (activeStore) {
         console.log(`📍 Active shop ID from UnifiedStoreManager: ${activeStore}`);

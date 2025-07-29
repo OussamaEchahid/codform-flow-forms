@@ -48,8 +48,9 @@ export const useFormTemplates = () => {
   // Get current active shop ID using UnifiedStoreManager
   const getActiveShopId = () => {
     try {
-      const { getActiveStore } = require('@/utils/unified-store-manager');
-      return shop || getActiveStore();
+      // استيراد UnifiedStoreManager بطريقة صحيحة
+      const UnifiedStoreManager = require('@/utils/unified-store-manager').default;
+      return shop || UnifiedStoreManager.getActiveStore();
     } catch (error) {
       console.error('Error getting active store:', error);
       return shop || '';
