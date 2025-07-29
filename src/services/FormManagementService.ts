@@ -67,22 +67,32 @@ export class FormManagementService {
       const { data: { session } } = await supabase.auth.getSession();
       const activeShopId = this.getActiveShopId();
       
+      // Get user email from localStorage for Shopify authentication
+      const shopifyUserEmail = localStorage.getItem('shopify_user_email');
+      const activeStore = localStorage.getItem('current_shopify_store');
+      
       console.log('🔍 Fetching forms with context:', {
         hasSession: !!session,
         userId: session?.user?.id,
+        shopifyUserEmail,
+        activeStore,
         activeShopId,
         timestamp: new Date().toISOString()
       });
 
-      if (!session?.user?.id) {
-        console.log('⚠️ No authenticated user - returning empty forms list');
+      // For Shopify authentication, use email from localStorage
+      if (!session?.user?.id && !shopifyUserEmail) {
+        console.log('⚠️ No authenticated user (traditional or Shopify) - returning empty forms list');
         return [];
       }
+
+      // Use either traditional user ID or Shopify email as identifier
+      const userIdentifier = session?.user?.id || shopifyUserEmail;
 
       let query = supabase
         .from('forms')
         .select('*')
-        .eq('user_id', session.user.id)
+        .eq('user_id', userIdentifier)
         .order('created_at', { ascending: false });
 
       // Apply additional filtering by shop if available
