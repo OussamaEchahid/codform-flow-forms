@@ -36,6 +36,16 @@ export const getActiveShopId = (): string | null => {
   
   console.log(`🔍 عدد القيم الموجودة: ${allValues.length}`);
   
+  // إذا لم توجد قيم في localStorage، استخدم المتجر الافتراضي
+  if (allValues.length === 0) {
+    const defaultStore = 'test-klawi.myshopify.com'; // المتجر الذي رأيناه في console
+    console.log(`🔧 لم توجد قيم في localStorage، استخدام المتجر الافتراضي: ${defaultStore}`);
+    
+    // تعيين المتجر الافتراضي
+    setActiveShopId(defaultStore);
+    return defaultStore;
+  }
+  
   // البحث عن أول متجر صحيح
   for (const item of allValues) {
     console.log(`🔍 التحقق من صحة المتجر: ${item.value}`);
