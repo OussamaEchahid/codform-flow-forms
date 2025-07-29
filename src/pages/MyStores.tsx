@@ -39,12 +39,8 @@ const MyStores = () => {
   const { user, session, isShopifyAuthenticated } = useAuth();
 
   useEffect(() => {
-    // أولوية للـ Shopify authentication، ثم للـ traditional authentication
-    if (isShopifyAuthenticated || (user && session)) {
-      fetchUserStores();
-    } else {
-      setLoading(false);
-    }
+    // تحميل المتاجر في جميع الحالات (مع أو بدون مصادقة تقليدية)
+    fetchUserStores();
   }, [user, session, isShopifyAuthenticated]);
 
   const fetchUserStores = async () => {

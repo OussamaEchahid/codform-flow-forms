@@ -154,12 +154,14 @@ const Dashboard = () => {
                 const activeStore = localStorage.getItem('current_shopify_store');
                 const userEmail = localStorage.getItem('shopify_user_email');
                 
-                if (activeStore) {
+                // إظهار البروفايل إذا كان هناك متجر نشط أو مستخدم مصادق تقليدياً
+                if (activeStore || user) {
                   return (
                     <div className="flex items-center gap-4">
                       <div className="text-right">
-                        <p className="font-medium text-sm">{activeStore}</p>
+                        <p className="font-medium text-sm">{activeStore || user?.email}</p>
                         {userEmail && <p className="text-xs text-muted-foreground">{userEmail}</p>}
+                        {user && !activeStore && <p className="text-xs text-muted-foreground">Traditional Auth</p>}
                       </div>
                       <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center">
                         <StoreIcon className="h-6 w-6 text-white" />
@@ -173,7 +175,7 @@ const Dashboard = () => {
           </div>
 
           {/* حالة الاتصال بالمتجر - إظهار واضح */}
-          {(user || isShopifyAuthenticated) && (
+          {(user || isShopifyAuthenticated || localStorage.getItem('current_shopify_store')) && (
             <div className="mb-6">
               {/* التحقق من localStorage مباشرة للتأكد */}
               {(() => {
