@@ -73,19 +73,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
-    // جلب الجلسة الحالية
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!isMounted) return;
-      
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        fetchUserStores(session.user.id);
+    // جلب الجلسة الحالية مع معلومات إضافية
+    const getInitialSession = async () => {
+      try {
+        console.log('🔍 AuthProvider - جاري جلب الجلسة الحالية...');
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('❌ خطأ في جلب الجلسة:', error);
+          setLoading(false);
+          return;
+        }
+        
+        console.log('📋 الجلسة:', session ? `موجودة للمستخدم ${session.user.email}` : 'غير موجودة');
+        
+        if (!isMounted) return;
+        
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          console.log('✅ تم العثور على مستخدم نشط:', session.user.email);
+          await fetchUserStores(session.user.id);
+        } else {
+          console.log('❌ لا يوجد مستخدم نشط');
+        }
+        
+        setLoading(false);
+      } catch (error) {
+        console.error('❌ خطأ في تهيئة الجلسة:', error);
+        setLoading(false);
       }
-      
-      setLoading(false);
-    });
+    };
+
+    getInitialSession();
 
     return () => {
       isMounted = false;
