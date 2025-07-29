@@ -118,25 +118,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('📋 المتاجر المستلمة:', storeList);
       setShops(storeList);
       
-      // مزامنة حالة localStorage مع قاعدة البيانات
+      // التحقق من صحة المتجر النشط الحالي
+      const currentActiveStore = simpleShopifyConnectionManager.getActiveStore();
+      console.log('🔍 المتجر النشط الحالي:', currentActiveStore);
+      
       if (storeList.length > 0) {
-        const activeStore = simpleShopifyConnectionManager.getActiveStore();
+        let validStoreFound = false;
         
-        console.log('🔄 مزامنة المتاجر - المتجر النشط الحالي:', activeStore);
-        console.log('🔄 المتاجر المتوفرة:', storeList);
-        
-        // إذا لم يكن هناك متجر نشط أو المتجر غير موجود في القائمة
-        if (!activeStore || !storeList.includes(activeStore)) {
-          const firstStore = storeList[0];
-          console.log(`🔄 تعيين المتجر النشط الجديد: ${firstStore}`);
-          
-          // تحديث localStorage مع المتجر الأول
-          simpleShopifyConnectionManager.setActiveStore(firstStore);
+        // إذا كان هناك متجر نشط، تحقق من صحته
+        if (currentActiveStore && storeList.includes(currentActiveStore)) {
+          console.log(`✅ المتجر النشط صحيح: ${currentActiveStore}`);
           localStorage.setItem('shopify_connected', 'true');
+          validStoreFound = true;
         } else {
-          // التأكد من أن حالة الاتصال محدثة
-          console.log(`✅ المتجر النشط صحيح: ${activeStore}`);
+          // إذا لم يكن المتجر النشط صحيحاً، اختر أول متجر متاح
+          const firstValidStore = storeList[0];
+          console.log(`🔄 تعيين متجر نشط جديد: ${firstValidStore}`);
+          
+          // مسح البيانات القديمة وتعيين المتجر الجديد
+          simpleShopifyConnectionManager.setActiveStore(firstValidStore);
           localStorage.setItem('shopify_connected', 'true');
+          validStoreFound = true;
+        }
+        
+        if (!validStoreFound) {
+          console.log('❌ لم يتم العثور على متجر صالح');
+          simpleShopifyConnectionManager.disconnect();
         }
       } else {
         // لا توجد متاجر متصلة

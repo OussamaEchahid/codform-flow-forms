@@ -108,11 +108,13 @@ class SimpleShopifyConnectionManager {
   }
   
   /**
-   * مسح جميع البيانات
+   * مسح جميع البيانات وإعادة تعيين حالة نظيفة
    */
   private clearAllData(): void {
     try {
-      // قائمة بجميع مفاتيح Shopify
+      console.log('🧹 مسح جميع بيانات Shopify...');
+      
+      // قائمة بجميع مفاتيح Shopify المحتملة
       const shopifyKeys = [
         this.ACTIVE_STORE_KEY,
         'shopify_store',
@@ -128,7 +130,8 @@ class SimpleShopifyConnectionManager {
         'shopify_connection_success',
         'shopify_connection_timestamp',
         'shopify_last_error',
-        'shopify_recovery_attempt'
+        'shopify_recovery_attempt',
+        'active_shop'
       ];
       
       // مسح المفاتيح المحددة
@@ -145,8 +148,53 @@ class SimpleShopifyConnectionManager {
         }
       });
       
+      console.log('✅ تم مسح جميع البيانات');
+      
     } catch (error) {
       console.error('Error clearing data:', error);
+    }
+  }
+  
+  /**
+   * تحديث المتجر النشط مع التحقق من صحة البيانات
+   */
+  public async validateAndSetActiveStore(domain: string, forceUpdate: boolean = false): Promise<boolean> {
+    try {
+      const cleanedDomain = cleanShopifyDomain(domain);
+      
+      if (!cleanedDomain) {
+        console.error('Invalid domain provided');
+        return false;
+      }
+      
+      console.log(`🔍 التحقق من صحة المتجر: ${cleanedDomain}`);
+      
+      // التحقق من وجود المتجر في قاعدة البيانات
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { data: storeData, error } = await supabase
+        .from('shopify_stores')
+        .select('shop, access_token, is_active')
+        .eq('shop', cleanedDomain)
+        .eq('is_active', true)
+        .single();
+      
+      if (error || !storeData || !storeData.access_token) {
+        console.error(`❌ المتجر ${cleanedDomain} غير موجود أو غير نشط في قاعدة البيانات`);
+        return false;
+      }
+      
+      console.log(`✅ تم التحقق من صحة المتجر: ${cleanedDomain}`);
+      
+      // تعيين المتجر النشط
+      if (forceUpdate || this.getActiveStore() !== cleanedDomain) {
+        this.setActiveStore(cleanedDomain);
+      }
+      
+      return true;
+      
+    } catch (error) {
+      console.error('Error validating store:', error);
+      return false;
     }
   }
   

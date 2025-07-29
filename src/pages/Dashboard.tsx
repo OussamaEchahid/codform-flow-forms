@@ -4,6 +4,7 @@ import { useAuth } from '@/components/layout/AuthProvider';
 import { useI18n } from '@/lib/i18n';
 import { supabase } from '@/integrations/supabase/client';
 import { simpleShopifyConnectionManager } from '@/lib/shopify/simple-connection-manager';
+import { validateCurrentStore, fixStoreConnection } from '@/utils/store-validation';
 import AppSidebar from '@/components/layout/AppSidebar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -55,10 +56,15 @@ const Dashboard = () => {
       setIsLoading(true);
       console.log('📊 Loading dashboard data for user:', user?.email);
 
-      // الحصول على المتجر النشط
-      const activeStore = simpleShopifyConnectionManager.getActiveStore();
+      // أولاً: التحقق من صحة المتجر النشط وإصلاحه إذا لزم الأمر
+      const storeValidation = await validateCurrentStore(user?.id!);
+      
+      if (!storeValidation.isValid && storeValidation.recommendedStore) {
+        console.log('🔧 إصلاح المتجر النشط...');
+        await fixStoreConnection(user?.id!);
+      }
 
-      // جلب المتاجر أولاً
+      // ثانياً: جلب المتاجر المحدثة
       const storesResponse = await supabase.functions.invoke('store-link-manager', {
         body: {
           action: 'get_stores',
@@ -66,49 +72,43 @@ const Dashboard = () => {
         }
       });
 
-      // إذا وجدت المتاجر، تأكد من وجود متجر نشط
       const storesList = storesResponse.data?.stores || [];
-      console.log('📋 المتاجر المستلمة:', storesList);
+      console.log('📋 المتاجر المستلمة في Dashboard:', storesList);
 
-      // تأكد من وجود متجر نشط إذا كانت هناك متاجر متوفرة
-      if (storesList.length > 0 && !activeStore) {
-        const firstStore = storesList[0].shop;
-        console.log('🔄 تعيين المتجر النشط تلقائياً:', firstStore);
-        simpleShopifyConnectionManager.setActiveStore(firstStore);
+      // ثالثاً: جلب النماذج والطلبات بناءً على المتاجر الصحيحة
+      let forms: any[] = [];
+      let submissions: any[] = [];
+
+      if (storesList.length > 0) {
+        // جلب النماذج المرتبطة بالمتاجر أو المستخدم
+        const formsResult = await supabase
+          .from('forms')
+          .select('id, user_id, shop_id')
+          .or(`user_id.eq.${user?.id},shop_id.in.(${storesList.map((s: any) => `"${s.shop}"`).join(',')})`);
+
+        forms = formsResult.data || [];
+
+        // جلب الطلبات من form_submissions
+        if (forms.length > 0) {
+          const submissionsResult = await supabase
+            .from('form_submissions')
+            .select('id, form_id')
+            .in('form_id', forms.map(f => f.id));
+
+          submissions = submissionsResult.data || [];
+        }
       }
-
-      // جلب النماذج - البحث في جميع النماذج المرتبطة بالمستخدم أو المتاجر
-      const { data: forms, error: formsError } = await supabase
-        .from('forms')
-        .select('id, user_id, shop_id')
-        .or(`user_id.eq.${user?.id},shop_id.in.(${storesList.map(s => `"${s.shop}"`).join(',')})`);
-
-      if (formsError) {
-        console.error('❌ خطأ في جلب النماذج:', formsError);
-      }
-
-      // جلب الطلبات من form_submissions
-      const { data: submissions, error: submissionsError } = await supabase
-        .from('form_submissions')
-        .select('id, form_id')
-        .in('form_id', (forms || []).map(f => f.id));
-
-      if (submissionsError) {
-        console.error('❌ خطأ في جلب الطلبات:', submissionsError);
-      }
-
-      const totalOrders = submissions?.length || 0;
 
       setStats({
-        totalForms: forms?.length || 0,
-        totalOrders: totalOrders,
+        totalForms: forms.length,
+        totalOrders: submissions.length,
         totalStores: storesList.length,
         activeStore: simpleShopifyConnectionManager.getActiveStore()
       });
 
       console.log('📊 Dashboard stats loaded:', {
-        forms: forms?.length || 0,
-        orders: totalOrders,
+        forms: forms.length,
+        orders: submissions.length,
         stores: storesList.length,
         activeStore: simpleShopifyConnectionManager.getActiveStore()
       });
