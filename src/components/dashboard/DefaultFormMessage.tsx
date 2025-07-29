@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { FileText, Plus } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
+import NewFormProductDialog from '@/components/form/builder/NewFormProductDialog';
 
 interface DefaultFormMessageProps {
-  onCreateForm: () => void;
+  onCreateForm?: () => void;
   isLoading?: boolean;
 }
 
@@ -14,6 +15,12 @@ const DefaultFormMessage: React.FC<DefaultFormMessageProps> = ({
   isLoading = false
 }) => {
   const { language } = useI18n();
+  const [isNewFormDialogOpen, setIsNewFormDialogOpen] = useState(false);
+
+  const handleCreateForm = () => {
+    console.log('🎯 DefaultFormMessage - زر إنشاء النموذج تم النقر عليه');
+    setIsNewFormDialogOpen(true);
+  };
 
   return (
     <div className="container mx-auto py-8">
@@ -37,7 +44,7 @@ const DefaultFormMessage: React.FC<DefaultFormMessageProps> = ({
           
           <div className="space-y-4">
             <Button 
-              onClick={onCreateForm}
+              onClick={handleCreateForm}
               disabled={isLoading}
               size="lg"
               className="w-full max-w-xs mx-auto flex items-center gap-2"
@@ -59,6 +66,12 @@ const DefaultFormMessage: React.FC<DefaultFormMessageProps> = ({
           </div>
         </CardContent>
       </Card>
+
+      {/* New Form Product Dialog */}
+      <NewFormProductDialog 
+        open={isNewFormDialogOpen} 
+        onClose={() => setIsNewFormDialogOpen(false)} 
+      />
     </div>
   );
 };
