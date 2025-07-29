@@ -52,69 +52,90 @@ const Dashboard = () => {
   }, [user]);
 
   const loadDashboardData = async () => {
+    if (!user?.id) return;
+    
+    setIsLoading(true);
     try {
-      setIsLoading(true);
-      console.log('📊 Loading dashboard data for user:', user?.email);
+      console.log('🔄 بدء تحميل بيانات لوحة التحكم...');
 
-      // أولاً: التحقق من صحة المتجر النشط وإصلاحه إذا لزم الأمر
-      const storeValidation = await validateCurrentStore(user?.id!);
+      // الحصول على معلومات المتاجر المرتبطة مباشرة من قاعدة البيانات
+      const { data: storeResponse, error: storeError } = await supabase.functions.invoke(
+        'store-link-manager',
+        {
+          body: {
+            action: 'get_stores',
+            userId: user.id
+          }
+        }
+      );
+
+      if (storeError) {
+        throw new Error(`Store fetch error: ${storeError.message}`);
+      }
+
+      const linkedStores = storeResponse?.stores || [];
+      const storeIds = linkedStores.map((store: any) => store.shop);
       
-      if (!storeValidation.isValid && storeValidation.recommendedStore) {
-        console.log('🔧 إصلاح المتجر النشط...');
-        await fixStoreConnection(user?.id!);
+      console.log(`📊 عدد المتاجر المرتبطة: ${linkedStores.length}`);
+      console.log('🏪 المتاجر:', storeIds);
+
+      // إذا كان هناك متاجر، تأكد من وجود متجر نشط
+      if (storeIds.length > 0) {
+        const currentActive = simpleShopifyConnectionManager.getActiveStore();
+        if (!currentActive || !storeIds.includes(currentActive)) {
+          simpleShopifyConnectionManager.setActiveStore(storeIds[0]);
+          console.log(`🎯 تم تعيين ${storeIds[0]} كمتجر نشط`);
+        }
+      }
+      
+      // جلب النماذج مباشرة من قاعدة البيانات
+      const { data: forms, error: formsError } = await supabase
+        .from('forms')
+        .select('id, shop_id, user_id')
+        .eq('user_id', user.id);
+
+      if (formsError) {
+        console.error('Error fetching forms:', formsError);
       }
 
-      // ثانياً: جلب المتاجر المحدثة
-      const storesResponse = await supabase.functions.invoke('store-link-manager', {
-        body: {
-          action: 'get_stores',
-          userId: user?.id
-        }
-      });
+      console.log(`📋 عدد النماذج: ${forms?.length || 0}`);
 
-      const storesList = storesResponse.data?.stores || [];
-      console.log('📋 المتاجر المستلمة في Dashboard:', storesList);
-
-      // ثالثاً: جلب النماذج والطلبات بناءً على المتاجر الصحيحة
-      let forms: any[] = [];
+      // جلب الطلبات مباشرة من قاعدة البيانات
+      const formIds = forms?.map(form => form.id) || [];
       let submissions: any[] = [];
+      
+      if (formIds.length > 0) {
+        const { data: submissionsData, error: submissionsError } = await supabase
+          .from('form_submissions')
+          .select('id, form_id')
+          .in('form_id', formIds);
 
-      if (storesList.length > 0) {
-        // جلب النماذج المرتبطة بالمتاجر أو المستخدم
-        const formsResult = await supabase
-          .from('forms')
-          .select('id, user_id, shop_id')
-          .or(`user_id.eq.${user?.id},shop_id.in.(${storesList.map((s: any) => `"${s.shop}"`).join(',')})`);
-
-        forms = formsResult.data || [];
-
-        // جلب الطلبات من form_submissions
-        if (forms.length > 0) {
-          const submissionsResult = await supabase
-            .from('form_submissions')
-            .select('id, form_id')
-            .in('form_id', forms.map(f => f.id));
-
-          submissions = submissionsResult.data || [];
+        if (submissionsError) {
+          console.error('Error fetching submissions:', submissionsError);
+        } else {
+          submissions = submissionsData || [];
         }
       }
 
+      console.log(`📦 عدد الطلبات: ${submissions.length}`);
+
+      // تحديث الإحصائيات
       setStats({
-        totalForms: forms.length,
+        totalStores: linkedStores.length,
+        totalForms: forms?.length || 0,
         totalOrders: submissions.length,
-        totalStores: storesList.length,
         activeStore: simpleShopifyConnectionManager.getActiveStore()
       });
 
-      console.log('📊 Dashboard stats loaded:', {
-        forms: forms.length,
+      console.log('✅ تم تحميل بيانات لوحة التحكم بنجاح:', {
+        stores: linkedStores.length,
+        forms: forms?.length || 0,
         orders: submissions.length,
-        stores: storesList.length,
         activeStore: simpleShopifyConnectionManager.getActiveStore()
       });
 
     } catch (error) {
-      console.error('❌ Error loading dashboard data:', error);
+      console.error('❌ خطأ في تحميل بيانات لوحة التحكم:', error);
       toast({
         title: "خطأ في تحميل البيانات",
         description: "فشل في تحميل بيانات لوحة التحكم",
