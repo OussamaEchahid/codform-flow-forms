@@ -174,8 +174,11 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
   );
   
   const handleCreateForm = () => {
+    console.log('🎯 زر إنشاء النموذج تم النقر عليه');
+    console.log('📌 الحالة الحالية لـ isNewFormDialogOpen:', isNewFormDialogOpen);
     // فتح النافذة المنبثقة لاختيار تفاصيل النموذج
     setIsNewFormDialogOpen(true);
+    console.log('✅ تم تعيين isNewFormDialogOpen إلى true');
   };
   
   const handleDeleteForm = async (formId: string) => {
