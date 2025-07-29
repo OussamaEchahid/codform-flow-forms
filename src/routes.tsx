@@ -34,6 +34,7 @@ import Profile from '@/pages/Profile';
 import ThankYou from '@/pages/ThankYou';
 import LandingPages from '@/pages/LandingPages';
 import MyStores from '@/pages/MyStores';
+import EnhancedMyStores from '@/pages/EnhancedMyStores';
 
 export const routes: RouteObject[] = [
   {
@@ -65,7 +66,7 @@ export const routes: RouteObject[] = [
     path: '/my-stores',
     element: (
       <ProtectedRoute requireAuth={true}>
-        <MyStores />
+        <EnhancedMyStores />
       </ProtectedRoute>
     ),
   },

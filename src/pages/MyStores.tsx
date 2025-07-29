@@ -49,8 +49,21 @@ const MyStores = () => {
   const fetchUserStores = async () => {
     try {
       setLoading(true);
-      console.log('📦 Loading stores for user:', user?.email);
+      console.log('📦 جاري تحميل المتاجر للمستخدم:', user?.email);
 
+      // أولاً: التحقق من صحة المتجر النشط
+      const { validateCurrentStore, fixStoreConnection } = await import('@/utils/store-validation');
+      const validation = await validateCurrentStore(user?.id!);
+      
+      console.log('🔍 نتيجة التحقق من المتاجر:', validation);
+
+      // إصلاح المتجر إذا لزم الأمر
+      if (!validation.isValid && validation.recommendedStore) {
+        console.log('🔧 إصلاح اتصال المتجر...');
+        await fixStoreConnection(user?.id!);
+      }
+
+      // ثانياً: جلب المتاجر من قاعدة البيانات
       const response = await supabase.functions.invoke('store-link-manager', {
         body: {
           action: 'get_stores',
@@ -58,20 +71,32 @@ const MyStores = () => {
         }
       });
 
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
       if (response.data?.stores) {
         const storesList = response.data.stores;
-        console.log('✅ Loaded stores:', storesList);
+        console.log('✅ تم تحميل المتاجر:', storesList);
         setStores(storesList);
+        
+        // التأكد من مزامنة المتجر النشط
+        const currentStore = simpleShopifyConnectionManager.getActiveStore();
+        if (!currentStore && storesList.length > 0) {
+          const firstStore = storesList[0].shop;
+          console.log(`🔄 تعيين المتجر النشط تلقائياً: ${firstStore}`);
+          simpleShopifyConnectionManager.setActiveStore(firstStore);
+        }
       } else {
-        console.log('⚠️ No stores found');
+        console.log('⚠️ لم يتم العثور على متاجر');
         setStores([]);
       }
       
     } catch (err: any) {
-      console.error('❌ Error fetching stores:', err);
+      console.error('❌ خطأ في تحميل المتاجر:', err);
       toast({
         title: "خطأ في تحميل المتاجر",
-        description: "فشل في تحميل المتاجر المرتبطة بحسابك",
+        description: err.message || "فشل في تحميل المتاجر المرتبطة بحسابك",
         variant: "destructive"
       });
     } finally {

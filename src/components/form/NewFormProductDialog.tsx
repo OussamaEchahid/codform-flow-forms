@@ -47,34 +47,38 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({
       
       console.log('🛍️ جلب المنتجات للمتجر:', shop);
       
-      const response = await fetch('https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-products', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M`
-        },
-        body: JSON.stringify({
+      // استخدام supabase functions بدلاً من fetch مباشر
+      const { supabase } = await import('@/integrations/supabase/client');
+      
+      const response = await supabase.functions.invoke('shopify-products', {
+        body: {
           shop: shop,
-          action: 'fetch_all'
-        })
+          refresh: true, // إجبار إعادة تحديث المنتجات
+          includeTestProducts: false
+        }
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      if (response.error) {
+        throw new Error(response.error.message || 'فشل في الاتصال بخدمة المنتجات');
       }
 
-      const result = await response.json();
+      const result = response.data;
       
-      if (result.success && result.products) {
+      if (result?.success && result?.products) {
         setProducts(result.products);
-        console.log(`✅ تم جلب ${result.products.length} منتج`);
+        console.log(`✅ تم جلب ${result.products.length} منتج من ${shop}`);
+        
+        if (result.products.length === 0) {
+          setError('لا توجد منتجات في هذا المتجر');
+        }
       } else {
-        throw new Error(result.error || 'فشل في جلب المنتجات');
+        throw new Error(result?.message || 'فشل في جلب المنتجات');
       }
     } catch (error) {
       console.error('❌ خطأ في جلب المنتجات:', error);
-      setError(error instanceof Error ? error.message : 'خطأ في جلب المنتجات');
-      toast.error('فشل في تحميل المنتجات');
+      const errorMessage = error instanceof Error ? error.message : 'خطأ في جلب المنتجات';
+      setError(errorMessage);
+      toast.error(`فشل في تحميل المنتجات: ${errorMessage}`);
     } finally {
       setIsLoadingProducts(false);
     }
