@@ -79,16 +79,29 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
   const fetchProductCounts = useCallback(async () => {
     if (formList.length === 0 || offlineMode) return;
     
+    // Get active shop ID
+    const activeShop = localStorage.getItem('current_shopify_store') || 
+                      localStorage.getItem('activeShopId') ||
+                      (window as any).SHOPIFY_SHOP_DOMAIN;
+    
+    if (!activeShop) {
+      console.log('⚠️ No active shop found for product counts');
+      return;
+    }
+    
     const formIds = formList.map(form => form.id);
     
     try {
+      console.log('📊 Fetching product counts for shop:', activeShop, 'forms:', formIds.length);
+      
       const { data, error } = await supabase
         .from('shopify_product_settings')
         .select('form_id, product_id')
+        .eq('shop_id', activeShop)  // تأكد من تفلير بالمتجر النشط
         .in('form_id', formIds);
         
       if (error) {
-        console.error('Error fetching product associations:', error);
+        console.error('❌ Error fetching product associations:', error);
         return;
       }
       
@@ -104,9 +117,10 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
         });
       }
       
+      console.log('✅ Product counts for shop', activeShop, ':', counts);
       setProductCounts(counts);
     } catch (error) {
-      console.error('Error fetching product counts:', error);
+      console.error('❌ Error fetching product counts:', error);
     }
   }, [formList.length, offlineMode]); // Only depend on formList.length
   
