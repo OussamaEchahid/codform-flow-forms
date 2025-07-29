@@ -19,7 +19,7 @@ import { useI18n } from '@/lib/i18n';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/layout/AuthProvider';
 import { supabase } from '@/integrations/supabase/client';
-import { simpleShopifyConnectionManager } from '@/lib/shopify/simple-connection-manager';
+import UnifiedStoreManager from '@/utils/unified-store-manager';
 import AppSidebar from '@/components/layout/AppSidebar';
 
 interface Store {
@@ -47,8 +47,8 @@ const MyStores = () => {
     try {
       setLoading(true);
       
-      // الحصول على المتجر النشط من localStorage
-      const activeStore = localStorage.getItem('current_shopify_store');
+      // الحصول على المتجر النشط من UnifiedStoreManager
+      const activeStore = UnifiedStoreManager.getActiveStore();
       const userEmail = localStorage.getItem('shopify_user_email');
       
       console.log('📦 المتجر النشط من localStorage:', activeStore);
@@ -83,14 +83,8 @@ const MyStores = () => {
     }
   };
 
-  // قراءة مباشرة من localStorage للاتساق مع الصفحات الأخرى
-  const getActiveStoreFromStorage = () => {
-    return localStorage.getItem('current_shopify_store') || 
-           localStorage.getItem('shopify_store') || 
-           null;
-  };
-  
-  const currentStore = getActiveStoreFromStorage() || simpleShopifyConnectionManager.getActiveStore();
+  // استخدام UnifiedStoreManager للاتساق
+  const currentStore = UnifiedStoreManager.getActiveStore();
 
   const handleConnectStore = async (shopDomain: string) => {
     setConnectingStore(shopDomain);
@@ -133,12 +127,12 @@ const MyStores = () => {
     try {
       console.log(`🔄 تبديل إلى المتجر: ${shopDomain}`);
       
-      // تحديث المتجر النشط في localStorage
-      simpleShopifyConnectionManager.setActiveStore(shopDomain);
+      // تحديث المتجر النشط باستخدام UnifiedStoreManager
+      const success = UnifiedStoreManager.setActiveStore(shopDomain);
       
       // التأكد من أن المتجر تم تعيينه بنجاح
-      const newActiveStore = simpleShopifyConnectionManager.getActiveStore();
-      console.log(`✅ تم التبديل بنجاح إلى: ${newActiveStore}`);
+      const newActiveStore = UnifiedStoreManager.getActiveStore();
+      console.log(`✅ تم التبديل بنجاح إلى: ${newActiveStore}`, 'Success:', success);
       
       toast({
         title: "تم التبديل بنجاح",
@@ -162,9 +156,10 @@ const MyStores = () => {
 
   const handleDisconnectAll = () => {
     try {
-      localStorage.removeItem('shopify_store');
-      localStorage.removeItem('shopify_connected');
-      localStorage.removeItem('simple_active_store');
+      // استخدام UnifiedStoreManager لتنظيف كل شيء
+      UnifiedStoreManager.clearActiveStore();
+      // إجراء صيانة شاملة لضمان التنظيف الكامل
+      UnifiedStoreManager.performMaintenance();
       
       toast({
         title: "تم قطع الاتصال",
@@ -180,16 +175,13 @@ const MyStores = () => {
   };
 
   const showDebugInfo = () => {
-    const activeStore = simpleShopifyConnectionManager.getActiveStore();
+    const activeStore = UnifiedStoreManager.getActiveStore();
+    const diagnosticInfo = UnifiedStoreManager.getDiagnosticInfo();
     console.log('🐛 Debug Info:', { 
       currentStore, 
       activeStore,
       storesCount: stores.length,
-      localStorage: {
-        shopify_store: localStorage.getItem('shopify_store'),
-        simple_active_store: localStorage.getItem('simple_active_store'),
-        shopify_connected: localStorage.getItem('shopify_connected')
-      }
+      diagnosticInfo
     });
     
     toast({
@@ -235,12 +227,12 @@ const MyStores = () => {
               {/* الحالة الحالية - تحديث فوري */}
               <div className="mb-6">
                 {(() => {
-                  // التحقق من localStorage مباشرة
-                  const activeStore = getActiveStoreFromStorage();
+                  // التحقق من UnifiedStoreManager مباشرة
+                  const activeStore = UnifiedStoreManager.getActiveStore();
                   console.log('🔍 MyStores - Active store check:', {
                     activeStore,
                     currentStore,
-                    localStorage: localStorage.getItem('current_shopify_store'),
+                    diagnosticInfo: UnifiedStoreManager.getDiagnosticInfo(),
                     stores: stores.map(s => s.shop)
                   });
                   

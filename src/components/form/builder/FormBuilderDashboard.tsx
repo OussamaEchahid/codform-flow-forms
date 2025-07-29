@@ -22,6 +22,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
+import UnifiedStoreManager from '@/utils/unified-store-manager';
 import NewFormProductDialog from './NewFormProductDialog';
 import ProductManagementModal from '../ProductManagementModal';
 
@@ -79,21 +80,23 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
   const fetchProductCounts = useCallback(async () => {
     if (formList.length === 0 || offlineMode) return;
     
-    // Get active shop ID using localStorage directly
+    // استخدام UnifiedStoreManager للحصول على المتجر النشط
     const getActiveShopId = (): string | null => {      
-      // Try multiple sources for the active shop
-      const sources = [
-        localStorage.getItem('current_shopify_store'),
-        localStorage.getItem('shopify_store'),
-        localStorage.getItem('activeShopId'),
+      const activeShop = UnifiedStoreManager.getActiveStore();
+      if (activeShop) {
+        console.log('🏪 Found active shop from UnifiedStoreManager:', activeShop);
+        return activeShop;
+      }
+      
+      // Fallback للمصادر الأخرى في حالة الضرورة فقط
+      const fallbackSources = [
         (window as any).SHOPIFY_SHOP_DOMAIN,
-        // Check from URL params if we're in form-builder
         new URLSearchParams(window.location.search).get('shop')
       ];
       
-      for (const source of sources) {
+      for (const source of fallbackSources) {
         if (source && source.trim() !== '') {
-          console.log('🏪 Found active shop from source:', source);
+          console.log('🏪 Found active shop from fallback source:', source);
           return source.trim();
         }
       }
@@ -110,11 +113,11 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
       return;
     }
     
-    // Update localStorage with the correct shop if it's different
-    const currentStoredShop = localStorage.getItem('current_shopify_store');
-    if (currentStoredShop !== activeShop) {
-      console.log('🔄 Updating stored shop from', currentStoredShop, 'to', activeShop);
-      localStorage.setItem('current_shopify_store', activeShop);
+    // التأكد من أن UnifiedStoreManager يدير المتجر بشكل صحيح
+    const currentStoredShop = UnifiedStoreManager.getActiveStore();
+    if (currentStoredShop !== activeShop && activeShop) {
+      console.log('🔄 Updating active shop via UnifiedStoreManager from', currentStoredShop, 'to', activeShop);
+      UnifiedStoreManager.setActiveStore(activeShop);
     }
     
     const formIds = formList.map(form => form.id);

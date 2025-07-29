@@ -4,7 +4,7 @@ import { useAuth } from '@/components/layout/AuthProvider';
 import { useI18n } from '@/lib/i18n';
 import { supabase } from '@/integrations/supabase/client';
 import { cleanupAuthState, forceSignOut } from '@/utils/auth-cleanup';
-import { simpleShopifyConnectionManager } from '@/lib/shopify/simple-connection-manager';
+import UnifiedStoreManager from '@/utils/unified-store-manager';
 import AppSidebar from '@/components/layout/AppSidebar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -33,14 +33,16 @@ const Dashboard = () => {
   const { user, shops, shop, shopifyConnected, isShopifyAuthenticated } = useAuth();
   const { language } = useI18n();
   
-  // إظهار حالة الاتصال بوضوح
+  // إظهار حالة الاتصال بوضوح باستخدام UnifiedStoreManager
+  const activeStoreFromManager = UnifiedStoreManager.getActiveStore();
   console.log('🎯 Dashboard - Auth State:', {
     user: !!user,
     shops,
     shop,
     shopifyConnected,
     isShopifyAuthenticated,
-    localStorage: localStorage.getItem('current_shopify_store')
+    activeStoreFromManager,
+    unified: UnifiedStoreManager.getDiagnosticInfo()
   });
   
   const [stats, setStats] = useState<DashboardStats>({
@@ -61,8 +63,8 @@ const Dashboard = () => {
   }, [user?.id, isShopifyAuthenticated]); // Depend on both auth types
 
   const loadDashboardData = async () => {
-    // في حالة Shopify authentication، استخدم activeStore كـ user identifier
-    const activeStore = localStorage.getItem('current_shopify_store');
+    // استخدام UnifiedStoreManager للحصول على المتجر النشط
+    const activeStore = UnifiedStoreManager.getActiveStore();
     const userIdentifier = user?.id || activeStore;
     
     if (!userIdentifier) {
@@ -151,7 +153,7 @@ const Dashboard = () => {
               
               {/* أيقونة البروفايل */}
               {(() => {
-                const activeStore = localStorage.getItem('current_shopify_store');
+                const activeStore = UnifiedStoreManager.getActiveStore();
                 const userEmail = localStorage.getItem('shopify_user_email');
                 
                 // إظهار البروفايل إذا كان هناك متجر نشط أو مستخدم مصادق تقليدياً
@@ -175,12 +177,12 @@ const Dashboard = () => {
           </div>
 
           {/* حالة الاتصال بالمتجر - إظهار واضح */}
-          {(user || isShopifyAuthenticated || localStorage.getItem('current_shopify_store')) && (
+          {(user || isShopifyAuthenticated || UnifiedStoreManager.getActiveStore()) && (
             <div className="mb-6">
-              {/* التحقق من localStorage مباشرة للتأكد */}
+              {/* التحقق من UnifiedStoreManager للتأكد */}
               {(() => {
-                const storeFromStorage = localStorage.getItem('current_shopify_store');
-                const connectedStore = shop || storeFromStorage;
+                const storeFromManager = UnifiedStoreManager.getActiveStore();
+                const connectedStore = shop || storeFromManager;
                 
                 if (connectedStore) {
                   return (
@@ -235,14 +237,14 @@ const Dashboard = () => {
               <CardContent>
                 <div className="text-2xl font-bold">
                   {(() => {
-                    const storeFromStorage = localStorage.getItem('current_shopify_store');
-                    return (shop || storeFromStorage) ? 1 : 0;
+                    const storeFromManager = UnifiedStoreManager.getActiveStore();
+                    return (shop || storeFromManager) ? 1 : 0;
                   })()}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {(() => {
-                    const storeFromStorage = localStorage.getItem('current_shopify_store');
-                    const connectedStore = shop || storeFromStorage;
+                    const storeFromManager = UnifiedStoreManager.getActiveStore();
+                    const connectedStore = shop || storeFromManager;
                     return connectedStore ? `متصل بـ ${connectedStore}` : 'متاجر Shopify مرتبطة';
                   })()}
                 </p>
