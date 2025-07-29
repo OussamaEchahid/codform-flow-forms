@@ -55,17 +55,21 @@ export const useShopifyStores = () => {
       const currentActiveStore = simpleShopifyConnectionManager.getActiveStore();
       const storesList = fetchedStores.map((s: ShopifyStore) => s.shop);
 
-      if (!currentActiveStore || !storesList.includes(currentActiveStore)) {
-        // تعيين أول متجر متاح كمتجر نشط
+      if (!currentActiveStore) {
+        // فقط إذا لم يكن هناك متجر نشط على الإطلاق
         if (storesList.length > 0) {
           const firstStore = storesList[0];
-          console.log(`🔄 تعيين ${firstStore} كمتجر نشط`);
+          console.log(`🔄 لا يوجد متجر نشط - تعيين: ${firstStore}`);
           simpleShopifyConnectionManager.setActiveStore(firstStore);
           setActiveStore(firstStore);
         } else {
           simpleShopifyConnectionManager.disconnect();
           setActiveStore(null);
         }
+      } else if (!storesList.includes(currentActiveStore)) {
+        // إذا كان المتجر النشط غير موجود في القائمة، احتفظ به ولكن اعتبره غير متصل
+        console.log(`⚠️ المتجر النشط ${currentActiveStore} غير موجود في قائمة المتاجر`);
+        setActiveStore(currentActiveStore);
       } else {
         setActiveStore(currentActiveStore);
       }
@@ -115,7 +119,7 @@ export const useShopifyStores = () => {
     fetchStores();
   }, [user?.id]);
 
-  // مراقبة تغييرات localStorage للمتجر النشط
+  // مراقبة تغييرات localStorage للمتجر النشط (بدون فحص دوري)
   useEffect(() => {
     const handleStorageChange = () => {
       const currentStore = simpleShopifyConnectionManager.getActiveStore();
@@ -124,11 +128,10 @@ export const useShopifyStores = () => {
       }
     };
 
-    const interval = setInterval(handleStorageChange, 1000);
+    // فقط مراقبة تغييرات التخزين، بدون فحص دوري
     window.addEventListener('storage', handleStorageChange);
 
     return () => {
-      clearInterval(interval);
       window.removeEventListener('storage', handleStorageChange);
     };
   }, [activeStore]);

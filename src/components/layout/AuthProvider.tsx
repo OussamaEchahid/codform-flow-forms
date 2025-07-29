@@ -151,12 +151,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.log(`✅ المتجر النشط صحيح: ${currentActiveStore}`);
           localStorage.setItem('shopify_connected', 'true');
           validStoreFound = true;
+        } else if (currentActiveStore) {
+          // إذا كان هناك متجر نشط ولكن غير موجود في القائمة، لا تغيّره
+          console.log(`⚠️ المتجر النشط ${currentActiveStore} غير موجود في قائمة المتاجر المتاحة`);
+          // لا تقم بتغيير المتجر النشط تلقائياً
+          localStorage.setItem('shopify_connected', 'false');
+          validStoreFound = false;
         } else {
-          // إذا لم يكن المتجر النشط صحيحاً، اختر أول متجر متاح
+          // فقط إذا لم يكن هناك متجر نشط على الإطلاق
           const firstValidStore = storeList[0];
-          console.log(`🔄 تعيين متجر نشط جديد: ${firstValidStore}`);
+          console.log(`🔄 لا يوجد متجر نشط - تعيين: ${firstValidStore}`);
           
-          // مسح البيانات القديمة وتعيين المتجر الجديد
           simpleShopifyConnectionManager.setActiveStore(firstValidStore);
           localStorage.setItem('shopify_connected', 'true');
           validStoreFound = true;
@@ -266,11 +271,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // الحصول على المتجر النشط من localStorage
       let activeStore = simpleShopifyConnectionManager.getActiveStore();
       
-      // إذا لم يكن هناك متجر نشط أو المتجر غير صالح، اختر الأول من القائمة
-      if (!activeStore || !shops.includes(activeStore)) {
+      // فقط إذا لم يكن هناك متجر نشط على الإطلاق، اختر الأول من القائمة
+      if (!activeStore) {
         activeStore = shops[0];
         simpleShopifyConnectionManager.setActiveStore(activeStore);
-        console.log(`🔄 تم تعيين ${activeStore} كمتجر نشط`);
+        console.log(`🔄 لا يوجد متجر نشط - تم تعيين: ${activeStore}`);
+      } else if (!shops.includes(activeStore)) {
+        // إذا كان المتجر النشط غير موجود في القائمة، لا تغيّره تلقائياً
+        console.log(`⚠️ المتجر النشط ${activeStore} غير موجود في قائمة المتاجر`);
       }
 
       const isConnected = simpleShopifyConnectionManager.isConnected();
