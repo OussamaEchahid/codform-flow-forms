@@ -54,11 +54,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(session);
         setUser(session?.user ?? null);
         
-        // في حالة تسجيل الدخول بنجاح، جلب المتاجر
+        // في حالة تسجيل الدخول بنجاح، جلب المتاجر وربطها
         if (event === 'SIGNED_IN' && session?.user) {
-          setTimeout(() => {
+          setTimeout(async () => {
             if (isMounted) {
-              fetchUserStores(session.user.id);
+              await fetchUserStores(session.user.id);
+              // إضافة آلية لربط المتاجر غير المربوطة تلقائياً
+              await autoLinkOrphanStores(session.user.id);
             }
           }, 0);
         }
@@ -95,6 +97,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (session?.user) {
           console.log('✅ تم العثور على مستخدم نشط:', session.user.email);
           await fetchUserStores(session.user.id);
+          // ربط المتاجر غير المربوطة عند التهيئة
+          await autoLinkOrphanStores(session.user.id);
         } else {
           console.log('❌ لا يوجد مستخدم نشط');
         }
@@ -178,6 +182,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (error) {
       console.error('❌ خطأ في جلب متاجر المستخدم:', error);
+    }
+  };
+
+  // ربط المتاجر غير المربوطة تلقائياً
+  const autoLinkOrphanStores = async (userId: string) => {
+    try {
+      console.log('🔗 فحص المتاجر غير المربوطة وربطها بالمستخدم:', userId);
+      
+      // استدعاء edge function لربط المتاجر غير المربوطة
+      const response = await supabase.functions.invoke('store-link-manager', {
+        body: {
+          action: 'link_orphan_stores',
+          userId: userId
+        }
+      });
+
+      if (response.error) {
+        console.error('❌ خطأ في ربط المتاجر:', response.error);
+      } else {
+        console.log('✅ تم فحص وربط المتاجر بنجاح');
+      }
+    } catch (error) {
+      console.error('❌ خطأ في ربط المتاجر التلقائي:', error);
     }
   };
 

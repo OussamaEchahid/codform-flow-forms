@@ -7,7 +7,7 @@ const corsHeaders = {
 }
 
 interface StoreRequest {
-  action: 'link_store' | 'get_stores' | 'validate_access';
+  action: 'link_store' | 'get_stores' | 'validate_access' | 'link_orphan_stores';
   shop?: string;
   userId?: string;
   email?: string;
@@ -160,6 +160,77 @@ serve(async (req) => {
           JSON.stringify({ success: true, hasAccess: true }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
+      }
+
+      case 'link_orphan_stores': {
+        if (!userId) {
+          return new Response(
+            JSON.stringify({ success: false, error: 'Missing userId' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        console.log('🔗 ربط المتاجر غير المربوطة للمستخدم:', userId);
+
+        // البحث عن المتاجر النشطة غير المربوطة بأي مستخدم
+        const { data: orphanStores, error: fetchError } = await supabase
+          .from('shopify_stores')
+          .select('shop, access_token')
+          .eq('is_active', true)
+          .neq('access_token', 'null')
+          .neq('access_token', '')
+          .not('access_token', 'is', null)
+          .is('user_id', null);
+
+        if (fetchError) {
+          console.error('❌ خطأ في البحث عن المتاجر:', fetchError);
+          return new Response(
+            JSON.stringify({ success: false, error: fetchError.message }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        if (orphanStores && orphanStores.length > 0) {
+          console.log('📋 وجدت متاجر غير مربوطة:', orphanStores.length);
+          
+          // ربط جميع المتاجر غير المربوطة بالمستخدم الحالي
+          const { error: updateError } = await supabase
+            .from('shopify_stores')
+            .update({ user_id: userId, updated_at: new Date().toISOString() })
+            .eq('is_active', true)
+            .neq('access_token', 'null')
+            .neq('access_token', '')
+            .not('access_token', 'is', null)
+            .is('user_id', null);
+
+          if (updateError) {
+            console.error('❌ خطأ في ربط المتاجر:', updateError);
+            return new Response(
+              JSON.stringify({ success: false, error: updateError.message }),
+              { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+
+          console.log('✅ تم ربط المتاجر غير المربوطة بنجاح');
+          return new Response(
+            JSON.stringify({ 
+              success: true, 
+              linkedStores: orphanStores.length,
+              message: `تم ربط ${orphanStores.length} متجر بالمستخدم` 
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        } else {
+          console.log('✅ لا توجد متاجر غير مربوطة');
+          return new Response(
+            JSON.stringify({ 
+              success: true, 
+              linkedStores: 0,
+              message: 'لا توجد متاجر غير مربوطة' 
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
       }
 
       default:
