@@ -45,9 +45,15 @@ export const useFormTemplates = () => {
   const [offlineMode, setOfflineMode] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
 
-  // Get current active shop ID from localStorage if not available in context
+  // Get current active shop ID using UnifiedStoreManager
   const getActiveShopId = () => {
-    return shop || localStorage.getItem('simple_active_store') || localStorage.getItem('shopify_store') || localStorage.getItem('active_shop');
+    try {
+      const { getActiveStore } = require('@/utils/unified-store-manager');
+      return shop || getActiveStore();
+    } catch (error) {
+      console.error('Error getting active store:', error);
+      return shop || '';
+    }
   };
 
   // Track current shop to trigger refetch when it changes

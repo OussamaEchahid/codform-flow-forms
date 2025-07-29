@@ -49,27 +49,24 @@ export class FormManagementService {
     throw lastError;
   }
 
-  // Get current active shop ID
+  // Get current active shop ID using UnifiedStoreManager
   private getActiveShopId(): string | null {
-    // Try multiple sources for the shop ID with better logging
-    const sources = [
-      'current_shopify_store',
-      'simple_active_store',
-      'shopify_store', 
-      'active_shop'
-    ];
-    
-    console.log('🔍 Checking localStorage for shop ID...');
-    
-    for (const source of sources) {
-      const shopId = localStorage.getItem(source);
-      if (shopId && shopId !== 'null' && shopId.trim() !== '') {
-        console.log(`📍 Using active shop ID from ${source}: ${shopId}`);
-        return shopId;
+    // Import UnifiedStoreManager here to avoid circular dependency
+    try {
+      const { getActiveStore } = require('@/utils/unified-store-manager');
+      const activeStore = getActiveStore();
+      
+      if (activeStore) {
+        console.log(`📍 Active shop ID from UnifiedStoreManager: ${activeStore}`);
+        return activeStore;
       }
+      
+      console.log('⚠️ No active store found in UnifiedStoreManager');
+      return null;
+    } catch (error) {
+      console.error('❌ Error getting active store from UnifiedStoreManager:', error);
+      return null;
     }
-    
-    return null;
   }
 
   // Fetch all forms from database
