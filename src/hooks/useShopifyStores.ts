@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/layout/AuthProvider';
 import { supabase } from '@/integrations/supabase/client';
-import { simpleShopifyConnectionManager } from '@/lib/shopify/simple-connection-manager';
 
 interface ShopifyStore {
   shop: string;
   is_active: boolean;
-  access_token: string;
-  user_id: string;
+  access_token?: string;
+  user_id?: string;
   updated_at: string;
 }
 
@@ -18,127 +17,108 @@ export const useShopifyStores = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // جلب المتاجر من قاعدة البيانات
+  // جلب المتاجر مباشرة من قاعدة البيانات
   const fetchStores = async () => {
-    if (!user?.id) {
+    if (!user) {
       setStores([]);
-      setActiveStore(null);
       setIsLoading(false);
       return;
     }
 
+    setIsLoading(true);
+    setError(null);
+
     try {
-      setIsLoading(true);
-      setError(null);
+      console.log('🔍 Fetching stores for user:', user.id);
+      
+      // @ts-ignore - temporary fix for type issue
+      const { data, error } = await supabase
+        .from('shopify_stores')
+        .select('shop, is_active, access_token, updated_at')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .order('updated_at', { ascending: false }) as any;
 
-      // استخدام edge function للحصول على المتاجر
-      const { data: response, error: fetchError } = await supabase.functions.invoke(
-        'store-link-manager',
-        {
-          body: {
-            action: 'get_stores',
-            userId: user.id
-          }
-        }
-      );
-
-      if (fetchError) {
-        throw new Error(fetchError.message);
+      if (error) {
+        throw error;
       }
 
-      const fetchedStores = response?.stores || [];
-      setStores(fetchedStores);
+      console.log('📦 Stores loaded:', data);
 
-      console.log(`🏪 تم جلب ${fetchedStores.length} متجر من قاعدة البيانات`);
-
-      // التحقق من المتجر النشط وإصلاحه إذا لزم الأمر
-      const currentActiveStore = simpleShopifyConnectionManager.getActiveStore();
-      const storesList = fetchedStores.map((s: ShopifyStore) => s.shop);
-
-      if (!currentActiveStore) {
-        // فقط إذا لم يكن هناك متجر نشط على الإطلاق
-        if (storesList.length > 0) {
-          const firstStore = storesList[0];
-          console.log(`🔄 لا يوجد متجر نشط - تعيين: ${firstStore}`);
-          simpleShopifyConnectionManager.setActiveStore(firstStore);
+      if (data && data.length > 0) {
+        setStores(data);
+        
+        // تعيين المتجر النشط
+        const currentActive = localStorage.getItem('current_shopify_store');
+        if (!currentActive) {
+          const firstStore = data[0].shop;
+          localStorage.setItem('current_shopify_store', firstStore);
+          localStorage.setItem('shopify_connected', 'true');
           setActiveStore(firstStore);
+          console.log('✅ First store set as active:', firstStore);
         } else {
-          simpleShopifyConnectionManager.disconnect();
-          setActiveStore(null);
+          setActiveStore(currentActive);
+          console.log('✅ Using cached active store:', currentActive);
         }
-      } else if (!storesList.includes(currentActiveStore)) {
-        // إذا كان المتجر النشط غير موجود في القائمة، احتفظ به ولكن اعتبره غير متصل
-        console.log(`⚠️ المتجر النشط ${currentActiveStore} غير موجود في قائمة المتاجر`);
-        setActiveStore(currentActiveStore);
       } else {
-        setActiveStore(currentActiveStore);
+        setStores([]);
+        setActiveStore(null);
+        localStorage.removeItem('current_shopify_store');
+        localStorage.removeItem('shopify_connected');
       }
-
     } catch (err) {
-      console.error('Error fetching stores:', err);
-      setError(err instanceof Error ? err.message : 'خطأ في جلب المتاجر');
+      console.error('❌ Error fetching stores:', err);
+      setError('Failed to fetch stores');
       setStores([]);
-      setActiveStore(null);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // تغيير المتجر النشط
+  // تبديل المتجر النشط
   const switchStore = async (storeName: string): Promise<boolean> => {
     try {
-      // التحقق من أن المتجر موجود في القائمة
-      const store = stores.find(s => s.shop === storeName);
-      if (!store) {
-        console.error(`المتجر ${storeName} غير موجود في القائمة`);
-        return false;
-      }
-
-      console.log(`🔄 تبديل إلى المتجر: ${storeName}`);
+      console.log('🔄 Switching to store:', storeName);
       
-      // تعيين المتجر النشط
-      simpleShopifyConnectionManager.setActiveStore(storeName);
+      localStorage.setItem('current_shopify_store', storeName);
+      localStorage.setItem('shopify_connected', 'true');
       setActiveStore(storeName);
-
-      console.log(`✅ تم تبديل المتجر النشط إلى: ${storeName}`);
+      
+      console.log('✅ Store switched successfully');
       return true;
-
     } catch (error) {
-      console.error('Error switching store:', error);
+      console.error('❌ Error switching store:', error);
       return false;
     }
   };
 
-  // تحديث المتاجر (إعادة جلب)
   const refreshStores = () => {
-    fetchStores();
+    return fetchStores();
   };
 
-  // جلب المتاجر عند تحميل المكون أو تغيير المستخدم
   useEffect(() => {
-    fetchStores();
-  }, [user?.id]);
+    if (user) {
+      fetchStores();
+    }
+  }, [user]);
 
-  // مراقبة تغييرات localStorage للمتجر النشط (بدون فحص دوري)
+  // استمع لتغييرات localStorage
   useEffect(() => {
     const handleStorageChange = () => {
-      const currentStore = simpleShopifyConnectionManager.getActiveStore();
-      if (currentStore !== activeStore) {
-        setActiveStore(currentStore);
-      }
+      const currentStore = localStorage.getItem('current_shopify_store');
+      setActiveStore(currentStore);
     };
 
-    // فقط مراقبة تغييرات التخزين، بدون فحص دوري
     window.addEventListener('storage', handleStorageChange);
-
+    
     return () => {
       window.removeEventListener('storage', handleStorageChange);
     };
-  }, [activeStore]);
+  }, []);
 
   return {
     stores,
-    activeStore,
+    activeStore: activeStore || localStorage.getItem('current_shopify_store'),
     isLoading,
     error,
     fetchStores,
