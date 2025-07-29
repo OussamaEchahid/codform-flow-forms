@@ -79,8 +79,11 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
   const fetchProductCounts = useCallback(async () => {
     if (formList.length === 0 || offlineMode) return;
     
-    // Get active shop ID from multiple sources
+    // Get active shop ID using StoreManager for consistency
     const getActiveShopId = (): string | null => {
+      // Import StoreManager inside the function to avoid import issues
+      const StoreManager = require('@/utils/store-manager').StoreManager;
+      
       // Try multiple sources for the active shop
       const sources = [
         localStorage.getItem('current_shopify_store'),
@@ -97,6 +100,13 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
           console.log('🏪 Found active shop from source:', source);
           return source.trim();
         }
+      }
+      
+      // Use StoreManager as final fallback
+      const fallbackStore = StoreManager.getActiveStore();
+      if (fallbackStore) {
+        console.log('🏪 Using StoreManager fallback:', fallbackStore);
+        return fallbackStore;
       }
       
       console.warn('⚠️ No active shop found from any source');

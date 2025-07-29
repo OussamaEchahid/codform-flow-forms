@@ -10,7 +10,7 @@ import { useSimpleShopify } from '@/hooks/useSimpleShopify';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import QuantityOffersEditor from './QuantityOffersEditor';
 import QuantityOffersDisplay from './QuantityOffersDisplay';
-import { getActiveShopId } from '@/utils/shop-utils';
+import { StoreManager } from '@/utils/store-manager';
 
 interface Form {
   id: string;
@@ -62,8 +62,8 @@ const QuantityOffersManager: React.FC = () => {
       return activeStore;
     }
     
-    const fallbackStore = getActiveShopId();
-    console.log('🏪 Using fallback store:', fallbackStore);
+    const fallbackStore = StoreManager.getActiveStore();
+    console.log('🏪 Using fallback store via StoreManager:', fallbackStore);
     return fallbackStore;
   };
 

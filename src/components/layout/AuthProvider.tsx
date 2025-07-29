@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { StoreManager } from '@/utils/store-manager';
 
 interface AuthContextType {
   user: User | null;
@@ -33,17 +34,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   
-  // دالة مساعدة للحصول على المتجر من localStorage
-  const getStoreFromLocalStorage = (): string | null => {
-    try {
-      return localStorage.getItem('current_shopify_store') || 
-             localStorage.getItem('shopify_store') || 
-             null;
-    } catch {
-      return null;
-    }
-  };
-
   // دالة مساعدة للحصول على الإيميل من localStorage  
   const getEmailFromLocalStorage = (): string | null => {
     try {
@@ -53,22 +43,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
   
-  // الحالة الأساسية - تعتمد على localStorage في المقام الأول
-  const [activeStore, setActiveStore] = useState<string | null>(() => getStoreFromLocalStorage());
+  // الحالة الأساسية - تعتمد على StoreManager
+  const [activeStore, setActiveStore] = useState<string | null>(() => StoreManager.getActiveStore());
   const [shopifyUserEmail, setShopifyUserEmail] = useState<string | null>(() => getEmailFromLocalStorage());
   const [shops, setShops] = useState<string[] | null>(() => {
-    const store = getStoreFromLocalStorage();
+    const store = StoreManager.getActiveStore();
     return store ? [store] : null;
   });
   
-  // مراقبة localStorage للتحديثات الفورية
+  // مراقبة تغييرات المتجر باستخدام StoreManager
   useEffect(() => {
     const updateFromStorage = () => {
-      const currentStore = getStoreFromLocalStorage();
+      const currentStore = StoreManager.getActiveStore();
       const currentEmail = getEmailFromLocalStorage();
       
       if (currentStore !== activeStore) {
-        console.log('📱 AuthProvider - Store updated from localStorage:', currentStore);
+        console.log('📱 AuthProvider - Store updated via StoreManager:', currentStore);
         setActiveStore(currentStore);
         setShops(currentStore ? [currentStore] : null);
       }
@@ -82,13 +72,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // تحديث فوري
     updateFromStorage();
     
-    // مراقبة تغييرات localStorage
+    // مراقبة تغييرات المتجر
+    const unsubscribe = StoreManager.onStoreChange((store) => {
+      console.log('📱 AuthProvider - Store changed via StoreManager:', store);
+      setActiveStore(store);
+      setShops(store ? [store] : null);
+    });
+    
+    // مراقبة تغييرات localStorage التقليدية
     window.addEventListener('storage', updateFromStorage);
     
-    // تحديث دوري كل ثانية للتأكد من التزامن
-    const interval = setInterval(updateFromStorage, 1000);
+    // تحديث دوري للتأكد من التزامن
+    const interval = setInterval(updateFromStorage, 2000);
     
     return () => {
+      unsubscribe();
       window.removeEventListener('storage', updateFromStorage);
       clearInterval(interval);
     };
@@ -147,8 +145,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
-    // Clear all Shopify data
-    localStorage.removeItem('current_shopify_store');
+    // Clear all Shopify data using StoreManager
+    StoreManager.cleanup();
     localStorage.removeItem('shopify_user_email');
     localStorage.removeItem('shopify_connected');
     
@@ -164,7 +162,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const setShop = (shop: string) => {
-    localStorage.setItem('current_shopify_store', shop);
+    StoreManager.setActiveStore(shop);
     setActiveStore(shop);
     setShops([shop]);
     console.log('🏪 Shop set to:', shop);
