@@ -88,12 +88,12 @@ const FormBuilderPage = () => {
       <AppSidebar />
       
       <div className="flex-1 overflow-x-hidden">
-        {!formId || formId === 'new' ? (
-          // إنشاء نموذج جديد - عرض المحرر مباشرة
-          <FormBuilderEditor formId="new" shopId={activeStore || ''} />
+        {activeTab === 'dashboard' ? (
+          <FormBuilderDashboard />
         ) : (
-          // تعديل نموذج موجود
-          <FormBuilderEditor formId={formId} shopId={activeStore || ''} />
+          formId && formId !== 'new' && (
+            <FormBuilderEditor formId={formId} shopId={activeStore || ''} />
+          )
         )}
       </div>
     </div>

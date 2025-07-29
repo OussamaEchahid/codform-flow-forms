@@ -213,21 +213,13 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
       // Generate default form fields based on selected language
       const defaultFields = createDefaultFormFields(selectedLanguage);
       
-      // Sign in anonymously if not already authenticated
-      const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
+      // Get current user ID or use default for Shopify stores
+      const { data: { session } } = await supabase.auth.getSession();
+      let userId = session?.user?.id;
       
-      if (authError) {
-        console.error("Error with anonymous auth:", authError);
-        toast.error(language === 'ar' ? 'خطأ في المصادقة' : 'Authentication error');
-        setIsCreating(false);
-        return;
-      }
-      
-      const userId = authData.user?.id;
+      // If no traditional auth, use default user ID for Shopify stores
       if (!userId) {
-        toast.error(language === 'ar' ? 'خطأ في الحصول على معرف المستخدم' : 'Error getting user ID');
-        setIsCreating(false);
-        return;
+        userId = '36d7eb85-0c45-4b4f-bea1-a9cb732ca893';
       }
       
       // Create default form in database with language-specific title
@@ -299,6 +291,7 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
               form_id: newFormId,
               product_id: productId,
               shop_id: shopId,
+              user_id: userId,
               enabled: true
             });
           }
@@ -322,8 +315,8 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
       toast.success(language === 'ar' ? 'تم إنشاء النموذج بنجاح' : 'Form created successfully');
       onClose();
       
-      // Force refresh the current page to show the new form
-      window.location.reload();
+      // Navigate to form editor for the new form
+      navigate(`/form-builder/${newFormId}`);
     } catch (error) {
       console.error("Error in form creation process:", error);
       toast.error(language === 'ar' ? 'خطأ في إنشاء النموذج' : 'Error creating form');
