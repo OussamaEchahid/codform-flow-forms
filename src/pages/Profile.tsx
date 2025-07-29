@@ -1,346 +1,303 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, ArrowLeft, User, Lock, Mail } from 'lucide-react';
-import { toast } from 'sonner';
-import { useSimpleShopify } from '@/hooks/useSimpleShopify';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, User, Mail, Key, ShoppingBag, Calendar } from 'lucide-react';
+import { useAuth } from '@/components/layout/AuthProvider';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
+import { useShopifyStoreSync } from '@/hooks/useShopifyStoreSync';
 
 const Profile = () => {
-  const navigate = useNavigate();
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [updateLoading, setUpdateLoading] = useState(false);
+  const { user, signOut } = useAuth();
+  const { stores, loading: storesLoading } = useShopifyStoreSync();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
-  const [userMetadata, setUserMetadata] = useState<any>(null);
-  const [shopEmail, setShopEmail] = useState<string>('');
-  const [shopEmailLoading, setShopEmailLoading] = useState(true);
-  const { activeStore, isConnected } = useSimpleShopify();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
-  useEffect(() => {
-    const getUser = async () => {
-      try {
-        const { data: { user: currentUser }, error } = await supabase.auth.getUser();
-        if (error) {
-          console.error('Error getting user:', error);
-          navigate('/login');
-          return;
-        }
-        
-        if (!currentUser) {
-          navigate('/login');
-          return;
-        }
-
-        setUser(currentUser);
-        setUserMetadata(currentUser.user_metadata || {});
-      } catch (error) {
-        console.error('Error:', error);
-        navigate('/login');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    getUser();
-  }, [navigate]);
-
-  // جلب بيانات المتجر من Shopify API
-  useEffect(() => {
-    const fetchShopData = async () => {
-      if (!isConnected || !activeStore) {
-        setShopEmailLoading(false);
-        return;
-      }
-
-      setShopEmailLoading(true);
-      try {
-        // استخدام edge function الجديد لجلب معلومات المتجر
-        const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-shop-info`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
-          },
-          body: JSON.stringify({
-            shop: activeStore
-          })
-        });
-
-        if (response.ok) {
-          const result = await response.json();
-          if (result.success && result.shop?.email) {
-            setShopEmail(result.shop.email);
-          }
-        } else {
-          console.error('خطأ في جلب معلومات المتجر:', response.status, response.statusText);
-        }
-      } catch (error) {
-        console.error('Error fetching shop data:', error);
-      } finally {
-        setShopEmailLoading(false);
-      }
-    };
-
-    fetchShopData();
-  }, [isConnected, activeStore]);
+  const isAutoCreated = user?.user_metadata?.created_via === 'shopify_auto';
+  const hasTemporaryPassword = user?.user_metadata?.temp_password === true;
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    
+    setError(null);
+    setSuccess(null);
+
+    if (newPassword.length < 6) {
+      setError('كلمة المرور الجديدة يجب أن تكون 6 أحرف على الأقل');
+      return;
+    }
+
     if (newPassword !== confirmPassword) {
-      setError('كلمات المرور الجديدة غير متطابقة');
+      setError('كلمتا المرور غير متطابقتين');
       return;
     }
 
-    if (newPassword.length < 8) {
-      setError('كلمة المرور يجب أن تكون 8 أحرف على الأقل');
+    // For auto-created accounts, current password is not required
+    if (!isAutoCreated && !currentPassword) {
+      setError('يرجى إدخال كلمة المرور الحالية');
       return;
     }
 
-    if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(newPassword)) {
-      setError('كلمة المرور يجب أن تحتوي على حرف كبير وصغير ورقم على الأقل');
-      return;
-    }
-
-    setUpdateLoading(true);
+    setLoading(true);
 
     try {
-      // Update password
-      const { error: updateError } = await supabase.auth.updateUser({
+      const { error } = await supabase.auth.updateUser({
         password: newPassword
       });
 
-      if (updateError) {
-        throw updateError;
+      if (error) {
+        if (error.message.includes('New password should be different')) {
+          setError('كلمة المرور الجديدة يجب أن تكون مختلفة عن الحالية');
+        } else {
+          setError('حدث خطأ في تحديث كلمة المرور');
+        }
+        return;
       }
 
-      // Update user metadata to remove temp_password flag
-      if (userMetadata?.temp_password) {
-        const { error: metadataError } = await supabase.auth.updateUser({
-          data: {
-            ...userMetadata,
+      // Update user metadata to remove temp password flag
+      if (hasTemporaryPassword) {
+        await supabase.auth.updateUser({
+          data: { 
+            ...user?.user_metadata,
             temp_password: false,
             password_updated_at: new Date().toISOString()
           }
         });
-
-        if (metadataError) {
-          console.error('Failed to update metadata:', metadataError);
-        }
       }
 
-      toast.success('تم تغيير كلمة المرور بنجاح');
+      setSuccess('تم تحديث كلمة المرور بنجاح');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
       
-    } catch (error: any) {
-      console.error('Password update error:', error);
-      setError(error.message || 'حدث خطأ أثناء تغيير كلمة المرور');
+      toast({
+        title: "تم تحديث كلمة المرور",
+        description: "كلمة المرور الخاصة بك تم تحديثها بنجاح",
+      });
+
+    } catch (error) {
+      setError('حدث خطأ غير متوقع');
     } finally {
-      setUpdateLoading(false);
+      setLoading(false);
     }
   };
 
   const handleSignOut = async () => {
-    try {
-      await supabase.auth.signOut();
-      navigate('/login');
-    } catch (error) {
-      console.error('Sign out error:', error);
-    }
+    await signOut();
   };
 
-  if (loading || !user) {
+  if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p>جاري التحميل...</p>
-        </div>
+        <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-subtle p-4">
-      <div className="max-w-2xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <Button
-            variant="ghost"
-            onClick={() => navigate('/dashboard')}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            العودة إلى لوحة التحكم
-          </Button>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <User className="h-6 w-6" />
-            الملف الشخصي
-          </h1>
-        </div>
-
-        <div className="space-y-6">
-          {/* User Information Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Mail className="h-5 w-5" />
-                معلومات الحساب
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="email">البريد الإلكتروني للمتجر</Label>
-                <div className="relative">
-                  <Input
-                    id="email"
-                    type="email"
-                    value={shopEmailLoading ? 'جاري تحميل بيانات المتجر...' : (shopEmail || 'لم يتم جلب البريد الإلكتروني')}
-                    disabled
-                    className="bg-muted"
-                  />
-                  {shopEmailLoading && (
-                    <Loader2 className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin" />
-                  )}
-                </div>
-                {!shopEmailLoading && !shopEmail && isConnected && (
-                  <p className="text-sm text-muted-foreground mt-1">
-                    لم يتم العثور على بريد إلكتروني مرتبط بالمتجر {activeStore}
-                  </p>
-                )}
-                {!isConnected && (
-                  <p className="text-sm text-muted-foreground mt-1">
-                    يرجى ربط متجر Shopify لعرض البريد الإلكتروني
-                  </p>
-                )}
-              </div>
-              
-              {isConnected && activeStore && (
-                <div>
-                  <Label>المتجر المتصل</Label>
-                  <Input
-                    type="text"
-                    value={activeStore}
-                    disabled
-                    className="bg-muted"
-                  />
-                </div>
-              )}
-              
-              {userMetadata?.created_via === 'shopify_auto' && (
-                <div className="p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <p className="text-sm text-blue-700 dark:text-blue-300">
-                    تم إنشاء هذا الحساب تلقائياً عند ربط متجر Shopify الخاص بك
-                  </p>
-                </div>
-              )}
-
-              {userMetadata?.temp_password && (
-                <Alert>
-                  <AlertDescription>
-                    يُنصح بتغيير كلمة المرور الخاصة بك لضمان أمان الحساب
-                  </AlertDescription>
-                </Alert>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Password Change Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Lock className="h-5 w-5" />
-                تغيير كلمة المرور
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handlePasswordChange} className="space-y-4">
-                <div>
-                  <Label htmlFor="newPassword">كلمة المرور الجديدة</Label>
-                  <Input
-                    id="newPassword"
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="أدخل كلمة المرور الجديدة"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="confirmPassword">تأكيد كلمة المرور الجديدة</Label>
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="أعد إدخال كلمة المرور الجديدة"
-                    required
-                  />
-                </div>
-
-                {error && (
-                  <Alert variant="destructive">
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                )}
-
-                <div className="text-sm text-muted-foreground">
-                  <p>متطلبات كلمة المرور:</p>
-                  <ul className="list-disc list-inside space-y-1 mt-2">
-                    <li>8 أحرف على الأقل</li>
-                    <li>حرف كبير وحرف صغير</li>
-                    <li>رقم واحد على الأقل</li>
-                  </ul>
-                </div>
-
-                <Button
-                  type="submit"
-                  disabled={updateLoading || !newPassword || !confirmPassword}
-                  className="w-full"
-                >
-                  {updateLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      جاري التحديث...
-                    </>
-                  ) : (
-                    'تغيير كلمة المرور'
-                  )}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-
-          {/* Sign Out Section */}
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-medium">تسجيل الخروج</h3>
-                  <p className="text-sm text-muted-foreground">
-                    تسجيل الخروج من جميع الأجهزة
-                  </p>
-                </div>
-                <Button variant="outline" onClick={handleSignOut}>
-                  تسجيل الخروج
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+    <div className="container mx-auto p-6 space-y-6" dir="rtl">
+      <div className="flex items-center gap-3 mb-6">
+        <User className="h-6 w-6 text-primary" />
+        <h1 className="text-2xl font-bold">الملف الشخصي</h1>
       </div>
+
+      {/* معلومات الحساب */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Mail className="h-5 w-5" />
+            معلومات الحساب
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4">
+            <div>
+              <Label>البريد الإلكتروني</Label>
+              <div className="flex items-center gap-2 mt-1">
+                <Input value={user.email || ''} disabled className="bg-muted" />
+                {isAutoCreated && (
+                  <Badge variant="secondary" className="whitespace-nowrap">
+                    مرتبط بـ Shopify
+                  </Badge>
+                )}
+              </div>
+            </div>
+            
+            <div>
+              <Label>تاريخ إنشاء الحساب</Label>
+              <div className="flex items-center gap-2 mt-1">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
+                  {new Date(user.created_at).toLocaleDateString('ar-SA')}
+                </span>
+              </div>
+            </div>
+
+            {isAutoCreated && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center gap-2 text-blue-800 font-medium mb-2">
+                  <ShoppingBag className="h-4 w-4" />
+                  حساب Shopify
+                </div>
+                <p className="text-blue-700 text-sm">
+                  تم إنشاء هذا الحساب تلقائياً عند الاتصال من متجر Shopify الخاص بك.
+                  {hasTemporaryPassword && ' يُنصح بتحديث كلمة المرور لأمان إضافي.'}
+                </p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* المتاجر المرتبطة */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ShoppingBag className="h-5 w-5" />
+            المتاجر المرتبطة
+          </CardTitle>
+          <CardDescription>
+            متاجر Shopify المرتبطة بحسابك
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {storesLoading ? (
+            <div className="flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>جاري تحميل المتاجر...</span>
+            </div>
+          ) : stores.length > 0 ? (
+            <div className="space-y-3">
+              {stores.map((store, index) => (
+                <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div>
+                    <div className="font-medium">{store.shop}</div>
+                    <div className="text-sm text-muted-foreground">
+                      آخر تحديث: {new Date(store.updated_at).toLocaleDateString('ar-SA')}
+                    </div>
+                  </div>
+                  <Badge variant={store.is_active ? "default" : "secondary"}>
+                    {store.is_active ? 'نشط' : 'غير نشط'}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-6">
+              <ShoppingBag className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground">لا توجد متاجر مرتبطة</p>
+              <p className="text-sm text-muted-foreground mt-2">
+                قم بالاتصال من داخل متجر Shopify الخاص بك لربطه تلقائياً
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* تغيير كلمة المرور */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Key className="h-5 w-5" />
+            تغيير كلمة المرور
+          </CardTitle>
+          <CardDescription>
+            {hasTemporaryPassword 
+              ? 'لأمان إضافي، يُنصح بتحديث كلمة المرور المؤقتة'
+              : 'قم بتحديث كلمة المرور الخاصة بك'
+            }
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handlePasswordChange} className="space-y-4">
+            {!isAutoCreated && (
+              <div className="space-y-2">
+                <Label htmlFor="current-password">كلمة المرور الحالية</Label>
+                <Input
+                  id="current-password"
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required={!isAutoCreated}
+                  disabled={loading}
+                />
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="new-password">كلمة المرور الجديدة</Label>
+              <Input
+                id="new-password"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                disabled={loading}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="confirm-new-password">تأكيد كلمة المرور الجديدة</Label>
+              <Input
+                id="confirm-new-password"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                disabled={loading}
+              />
+            </div>
+
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            {success && (
+              <Alert>
+                <AlertDescription className="text-green-700">{success}</AlertDescription>
+              </Alert>
+            )}
+
+            <Button type="submit" disabled={loading}>
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  جاري التحديث...
+                </>
+              ) : (
+                'تحديث كلمة المرور'
+              )}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* تسجيل الخروج */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-destructive">منطقة الخطر</CardTitle>
+          <CardDescription>
+            تصرفات لا يمكن التراجع عنها
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button variant="destructive" onClick={handleSignOut}>
+            تسجيل الخروج
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 };

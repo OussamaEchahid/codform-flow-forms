@@ -157,11 +157,38 @@ serve(async (req) => {
 
     console.log(`✅ Store ${shop} successfully linked to user ${userId}`);
 
+    // Create session for auto login
+    let sessionData = null;
+    try {
+      const { data: session, error: sessionError } = await supabase.auth.admin.generateLink({
+        type: 'magiclink',
+        email: realEmail,
+        options: {
+          redirectTo: `${Deno.env.get('FRONTEND_URL') || 'https://codmagnet.com'}/dashboard?connected=true&shop=${encodeURIComponent(shop)}`
+        }
+      });
+
+      if (!sessionError && session) {
+        sessionData = {
+          access_token: session.properties?.access_token,
+          refresh_token: session.properties?.refresh_token,
+          expires_at: session.properties?.expires_at,
+          user: session.user
+        };
+        console.log('✅ Auto login session created');
+      }
+    } catch (sessionError) {
+      console.log('⚠️ Auto login session creation failed, user will need to login manually:', sessionError);
+    }
+
     return new Response(
       JSON.stringify({ 
         success: true, 
         user_id: userId, 
         is_new_user: !existingUser,
+        session: sessionData,
+        email: realEmail,
+        shop: shop,
         message: existingUser ? 'Store linked to existing account' : 'New account created and store linked'
       }),
       { 

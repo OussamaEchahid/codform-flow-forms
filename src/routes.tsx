@@ -29,6 +29,8 @@ import FormBuilderPage from '@/pages/FormBuilderPage';
 import Auth from '@/pages/Auth';
 import Login from '@/pages/Login';
 import ShopifyAccountLink from '@/pages/ShopifyAccountLink';
+import ShopifyAutoAccountCreator from '@/components/shopify/ShopifyAutoAccountCreator';
+import Profile from '@/pages/Profile';
 import ThankYou from '@/pages/ThankYou';
 import LandingPages from '@/pages/LandingPages';
 import MyStores from '@/pages/MyStores';
@@ -130,6 +132,18 @@ export const routes: RouteObject[] = [
   {
     path: '/shopify-account-link',
     Component: ShopifyAccountLink,
+  },
+  {
+    path: '/shopify-auto-connect',
+    Component: ShopifyAutoAccountCreator,
+  },
+  {
+    path: '/profile',
+    element: (
+      <ProtectedRoute requireAuth={true}>
+        <Profile />
+      </ProtectedRoute>
+    ),
   },
   {
     path: '/settings',

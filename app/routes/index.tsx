@@ -29,14 +29,14 @@ export async function loader({ request }) {
     }
   }
   
-  // إذا كان لدينا معلمة متجر، أولاً قم بإعادة توجيه المستخدم مباشرة إلى صفحة المصادقة
+  // إذا كان لدينا معلمة متجر، قم بتوجيه المستخدم للربط التلقائي
   if (shopifyReferrer) {
-    console.log("Redirecting directly to auth with shop parameter:", shopifyReferrer);
+    console.log("Shopify request detected - redirecting to auto account creation:", shopifyReferrer);
     
     // تأكد من تضمين جميع معلمات عنوان URL في إعادة التوجيه
     const params = new URLSearchParams();
     params.set("shop", shopifyReferrer);
-    params.set("force_update", "true"); // علامة للإشارة إلى تحديث إجباري للمتجر
+    params.set("auto_connect", "true"); // علامة للربط التلقائي
     
     if (hmac) params.set("hmac", hmac);
     if (timestamp) params.set("timestamp", timestamp);
@@ -45,8 +45,8 @@ export async function loader({ request }) {
     if (host) params.set("host", host);
     if (session) params.set("session", session);
     
-    // توجيه مباشر إلى نقطة النهاية للمصادقة على الخادم مع جميع المعلمات
-    return redirect(`/auth?${params.toString()}&new_connection=true`, {
+    // توجيه مباشر إلى شاشة الربط التلقائي
+    return redirect(`/shopify-auto-connect?${params.toString()}`, {
       headers: {
         "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
         "Pragma": "no-cache",

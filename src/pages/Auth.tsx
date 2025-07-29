@@ -27,7 +27,23 @@ const Auth = () => {
     if (user) {
       navigate('/dashboard');
     }
-  }, [user, navigate]);
+    
+    // التحقق من وجود بيانات Shopify معلقة للتسجيل التلقائي
+    const pendingShop = localStorage.getItem('pending_shopify_shop');
+    const shopifyEmail = localStorage.getItem('shopify_email');
+    
+    if (pendingShop && shopifyEmail && searchParams.get('shopify_auto') === 'true') {
+      setEmail(shopifyEmail);
+      // إزالة البيانات المعلقة
+      localStorage.removeItem('pending_shopify_shop');
+      localStorage.removeItem('shopify_email');
+      
+      toast({
+        title: "تم إنشاء حسابك تلقائياً",
+        description: `تم ربط متجر ${pendingShop} بحسابك. يرجى تسجيل الدخول للمتابعة.`,
+      });
+    }
+  }, [user, navigate, searchParams]);
 
   useEffect(() => {
     if (isExpired) {

@@ -81,6 +81,37 @@ const ShopifyAutoAccountCreator: React.FC<ShopifyAutoAccountCreatorProps> = ({ o
       // Update connection manager
       simpleShopifyConnectionManager.setActiveStore(shopDomain);
       
+      // Auto login if session data is available
+      if (autoAccountResult.session?.access_token) {
+        setStatus('جاري تسجيل الدخول التلقائي...');
+        
+        try {
+          // Set the session using the tokens from the backend
+          const { data: sessionResult, error: sessionError } = await supabase.auth.setSession({
+            access_token: autoAccountResult.session.access_token,
+            refresh_token: autoAccountResult.session.refresh_token,
+          });
+
+          if (sessionError) {
+            console.log('⚠️ Auto login failed, redirecting to manual login:', sessionError);
+            // Fallback to manual login
+            localStorage.setItem('pending_shopify_shop', shopDomain);
+            localStorage.setItem('shopify_email', autoAccountResult.email);
+            navigate('/auth?shopify_auto=true');
+            return;
+          }
+
+          console.log('✅ Auto login successful:', sessionResult);
+        } catch (sessionError) {
+          console.log('⚠️ Session setting failed:', sessionError);
+          // Fallback to manual login  
+          localStorage.setItem('pending_shopify_shop', shopDomain);
+          localStorage.setItem('shopify_email', autoAccountResult.email);
+          navigate('/auth?shopify_auto=true');
+          return;
+        }
+      }
+      
       setStatus('تم بنجاح! جاري إعادة التوجيه...');
       
       // Show success message
@@ -93,7 +124,7 @@ const ShopifyAutoAccountCreator: React.FC<ShopifyAutoAccountCreatorProps> = ({ o
       // Wait a moment then redirect
       setTimeout(() => {
         onComplete?.(true);
-        navigate('/dashboard');
+        navigate('/dashboard?connected=true&shop=' + encodeURIComponent(shopDomain));
       }, 1500);
 
     } catch (error: any) {

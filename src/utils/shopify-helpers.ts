@@ -10,6 +10,10 @@ export function parseShopifyParams(): {
   hmac?: string; 
   timestamp?: string;
   host?: string;
+  code?: string;
+  state?: string;
+  session?: string;
+  auto_connect?: string;
   isShopifyRequest: boolean;
 } {
   const params = new URLSearchParams(window.location.search);
@@ -17,15 +21,38 @@ export function parseShopifyParams(): {
   const hmac = params.get("hmac");
   const timestamp = params.get("timestamp");
   const host = params.get("host");
+  const code = params.get("code");
+  const state = params.get("state");
+  const session = params.get("session");
+  const auto_connect = params.get("auto_connect");
   
   // Determine if this is a request coming from Shopify
-  const isShopifyRequest = !!(shopParam && (hmac || host));
+  // More comprehensive check for Shopify requests
+  const isShopifyRequest = !!(shopParam && (
+    hmac || host || code || state || session || auto_connect ||
+    shopParam.includes('.myshopify.com')
+  ));
+  
+  console.log('🔍 Shopify params detection:', {
+    shopParam,
+    hmac: !!hmac,
+    host: !!host,
+    code: !!code,
+    state: !!state,
+    session: !!session,
+    auto_connect: !!auto_connect,
+    isShopifyRequest
+  });
   
   return {
     shopDomain: shopParam ? cleanShopifyDomain(shopParam) : undefined,
     hmac: hmac || undefined,
     timestamp: timestamp || undefined,
     host: host || undefined,
+    code: code || undefined,
+    state: state || undefined,
+    session: session || undefined,
+    auto_connect: auto_connect || undefined,
     isShopifyRequest
   };
 }
