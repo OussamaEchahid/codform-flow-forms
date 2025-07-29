@@ -18,10 +18,16 @@ export const useSimpleShopifyAuth = () => {
     const store = localStorage.getItem('current_shopify_store');
     const email = localStorage.getItem('shopify_user_email');
     
+    console.log('🔍 SimpleShopifyAuth - Loading from localStorage:', { store, email });
+    
     setCurrentStore(store);
     setUserEmail(email);
     
-    if (email) {
+    if (store) {
+      // إذا كان هناك متجر، اعتبره متصل
+      setUserStores([{ shop: store, is_active: true, updated_at: new Date().toISOString() }]);
+      setLoading(false);
+    } else if (email) {
       loadUserStores(email);
     } else {
       setLoading(false);
