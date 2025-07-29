@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { formManagementService } from '@/services/FormManagementService';
 import { useFormTemplates, FormData, formTemplates } from '@/lib/hooks/useFormTemplates';
 import { toast } from 'sonner';
 import { useI18n } from '@/lib/i18n';
@@ -287,26 +288,18 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
       const userIdentifier = shopifyIntegration.user?.id || shopifyUserEmail || activeStore || 'anonymous';
       
       // Start with bare minimum fields for faster creation
-      const { data, error } = await supabase.from('forms').insert({
-        id: newId,
+      const newFormId = await formManagementService.createForm({
         title: formTitle,
         description: formDescription,
-        data: [initialFormStep] as any,
-        shop_id: activeShopId,
-        is_published: false,
-        user_id: userIdentifier
-      }).select('id').single();
+        data: [initialFormStep],
+        shop_id: activeShopId
+      });
 
-      if (error) {
-        console.error("Error creating new form:", error);
-        toast.error(language === 'ar' ? 'حدث خطأ أثناء إنشاء نموذج جديد' : 'Error creating new form');
-        setIsLoading(false);
-        return;
-      }
-
+      console.log('✅ Form created successfully with ID:', newFormId);
+      
       // Update form state
       setFormState({
-        id: newId,
+        id: newFormId,
         title: formTitle,
         description: formDescription,
         data: [initialFormStep],
@@ -315,8 +308,8 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
         style: defaultStyle
       });
 
-      // Update URL to use the real UUID instead of "new"
-      navigate(`/form-builder/${newId}`, { replace: true });
+      // Navigate to the new form
+      navigate(`/forms/${newFormId}`);
 
       // Update rest of the form data in the background
       setTimeout(async () => {

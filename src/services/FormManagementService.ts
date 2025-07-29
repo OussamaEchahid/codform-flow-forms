@@ -1,9 +1,23 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { FormData } from '@/lib/hooks/useFormTemplates';
 import { FormStep } from '@/lib/form-utils';
 import { FormStyle } from '@/hooks/useFormStore';
 import { toast } from 'sonner';
+
+// دالة مساعدة للحصول على معرف المستخدم
+const getUserIdentifier = () => {
+  const activeStore = localStorage.getItem('current_shopify_store') || 
+                     localStorage.getItem('shopify_store');
+  const userEmail = localStorage.getItem('shopify_user_email');
+  
+  // في حالة Shopify، استخدم اسم المتجر كمعرف المستخدم
+  return activeStore || userEmail || null;
+};
+
+// دالة للتحقق من وجود مصادقة صالحة
+const isUserAuthenticated = () => {
+  return !!getUserIdentifier();
+};
 
 export class FormManagementService {
   private static instance: FormManagementService;
@@ -43,6 +57,7 @@ export class FormManagementService {
   private getActiveShopId(): string | null {
     // Try multiple sources for the shop ID with better logging
     const sources = [
+      'current_shopify_store',
       'simple_active_store',
       'shopify_store', 
       'active_shop'
@@ -67,32 +82,31 @@ export class FormManagementService {
       const { data: { session } } = await supabase.auth.getSession();
       const activeShopId = this.getActiveShopId();
       
-      // Get user email from localStorage for Shopify authentication
-      const shopifyUserEmail = localStorage.getItem('shopify_user_email');
-      const activeStore = localStorage.getItem('current_shopify_store');
+      // الحصول على معرف المستخدم من Shopify authentication
+      const shopifyUserIdentifier = getUserIdentifier();
       
       console.log('🔍 Fetching forms with context:', {
         hasSession: !!session,
-        userId: session?.user?.id,
-        shopifyUserEmail,
-        activeStore,
+        traditionalUserId: session?.user?.id,
+        shopifyUserIdentifier,
         activeShopId,
+        isAuthenticated: isUserAuthenticated(),
         timestamp: new Date().toISOString()
       });
 
-      // For Shopify authentication, use activeStore as user identifier if no traditional auth
-      if (!session?.user?.id && !activeStore) {
-        console.log('⚠️ No authenticated user and no active store - returning empty forms list');
+      // التحقق من وجود مصادقة صالحة
+      if (!isUserAuthenticated() && !session?.user?.id) {
+        console.log('⚠️ No authentication found - returning empty forms list');
         return [];
       }
 
-      // Use either traditional user ID, Shopify email, or activeStore as identifier
-      const userIdentifier = session?.user?.id || shopifyUserEmail || activeStore;
+      // استخدام معرف المستخدم المناسب (تقليدي أو Shopify)
+      const finalUserIdentifier = session?.user?.id || shopifyUserIdentifier;
 
       let query = supabase
         .from('forms')
         .select('*')
-        .eq('user_id', userIdentifier)
+        .eq('user_id', finalUserIdentifier)
         .order('created_at', { ascending: false });
 
       // Apply additional filtering by shop if available
@@ -123,7 +137,7 @@ export class FormManagementService {
         phone_prefix: (form as any).phone_prefix
       }));
 
-      console.log(`✅ Successfully fetched ${forms.length} forms for user: ${session.user.id} ${activeShopId ? `(shop: ${activeShopId})` : ''}`);
+      console.log(`✅ Successfully fetched ${forms.length} forms for user: ${finalUserIdentifier} ${activeShopId ? `(shop: ${activeShopId})` : ''}`);
       
       // Cache forms for offline usage
       try {
@@ -134,6 +148,45 @@ export class FormManagementService {
 
       return forms;
     });
+  }
+
+  // Create a new form
+  async createForm(formData: {
+    title: string;
+    description?: string;
+    data?: FormStep[];
+    shop_id?: string;
+  }): Promise<string> {
+    try {
+      // الحصول على معرف المستخدم
+      const shopifyUserIdentifier = getUserIdentifier();
+      const { data: { session } } = await supabase.auth.getSession();
+      const finalUserIdentifier = session?.user?.id || shopifyUserIdentifier;
+      
+      if (!finalUserIdentifier) {
+        throw new Error('No user authentication found');
+      }
+
+      const { data, error } = await supabase.from('forms').insert({
+        title: formData.title,
+        description: formData.description,
+        data: (formData.data || []) as any,
+        shop_id: formData.shop_id,
+        user_id: finalUserIdentifier,
+        is_published: false
+      }).select('id').single();
+
+      if (error) {
+        console.error('Error creating form:', error);
+        throw error;
+      }
+
+      console.log('✅ Form created successfully with ID:', data.id);
+      return data.id;
+    } catch (error) {
+      console.error('Error in createForm:', error);
+      throw error;
+    }
   }
 
   // Publish or unpublish a form
