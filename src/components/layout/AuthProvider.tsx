@@ -97,23 +97,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       if (!userId) return;
       
-      const response = await fetch(
-        `https://trlklwixfeaexhydzaue.supabase.co/rest/v1/shopify_stores?user_id=eq.${userId}&is_active=eq.true&select=shop,is_active`,
-        {
-          headers: {
-            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
-            'Authorization': `Bearer ${session?.access_token}`,
-            'Content-Type': 'application/json',
-          }
+      const response = await supabase.functions.invoke('store-link-manager', {
+        body: {
+          action: 'get_stores',
+          userId: userId
         }
-      );
+      });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      if (response.error) {
+        throw new Error(response.error.message || 'Error fetching stores');
       }
 
-      const data = await response.json();
-      const storeList = data?.map((store: any) => store.shop) || [];
+      const { data } = response;
+      const storeList = data?.stores?.map((store: any) => store.shop) || [];
       setShops(storeList);
       
       // إذا كان هناك متجر نشط، اجعله المتجر الحالي

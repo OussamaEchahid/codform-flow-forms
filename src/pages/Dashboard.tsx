@@ -24,24 +24,37 @@ const Dashboard = () => {
   // استخدام النظام المبسط
   const { activeStore, isConnected, switchToStore } = useSimpleShopify();
   
-  // تم إلغاء التحقق من Authentication - Dashboard مفتوح للجميع
+  // التحقق من المصادقة مطلوب للوصول إلى Dashboard
   useEffect(() => {
-    console.log('✅ Dashboard authentication check DISABLED - allowing access to everyone');
-    
-    // فقط تحقق من وجود متجر Shopify متصل
-    const shopFromStorage = localStorage.getItem('shopify_store');
-    const isConnectedFromStorage = localStorage.getItem('shopify_connected') === 'true';
-    
-    if (shopFromStorage && isConnectedFromStorage) {
-      console.log('✅ Shopify store connected:', shopFromStorage);
-    } else {
-      console.log('⚠️ No active Shopify store found');
-    }
-    
-    // تعيين أن التحقق من المصادقة تم (حتى لو لم نتحقق حقاً)
-    setAuthenticationChecked(true);
-    setUserHasStores(true); // افتراض أن المستخدم لديه متاجر
-  }, []);
+    const checkAuthentication = async () => {
+      console.log('🔐 Checking Dashboard authentication...');
+      
+      // التحقق من المصادقة أولاً
+      if (!user) {
+        console.log('❌ No authenticated user - redirecting to auth');
+        navigate('/auth');
+        return;
+      }
+      
+      console.log('✅ User authenticated:', user.email);
+      
+      // التحقق من وجود متجر Shopify متصل
+      const shopFromStorage = localStorage.getItem('shopify_store');
+      const isConnectedFromStorage = localStorage.getItem('shopify_connected') === 'true';
+      
+      if (shopFromStorage && isConnectedFromStorage) {
+        console.log('✅ Shopify store connected:', shopFromStorage);
+        setUserHasStores(true);
+      } else {
+        console.log('⚠️ No active Shopify store found');
+        setUserHasStores(false);
+      }
+      
+      setAuthenticationChecked(true);
+    };
+
+    checkAuthentication();
+  }, [user, navigate]);
   
   useEffect(() => {
     // التحقق من معلمات URL للتوجيه من شوبيفاي

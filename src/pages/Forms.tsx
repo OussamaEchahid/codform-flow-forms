@@ -23,8 +23,8 @@ const Forms = () => {
   const [networkError, setNetworkError] = useState(false);
   const [retryAttempt, setRetryAttempt] = useState(0);
 
-  // Determine access based on various conditions
-  const hasAccess = !!user || shopifyConnected || hasShopifyConnected;
+  // تحديد الوصول - مطلوب مصادقة المستخدم
+  const hasAccess = !!user;
 
   // Simplified connection check - let useFormTemplates handle form fetching
   const checkShopifyConnection = useCallback(async () => {
@@ -92,41 +92,10 @@ const Forms = () => {
     );
   }
 
-  // Render access restriction if not connected
+  // إعادة توجيه إلى صفحة المصادقة إذا لم يكن المستخدم مصادقاً
   if (!hasAccess) {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen">
-        <div className="max-w-md w-full p-6 bg-white rounded shadow-md">
-          <div className="text-center py-4">
-            <h2 className="text-xl font-bold mb-4">
-              {language === 'ar' ? 'الوصول مقيد' : 'Access Restricted'}
-            </h2>
-            <p className="mb-6">
-              {language === 'ar' 
-                ? 'يرجى تسجيل الدخول أو الاتصال بمتجر Shopify للوصول إلى قسم النماذج' 
-                : 'Please login or connect a Shopify store to access forms'}
-            </p>
-            
-            <div className="flex flex-col space-y-2">
-              <Button 
-                onClick={() => navigate('/shopify-connect')}
-                className="w-full"
-              >
-                {language === 'ar' ? 'الاتصال بمتجر Shopify' : 'Connect Shopify Store'}
-              </Button>
-              
-              <Button
-                variant="outline"
-                onClick={enableBypass}
-                className="w-full"
-              >
-                {language === 'ar' ? 'متابعة على أي حال' : 'Continue Anyway'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    navigate('/auth');
+    return null;
   }
 
   // Show the forms dashboard

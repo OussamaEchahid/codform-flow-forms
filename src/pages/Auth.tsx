@@ -270,16 +270,22 @@ const Auth = () => {
           </Tabs>
 
           <div className="mt-6 pt-6 border-t">
+            <div className="text-center mb-4">
+              <h3 className="font-semibold text-sm mb-2">هل لديك متجر على Shopify؟</h3>
+              <p className="text-xs text-muted-foreground mb-3">
+                يمكنك التسجيل تلقائياً عبر تثبيت تطبيقنا من داخل متجر Shopify الخاص بك
+              </p>
+            </div>
             <Button
               variant="outline"
-              className="w-full"
-              onClick={handleShopifyRedirect}
+              className="w-full bg-green-50 hover:bg-green-100 border-green-200 text-green-700"
+              onClick={() => window.location.href = 'https://apps.shopify.com/codmagnet'}
             >
               <ExternalLink className="mr-2 h-4 w-4" />
-              اضغط هنا للتوجه إلى Shopify
+              تسجيل دخول عبر Shopify
             </Button>
             <p className="text-xs text-muted-foreground text-center mt-2">
-              افتح التطبيق من داخل متجر Shopify للربط التلقائي
+              سيتم ربط متجرك وإنشاء حسابك تلقائياً
             </p>
           </div>
         </CardContent>

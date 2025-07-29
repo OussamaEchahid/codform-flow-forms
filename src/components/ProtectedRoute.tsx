@@ -33,13 +33,15 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
       return <Navigate to="/auth" replace />;
     }
 
-    // التحقق من انتهاء الجلسة (24 ساعة)
-    const sessionAge = Date.now() - new Date(session.refresh_token).getTime();
-    const maxSessionAge = 24 * 60 * 60 * 1000; // 24 ساعة
-    
-    if (sessionAge > maxSessionAge) {
-      // انتهت صلاحية الجلسة
-      return <Navigate to="/auth?expired=true" replace />;
+    // التحقق من انتهاء الجلسة (24 ساعة من آخر تفاعل)
+    if (session.expires_at) {
+      const expiresAt = new Date(session.expires_at * 1000);
+      const now = new Date();
+      
+      if (now > expiresAt) {
+        // انتهت صلاحية الجلسة
+        return <Navigate to="/auth?expired=true" replace />;
+      }
     }
   }
 

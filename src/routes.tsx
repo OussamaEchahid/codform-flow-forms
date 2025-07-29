@@ -73,27 +73,51 @@ export const routes: RouteObject[] = [
   },
   {
     path: '/form-builder',
-    Component: FormBuilderPage,
+    element: (
+      <ProtectedRoute requireAuth={true}>
+        <FormBuilderPage />
+      </ProtectedRoute>
+    ),
   },
   {
     path: '/form-builder/:formId',
-    Component: FormBuilderPage,
+    element: (
+      <ProtectedRoute requireAuth={true}>
+        <FormBuilderPage />
+      </ProtectedRoute>
+    ),
   },
   {
     path: '/orders',
-    Component: Orders,
+    element: (
+      <ProtectedRoute requireAuth={true}>
+        <Orders />
+      </ProtectedRoute>
+    ),
   },
   {
     path: '/orders/list',
-    Component: OrdersList,
+    element: (
+      <ProtectedRoute requireAuth={true}>
+        <OrdersList />
+      </ProtectedRoute>
+    ),
   },
   {
     path: '/orders/abandoned',
-    Component: AbandonedOrders,
+    element: (
+      <ProtectedRoute requireAuth={true}>
+        <AbandonedOrders />
+      </ProtectedRoute>
+    ),
   },
   {
     path: '/orders/channels',
-    Component: OrdersChannels,
+    element: (
+      <ProtectedRoute requireAuth={true}>
+        <OrdersChannels />
+      </ProtectedRoute>
+    ),
   },
   {
     path: '/auth/*',
@@ -109,27 +133,51 @@ export const routes: RouteObject[] = [
   },
   {
     path: '/settings',
-    Component: Settings,
+    element: (
+      <ProtectedRoute requireAuth={true}>
+        <Settings />
+      </ProtectedRoute>
+    ),
   },
   {
     path: '/settings/orders',
-    Component: OrderSettings,
+    element: (
+      <ProtectedRoute requireAuth={true}>
+        <OrderSettings />
+      </ProtectedRoute>
+    ),
   },
   {
     path: '/settings/general',
-    Component: GeneralSettings,
+    element: (
+      <ProtectedRoute requireAuth={true}>
+        <GeneralSettings />
+      </ProtectedRoute>
+    ),
   },
   {
     path: '/settings/spam',
-    Component: SpamSettings,
+    element: (
+      <ProtectedRoute requireAuth={true}>
+        <SpamSettings />
+      </ProtectedRoute>
+    ),
   },
   {
     path: '/settings/plans',
-    Component: PlansSettings,
+    element: (
+      <ProtectedRoute requireAuth={true}>
+        <PlansSettings />
+      </ProtectedRoute>
+    ),
   },
   {
     path: '/settings/quantity-offers',
-    Component: QuantityOffers,
+    element: (
+      <ProtectedRoute requireAuth={true}>
+        <QuantityOffers />
+      </ProtectedRoute>
+    ),
   },
   {
     path: '/shopify-redirect',
@@ -145,7 +193,11 @@ export const routes: RouteObject[] = [
   },
   {
     path: '/shopify-stores',
-    Component: ShopifyStores,
+    element: (
+      <ProtectedRoute requireAuth={true}>
+        <ShopifyStores />
+      </ProtectedRoute>
+    ),
   },
   {
     path: '/shopify-callback',
