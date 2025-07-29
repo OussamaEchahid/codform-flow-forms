@@ -6,7 +6,7 @@ import { Store, CheckCircle, AlertCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { shopifyStores } from '@/lib/shopify/supabase-client';
 import { supabase } from '@/integrations/supabase/client';
-import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
+import UnifiedStoreManager from '@/utils/unified-store-manager';
 
 interface ShopifyAutoConnectorProps {
   onConnected?: (shop: string) => void;
@@ -62,24 +62,24 @@ const ShopifyAutoConnector: React.FC<ShopifyAutoConnectorProps> = ({ onConnected
         }
       }
 
-      // إذا لم يتم اكتشاف أي متجر، فحص localStorage
+      // إذا لم يتم اكتشاف أي متجر، فحص UnifiedStoreManager
       if (!detectedShopDomain) {
-        const currentActiveStore = shopifyConnectionManager.getActiveStore();
+        const currentActiveStore = UnifiedStoreManager.getActiveStore();
         if (currentActiveStore) {
-          console.log('✅ Using existing active store from localStorage:', currentActiveStore);
+          console.log('✅ Using existing active store from UnifiedStoreManager:', currentActiveStore);
           // تنظيف URL بدون إظهار النافذة
           const newUrl = window.location.pathname;
           window.history.replaceState({}, '', newUrl);
           return;
         }
         
-        console.log('⚠️ No shop detected from URL parameters or localStorage');
+        console.log('⚠️ No shop detected from URL parameters or UnifiedStoreManager');
         return;
       }
       
       // فحص إذا كان هذا المتجر هو النشط حالياً
-      const currentActiveStore = shopifyConnectionManager.getActiveStore();
-      console.log('🔍 Current active store from connection manager:', currentActiveStore);
+      const currentActiveStore = UnifiedStoreManager.getActiveStore();
+      console.log('🔍 Current active store from UnifiedStoreManager:', currentActiveStore);
       
       if (currentActiveStore === detectedShopDomain) {
         console.log('✅ Shop already active, skipping dialog');
@@ -89,17 +89,8 @@ const ShopifyAutoConnector: React.FC<ShopifyAutoConnectorProps> = ({ onConnected
         return;
       }
       
-      // فحص إذا كان المتجر موجود في قائمة المتاجر المحفوظة
-      const allStores = shopifyConnectionManager.getAllStores();
-      const existingStore = allStores.find(store => 
-        store.shop === detectedShopDomain || store.domain === detectedShopDomain
-      );
-      
-      if (existingStore) {
-        console.log('🔄 Store exists, showing connection dialog');
-      }
-      
-      // إظهار النافذة للمتاجر الجديدة أو الموجودة
+      // إظهار النافذة للمتاجر الجديدة فقط
+      console.log('🔄 New store detected, showing connection dialog');
       setDetectedShop(detectedShopDomain);
       setShowDialog(true);
       
@@ -167,8 +158,9 @@ const ShopifyAutoConnector: React.FC<ShopifyAutoConnectorProps> = ({ onConnected
         const authUrl = data.redirect || data.authUrl;
         console.log('🔄 Redirecting to Shopify auth:', authUrl);
         
-        // تحديد المتجر الجديد كنشط قبل إعادة التوجيه
-        shopifyConnectionManager.setActiveStore(detectedShop);
+        // تحديد المتجر الجديد كنشط قبل إعادة التوجيه باستخدام UnifiedStoreManager
+        const success = UnifiedStoreManager.setActiveStore(detectedShop);
+        console.log('✅ Store set in UnifiedStoreManager:', success);
         
         // إعادة توجيه مباشرة
         window.location.href = authUrl;
@@ -190,8 +182,12 @@ const ShopifyAutoConnector: React.FC<ShopifyAutoConnectorProps> = ({ onConnected
   };
 
   const handleCancel = () => {
+    console.log('🚫 User cancelled connection dialog');
     setShowDialog(false);
     setDetectedShop(null);
+    // تنظيف URL بعد الإلغاء
+    const newUrl = window.location.pathname;
+    window.history.replaceState({}, '', newUrl);
   };
 
   if (!showDialog || !detectedShop) {
