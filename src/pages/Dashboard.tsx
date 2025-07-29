@@ -71,13 +71,20 @@ const Dashboard = () => {
     let submissionsCount = 0;
     
     try {
-      // جلب عدد النماذج للمستخدم
-      const { data: formsData, error: formsError } = await supabase
+      // جلب عدد النماذج للمتجر النشط فقط
+      let formsQuery = supabase
         .from('forms')
         .select('id')
         .eq('user_id', user.id);
       
-      console.log('📝 نتائج النماذج:', { formsData, formsError });
+      // إذا كان هناك متجر نشط، فلتر النماذج حسب المتجر
+      if (shop) {
+        formsQuery = formsQuery.eq('shop_id', shop);
+      }
+      
+      const { data: formsData, error: formsError } = await formsQuery;
+      
+      console.log('📝 نتائج النماذج للمتجر', shop, ':', { formsData, formsError });
       
       if (!formsError && formsData) {
         formsCount = formsData.length;
@@ -85,23 +92,23 @@ const Dashboard = () => {
         console.error('❌ خطأ في جلب النماذج:', formsError);
       }
       
-      // جلب عدد الإرسالات من form_submissions
-      const { data: submissionsData, error: submissionsError } = await supabase
-        .from('form_submissions')
-        .select('id, form_id')
-        .not('form_id', 'is', null);
-      
-      console.log('📋 نتائج الإرسالات:', { submissionsData, submissionsError });
-      
-      if (!submissionsError && submissionsData) {
-        // تصفية الإرسالات التي تنتمي للمستخدم عن طريق النماذج
-        const userFormIds = formsData?.map(f => f.id.toString()) || [];
-        submissionsCount = submissionsData.filter(s => userFormIds.includes(s.form_id)).length;
-      } else if (submissionsError) {
-        console.error('❌ خطأ في جلب الإرسالات:', submissionsError);
+      // جلب عدد الإرسالات للنماذج الخاصة بالمتجر النشط
+      if (formsData && formsData.length > 0) {
+        const { data: submissionsData, error: submissionsError } = await supabase
+          .from('form_submissions')
+          .select('id, form_id')
+          .in('form_id', formsData.map(f => f.id.toString()));
+        
+        console.log('📋 نتائج الإرسالات للمتجر', shop, ':', { submissionsData, submissionsError });
+        
+        if (!submissionsError && submissionsData) {
+          submissionsCount = submissionsData.length;
+        } else if (submissionsError) {
+          console.error('❌ خطأ في جلب الإرسالات:', submissionsError);
+        }
       }
       
-      console.log('📊 إحصائيات مفصلة:', {
+      console.log('📊 إحصائيات مفصلة للمتجر', shop, ':', {
         formsCount,
         submissionsCount,
         storesCount: shops?.length || 0
