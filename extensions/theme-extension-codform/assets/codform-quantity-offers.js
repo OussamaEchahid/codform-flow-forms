@@ -389,7 +389,7 @@ window.CodformQuantityOffers = (function() {
         background-color: ${isHighlighted ? '#f0fdf4' : styling.backgroundColor};
         display: flex;
         align-items: center;
-        justify-content: space-between;
+        gap: 12px;
         transition: all 0.3s ease;
         cursor: pointer;
         margin-bottom: 8px;
@@ -449,12 +449,13 @@ window.CodformQuantityOffers = (function() {
         layoutType: 'Separate elements layout'
       });
 
-      // النص والعلامات - في الوسط دائماً (order: 2)
+      // النص والعلامات - قريب من الصورة
       const textContainer = document.createElement('div');
       textContainer.style.cssText = `
         display: flex;
         flex-direction: column;
         gap: 4px;
+        flex: 1;
         order: 2;
       `;
 
@@ -587,7 +588,7 @@ window.CodformQuantityOffers = (function() {
         }
       }
 
-      // الأسعار - منفصلة تماماً (order: 3 للـ RTL)
+      // الأسعار - في النهاية
       const priceSection = document.createElement('div');
       priceSection.style.cssText = `
         text-align: ${formDirection === 'rtl' ? 'left' : 'right'};
@@ -596,6 +597,7 @@ window.CodformQuantityOffers = (function() {
         align-items: ${formDirection === 'rtl' ? 'flex-start' : 'flex-end'};
         gap: 2px;
         order: 3;
+        flex-shrink: 0;
       `;
 
       // السعر الأصلي (إذا كان هناك خصم)
