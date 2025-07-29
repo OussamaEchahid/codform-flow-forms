@@ -61,6 +61,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               await fetchUserStores(session.user.id);
               // إضافة آلية لربط المتاجر غير المربوطة تلقائياً
               await autoLinkOrphanStores(session.user.id);
+              // ربط المتجر من URL إذا وُجد
+              await linkStoreFromUrl(session.user.id);
             }
           }, 0);
         }
@@ -79,6 +81,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const getInitialSession = async () => {
       try {
         console.log('🔍 AuthProvider - جاري جلب الجلسة الحالية...');
+        
+        // أولاً: فحص URL للبحث عن معاملات Shopify
+        const urlParams = new URLSearchParams(window.location.search);
+        const shopFromUrl = urlParams.get('shop');
+        const hostFromUrl = urlParams.get('host');
+        
+        console.log('🔍 فحص URL للمعاملات:', { shopFromUrl, hostFromUrl });
+        
+        // إذا وجدنا shop في URL، احفظه فوراً
+        if (shopFromUrl) {
+          console.log(`🏪 وجدت متجر في URL: ${shopFromUrl} - سيتم حفظه`);
+          simpleShopifyConnectionManager.setActiveStore(shopFromUrl);
+          localStorage.setItem('shopify_url_shop', shopFromUrl);
+        }
+        
+        // إذا وجدنا host، حاول استخراج shop منه
+        if (hostFromUrl && !shopFromUrl) {
+          try {
+            const decodedHost = atob(hostFromUrl);
+            const shopFromHost = decodedHost.split('/')[0];
+            if (shopFromHost && shopFromHost.includes('.myshopify.com')) {
+              console.log(`🏪 استخراج متجر من host: ${shopFromHost}`);
+              simpleShopifyConnectionManager.setActiveStore(shopFromHost);
+              localStorage.setItem('shopify_url_shop', shopFromHost);
+            }
+          } catch (error) {
+            console.error('❌ خطأ في فك تشفير host:', error);
+          }
+        }
+        
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
@@ -99,6 +131,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           await fetchUserStores(session.user.id);
           // ربط المتاجر غير المربوطة عند التهيئة
           await autoLinkOrphanStores(session.user.id);
+          // ربط المتجر من URL إذا وُجد
+          await linkStoreFromUrl(session.user.id);
         } else {
           console.log('❌ لا يوجد مستخدم نشط');
         }
@@ -205,6 +239,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (error) {
       console.error('❌ خطأ في ربط المتاجر التلقائي:', error);
+    }
+  };
+
+  // ربط المتجر من URL
+  const linkStoreFromUrl = async (userId: string) => {
+    try {
+      const shopFromUrl = localStorage.getItem('shopify_url_shop');
+      if (!shopFromUrl) {
+        console.log('🔍 لا يوجد متجر في URL لربطه');
+        return;
+      }
+
+      console.log(`🔗 ربط المتجر من URL: ${shopFromUrl} بالمستخدم: ${userId}`);
+
+      // استدعاء edge function لربط المتجر المحدد
+      const response = await supabase.functions.invoke('store-link-manager', {
+        body: {
+          action: 'link_store',
+          shop: shopFromUrl,
+          userId: userId
+        }
+      });
+
+      if (response.error) {
+        console.error('❌ خطأ في ربط المتجر من URL:', response.error);
+      } else {
+        console.log('✅ تم ربط المتجر من URL بنجاح');
+        // تنظيف البيانات المؤقتة
+        localStorage.removeItem('shopify_url_shop');
+        // إعادة جلب المتاجر لتحديث القائمة
+        await fetchUserStores(userId);
+      }
+    } catch (error) {
+      console.error('❌ خطأ في ربط المتجر من URL:', error);
     }
   };
 
