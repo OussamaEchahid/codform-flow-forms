@@ -170,8 +170,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('🏪 Shop set to:', shop);
   };
 
-  // تحديد حالة المصادقة عبر Shopify
-  const isShopifyAuthenticated = !!(activeStore && (shopifyUserEmail || getEmailFromLocalStorage()));
+  // تحديد حالة المصادقة عبر Shopify - إذا كان هناك متجر نشط فالمستخدم مصادق عليه
+  const isShopifyAuthenticated = !!activeStore;
   const shopifyConnected = !!activeStore;
 
   console.log('🔍 AuthProvider state:', {
