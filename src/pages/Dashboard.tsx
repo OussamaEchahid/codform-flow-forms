@@ -40,12 +40,19 @@ const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    console.log('🔴 Dashboard useEffect - user:', user?.id);
+    console.log('🔴 Dashboard useEffect - shops:', shops);
+    console.log('🔴 Dashboard useEffect - shop:', shop);
+    console.log('🔴 Dashboard useEffect - shopifyConnected:', shopifyConnected);
+    
     if (user) {
+      console.log('✅ User exists, calling loadDashboardData');
       loadDashboardData();
     } else {
+      console.log('❌ No user, setting loading to false');
       setIsLoading(false);
     }
-  }, [user]);
+  }, [user, shops, shop, shopifyConnected]);
 
   const loadDashboardData = async () => {
     console.log('🔄 بدء تحميل بيانات لوحة التحكم للمستخدم:', user?.id);
