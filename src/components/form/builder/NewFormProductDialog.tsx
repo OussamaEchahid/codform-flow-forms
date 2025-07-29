@@ -201,11 +201,46 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
       // Generate new form ID
       const newFormId = uuidv4();
       
-      // Get the active shop ID
-      const shopId = shop || localStorage.getItem('current_shopify_store') || null;
+      // الحصول على المتجر النشط بطريقة محسنة
+      const getActiveShopId = (): string | null => {
+        // البحث في جميع مفاتيح localStorage المحتملة
+        const shopSources = [
+          'current_shopify_store',
+          'simple_active_store', 
+          'shopify_store',
+          'active_shop',
+          'shopify_shop_domain',
+          'selected_store'
+        ];
+        
+        for (const key of shopSources) {
+          const shopValue = localStorage.getItem(key);
+          if (shopValue && shopValue.trim() && shopValue !== 'null' && shopValue !== 'undefined') {
+            console.log(`✅ تم العثور على المتجر من ${key}:`, shopValue.trim());
+            return shopValue.trim();
+          }
+        }
+        
+        // البحث في جميع مفاتيح localStorage للعثور على أي متجر Shopify
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key) {
+            const value = localStorage.getItem(key);
+            if (value && value.includes('.myshopify.com')) {
+              console.log(`✅ تم العثور على متجر Shopify من ${key}:`, value);
+              return value.trim();
+            }
+          }
+        }
+        
+        console.warn('⚠️ لم يتم العثور على متجر نشط');
+        return null;
+      };
+      
+      const shopId = shop || getActiveShopId();
       
       if (!shopId) {
-        toast.error(language === 'ar' ? 'لم يتم العثور على متجر نشط' : 'No active shop found');
+        toast.error(language === 'ar' ? 'لم يتم العثور على متجر نشط. يرجى التأكد من اتصال المتجر أولاً.' : 'No active shop found. Please ensure your store is connected first.');
         setIsCreating(false);
         return;
       }

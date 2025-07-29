@@ -28,10 +28,31 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch products when dialog opens
+  // Fetch products when dialog opens with proper timing
   useEffect(() => {
-    if (open && shop) {
-      fetchProducts();
+    if (open) {
+      // أضافة تأخير بسيط للتأكد من أن المتجر محمل قبل جلب المنتجات
+      const timer = setTimeout(() => {
+        if (shop) {
+          fetchProducts();
+        } else {
+          // إعادة محاولة جلب المتجر من localStorage
+          const activeShop = localStorage.getItem('current_shopify_store') || 
+                            localStorage.getItem('simple_active_store') ||
+                            localStorage.getItem('shopify_store') ||
+                            localStorage.getItem('active_shop');
+          
+          if (activeShop && activeShop.trim() && activeShop !== 'null') {
+            console.log('🔄 تم العثور على المتجر من localStorage:', activeShop);
+            // جلب المنتجات مباشرة باستخدام المتجر المحفوظ
+            fetchProductsForShop(activeShop.trim());
+          } else {
+            setError('لم يتم العثور على متجر نشط');
+          }
+        }
+      }, 100);
+      
+      return () => clearTimeout(timer);
     }
   }, [open, shop]);
 
@@ -40,21 +61,27 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({
       setError('لم يتم العثور على متجر نشط');
       return;
     }
+    await fetchProductsForShop(shop);
+  };
+
+  const fetchProductsForShop = async (shopDomain: string) => {
+    if (!shopDomain) {
+      setError('لم يتم العثور على متجر نشط');
+      return;
+    }
 
     try {
       setIsLoadingProducts(true);
       setError(null);
       
-      console.log('🛍️ جلب المنتجات للمتجر:', shop);
+      console.log('🛍️ جلب المنتجات للمتجر:', shopDomain);
       
       // استخدام supabase functions بدلاً من fetch مباشر
       const { supabase } = await import('@/integrations/supabase/client');
       
-      const response = await supabase.functions.invoke('shopify-products', {
+      const response = await supabase.functions.invoke('shopify-products-fixed', {
         body: {
-          shop: shop,
-          refresh: true, // إجبار إعادة تحديث المنتجات
-          includeTestProducts: false
+          shop: shopDomain
         }
       });
 
@@ -66,13 +93,13 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({
       
       if (result?.success && result?.products) {
         setProducts(result.products);
-        console.log(`✅ تم جلب ${result.products.length} منتج من ${shop}`);
+        console.log(`✅ تم جلب ${result.products.length} منتج من ${shopDomain}`);
         
         if (result.products.length === 0) {
           setError('لا توجد منتجات في هذا المتجر');
         }
       } else {
-        throw new Error(result?.message || 'فشل في جلب المنتجات');
+        throw new Error(result?.error || result?.message || 'فشل في جلب المنتجات');
       }
     } catch (error) {
       console.error('❌ خطأ في جلب المنتجات:', error);
