@@ -30,10 +30,9 @@ export const useShopifyProducts = () => {
     try {
       console.log('🛍️ Loading products for store:', currentStore);
       
-      const { data, error: supabaseError } = await supabase.functions.invoke('shopify-products', {
+      const { data, error: supabaseError } = await supabase.functions.invoke('shopify-products-fixed', {
         body: { 
-          shop: currentStore,
-          action: 'list'
+          shop: currentStore
         }
       });
 
@@ -65,10 +64,9 @@ export const useShopifyProducts = () => {
     }
 
     try {
-      const { data, error } = await supabase.functions.invoke('shopify-products', {
+      const { data, error } = await supabase.functions.invoke('shopify-products-fixed', {
         body: { 
           shop: currentStore,
-          action: 'get',
           productId
         }
       });

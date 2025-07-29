@@ -437,6 +437,10 @@ export type Database = {
         }
         Returns: string
       }
+      auto_link_store_to_current_user: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       fix_form_store_links: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -452,6 +456,10 @@ export type Database = {
       get_store_access_token: {
         Args: { p_shop: string }
         Returns: string
+      }
+      get_store_products_public: {
+        Args: { p_shop: string }
+        Returns: Json
       }
       get_user_stores: {
         Args: { p_user_id: string }
