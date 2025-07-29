@@ -52,19 +52,20 @@ export class FormManagementService {
   // Get current active shop ID using UnifiedStoreManager
   private getActiveShopId(): string | null {
     try {
-      // استيراد UnifiedStoreManager بطريقة صحيحة
-      const UnifiedStoreManager = require('@/utils/unified-store-manager').default;
-      const activeStore = UnifiedStoreManager.getActiveStore();
+      // استيراد مباشر من localStorage بدلاً من require
+      const activeStore = localStorage.getItem('active_shopify_store') || 
+                         localStorage.getItem('current_shopify_store') ||
+                         localStorage.getItem('simple_active_store');
       
-      if (activeStore) {
-        console.log(`📍 Active shop ID from UnifiedStoreManager: ${activeStore}`);
-        return activeStore;
+      if (activeStore && activeStore.trim() && activeStore !== 'null') {
+        console.log(`📍 Active shop ID: ${activeStore}`);
+        return activeStore.trim();
       }
       
-      console.log('⚠️ No active store found in UnifiedStoreManager');
+      console.log('⚠️ No active store found');
       return null;
     } catch (error) {
-      console.error('❌ Error getting active store from UnifiedStoreManager:', error);
+      console.error('❌ Error getting active store:', error);
       return null;
     }
   }

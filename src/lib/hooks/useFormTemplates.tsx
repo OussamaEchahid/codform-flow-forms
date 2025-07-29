@@ -45,12 +45,18 @@ export const useFormTemplates = () => {
   const [offlineMode, setOfflineMode] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
 
-  // Get current active shop ID using UnifiedStoreManager
+  // Get current active shop ID using localStorage directly
   const getActiveShopId = () => {
     try {
-      // استيراد UnifiedStoreManager بطريقة صحيحة
-      const UnifiedStoreManager = require('@/utils/unified-store-manager').default;
-      return shop || UnifiedStoreManager.getActiveStore();
+      const activeStore = shop || 
+                         localStorage.getItem('active_shopify_store') || 
+                         localStorage.getItem('current_shopify_store') ||
+                         localStorage.getItem('simple_active_store');
+      
+      if (activeStore && activeStore.trim() && activeStore !== 'null') {
+        return activeStore.trim();
+      }
+      return '';
     } catch (error) {
       console.error('Error getting active store:', error);
       return shop || '';

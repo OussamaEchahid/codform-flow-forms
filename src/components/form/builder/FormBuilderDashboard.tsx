@@ -85,13 +85,16 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
   const fetchProductCounts = useCallback(async () => {
     if (formList.length === 0 || offlineMode) return;
     
-    // استخدام UnifiedStoreManager للحصول على المتجر النشط
+    // الحصول على المتجر النشط من localStorage مباشرة
     const getActiveShopId = (): string | null => {      
       try {
-        const activeShop = UnifiedStoreManager.getActiveStore();
-        if (activeShop) {
-          console.log('🏪 Found active shop from UnifiedStoreManager:', activeShop);
-          return activeShop;
+        const activeShop = localStorage.getItem('active_shopify_store') || 
+                          localStorage.getItem('current_shopify_store') ||
+                          localStorage.getItem('simple_active_store');
+        
+        if (activeShop && activeShop.trim() && activeShop !== 'null') {
+          console.log('🏪 Found active shop:', activeShop);
+          return activeShop.trim();
         }
       } catch (error) {
         console.error('Error getting active shop:', error);
