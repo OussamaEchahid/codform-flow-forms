@@ -80,14 +80,14 @@ export class FormManagementService {
         timestamp: new Date().toISOString()
       });
 
-      // For Shopify authentication, use email from localStorage
-      if (!session?.user?.id && !shopifyUserEmail) {
-        console.log('⚠️ No authenticated user (traditional or Shopify) - returning empty forms list');
+      // For Shopify authentication, use activeStore as user identifier if no traditional auth
+      if (!session?.user?.id && !activeStore) {
+        console.log('⚠️ No authenticated user and no active store - returning empty forms list');
         return [];
       }
 
-      // Use either traditional user ID or Shopify email as identifier
-      const userIdentifier = session?.user?.id || shopifyUserEmail;
+      // Use either traditional user ID, Shopify email, or activeStore as identifier
+      const userIdentifier = session?.user?.id || shopifyUserEmail || activeStore;
 
       let query = supabase
         .from('forms')

@@ -283,7 +283,8 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
 
       // Get user identifier for Shopify authentication
       const shopifyUserEmail = localStorage.getItem('shopify_user_email');
-      const userIdentifier = shopifyIntegration.user?.id || shopifyUserEmail || 'anonymous';
+      const activeStore = localStorage.getItem('current_shopify_store');
+      const userIdentifier = shopifyIntegration.user?.id || shopifyUserEmail || activeStore || 'anonymous';
       
       // Start with bare minimum fields for faster creation
       const { data, error } = await supabase.from('forms').insert({
