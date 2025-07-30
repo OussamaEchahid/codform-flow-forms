@@ -33,20 +33,7 @@ const ImageField: React.FC<ImageFieldProps> = ({ field, formStyle }) => {
   
   return (
     <div className="mb-4">
-      {field.label && (
-        <div 
-          className="mb-2"
-          style={{ 
-            color: fieldStyle.labelColor || '#334155',
-            fontSize: fieldStyle.labelFontSize || formStyle.fontSize || '1rem',
-            fontWeight: 500
-          }}
-        >
-          {field.label}
-        </div>
-      )}
-      
-      <div 
+      <div
         className="overflow-hidden"
         style={{
           maxWidth: '100%',
