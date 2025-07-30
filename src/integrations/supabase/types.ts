@@ -286,6 +286,60 @@ export type Database = {
           },
         ]
       }
+      shop_subscriptions: {
+        Row: {
+          billing_cycle: string | null
+          created_at: string
+          currency: string | null
+          id: string
+          next_billing_date: string | null
+          plan_type: Database["public"]["Enums"]["subscription_plan"]
+          price_amount: number | null
+          shop_domain: string
+          shopify_charge_id: string | null
+          status: string
+          subscription_started_at: string | null
+          trial_days_remaining: number | null
+          trial_started_at: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          billing_cycle?: string | null
+          created_at?: string
+          currency?: string | null
+          id?: string
+          next_billing_date?: string | null
+          plan_type?: Database["public"]["Enums"]["subscription_plan"]
+          price_amount?: number | null
+          shop_domain: string
+          shopify_charge_id?: string | null
+          status?: string
+          subscription_started_at?: string | null
+          trial_days_remaining?: number | null
+          trial_started_at?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          billing_cycle?: string | null
+          created_at?: string
+          currency?: string | null
+          id?: string
+          next_billing_date?: string | null
+          plan_type?: Database["public"]["Enums"]["subscription_plan"]
+          price_amount?: number | null
+          shop_domain?: string
+          shopify_charge_id?: string | null
+          status?: string
+          subscription_started_at?: string | null
+          trial_days_remaining?: number | null
+          trial_started_at?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       shopify_form_insertion: {
         Row: {
           block_id: string | null
@@ -457,6 +511,15 @@ export type Database = {
         Args: { shop_id: string; product_id: string }
         Returns: Json
       }
+      get_shop_subscription: {
+        Args: { p_shop_domain: string }
+        Returns: {
+          plan_type: Database["public"]["Enums"]["subscription_plan"]
+          status: string
+          trial_days_remaining: number
+          next_billing_date: string
+        }[]
+      }
       get_store_access_token: {
         Args: { p_shop: string }
         Returns: string
@@ -526,13 +589,21 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      upgrade_shop_plan: {
+        Args: {
+          p_shop_domain: string
+          p_new_plan: Database["public"]["Enums"]["subscription_plan"]
+          p_shopify_charge_id?: string
+        }
+        Returns: boolean
+      }
       user_owns_store: {
         Args: { p_shop_id: string }
         Returns: boolean
       }
     }
     Enums: {
-      [_ in never]: never
+      subscription_plan: "free" | "basic" | "premium" | "unlimited"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -659,6 +730,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      subscription_plan: ["free", "basic", "premium", "unlimited"],
+    },
   },
 } as const
