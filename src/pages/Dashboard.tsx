@@ -231,7 +231,9 @@ const Dashboard = () => {
                         {userName ? (
                           <>
                             <p className="font-medium text-sm">{userName}</p>
-                            <p className="text-xs text-muted-foreground">{userEmail || 'البريد الإلكتروني غير متاح'}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {userEmail || `owner@${activeStore}`}
+                            </p>
                             <p className="text-xs text-muted-foreground/60">{activeStore}</p>
                           </>
                         ) : userEmail ? (
