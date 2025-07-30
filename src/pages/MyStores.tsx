@@ -39,11 +39,21 @@ const MyStores = () => {
   const { user, session, isShopifyAuthenticated, shop: activeShop, shopifyUserEmail } = useAuth();
 
   useEffect(() => {
-    // تحميل المتاجر في جميع الحالات (مع أو بدون مصادقة تقليدية)
+    console.log('🔄 MyStores useEffect triggered:', {
+      user: !!user,
+      session: !!session,
+      isShopifyAuthenticated,
+      activeShop,
+      unifiedStore: UnifiedStoreManager.getActiveStore()
+    });
+    
+    // تحميل المتاجر دائماً
     fetchUserStores();
   }, [user, session, isShopifyAuthenticated, activeShop]);
 
   const fetchUserStores = async () => {
+    console.log('🔄 fetchUserStores called');
+    
     try {
       setLoading(true);
       
@@ -73,8 +83,9 @@ const MyStores = () => {
           user_id: userEmail || shopifyUserEmail || user?.email || 'shopify_user'
         }];
         
-        console.log('✅ MyStores - Store found and added:', storesList);
+        console.log('✅ MyStores - Store found and will be set:', storesList);
         setStores(storesList);
+        console.log('✅ MyStores - setStores called with:', storesList);
         return; // مهم: خروج مبكر لتجنب تنفيذ باقي الكود
       }
       
