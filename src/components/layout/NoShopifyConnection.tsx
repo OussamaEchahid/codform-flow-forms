@@ -13,12 +13,13 @@ import {
   Smartphone,
   Globe,
   Settings,
-  Zap
+  Zap,
+  Languages
 } from 'lucide-react';
 
 const NoShopifyConnection = () => {
   const navigate = useNavigate();
-  const { language, t } = useI18n();
+  const { language, t, setLanguage } = useI18n();
 
   const steps = [
     {
@@ -78,6 +79,19 @@ const NoShopifyConnection = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+      {/* Language Toggle Button */}
+      <div className="absolute top-6 right-6 z-10">
+        <Button
+          onClick={() => setLanguage(language === 'ar' ? 'en' : 'ar')}
+          variant="outline"
+          size="sm"
+          className="flex items-center gap-2 bg-white/80 backdrop-blur-sm border-gray-200 hover:bg-white"
+        >
+          <Languages className="w-4 h-4" />
+          {language === 'ar' ? 'English' : 'عربي'}
+        </Button>
+      </div>
+      
       <div className="min-h-screen flex flex-col items-center justify-center p-6">
         <div className="max-w-4xl mx-auto w-full">
           {/* Header */}
