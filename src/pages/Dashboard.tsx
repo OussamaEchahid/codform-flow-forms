@@ -82,6 +82,29 @@ const Dashboard = () => {
         setIsLoading(false);
         return;
       }
+
+      // التحقق من البريد الإلكتروني وجلبه إذا لم يكن موجوداً
+      let userEmail = localStorage.getItem('shopify_user_email');
+      console.log('📧 Dashboard - Current email in localStorage:', userEmail);
+      
+      if (!userEmail && activeStore) {
+        console.log('🔄 Dashboard - Fetching email for store:', activeStore);
+        try {
+          const emailResponse = await supabase.functions.invoke('update-shop-email', {
+            body: { shop: activeStore }
+          });
+
+          console.log('📧 Dashboard - Email fetch response:', emailResponse);
+
+          if (emailResponse.data?.success) {
+            userEmail = emailResponse.data.email;
+            localStorage.setItem('shopify_user_email', userEmail);
+            console.log('✅ Dashboard - Email fetched and saved:', userEmail);
+          }
+        } catch (emailError) {
+          console.error('❌ Dashboard - Error fetching email:', emailError);
+        }
+      }
       
       let formsCount = 0;
       let ordersCount = 0;
