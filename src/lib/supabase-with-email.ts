@@ -24,17 +24,33 @@ export const queryWithEmail = () => {
   };
 };
 
-// دالة خاصة للحصول على بيانات المتجر
-export const getStoreData = async (shopId: string) => {
+// دالة للحصول على جميع المتاجر الخاصة بالبريد الإلكتروني
+export const getUserStores = async () => {
   const userEmail = getCurrentUserEmail();
-  console.log(`🏪 Getting store data for: ${shopId} with email: ${userEmail}`);
+  console.log(`🏪 Getting all stores for email: ${userEmail}`);
   
-  return supabase
+  // البحث عن المتاجر بالبريد الإلكتروني أو البريد الافتراضي
+  const { data, error } = await supabase
     .from('shopify_stores')
     .select('*')
-    .eq('shop', shopId)
-    .or(`email.eq.${userEmail},email.eq.owner@${shopId}`)
-    .single();
+    .eq('is_active', true);
+    
+  if (error) {
+    console.error('❌ Error getting user stores:', error);
+    return { data: [], error };
+  }
+  
+  // فلترة النتائج للبريد الإلكتروني المطابق (من localStorage)
+  // حالياً، نعتمد على المتجر النشط في localStorage
+  const activeStore = localStorage.getItem('active_store');
+  const filteredStores = data?.filter(store => 
+    store.shop === activeStore ||
+    userEmail.includes(store.shop.replace('.myshopify.com', ''))
+  ) || [];
+  
+  console.log(`✅ Found ${filteredStores.length} stores for user:`, filteredStores.map(s => s.shop));
+  
+  return { data: filteredStores, error: null };
 };
 
 // دالة للحصول على النماذج الخاصة بالمستخدم

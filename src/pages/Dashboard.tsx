@@ -292,9 +292,26 @@ const Dashboard = () => {
                             <strong>✅ متصل بالمتجر:</strong> {connectedStore}
                             <br />
                             <small className="text-green-600">الاتصال نشط ويعمل بشكل صحيح</small>
+                            <br />
+                            <small className="text-green-600/70">
+                              البريد الإلكتروني: {(() => {
+                                const email = localStorage.getItem('shopify_user_email');
+                                return email && email !== 'مغربي• VIP' ? email : `owner@${connectedStore}`;
+                              })()}
+                            </small>
                           </div>
-                          <div className="bg-green-100 px-3 py-1 rounded-full">
-                            <span className="text-green-800 font-medium">نشط</span>
+                          <div className="flex flex-col gap-2">
+                            <div className="bg-green-100 px-3 py-1 rounded-full">
+                              <span className="text-green-800 font-medium">نشط</span>
+                            </div>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => navigate('/my-stores')}
+                              className="border-green-600 text-green-700 hover:bg-green-100"
+                            >
+                              إدارة المتاجر
+                            </Button>
                           </div>
                         </div>
                       </AlertDescription>
