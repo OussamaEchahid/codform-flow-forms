@@ -46,11 +46,31 @@ export const useShopifyStoreSync = () => {
       console.log('🔄 جاري تحميل المتاجر...');
       
       // جلب البريد الإلكتروني المحفوظ والمتجر النشط
-      const userEmail = localStorage.getItem('shopify_user_email');
+      let userEmail = localStorage.getItem('shopify_user_email');
       const activeStore = getActiveStore();
       
       console.log('📧 البريد الإلكتروني:', userEmail);
       console.log('🏪 المتجر النشط:', activeStore);
+
+      // إذا لم يكن هناك بريد إلكتروني ولكن يوجد متجر نشط، جلب البريد الإلكتروني تلقائياً
+      if (!userEmail && activeStore) {
+        console.log('🔄 محاولة جلب البريد الإلكتروني تلقائياً للمتجر:', activeStore);
+        try {
+          const emailResponse = await supabase.functions.invoke('update-shop-email', {
+            body: { shop: activeStore }
+          });
+
+          if (emailResponse.data?.success) {
+            userEmail = emailResponse.data.email;
+            localStorage.setItem('shopify_user_email', userEmail);
+            console.log('✅ تم جلب وحفظ البريد الإلكتروني:', userEmail);
+          } else {
+            console.error('❌ فشل في جلب البريد الإلكتروني:', emailResponse.error);
+          }
+        } catch (emailError) {
+          console.error('❌ خطأ في جلب البريد الإلكتروني:', emailError);
+        }
+      }
 
       let storesList: any[] = [];
       
@@ -121,8 +141,31 @@ export const useShopifyStoreSync = () => {
           console.error('❌ خطأ في الاتصال بقاعدة البيانات:', dbError);
         }
       }
-
+      
       console.log('📋 بيانات المتاجر المستلمة:', storesList);
+      
+      // التحقق من البريد الإلكتروني لجميع المتاجر وجلبه إذا كان مفقوداً
+      for (let store of storesList) {
+        if (!(store as any).email && store.shop) {
+          console.log('📧 محاولة جلب البريد الإلكتروني للمتجر:', store.shop);
+          try {
+            const emailResponse = await supabase.functions.invoke('update-shop-email', {
+              body: { shop: store.shop }
+            });
+
+            if (emailResponse.data?.success) {
+              (store as any).email = emailResponse.data.email;
+              console.log('✅ تم جلب البريد الإلكتروني:', emailResponse.data.email);
+              // حفظ البريد الإلكتروني في localStorage
+              localStorage.setItem('shopify_user_email', emailResponse.data.email);
+            } else {
+              console.error('❌ فشل في جلب البريد الإلكتروني:', emailResponse.error);
+            }
+          } catch (emailError) {
+            console.error('❌ خطأ في جلب البريد الإلكتروني:', emailError);
+          }
+        }
+      }
       
       // تحديث حالة المتاجر
       if (storesList.length === 0) {
