@@ -67,9 +67,6 @@ const SortableField: React.FC<SortableFieldProps> = ({
   }, [field]);
 
   const toggleExpand = () => {
-    if (isWhatsAppButton) {
-      return; // Don't expand for WhatsApp buttons
-    }
     setIsExpanded(!isExpanded);
   };
 
@@ -110,6 +107,21 @@ const SortableField: React.FC<SortableFieldProps> = ({
     { value: 'sans-serif', label: language === 'ar' ? 'الافتراضي' : 'Default' },
     { value: 'serif', label: language === 'ar' ? 'مُسَّرف' : 'Serif' },
     { value: 'monospace', label: language === 'ar' ? 'أحادي المسافة' : 'Monospace' },
+  ];
+
+  // Available icons for fields
+  const availableIcons = [
+    { value: 'user', label: language === 'ar' ? 'مستخدم' : 'User', component: <User size={16} /> },
+    { value: 'phone', label: language === 'ar' ? 'هاتف' : 'Phone', component: <Phone size={16} /> },
+    { value: 'mail', label: language === 'ar' ? 'بريد' : 'Mail', component: <Mail size={16} /> },
+    { value: 'map-pin', label: language === 'ar' ? 'موقع' : 'Location', component: <MapPin size={16} /> },
+    { value: 'message-square', label: language === 'ar' ? 'رسالة' : 'Message', component: <MessageSquare size={16} /> },
+    { value: 'home', label: language === 'ar' ? 'منزل' : 'Home', component: <Home size={16} /> },
+    { value: 'building', label: language === 'ar' ? 'مبنى' : 'Building', component: <Building size={16} /> },
+    { value: 'smartphone', label: language === 'ar' ? 'جوال' : 'Mobile', component: <Smartphone size={16} /> },
+    { value: 'id-card', label: language === 'ar' ? 'بطاقة' : 'ID Card', component: <IdCard size={16} /> },
+    { value: 'heart', label: language === 'ar' ? 'قلب' : 'Heart', component: <Heart size={16} /> },
+    { value: 'star', label: language === 'ar' ? 'نجمة' : 'Star', component: <Star size={16} /> },
   ];
 
   const getFieldIcon = () => {
@@ -219,16 +231,65 @@ const SortableField: React.FC<SortableFieldProps> = ({
                 }
               </h2>
               
-              {/* للصور: تظهر رسالة بسيطة */}
+              {/* للصور: إعدادات بسيطة + زر التحرير */}
               {field.type === 'image' ? (
-                <div className="text-center py-8 text-gray-500">
-                  <Image size={48} className="mx-auto mb-4 text-gray-300" />
-                  <p className="mb-4">
-                    {language === 'ar' 
-                      ? 'استخدم زر "تحرير" أعلاه لتخصيص إعدادات الصورة'
-                      : 'Use the "Edit" button above to customize image settings'
-                    }
-                  </p>
+                <div className="space-y-4">
+                  {/* Image URL */}
+                  <div className="space-y-1">
+                    <Label htmlFor={`image-url-${field.id}`}>
+                      {language === 'ar' ? 'رابط الصورة' : 'Image URL'}
+                    </Label>
+                    <Input
+                      id={`image-url-${field.id}`}
+                      type="url"
+                      value={editedField.src || ''}
+                      onChange={(e) => handleFieldChange('src', e.target.value)}
+                      placeholder="https://example.com/image.jpg"
+                    />
+                  </div>
+                  
+                  {/* Image Width */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <Label>{language === 'ar' ? 'عرض الصورة' : 'Image Width'}</Label>
+                      <span className="text-sm">{editedField.width || 100}%</span>
+                    </div>
+                    <Slider
+                      value={[parseInt(editedField.width?.toString() || '100')]}
+                      onValueChange={(value) => handleFieldChange('width', value[0].toString())}
+                      max={100}
+                      min={10}
+                      step={5}
+                      className="w-full"
+                    />
+                  </div>
+                  
+                  {/* Alignment */}
+                  <div className="space-y-1">
+                    <Label>{language === 'ar' ? 'المحاذاة' : 'Alignment'}</Label>
+                    <Select
+                      value={editedField.style?.textAlign || 'center'}
+                      onValueChange={(value) => handleStyleChange('textAlign', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="left">{language === 'ar' ? 'يسار' : 'Left'}</SelectItem>
+                        <SelectItem value="center">{language === 'ar' ? 'وسط' : 'Center'}</SelectItem>
+                        <SelectItem value="right">{language === 'ar' ? 'يمين' : 'Right'}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="pt-2 border-t">
+                    <p className="text-xs text-gray-500">
+                      {language === 'ar' 
+                        ? 'أو استخدم زر "تحرير" أعلاه للمزيد من الخيارات'
+                        : 'Or use "Edit" button above for more options'
+                      }
+                    </p>
+                  </div>
                 </div>
                ) : isFormTitle ? (
                  /* إعدادات عنوان النموذج */
@@ -356,8 +417,105 @@ const SortableField: React.FC<SortableFieldProps> = ({
                    </div>
                  </div>
                  ) : isWhatsAppButton ? (
-                   /* إعدادات زر الواتساب فقط - لا إعدادات عامة */
-                   null
+                   /* إعدادات زر الواتساب */
+                   <div className="grid grid-cols-2 gap-4">
+                     {/* Left column */}
+                     <div className="space-y-4">
+                       {/* WhatsApp Number */}
+                       <div className="space-y-1">
+                         <Label htmlFor={`whatsapp-number-${field.id}`}>
+                           {language === 'ar' ? 'رقم الواتساب' : 'WhatsApp Number'}
+                         </Label>
+                         <Input
+                           id={`whatsapp-number-${field.id}`}
+                           value={editedField.whatsappNumber || ''}
+                           onChange={(e) => handleFieldChange('whatsappNumber', e.target.value)}
+                           placeholder="966501234567"
+                         />
+                       </div>
+                       
+                       {/* Message */}
+                       <div className="space-y-1">
+                         <Label htmlFor={`whatsapp-message-${field.id}`}>
+                           {language === 'ar' ? 'الرسالة' : 'Message'}
+                         </Label>
+                         <Input
+                           id={`whatsapp-message-${field.id}`}
+                           value={editedField.message || ''}
+                           onChange={(e) => handleFieldChange('message', e.target.value)}
+                           placeholder={language === 'ar' ? 'مرحباً، أريد الاستفسار...' : 'Hello, I want to inquire...'}
+                         />
+                       </div>
+                       
+                       {/* Button Text */}
+                       <div className="space-y-1">
+                         <Label htmlFor={`whatsapp-label-${field.id}`}>
+                           {language === 'ar' ? 'نص الزر' : 'Button Text'}
+                         </Label>
+                         <Input
+                           id={`whatsapp-label-${field.id}`}
+                           value={editedField.label || ''}
+                           onChange={(e) => handleFieldChange('label', e.target.value)}
+                           placeholder={language === 'ar' ? 'تواصل معنا' : 'Contact Us'}
+                         />
+                       </div>
+                     </div>
+                     
+                     {/* Right column */}
+                     <div className="space-y-4">
+                       {/* Background Color */}
+                       <div className="space-y-1">
+                         <Label>{language === 'ar' ? 'لون الخلفية' : 'Background Color'}</Label>
+                         <div className="flex gap-2 items-center">
+                           <Input
+                             type="color"
+                             value={editedField.style?.backgroundColor || '#25D366'}
+                             onChange={(e) => handleStyleChange('backgroundColor', e.target.value)}
+                             className="w-9 h-9 p-1"
+                           />
+                           <Input
+                             value={editedField.style?.backgroundColor || '#25D366'}
+                             onChange={(e) => handleStyleChange('backgroundColor', e.target.value)}
+                             className="flex-1"
+                           />
+                         </div>
+                       </div>
+                       
+                       {/* Text Color */}
+                       <div className="space-y-1">
+                         <Label>{language === 'ar' ? 'لون النص' : 'Text Color'}</Label>
+                         <div className="flex gap-2 items-center">
+                           <Input
+                             type="color"
+                             value={editedField.style?.color || '#ffffff'}
+                             onChange={(e) => handleStyleChange('color', e.target.value)}
+                             className="w-9 h-9 p-1"
+                           />
+                           <Input
+                             value={editedField.style?.color || '#ffffff'}
+                             onChange={(e) => handleStyleChange('color', e.target.value)}
+                             className="flex-1"
+                           />
+                         </div>
+                       </div>
+                       
+                       {/* Font Size */}
+                       <div className="space-y-1">
+                         <div className="flex items-center justify-between">
+                           <Label>{language === 'ar' ? 'حجم الخط' : 'Font Size'}</Label>
+                           <span className="text-sm">{editedField.style?.fontSize || '16'}px</span>
+                         </div>
+                         <Slider
+                           value={[parseInt(editedField.style?.fontSize || '16')]}
+                           onValueChange={(value) => handleStyleChange('fontSize', `${value[0]}px`)}
+                           max={24}
+                           min={12}
+                           step={1}
+                           className="w-full"
+                         />
+                       </div>
+                     </div>
+                   </div>
                  ) : (
                    /* Regular field settings للحقول الأخرى */
                   <div className="grid grid-cols-2 gap-4">
@@ -447,25 +605,70 @@ const SortableField: React.FC<SortableFieldProps> = ({
                              />
                            </div>
                          </div>
-                       )}
-                       
-                       {/* Text color */}
-                       <div className="space-y-1">
-                         <Label>{language === 'ar' ? 'لون النص' : 'Text color'}</Label>
-                         <div className="flex gap-2 items-center">
-                           <Input
-                             type="color"
-                             value={editedField.style?.color || '#000000'}
-                             onChange={(e) => handleStyleChange('color', e.target.value)}
-                             className="w-9 h-9 p-1"
-                           />
-                           <Input
-                             value={editedField.style?.color || '#000000'}
-                             onChange={(e) => handleStyleChange('color', e.target.value)}
-                             className="flex-1"
-                           />
-                         </div>
-                       </div>
+                        )}
+                        
+                        {/* Icon Selection - للحقول العادية فقط */}
+                        {!shouldShowSubmitSpecificSettings && ['text', 'email', 'phone', 'textarea'].includes(field.type) && (
+                          <div className="space-y-1">
+                            <Label>{language === 'ar' ? 'أيقونة الحقل' : 'Field Icon'}</Label>
+                            <Select
+                              value={editedField.icon || 'user'}
+                              onValueChange={(value) => handleFieldChange('icon', value)}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder={language === 'ar' ? 'اختر أيقونة' : 'Select icon'} />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {availableIcons.map(icon => (
+                                  <SelectItem key={icon.value} value={icon.value}>
+                                    <div className="flex items-center gap-2">
+                                      {icon.component}
+                                      <span>{icon.label}</span>
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+                        
+                        {/* Icon Color - للحقول العادية فقط */}
+                        {!shouldShowSubmitSpecificSettings && ['text', 'email', 'phone', 'textarea'].includes(field.type) && (
+                          <div className="space-y-1">
+                            <Label>{language === 'ar' ? 'لون الأيقونة' : 'Icon Color'}</Label>
+                            <div className="flex gap-2 items-center">
+                              <Input
+                                type="color"
+                                value={editedField.style?.iconColor || '#9b87f5'}
+                                onChange={(e) => handleStyleChange('iconColor', e.target.value)}
+                                className="w-9 h-9 p-1"
+                              />
+                              <Input
+                                value={editedField.style?.iconColor || '#9b87f5'}
+                                onChange={(e) => handleStyleChange('iconColor', e.target.value)}
+                                className="flex-1"
+                              />
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Text color */}
+                        <div className="space-y-1">
+                          <Label>{language === 'ar' ? 'لون النص' : 'Text color'}</Label>
+                          <div className="flex gap-2 items-center">
+                            <Input
+                              type="color"
+                              value={editedField.style?.color || '#000000'}
+                              onChange={(e) => handleStyleChange('color', e.target.value)}
+                              className="w-9 h-9 p-1"
+                            />
+                            <Input
+                              value={editedField.style?.color || '#000000'}
+                              onChange={(e) => handleStyleChange('color', e.target.value)}
+                              className="flex-1"
+                            />
+                          </div>
+                        </div>
                      </div>
                      
                      {/* Right column - Style settings */}
