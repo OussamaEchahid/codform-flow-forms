@@ -29,9 +29,15 @@ const MyStores = () => {
     // تحديد الحالة الأولية مباشرة من UnifiedStoreManager
     const initialStore = UnifiedStoreManager.getActiveStore();
     console.log('🎯 MyStores INITIAL - Active store:', initialStore);
+    console.log('🎯 MyStores INITIAL - Is connected:', UnifiedStoreManager.isConnected());
     return initialStore;
   });
   const [loading, setLoading] = useState(false);
+  
+  // إضافة useEffect لمراقبة الحالة
+  useEffect(() => {
+    console.log('🔍 MyStores - Current state:', { activeStore, loading });
+  }, [activeStore, loading]);
   
   useEffect(() => {
     console.log('🔄 MyStores useEffect - Current active store:', activeStore);
