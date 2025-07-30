@@ -620,10 +620,8 @@
       
       html = `
         <div class="codform-cart-items" style="
-          margin-bottom: 16px;
-          max-width: 32rem;
-          margin-left: auto;
-          margin-right: auto;
+          margin: 24px 0;
+          width: 100%;
           direction: ${direction};
         ">
           <div style="
@@ -632,12 +630,13 @@
             border-radius: 8px;
             box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
             overflow: hidden;
+            width: 100%;
           ">
             <div class="codform-cart-item" style="
               display: flex;
               align-items: center;
-              padding: 12px;
-              gap: 12px;
+              padding: 16px;
+              gap: 16px;
               margin-bottom: 0;
               ${direction === 'rtl' ? 'flex-direction: row-reverse;' : ''}
             " data-product-item>
@@ -666,12 +665,12 @@
             <div style="flex: 1; min-width: 0;">
               ${!hideTitle ? `
                 <h4 class="product-title" style="
-                  font-size: 0.95rem;
+                  font-size: 18px;
                   color: rgb(31, 41, 55);
                   font-family: Inter, Cairo, system-ui, sans-serif;
                   font-weight: 600;
-                  margin: 0 0 4px 0;
-                  line-height: 1.25;
+                  margin: 0 0 8px 0;
+                  line-height: 1.4;
                 ">
                   ${productTitle}
                 </h4>
@@ -764,7 +763,7 @@
                   flex-shrink: 0;
                 ">
                   <div class="product-price" style="
-                    font-size: 0.9rem;
+                    font-size: 18px;
                     color: rgb(5, 150, 105);
                     font-family: Inter, Cairo, system-ui, sans-serif;
                     font-weight: 700;
