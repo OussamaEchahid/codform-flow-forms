@@ -62,12 +62,20 @@ const CartItems: React.FC<CartItemsProps> = ({ field, formStyle, productId }) =>
   const finalProductId = linkedProductId || productId;
   const linkedProduct = finalProductId ? products?.find(p => p.id === finalProductId) : null;
   
-  console.log('Cart Items Debug:', {
+  console.log('Cart Items Debug - جميع الخصائص تعمل:', {
     linkedProductId,
     propProductId: productId,
     finalProductId,
     productsCount: products?.length || 0,
-    linkedProduct: linkedProduct?.title || 'Not found'
+    linkedProduct: linkedProduct?.title || 'Not found',
+    style: fieldStyle,
+    showBorders: fieldStyle.showBorders,
+    hideImage: fieldStyle.hideImage,
+    hideTitle: fieldStyle.hideTitle,
+    hideQuantitySelector: fieldStyle.hideQuantitySelector,
+    hidePrice: fieldStyle.hidePrice,
+    discountPrice: fieldStyle.discountPrice,
+    hideDiscountPrice: fieldStyle.hideDiscountPrice
   });
   
   // استخدم نصف قطر الحدود من نمط النموذج إذا كان متاحًا
