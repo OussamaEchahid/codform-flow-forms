@@ -665,7 +665,7 @@
             <div style="flex: 1; min-width: 0;">
               ${!hideTitle ? `
                 <h4 class="product-title" style="
-                  font-size: 18px;
+                  font-size: 14px;
                   color: rgb(31, 41, 55);
                   font-family: Inter, Cairo, system-ui, sans-serif;
                   font-weight: 600;
@@ -710,32 +710,7 @@
                       gap: 4px;
                       ${direction === 'rtl' ? 'flex-direction: row-reverse;' : ''}
                     ">
-                      <button type="button" style="
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        width: 24px;
-                        height: 24px;
-                        border-radius: ${quantityBorderRadius}px;
-                        background-color: ${quantityBgColor};
-                        border: ${quantityBorderWidth}px solid ${quantityBorderColor};
-                        color: ${quantityBtnColor};
-                        font-size: 12px;
-                        cursor: pointer;
-                        transition: all 0.2s ease;
-                      " 
-                      onmouseover="this.style.backgroundColor='#f3f4f6'"
-                      onmouseout="this.style.backgroundColor='${quantityBgColor}'"
-                      >−</button>
-                       <span style="
-                         width: 32px;
-                         text-align: center;
-                         font-weight: 600;
-                         font-size: 16px;
-                         font-family: ${quantityFontFamily};
-                         color: ${quantityColor};
-                       ">1</span>
-                      <button type="button" style="
+                       <button type="button" onclick="decreaseQuantity(this)" style="
                          display: flex;
                          align-items: center;
                          justify-content: center;
@@ -746,12 +721,37 @@
                          border: ${quantityBorderWidth}px solid ${quantityBorderColor};
                          color: ${quantityBtnColor};
                          font-size: 16px;
-                        cursor: pointer;
-                        transition: all 0.2s ease;
-                      "
-                      onmouseover="this.style.backgroundColor='#f3f4f6'"
-                      onmouseout="this.style.backgroundColor='${quantityBgColor}'"
-                      >+</button>
+                         cursor: pointer;
+                         transition: all 0.2s ease;
+                       " 
+                       onmouseover="this.style.backgroundColor='#f3f4f6'"
+                       onmouseout="this.style.backgroundColor='${quantityBgColor}'"
+                       >−</button>
+                       <span style="
+                         width: 32px;
+                         text-align: center;
+                         font-weight: 600;
+                         font-size: 16px;
+                         font-family: ${quantityFontFamily};
+                         color: ${quantityColor};
+                       ">1</span>
+                       <button type="button" onclick="increaseQuantity(this)" style="
+                          display: flex;
+                          align-items: center;
+                          justify-content: center;
+                          width: 32px;
+                          height: 32px;
+                          border-radius: ${quantityBorderRadius}px;
+                          background-color: ${quantityBgColor};
+                          border: ${quantityBorderWidth}px solid ${quantityBorderColor};
+                          color: ${quantityBtnColor};
+                          font-size: 16px;
+                         cursor: pointer;
+                         transition: all 0.2s ease;
+                       " 
+                       onmouseover="this.style.backgroundColor='#f3f4f6'"
+                       onmouseout="this.style.backgroundColor='${quantityBgColor}'"
+                       >+</button>
                     </div>
                   </div>
                 ` : ''}
@@ -763,7 +763,7 @@
                   flex-shrink: 0;
                 ">
                   <div class="product-price" style="
-                    font-size: 18px;
+                    font-size: 15px;
                     color: rgb(5, 150, 105);
                     font-family: Inter, Cairo, system-ui, sans-serif;
                     font-weight: 700;
@@ -2240,4 +2240,19 @@ style.textContent = `
   }
 `;
 document.head.appendChild(style);
+
+// وظائف زيادة وتقليل الكمية
+function increaseQuantity(button) {
+  const quantitySpan = button.previousElementSibling;
+  let currentQuantity = parseInt(quantitySpan.textContent);
+  quantitySpan.textContent = currentQuantity + 1;
+}
+
+function decreaseQuantity(button) {
+  const quantitySpan = button.nextElementSibling;
+  let currentQuantity = parseInt(quantitySpan.textContent);
+  if (currentQuantity > 1) {
+    quantitySpan.textContent = currentQuantity - 1;
+  }
+}
 </script>
