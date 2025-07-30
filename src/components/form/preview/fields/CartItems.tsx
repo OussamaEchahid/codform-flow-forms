@@ -84,9 +84,11 @@ const CartItems: React.FC<CartItemsProps> = ({ field, formStyle, productId }) =>
   return (
     <div className="mb-4 codform-cart-items w-full max-w-sm mx-auto" style={{ direction: fieldStyle.direction || (language === 'ar' ? 'rtl' : 'ltr') }}>
       <div 
-        className={`${fieldStyle.showBorders !== false ? 'border border-gray-200' : ''} rounded-lg overflow-hidden bg-white shadow-sm`} 
+        className={`${fieldStyle.showBorders !== false ? 'border' : ''} rounded-lg overflow-hidden bg-white shadow-sm`} 
         style={{ 
-          borderRadius,
+          borderRadius: `${fieldStyle.borderRadius || '12'}px`,
+          borderColor: fieldStyle.borderColor || '#e5e7eb',
+          borderWidth: `${fieldStyle.borderWidth || '1'}px`,
         }}
       >
         {/* عنصر العربة النموذجي للمعاينة */}
@@ -150,13 +152,13 @@ const CartItems: React.FC<CartItemsProps> = ({ field, formStyle, productId }) =>
                 </span>
                 <div className={`flex items-center space-x-1 ${fieldStyle.direction === 'rtl' || language === 'ar' ? 'space-x-reverse' : ''}`}>
                   <button 
-                    className="flex items-center justify-center w-6 h-6 rounded transition-all hover:bg-gray-100" 
+                    className="flex items-center justify-center w-5 h-5 rounded transition-all hover:bg-gray-100" 
                     style={{
                       backgroundColor: fieldStyle.quantityBgColor || '#f9fafb',
                       border: `${fieldStyle.quantityBorderWidth || '1'}px solid ${fieldStyle.quantityBorderColor || '#e5e7eb'}`,
                       borderRadius: `${fieldStyle.quantityBorderRadius || '4'}px`,
                       color: fieldStyle.quantityBtnColor || '#374151',
-                      fontSize: '12px',
+                      fontSize: '11px',
                     }}
                   >
                     −
@@ -172,13 +174,13 @@ const CartItems: React.FC<CartItemsProps> = ({ field, formStyle, productId }) =>
                     1
                   </span>
                   <button 
-                    className="flex items-center justify-center w-6 h-6 rounded transition-all hover:bg-gray-100" 
+                    className="flex items-center justify-center w-5 h-5 rounded transition-all hover:bg-gray-100" 
                     style={{
                       backgroundColor: fieldStyle.quantityBgColor || '#f9fafb',
                       border: `${fieldStyle.quantityBorderWidth || '1'}px solid ${fieldStyle.quantityBorderColor || '#e5e7eb'}`,
                       borderRadius: `${fieldStyle.quantityBorderRadius || '4'}px`,
                       color: fieldStyle.quantityBtnColor || '#374151',
-                      fontSize: '12px',
+                      fontSize: '11px',
                     }}
                   >
                     +

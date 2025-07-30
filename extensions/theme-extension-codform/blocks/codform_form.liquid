@@ -624,14 +624,14 @@
           width: 100%;
           direction: ${direction};
         ">
-          <div style="
-            background-color: #ffffff;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-            width: 100%;
-          ">
+           <div style="
+             background-color: #ffffff;
+             border: 1px solid #e5e7eb;
+             border-radius: 12px;
+             box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+             overflow: hidden;
+             width: 100%;
+           ">
             <div class="codform-cart-item" style="
               display: flex;
               align-items: center;
@@ -710,17 +710,17 @@
                       gap: 4px;
                       ${direction === 'rtl' ? 'flex-direction: row-reverse;' : ''}
                     ">
-                       <button type="button" onclick="decreaseQuantity(this)" style="
+                       <button type="button" onclick="decreaseCartQuantity(this)" style="
                          display: flex;
                          align-items: center;
                          justify-content: center;
-                         width: 32px;
-                         height: 32px;
+                         width: 24px;
+                         height: 24px;
                          border-radius: ${quantityBorderRadius}px;
                          background-color: ${quantityBgColor};
                          border: ${quantityBorderWidth}px solid ${quantityBorderColor};
                          color: ${quantityBtnColor};
-                         font-size: 16px;
+                         font-size: 14px;
                          cursor: pointer;
                          transition: all 0.2s ease;
                        " 
@@ -728,24 +728,24 @@
                        onmouseout="this.style.backgroundColor='${quantityBgColor}'"
                        >−</button>
                        <span style="
-                         width: 32px;
+                         width: 24px;
                          text-align: center;
                          font-weight: 600;
-                         font-size: 16px;
+                         font-size: 14px;
                          font-family: ${quantityFontFamily};
                          color: ${quantityColor};
                        ">1</span>
-                       <button type="button" onclick="increaseQuantity(this)" style="
+                       <button type="button" onclick="increaseCartQuantity(this)" style="
                           display: flex;
                           align-items: center;
                           justify-content: center;
-                          width: 32px;
-                          height: 32px;
+                          width: 24px;
+                          height: 24px;
                           border-radius: ${quantityBorderRadius}px;
                           background-color: ${quantityBgColor};
                           border: ${quantityBorderWidth}px solid ${quantityBorderColor};
                           color: ${quantityBtnColor};
-                          font-size: 16px;
+                          font-size: 14px;
                          cursor: pointer;
                          transition: all 0.2s ease;
                        " 
@@ -2241,11 +2241,29 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
-// وظائف زيادة وتقليل الكمية
+// وظائف زيادة وتقليل الكمية للعربة
+function increaseCartQuantity(button) {
+  const quantitySpan = button.previousElementSibling;
+  let currentQuantity = parseInt(quantitySpan.textContent);
+  quantitySpan.textContent = currentQuantity + 1;
+  console.log('Cart quantity increased to:', currentQuantity + 1);
+}
+
+function decreaseCartQuantity(button) {
+  const quantitySpan = button.nextElementSibling;
+  let currentQuantity = parseInt(quantitySpan.textContent);
+  if (currentQuantity > 1) {
+    quantitySpan.textContent = currentQuantity - 1;
+    console.log('Cart quantity decreased to:', currentQuantity - 1);
+  }
+}
+
+// وظائف زيادة وتقليل الكمية للعروض
 function increaseQuantity(button) {
   const quantitySpan = button.previousElementSibling;
   let currentQuantity = parseInt(quantitySpan.textContent);
   quantitySpan.textContent = currentQuantity + 1;
+  console.log('Offer quantity increased to:', currentQuantity + 1);
 }
 
 function decreaseQuantity(button) {
@@ -2253,6 +2271,7 @@ function decreaseQuantity(button) {
   let currentQuantity = parseInt(quantitySpan.textContent);
   if (currentQuantity > 1) {
     quantitySpan.textContent = currentQuantity - 1;
+    console.log('Offer quantity decreased to:', currentQuantity - 1);
   }
 }
 </script>

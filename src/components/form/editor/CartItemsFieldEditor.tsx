@@ -191,6 +191,37 @@ const CartItemsFieldEditor: React.FC<CartItemsFieldEditorProps> = ({ field, onUp
               />
               <Label>{language === 'ar' ? 'إخفاء السعر' : 'Hide Price'}</Label>
             </div>
+
+            {/* إعدادات الحواف */}
+            <div className="space-y-3 pt-4 border-t">
+              <h5 className="font-medium text-sm text-gray-800">
+                {language === 'ar' ? 'إعدادات الحواف' : 'Border Settings'}
+              </h5>
+              
+              <FontSlider
+                value={parseFloat(currentStyle.borderRadius || '12')}
+                onChange={(value) => handleStyleUpdate('borderRadius', value.toString())}
+                label={language === 'ar' ? 'نصف قطر الحواف' : 'Border Radius'}
+                min={0}
+                max={30}
+                step={1}
+              />
+              
+              <ColorPicker
+                value={currentStyle.borderColor || '#e5e7eb'}
+                onChange={(color) => handleStyleUpdate('borderColor', color)}
+                label={language === 'ar' ? 'لون الحواف' : 'Border Color'}
+              />
+              
+              <FontSlider
+                value={parseInt(currentStyle.borderWidth || '1')}
+                onChange={(value) => handleStyleUpdate('borderWidth', value.toString())}
+                label={language === 'ar' ? 'عرض الحواف' : 'Border Width'}
+                min={0}
+                max={6}
+                step={1}
+              />
+            </div>
           </div>
 
           {/* Styling Tabs */}
