@@ -13,6 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import FieldEditor from './FieldEditor';
+import CartItemsFieldEditor from './editor/CartItemsFieldEditor';
 
 interface SortableFieldProps {
   field: FormField;
@@ -175,6 +176,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
       case 'textarea': return <MessageSquare {...iconProps} />;
       case 'checkbox': return <CheckSquare {...iconProps} />;
       case 'image': return <Image {...iconProps} />;
+      case 'cart-items': return <ShoppingCart {...iconProps} />;
       case 'whatsapp': return <MessageSquare {...iconProps} className="text-green-500" />;
       case 'submit': return <Send {...iconProps} />;
       default: return <FileText {...iconProps} />;
@@ -192,6 +194,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
       'textarea': language === 'ar' ? 'نص متعدد الأسطر' : 'Multi-line Text',
       'checkbox': language === 'ar' ? 'خانة اختيار' : 'Checkbox',
       'image': language === 'ar' ? 'صورة' : 'Image',
+      'cart-items': language === 'ar' ? 'عناصر السلة' : 'Cart Items',
       'whatsapp': language === 'ar' ? 'زر واتساب' : 'WhatsApp Button',
       'submit': language === 'ar' ? 'زر الإرسال' : 'Submit Button',
     };
@@ -829,6 +832,19 @@ const SortableField: React.FC<SortableFieldProps> = ({
               onFieldUpdate(updatedField);
             }
             setShowFieldEditor(false);
+          }}
+          onClose={() => setShowFieldEditor(false)}
+        />
+      )}
+      
+      {/* CartItemsFieldEditor لعناصر السلة */}
+      {showFieldEditor && field.type === 'cart-items' && (
+        <CartItemsFieldEditor
+          field={field}
+          onUpdate={(updates) => {
+            if (onFieldUpdate) {
+              onFieldUpdate({ ...field, ...updates });
+            }
           }}
           onClose={() => setShowFieldEditor(false)}
         />
