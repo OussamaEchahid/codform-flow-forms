@@ -602,15 +602,15 @@ const QuantityOffers = () => {
                           <div className={`px-2 py-1 rounded-full text-xs font-medium ${
                             offer.enabled ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
                           }`}>
-                            {offer.enabled ? 'نشط' : 'معطل'}
+                            {offer.enabled ? t('enabled') : t('disabled')}
                           </div>
                         </div>
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <span>{offer.offers?.length || 0} عرض مُهيأ</span>
-                          <span>الموضع: {
-                            offer.position === 'before_form' ? 'قبل النموذج' : 
-                            offer.position === 'after_form' ? 'بعد النموذج' : 'داخل النموذج'
-                          }</span>
+                           <span>{offer.offers?.length || 0} {t('offersConfigured')}</span>
+                           <span>{t('positionPrefix')} {
+                             offer.position === 'before_form' ? t('beforeForm') : 
+                             offer.position === 'after_form' ? t('afterForm') : t('insideForm')
+                           }</span>
                         </div>
                         {offer.offers && offer.offers.length > 0 && (
                           <div className="flex flex-wrap gap-2 mt-2">
@@ -621,7 +621,7 @@ const QuantityOffers = () => {
                             ))}
                             {offer.offers.length > 3 && (
                               <div className="bg-gray-50 text-gray-600 px-2 py-1 rounded text-xs">
-                                +{offer.offers.length - 3} عرض إضافي
+                                +{offer.offers.length - 3} {t('additionalOffers')}
                               </div>
                             )}
                           </div>
@@ -633,14 +633,14 @@ const QuantityOffers = () => {
                           size="sm"
                           onClick={() => editExistingOffer(offer)}
                         >
-                          تعديل
+                           {t('edit')}
                         </Button>
                         <Button
                           variant="destructive"
                           size="sm"
                           onClick={() => deleteOffer(offer.id)}
                         >
-                          حذف
+                          {t('delete')}
                         </Button>
                       </div>
                     </div>
@@ -657,18 +657,18 @@ const QuantityOffers = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FileText className="w-5 h-5" />
-                الخطوة 1: اختيار النموذج
+                {t('step1SelectForm')}
               </CardTitle>
               <CardDescription>
-                اختر النموذج المراد إضافة عروض الكمية إليه
+                {t('selectFormDescription')}
               </CardDescription>
             </CardHeader>
             <CardContent>
               {forms.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <FileText className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                  <p>لا توجد نماذج منشورة</p>
-                  <p className="text-sm">يرجى إنشاء ونشر نموذج أولاً</p>
+                   <p>{t('noPublishedForms')}</p>
+                   <p className="text-sm">{t('createFormFirstMessage')}</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -699,17 +699,17 @@ const QuantityOffers = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Package className="w-5 h-5" />
-                الخطوة 2: اختيار المنتج
+                {t('step2SelectProduct')}
               </CardTitle>
               <CardDescription>
-                النموذج المختار: <strong>{selectedForm.title}</strong>
+                {t('selectedForm')}: <strong>{selectedForm.title}</strong>
                 {associatedProducts.length > 0 && (
                   <div className="mt-2 p-2 bg-yellow-50 rounded border">
                     <div className="flex items-start gap-2">
                       <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5" />
                       <div>
                         <p className="text-sm font-medium text-yellow-800">
-                          المنتجات المرتبطة مسبقاً بهذا النموذج:
+                          {t('productsAlreadyLinked')}
                         </p>
                         <div className="mt-1 space-y-1">
                           {associatedProducts.map(ap => (
@@ -731,30 +731,30 @@ const QuantityOffers = () => {
               {!isConnected ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <Package className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                  <p>متجر Shopify غير متصل</p>
-                  <p className="text-sm">يرجى ربط متجر Shopify أولاً</p>
+                   <p>{t('shopifyNotConnected')}</p>
+                   <p className="text-sm">{t('connectShopifyFirst')}</p>
                 </div>
               ) : shopifyLoading ? (
                 <div className="text-center py-8">
                   <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                  <p className="mt-2 text-muted-foreground">جاري تحميل المنتجات من Shopify...</p>
+                  <p className="mt-2 text-muted-foreground">{t('loadingProducts')}</p>
                 </div>
                ) : products.length === 0 ? (
                  <div className="text-center py-8 text-muted-foreground">
                    <Package className="mx-auto h-12 w-12 mb-4 opacity-50" />
                    <p>
-                     {selectedForm ? 
-                       'لا توجد منتجات مرتبطة بهذا النموذج' : 
-                       'لا توجد منتجات في متجر Shopify'
-                     }
+                      {selectedForm ? 
+                        t('noProductsLinkedToForm') : 
+                        t('noProductsInShopify')
+                      }
                    </p>
                    {selectedForm ? (
                      <p className="text-sm mt-2">
-                       قم بربط المنتجات بهذا النموذج من صفحة النماذج أولاً
-                     </p>
-                   ) : (
-                     <Button onClick={() => loadProducts()} variant="outline" className="mt-4">
-                       إعادة تحميل المنتجات
+                        {t('linkProductsToForm')}
+                      </p>
+                    ) : (
+                      <Button onClick={() => loadProducts()} variant="outline" className="mt-4">
+                        {t('reloadProducts')}
                      </Button>
                    )}
                  </div>
@@ -783,7 +783,7 @@ const QuantityOffers = () => {
                           <h3 className="font-medium">{product.title}</h3>
                           {isAssociated && (
                             <Badge variant="destructive" className="mt-2 text-xs">
-                              مرتبط مسبقاً
+                              {t('alreadyLinked')}
                             </Badge>
                           )}
                         </CardContent>
@@ -794,12 +794,12 @@ const QuantityOffers = () => {
               )}
               
               <div className="mt-6 flex justify-between">
-                <Button onClick={() => setCurrentStep('form')} variant="outline">
-                  رجوع
-                </Button>
-                {selectedProduct && (
-                  <Button onClick={proceedToSettings}>
-                    التالي
+                 <Button onClick={() => setCurrentStep('form')} variant="outline">
+                   {t('back')}
+                 </Button>
+                 {selectedProduct && (
+                   <Button onClick={proceedToSettings}>
+                     {t('next')}
                   </Button>
                 )}
               </div>
@@ -814,29 +814,29 @@ const QuantityOffers = () => {
               <Card className="mb-6">
                 <CardHeader>
                   <CardTitle className="text-sm text-muted-foreground">
-                    الخطوة 3: إعداد العرض
-                  </CardTitle>
-                  <CardDescription>
-                    المنتج: {selectedProduct.title} | النموذج: {selectedForm.title}
+                     {t('step3SetupOffer')}
+                   </CardTitle>
+                   <CardDescription>
+                     {t('product')}: {selectedProduct.title} | {t('form')}: {selectedForm.title}
                   </CardDescription>
                 </CardHeader>
               </Card>
 
               <Tabs defaultValue="offers" className="w-full">
                 <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="offers">العروض</TabsTrigger>
-                  <TabsTrigger value="styling">التنسيق</TabsTrigger>
-                  <TabsTrigger value="position">الموضع</TabsTrigger>
+                   <TabsTrigger value="offers">{t('offers')}</TabsTrigger>
+                   <TabsTrigger value="styling">{t('styling')}</TabsTrigger>
+                   <TabsTrigger value="position">{t('position')}</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="offers" className="space-y-4">
                   <Card>
                     <CardHeader>
                       <div className="flex items-center justify-between">
-                        <CardTitle>العروض</CardTitle>
-                        <Button onClick={addOffer} size="sm">
-                          <Plus className="w-4 h-4 mr-2" />
-                          إضافة عرض
+                         <CardTitle>{t('offers')}</CardTitle>
+                         <Button onClick={addOffer} size="sm">
+                           <Plus className="w-4 h-4 mr-2" />
+                           {t('addOffer')}
                         </Button>
                       </div>
                     </CardHeader>
@@ -844,7 +844,7 @@ const QuantityOffers = () => {
                       {quantityOffer.offers.map((offer) => (
                         <Card key={offer.id} className="p-4">
                           <div className="flex items-start justify-between mb-4">
-                            <Badge variant="outline">عرض #{offer.id}</Badge>
+                            <Badge variant="outline">{t('offerNumber')}{offer.id}</Badge>
                             <Button
                               onClick={() => removeOffer(offer.id)}
                               size="sm"
@@ -855,15 +855,15 @@ const QuantityOffers = () => {
                           </div>
                           <div className="grid grid-cols-2 gap-4">
                             <div>
-                              <Label>العلامة</Label>
-                              <Input
-                                value={offer.tag}
-                                onChange={(e) => updateOffer(offer.id, 'tag', e.target.value)}
-                                placeholder="هدية مجانية"
-                              />
-                            </div>
-                            <div>
-                              <Label>الكمية</Label>
+                               <Label>{t('tag')}</Label>
+                               <Input
+                                 value={offer.tag}
+                                 onChange={(e) => updateOffer(offer.id, 'tag', e.target.value)}
+                                 placeholder={t('freeGift')}
+                               />
+                             </div>
+                             <div>
+                               <Label>{t('quantity')}</Label>
                               <Input
                                 type="number"
                                 value={offer.quantity}
@@ -872,32 +872,32 @@ const QuantityOffers = () => {
                               />
                             </div>
                             <div className="col-span-2">
-                              <Label>نص العرض</Label>
-                              <Input
-                                value={offer.text}
-                                onChange={(e) => updateOffer(offer.id, 'text', e.target.value)}
-                                placeholder="اشترِ 3 واحصل على 1 مجاناً"
-                              />
+                               <Label>{t('offerText')}</Label>
+                               <Input
+                                 value={offer.text}
+                                 onChange={(e) => updateOffer(offer.id, 'text', e.target.value)}
+                                 placeholder={t('buy3Get1Free')}
+                               />
                             </div>
                             <div>
-                              <Label>نوع الخصم</Label>
-                              <Select
-                                value={offer.discountType}
-                                onValueChange={(value) => updateOffer(offer.id, 'discountType', value)}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="none">بدون خصم</SelectItem>
-                                  <SelectItem value="fixed">مبلغ ثابت</SelectItem>
-                                  <SelectItem value="percentage">نسبة مئوية</SelectItem>
+                               <Label>{t('discountType')}</Label>
+                               <Select
+                                 value={offer.discountType}
+                                 onValueChange={(value) => updateOffer(offer.id, 'discountType', value)}
+                               >
+                                 <SelectTrigger>
+                                   <SelectValue />
+                                 </SelectTrigger>
+                                 <SelectContent>
+                                   <SelectItem value="none">{t('noDiscount')}</SelectItem>
+                                   <SelectItem value="fixed">{t('fixedAmount')}</SelectItem>
+                                   <SelectItem value="percentage">{t('percentage')}</SelectItem>
                                 </SelectContent>
                               </Select>
                             </div>
                             {offer.discountType !== 'none' && (
                               <div>
-                                <Label>قيمة الخصم</Label>
+                                <Label>{t('discountValue')}</Label>
                                 <Input
                                   type="number"
                                   value={offer.discountValue}
@@ -911,7 +911,7 @@ const QuantityOffers = () => {
                       ))}
                       {quantityOffer.offers.length === 0 && (
                         <div className="text-center py-8 text-muted-foreground">
-                          لا توجد عروض بعد. أضف عرضاً للبدء.
+                          {t('noOffersYetDesc')}
                         </div>
                       )}
                     </CardContent>
@@ -922,41 +922,41 @@ const QuantityOffers = () => {
                 <TabsContent value="styling" className="space-y-4">
                   <Card>
                     <CardHeader>
-                      <CardTitle>التنسيق</CardTitle>
+                      <CardTitle>{t('styling')}</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <Label>لون الخلفية</Label>
-                          <Input
-                            type="color"
-                            value={quantityOffer.styling.backgroundColor}
-                            onChange={(e) => updateStyling('backgroundColor', e.target.value)}
-                          />
-                        </div>
-                        <div>
-                          <Label>لون النص</Label>
-                          <Input
-                            type="color"
-                            value={quantityOffer.styling.textColor}
-                            onChange={(e) => updateStyling('textColor', e.target.value)}
-                          />
-                        </div>
-                        <div>
-                          <Label>لون العلامة</Label>
-                          <Input
-                            type="color"
-                            value={quantityOffer.styling.tagColor}
-                            onChange={(e) => updateStyling('tagColor', e.target.value)}
-                          />
-                        </div>
-                        <div>
-                          <Label>لون السعر</Label>
-                          <Input
-                            type="color"
-                            value={quantityOffer.styling.priceColor}
-                            onChange={(e) => updateStyling('priceColor', e.target.value)}
-                          />
+                           <Label>{t('backgroundColor')}</Label>
+                           <Input
+                             type="color"
+                             value={quantityOffer.styling.backgroundColor}
+                             onChange={(e) => updateStyling('backgroundColor', e.target.value)}
+                           />
+                         </div>
+                         <div>
+                           <Label>{t('textColor')}</Label>
+                           <Input
+                             type="color"
+                             value={quantityOffer.styling.textColor}
+                             onChange={(e) => updateStyling('textColor', e.target.value)}
+                           />
+                         </div>
+                         <div>
+                           <Label>{t('tagColor')}</Label>
+                           <Input
+                             type="color"
+                             value={quantityOffer.styling.tagColor}
+                             onChange={(e) => updateStyling('tagColor', e.target.value)}
+                           />
+                         </div>
+                         <div>
+                           <Label>{t('priceColor')}</Label>
+                           <Input
+                             type="color"
+                             value={quantityOffer.styling.priceColor}
+                             onChange={(e) => updateStyling('priceColor', e.target.value)}
+                           />
                         </div>
                       </div>
                     </CardContent>
@@ -966,28 +966,28 @@ const QuantityOffers = () => {
                 <TabsContent value="position" className="space-y-4">
                   <Card>
                     <CardHeader>
-                      <CardTitle>الموضع</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div>
-                        <Label>موضع العرض</Label>
-                        <Select
-                          value={quantityOffer.position}
-                          onValueChange={(value) => setQuantityOffer(prev => ({ ...prev, position: value as any }))}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="before_form">قبل النموذج</SelectItem>
-                            <SelectItem value="inside_form">داخل النموذج</SelectItem>
-                            <SelectItem value="after_form">بعد النموذج</SelectItem>
+                       <CardTitle>{t('position')}</CardTitle>
+                     </CardHeader>
+                     <CardContent className="space-y-4">
+                       <div>
+                         <Label>{t('offerPosition')}</Label>
+                         <Select
+                           value={quantityOffer.position}
+                           onValueChange={(value) => setQuantityOffer(prev => ({ ...prev, position: value as any }))}
+                         >
+                           <SelectTrigger>
+                             <SelectValue />
+                           </SelectTrigger>
+                           <SelectContent>
+                             <SelectItem value="before_form">{t('beforeForm')}</SelectItem>
+                             <SelectItem value="inside_form">{t('insideForm')}</SelectItem>
+                             <SelectItem value="after_form">{t('afterForm')}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                       {quantityOffer.position === 'inside_form' && (
                         <div>
-                          <Label>محدد CSS المخصص</Label>
+                          <Label>{t('customCSSSelector')}</Label>
                           <Input
                             value={quantityOffer.custom_selector || ''}
                             onChange={(e) => setQuantityOffer(prev => ({ ...prev, custom_selector: e.target.value }))}
@@ -1001,11 +1001,11 @@ const QuantityOffers = () => {
               </Tabs>
 
               <div className="mt-6 flex gap-3">
-                <Button onClick={() => setCurrentStep('product')} variant="outline" className="flex-1">
-                  رجوع
-                </Button>
-                <Button onClick={saveQuantityOffer} disabled={loading || quantityOffer.offers.length === 0} className="flex-1">
-                  {loading ? 'جاري الحفظ...' : quantityOffer.id ? 'تحديث العرض' : 'حفظ العرض'}
+                 <Button onClick={() => setCurrentStep('product')} variant="outline" className="flex-1">
+                   {t('back')}
+                 </Button>
+                 <Button onClick={saveQuantityOffer} disabled={loading || quantityOffer.offers.length === 0} className="flex-1">
+                   {loading ? t('saving') : quantityOffer.id ? t('updateOffer') : t('saveOffer')}
                 </Button>
               </div>
             </div>
@@ -1015,7 +1015,7 @@ const QuantityOffers = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Eye className="w-5 h-5" />
-                    معاينة مباشرة
+                    {t('livePreview')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>

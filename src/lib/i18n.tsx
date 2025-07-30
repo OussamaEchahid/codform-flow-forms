@@ -264,7 +264,33 @@ const translations = {
     // Landing Pages
     landingPagesTitle: 'Landing Pages',
     workInProgress: 'We are working to complete this as soon as possible',
-    comingSoon: 'Coming Soon'
+    comingSoon: 'Coming Soon',
+    
+    // Quantity Offers Form Labels
+    step1SelectForm: 'Step 1: Select Form',
+    selectFormDescription: 'Choose the form to add quantity offers to',
+    noPublishedForms: 'No published forms',
+    createFormFirstMessage: 'Please create and publish a form first',
+    step2SelectProduct: 'Step 2: Select Product',
+    productsAlreadyLinked: 'Products already linked to this form:',
+    shopifyNotConnected: 'Shopify store not connected',
+    connectShopifyFirst: 'Please connect a Shopify store first',
+    loadingProducts: 'Loading products from Shopify...',
+    noProductsLinkedToForm: 'No products linked to this form',
+    noProductsInShopify: 'No products in Shopify store',
+    linkProductsToForm: 'Link products to this form from the forms page first',
+    reloadProducts: 'Reload Products',
+    alreadyLinked: 'Already Linked',
+    step3SetupOffer: 'Step 3: Setup Offer',
+    offerNumber: 'Offer #',
+    noOffersYetDesc: 'No offers yet. Add an offer to get started.',
+    customCSSSelector: 'Custom CSS Selector',
+    updateOffer: 'Update Offer',
+    enabled: 'Enabled',
+    disabled: 'Disabled',
+    offersConfigured: 'offers configured',
+    positionPrefix: 'Position:',
+    additionalOffers: 'additional offers',
   },
   ar: {
     dashboard: 'لوحة التحكم',
@@ -509,7 +535,33 @@ const translations = {
     // Landing Pages
     landingPagesTitle: 'صفحات الهبوط',
     workInProgress: 'نحن نعمل على إنجاز هذا في أقرب وقت ممكن',
-    comingSoon: 'قريباً'
+    comingSoon: 'قريباً',
+    
+    // Quantity Offers Form Labels
+    step1SelectForm: 'الخطوة 1: اختيار النموذج',
+    selectFormDescription: 'اختر النموذج المراد إضافة عروض الكمية إليه',
+    noPublishedForms: 'لا توجد نماذج منشورة',
+    createFormFirstMessage: 'يرجى إنشاء ونشر نموذج أولاً',
+    step2SelectProduct: 'الخطوة 2: اختيار المنتج',
+    productsAlreadyLinked: 'المنتجات المرتبطة مسبقاً بهذا النموذج:',
+    shopifyNotConnected: 'متجر Shopify غير متصل',
+    connectShopifyFirst: 'يرجى ربط متجر Shopify أولاً',
+    loadingProducts: 'جاري تحميل المنتجات من Shopify...',
+    noProductsLinkedToForm: 'لا توجد منتجات مرتبطة بهذا النموذج',
+    noProductsInShopify: 'لا توجد منتجات في متجر Shopify',
+    linkProductsToForm: 'قم بربط المنتجات بهذا النموذج من صفحة النماذج أولاً',
+    reloadProducts: 'إعادة تحميل المنتجات',
+    alreadyLinked: 'مرتبط مسبقاً',
+    step3SetupOffer: 'الخطوة 3: إعداد العرض',
+    offerNumber: 'عرض #',
+    noOffersYetDesc: 'لا توجد عروض بعد. أضف عرضاً للبدء.',
+    customCSSSelector: 'محدد CSS المخصص',
+    updateOffer: 'تحديث العرض',
+    enabled: 'نشط',
+    disabled: 'معطل',
+    offersConfigured: 'عرض مُهيأ',
+    positionPrefix: 'الموضع:',
+    additionalOffers: 'عرض إضافي',
   }
 };
 
