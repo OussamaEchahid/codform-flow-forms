@@ -214,9 +214,9 @@
       
       html = `
         <div class="codform-field-wrapper" style="
-              margin-bottom: 16px;
-              direction: ${formDirection};
-            ">
+          margin-bottom: 8px;
+          direction: ${formDirection};
+        ">
               ${actualShowLabel && !isFloatingLabels ? `
                 <label for="${fieldId}" style="
                   display: block;
@@ -620,25 +620,26 @@
       
       html = `
         <div class="codform-cart-items" style="
-          margin-bottom: 20px;
+          margin-bottom: 24px;
           max-width: 32rem;
           margin-left: auto;
           margin-right: auto;
           direction: ${direction};
         ">
           <div style="
-            ${showBorders ? `border: none;` : ''}
-            border-radius: 0;
+            ${showBorders ? `border: 1px solid #e5e7eb;` : ''}
+            border-radius: 8px;
             overflow: hidden;
-            background-color: transparent;
-            box-shadow: none;
+            background-color: #ffffff;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            padding: 16px;
           ">
             <div class="codform-cart-item" style="
               display: flex;
               align-items: center;
               padding: 0;
               gap: 16px;
-              margin-bottom: 16px;
+              margin-bottom: 0;
               ${direction === 'rtl' ? 'flex-direction: row-reverse;' : ''}
             " data-product-item>
               ${!hideImage ? `
