@@ -144,14 +144,6 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
             </h3>
           </div>
           <div className="flex items-center space-x-2">
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={toggleDirection}
-              className="text-gray-600 hover:text-gray-900"
-            >
-              {formStyle.formDirection === 'rtl' ? 'LTR' : 'RTL'}
-            </Button>
             <Button
               variant="outline"
               size="sm"

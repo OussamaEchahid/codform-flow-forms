@@ -139,12 +139,25 @@ const CartItemsFieldEditor: React.FC<CartItemsFieldEditorProps> = ({ field, onUp
               </p>
             </div>
 
-            <div className="flex items-center space-x-2">
-              <Switch
-                checked={currentStyle.showBorders !== false}
-                onCheckedChange={(checked) => handleStyleUpdate('showBorders', checked)}
-              />
-              <Label>{language === 'ar' ? 'إظهار الحدود' : 'Show Borders'}</Label>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="show-borders"
+                  checked={field.style?.showBorders !== false}
+                  onCheckedChange={(checked) => handleStyleUpdate('showBorders', checked)}
+                />
+                <Label htmlFor="show-borders">
+                  {language === 'ar' ? 'إظهار الحدود' : 'Show Borders'}
+                </Label>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => handleStyleUpdate('direction', field.style?.direction === 'rtl' ? 'ltr' : 'rtl')}
+                className="text-gray-600 hover:text-gray-900"
+              >
+                {field.style?.direction === 'rtl' ? 'LTR' : 'RTL'}
+              </Button>
             </div>
 
             <div className="flex items-center space-x-2">

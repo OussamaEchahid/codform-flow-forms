@@ -34,7 +34,7 @@ const CartItems: React.FC<CartItemsProps> = ({ field, formStyle, productId }) =>
   const borderRadius = formStyle.borderRadius || '0.5rem';
   
   return (
-    <div className="mb-4 codform-cart-items w-full max-w-sm mx-auto" style={{ direction: language === 'ar' ? 'rtl' : 'ltr' }}>
+    <div className="mb-4 codform-cart-items w-full max-w-sm mx-auto" style={{ direction: fieldStyle.direction || (language === 'ar' ? 'rtl' : 'ltr') }}>
       <div 
         className={`${fieldStyle.showBorders !== false ? 'border border-gray-200' : ''} rounded-lg overflow-hidden bg-white shadow-sm`} 
         style={{ 
@@ -42,7 +42,7 @@ const CartItems: React.FC<CartItemsProps> = ({ field, formStyle, productId }) =>
         }}
       >
         {/* عنصر العربة النموذجي للمعاينة */}
-        <div className={`flex items-center p-3 space-x-3 codform-cart-item ${language === 'ar' ? 'space-x-reverse' : ''}`} data-product-item>
+        <div className={`flex items-center p-3 space-x-3 codform-cart-item ${fieldStyle.direction === 'rtl' || language === 'ar' ? 'space-x-reverse' : ''}`} data-product-item>
           {/* صورة المنتج */}
           {fieldStyle.hideImage !== true && (
             <div className="w-10 h-10 rounded-md flex-shrink-0 overflow-hidden">
@@ -96,13 +96,13 @@ const CartItems: React.FC<CartItemsProps> = ({ field, formStyle, productId }) =>
             
             {/* محدد الكمية */}
             {fieldStyle.hideQuantitySelector !== true && (
-              <div className={`flex items-center space-x-2 mt-2 ${language === 'ar' ? 'space-x-reverse' : ''}`}>
+              <div className={`flex items-center space-x-2 mt-2 ${fieldStyle.direction === 'rtl' || language === 'ar' ? 'space-x-reverse' : ''}`}>
                 <span className="text-xs font-medium text-gray-600" style={{
                   fontFamily: fieldStyle.quantityFontFamily || 'Inter, Cairo, system-ui, sans-serif',
                 }}>
                   {language === 'ar' ? 'الكمية:' : 'Qty:'}
                 </span>
-                <div className={`flex items-center space-x-1 ${language === 'ar' ? 'space-x-reverse' : ''}`}>
+                <div className={`flex items-center space-x-1 ${fieldStyle.direction === 'rtl' || language === 'ar' ? 'space-x-reverse' : ''}`}>
                   <button 
                     className="flex items-center justify-center w-6 h-6 rounded transition-all hover:bg-gray-100" 
                     style={{
@@ -144,7 +144,7 @@ const CartItems: React.FC<CartItemsProps> = ({ field, formStyle, productId }) =>
           
           {/* سعر المنتج */}
           {fieldStyle.hidePrice !== true && (
-            <div className={`${language === 'ar' ? 'text-left' : 'text-right'} flex-shrink-0`}>
+            <div className={`${fieldStyle.direction === 'rtl' || language === 'ar' ? 'text-left' : 'text-right'} flex-shrink-0`}>
               <div className="font-bold product-price" style={{
                 fontSize: fieldStyle.priceFontSize || '0.9rem',
                 color: fieldStyle.priceColor || '#059669',
