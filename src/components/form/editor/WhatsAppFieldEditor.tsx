@@ -25,6 +25,7 @@ interface WhatsAppFieldEditorProps {
 }
 
 const WhatsAppFieldEditor: React.FC<WhatsAppFieldEditorProps> = ({ field, onSave, onClose }) => {
+  console.log('🔧 WhatsAppFieldEditor loaded with NEW settings interface!');
   const { t, language } = useI18n();
   const [buttonText, setButtonText] = useState(field.label || (language === 'ar' ? 'طلب عبر واتساب' : 'Order by WhatsApp'));
   const [whatsappNumber, setWhatsappNumber] = useState(field.whatsappNumber || '');

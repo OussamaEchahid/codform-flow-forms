@@ -663,6 +663,7 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
         );
       
       case 'whatsapp':
+        console.log('🚀 Opening WhatsApp field editor for field:', currentField);
         return (
           <WhatsAppFieldEditor
             field={currentField}
