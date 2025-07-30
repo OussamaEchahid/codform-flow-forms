@@ -38,6 +38,18 @@ const MyStores = () => {
   const [connectingStore, setConnectingStore] = useState<string | null>(null);
   const { user, session, isShopifyAuthenticated, shop: activeShop, shopifyUserEmail } = useAuth();
 
+  // إضافة console.log في بداية المكون
+  console.log('🔄 MyStores component loaded, initial state:', {
+    user: !!user,
+    session: !!session,
+    isShopifyAuthenticated,
+    activeShop,
+    shopifyUserEmail,
+    storesLength: stores.length,
+    loading,
+    unifiedActiveStore: UnifiedStoreManager.getActiveStore()
+  });
+
   useEffect(() => {
     console.log('🔄 MyStores useEffect triggered:', {
       user: !!user,
@@ -123,6 +135,8 @@ const MyStores = () => {
 
   // استخدام UnifiedStoreManager للاتساق
   const currentStore = UnifiedStoreManager.getActiveStore();
+  console.log('🔍 MyStores render - Current store from UnifiedStoreManager:', currentStore);
+  console.log('🔍 MyStores render - Stores state:', stores);
 
   const handleConnectStore = async (shopDomain: string) => {
     setConnectingStore(shopDomain);
