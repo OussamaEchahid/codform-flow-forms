@@ -14,6 +14,9 @@ const EnhancedMyStores = () => {
     disconnectAll 
   } = useShopifyStoreSync();
 
+  // Get user email from localStorage
+  const userEmail = localStorage.getItem('shopify_user_email');
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
@@ -60,6 +63,26 @@ const EnhancedMyStores = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
       <div className="max-w-4xl mx-auto space-y-6">
+        {/* User Info Header */}
+        {userEmail && (
+          <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-center">
+                <div className="flex items-center gap-3 bg-white/70 px-4 py-2 rounded-full">
+                  <div className="w-8 h-8 bg-primary/20 rounded-full flex items-center justify-center">
+                    <span className="text-sm font-medium text-primary">
+                      {userEmail.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                  <span className="text-sm font-medium text-slate-700">
+                    {userEmail}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        
         {/* Header */}
         <Card>
           <CardHeader>
