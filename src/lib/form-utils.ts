@@ -230,6 +230,37 @@ export const createEmptyField = (type: string): FormField => {
         textAlign: 'center' as 'center'
       };
       break;
+    case 'cart-items':
+      field.label = 'عناصر السلة';
+      field.style = {
+        showTitle: true,
+        showBorders: true,
+        hideImage: false,
+        hideTitle: false,
+        hideQuantitySelector: false,
+        hidePrice: false,
+        color: '#000000',
+        fontSize: '0.95rem',
+        fontFamily: 'Tajawal',
+        fontWeight: '700',
+        descriptionColor: '#151515',
+        descriptionFontSize: '0.85rem',
+        descriptionFontFamily: 'Tajawal',
+        descriptionFontWeight: '400',
+        quantityBgColor: '#00000020',
+        quantityBorderColor: '#000000',
+        quantityBorderWidth: '2',
+        quantityBorderRadius: '8.5',
+        quantityFontFamily: 'Tajawal',
+        quantityColor: '#000000',
+        quantityBtnColor: '#000000',
+        productFontWeight: '700',
+        priceColor: '#000000',
+        priceFontSize: '1.05rem',
+        priceFontFamily: 'Tajawal',
+        priceFontWeight: '900'
+      };
+      break;
   }
   
   return field;
