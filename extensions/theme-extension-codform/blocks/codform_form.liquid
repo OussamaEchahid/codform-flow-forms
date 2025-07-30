@@ -616,15 +616,14 @@ EXTERNAL SCRIPTS
       const showBorders = fieldStyle.showBorders !== false;
       const direction = fieldStyle.direction || formDirection;
       
-      // Product styling - Enhanced from form settings
-      const baseFontSize = formStyle.baseFontSize || '16px';
-      const fontSize = fieldStyle.fontSize || baseFontSize;
+      // Product styling
+      const fontSize = fieldStyle.fontSize || '0.95rem';
       const color = fieldStyle.color || '#1f2937';
       const fontFamily = fieldStyle.fontFamily || 'Cairo, Inter, system-ui, sans-serif';
       const fontWeight = fieldStyle.fontWeight || '600';
       
       // Variant styling
-      const descriptionFontSize = fieldStyle.descriptionFontSize || '14px';
+      const descriptionFontSize = fieldStyle.descriptionFontSize || '0.875rem';
       const descriptionColor = fieldStyle.descriptionColor || '#6b7280';
       const descriptionFontFamily = fieldStyle.descriptionFontFamily || 'Cairo, Inter, system-ui, sans-serif';
       const descriptionFontWeight = fieldStyle.descriptionFontWeight || '400';
@@ -638,15 +637,11 @@ EXTERNAL SCRIPTS
       const quantityBtnColor = fieldStyle.quantityBtnColor || '#374151';
       const quantityFontFamily = fieldStyle.quantityFontFamily || 'Cairo, Inter, system-ui, sans-serif';
       
-      // Price styling - Enhanced with correct sizes
+      // Price styling
       const priceColor = fieldStyle.priceColor || '#059669';
-      const priceFontSize = fieldStyle.priceFontSize || '16px';
+      const priceFontSize = fieldStyle.priceFontSize || '0.9rem';
       const priceFontFamily = fieldStyle.priceFontFamily || 'Cairo, Inter, system-ui, sans-serif';
       const priceFontWeight = fieldStyle.priceFontWeight || '700';
-      
-      // Discount styling - Enhanced
-      const discountFontSize = fieldStyle.discountFontSize || '14px';
-      const discountColor = fieldStyle.discountColor || '#9ca3af';
       
       // Discount price
       const discountPrice = fieldStyle.discountPrice || '';
@@ -662,7 +657,6 @@ EXTERNAL SCRIPTS
           margin-left: auto;
           margin-right: auto;
           direction: ${direction};
-          font-family: 'Cairo', 'Tajawal', sans-serif;
         ">
           <div style="
             ${showBorders ? `border: 1px solid #e5e7eb;` : ''}
@@ -753,54 +747,47 @@ EXTERNAL SCRIPTS
                       gap: 4px;
                       ${direction === 'rtl' ? 'flex-direction: row-reverse;' : ''}
                     ">
-                      <button type="button" class="codform-qty-decrease" style="
+                      <button type="button" style="
                         display: flex;
                         align-items: center;
                         justify-content: center;
-                        width: 28px;
-                        height: 28px;
+                        width: 24px;
+                        height: 24px;
                         border-radius: ${quantityBorderRadius}px;
                         background-color: ${quantityBgColor};
                         border: ${quantityBorderWidth}px solid ${quantityBorderColor};
                         color: ${quantityBtnColor};
-                        font-size: 14px;
-                        font-weight: bold;
+                        font-size: 12px;
                         cursor: pointer;
                         transition: all 0.2s ease;
-                        min-width: 28px;
                       " 
-                      onmouseover="this.style.backgroundColor='#f3f4f6'; this.style.borderColor='#d1d5db'"
-                      onmouseout="this.style.backgroundColor='${quantityBgColor}'; this.style.borderColor='${quantityBorderColor}'"
-                      onclick="window.codformUpdateQuantity(this, -1)"
+                      onmouseover="this.style.backgroundColor='#f3f4f6'"
+                      onmouseout="this.style.backgroundColor='${quantityBgColor}'"
                       >−</button>
-                      <span class="codform-qty-display" style="
-                        min-width: 32px;
+                      <span style="
+                        width: 24px;
                         text-align: center;
                         font-weight: 600;
-                        font-size: 14px;
+                        font-size: 12px;
                         font-family: ${quantityFontFamily};
                         color: ${quantityColor};
-                        padding: 0 4px;
                       ">1</span>
-                      <button type="button" class="codform-qty-increase" style="
+                      <button type="button" style="
                         display: flex;
                         align-items: center;
                         justify-content: center;
-                        width: 28px;
-                        height: 28px;
+                        width: 24px;
+                        height: 24px;
                         border-radius: ${quantityBorderRadius}px;
                         background-color: ${quantityBgColor};
                         border: ${quantityBorderWidth}px solid ${quantityBorderColor};
                         color: ${quantityBtnColor};
-                        font-size: 14px;
-                        font-weight: bold;
+                        font-size: 12px;
                         cursor: pointer;
                         transition: all 0.2s ease;
-                        min-width: 28px;
                       "
-                      onmouseover="this.style.backgroundColor='#f3f4f6'; this.style.borderColor='#d1d5db'"
-                      onmouseout="this.style.backgroundColor='${quantityBgColor}'; this.style.borderColor='${quantityBorderColor}'"
-                      onclick="window.codformUpdateQuantity(this, 1)"
+                      onmouseover="this.style.backgroundColor='#f3f4f6'"
+                      onmouseout="this.style.backgroundColor='${quantityBgColor}'"
                       >+</button>
                     </div>
                   </div>
@@ -821,15 +808,13 @@ EXTERNAL SCRIPTS
                   ">
                     ${formattedPrice}
                   </div>
-                  ${!hideDiscountPrice && discountPrice && discountPrice.trim() !== '' ? `
-                    <div class="product-discount-price" style="
-                      font-size: ${discountFontSize};
-                      color: ${discountColor};
+                  ${!hideDiscountPrice && discountPrice ? `
+                    <div style="
+                      font-size: 12px;
+                      color: #9ca3af;
                       text-decoration: line-through;
                       font-family: ${priceFontFamily};
-                      font-weight: 500;
                       margin-top: 2px;
-                      line-height: 1.2;
                     ">
                       ${discountPrice}
                     </div>
@@ -2272,28 +2257,6 @@ document.addEventListener('DOMContentLoaded', function() {
   // تنظيف الفاصل الزمني بعد 10 ثوان إذا لم يتم العثور على النموذج
   setTimeout(() => clearInterval(waitForFormLoad), 10000);
 });
-
-// Add quantity control functionality
-window.codformUpdateQuantity = function(button, change) {
-  console.log('🔢 Updating quantity:', change);
-  const quantityContainer = button.closest('.codform-cart-item');
-  if (!quantityContainer) return;
-  
-  const quantityDisplay = quantityContainer.querySelector('.codform-qty-display');
-  if (!quantityDisplay) return;
-  
-  let currentQuantity = parseInt(quantityDisplay.textContent) || 1;
-  let newQuantity = Math.max(1, currentQuantity + change);
-  
-  quantityDisplay.textContent = newQuantity;
-  
-  // Update any quantity offers if they exist
-  if (window.CodformQuantityOffers && window.CodformQuantityOffers.updateQuantity) {
-    window.CodformQuantityOffers.updateQuantity(newQuantity);
-  }
-  
-  console.log('✅ Quantity updated to:', newQuantity);
-};
 
 // Add CSS animations
 const style = document.createElement('style');
