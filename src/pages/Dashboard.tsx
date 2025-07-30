@@ -85,9 +85,10 @@ const Dashboard = () => {
 
       // التحقق من البريد الإلكتروني وجلبه إذا لم يكن موجوداً
       let userEmail = localStorage.getItem('shopify_user_email');
-      console.log('📧 Dashboard - Current email in localStorage:', userEmail);
-      
-      if (!userEmail && activeStore) {
+       console.log('📧 Dashboard - Current email in localStorage:', userEmail);
+       console.log('📧 Dashboard - Current name in localStorage:', localStorage.getItem('shopify_user_name'));
+       
+       if (!userEmail && activeStore) {
         console.log('🔄 Dashboard - Fetching email for store:', activeStore);
         try {
           const emailResponse = await supabase.functions.invoke('update-shop-email', {
@@ -202,13 +203,18 @@ const Dashboard = () => {
                 // إظهار البروفايل إذا كان هناك متجر نشط أو مستخدم مصادق تقليدياً
                 if (activeStore || user) {
                   return (
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3">
                       <div className="text-right">
-                        {userName ? (
+                        {userName && userEmail ? (
                           <>
-                            <p className="font-bold text-lg text-primary">{userName}</p>
-                            <p className="text-sm text-muted-foreground">{userEmail || 'البريد الإلكتروني غير متاح'}</p>
-                            <p className="text-xs text-muted-foreground/70">{activeStore}</p>
+                            <p className="font-medium text-sm">{userName}</p>
+                            <p className="text-xs text-muted-foreground">{userEmail}</p>
+                            <p className="text-xs text-muted-foreground/60">{activeStore}</p>
+                          </>
+                        ) : userName ? (
+                          <>
+                            <p className="font-medium text-sm">{userName}</p>
+                            <p className="text-xs text-muted-foreground">{activeStore || 'متجر غير محدد'}</p>
                           </>
                         ) : userEmail ? (
                           <>
@@ -227,16 +233,13 @@ const Dashboard = () => {
                           </>
                         )}
                       </div>
-                      <div className="relative">
-                        <div className="w-16 h-16 bg-gradient-to-br from-primary to-primary/80 rounded-xl flex items-center justify-center shadow-lg">
-                          <span className="text-white font-bold text-xl">
-                            {userName ? userName.charAt(0).toUpperCase() : 
-                             userEmail ? userEmail.charAt(0).toUpperCase() : 
-                             user?.email ? user.email.charAt(0).toUpperCase() : 
-                             activeStore ? activeStore.charAt(0).toUpperCase() : 'U'}
-                          </span>
-                        </div>
-                        <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white"></div>
+                      <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center">
+                        <span className="text-white font-medium">
+                          {userName ? userName.charAt(0).toUpperCase() : 
+                           userEmail ? userEmail.charAt(0).toUpperCase() : 
+                           user?.email ? user.email.charAt(0).toUpperCase() : 
+                           activeStore ? activeStore.charAt(0).toUpperCase() : 'U'}
+                        </span>
                       </div>
                     </div>
                   );
