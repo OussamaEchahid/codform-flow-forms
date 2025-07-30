@@ -3,19 +3,45 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Store, ArrowRight, Plus, ExternalLink } from 'lucide-react';
-import { useSimpleShopifyAuth } from '@/hooks/useSimpleShopifyAuth';
+import UnifiedStoreManager from '@/utils/unified-store-manager';
+import { useState, useEffect } from 'react';
 
 const EnhancedMyStores = () => {
-  const { 
-    currentStore, 
-    userStores, 
-    userEmail, 
-    loading, 
-    isConnected, 
-    totalStores,
-    switchToStore,
-    disconnect
-  } = useSimpleShopifyAuth();
+  const [currentStore, setCurrentStore] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [isConnected, setIsConnected] = useState(false);
+
+  useEffect(() => {
+    // استخدام UnifiedStoreManager كمصدر وحيد للحقيقة
+    const store = UnifiedStoreManager.getActiveStore();
+    const connected = UnifiedStoreManager.isConnected();
+    
+    console.log('🏪 EnhancedMyStores - Store from UnifiedStoreManager:', store);
+    console.log('🏪 EnhancedMyStores - Is connected:', connected);
+    
+    setCurrentStore(store);
+    setIsConnected(connected);
+    setLoading(false);
+
+    // مراقبة التغييرات
+    const unsubscribe = UnifiedStoreManager.onStoreChange((newStore) => {
+      console.log('🏪 EnhancedMyStores - Store changed to:', newStore);
+      setCurrentStore(newStore);
+      setIsConnected(!!newStore);
+    });
+
+    return unsubscribe;
+  }, []);
+
+  const switchToStore = (storeName: string) => {
+    console.log('🔄 Switching to store:', storeName);
+    UnifiedStoreManager.switchStore(storeName, true);
+  };
+
+  const disconnect = () => {
+    console.log('🔌 Disconnecting...');
+    UnifiedStoreManager.clearActiveStore();
+  };
 
   if (loading) {
     return (
@@ -72,14 +98,9 @@ const EnhancedMyStores = () => {
                   <Store className="w-6 h-6" />
                   متاجري
                 </CardTitle>
-                {userEmail && (
-                  <p className="text-slate-600 mt-1">
-                    البريد الإلكتروني: {userEmail}
-                  </p>
-                )}
-                <p className="text-sm text-slate-500">
-                  إجمالي المتاجر: {totalStores}
-                </p>
+                 <p className="text-sm text-slate-500">
+                   المتجر النشط: {currentStore || 'لا يوجد'}
+                 </p>
               </div>
               <Button
                 variant="outline"
@@ -125,55 +146,43 @@ const EnhancedMyStores = () => {
           </Card>
         )}
 
-        {/* All Stores */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">جميع متاجرك</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {userStores.map((store) => (
-                <div
-                  key={store.shop}
-                  className={`p-4 rounded-lg border transition-colors ${
-                    store.shop === currentStore
-                      ? 'border-primary bg-primary/5'
-                      : 'border-slate-200 hover:border-slate-300'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center">
-                        <Store className="w-4 h-4 text-slate-600" />
-                      </div>
-                      <div>
-                        <h3 className="font-medium text-slate-800">{store.shop}</h3>
-                        <p className="text-xs text-slate-500">
-                          آخر تحديث: {new Date(store.updated_at).toLocaleDateString('ar')}
-                        </p>
-                      </div>
+        {/* Current Store Only */}
+        {currentStore && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">المتجر المتصل حالياً</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="p-4 rounded-lg border border-primary bg-primary/5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center">
+                      <Store className="w-4 h-4 text-slate-600" />
                     </div>
-                    
-                    <div className="flex items-center gap-2">
-                      {store.shop === currentStore ? (
-                        <Badge className="bg-green-100 text-green-800">نشط</Badge>
-                      ) : (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => switchToStore(store.shop)}
-                        >
-                          <ArrowRight className="w-4 h-4 mr-1" />
-                          تبديل
-                        </Button>
-                      )}
+                    <div>
+                      <h3 className="font-medium text-slate-800">{currentStore}</h3>
+                      <p className="text-xs text-slate-500">
+                        متصل ونشط
+                      </p>
                     </div>
                   </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-green-100 text-green-800">نشط</Badge>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open(`https://${currentStore}/admin`, '_blank')}
+                    >
+                      <ExternalLink className="w-4 h-4 mr-1" />
+                      إدارة
+                    </Button>
+                  </div>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
