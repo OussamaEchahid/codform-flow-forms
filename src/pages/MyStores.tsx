@@ -50,33 +50,52 @@ const MyStores = () => {
       // استخدام UnifiedStoreManager كمصدر أساسي للحقيقة
       const activeStore = UnifiedStoreManager.getActiveStore();
       const diagnosticInfo = UnifiedStoreManager.getDiagnosticInfo();
+      const userEmail = localStorage.getItem('shopify_user_email');
       
-      console.log('🔍 MyStores - Auth state check:', {
+      console.log('🔍 MyStores - Complete diagnostic:', {
         activeShop,
         isShopifyAuthenticated,
         shopifyUserEmail,
         hasUser: !!user,
         hasSession: !!session,
         activeStoreFromManager: activeStore,
-        diagnosticInfo
+        diagnosticInfo,
+        userEmail
       });
       
+      // إذا وجد UnifiedStoreManager متجر نشط، أضفه دائماً
       if (activeStore) {
-        const userEmail = localStorage.getItem('shopify_user_email');
         const storesList = [{
           shop: activeStore,
           is_active: true,
           updated_at: new Date().toISOString(),
           access_token: 'active',
-          user_id: userEmail || user?.email || 'shopify_user'
+          user_id: userEmail || shopifyUserEmail || user?.email || 'shopify_user'
         }];
         
-        console.log('✅ MyStores - Store found from UnifiedStoreManager:', storesList);
+        console.log('✅ MyStores - Store found and added:', storesList);
         setStores(storesList);
-      } else {
-        console.log('⚠️ MyStores - No active store found');
-        setStores([]);
+        return; // مهم: خروج مبكر لتجنب تنفيذ باقي الكود
       }
+      
+      // إذا لم يكن هناك متجر نشط، جرب من AuthProvider
+      if (isShopifyAuthenticated && activeShop) {
+        const storesList = [{
+          shop: activeShop,
+          is_active: true,
+          updated_at: new Date().toISOString(),
+          access_token: 'active',
+          user_id: shopifyUserEmail || user?.email || 'shopify_user'
+        }];
+        
+        console.log('✅ MyStores - Store from AuthProvider:', storesList);
+        setStores(storesList);
+        return;
+      }
+      
+      // إذا لم يوجد متجر نشط في أي مكان
+      console.log('⚠️ MyStores - No active store found anywhere');
+      setStores([]);
       
     } catch (err: any) {
       console.error('❌ MyStores - Error loading stores:', err);
@@ -85,6 +104,7 @@ const MyStores = () => {
         description: err.message || "فشل في تحميل المتاجر المرتبطة بحسابك",
         variant: "destructive"
       });
+      setStores([]); // تأكد من إعداد حالة فارغة في حالة الخطأ
     } finally {
       setLoading(false);
     }
