@@ -334,7 +334,7 @@ const QuantityOffers = () => {
     // Check if this product already has a quantity offer for the selected form
     const hasExistingOffer = associatedProducts.some(ap => ap.productId === product.id);
     if (hasExistingOffer) {
-      toast.error(`المنتج "${product.title}" لديه بالفعل عرض كمية لهذا النموذج. يمكنك تعديل العرض الموجود أو اختيار منتج آخر.`);
+      toast.error(`${t('productAlreadyHasOffer')}. ${t('editExistingOffer')}.`);
       return;
     }
     
@@ -400,7 +400,7 @@ const QuantityOffers = () => {
     }
 
     if (quantityOffer.offers.length === 0) {
-      toast.error('يجب إضافة عرض واحد على الأقل');
+      toast.error(t('addAtLeastOneOffer'));
       return;
     }
 
@@ -446,7 +446,7 @@ const QuantityOffers = () => {
       }
       
       console.log('✅ Quantity offer saved successfully:', result.data);
-      toast.success(quantityOffer.id ? 'تم تحديث العرض بنجاح' : 'تم حفظ العرض بنجاح');
+      toast.success(quantityOffer.id ? t('offerUpdatedSuccessfully') : t('offerSavedSuccessfully'));
       
       // Reset form and reload data
       resetToFormSelection();
@@ -454,7 +454,7 @@ const QuantityOffers = () => {
       
     } catch (error) {
       console.error('❌ Error saving quantity offer:', error);
-      toast.error('فشل في حفظ العرض: ' + (error as any)?.message || 'خطأ غير معروف');
+      toast.error(`${t('failedToSaveOffer')}: ` + (error as any)?.message || t('unknownError'));
     }
     setLoading(false);
   };
