@@ -101,10 +101,22 @@ const Dashboard = () => {
           if (emailResponse.data?.success) {
             userEmail = emailResponse.data.email;
             const userName = emailResponse.data.name;
-            localStorage.setItem('shopify_user_email', userEmail);
-            localStorage.setItem('shopify_user_name', userName || '');
-            console.log('✅ Dashboard - Email fetched and saved:', userEmail);
-            console.log('✅ Dashboard - Name fetched and saved:', userName);
+            
+            console.log('📧 Dashboard - Response data:', emailResponse.data);
+            console.log('📧 Dashboard - Email from response:', userEmail);
+            console.log('📧 Dashboard - Name from response:', userName);
+            
+            if (userEmail && userEmail !== 'مغربي• VIP') {
+              localStorage.setItem('shopify_user_email', userEmail);
+              console.log('✅ Dashboard - Email saved to localStorage:', userEmail);
+            }
+            
+            if (userName) {
+              localStorage.setItem('shopify_user_name', userName);
+              console.log('✅ Dashboard - Name saved to localStorage:', userName);
+            }
+          } else {
+            console.error('❌ Dashboard - Email fetch failed:', emailResponse);
           }
         } catch (emailError) {
           console.error('❌ Dashboard - Error fetching email:', emailError);

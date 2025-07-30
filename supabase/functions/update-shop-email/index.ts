@@ -89,7 +89,8 @@ serve(async (req) => {
         // Try multiple fields for email
         shopOwnerEmail = shopInfo.shop?.email || 
                         shopInfo.shop?.customer_email ||
-                        shopInfo.shop?.contact_email
+                        shopInfo.shop?.contact_email ||
+                        shopInfo.shop?.account_owner
 
         // Try multiple fields for name  
         shopOwnerName = shopInfo.shop?.shop_owner || 
@@ -98,6 +99,18 @@ serve(async (req) => {
 
         console.log(`📧 Found shop owner email: ${shopOwnerEmail}`)
         console.log(`👤 Found shop owner name: ${shopOwnerName}`)
+        
+        // إذا لم نجد بريد إلكتروني، جرب استخدام معلومات أخرى
+        if (!shopOwnerEmail && shopInfo.shop?.shop_owner) {
+          console.log('🔄 Trying to extract email from shop owner field')
+          // تحقق إذا كان shop_owner يحتوي على بريد إلكتروني
+          const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/
+          const match = shopInfo.shop.shop_owner.match(emailRegex)
+          if (match) {
+            shopOwnerEmail = match[0]
+            console.log(`📧 Extracted email from shop_owner: ${shopOwnerEmail}`)
+          }
+        }
       } else {
         console.error('❌ Shopify API error:', await shopInfoResponse.text())
       }
@@ -107,7 +120,7 @@ serve(async (req) => {
 
     // Fallback email if we can't get it from Shopify
     if (!shopOwnerEmail) {
-      shopOwnerEmail = `${shop.replace('.myshopify.com', '')}@shop.local`
+      shopOwnerEmail = `info@${shop}`
       console.log(`📧 Using fallback email: ${shopOwnerEmail}`)
     }
 
