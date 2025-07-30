@@ -39,11 +39,6 @@ const FormElementList: React.FC<FormElementListProps> = ({ onAddElement }) => {
       icon: '☑' 
     },
     { 
-      type: 'whatsapp', 
-      label: language === 'ar' ? 'واتساب' : 'WhatsApp', 
-      icon: '💬' 
-    },
-    { 
       type: 'image', 
       label: language === 'ar' ? 'صورة' : 'Image', 
       icon: '🖼️' 
