@@ -58,7 +58,7 @@ EXTERNAL SCRIPTS
 <script>
 (function() {
   'use strict';
-  
+  console.log('🚀 CODFORM: Form initialization started - checking for errors...');
   
   
   {%- comment -%}
@@ -1755,9 +1755,6 @@ window.CodformQuantityOffers = (function() {
     container.innerHTML = '';
     container.style.display = 'block';
 
-    // استخدام البيانات الحقيقية من النموذج مع التأكد من وجود السعر الصحيح
-    const realProductData = productData || window.currentFormData || {};
-    
     // استخدام البيانات الحقيقية من النموذج مع التأكد من وجود السعر الصحيح
     const realProductData = productData || window.currentFormData || {};
     
