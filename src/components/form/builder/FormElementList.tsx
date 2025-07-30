@@ -11,7 +11,7 @@ interface FormElementListProps {
 const FormElementList: React.FC<FormElementListProps> = ({ onAddElement }) => {
   const { language } = useI18n();
   
-  // Available elements with form-title as the first element
+  // Available elements - keeping only basics + WhatsApp
   const availableElements = [
     { 
       type: 'form-title', 
@@ -27,46 +27,6 @@ const FormElementList: React.FC<FormElementListProps> = ({ onAddElement }) => {
       type: 'textarea', 
       label: language === 'ar' ? 'نص متعدد الأسطر' : 'Multi-line Input', 
       icon: '¶' 
-    },
-    { 
-      type: 'radio', 
-      label: language === 'ar' ? 'زر راديو' : 'Single Choice', 
-      icon: '◉' 
-    },
-    { 
-      type: 'checkbox', 
-      label: language === 'ar' ? 'خانة اختيار' : 'Multiple Choices', 
-      icon: '☑' 
-    },
-    { 
-      type: 'image', 
-      label: language === 'ar' ? 'صورة' : 'Image', 
-      icon: '🖼️' 
-    },
-    { 
-      type: 'text/html', 
-      label: language === 'ar' ? 'نص/HTML' : 'HTML Content', 
-      icon: '</>' 
-    },
-    { 
-      type: 'cart-items', 
-      label: language === 'ar' ? 'عناصر السلة' : 'Cart Items', 
-      icon: '🛒' 
-    },
-    { 
-      type: 'cart-summary', 
-      label: language === 'ar' ? 'ملخص السلة' : 'Cart Summary', 
-      icon: '🧾' 
-    },
-    { 
-      type: 'shipping', 
-      label: language === 'ar' ? 'خيارات الشحن' : 'Shipping', 
-      icon: '🚚' 
-    },
-    { 
-      type: 'countdown', 
-      label: language === 'ar' ? 'العد التنازلي' : 'Countdown', 
-      icon: '⏱️' 
     },
     { 
       type: 'whatsapp', 
