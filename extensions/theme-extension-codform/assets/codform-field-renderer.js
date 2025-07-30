@@ -12,6 +12,8 @@ function renderField(field, formStyle, formLanguage) {
   if (!field || !field.type) return '';
   
   console.log('🎨 Rendering field:', field.type, field.id);
+  console.log('🔍 Field.style:', field.style);
+  console.log('🔍 FormStyle:', formStyle);
   
   // Check if we're currently rendering inside a popup
   const isInPopup = window.codformCurrentlyInPopup === true;
@@ -47,6 +49,14 @@ function renderField(field, formStyle, formLanguage) {
   const fieldTextColor = getStyleValue(labelStyle, 'color', '#1F2937');
   const placeholderFontSize = fieldFontSize;
   const focusBorderColor = getStyleValue(formStyle, 'focusBorderColor', '#9b87f5');
+  
+  console.log('📏 Font sizes computed:', {
+    labelFontSize,
+    fieldFontSize,
+    placeholderFontSize,
+    labelStyleRaw: labelStyle.labelFontSize,
+    fieldStyleRaw: labelStyle.fontSize
+  });
   
   let html = '';
   
