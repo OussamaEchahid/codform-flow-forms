@@ -68,20 +68,6 @@ const ImageFieldEditor: React.FC<ImageFieldEditorProps> = ({ field, onSave, onCl
         />
       </div>
 
-      {/* Image Alt Text */}
-      <div className="space-y-2">
-        <Label htmlFor="image-alt">
-          {language === 'ar' ? 'نص بديل للصورة' : 'Alt Text'}
-        </Label>
-        <Input
-          id="image-alt"
-          value={currentField.alt || ''}
-          onChange={(e) => handleChange('alt', e.target.value)}
-          placeholder={language === 'ar' ? 'وصف الصورة' : 'Image description'}
-          className="w-full"
-        />
-      </div>
-
       {/* Image Width Slider */}
       <div className="space-y-2">
         <Label htmlFor="image-width">
@@ -138,34 +124,6 @@ const ImageFieldEditor: React.FC<ImageFieldEditorProps> = ({ field, onSave, onCl
             {language === 'ar' ? 'يمين' : 'Right'}
           </Button>
         </div>
-      </div>
-
-      {/* Image Label */}
-      <div className="space-y-2">
-        <Label htmlFor="image-label">
-          {language === 'ar' ? 'تسمية الصورة (اختياري)' : 'Image Label (Optional)'}
-        </Label>
-        <Input
-          id="image-label"
-          value={currentField.label || ''}
-          onChange={(e) => handleChange('label', e.target.value)}
-          placeholder={language === 'ar' ? 'اسم الصورة' : 'Image name'}
-          className="w-full"
-        />
-      </div>
-
-      {/* Help Text */}
-      <div className="space-y-2">
-        <Label htmlFor="image-help">
-          {language === 'ar' ? 'نص المساعدة (اختياري)' : 'Help Text (Optional)'}
-        </Label>
-        <Input
-          id="image-help"
-          value={currentField.helpText || ''}
-          onChange={(e) => handleChange('helpText', e.target.value)}
-          placeholder={language === 'ar' ? 'وصف إضافي للصورة' : 'Additional image description'}
-          className="w-full"
-        />
       </div>
 
       {/* Action Buttons */}
