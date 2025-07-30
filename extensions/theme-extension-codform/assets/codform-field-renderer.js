@@ -28,53 +28,63 @@ function renderField(field, formStyle, formLanguage) {
   
   console.log('🔄 CODFORM: Detected form direction:', formDirection, 'for language:', formLanguage);
   
-  // Base styling configuration
-  const baseFontSize = getStyleValue(formStyle, 'baseFontSize', '16px');
+  // Base styling configuration - Match TextInput.tsx exactly
+  const baseFontSize = getStyleValue(formStyle, 'fontSize', '1rem');
   const labelStyle = field.style || {};
   const showLabel = getStyleValue(labelStyle, 'showLabel', true);
   const isFloatingLabels = getStyleValue(formStyle, 'floatingLabels', false);
   
-  // Label styling
+  // Label styling - Match TextInput.tsx exactly
   const labelColor = getStyleValue(labelStyle, 'labelColor', '#333333');
-  const labelFontSize = getStyleValue(labelStyle, 'labelFontSize', baseFontSize);
+  const labelFontSize = getStyleValue(labelStyle, 'labelFontSize', '1rem');
   const labelFontWeight = getStyleValue(labelStyle, 'labelFontWeight', '500');
   
-  // Field styling
+  // Field styling - Match TextInput.tsx exactly
   const fieldBackgroundColor = '#FFFFFF';
   const fieldBorderColor = getStyleValue(labelStyle, 'borderColor', '#D1D5DB');
-  const fieldBorderRadius = '8px';
-  const fieldFontSize = baseFontSize;
-  const fieldTextColor = '#1F2937';
-  const fieldPadding = '12px 16px';
+  const fieldBorderRadius = getStyleValue(labelStyle, 'borderRadius', '8px');
+  const fieldFontSize = getStyleValue(labelStyle, 'fontSize', '1rem');
+  const fieldTextColor = getStyleValue(labelStyle, 'color', '#1F2937');
+  const focusBorderColor = getStyleValue(formStyle, 'focusBorderColor', '#9b87f5');
   
   let html = '';
   
   // Get icon if available
   const icon = field.icon || field.style?.icon;
-  const iconSvg = getIconSvg(icon, labelColor);
+  const hasIcon = icon && icon !== 'none' && icon !== '';
+  const showIcon = getStyleValue(labelStyle, 'showIcon', hasIcon);
+  const iconSvg = showIcon && hasIcon ? getIconSvg(icon, getStyleValue(labelStyle, 'iconColor', '#6b7280')) : '';
   
   switch (field.type) {
     case 'form-title':
       const titleStyle = field.style || {};
       const titleColor = titleStyle.color || '#000000';
-      const titleFontSize = titleStyle.fontSize || '24px';
-      const titleTextAlign = titleStyle.textAlign || (formDirection === 'rtl' ? 'right' : 'left');
-      const titleFontWeight = titleStyle.fontWeight || 'bold';
+      const titleFontSize = titleStyle.fontSize || '1.5rem';
+      const titleFontWeight = titleStyle.fontWeight || '700';
+      // Always center the title - match FormTitleField.tsx
+      const titleTextAlign = 'center';
       
       html = `
-        <div class="codform-form-title-field" style="
-          margin-bottom: 24px;
+        <div class="form-title-field w-full" style="
+          color: ${titleColor};
+          font-size: ${titleFontSize};
+          font-weight: ${titleFontWeight};
+          font-family: 'Cairo', 'Tajawal', 'Arial', sans-serif;
           text-align: ${titleTextAlign};
+          margin: 0px;
+          line-height: 1.4;
           direction: ${formDirection};
+          padding-top: ${titleStyle.paddingTop || '0px'};
+          padding-bottom: ${titleStyle.paddingBottom || '0px'};
+          padding-left: ${titleStyle.paddingLeft || '0px'};
+          padding-right: ${titleStyle.paddingRight || '0px'};
+          width: 100%;
+          display: block;
+          background-color: transparent;
+          background: none;
+          border: none;
         ">
-          <h2 style="
-            color: ${titleColor};
-            font-size: ${titleFontSize};
-            font-weight: ${titleFontWeight};
-            margin: 0;
-            padding: 0;
-            font-family: ${formLanguage === 'ar' ? "'Cairo', 'Noto Sans Arabic', 'Amiri', sans-serif" : "'Inter', system-ui, sans-serif"};
-          ">${field.label || field.helpText || 'Form Title'}</h2>
+          ${field.content || field.label || 'عنوان النموذج'}
         </div>
       `;
       break;
@@ -137,8 +147,9 @@ function renderField(field, formStyle, formLanguage) {
       } else {
         html = `
           <div class="codform-field-wrapper" style="
-            margin-bottom: 20px;
+            margin-bottom: 16px;
             direction: ${formDirection};
+            background: transparent;
           ">
             ${showLabel ? `
               <label for="${field.id}" style="
@@ -147,11 +158,13 @@ function renderField(field, formStyle, formLanguage) {
                 color: ${labelColor};
                 font-size: ${labelFontSize};
                 font-weight: ${labelFontWeight};
-                font-family: ${formLanguage === 'ar' ? "'Cairo', 'Noto Sans Arabic', 'Amiri', sans-serif" : "'Inter', system-ui, sans-serif"};
+                font-family: ${formLanguage === 'ar' ? "'Cairo', sans-serif" : "inherit"};
                 text-align: ${formDirection === 'rtl' ? 'right' : 'left'};
-              ">${field.label}${isRequired ? ' *' : ''}</label>
+                background: transparent;
+                padding: 0;
+              ">${field.label}${isRequired ? ' <span style="margin-left: 4px; color: rgb(239, 68, 68);">*</span>' : ''}</label>
             ` : ''}
-            <div style="position: relative;">
+            <div style="position: relative; background: transparent;">
               ${iconSvg ? `
                 <div style="
                   position: absolute;
@@ -159,6 +172,11 @@ function renderField(field, formStyle, formLanguage) {
                   ${formDirection === 'rtl' ? 'right' : 'left'}: 12px;
                   transform: translateY(-50%);
                   z-index: 2;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  color: #6b7280;
+                  background: transparent;
                 ">
                   ${iconSvg}
                 </div>
@@ -171,20 +189,25 @@ function renderField(field, formStyle, formLanguage) {
                 ${isRequired ? 'required' : ''}
                 style="
                   width: 100%;
-                  padding: ${iconSvg ? (formDirection === 'rtl' ? '12px 50px 12px 16px' : '12px 16px 12px 50px') : fieldPadding};
-                  border: 2px solid ${fieldBorderColor};
+                  padding: 10px ${iconSvg ? (formDirection === 'rtl' ? '40px 10px 12px' : '12px 10px 40px') : '12px'};
+                  border: 1px solid ${fieldBorderColor};
                   border-radius: ${fieldBorderRadius};
                   background-color: ${fieldBackgroundColor};
                   color: ${fieldTextColor};
                   font-size: ${fieldFontSize};
-                  font-family: ${formLanguage === 'ar' ? "'Cairo', 'Noto Sans Arabic', 'Amiri', sans-serif" : "'Inter', system-ui, sans-serif"};
-                  transition: all 0.3s ease;
+                  font-weight: 400;
+                  font-family: inherit;
+                  transition: all 0.2s ease;
                   box-sizing: border-box;
                   direction: ${formDirection};
                   text-align: ${formDirection === 'rtl' ? 'right' : 'left'};
+                  outline: none;
+                  box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px;
+                  min-height: 44px;
+                  line-height: 1.5;
                 "
-                onfocus="this.style.borderColor='#9b87f5'"
-                onblur="this.style.borderColor='${fieldBorderColor}'"
+                onfocus="this.style.borderColor='${focusBorderColor}'; this.style.boxShadow='0 0 0 3px ${focusBorderColor}20';"
+                onblur="this.style.borderColor='${fieldBorderColor}'; this.style.boxShadow='rgba(0, 0, 0, 0.05) 0px 1px 2px';"
               />
             </div>
           </div>
@@ -247,7 +270,7 @@ function renderField(field, formStyle, formLanguage) {
       } else {
         html = `
           <div class="codform-field-wrapper" style="
-            margin-bottom: 20px;
+            margin-bottom: 16px;
             direction: ${formDirection};
           ">
             ${showLabel ? `
@@ -257,9 +280,11 @@ function renderField(field, formStyle, formLanguage) {
                 color: ${labelColor};
                 font-size: ${labelFontSize};
                 font-weight: ${labelFontWeight};
-                font-family: ${formLanguage === 'ar' ? "'Cairo', 'Noto Sans Arabic', 'Amiri', sans-serif" : "'Inter', system-ui, sans-serif"};
+                font-family: inherit;
                 text-align: ${formDirection === 'rtl' ? 'right' : 'left'};
-              ">${field.label}${textareaRequired ? ' *' : ''}</label>
+                display: flex;
+                align-items: center;
+              ">${field.label}${textareaRequired ? ' <span style="margin-left: 4px; color: rgb(239, 68, 68);">*</span>' : ''}</label>
             ` : ''}
             <textarea
               id="${field.id}"
@@ -269,21 +294,27 @@ function renderField(field, formStyle, formLanguage) {
               ${textareaRequired ? 'required' : ''}
               style="
                 width: 100%;
-                padding: ${fieldPadding};
-                border: 2px solid ${fieldBorderColor};
+                padding: 10px 12px;
+                border: 1px solid ${fieldBorderColor};
                 border-radius: ${fieldBorderRadius};
                 background-color: ${fieldBackgroundColor};
                 color: ${fieldTextColor};
                 font-size: ${fieldFontSize};
-                font-family: ${formLanguage === 'ar' ? "'Cairo', 'Noto Sans Arabic', 'Amiri', sans-serif" : "'Inter', system-ui, sans-serif"};
-                transition: all 0.3s ease;
-                resize: vertical;
+                font-weight: 400;
+                font-family: inherit;
+                transition: all 0.2s ease;
+                resize: none;
                 box-sizing: border-box;
                 direction: ${formDirection};
                 text-align: ${formDirection === 'rtl' ? 'right' : 'left'};
+                outline: none;
+                box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px;
+                min-height: 80px;
+                height: 80px;
+                line-height: 1.5;
               "
-              onfocus="this.style.borderColor='#9b87f5'"
-              onblur="this.style.borderColor='${fieldBorderColor}'"
+              onfocus="this.style.borderColor='${focusBorderColor}'; this.style.boxShadow='0 0 0 3px ${focusBorderColor}20';"
+              onblur="this.style.borderColor='${fieldBorderColor}'; this.style.boxShadow='rgba(0, 0, 0, 0.05) 0px 1px 2px';"
             ></textarea>
           </div>
         `;
@@ -294,7 +325,7 @@ function renderField(field, formStyle, formLanguage) {
       const submitStyle = field.style || {};
       const submitBgColor = submitStyle.backgroundColor || '#9b87f5';
       const submitTextColor = submitStyle.textColor || '#ffffff';
-      const submitFontSize = submitStyle.fontSize || '16px';
+      const submitFontSize = submitStyle.fontSize || '1rem';
       const submitBorderRadius = submitStyle.borderRadius || '8px';
       const submitText = field.label || field.text || 'Submit Order';
       const submitIcon = getIconSvg('send', submitTextColor);
@@ -304,7 +335,7 @@ function renderField(field, formStyle, formLanguage) {
           margin-top: 24px;
           margin-bottom: 20px;
           direction: ${formDirection};
-          text-align: ${formDirection === 'rtl' ? 'right' : 'left'};
+          text-align: center;
         ">
           <button
             type="submit"
@@ -322,13 +353,25 @@ function renderField(field, formStyle, formLanguage) {
               display: flex;
               align-items: center;
               justify-content: center;
-              gap: 10px;
-              transition: all 0.3s ease;
-              font-family: ${formLanguage === 'ar' ? "'Cairo', 'Noto Sans Arabic', 'Amiri', sans-serif" : "'Inter', system-ui, sans-serif"};
-              box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+              gap: 8px;
+              transition: all 0.2s ease;
+              font-family: inherit;
+              box-shadow: 0 4px 12px rgba(155, 135, 245, 0.15);
+              position: relative;
+              overflow: hidden;
             "
-            onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(0, 0, 0, 0.25)';"
-            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0, 0, 0, 0.15)';"
+            onmouseover="
+              this.style.transform='translateY(-2px)'; 
+              this.style.boxShadow='0 6px 20px rgba(155, 135, 245, 0.25)';
+              this.style.scale='1.02';
+            "
+            onmouseout="
+              this.style.transform='translateY(0)'; 
+              this.style.boxShadow='0 4px 12px rgba(155, 135, 245, 0.15)';
+              this.style.scale='1';
+            "
+            onmousedown="this.style.scale='0.98';"
+            onmouseup="this.style.scale='1.02';"
           >
             ${submitIcon}
             ${submitText}
