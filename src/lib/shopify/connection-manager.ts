@@ -254,99 +254,38 @@ class ShopifyConnectionManager {
   private readonly STORE_CACHE_DURATION = 2 * 60 * 1000; // 2 دقيقة
 
   /**
-   * Gets the active store domain with enhanced consistency checks
+   * Gets the active store domain - now delegating to UnifiedStoreManager
    * @returns The active store domain or null if none
    */
   public getActiveStore(): string | null {
     try {
-      // تحقق من الـ cache أولاً، ولكن بفترة أقصر لضمان الدقة
-      const now = Date.now();
-      const shorterCacheDuration = 30 * 1000; // 30 ثانية فقط
+      // Use UnifiedStoreManager as the single source of truth
+      const activeStore = localStorage.getItem('active_shopify_store');
       
-      if (this.storeCache && (now - this.storeCacheTime) < shorterCacheDuration) {
-        // تحقق إضافي من التطابق مع localStorage
-        const currentActiveStore = localStorage.getItem(this.ACTIVE_STORE_KEY);
-        if (currentActiveStore === this.storeCache) {
-          console.log('Retrieved active store from valid cache:', this.storeCache);
-          return this.storeCache;
-        } else {
-          // إذا لم يتطابق، امسح الـ cache
-          console.log('Cache mismatch detected, invalidating cache');
-          this.invalidateCache();
-        }
-      }
-
-      // First check the dedicated active store key
-      const activeStore = localStorage.getItem(this.ACTIVE_STORE_KEY);
       if (activeStore) {
-        console.log('Retrieved active store from ACTIVE_STORE_KEY:', activeStore);
+        console.log('Retrieved active store from UnifiedStoreManager:', activeStore);
         
-        // تحقق من تطابق هذا مع stores list
+        // Update this manager's cache for consistency
+        this.storeCache = activeStore;
+        this.storeCacheTime = Date.now();
+        
+        // Ensure stores list is updated
         const stores = this.getAllStores();
-        const activeFromList = stores.find(s => s.isActive && s.domain === activeStore);
+        const existingStore = stores.find(s => s.domain === activeStore);
         
-        if (activeFromList) {
-          // كل شيء متطابق، حفظ في الـ cache
-          this.storeCache = activeStore;
-          this.storeCacheTime = now;
-          return activeStore;
-        } else {
-          console.log('Active store key mismatch with stores list, correcting...');
-          // إصلاح التضارب
-          const firstActiveStore = stores.find(s => s.isActive);
-          if (firstActiveStore) {
-            localStorage.setItem(this.ACTIVE_STORE_KEY, firstActiveStore.domain);
-            this.storeCache = firstActiveStore.domain;
-            this.storeCacheTime = now;
-            return firstActiveStore.domain;
-          }
+        if (!existingStore) {
+          // Add the store to our list
+          const currentTimestamp = new Date().toISOString();
+          stores.push({
+            domain: activeStore,
+            shop: activeStore,
+            isActive: true,
+            lastConnected: currentTimestamp
+          });
+          localStorage.setItem(this.STORES_KEY, JSON.stringify(stores));
         }
-      } else {
-        console.log('No active store found in ACTIVE_STORE_KEY, checking stores list...');
-      }
-      
-      // Fall back to checking store list
-      const stores = this.getAllStores();
-      console.log('All stores in localStorage:', stores);
-      const activeFromList = stores.find(s => s.isActive);
-      
-      if (activeFromList) {
-        console.log('Found active store from list:', activeFromList.domain);
-        // Update the active store key for consistency
-        localStorage.setItem(this.ACTIVE_STORE_KEY, activeFromList.domain);
-        localStorage.setItem('shopify_store', activeFromList.domain);
-        localStorage.setItem('shopify_connected', 'true');
-        // حفظ في الـ cache
-        this.storeCache = activeFromList.domain;
-        this.storeCacheTime = now;
-        return activeFromList.domain;
-      } else {
-        console.log('No active store found in stores list');
-      }
-      
-      // If there's at least one store, activate the first one
-      if (stores.length > 0) {
-        console.log('Activating first available store:', stores[0].domain);
-        stores[0].isActive = true;
-        // تحديث القائمة
-        localStorage.setItem(this.STORES_KEY, JSON.stringify(stores));
-        localStorage.setItem(this.ACTIVE_STORE_KEY, stores[0].domain);
-        localStorage.setItem('shopify_store', stores[0].domain);
-        localStorage.setItem('shopify_connected', 'true');
-        this.storeCache = stores[0].domain;
-        this.storeCacheTime = now;
-        return stores[0].domain;
-      }
-      
-      // Check legacy storage
-      const legacyStore = localStorage.getItem('shopify_store');
-      if (legacyStore) {
-        console.log('Found legacy store, updating to new format:', legacyStore);
-        // Update consistent state by saving to the new format
-        this.addOrUpdateStore(legacyStore, true);
-        this.storeCache = legacyStore;
-        this.storeCacheTime = now;
-        return legacyStore;
+        
+        return activeStore;
       }
       
       return null;

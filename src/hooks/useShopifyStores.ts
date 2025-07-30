@@ -20,24 +20,23 @@ export const useShopifyStores = () => {
 
   // جلب المتاجر باستخدام UnifiedStoreManager
   const fetchStores = async () => {
-    // إذا لم يكن هناك مصادقة Shopify، أو لا يوجد متجر نشط
-    if (!isShopifyAuthenticated || !shop) {
-      console.log('⚠️ useShopifyStores: No Shopify authentication or active shop');
-      setStores([]);
-      setActiveStore(null);
-      setIsLoading(false);
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-
     try {
-      console.log('🔍 useShopifyStores - Active shop from AuthProvider:', shop);
+      // الحصول على المتجر النشط من UnifiedStoreManager
+      const activeStore = UnifiedStoreManager.getActiveStore();
+      
+      if (!activeStore) {
+        console.log('⚠️ useShopifyStores: No active store in UnifiedStoreManager');
+        setStores([]);
+        setActiveStore(null);
+        setIsLoading(false);
+        return;
+      }
+
+      console.log('🔍 useShopifyStores - Active store from UnifiedStoreManager:', activeStore);
       
       // إنشاء قائمة المتاجر بناءً على المتجر النشط الحالي
       const storesList = [{
-        shop: shop,
+        shop: activeStore,
         is_active: true,
         access_token: 'active',
         user_id: user?.id || 'shopify_user',
@@ -46,14 +45,14 @@ export const useShopifyStores = () => {
 
       console.log('📦 useShopifyStores - Stores created:', storesList);
       setStores(storesList);
-      setActiveStore(shop);
+      setActiveStore(activeStore);
+      setIsLoading(false);
 
     } catch (err) {
       console.error('❌ useShopifyStores - Error:', err);
       setError('Failed to fetch stores');
       setStores([]);
       setActiveStore(null);
-    } finally {
       setIsLoading(false);
     }
   };
