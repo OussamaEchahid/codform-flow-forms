@@ -33,13 +33,30 @@ interface Store {
 const MyStores = () => {
   const navigate = useNavigate();
   const { language } = useI18n();
-  const [stores, setStores] = useState<Store[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [connectingStore, setConnectingStore] = useState<string | null>(null);
   const { user, session, isShopifyAuthenticated, shop: activeShop, shopifyUserEmail } = useAuth();
 
+  // إعداد حالة المتاجر مع المتجر النشط من البداية
+  const activeStoreFromManager = UnifiedStoreManager.getActiveStore();
+  const [stores, setStores] = useState<Store[]>(() => {
+    // إعداد المتجر النشط فوراً إذا كان موجوداً
+    if (activeStoreFromManager) {
+      console.log('🔄 MyStores - Setting initial store from UnifiedStoreManager:', activeStoreFromManager);
+      return [{
+        shop: activeStoreFromManager,
+        is_active: true,
+        updated_at: new Date().toISOString(),
+        access_token: 'active',
+        user_id: localStorage.getItem('shopify_user_email') || 'shopify_user'
+      }];
+    }
+    return [];
+  });
+  
+  const [loading, setLoading] = useState(false); // بدء بـ false لأن لدينا بيانات أولية
+  const [connectingStore, setConnectingStore] = useState<string | null>(null);
+
   // إضافة console.log في بداية المكون
-  console.log('🔄 MyStores component loaded, initial state:', {
+  console.log('🔄 MyStores component render:', {
     user: !!user,
     session: !!session,
     isShopifyAuthenticated,
@@ -47,7 +64,8 @@ const MyStores = () => {
     shopifyUserEmail,
     storesLength: stores.length,
     loading,
-    unifiedActiveStore: UnifiedStoreManager.getActiveStore()
+    activeStoreFromManager,
+    stores: stores.map(s => s.shop)
   });
 
   useEffect(() => {
