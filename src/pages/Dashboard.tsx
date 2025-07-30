@@ -63,37 +63,43 @@ const Dashboard = () => {
   }, [user?.id, isShopifyAuthenticated]); // Depend on both auth types
 
   const loadDashboardData = async () => {
-    // استخدام UnifiedStoreManager للحصول على المتجر النشط
-    const activeStore = UnifiedStoreManager.getActiveStore();
-    const userIdentifier = user?.id || activeStore;
-    
-    if (!userIdentifier) {
-      setIsLoading(false);
-      return;
-    }
-    
-    let formsCount = 0;
-    let submissionsCount = 0;
-    
     try {
-      // جلب عدد النماذج للمتجر النشط فقط
-      let formsQuery = supabase
-        .from('forms')
-        .select('id')
-        .eq('user_id', userIdentifier);
+      setIsLoading(true);
       
-      // إذا كان هناك متجر نشط، فلتر النماذج حسب المتجر
-      if (shop) {
-        formsQuery = formsQuery.eq('shop_id', shop);
+      // استخدام UnifiedStoreManager للحصول على المتجر النشط
+      const activeStore = UnifiedStoreManager.getActiveStore();
+      
+      console.log('📊 Dashboard - Loading data for store:', activeStore);
+      
+      if (!activeStore) {
+        console.log('⚠️ Dashboard - No active store found');
+        setStats({
+          totalStores: 0,
+          totalForms: 0,
+          totalOrders: 0,
+          activeStore: null
+        });
+        setIsLoading(false);
+        return;
       }
       
-      const { data: formsData, error: formsError } = await formsQuery;
+      let formsCount = 0;
+      let ordersCount = 0;
+      
+      // جلب عدد النماذج للمتجر النشط
+      const { data: formsData, error: formsError } = await supabase
+        .from('forms')
+        .select('id, shop_id')
+        .eq('shop_id', activeStore);
       
       if (!formsError && formsData) {
         formsCount = formsData.length;
+        console.log('📋 Dashboard - Forms found:', formsCount);
+      } else {
+        console.error('❌ Dashboard - Error fetching forms:', formsError);
       }
       
-      // جلب عدد الإرسالات للنماذج الخاصة بالمتجر النشط
+      // جلب عدد الطلبات (الإرسالات) للمتجر النشط
       if (formsData && formsData.length > 0) {
         const { data: submissionsData, error: submissionsError } = await supabase
           .from('form_submissions')
@@ -101,25 +107,33 @@ const Dashboard = () => {
           .in('form_id', formsData.map(f => f.id.toString()));
         
         if (!submissionsError && submissionsData) {
-          submissionsCount = submissionsData.length;
+          ordersCount = submissionsData.length;
+          console.log('🛒 Dashboard - Submissions found:', ordersCount);
+        } else {
+          console.error('❌ Dashboard - Error fetching submissions:', submissionsError);
         }
       }
       
-    } catch (error) {
-      console.error('❌ خطأ في جلب البيانات:', error);
-    }
-    
-    const storesCount = shops?.length || 0;
-    
-    // تحديث الإحصائيات
-    setStats({
-      totalStores: storesCount,
-      totalForms: formsCount,
-      totalOrders: submissionsCount,
-      activeStore: shop
-    });
+      // تحديث الإحصائيات
+      setStats({
+        totalStores: 1, // دائماً 1 للمتجر النشط
+        totalForms: formsCount,
+        totalOrders: ordersCount,
+        activeStore: activeStore
+      });
 
-    setIsLoading(false);
+      console.log('✅ Dashboard - Stats updated:', {
+        totalStores: 1,
+        totalForms: formsCount,
+        totalOrders: ordersCount,
+        activeStore: activeStore
+      });
+      
+    } catch (error) {
+      console.error('❌ Dashboard - Error loading data:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (isLoading) {

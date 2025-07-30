@@ -47,51 +47,39 @@ const MyStores = () => {
     try {
       setLoading(true);
       
-      console.log('📦 Auth state:', {
+      // استخدام UnifiedStoreManager كمصدر أساسي للحقيقة
+      const activeStore = UnifiedStoreManager.getActiveStore();
+      const diagnosticInfo = UnifiedStoreManager.getDiagnosticInfo();
+      
+      console.log('🔍 MyStores - Auth state check:', {
         activeShop,
         isShopifyAuthenticated,
         shopifyUserEmail,
         hasUser: !!user,
-        hasSession: !!session
+        hasSession: !!session,
+        activeStoreFromManager: activeStore,
+        diagnosticInfo
       });
       
-      // إذا كان هناك متجر نشط من AuthProvider
-      if (isShopifyAuthenticated && activeShop) {
+      if (activeStore) {
+        const userEmail = localStorage.getItem('shopify_user_email');
         const storesList = [{
-          shop: activeShop,
-          is_active: true,
-          updated_at: new Date().toISOString(),
-          access_token: 'active',
-          user_id: shopifyUserEmail || user?.email || 'shopify_user'
-        }];
-        
-        console.log('✅ تم تحديد المتاجر من AuthProvider:', storesList);
-        setStores(storesList);
-        return;
-      }
-      
-      // Fallback: البحث في localStorage
-      const fallbackStore = UnifiedStoreManager.getActiveStore();
-      const userEmail = localStorage.getItem('shopify_user_email');
-      
-      if (fallbackStore) {
-        const storesList = [{
-          shop: fallbackStore,
+          shop: activeStore,
           is_active: true,
           updated_at: new Date().toISOString(),
           access_token: 'active',
           user_id: userEmail || user?.email || 'shopify_user'
         }];
         
-        console.log('✅ تم تحديد المتاجر من localStorage:', storesList);
+        console.log('✅ MyStores - Store found from UnifiedStoreManager:', storesList);
         setStores(storesList);
       } else {
-        console.log('⚠️ لم يتم العثور على متاجر');
+        console.log('⚠️ MyStores - No active store found');
         setStores([]);
       }
       
     } catch (err: any) {
-      console.error('❌ خطأ في تحميل المتاجر:', err);
+      console.error('❌ MyStores - Error loading stores:', err);
       toast({
         title: "خطأ في تحميل المتاجر",
         description: err.message || "فشل في تحميل المتاجر المرتبطة بحسابك",
