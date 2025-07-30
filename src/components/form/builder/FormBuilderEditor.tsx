@@ -197,7 +197,6 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
         color: '#ffffff', // لون النص الأبيض
         fontSize: '1.15rem', // حجم الخط
         fontWeight: '500', // وزن النص
-        animation: true,
         animationType: 'shake', // نوع الحركة
         borderColor: '#eaeaff', // لون الحدود
         borderRadius: '6px', // انحناء الحدود
@@ -393,7 +392,6 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
                   iconPosition: 'left',
                   color: '#ffffff',
                   fontSize: '1.15rem',
-                  animation: true,
                   animationType: 'shake',
                   borderColor: '#eaeaff',
                   borderRadius: '6px',
@@ -645,6 +643,29 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
           fontWeight: '600',
           color: '#1f2937',
           textAlign: 'center',
+        },
+      };
+    } else if (type === 'whatsapp') {
+      newElement = {
+        type: 'whatsapp' as FormFieldType,
+        id: `whatsapp-${Date.now()}`,
+        label: language === 'ar' ? 'طلب عبر واتساب' : 'Order by WhatsApp',
+        whatsappNumber: '',
+        message: language === 'ar' ? 'مرحباً، أنا مهتم بـ {product}. هل يمكنك تقديم مزيد من المعلومات؟' : 'Hello, I\'m interested in {product}. Can you provide more information?',
+        style: {
+          fontFamily: 'Montserrat',
+          fontSize: '1.1rem',
+          fontWeight: '600',
+          color: '#ffffff',
+          backgroundColor: '#25d366',
+          paddingY: '14px',
+          borderRadius: '8px',
+          borderWidth: '0px',
+          borderColor: '#000000',
+          // animationType: removed as none is not a valid value
+          showIcon: true,
+          iconColor: '#ffffff',
+          icon: 'whatsapp',
         },
       };
     } else {
