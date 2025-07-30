@@ -107,8 +107,18 @@ const Dashboard = () => {
             console.log('📧 Dashboard - Name from response:', userName);
             
             if (userEmail && userEmail !== 'مغربي• VIP') {
-              localStorage.setItem('shopify_user_email', userEmail);
-              console.log('✅ Dashboard - Email saved to localStorage:', userEmail);
+              // تحقق إذا كان البريد الإلكتروني صحيح أم لا
+              const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/
+              if (emailRegex.test(userEmail)) {
+                localStorage.setItem('shopify_user_email', userEmail);
+                console.log('✅ Dashboard - Valid email saved to localStorage:', userEmail);
+              } else {
+                console.log('⚠️ Dashboard - Invalid email format, not saving:', userEmail);
+                userEmail = null; // Reset to null so it shows fallback
+              }
+            } else {
+              console.log('⚠️ Dashboard - Email is name or empty, not saving:', userEmail);
+              userEmail = null; // Reset to null so it shows fallback
             }
             
             if (userName) {

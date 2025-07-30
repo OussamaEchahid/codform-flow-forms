@@ -71,10 +71,12 @@ serve(async (req) => {
       )
     }
 
-    // Get shop owner email from Shopify API
+    // Try to get shop owner email from multiple Shopify endpoints
     let shopOwnerEmail = null
     let shopOwnerName = null
+    
     try {
+      // First try: shop.json endpoint
       const shopInfoResponse = await fetch(`https://${shop}/admin/api/2025-01/shop.json`, {
         headers: {
           'X-Shopify-Access-Token': shopData.access_token,
@@ -86,41 +88,60 @@ serve(async (req) => {
         const shopInfo = await shopInfoResponse.json()
         console.log('🔍 Full shop info:', JSON.stringify(shopInfo.shop, null, 2))
         
-        // Try multiple fields for email
-        shopOwnerEmail = shopInfo.shop?.email || 
-                        shopInfo.shop?.customer_email ||
-                        shopInfo.shop?.contact_email ||
-                        shopInfo.shop?.account_owner
-
-        // Try multiple fields for name  
+        // Get name
         shopOwnerName = shopInfo.shop?.shop_owner || 
                        shopInfo.shop?.name ||
                        shopInfo.shop?.myshopify_domain
 
+        // Try to get email from shop info
+        shopOwnerEmail = shopInfo.shop?.email || 
+                        shopInfo.shop?.customer_email ||
+                        shopInfo.shop?.contact_email
+
         console.log(`📧 Found shop owner email: ${shopOwnerEmail}`)
         console.log(`👤 Found shop owner name: ${shopOwnerName}`)
-        
-        // إذا لم نجد بريد إلكتروني، جرب استخدام معلومات أخرى
-        if (!shopOwnerEmail && shopInfo.shop?.shop_owner) {
-          console.log('🔄 Trying to extract email from shop owner field')
-          // تحقق إذا كان shop_owner يحتوي على بريد إلكتروني
-          const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/
-          const match = shopInfo.shop.shop_owner.match(emailRegex)
-          if (match) {
-            shopOwnerEmail = match[0]
-            console.log(`📧 Extracted email from shop_owner: ${shopOwnerEmail}`)
-          }
-        }
-      } else {
-        console.error('❌ Shopify API error:', await shopInfoResponse.text())
       }
+
+      // Second try: If no email from shop endpoint, try users endpoint
+      if (!shopOwnerEmail) {
+        console.log('🔄 Trying users endpoint for email...')
+        const usersResponse = await fetch(`https://${shop}/admin/api/2025-01/users.json`, {
+          headers: {
+            'X-Shopify-Access-Token': shopData.access_token,
+            'Content-Type': 'application/json'
+          }
+        })
+
+        if (usersResponse.ok) {
+          const usersData = await usersResponse.json()
+          console.log('👥 Users data:', JSON.stringify(usersData, null, 2))
+          
+          // Look for shop owner in users
+          const shopOwner = usersData.users?.find(user => 
+            user.account_owner === true || 
+            user.permissions?.includes('store_admin')
+          )
+          
+          if (shopOwner) {
+            shopOwnerEmail = shopOwner.email
+            if (!shopOwnerName) {
+              shopOwnerName = `${shopOwner.first_name} ${shopOwner.last_name}`.trim()
+            }
+            console.log(`📧 Found owner email from users: ${shopOwnerEmail}`)
+            console.log(`👤 Found owner name from users: ${shopOwnerName}`)
+          }
+        } else {
+          console.log('❌ Users endpoint failed:', await usersResponse.text())
+        }
+      }
+
     } catch (error) {
       console.error('❌ Error fetching shop info:', error)
     }
 
-    // Fallback email if we can't get it from Shopify
+    // Use a fallback email if we still don't have one
     if (!shopOwnerEmail) {
-      shopOwnerEmail = `info@${shop}`
+      shopOwnerEmail = `owner@${shop}`
       console.log(`📧 Using fallback email: ${shopOwnerEmail}`)
     }
 
