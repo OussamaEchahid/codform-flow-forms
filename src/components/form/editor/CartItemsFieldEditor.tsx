@@ -81,16 +81,19 @@ const CartItemsFieldEditor: React.FC<CartItemsFieldEditorProps> = ({ field, onUp
   const FontFamilySelect = ({ value, onChange, label }: { value: string; onChange: (value: string) => void; label: string }) => (
     <div className="space-y-2">
       <Label>{label}</Label>
-      <Select value={value || 'Tajawal'} onValueChange={onChange}>
+      <Select value={value || 'Inter, Cairo, system-ui, sans-serif'} onValueChange={onChange}>
         <SelectTrigger>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="Tajawal">Tajawal</SelectItem>
-          <SelectItem value="Arial">Arial</SelectItem>
-          <SelectItem value="Helvetica">Helvetica</SelectItem>
-          <SelectItem value="Georgia">Georgia</SelectItem>
-          <SelectItem value="Times New Roman">Times New Roman</SelectItem>
+          <SelectItem value="Inter, Cairo, system-ui, sans-serif">Inter</SelectItem>
+          <SelectItem value="Cairo, system-ui, sans-serif">Cairo</SelectItem>
+          <SelectItem value="Roboto, system-ui, sans-serif">Roboto</SelectItem>
+          <SelectItem value="Open Sans, system-ui, sans-serif">Open Sans</SelectItem>
+          <SelectItem value="Poppins, system-ui, sans-serif">Poppins</SelectItem>
+          <SelectItem value="Montserrat, system-ui, sans-serif">Montserrat</SelectItem>
+          <SelectItem value="Source Sans Pro, system-ui, sans-serif">Source Sans Pro</SelectItem>
+          <SelectItem value="Nunito Sans, system-ui, sans-serif">Nunito Sans</SelectItem>
         </SelectContent>
       </Select>
     </div>
@@ -131,14 +134,6 @@ const CartItemsFieldEditor: React.FC<CartItemsFieldEditorProps> = ({ field, onUp
                 onChange={(e) => onUpdate({ label: e.target.value })}
                 placeholder={language === 'ar' ? 'المنتج المختار' : 'Selected Product'}
               />
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Switch
-                checked={currentStyle.showTitle !== false}
-                onCheckedChange={(checked) => handleStyleUpdate('showTitle', checked)}
-              />
-              <Label>{language === 'ar' ? 'إظهار العنوان' : 'Show Title'}</Label>
             </div>
 
             <div className="flex items-center space-x-2">
