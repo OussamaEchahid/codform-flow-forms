@@ -236,6 +236,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
   // Check if this is a form title element
   const isFormTitle = field.type === 'form-title';
   const shouldShowSubmitSpecificSettings = field.type === 'submit';
+  const shouldShowWhatsAppSpecificSettings = field.type === 'whatsapp';
   
   // Animation types for submit button
   const animationTypes = [
@@ -544,6 +545,45 @@ const SortableField: React.FC<SortableFieldProps> = ({
                         </div>
                       </div>
                     )}
+                    
+                    {/* WhatsApp Background color */}
+                    {shouldShowWhatsAppSpecificSettings && (
+                      <div className="space-y-1">
+                        <Label>{language === 'ar' ? 'لون الخلفية' : 'Background color'}</Label>
+                        <div className="flex gap-2 items-center">
+                          <Input
+                            type="color"
+                            value={editedField.style?.backgroundColor || '#25d366'}
+                            onChange={(e) => handleStyleChange('backgroundColor', e.target.value)}
+                            className="w-9 h-9 p-1"
+                          />
+                          <Input
+                            value={editedField.style?.backgroundColor || '#25d366'}
+                            onChange={(e) => handleStyleChange('backgroundColor', e.target.value)}
+                            className="flex-1"
+                          />
+                        </div>
+                      </div>
+                    )}
+                    
+                     {/* WhatsApp Number */}
+                     {shouldShowWhatsAppSpecificSettings && (
+                       <div className="space-y-1">
+                         <Label htmlFor={`field-whatsapp-number-${field.id}`}>
+                           {language === 'ar' ? 'رقم الواتساب' : 'WhatsApp phone number'}
+                         </Label>
+                         <Input
+                           id={`field-whatsapp-number-${field.id}`}
+                           value={editedField.whatsappNumber || ''}
+                           onChange={(e) => {
+                             console.log('🔥 WhatsApp number changed:', e.target.value);
+                             handleFieldChange('whatsappNumber', e.target.value);
+                           }}
+                           className={language === 'ar' ? 'text-right' : ''}
+                           placeholder="123456789"
+                         />
+                       </div>
+                     )}
                     
                     {/* Text color */}
                     <div className="space-y-1">
