@@ -36,14 +36,14 @@ function renderField(field, formStyle, formLanguage) {
   
   // Label styling - Match TextInput.tsx exactly with proper sizing
   const labelColor = getStyleValue(labelStyle, 'labelColor', '#333333');
-  const labelFontSize = getStyleValue(formStyle, 'fontSize', '1rem');
+  const labelFontSize = getStyleValue(labelStyle, 'labelFontSize', '1rem'); // Use field.style.labelFontSize not formStyle.fontSize
   const labelFontWeight = getStyleValue(labelStyle, 'labelFontWeight', '500');
   
   // Field styling - Match TextInput.tsx exactly with proper sizing
   const fieldBackgroundColor = '#FFFFFF';
   const fieldBorderColor = getStyleValue(labelStyle, 'borderColor', '#D1D5DB');
   const fieldBorderRadius = getStyleValue(labelStyle, 'borderRadius', '8px');
-  const fieldFontSize = getStyleValue(formStyle, 'fontSize', '1rem');
+  const fieldFontSize = getStyleValue(labelStyle, 'fontSize', '1rem'); // Use field.style.fontSize not formStyle.fontSize
   const fieldTextColor = getStyleValue(labelStyle, 'color', '#1F2937');
   const placeholderFontSize = fieldFontSize; // Use same size as field text
   const focusBorderColor = getStyleValue(formStyle, 'focusBorderColor', '#9b87f5');
