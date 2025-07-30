@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { FormField } from '@/lib/form-utils';
-import { GripVertical, Copy, Trash, ChevronDown, ChevronUp, User, Phone, Mail, MapPin, MessageSquare, CheckSquare, Image, FileText, CreditCard, DollarSign, Truck, ShoppingCart, ArrowRight, Check, Send, Users, IdCard, Smartphone, PhoneCall, Home, Building, Map, StickyNote, Edit, Package, Banknote, Handshake, ShoppingBag, Heart, Star, Target, Gift, Crown, Zap, Sparkles, Award, Diamond, Gem, Facebook, Instagram, Twitter, Youtube, Linkedin, AtSign, Inbox, MessageCircle, PenTool, Badge, Contact, Calendar, Clock, Tag, ThumbsUp, Bookmark, Flag, Globe, Headphones } from 'lucide-react';
+import { GripVertical, Copy, Trash, ChevronDown, ChevronUp, User, Phone, Mail, MapPin, MessageSquare, CheckSquare, Image, FileText, CreditCard, DollarSign, Truck, ShoppingCart, ArrowRight, Check, Send, Users, IdCard, Smartphone, PhoneCall, Home, Building, Map, StickyNote, Edit, Package, Banknote, Handshake, ShoppingBag, Heart, Star, Target, Gift, Crown, Zap, Sparkles, Award, Diamond, Gem, Facebook, Instagram, Twitter, Youtube, Linkedin, AtSign, Inbox, MessageCircle, PenTool, Badge, Contact, Calendar, Clock, Tag, ThumbsUp, Bookmark, Flag, Globe, Headphones, Type } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -169,7 +169,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
     
     switch (field.type) {
       case 'form-title': return <FileText {...iconProps} />;
-      case 'text': return <User {...iconProps} />;
+      case 'text': return <Type {...iconProps} />;
       case 'email': return <Mail {...iconProps} />;
       case 'phone': return <Phone {...iconProps} />;
       case 'textarea': return <MessageSquare {...iconProps} />;
