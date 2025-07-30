@@ -1,8 +1,7 @@
-
 import React from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, Facebook, Instagram, Twitter, Youtube, Linkedin, Phone, Mail } from 'lucide-react';
 
 interface WhatsAppButtonProps {
   field: FormField;
@@ -27,15 +26,32 @@ const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({ field, formStyle }) => 
   // Create WhatsApp URL
   const whatsappUrl = `https://wa.me/${whatsappNumber}${message ? `?text=${encodeURIComponent(message)}` : ''}`;
   
+  // Icon mapping
+  const iconMap = {
+    whatsapp: MessageSquare,
+    facebook: Facebook,
+    instagram: Instagram,
+    twitter: Twitter,
+    youtube: Youtube,
+    linkedin: Linkedin,
+    phone: Phone,
+    email: Mail,
+  };
+
+  const IconComponent = iconMap[fieldStyle.icon as keyof typeof iconMap] || MessageSquare;
+  
   // Determine button radius based on style
-  let buttonRadius = '8px';
+  let buttonRadius = fieldStyle.borderRadius || '8px';
   if (formStyle.buttonStyle === 'pill') {
     buttonRadius = '9999px';
   } else if (formStyle.buttonStyle === 'square') {
     buttonRadius = '0';
-  } else {
-    buttonRadius = formStyle.borderRadius || '8px';
   }
+  
+  // Animation classes
+  const animationClass = fieldStyle.animation && typeof fieldStyle.animation === 'string' && fieldStyle.animation !== 'none' 
+    ? `animate-${fieldStyle.animation}` 
+    : '';
   
   // Icon style to ensure consistent display
   const iconStyle = {
@@ -44,7 +60,8 @@ const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({ field, formStyle }) => 
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
-    flexShrink: 0
+    flexShrink: 0,
+    color: fieldStyle.iconColor || fieldStyle.color || 'white'
   };
   
   return (
@@ -53,23 +70,25 @@ const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({ field, formStyle }) => 
         href={whatsappUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="codform-whatsapp-button"
+        className={`codform-whatsapp-button ${animationClass}`}
         style={{
           backgroundColor: fieldStyle.backgroundColor || '#25D366',
           color: fieldStyle.color || 'white',
           fontSize: fieldStyle.fontSize || formStyle.fontSize || '18px',
           fontWeight: fieldStyle.fontWeight || '600',
           fontFamily: fieldStyle.fontFamily || 'Cairo, sans-serif',
-          borderRadius: fieldStyle.borderRadius || buttonRadius,
+          borderRadius: buttonRadius,
           textDecoration: 'none',
           boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           gap: '10px',
-          padding: '14px 20px',
+          padding: `${fieldStyle.paddingY || '14px'} 20px`,
           width: '100%',
-          border: 'none',
+          border: fieldStyle.borderWidth && parseInt(fieldStyle.borderWidth) > 0 
+            ? `${fieldStyle.borderWidth} solid ${fieldStyle.borderColor || '#000000'}`
+            : 'none',
           cursor: 'pointer',
           transition: 'all 0.2s ease',
           marginTop: '14px',
@@ -79,7 +98,9 @@ const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({ field, formStyle }) => 
         data-button-type="whatsapp"
         data-whatsapp-number={whatsappNumber}
       >
-        <MessageSquare style={iconStyle} className="codform-whatsapp-icon" />
+        {fieldStyle.showIcon !== false && (
+          <IconComponent style={iconStyle} className="codform-whatsapp-icon" />
+        )}
         {field.label || (language === 'ar' ? 'تواصل عبر واتساب' : 'Contact via WhatsApp')}
       </a>
     </div>
