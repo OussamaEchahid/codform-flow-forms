@@ -65,7 +65,11 @@ export const useShopifyStoreSync = () => {
       
       if (userEmail) {
         console.log('📧 جلب المتاجر بناء على البريد الإلكتروني:', userEmail);
-        const result = await supabase.rpc('get_stores_by_email', { p_email: userEmail });
+        const { data, error }: any = await supabase
+          .from('shopify_stores')
+          .select('shop, is_active, updated_at, access_token, email')
+          .eq('email', userEmail)
+          .eq('is_active', true);
         
         if (error) {
           console.error('❌ خطأ في جلب المتاجر بالبريد الإلكتروني:', error);
