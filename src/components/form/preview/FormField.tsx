@@ -28,6 +28,7 @@ interface FormFieldProps {
   onChange?: (value: any) => void;
   onClick?: () => void;
   disabled?: boolean;
+  productId?: string;
 }
 
 const FormField: React.FC<FormFieldProps> = ({ 
@@ -38,7 +39,8 @@ const FormField: React.FC<FormFieldProps> = ({
   value,
   onChange,
   onClick,
-  disabled
+  disabled,
+  productId
 }) => {
   // Create enhanced field with value and onChange
   const enhancedField = {
@@ -75,7 +77,7 @@ const FormField: React.FC<FormFieldProps> = ({
       return <SubmitButton field={enhancedField} formStyle={formStyle} onClick={onClick} disabled={disabled} />;
     
     case 'cart-items':
-      return <CartItems field={enhancedField} formStyle={formStyle} />;
+      return <CartItems field={enhancedField} formStyle={formStyle} productId={productId} />;
     
     case 'cart-summary':
       return <CartSummary field={enhancedField} formStyle={formStyle} />;

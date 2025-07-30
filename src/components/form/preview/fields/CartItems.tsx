@@ -3,6 +3,7 @@ import React from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
 import { ShoppingCart } from 'lucide-react';
+import { useSimpleShopify } from '@/hooks/useSimpleShopify';
 
 interface CartItemsProps {
   field: FormField;
@@ -11,47 +12,68 @@ interface CartItemsProps {
     borderRadius?: string;
     fontSize?: string;
   };
+  productId?: string;
 }
 
-const CartItems: React.FC<CartItemsProps> = ({ field, formStyle }) => {
+const CartItems: React.FC<CartItemsProps> = ({ field, formStyle, productId }) => {
   const { language } = useI18n();
   const fieldStyle = field.style || {};
+  const { products } = useSimpleShopify();
+  
+  // البحث عن المنتج المرتبط
+  const linkedProduct = productId ? products?.find(p => p.id === productId) : null;
   
   // استخدم نصف قطر الحدود من نمط النموذج إذا كان متاحًا
   const borderRadius = formStyle.borderRadius || '0.5rem';
   
   return (
-    <div className="mb-6 codform-cart-items" style={{ direction: language === 'ar' ? 'rtl' : 'ltr' }}>
+    <div className="mb-4 codform-cart-items max-w-md mx-auto" style={{ direction: language === 'ar' ? 'rtl' : 'ltr' }}>
       <div 
-        className={`${fieldStyle.showBorders !== false ? 'border-2 border-gray-200' : ''} rounded-lg overflow-hidden bg-white shadow-sm`} 
+        className={`${fieldStyle.showBorders !== false ? 'border border-gray-200' : ''} rounded-lg overflow-hidden bg-white shadow-sm`} 
         style={{ 
           borderRadius,
         }}
       >
         {/* عنصر العربة النموذجي للمعاينة */}
-        <div className={`flex items-center p-6 space-x-4 codform-cart-item ${language === 'ar' ? 'space-x-reverse' : ''}`} data-product-item>
-          {/* أيقونة المنتج الاحترافية */}
+        <div className={`flex items-center p-4 space-x-3 codform-cart-item ${language === 'ar' ? 'space-x-reverse' : ''}`} data-product-item>
+          {/* صورة المنتج */}
           {fieldStyle.hideImage !== true && (
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl flex-shrink-0 flex items-center justify-center border border-blue-200">
-              <ShoppingCart 
-                size={28} 
-                className="text-blue-600" 
-                strokeWidth={1.5}
-              />
+            <div className="w-12 h-12 rounded-lg flex-shrink-0 overflow-hidden">
+              {linkedProduct?.image && typeof linkedProduct.image === 'object' && linkedProduct.image.src ? (
+                <img 
+                  src={linkedProduct.image.src} 
+                  alt={linkedProduct.title}
+                  className="w-full h-full object-cover"
+                />
+              ) : linkedProduct?.image && typeof linkedProduct.image === 'string' ? (
+                <img 
+                  src={linkedProduct.image} 
+                  alt={linkedProduct.title}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center border border-blue-200">
+                  <ShoppingCart 
+                    size={20} 
+                    className="text-blue-600" 
+                    strokeWidth={1.5}
+                  />
+                </div>
+              )}
             </div>
           )}
           
           {/* معلومات المنتج */}
-          <div className="flex-1 space-y-2">
+          <div className="flex-1 space-y-1">
             {/* عنوان المنتج */}
             {fieldStyle.hideTitle !== true && (
               <h4 className="font-semibold product-title leading-tight" style={{
-                fontSize: fieldStyle.fontSize || '1.1rem',
+                fontSize: fieldStyle.fontSize || '0.95rem',
                 color: fieldStyle.color || '#1f2937',
                 fontFamily: fieldStyle.fontFamily || 'Inter, Cairo, system-ui, sans-serif',
                 fontWeight: fieldStyle.fontWeight || '600',
               }}>
-                {language === 'ar' ? 'منتج تجريبي' : 'Sample Product'}
+                {linkedProduct?.title || (language === 'ar' ? 'عنوان المنتج' : 'Product Title')}
               </h4>
             )}
             
@@ -67,26 +89,27 @@ const CartItems: React.FC<CartItemsProps> = ({ field, formStyle }) => {
             
             {/* محدد الكمية */}
             {fieldStyle.hideQuantitySelector !== true && (
-              <div className={`flex items-center space-x-3 mt-3 ${language === 'ar' ? 'space-x-reverse' : ''}`}>
-                <span className="text-sm font-medium text-gray-600" style={{
+              <div className={`flex items-center space-x-2 mt-2 ${language === 'ar' ? 'space-x-reverse' : ''}`}>
+                <span className="text-xs font-medium text-gray-600" style={{
                   fontFamily: fieldStyle.quantityFontFamily || 'Inter, Cairo, system-ui, sans-serif',
                 }}>
                   {language === 'ar' ? 'الكمية:' : 'Qty:'}
                 </span>
-                <div className={`flex items-center space-x-2 ${language === 'ar' ? 'space-x-reverse' : ''}`}>
+                <div className={`flex items-center space-x-1 ${language === 'ar' ? 'space-x-reverse' : ''}`}>
                   <button 
-                    className="flex items-center justify-center w-8 h-8 rounded-lg transition-all hover:bg-gray-100" 
+                    className="flex items-center justify-center w-6 h-6 rounded transition-all hover:bg-gray-100" 
                     style={{
                       backgroundColor: fieldStyle.quantityBgColor || '#f9fafb',
                       border: `${fieldStyle.quantityBorderWidth || '1'}px solid ${fieldStyle.quantityBorderColor || '#e5e7eb'}`,
-                      borderRadius: `${fieldStyle.quantityBorderRadius || '8'}px`,
+                      borderRadius: `${fieldStyle.quantityBorderRadius || '4'}px`,
                       color: fieldStyle.quantityBtnColor || '#374151',
+                      fontSize: '12px',
                     }}
                   >
                     −
                   </button>
                   <span 
-                    className="w-8 text-center font-semibold" 
+                    className="w-6 text-center font-semibold text-xs" 
                     style={{
                       fontFamily: fieldStyle.quantityFontFamily || 'Inter, Cairo, system-ui, sans-serif',
                       color: fieldStyle.quantityColor || '#1f2937',
@@ -96,12 +119,13 @@ const CartItems: React.FC<CartItemsProps> = ({ field, formStyle }) => {
                     1
                   </span>
                   <button 
-                    className="flex items-center justify-center w-8 h-8 rounded-lg transition-all hover:bg-gray-100" 
+                    className="flex items-center justify-center w-6 h-6 rounded transition-all hover:bg-gray-100" 
                     style={{
                       backgroundColor: fieldStyle.quantityBgColor || '#f9fafb',
                       border: `${fieldStyle.quantityBorderWidth || '1'}px solid ${fieldStyle.quantityBorderColor || '#e5e7eb'}`,
-                      borderRadius: `${fieldStyle.quantityBorderRadius || '8'}px`,
+                      borderRadius: `${fieldStyle.quantityBorderRadius || '4'}px`,
                       color: fieldStyle.quantityBtnColor || '#374151',
+                      fontSize: '12px',
                     }}
                   >
                     +
@@ -115,14 +139,17 @@ const CartItems: React.FC<CartItemsProps> = ({ field, formStyle }) => {
           {fieldStyle.hidePrice !== true && (
             <div className={`${language === 'ar' ? 'text-left' : 'text-right'} flex-shrink-0`}>
               <div className="font-bold product-price" style={{
-                fontSize: fieldStyle.priceFontSize || '1.125rem',
+                fontSize: fieldStyle.priceFontSize || '0.9rem',
                 color: fieldStyle.priceColor || '#059669',
                 fontFamily: fieldStyle.priceFontFamily || 'Inter, Cairo, system-ui, sans-serif',
                 fontWeight: fieldStyle.priceFontWeight || '700',
               }}>
-                {language === 'ar' ? '199.00 درهم' : '$29.99'}
+                {linkedProduct?.variants?.[0]?.price ? 
+                  `${linkedProduct.variants[0].price} ${language === 'ar' ? 'درهم' : '$'}` :
+                  (language === 'ar' ? '199.00 درهم' : '$29.99')
+                }
               </div>
-              <div className="text-sm text-gray-500 line-through mt-1" style={{
+              <div className="text-xs text-gray-500 line-through" style={{
                 fontFamily: fieldStyle.priceFontFamily || 'Inter, Cairo, system-ui, sans-serif',
               }}>
                 {language === 'ar' ? '249.00 درهم' : '$39.99'}
