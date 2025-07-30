@@ -24,30 +24,36 @@ const MyStores = () => {
   const navigate = useNavigate();
   const { language } = useI18n();
   
-  // استخدام UnifiedStoreManager كمصدر وحيد للحقيقة
-  const [activeStore, setActiveStore] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  // استخدام UnifiedStoreManager كمصدر وحيد للحقيقة  
+  const [activeStore, setActiveStore] = useState<string | null>(() => {
+    // تحديد الحالة الأولية مباشرة من UnifiedStoreManager
+    const initialStore = UnifiedStoreManager.getActiveStore();
+    console.log('🎯 MyStores INITIAL - Active store:', initialStore);
+    return initialStore;
+  });
+  const [loading, setLoading] = useState(false);
   
   useEffect(() => {
-    // تحديث الحالة من UnifiedStoreManager
-    const updateStoreState = () => {
-      const store = UnifiedStoreManager.getActiveStore();
-      console.log('📍 MyStores - Active store from UnifiedStoreManager:', store);
+    console.log('🔄 MyStores useEffect - Current active store:', activeStore);
+    
+    // إضافة listener للتغييرات
+    const handleStoreChange = (store: string | null) => {
+      console.log('🔄 MyStores - Store changed to:', store);
       setActiveStore(store);
-      setLoading(false);
     };
 
-    // تحديث فوري
-    updateStoreState();
+    // ربط الـ listener
+    const unsubscribe = UnifiedStoreManager.onStoreChange(handleStoreChange);
 
-    // الاستماع لتغييرات المتجر
-    const unsubscribe = UnifiedStoreManager.onStoreChange((store) => {
-      console.log('🔄 MyStores - Store changed:', store);
-      setActiveStore(store);
-    });
+    // تحديث فوري للتأكد
+    const currentStore = UnifiedStoreManager.getActiveStore();
+    if (currentStore !== activeStore) {
+      console.log('🔄 MyStores - Syncing store state:', currentStore);
+      setActiveStore(currentStore);
+    }
 
     return unsubscribe;
-  }, []);
+  }, [activeStore]);
 
   const handleConnectStore = async (shopDomain: string) => {
     try {
