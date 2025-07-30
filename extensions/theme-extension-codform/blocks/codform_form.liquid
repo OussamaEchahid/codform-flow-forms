@@ -626,14 +626,21 @@
           margin-right: auto;
           direction: ${direction};
         ">
-          <div class="codform-cart-item" style="
-            display: flex;
-            align-items: center;
-            padding: 12px;
-            gap: 12px;
-            margin-bottom: 0;
-            ${direction === 'rtl' ? 'flex-direction: row-reverse;' : ''}
-          " data-product-item>
+          <div style="
+            background-color: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+          ">
+            <div class="codform-cart-item" style="
+              display: flex;
+              align-items: center;
+              padding: 12px;
+              gap: 12px;
+              margin-bottom: 0;
+              ${direction === 'rtl' ? 'flex-direction: row-reverse;' : ''}
+            " data-product-item>
             ${!hideImage ? `
               <div style="
                 width: 40px;
@@ -757,10 +764,10 @@
                   flex-shrink: 0;
                 ">
                   <div class="product-price" style="
-                    font-size: 18px;
-                    color: ${priceColor};
-                    font-family: ${priceFontFamily};
-                    font-weight: ${priceFontWeight};
+                    font-size: 0.9rem;
+                    color: rgb(5, 150, 105);
+                    font-family: Inter, Cairo, system-ui, sans-serif;
+                    font-weight: 700;
                     margin: 0;
                   ">
                     ${formattedPrice}
@@ -770,7 +777,7 @@
                       font-size: 12px;
                       color: #9ca3af;
                       text-decoration: line-through;
-                      font-family: ${priceFontFamily};
+                      font-family: Inter, Cairo, system-ui, sans-serif;
                       margin-top: 2px;
                     ">
                       ${discountPrice}
