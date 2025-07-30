@@ -89,7 +89,46 @@ serve(async (req) => {
       throw new Error('Missing product ID or shop domain')
     }
 
-    // Try to get form for specific product first
+    // First try to get any form for this shop
+    let { data: shopForms, error: shopFormsError } = await supabase
+      .from('forms')
+      .select('*')
+      .eq('shop_id', shopDomain)
+      .eq('is_published', true)
+      .order('updated_at', { ascending: false })
+      .limit(1);
+
+    if (shopForms && shopForms.length > 0) {
+      console.log('Found existing form for shop:', shopForms[0].title);
+      const formData = shopForms[0];
+      
+      return new Response(JSON.stringify({
+        success: true,
+        form: {
+          id: formData.id,
+          title: formData.title,
+          fields: formData.data || [],
+          style: formData.style || {
+            formDirection: 'rtl',
+            baseFontSize: '16px',
+            fieldBorderColor: '#D1D5DB',
+            focusBorderColor: '#059669'
+          },
+          language: formData.language || 'ar',
+          is_published: formData.is_published
+        },
+        shop: shopDomain,
+        productId: productId
+      }), {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+        },
+        status: 200,
+      });
+    }
+
+    // Try to get form for specific product
     let { data: productSettings, error: productError } = await supabase
       .from('shopify_product_settings')
       .select(`
