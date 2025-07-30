@@ -75,6 +75,7 @@ export interface FormField {
   className?: string;
   whatsappNumber?: string;
   message?: string;
+  productId?: string;
 }
 
 export interface FormStep {

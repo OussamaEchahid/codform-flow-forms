@@ -27,7 +27,7 @@ const CartItems: React.FC<CartItemsProps> = ({ field, formStyle, productId }) =>
   const borderRadius = formStyle.borderRadius || '0.5rem';
   
   return (
-    <div className="mb-4 codform-cart-items max-w-md mx-auto" style={{ direction: language === 'ar' ? 'rtl' : 'ltr' }}>
+    <div className="mb-4 codform-cart-items w-full max-w-sm mx-auto" style={{ direction: language === 'ar' ? 'rtl' : 'ltr' }}>
       <div 
         className={`${fieldStyle.showBorders !== false ? 'border border-gray-200' : ''} rounded-lg overflow-hidden bg-white shadow-sm`} 
         style={{ 
@@ -35,10 +35,10 @@ const CartItems: React.FC<CartItemsProps> = ({ field, formStyle, productId }) =>
         }}
       >
         {/* عنصر العربة النموذجي للمعاينة */}
-        <div className={`flex items-center p-4 space-x-3 codform-cart-item ${language === 'ar' ? 'space-x-reverse' : ''}`} data-product-item>
+        <div className={`flex items-center p-3 space-x-3 codform-cart-item ${language === 'ar' ? 'space-x-reverse' : ''}`} data-product-item>
           {/* صورة المنتج */}
           {fieldStyle.hideImage !== true && (
-            <div className="w-12 h-12 rounded-lg flex-shrink-0 overflow-hidden">
+            <div className="w-10 h-10 rounded-md flex-shrink-0 overflow-hidden">
               {linkedProduct?.image && typeof linkedProduct.image === 'object' && linkedProduct.image.src ? (
                 <img 
                   src={linkedProduct.image.src} 
@@ -54,7 +54,7 @@ const CartItems: React.FC<CartItemsProps> = ({ field, formStyle, productId }) =>
               ) : (
                 <div className="w-full h-full bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center border border-blue-200">
                   <ShoppingCart 
-                    size={20} 
+                    size={16} 
                     className="text-blue-600" 
                     strokeWidth={1.5}
                   />

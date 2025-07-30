@@ -119,6 +119,20 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     }
   };
 
+  // Toggle form direction between LTR and RTL
+  const toggleDirection = () => {
+    const newDirection = formStyle.formDirection === 'rtl' ? 'ltr' : 'rtl';
+    onStyleChange({
+      ...formStyle,
+      formDirection: newDirection
+    });
+    toast.success(
+      language === 'ar' 
+        ? `تم تغيير الاتجاه إلى ${newDirection === 'rtl' ? 'العربية' : 'الإنجليزية'}`
+        : `Direction changed to ${newDirection.toUpperCase()}`
+    );
+  };
+
   return (
     <Card className="h-full">
       <CardHeader className="border-b">
@@ -130,6 +144,14 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
             </h3>
           </div>
           <div className="flex items-center space-x-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={toggleDirection}
+              className="text-gray-600 hover:text-gray-900"
+            >
+              {formStyle.formDirection === 'rtl' ? 'LTR' : 'RTL'}
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -177,6 +199,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
                   formPhonePrefix={formPhonePrefix}
                   value={formData[field.id]}
                   onChange={(value) => handleInputChange(field.id, value)}
+                  productId={field.productId}
                   {...(field.type === 'submit' && { 
                     onClick: () => handleSubmit({ preventDefault: () => {} } as React.FormEvent),
                     disabled: isSubmitting 

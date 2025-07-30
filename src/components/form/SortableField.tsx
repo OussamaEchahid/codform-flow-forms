@@ -262,18 +262,16 @@ const SortableField: React.FC<SortableFieldProps> = ({
               {/* لعناصر السلة: رسالة لاستخدام الإعدادات المتقدمة */}
               {field.type === 'cart-items' ? (
                 <div className="space-y-4">
-                  {/* Label text */}
-                  <div className="space-y-1">
-                    <Label htmlFor={`cart-label-${field.id}`}>
-                      {language === 'ar' ? 'عنوان الحقل' : 'Field Label'}
-                    </Label>
-                    <Input
-                      id={`cart-label-${field.id}`}
-                      value={editedField.label || ''}
-                      onChange={(e) => handleFieldChange('label', e.target.value)}
-                      placeholder={language === 'ar' ? 'عناصر السلة' : 'Cart Items'}
-                      className={language === 'ar' ? 'text-right' : ''}
-                    />
+                  <div className="space-y-2">
+                    <div className="text-sm text-gray-600">
+                      {language === 'ar' ? 'عنوان المنتج' : 'Product Title'}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {language === 'ar' 
+                        ? 'سيتم عرض عنوان المنتج المرتبط تلقائياً'
+                        : 'The linked product title will be displayed automatically'
+                      }
+                    </div>
                   </div>
                   
                   <div className="pt-2 border-t">
