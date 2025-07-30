@@ -240,19 +240,6 @@ const SortableField: React.FC<SortableFieldProps> = ({
                 </Button>
               )}
                
-              {/* زر خاص للصور لفتح ImageFieldEditor */}
-              {field.type === 'image' && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => setShowFieldEditor(true)}
-                  className="flex items-center gap-1 h-8 px-2"
-                >
-                  <Edit size={12} />
-                  {language === 'ar' ? 'تحرير' : 'Edit'}
-                </Button>
-              )}
-               
               <div className="ml-3">
                 <AccordionTrigger onClick={toggleExpand} className="py-0">
                 </AccordionTrigger>
