@@ -274,6 +274,24 @@ const SortableField: React.FC<SortableFieldProps> = ({
               >
                 <GripVertical size={16} className="text-gray-500" />
               </div>
+              
+              {/* أزرار الحذف والتكرار */}
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={onDuplicate}
+                className="flex items-center gap-1 h-8 px-2"
+              >
+                <Copy size={12} />
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={onDelete}
+                className="flex items-center gap-1 hover:text-red-500 hover:border-red-200 h-8 px-2"
+              >
+                <Trash size={12} />
+              </Button>
             </div>
             
             <div className={`flex-1 ${language === 'ar' ? 'text-right mr-2' : 'text-left ml-2'}`}>
@@ -286,7 +304,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
             </div>
             
             <AccordionTrigger onClick={toggleExpand} className="py-0">
-              {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+              <ChevronDown size={16} />
             </AccordionTrigger>
           </div>
           
@@ -1149,27 +1167,6 @@ const SortableField: React.FC<SortableFieldProps> = ({
                   </div>
                 )}
               
-              {/* Action buttons */}
-              <div className="flex justify-end space-x-2 rtl:space-x-reverse pt-4 border-t mt-4">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={onDuplicate}
-                  className="flex items-center gap-1"
-                >
-                  <Copy size={14} />
-                  {language === 'ar' ? 'نسخ' : 'Duplicate'}
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={onDelete}
-                  className="flex items-center gap-1 hover:text-red-500 hover:border-red-200"
-                >
-                  <Trash size={14} />
-                  {language === 'ar' ? 'حذف' : 'Delete'}
-                </Button>
-              </div>
             </div>
           </AccordionContent>
         </AccordionItem>
