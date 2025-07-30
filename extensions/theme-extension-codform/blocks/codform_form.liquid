@@ -771,6 +771,240 @@ QUANTITY OFFERS SCRIPT
         </div>
       `;
     }
+    {%- comment -%} Cart Items Field {%- endcomment -%}
+    else if (field.type === 'cart-items') {
+      const fieldStyle = field.style || {};
+      const borderRadius = formStyle.borderRadius || '0.5rem';
+      
+      // Get current product from Shopify Liquid
+      const productPrice = parseFloat('{{ product.price | divided_by: 100.0 }}') || 29.99;
+      const productCurrency = '{{ shop.currency }}' || 'USD';
+      const productImage = '{{ product.featured_image | img_url: "300x300" }}' || '';
+      const productTitle = '{{ product.title }}' || (formLanguage === 'ar' ? 'عنوان المنتج' : 'Product Title');
+      const productVariant = '{{ product.variants.first.title }}' || '';
+      const currencySymbol = productCurrency === 'USD' ? '$' : 
+                            productCurrency === 'SAR' ? 'ر.س' : 
+                            productCurrency === 'MAD' ? 'د.م' : 
+                            productCurrency === 'AED' ? 'د.إ' : productCurrency;
+      
+      // Apply all cart items styling properties
+      const hideImage = fieldStyle.hideImage === true;
+      const hideTitle = fieldStyle.hideTitle === true;
+      const hideQuantitySelector = fieldStyle.hideQuantitySelector === true;
+      const hidePrice = fieldStyle.hidePrice === true;
+      const showBorders = fieldStyle.showBorders !== false;
+      const direction = fieldStyle.direction || formDirection;
+      
+      // Product styling
+      const fontSize = fieldStyle.fontSize || '0.95rem';
+      const color = fieldStyle.color || '#1f2937';
+      const fontFamily = fieldStyle.fontFamily || 'Cairo, Inter, system-ui, sans-serif';
+      const fontWeight = fieldStyle.fontWeight || '600';
+      
+      // Variant styling
+      const descriptionFontSize = fieldStyle.descriptionFontSize || '0.875rem';
+      const descriptionColor = fieldStyle.descriptionColor || '#6b7280';
+      const descriptionFontFamily = fieldStyle.descriptionFontFamily || 'Cairo, Inter, system-ui, sans-serif';
+      const descriptionFontWeight = fieldStyle.descriptionFontWeight || '400';
+      
+      // Quantity styling
+      const quantityBgColor = fieldStyle.quantityBgColor || '#f9fafb';
+      const quantityBorderColor = fieldStyle.quantityBorderColor || '#e5e7eb';
+      const quantityBorderWidth = fieldStyle.quantityBorderWidth || '1';
+      const quantityBorderRadius = fieldStyle.quantityBorderRadius || '4';
+      const quantityColor = fieldStyle.quantityColor || '#1f2937';
+      const quantityBtnColor = fieldStyle.quantityBtnColor || '#374151';
+      const quantityFontFamily = fieldStyle.quantityFontFamily || 'Cairo, Inter, system-ui, sans-serif';
+      
+      // Price styling
+      const priceColor = fieldStyle.priceColor || '#059669';
+      const priceFontSize = fieldStyle.priceFontSize || '0.9rem';
+      const priceFontFamily = fieldStyle.priceFontFamily || 'Cairo, Inter, system-ui, sans-serif';
+      const priceFontWeight = fieldStyle.priceFontWeight || '700';
+      
+      // Discount price
+      const discountPrice = fieldStyle.discountPrice || '';
+      const hideDiscountPrice = fieldStyle.hideDiscountPrice === true;
+      
+      // Format price
+      const formattedPrice = `${productPrice.toFixed(2)} ${currencySymbol}`;
+      
+      html = `
+        <div class="codform-cart-items" style="
+          margin-bottom: 16px;
+          max-width: 32rem;
+          margin-left: auto;
+          margin-right: auto;
+          direction: ${direction};
+        ">
+          <div style="
+            ${showBorders ? `border: 1px solid #e5e7eb;` : ''}
+            border-radius: ${borderRadius};
+            overflow: hidden;
+            background-color: white;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+          ">
+            <div class="codform-cart-item" style="
+              display: flex;
+              align-items: center;
+              padding: 12px;
+              gap: 12px;
+              ${direction === 'rtl' ? 'flex-direction: row-reverse;' : ''}
+            " data-product-item>
+              ${!hideImage ? `
+                <div style="
+                  width: 40px;
+                  height: 40px;
+                  border-radius: 6px;
+                  flex-shrink: 0;
+                  overflow: hidden;
+                  background: linear-gradient(135deg, #dbeafe 0%, #c7d2fe 100%);
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  border: 1px solid #e0e7ff;
+                ">
+                  ${productImage ? `
+                    <img src="${productImage}" alt="${productTitle}" style="
+                      width: 100%;
+                      height: 100%;
+                      object-fit: cover;
+                    " />
+                  ` : `
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="1.5">
+                      <path d="M7 18c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12L8.1 13h7.45c.75 0 1.41-.41 1.75-1.03L21.7 4H5.21l-.94-2H1zm16 16c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
+                    </svg>
+                  `}
+                </div>
+              ` : ''}
+              
+              <div style="flex: 1; min-width: 0;">
+                ${!hideTitle ? `
+                  <h4 class="product-title" style="
+                    font-size: ${fontSize};
+                    color: ${color};
+                    font-family: ${fontFamily};
+                    font-weight: ${fontWeight};
+                    margin: 0 0 4px 0;
+                    line-height: 1.3;
+                  ">
+                    ${productTitle}
+                  </h4>
+                ` : ''}
+                
+                ${productVariant && productVariant !== 'Default Title' && productVariant.trim() ? `
+                  <div class="product-variant" style="
+                    font-size: ${descriptionFontSize};
+                    color: ${descriptionColor};
+                    font-family: ${descriptionFontFamily};
+                    font-weight: ${descriptionFontWeight};
+                    margin: 0 0 8px 0;
+                  ">
+                    ${productVariant}
+                  </div>
+                ` : ''}
+                
+                ${!hideQuantitySelector ? `
+                  <div style="
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    margin-top: 8px;
+                    ${direction === 'rtl' ? 'flex-direction: row-reverse;' : ''}
+                  ">
+                    <span style="
+                      font-size: 12px;
+                      font-weight: 500;
+                      color: #6b7280;
+                      font-family: ${quantityFontFamily};
+                    ">
+                      ${formLanguage === 'ar' ? 'الكمية:' : 'Qty:'}
+                    </span>
+                    <div style="
+                      display: flex;
+                      align-items: center;
+                      gap: 4px;
+                      ${direction === 'rtl' ? 'flex-direction: row-reverse;' : ''}
+                    ">
+                      <button type="button" style="
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        width: 24px;
+                        height: 24px;
+                        border-radius: ${quantityBorderRadius}px;
+                        background-color: ${quantityBgColor};
+                        border: ${quantityBorderWidth}px solid ${quantityBorderColor};
+                        color: ${quantityBtnColor};
+                        font-size: 12px;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                      " 
+                      onmouseover="this.style.backgroundColor='#f3f4f6'"
+                      onmouseout="this.style.backgroundColor='${quantityBgColor}'"
+                      >−</button>
+                      <span style="
+                        width: 24px;
+                        text-align: center;
+                        font-weight: 600;
+                        font-size: 12px;
+                        font-family: ${quantityFontFamily};
+                        color: ${quantityColor};
+                      ">1</span>
+                      <button type="button" style="
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        width: 24px;
+                        height: 24px;
+                        border-radius: ${quantityBorderRadius}px;
+                        background-color: ${quantityBgColor};
+                        border: ${quantityBorderWidth}px solid ${quantityBorderColor};
+                        color: ${quantityBtnColor};
+                        font-size: 12px;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                      "
+                      onmouseover="this.style.backgroundColor='#f3f4f6'"
+                      onmouseout="this.style.backgroundColor='${quantityBgColor}'"
+                      >+</button>
+                    </div>
+                  </div>
+                ` : ''}
+              </div>
+              
+              ${!hidePrice ? `
+                <div style="
+                  ${direction === 'rtl' ? 'text-align: left;' : 'text-align: right;'}
+                  flex-shrink: 0;
+                ">
+                  <div class="product-price" style="
+                    font-size: ${priceFontSize};
+                    color: ${priceColor};
+                    font-family: ${priceFontFamily};
+                    font-weight: ${priceFontWeight};
+                    margin: 0;
+                  ">
+                    ${formattedPrice}
+                  </div>
+                  ${!hideDiscountPrice && discountPrice ? `
+                    <div style="
+                      font-size: 12px;
+                      color: #9ca3af;
+                      text-decoration: line-through;
+                      font-family: ${priceFontFamily};
+                      margin-top: 2px;
+                    ">
+                      ${discountPrice}
+                    </div>
+                  ` : ''}
+                </div>
+              ` : ''}
+            </div>
+          </div>
+        </div>
+      `;
+    }
     
     return html;
   }
