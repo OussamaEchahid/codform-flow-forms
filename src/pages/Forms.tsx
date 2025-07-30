@@ -58,35 +58,54 @@ const Forms = () => {
 
           {/* حالة المتجر */}
           <div className="mb-6">
-            {activeStore ? (
-              <Alert className="border-green-200 bg-green-50">
-                <CheckCircle className="h-4 w-4 text-green-600" />
-                <AlertDescription className="text-green-800">
-                  <strong>متصل بالمتجر:</strong> {activeStore}
-                </AlertDescription>
-              </Alert>
-            ) : (
-              <Alert className="border-amber-200 bg-amber-50">
-                <AlertCircle className="h-4 w-4 text-amber-600" />
-                <AlertDescription className="text-amber-800 flex items-center justify-between">
-                  <span>
-                    <strong>لا يوجد متجر نشط.</strong> يرجى ربط متجر Shopify لإدارة النماذج.
-                  </span>
-                  <Button 
-                    size="sm" 
-                    onClick={() => navigate('/my-stores')}
-                    className="bg-blue-600 hover:bg-blue-700"
-                  >
-                    <StoreIcon className="h-4 w-4 mr-2" />
-                    إدارة المتاجر
-                  </Button>
-                </AlertDescription>
-              </Alert>
-            )}
+            {(() => {
+              // التأكد من أن المتجر المتصل صحيح وليس "en" أو "ar"
+              const isValidStore = activeStore && 
+                                 activeStore !== 'en' && 
+                                 activeStore !== 'ar' && 
+                                 activeStore.includes('.myshopify.com');
+              
+              if (isValidStore) {
+                return (
+                  <Alert className="border-green-200 bg-green-50">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <AlertDescription className="text-green-800">
+                      <strong>متصل بالمتجر:</strong> {activeStore}
+                    </AlertDescription>
+                  </Alert>
+                );
+              } else {
+                return (
+                  <Alert className="border-amber-200 bg-amber-50">
+                    <AlertCircle className="h-4 w-4 text-amber-600" />
+                    <AlertDescription className="text-amber-800 flex items-center justify-between">
+                      <span>
+                        <strong>لا يوجد متجر نشط.</strong> يرجى ربط متجر Shopify لإدارة النماذج.
+                      </span>
+                      <Button 
+                        size="sm" 
+                        onClick={() => navigate('/my-stores')}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        <StoreIcon className="h-4 w-4 mr-2" />
+                        إدارة المتاجر
+                      </Button>
+                    </AlertDescription>
+                  </Alert>
+                );
+              }
+            })()}
           </div>
 
           {/* المحتوى الرئيسي */}
-          {activeStore ? (
+          {(() => {
+            // التأكد من أن المتجر المتصل صحيح وليس "en" أو "ar"
+            const isValidStore = activeStore && 
+                               activeStore !== 'en' && 
+                               activeStore !== 'ar' && 
+                               activeStore.includes('.myshopify.com');
+            
+            return isValidStore ? (
             <FormBuilderDashboard 
               key={`dashboard-${activeStore}`} 
               initialForms={[]} 
@@ -159,10 +178,18 @@ const Forms = () => {
                 </CardContent>
               </Card>
             </div>
-          )}
+          );
+          })()}
 
           {/* رسالة ترحيب للمستخدمين الجدد */}
-          {!activeStore && (
+          {(() => {
+            // التأكد من أن المتجر المتصل صحيح وليس "en" أو "ar"
+            const isValidStore = activeStore && 
+                               activeStore !== 'en' && 
+                               activeStore !== 'ar' && 
+                               activeStore.includes('.myshopify.com');
+            
+            return !isValidStore && (
             <Card className="mt-8 border-2 border-dashed border-muted-foreground/25">
               <CardHeader className="text-center">
                 <StoreIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -187,7 +214,8 @@ const Forms = () => {
                 </div>
               </CardContent>
             </Card>
-          )}
+          );
+          })()}
         </div>
       </div>
     </div>
