@@ -45,24 +45,16 @@ export const useShopifyStoreSync = () => {
       
       console.log('🔄 جاري تحميل المتاجر...');
       
-      // جلب البريد الإلكتروني المحفوظ
+      // جلب البريد الإلكتروني المحفوظ والمتجر النشط
       const userEmail = localStorage.getItem('shopify_user_email');
       const activeStore = getActiveStore();
       
       console.log('📧 البريد الإلكتروني:', userEmail);
       console.log('🏪 المتجر النشط:', activeStore);
 
-      if (!userEmail && !activeStore) {
-        console.log('⚠️ لا يوجد بريد إلكتروني أو متجر نشط');
-        setStores([]);
-        setCurrentStore(null);
-        setLoading(false);
-        return;
-      }
-
-      // جلب المتاجر بناء على البريد الإلكتروني
       let storesList: any[] = [];
       
+      // أولاً: إذا كان لدينا بريد إلكتروني، جلب المتاجر بناء عليه
       if (userEmail) {
         console.log('📧 جلب المتاجر بناء على البريد الإلكتروني:', userEmail);
         try {
@@ -83,27 +75,31 @@ export const useShopifyStoreSync = () => {
         }
       }
       
-      // إذا لم نجد متاجر بالبريد الإلكتروني، جرب المتجر النشط
+      // ثانياً: إذا لم نجد متاجر والمتجر النشط موجود، جلب المتجر النشط ومحاولة الحصول على البريد الإلكتروني
       if (storesList.length === 0 && activeStore) {
-        console.log('🏪 جلب المتجر النشط:', activeStore);
-        const response = await supabase
-          .from('shopify_stores')
-          .select('*')
-          .eq('shop', activeStore)
-          .eq('is_active', true)
-          .single();
+        console.log('🏪 جلب المتجر النشط والبحث عن البريد الإلكتروني:', activeStore);
+        try {
+          const response = await supabase
+            .from('shopify_stores')
+            .select('*')
+            .eq('shop', activeStore)
+            .eq('is_active', true)
+            .single();
 
-        if (response.error && response.error.code !== 'PGRST116') {
-          console.error('❌ خطأ في جلب المتجر النشط:', response.error);
-        } else if (response.data) {
-          storesList = [response.data];
-          console.log('✅ تم العثور على المتجر النشط');
-          
-          // حفظ البريد الإلكتروني إذا كان موجود  
-          if ((response.data as any).email) {
-            localStorage.setItem('shopify_user_email', (response.data as any).email);
-            console.log('📧 تم حفظ البريد الإلكتروني:', (response.data as any).email);
+          if (response.error && response.error.code !== 'PGRST116') {
+            console.error('❌ خطأ في جلب المتجر النشط:', response.error);
+          } else if (response.data) {
+            storesList = [response.data];
+            console.log('✅ تم العثور على المتجر النشط');
+            
+            // حفظ البريد الإلكتروني إذا كان موجود  
+            if ((response.data as any).email && (response.data as any).email !== userEmail) {
+              localStorage.setItem('shopify_user_email', (response.data as any).email);
+              console.log('📧 تم حفظ البريد الإلكتروني من قاعدة البيانات:', (response.data as any).email);
+            }
           }
+        } catch (dbError) {
+          console.error('❌ خطأ في الاتصال بقاعدة البيانات:', dbError);
         }
       }
 
