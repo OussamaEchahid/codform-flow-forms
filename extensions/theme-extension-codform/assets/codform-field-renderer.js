@@ -36,16 +36,19 @@ function renderField(field, formStyle, formLanguage) {
   const showLabel = getStyleValue(labelStyle, 'showLabel', true);
   const isFloatingLabels = getStyleValue(formStyle, 'floatingLabels', false);
   
-  // Label styling - Match TextInput.tsx exactly with proper fallback logic
+  // FIXED: Use formStyle.fontSize as primary source for font sizes
+  const globalFontSize = formStyle.fontSize || '1rem';
+  
+  // Label styling - Use global font size as fallback
   const labelColor = getStyleValue(labelStyle, 'labelColor', '#333333');
-  const labelFontSize = labelStyle.labelFontSize || '1rem'; // Direct fallback like in TextInput.tsx
+  const labelFontSize = labelStyle.labelFontSize || globalFontSize;
   const labelFontWeight = getStyleValue(labelStyle, 'labelFontWeight', '500');
   
-  // Field styling - Match TextInput.tsx exactly with proper fallback logic
+  // Field styling - Use global font size as fallback  
   const fieldBackgroundColor = '#FFFFFF';
   const fieldBorderColor = getStyleValue(labelStyle, 'borderColor', '#D1D5DB');
   const fieldBorderRadius = getStyleValue(labelStyle, 'borderRadius', '8px');
-  const fieldFontSize = labelStyle.fontSize || '1rem'; // Direct fallback like in TextInput.tsx
+  const fieldFontSize = labelStyle.fontSize || globalFontSize;
   const fieldTextColor = getStyleValue(labelStyle, 'color', '#1F2937');
   const placeholderFontSize = fieldFontSize;
   const focusBorderColor = getStyleValue(formStyle, 'focusBorderColor', '#9b87f5');
