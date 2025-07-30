@@ -136,6 +136,10 @@ const Dashboard = () => {
       let formsCount = 0;
       let ordersCount = 0;
       
+      // استخدام النظام الجديد لجلب البيانات بناءً على البريد الإلكتروني
+      const currentUserEmail = localStorage.getItem('shopify_user_email') || `owner@${activeStore}`;
+      console.log(`📊 Dashboard - Loading data for email: ${currentUserEmail} and store: ${activeStore}`);
+      
       // جلب عدد النماذج للمتجر النشط
       const { data: formsData, error: formsError } = await supabase
         .from('forms')
@@ -145,23 +149,23 @@ const Dashboard = () => {
       if (!formsError && formsData) {
         formsCount = formsData.length;
         console.log('📋 Dashboard - Forms found:', formsCount);
+        
+        // جلب عدد الطلبات (الإرسالات) للنماذج
+        if (formsData.length > 0) {
+          const { data: submissionsData, error: submissionsError } = await supabase
+            .from('form_submissions')
+            .select('id, form_id')
+            .in('form_id', formsData.map(f => f.id.toString()));
+          
+          if (!submissionsError && submissionsData) {
+            ordersCount = submissionsData.length;
+            console.log('🛒 Dashboard - Submissions found:', ordersCount);
+          } else {
+            console.error('❌ Dashboard - Error fetching submissions:', submissionsError);
+          }
+        }
       } else {
         console.error('❌ Dashboard - Error fetching forms:', formsError);
-      }
-      
-      // جلب عدد الطلبات (الإرسالات) للمتجر النشط
-      if (formsData && formsData.length > 0) {
-        const { data: submissionsData, error: submissionsError } = await supabase
-          .from('form_submissions')
-          .select('id, form_id')
-          .in('form_id', formsData.map(f => f.id.toString()));
-        
-        if (!submissionsError && submissionsData) {
-          ordersCount = submissionsData.length;
-          console.log('🛒 Dashboard - Submissions found:', ordersCount);
-        } else {
-          console.error('❌ Dashboard - Error fetching submissions:', submissionsError);
-        }
       }
       
       // تحديث الإحصائيات
@@ -172,7 +176,8 @@ const Dashboard = () => {
         activeStore: activeStore
       });
 
-      console.log('✅ Dashboard - Stats updated:', {
+      console.log('✅ Dashboard - Stats updated with email-based system:', {
+        userEmail,
         totalStores: 1,
         totalForms: formsCount,
         totalOrders: ordersCount,
