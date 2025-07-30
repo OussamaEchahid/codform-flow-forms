@@ -32,7 +32,7 @@ interface DashboardStats {
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, shops, shop, shopifyConnected, isShopifyAuthenticated } = useAuth();
-  const { language } = useI18n();
+  const { language, t } = useI18n();
   
   // إظهار حالة الاتصال بوضوح باستخدام UnifiedStoreManager
   const activeStoreFromManager = UnifiedStoreManager.getActiveStore();
@@ -225,10 +225,10 @@ const Dashboard = () => {
             <div className="flex justify-between items-center mb-4">
               <div>
                 <h1 className="text-3xl font-bold mb-2">
-                  مرحباً بك في لوحة التحكم
+                  {t('welcomeToDashboard')}
                 </h1>
                 <p className="text-muted-foreground">
-                  إدارة متاجرك ونماذجك وطلباتك من مكان واحد
+                  {language === 'ar' ? 'إدارة متاجرك ونماذجك وطلباتك من مكان واحد' : 'Manage your stores, forms and orders from one place'}
                 </p>
               </div>
               
@@ -301,32 +301,32 @@ const Dashboard = () => {
                       <AlertDescription className="text-green-800">
                         <div className="flex items-center justify-between">
                           <div>
-                            <strong>✅ متصل بالمتجر:</strong> {connectedStore}
+                            <strong>✅ {t('connectedTo')}:</strong> {connectedStore}
                             <br />
-                            <small className="text-green-600">الاتصال نشط ويعمل بشكل صحيح</small>
+                            <small className="text-green-600">{language === 'ar' ? 'الاتصال نشط ويعمل بشكل صحيح' : 'Connection is active and working properly'}</small>
                             <br />
                             <small className="text-green-600/70">
-                              البريد الإلكتروني: {(() => {
+                              {language === 'ar' ? 'البريد الإلكتروني: ' : 'Email: '}{(() => {
                                 const email = localStorage.getItem('shopify_user_email');
                                 return email && email !== 'مغربي• VIP' ? email : `owner@${connectedStore}`;
                               })()}
                             </small>
                             <br />
                             <small className="text-green-600/70">
-                              خطة الاشتراك: <span className="font-medium">
+                              {t('currentPlanText')}: <span className="font-medium">
                                 {subscription?.plan_type ? 
                                   subscription.plan_type.charAt(0).toUpperCase() + subscription.plan_type.slice(1) : 
                                   'Free'
                                 }
                               </span>
                               {subscription?.status === 'active' && (
-                                <span className="text-green-700 ml-1">• نشط</span>
+                                <span className="text-green-700 ml-1">• {t('active')}</span>
                               )}
                             </small>
                           </div>
                           <div className="flex flex-col gap-2">
                             <div className="bg-green-100 px-3 py-1 rounded-full">
-                              <span className="text-green-800 font-medium">نشط</span>
+                              <span className="text-green-800 font-medium">{t('active')}</span>
                             </div>
                             <Button 
                               size="sm" 
@@ -334,7 +334,7 @@ const Dashboard = () => {
                               onClick={() => navigate('/my-stores')}
                               className="border-green-600 text-green-700 hover:bg-green-100"
                             >
-                              إدارة المتاجر
+                              {t('manageStores')}
                             </Button>
                           </div>
                         </div>
@@ -348,15 +348,15 @@ const Dashboard = () => {
                       <AlertDescription className="text-orange-800">
                         <div className="flex items-center justify-between">
                           <div>
-                            <strong>❌ لا يوجد متجر نشط.</strong> يرجى ربط متجر Shopify أولاً.
+                            <strong>❌ {t('noActiveStore')}.</strong> {t('pleaseConnectShopify')}.
                           </div>
-                          <Button 
-                            size="sm" 
-                            onClick={() => navigate('/my-stores')}
-                            className="bg-orange-600 hover:bg-orange-700"
-                          >
-                            ربط متجر
-                          </Button>
+                            <Button 
+                              size="sm" 
+                              onClick={() => navigate('/my-stores')}
+                              className="bg-orange-600 hover:bg-orange-700"
+                            >
+                              {t('linkStore')}
+                            </Button>
                         </div>
                       </AlertDescription>
                     </Alert>
@@ -370,7 +370,7 @@ const Dashboard = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">إجمالي المتاجر</CardTitle>
+                <CardTitle className="text-sm font-medium">{t('totalStores')}</CardTitle>
                 <StoreIcon className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -384,7 +384,7 @@ const Dashboard = () => {
                   {(() => {
                     const storeFromManager = UnifiedStoreManager.getActiveStore();
                     const connectedStore = shop || storeFromManager;
-                    return connectedStore ? `متصل بـ ${connectedStore}` : 'متاجر Shopify مرتبطة';
+                    return connectedStore ? `${t('connectedTo')} ${connectedStore}` : (language === 'ar' ? 'متاجر Shopify مرتبطة' : 'Connected Shopify stores');
                   })()}
                 </p>
               </CardContent>
@@ -392,33 +392,33 @@ const Dashboard = () => {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">إجمالي النماذج</CardTitle>
+                <CardTitle className="text-sm font-medium">{t('totalForms')}</CardTitle>
                 <FileText className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{stats.totalForms}</div>
                 <p className="text-xs text-muted-foreground">
-                  نماذج تم إنشاؤها
+                  {t('formsCreated')}
                 </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">إجمالي الطلبات</CardTitle>
+                <CardTitle className="text-sm font-medium">{t('totalOrders')}</CardTitle>
                 <ShoppingCart className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{stats.totalOrders}</div>
                 <p className="text-xs text-muted-foreground">
-                  طلبات مستلمة
+                  {t('ordersReceived')}
                 </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">معدل التحويل</CardTitle>
+                <CardTitle className="text-sm font-medium">{language === 'ar' ? 'معدل التحويل' : 'Conversion Rate'}</CardTitle>
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -426,7 +426,7 @@ const Dashboard = () => {
                   {stats.totalForms > 0 ? Math.round((stats.totalOrders / stats.totalForms) * 100) : 0}%
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  نسبة تحويل النماذج
+                  {language === 'ar' ? 'نسبة تحويل النماذج' : 'Form conversion rate'}
                 </p>
               </CardContent>
             </Card>
@@ -438,16 +438,16 @@ const Dashboard = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <StoreIcon className="h-5 w-5 text-blue-600" />
-                  إدارة المتاجر
+                  {t('manageStores')}
                 </CardTitle>
                 <CardDescription>
-                  ربط وإدارة متاجر Shopify الخاصة بك
+                  {language === 'ar' ? 'ربط وإدارة متاجر Shopify الخاصة بك' : 'Connect and manage your Shopify stores'}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <Button className="w-full bg-blue-600 hover:bg-blue-700">
                   <StoreIcon className="h-4 w-4 mr-2" />
-                  عرض المتاجر
+                  {language === 'ar' ? 'عرض المتاجر' : 'View Stores'}
                 </Button>
               </CardContent>
             </Card>
@@ -456,16 +456,16 @@ const Dashboard = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <FileText className="h-5 w-5 text-green-600" />
-                  إنشاء نموذج
+                  {language === 'ar' ? 'إنشاء نموذج' : 'Create Form'}
                 </CardTitle>
                 <CardDescription>
-                  إنشاء نماذج جديدة لمنتجاتك
+                  {language === 'ar' ? 'إنشاء نماذج جديدة لمنتجاتك' : 'Create new forms for your products'}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <Button className="w-full bg-green-600 hover:bg-green-700">
                   <Plus className="h-4 w-4 mr-2" />
-                  نموذج جديد
+                  {t('newForm')}
                 </Button>
               </CardContent>
             </Card>
@@ -474,16 +474,16 @@ const Dashboard = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <ShoppingCart className="h-5 w-5 text-purple-600" />
-                  عرض الطلبات
+                  {language === 'ar' ? 'عرض الطلبات' : 'View Orders'}
                 </CardTitle>
                 <CardDescription>
-                  متابعة وإدارة الطلبات الواردة
+                  {language === 'ar' ? 'متابعة وإدارة الطلبات الواردة' : 'Track and manage incoming orders'}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <Button className="w-full bg-purple-600 hover:bg-purple-700">
                   <Activity className="h-4 w-4 mr-2" />
-                  عرض الطلبات
+                  {language === 'ar' ? 'عرض الطلبات' : 'View Orders'}
                 </Button>
               </CardContent>
             </Card>
@@ -493,9 +493,9 @@ const Dashboard = () => {
           {stats.totalStores === 0 && (
             <Card className="mt-8 border-2 border-dashed border-muted-foreground/25">
               <CardHeader className="text-center">
-                <CardTitle className="text-xl">مرحباً بك في CODMagnet!</CardTitle>
+                <CardTitle className="text-xl">{language === 'ar' ? 'مرحباً بك في CODMagnet!' : 'Welcome to CODMagnet!'}</CardTitle>
                 <CardDescription className="text-base">
-                  ابدأ رحلتك معنا بربط متجر Shopify الخاص بك
+                  {language === 'ar' ? 'ابدأ رحلتك معنا بربط متجر Shopify الخاص بك' : 'Start your journey with us by connecting your Shopify store'}
                 </CardDescription>
               </CardHeader>
               <CardContent className="text-center">
@@ -505,7 +505,7 @@ const Dashboard = () => {
                   className="bg-blue-600 hover:bg-blue-700"
                 >
                   <Plus className="h-5 w-5 mr-2" />
-                  ربط متجر Shopify
+                  {language === 'ar' ? 'ربط متجر Shopify' : 'Connect Shopify Store'}
                 </Button>
               </CardContent>
             </Card>

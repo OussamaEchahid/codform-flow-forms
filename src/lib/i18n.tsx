@@ -177,7 +177,7 @@ const translations = {
     welcomeToDashboard: 'Welcome to Dashboard',
     connectedToStore: 'Connected to store',
     setupShopifyStore: 'Set up your Shopify store to get started',
-    manageStores: 'Manage Stores',
+    manageStores2: 'Manage Stores',
     connectToShopify: 'Connect to Shopify',
     
     // Form Builder
@@ -207,7 +207,53 @@ const translations = {
     seconds: 'Seconds',
     
     // HTML Content
-    addHtmlContentHere: 'Add HTML content here. You can add paragraphs, images, links and more.'
+    addHtmlContentHere: 'Add HTML content here. You can add paragraphs, images, links and more.',
+    
+    // Dashboard additional
+    totalStores: 'Total Stores',
+    totalForms: 'Total Forms',  
+    totalOrders: 'Total Orders',
+    connectedStore: 'Connected Store',
+    formsCreated: 'forms created',
+    ordersReceived: 'orders received',
+    currentPlanText: 'Current Plan',
+    connectedTo: 'Connected to',
+    active: 'Active',
+    manageStores: 'Manage Stores',
+    linkStore: 'Link Store',
+    noActiveStore: 'No active store',
+    pleaseConnectShopify: 'Please connect a Shopify store first',
+    
+    // Quantity Offers
+    quantityOffersTitle: 'Quantity Offers',
+    selectFormFirst: 'Select Form First',
+    noFormsAvailable: 'No forms available',
+    createFormFirst: 'Create a form first',
+    associatedProducts: 'Associated Products',
+    noProductsAssociated: 'No products associated with this form',
+    linkProductsFirst: 'Link products to this form first',
+    editOffer: 'Edit Offer',
+    deleteOffer: 'Delete Offer',
+    existingOffers: 'Existing Offers',
+    noOffersCreated: 'No offers created yet',
+    
+    // My Stores
+    myStores: 'My Stores',
+    yourStores: 'Your Stores',
+    noStoresConnected: 'No stores connected to your account currently',
+    openShopifyAdmin: 'Open Shopify Admin',
+    pleaseOpenFromShopify: 'Please open the app from within your store in Shopify',
+    currentActiveStore: 'Current Active Store',
+    allConnectedStores: 'All Your Connected Stores',
+    lastUpdate: 'Last update',
+    activate: 'Activate',
+    manage: 'Manage',
+    disconnectAllStores: 'Disconnect All Stores',
+    
+    // Landing Pages
+    landingPagesTitle: 'Landing Pages',
+    workInProgress: 'We are working to complete this as soon as possible',
+    comingSoon: 'Coming Soon'
   },
   ar: {
     dashboard: 'لوحة التحكم',
@@ -365,7 +411,7 @@ const translations = {
     welcomeToDashboard: 'مرحباً بك في لوحة التحكم',
     connectedToStore: 'متصل بمتجر',
     setupShopifyStore: 'قم بإعداد متجر Shopify الخاص بك للبدء',
-    manageStores: 'إدارة المتاجر',
+    manageStores2: 'إدارة المتاجر',
     connectToShopify: 'اتصل بـ Shopify',
     
     // Form Builder
@@ -395,7 +441,53 @@ const translations = {
     seconds: 'ثانية',
     
     // HTML Content
-    addHtmlContentHere: 'أضف محتوى HTML هنا. يمكنك إضافة فقرات، صور، روابط وغيرها.'
+    addHtmlContentHere: 'أضف محتوى HTML هنا. يمكنك إضافة فقرات، صور، روابط وغيرها.',
+    
+    // Dashboard additional
+    totalStores: 'إجمالي المتاجر',
+    totalForms: 'إجمالي النماذج',
+    totalOrders: 'إجمالي الطلبات', 
+    connectedStore: 'المتجر المتصل',
+    formsCreated: 'نماذج تم إنشاؤها',
+    ordersReceived: 'طلبات تم استلامها',
+    currentPlanText: 'الخطة الحالية',
+    connectedTo: 'متصل بـ',
+    active: 'نشط',
+    manageStores: 'إدارة المتاجر',
+    linkStore: 'ربط متجر',
+    noActiveStore: 'لا يوجد متجر نشط',
+    pleaseConnectShopify: 'يرجى ربط متجر Shopify أولاً',
+    
+    // Quantity Offers
+    quantityOffersTitle: 'العروض الكمية',
+    selectFormFirst: 'اختر النموذج أولاً',
+    noFormsAvailable: 'لا توجد نماذج متاحة',
+    createFormFirst: 'أنشئ نموذجاً أولاً',
+    associatedProducts: 'المنتجات المرتبطة',
+    noProductsAssociated: 'لا توجد منتجات مرتبطة بهذا النموذج',
+    linkProductsFirst: 'اربط المنتجات بهذا النموذج أولاً',
+    editOffer: 'تعديل العرض',
+    deleteOffer: 'حذف العرض',
+    existingOffers: 'العروض الموجودة',
+    noOffersCreated: 'لم يتم إنشاء عروض بعد',
+    
+    // My Stores
+    myStores: 'متاجري',
+    yourStores: 'متاجرك',
+    noStoresConnected: 'لا توجد متاجر متصلة بحسابك حالياً',
+    openShopifyAdmin: 'فتح Shopify Admin',
+    pleaseOpenFromShopify: 'يرجى فتح التطبيق من داخل متجرك في Shopify',
+    currentActiveStore: 'المتجر النشط حالياً',
+    allConnectedStores: 'جميع متاجرك المتصلة',
+    lastUpdate: 'آخر تحديث',
+    activate: 'تفعيل',
+    manage: 'إدارة',
+    disconnectAllStores: 'قطع الاتصال من جميع المتاجر',
+    
+    // Landing Pages
+    landingPagesTitle: 'صفحات الهبوط',
+    workInProgress: 'نحن نعمل على إنجاز هذا في أقرب وقت ممكن',
+    comingSoon: 'قريباً'
   }
 };
 

@@ -18,6 +18,7 @@ import OrdersChannels from "@/pages/OrdersChannels";
 import NotFound from "@/pages/NotFound";
 import ShopifyRedirect from "@/pages/ShopifyRedirect";
 import Shopify from "@/pages/Shopify";
+import LandingPages from "@/pages/LandingPages";
 
 import ShopifyCallback from "@/pages/ShopifyCallback";
 import Settings from "@/pages/Settings";
@@ -145,6 +146,7 @@ function AppRoutes() {
       <Route path="/orders/abandoned" element={<AbandonedOrders />} />
       <Route path="/orders/channels" element={<OrdersChannels />} />
       <Route path="/my-stores" element={<EnhancedMyStores />} />
+      <Route path="/landing-pages" element={<LandingPages />} />
       <Route path="/settings" element={<Settings />} />
       <Route path="/settings/orders" element={<OrderSettings />} />
       <Route path="/settings/general" element={<GeneralSettings />} />
