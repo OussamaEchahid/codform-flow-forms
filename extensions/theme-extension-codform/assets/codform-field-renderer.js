@@ -39,16 +39,16 @@ function renderField(field, formStyle, formLanguage) {
   // FIXED: Use formStyle.fontSize as primary source for font sizes
   const globalFontSize = formStyle.fontSize || '1rem';
   
-  // Label styling - Use global font size as fallback
+  // Label styling - Use field.style.fontSize for individual field settings
   const labelColor = getStyleValue(labelStyle, 'labelColor', '#333333');
-  const labelFontSize = labelStyle.labelFontSize || globalFontSize;
+  const labelFontSize = labelStyle.fontSize || globalFontSize;  // FIXED: Use fontSize from field style
   const labelFontWeight = getStyleValue(labelStyle, 'labelFontWeight', '500');
   
-  // Field styling - Use global font size as fallback  
+  // Field styling - Use same fontSize for consistency
   const fieldBackgroundColor = '#FFFFFF';
   const fieldBorderColor = getStyleValue(labelStyle, 'borderColor', '#D1D5DB');
   const fieldBorderRadius = getStyleValue(labelStyle, 'borderRadius', '8px');
-  const fieldFontSize = labelStyle.fontSize || globalFontSize;
+  const fieldFontSize = labelStyle.fontSize || globalFontSize;  // FIXED: Use fontSize from field style
   const fieldTextColor = getStyleValue(labelStyle, 'color', '#1F2937');
   const placeholderFontSize = fieldFontSize;
   const focusBorderColor = getStyleValue(formStyle, 'focusBorderColor', '#9b87f5');
