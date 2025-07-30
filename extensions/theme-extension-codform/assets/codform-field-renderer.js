@@ -28,24 +28,24 @@ function renderField(field, formStyle, formLanguage) {
   
   console.log('🔄 CODFORM: Detected form direction:', formDirection, 'for language:', formLanguage);
   
-  // Base styling configuration - FORCE exact sizes like in preview
-  const baseFontSize = '1rem'; // Force exact size
+  // Base styling configuration - Match TextInput.tsx exactly
+  const baseFontSize = getStyleValue(formStyle, 'fontSize', '1rem');
   const labelStyle = field.style || {};
   const showLabel = getStyleValue(labelStyle, 'showLabel', true);
   const isFloatingLabels = getStyleValue(formStyle, 'floatingLabels', false);
   
-  // Label styling - FORCE exact sizes to match preview
+  // Label styling - Match TextInput.tsx exactly with proper sizing
   const labelColor = getStyleValue(labelStyle, 'labelColor', '#333333');
-  const labelFontSize = '1rem'; // FORCE exact size
+  const labelFontSize = getStyleValue(labelStyle, 'labelFontSize', baseFontSize);
   const labelFontWeight = getStyleValue(labelStyle, 'labelFontWeight', '500');
   
-  // Field styling - FORCE exact sizes to match preview  
+  // Field styling - Match TextInput.tsx exactly with proper sizing
   const fieldBackgroundColor = '#FFFFFF';
   const fieldBorderColor = getStyleValue(labelStyle, 'borderColor', '#D1D5DB');
   const fieldBorderRadius = getStyleValue(labelStyle, 'borderRadius', '8px');
-  const fieldFontSize = '1rem'; // FORCE exact size
+  const fieldFontSize = getStyleValue(labelStyle, 'fontSize', baseFontSize);
   const fieldTextColor = getStyleValue(labelStyle, 'color', '#1F2937');
-  const placeholderFontSize = '1rem'; // FORCE exact size
+  const placeholderFontSize = fieldFontSize;
   const focusBorderColor = getStyleValue(formStyle, 'focusBorderColor', '#9b87f5');
   
   let html = '';
@@ -157,7 +157,7 @@ function renderField(field, formStyle, formLanguage) {
                 display: block;
                 margin-bottom: 8px;
                 color: ${labelColor};
-                font-size: ${labelFontSize};
+                font-size: ${labelFontSize} !important;
                 font-weight: ${labelFontWeight};
                 font-family: ${formLanguage === 'ar' ? "'Cairo', sans-serif" : "inherit"};
                 text-align: ${formDirection === 'rtl' ? 'right' : 'left'};
@@ -195,7 +195,7 @@ function renderField(field, formStyle, formLanguage) {
                   border-radius: ${fieldBorderRadius};
                   background-color: ${fieldBackgroundColor};
                   color: ${fieldTextColor};
-                  font-size: ${fieldFontSize};
+                  font-size: ${fieldFontSize} !important;
                   font-weight: 400;
                   font-family: inherit;
                   transition: all 0.2s ease;
@@ -279,7 +279,7 @@ function renderField(field, formStyle, formLanguage) {
                 display: block;
                 margin-bottom: 8px;
                 color: ${labelColor};
-                font-size: ${labelFontSize};
+                font-size: ${labelFontSize} !important;
                 font-weight: ${labelFontWeight};
                 font-family: inherit;
                 text-align: ${formDirection === 'rtl' ? 'right' : 'left'};
@@ -300,7 +300,7 @@ function renderField(field, formStyle, formLanguage) {
                 border-radius: ${fieldBorderRadius};
                 background-color: ${fieldBackgroundColor};
                 color: ${fieldTextColor};
-                font-size: ${fieldFontSize};
+                font-size: ${fieldFontSize} !important;
                 font-weight: 400;
                 font-family: inherit;
                 transition: all 0.2s ease;
