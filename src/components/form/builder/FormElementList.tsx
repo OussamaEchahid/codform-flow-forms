@@ -68,6 +68,11 @@ const FormElementList: React.FC<FormElementListProps> = ({ onAddElement }) => {
       label: language === 'ar' ? 'العد التنازلي' : 'Countdown', 
       icon: '⏱️' 
     },
+    { 
+      type: 'whatsapp', 
+      label: language === 'ar' ? 'زر واتساب' : 'WhatsApp Button', 
+      icon: '💬' 
+    },
   ];
 
   return (

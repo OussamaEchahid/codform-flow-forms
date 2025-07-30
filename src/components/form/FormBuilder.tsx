@@ -48,6 +48,7 @@ const availableFieldTypes: Array<{
   { type: 'cart-items', label: 'المنتج المختار', icon: <FileText size={16} /> },
   { type: 'cart-summary', label: 'ملخص الطلب', icon: <LayoutGrid size={16} /> },
   { type: 'submit', label: 'زر إرسال الطلب', icon: <FileCheck size={16} /> },
+  { type: 'whatsapp', label: 'زر واتساب', icon: <FileText size={16} /> },
   { type: 'text/html', label: 'نص/HTML', icon: <FileText size={16} /> },
   { type: 'title', label: 'عنوان قسم', icon: <FileText size={16} /> },
 ];
@@ -404,6 +405,25 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
       case 'submit':
         newField.label = 'زر إرسال الطلب';
         break;
+      case 'whatsapp':
+        newField.label = 'زر واتساب';
+        newField.whatsappNumber = '';
+        newField.message = '';
+        newField.style = {
+          backgroundColor: '#25D366',
+          color: 'white',
+          fontSize: '18px',
+          fontWeight: '600',
+          fontFamily: 'Cairo, sans-serif',
+          paddingY: '14px',
+          borderRadius: '8px',
+          borderWidth: '0px',
+          borderColor: '#000000',
+          showIcon: true,
+          iconColor: 'white',
+          icon: 'whatsapp'
+        };
+        break;
       case 'text/html':
         newField.label = 'نص/HTML';
         break;
@@ -576,6 +596,15 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
                             onEdit={() => editField(field)}
                             onDuplicate={() => duplicateField(field)}
                             onDelete={() => deleteField(field.id)}
+                            onFieldUpdate={(updatedField) => {
+                              const updatedSteps = [...formSteps];
+                              const fieldIndex = updatedSteps[currentEditStep].fields.findIndex(f => f.id === updatedField.id);
+                              if (fieldIndex !== -1) {
+                                updatedSteps[currentEditStep].fields[fieldIndex] = updatedField;
+                                setFormSteps(updatedSteps);
+                                setPreviewRefresh(prev => prev + 1);
+                              }
+                            }}
                           />
                         ))}
                       </div>
