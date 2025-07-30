@@ -516,25 +516,38 @@ const SortableField: React.FC<SortableFieldProps> = ({
                        </div>
                      </div>
                    </div>
-                 ) : (
-                   /* Regular field settings للحقول الأخرى */
-                  <div className="grid grid-cols-2 gap-4">
-                     {/* Left column - General field settings */}
-                     <div className="space-y-4">
-                       {/* Placeholder - hide for submit button */}
-                       {!shouldShowSubmitSpecificSettings && (
-                         <div className="space-y-1">
-                           <Label htmlFor={`field-placeholder-${field.id}`}>
-                             {language === 'ar' ? 'مكان النص' : 'Placeholder'}
-                           </Label>
-                           <Input
-                             id={`field-placeholder-${field.id}`}
-                             value={editedField.placeholder || ''}
-                             onChange={(e) => handleFieldChange('placeholder', e.target.value)}
-                             className={language === 'ar' ? 'text-right' : ''}
-                           />
-                         </div>
-                       )}
+                  ) : (
+                    /* Regular field settings للحقول الأخرى */
+                   <div className="grid grid-cols-2 gap-4">
+                      {/* Left column - General field settings */}
+                      <div className="space-y-4">
+                        {/* Label text - لجميع الحقول */}
+                        <div className="space-y-1">
+                          <Label htmlFor={`field-label-${field.id}`}>
+                            {language === 'ar' ? 'نص التسمية' : 'Label text'}
+                          </Label>
+                          <Input
+                            id={`field-label-${field.id}`}
+                            value={editedField.label || ''}
+                            onChange={(e) => handleFieldChange('label', e.target.value)}
+                            className={language === 'ar' ? 'text-right' : ''}
+                          />
+                        </div>
+                        
+                        {/* Placeholder - hide for submit button */}
+                        {!shouldShowSubmitSpecificSettings && (
+                          <div className="space-y-1">
+                            <Label htmlFor={`field-placeholder-${field.id}`}>
+                              {language === 'ar' ? 'مكان النص' : 'Placeholder'}
+                            </Label>
+                            <Input
+                              id={`field-placeholder-${field.id}`}
+                              value={editedField.placeholder || ''}
+                              onChange={(e) => handleFieldChange('placeholder', e.target.value)}
+                              className={language === 'ar' ? 'text-right' : ''}
+                            />
+                          </div>
+                        )}
                        
                        {/* Required field */}
                        <div className="flex items-center space-x-2 rtl:space-x-reverse">
@@ -587,25 +600,95 @@ const SortableField: React.FC<SortableFieldProps> = ({
                          </Select>
                        </div>
                        
-                       {/* Background color - only for submit button */}
-                       {shouldShowSubmitSpecificSettings && (
-                         <div className="space-y-1">
-                           <Label>{language === 'ar' ? 'لون الخلفية' : 'Background color'}</Label>
-                           <div className="flex gap-2 items-center">
-                             <Input
-                               type="color"
-                               value={editedField.style?.backgroundColor || '#9b87f5'}
-                               onChange={(e) => handleStyleChange('backgroundColor', e.target.value)}
-                               className="w-9 h-9 p-1"
-                             />
-                             <Input
-                               value={editedField.style?.backgroundColor || '#9b87f5'}
-                               onChange={(e) => handleStyleChange('backgroundColor', e.target.value)}
-                               className="flex-1"
-                             />
-                           </div>
-                         </div>
-                        )}
+                        {/* Background color - only for submit button */}
+                        {shouldShowSubmitSpecificSettings && (
+                          <>
+                            <div className="space-y-1">
+                              <Label>{language === 'ar' ? 'لون الخلفية' : 'Background color'}</Label>
+                              <div className="flex gap-2 items-center">
+                                <Input
+                                  type="color"
+                                  value={editedField.style?.backgroundColor || '#9b87f5'}
+                                  onChange={(e) => handleStyleChange('backgroundColor', e.target.value)}
+                                  className="w-9 h-9 p-1"
+                                />
+                                <Input
+                                  value={editedField.style?.backgroundColor || '#9b87f5'}
+                                  onChange={(e) => handleStyleChange('backgroundColor', e.target.value)}
+                                  className="flex-1"
+                                />
+                              </div>
+                            </div>
+                            
+                            {/* Border color */}
+                            <div className="space-y-1">
+                              <Label>{language === 'ar' ? 'لون الحدود' : 'Border color'}</Label>
+                              <div className="flex gap-2 items-center">
+                                <Input
+                                  type="color"
+                                  value={editedField.style?.borderColor || '#transparent'}
+                                  onChange={(e) => handleStyleChange('borderColor', e.target.value)}
+                                  className="w-9 h-9 p-1"
+                                />
+                                <Input
+                                  value={editedField.style?.borderColor || '#transparent'}
+                                  onChange={(e) => handleStyleChange('borderColor', e.target.value)}
+                                  className="flex-1"
+                                />
+                              </div>
+                            </div>
+                            
+                            {/* Border width */}
+                            <div className="space-y-1">
+                              <div className="flex items-center justify-between">
+                                <Label>{language === 'ar' ? 'عرض الحدود' : 'Border width'}</Label>
+                                <span className="text-sm">{editedField.style?.borderWidth || '0'}px</span>
+                              </div>
+                              <Slider
+                                value={[parseInt(editedField.style?.borderWidth?.replace('px', '') || '0')]}
+                                onValueChange={(value) => handleStyleChange('borderWidth', `${value[0]}px`)}
+                                max={5}
+                                min={0}
+                                step={1}
+                                className="w-full"
+                              />
+                            </div>
+                            
+                            {/* Animation */}
+                            <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                              <Switch 
+                                id={`animation-${field.id}`} 
+                                checked={editedField.style?.animation || false}
+                                onCheckedChange={(checked) => handleStyleChange('animation', checked)}
+                              />
+                              <Label htmlFor={`animation-${field.id}`}>
+                                {language === 'ar' ? 'تحريك' : 'Animation'}
+                              </Label>
+                            </div>
+                            
+                            {/* Animation type */}
+                            {editedField.style?.animation && (
+                              <div className="space-y-1">
+                                <Label>{language === 'ar' ? 'نوع التحريك' : 'Animation type'}</Label>
+                                <Select
+                                  value={editedField.style?.animationType || 'pulse'}
+                                  onValueChange={(value) => handleStyleChange('animationType', value)}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="pulse">{language === 'ar' ? 'نبضة' : 'Pulse'}</SelectItem>
+                                    <SelectItem value="bounce">{language === 'ar' ? 'ارتداد' : 'Bounce'}</SelectItem>
+                                    <SelectItem value="shake">{language === 'ar' ? 'اهتزاز' : 'Shake'}</SelectItem>
+                                    <SelectItem value="wiggle">{language === 'ar' ? 'تمايل' : 'Wiggle'}</SelectItem>
+                                    <SelectItem value="flash">{language === 'ar' ? 'وميض' : 'Flash'}</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            )}
+                          </>
+                         )}
                         
                         {/* Icon Selection - للحقول العادية فقط */}
                         {!shouldShowSubmitSpecificSettings && ['text', 'email', 'phone', 'textarea'].includes(field.type) && (
