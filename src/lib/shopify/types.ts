@@ -66,10 +66,8 @@ export interface ShopifyProduct {
     src: string;
     alt?: string;
   } | string;
-  images?: Array<{
-    src: string;
-    alt?: string;
-  } | string>;
+  images?: Array<string>;
+  featuredImage?: string;
   status: 'active' | 'draft' | 'archived';
   variants?: Array<{
     id: string;

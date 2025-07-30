@@ -18,7 +18,7 @@ const ShopifyProductsList: React.FC<ShopifyProductsListProps> = memo(({
     if (product.image) {
       return typeof product.image === 'string' ? product.image : product.image.src;
     } else if (product.images && product.images.length > 0) {
-      return typeof product.images[0] === 'string' ? product.images[0] : product.images[0].src;
+      return product.images[0];
     }
     return undefined;
   };

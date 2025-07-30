@@ -591,7 +591,7 @@ const ShopifyProductSelection: React.FC<ShopifyProductSelectionProps> = ({
                     />
                   ) : product.images && product.images.length > 0 ? (
                     <img 
-                      src={typeof product.images[0] === 'string' ? product.images[0] : product.images[0].src} 
+                      src={product.images[0]} 
                       alt={product.title}
                       className="h-14 w-14 rounded-md object-contain border p-1"
                       onError={(e) => {

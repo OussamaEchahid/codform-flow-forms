@@ -86,15 +86,9 @@ const CartItems: React.FC<CartItemsProps> = ({ field, formStyle, productId }) =>
           {/* صورة المنتج */}
           {fieldStyle.hideImage !== true && (
             <div className="w-10 h-10 rounded-md flex-shrink-0 overflow-hidden">
-              {linkedProduct?.image && typeof linkedProduct.image === 'object' && linkedProduct.image.src ? (
+              {linkedProduct?.featuredImage || linkedProduct?.images?.[0] ? (
                 <img 
-                  src={linkedProduct.image.src} 
-                  alt={linkedProduct.title}
-                  className="w-full h-full object-cover"
-                />
-              ) : linkedProduct?.image && typeof linkedProduct.image === 'string' ? (
-                <img 
-                  src={linkedProduct.image} 
+                  src={linkedProduct.featuredImage || linkedProduct.images[0]} 
                   alt={linkedProduct.title}
                   className="w-full h-full object-cover"
                 />
@@ -124,15 +118,19 @@ const CartItems: React.FC<CartItemsProps> = ({ field, formStyle, productId }) =>
               </h4>
             )}
             
-            {/* معلومات المتغير */}
-            <div className="product-variant" style={{
-              fontSize: fieldStyle.descriptionFontSize || '0.875rem',
-              color: fieldStyle.descriptionColor || '#6b7280',
-              fontFamily: fieldStyle.descriptionFontFamily || 'Inter, Cairo, system-ui, sans-serif',
-              fontWeight: fieldStyle.descriptionFontWeight || '400',
-            }}>
-              {language === 'ar' ? 'لون: أزرق، المقاس: متوسط' : 'Color: Blue, Size: Medium'}
-            </div>
+            {/* معلومات المتغير - عرض فقط إذا كان هناك متغيرات حقيقية */}
+            {linkedProduct?.variants && linkedProduct.variants.length > 0 && 
+             linkedProduct.variants[0]?.title !== 'Default Title' && 
+             linkedProduct.variants[0]?.title && (
+              <div className="product-variant" style={{
+                fontSize: fieldStyle.descriptionFontSize || '0.875rem',
+                color: fieldStyle.descriptionColor || '#6b7280',
+                fontFamily: fieldStyle.descriptionFontFamily || 'Inter, Cairo, system-ui, sans-serif',
+                fontWeight: fieldStyle.descriptionFontWeight || '400',
+              }}>
+                {linkedProduct.variants[0].title}
+              </div>
+            )}
             
             {/* محدد الكمية */}
             {fieldStyle.hideQuantitySelector !== true && (
@@ -192,7 +190,7 @@ const CartItems: React.FC<CartItemsProps> = ({ field, formStyle, productId }) =>
                 fontWeight: fieldStyle.priceFontWeight || '700',
               }}>
                 {linkedProduct?.variants?.[0]?.price ? 
-                  `${linkedProduct.variants[0].price} ${language === 'ar' ? 'درهم' : '$'}` :
+                  `${linkedProduct.money_format?.replace('{{amount}}', linkedProduct.variants[0].price) || `${linkedProduct.variants[0].price} ${linkedProduct.currency || 'USD'}`}` :
                   (language === 'ar' ? '199.00 درهم' : '$29.99')
                 }
               </div>

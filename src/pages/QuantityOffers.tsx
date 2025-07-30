@@ -249,7 +249,7 @@ const QuantityOffers = () => {
     handle: product.handle,
     price: product.price || '0',
     currency: product.currency || storeCurrency, // إضافة العملة من المنتج
-    images: product.images?.map(img => ({ url: typeof img === 'string' ? img : img.src })) || [{ url: '/placeholder.svg' }]
+    images: product.images?.map(img => ({ url: img })) || [{ url: '/placeholder.svg' }]
   }));
 
   // Get products associated with the selected form only
