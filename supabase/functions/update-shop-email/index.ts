@@ -73,6 +73,7 @@ serve(async (req) => {
 
     // Get shop owner email from Shopify API
     let shopOwnerEmail = null
+    let shopOwnerName = null
     try {
       const shopInfoResponse = await fetch(`https://${shop}/admin/api/2025-01/shop.json`, {
         headers: {
@@ -83,8 +84,10 @@ serve(async (req) => {
 
       if (shopInfoResponse.ok) {
         const shopInfo = await shopInfoResponse.json()
-        shopOwnerEmail = shopInfo.shop?.shop_owner || shopInfo.shop?.email
+        shopOwnerEmail = shopInfo.shop?.email
+        shopOwnerName = shopInfo.shop?.shop_owner || shopInfo.shop?.name
         console.log(`📧 Found shop owner email: ${shopOwnerEmail}`)
+        console.log(`👤 Found shop owner name: ${shopOwnerName}`)
       } else {
         console.error('❌ Shopify API error:', await shopInfoResponse.text())
       }
@@ -122,6 +125,7 @@ serve(async (req) => {
         success: true,
         shop,
         email: shopOwnerEmail,
+        name: shopOwnerName,
         message: 'تم تحديث البريد الإلكتروني بنجاح'
       }),
       { 
