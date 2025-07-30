@@ -209,8 +209,6 @@ const SortableField: React.FC<SortableFieldProps> = ({
                 <GripVertical size={16} className="text-gray-400" />
               </div>
               
-              {getFieldIcon()}
-              
               <div className={`flex-1 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
                 <span className="font-medium text-sm">
                   {getFieldDisplayName()}
