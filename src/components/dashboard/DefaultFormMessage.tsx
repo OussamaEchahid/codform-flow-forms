@@ -14,11 +14,11 @@ const DefaultFormMessage: React.FC<DefaultFormMessageProps> = ({
   onCreateForm,
   isLoading = false
 }) => {
-  const { language } = useI18n();
+  const { t } = useI18n();
   const [isNewFormDialogOpen, setIsNewFormDialogOpen] = useState(false);
 
   const handleCreateForm = () => {
-    console.log('🎯 DefaultFormMessage - زر إنشاء النموذج تم النقر عليه');
+    console.log('🎯 DefaultFormMessage - Create form button clicked');
     setIsNewFormDialogOpen(true);
   };
 
@@ -30,16 +30,13 @@ const DefaultFormMessage: React.FC<DefaultFormMessageProps> = ({
             <FileText className="h-8 w-8 text-primary" />
           </div>
           <CardTitle className="text-2xl">
-            {language === 'ar' ? 'أهلاً بك في منشئ النماذج' : 'Welcome to Form Builder'}
+            {t('welcomeToFormBuilder')}
           </CardTitle>
         </CardHeader>
         
         <CardContent className="text-center space-y-6">
           <p className="text-muted-foreground text-lg">
-            {language === 'ar' 
-              ? 'لم يتم العثور على أي نماذج. ابدأ بإنشاء نموذجك الأول لجمع بيانات العملاء وزيادة المبيعات.'
-              : 'No forms found. Start by creating your first form to collect customer data and boost sales.'
-            }
+            {t('noFormsFound')}
           </p>
           
           <div className="space-y-4">
@@ -54,14 +51,11 @@ const DefaultFormMessage: React.FC<DefaultFormMessageProps> = ({
               ) : (
                 <Plus className="h-4 w-4" />
               )}
-              {language === 'ar' ? 'إنشاء نموذج جديد' : 'Create New Form'}
+              {t('createNewForm')}
             </Button>
             
             <p className="text-sm text-muted-foreground">
-              {language === 'ar' 
-                ? 'سيتم إنشاء نموذج افتراضي يحتوي على الحقول الأساسية التي يمكنك تخصيصها لاحقاً'
-                : 'A default form with basic fields will be created that you can customize later'
-              }
+              {t('defaultFormDescription')}
             </p>
           </div>
         </CardContent>

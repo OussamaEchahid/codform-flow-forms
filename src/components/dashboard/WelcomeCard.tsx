@@ -11,8 +11,8 @@ interface WelcomeCardProps {
   userName?: string;
 }
 
-const WelcomeCard: React.FC<WelcomeCardProps> = ({ userName = "المستخدم" }) => {
-  const { language } = useI18n();
+const WelcomeCard: React.FC<WelcomeCardProps> = ({ userName }) => {
+  const { language, t } = useI18n();
   const navigate = useNavigate();
   const { shopifyConnected, shop, shops } = useAuth();
   
@@ -22,16 +22,12 @@ const WelcomeCard: React.FC<WelcomeCardProps> = ({ userName = "المستخدم"
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h2 className="text-2xl font-bold mb-1">
-              {language === 'ar' ? `مرحباً بك في لوحة التحكم` : 'Welcome to Dashboard'}
+              {t('welcomeToDashboard')}
             </h2>
             <p className="text-gray-600">
               {shopifyConnected && shop
-                ? (language === 'ar' 
-                    ? `متصل بمتجر: ${shop}` 
-                    : `Connected to store: ${shop}`)
-                : (language === 'ar'
-                    ? 'قم بإعداد متجر Shopify الخاص بك للبدء'
-                    : 'Set up your Shopify store to get started')}
+                ? `${t('connectedToStore')}: ${shop}`
+                : t('setupShopifyStore')}
             </p>
           </div>
           
@@ -44,7 +40,7 @@ const WelcomeCard: React.FC<WelcomeCardProps> = ({ userName = "المستخدم"
                 className="flex items-center gap-1"
               >
                 <Store className="h-4 w-4 mr-1" />
-                {language === 'ar' ? 'إدارة المتاجر' : 'Manage Stores'}
+                {t('manageStores')}
                 <span className="inline-flex items-center justify-center rounded-full bg-purple-100 text-purple-800 px-2 py-1 text-xs ml-1">
                   {shops.length}
                 </span>
@@ -57,14 +53,12 @@ const WelcomeCard: React.FC<WelcomeCardProps> = ({ userName = "المستخدم"
               onClick={() => navigate('/shopify')}
             >
               <ShoppingCart className="h-4 w-4 mr-2" />
-              {shopifyConnected 
-                ? (language === 'ar' ? 'إعدادات Shopify' : 'Shopify Settings')
-                : (language === 'ar' ? 'اتصل بـ Shopify' : 'Connect to Shopify')}
+              {shopifyConnected ? t('shopifySettings') : t('connectToShopify')}
             </Button>
             
             <Button variant="outline" size="sm" onClick={() => navigate('/settings')}>
               <Settings className="h-4 w-4 mr-2" />
-              {language === 'ar' ? 'الإعدادات' : 'Settings'}
+              {t('settings')}
             </Button>
           </div>
         </div>

@@ -171,7 +171,43 @@ const translations = {
     minAmount: 'Minimum Amount',
     maxAmount: 'Maximum Amount',
     shippingCost: 'Shipping Cost',
-    saveSettings: 'Save Settings'
+    saveSettings: 'Save Settings',
+    
+    // Dashboard and Welcome
+    welcomeToDashboard: 'Welcome to Dashboard',
+    connectedToStore: 'Connected to store',
+    setupShopifyStore: 'Set up your Shopify store to get started',
+    manageStores: 'Manage Stores',
+    connectToShopify: 'Connect to Shopify',
+    
+    // Form Builder
+    welcomeToFormBuilder: 'Welcome to Form Builder',
+    noFormsFound: 'No forms found. Start by creating your first form to collect customer data and increase sales.',
+    createNewForm: 'Create New Form',
+    defaultFormDescription: 'A default form will be created with basic fields that you can customize later',
+    
+    // No Store Connected
+    welcomeToCODmagnet: 'Welcome to CODmagnet',
+    accountCreatedSuccessfully: 'Your account has been created successfully, but no Shopify store is connected yet',
+    whyConnectStore: 'Why do I need to connect a store?',
+    createCustomCODForms: 'Create custom cash on delivery forms',
+    linkFormsToProducts: 'Link forms to your products automatically',
+    trackOrdersAndStats: 'Track orders and statistics',
+    manageOffersAndDiscounts: 'Manage offers and discounts',
+    connectShopifyForBestExperience: 'For the best experience, please connect your Shopify store',
+    connectShopifyStore: 'Connect Shopify Store',
+    setupProfile: 'Setup Profile',
+    alreadyHaveShopifyStore: 'Already have a Shopify store?',
+    downloadFromAppStore: 'Download from App Store',
+    
+    // Countdown Timer
+    offerEndsIn: 'Offer ends in',
+    hours: 'Hours',
+    minutes: 'Minutes',
+    seconds: 'Seconds',
+    
+    // HTML Content
+    addHtmlContentHere: 'Add HTML content here. You can add paragraphs, images, links and more.'
   },
   ar: {
     dashboard: 'لوحة التحكم',
@@ -323,7 +359,43 @@ const translations = {
     minAmount: 'الحد الأدنى',
     maxAmount: 'الحد الأقصى',
     shippingCost: 'تكلفة الشحن',
-    saveSettings: 'حفظ الإعدادات'
+    saveSettings: 'حفظ الإعدادات',
+    
+    // Dashboard and Welcome
+    welcomeToDashboard: 'مرحباً بك في لوحة التحكم',
+    connectedToStore: 'متصل بمتجر',
+    setupShopifyStore: 'قم بإعداد متجر Shopify الخاص بك للبدء',
+    manageStores: 'إدارة المتاجر',
+    connectToShopify: 'اتصل بـ Shopify',
+    
+    // Form Builder
+    welcomeToFormBuilder: 'أهلاً بك في منشئ النماذج',
+    noFormsFound: 'لم يتم العثور على أي نماذج. ابدأ بإنشاء نموذجك الأول لجمع بيانات العملاء وزيادة المبيعات.',
+    createNewForm: 'إنشاء نموذج جديد',
+    defaultFormDescription: 'سيتم إنشاء نموذج افتراضي يحتوي على الحقول الأساسية التي يمكنك تخصيصها لاحقاً',
+    
+    // No Store Connected
+    welcomeToCODmagnet: 'مرحباً بك في CODmagnet',
+    accountCreatedSuccessfully: 'تم إنشاء حسابك بنجاح، لكن لا يوجد متجر Shopify مرتبط بعد',
+    whyConnectStore: 'لماذا أحتاج إلى ربط متجر؟',
+    createCustomCODForms: 'إنشاء نماذج الدفع عند الاستلام المخصصة',
+    linkFormsToProducts: 'ربط النماذج بمنتجاتك تلقائياً',
+    trackOrdersAndStats: 'متابعة الطلبات والإحصائيات',
+    manageOffersAndDiscounts: 'إدارة العروض والخصومات',
+    connectShopifyForBestExperience: 'للحصول على أفضل تجربة، يُرجى ربط متجر Shopify الخاص بك',
+    connectShopifyStore: 'ربط متجر Shopify',
+    setupProfile: 'إعداد الملف الشخصي',
+    alreadyHaveShopifyStore: 'لديك متجر Shopify بالفعل؟',
+    downloadFromAppStore: 'حمّل التطبيق من متجر التطبيقات',
+    
+    // Countdown Timer
+    offerEndsIn: 'الوقت المتبقي للعرض',
+    hours: 'ساعة',
+    minutes: 'دقيقة',
+    seconds: 'ثانية',
+    
+    // HTML Content
+    addHtmlContentHere: 'أضف محتوى HTML هنا. يمكنك إضافة فقرات، صور، روابط وغيرها.'
   }
 };
 

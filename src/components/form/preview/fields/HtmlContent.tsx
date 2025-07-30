@@ -14,7 +14,7 @@ interface HtmlContentProps {
 }
 
 const HtmlContent: React.FC<HtmlContentProps> = ({ field, formStyle }) => {
-  const { language } = useI18n();
+  const { language, t } = useI18n();
   const fieldStyle = field.style || {};
   
   return (
@@ -33,9 +33,7 @@ const HtmlContent: React.FC<HtmlContentProps> = ({ field, formStyle }) => {
         />
       ) : (
         <p className={language === 'ar' ? 'text-right' : 'text-left'}>
-          {language === 'ar' 
-            ? 'أضف محتوى HTML هنا. يمكنك إضافة فقرات، صور، روابط وغيرها.' 
-            : 'Add HTML content here. You can add paragraphs, images, links and more.'}
+          {t('addHtmlContentHere')}
         </p>
       )}
     </div>

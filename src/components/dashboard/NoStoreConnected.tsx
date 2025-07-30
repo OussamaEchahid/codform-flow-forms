@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, Store, ArrowRight } from 'lucide-react';
+import { useI18n } from '@/lib/i18n';
 
 const NoStoreConnected: React.FC = () => {
   const navigate = useNavigate();
+  const { t, language } = useI18n();
 
   return (
     <div className="min-h-screen bg-gradient-subtle flex items-center justify-center p-4">
@@ -15,41 +17,41 @@ const NoStoreConnected: React.FC = () => {
             <AlertTriangle className="w-8 h-8 text-accent" />
           </div>
           <h1 className="text-2xl font-bold mb-2">
-            مرحباً بك في CODmagnet
+            {t('welcomeToCODmagnet')}
           </h1>
           <p className="text-muted-foreground text-lg">
-            تم إنشاء حسابك بنجاح، لكن لا يوجد متجر Shopify مرتبط بعد
+            {t('accountCreatedSuccessfully')}
           </p>
         </div>
 
         <div className="bg-muted/50 rounded-lg p-6 mb-8">
           <div className="flex items-center justify-center gap-3 mb-4">
             <Store className="w-6 h-6 text-primary" />
-            <h2 className="text-lg font-semibold">لماذا أحتاج إلى ربط متجر؟</h2>
+            <h2 className="text-lg font-semibold">{t('whyConnectStore')}</h2>
           </div>
-          <ul className="text-right space-y-3 text-muted-foreground">
+          <ul className={`space-y-3 text-muted-foreground ${language === 'ar' ? 'text-right' : 'text-left'}`}>
             <li className="flex items-center gap-2">
               <ArrowRight className="w-4 h-4 text-primary flex-shrink-0" />
-              <span>إنشاء نماذج الدفع عند الاستلام المخصصة</span>
+              <span>{t('createCustomCODForms')}</span>
             </li>
             <li className="flex items-center gap-2">
               <ArrowRight className="w-4 h-4 text-primary flex-shrink-0" />
-              <span>ربط النماذج بمنتجاتك تلقائياً</span>
+              <span>{t('linkFormsToProducts')}</span>
             </li>
             <li className="flex items-center gap-2">
               <ArrowRight className="w-4 h-4 text-primary flex-shrink-0" />
-              <span>متابعة الطلبات والإحصائيات</span>
+              <span>{t('trackOrdersAndStats')}</span>
             </li>
             <li className="flex items-center gap-2">
               <ArrowRight className="w-4 h-4 text-primary flex-shrink-0" />
-              <span>إدارة العروض والخصومات</span>
+              <span>{t('manageOffersAndDiscounts')}</span>
             </li>
           </ul>
         </div>
 
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            للحصول على أفضل تجربة، يُرجى ربط متجر Shopify الخاص بك
+            {t('connectShopifyForBestExperience')}
           </p>
           
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -59,7 +61,7 @@ const NoStoreConnected: React.FC = () => {
               size="lg"
             >
               <Store className="w-4 h-4 mr-2" />
-              ربط متجر Shopify
+              {t('connectShopifyStore')}
             </Button>
             
             <Button 
@@ -67,20 +69,20 @@ const NoStoreConnected: React.FC = () => {
               onClick={() => navigate('/profile')}
               size="lg"
             >
-              إعداد الملف الشخصي
+              {t('setupProfile')}
             </Button>
           </div>
         </div>
 
         <div className="mt-8 pt-6 border-t border-border">
           <p className="text-xs text-muted-foreground">
-            لديك متجر Shopify بالفعل؟ 
+            {t('alreadyHaveShopifyStore')}
             <Button 
               variant="link" 
               className="text-xs p-0 h-auto font-normal"
               onClick={() => window.open('https://apps.shopify.com', '_blank')}
             >
-              حمّل التطبيق من متجر التطبيقات
+              {t('downloadFromAppStore')}
             </Button>
           </p>
         </div>
