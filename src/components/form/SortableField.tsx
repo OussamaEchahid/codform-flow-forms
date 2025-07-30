@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { FormField } from '@/lib/form-utils';
-import { GripVertical, Copy, Trash, ChevronDown, ChevronUp, User, Phone, Mail, MapPin, MessageSquare, CheckSquare, Image, FileText, CreditCard, DollarSign, Truck, ShoppingCart, ArrowRight, Check, Send, Users, IdCard, Smartphone, PhoneCall, Home, Building, Map, StickyNote, Edit, Package, Banknote, Handshake, ShoppingBag, Heart, Star, Target, Gift, Crown, Zap, Sparkles, Award, Diamond, Gem, Facebook, Instagram, Twitter, Youtube, Linkedin } from 'lucide-react';
+import { GripVertical, Copy, Trash, ChevronDown, ChevronUp, User, Phone, Mail, MapPin, MessageSquare, CheckSquare, Image, FileText, CreditCard, DollarSign, Truck, ShoppingCart, ArrowRight, Check, Send, Users, IdCard, Smartphone, PhoneCall, Home, Building, Map, StickyNote, Edit, Package, Banknote, Handshake, ShoppingBag, Heart, Star, Target, Gift, Crown, Zap, Sparkles, Award, Diamond, Gem, Facebook, Instagram, Twitter, Youtube, Linkedin, AtSign, Inbox, MessageCircle, PenTool, Badge, Contact, Calendar, Clock, Tag, ThumbsUp, Bookmark, Flag, Globe, Headphones } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -109,20 +109,60 @@ const SortableField: React.FC<SortableFieldProps> = ({
     { value: 'monospace', label: language === 'ar' ? 'أحادي المسافة' : 'Monospace' },
   ];
 
-  // Available icons for fields
-  const availableIcons = [
-    { value: 'user', label: language === 'ar' ? 'مستخدم' : 'User', component: <User size={16} /> },
-    { value: 'phone', label: language === 'ar' ? 'هاتف' : 'Phone', component: <Phone size={16} /> },
-    { value: 'mail', label: language === 'ar' ? 'بريد' : 'Mail', component: <Mail size={16} /> },
-    { value: 'map-pin', label: language === 'ar' ? 'موقع' : 'Location', component: <MapPin size={16} /> },
-    { value: 'message-square', label: language === 'ar' ? 'رسالة' : 'Message', component: <MessageSquare size={16} /> },
-    { value: 'home', label: language === 'ar' ? 'منزل' : 'Home', component: <Home size={16} /> },
-    { value: 'building', label: language === 'ar' ? 'مبنى' : 'Building', component: <Building size={16} /> },
-    { value: 'smartphone', label: language === 'ar' ? 'جوال' : 'Mobile', component: <Smartphone size={16} /> },
-    { value: 'id-card', label: language === 'ar' ? 'بطاقة' : 'ID Card', component: <IdCard size={16} /> },
-    { value: 'heart', label: language === 'ar' ? 'قلب' : 'Heart', component: <Heart size={16} /> },
-    { value: 'star', label: language === 'ar' ? 'نجمة' : 'Star', component: <Star size={16} /> },
-  ];
+  // Available icons for different field types
+  const getAvailableIconsForField = (fieldType: string) => {
+    const fieldSpecificIcons = {
+      text: [
+        { value: 'user', label: language === 'ar' ? 'مستخدم' : 'User', component: <User size={16} /> },
+        { value: 'id-card', label: language === 'ar' ? 'بطاقة هوية' : 'ID Card', component: <IdCard size={16} /> },
+        { value: 'badge', label: language === 'ar' ? 'شارة' : 'Badge', component: <Badge size={16} /> },
+        { value: 'contact', label: language === 'ar' ? 'جهة اتصال' : 'Contact', component: <Contact size={16} /> },
+        { value: 'users', label: language === 'ar' ? 'مستخدمون' : 'Users', component: <Users size={16} /> },
+        { value: 'edit', label: language === 'ar' ? 'تحرير' : 'Edit', component: <Edit size={16} /> },
+        { value: 'file-text', label: language === 'ar' ? 'ملف نصي' : 'Text File', component: <FileText size={16} /> },
+        { value: 'tag', label: language === 'ar' ? 'علامة' : 'Tag', component: <Tag size={16} /> },
+      ],
+      email: [
+        { value: 'mail', label: language === 'ar' ? 'بريد إلكتروني' : 'Email', component: <Mail size={16} /> },
+        { value: 'at-sign', label: language === 'ar' ? 'رمز @' : 'At Sign', component: <AtSign size={16} /> },
+        { value: 'inbox', label: language === 'ar' ? 'صندوق الوارد' : 'Inbox', component: <Inbox size={16} /> },
+        { value: 'send', label: language === 'ar' ? 'إرسال' : 'Send', component: <Send size={16} /> },
+        { value: 'globe', label: language === 'ar' ? 'موقع ويب' : 'Website', component: <Globe size={16} /> },
+      ],
+      phone: [
+        { value: 'phone', label: language === 'ar' ? 'هاتف' : 'Phone', component: <Phone size={16} /> },
+        { value: 'smartphone', label: language === 'ar' ? 'هاتف ذكي' : 'Smartphone', component: <Smartphone size={16} /> },
+        { value: 'phone-call', label: language === 'ar' ? 'مكالمة' : 'Phone Call', component: <PhoneCall size={16} /> },
+        { value: 'headphones', label: language === 'ar' ? 'سماعات' : 'Headphones', component: <Headphones size={16} /> },
+        { value: 'contact', label: language === 'ar' ? 'جهة اتصال' : 'Contact', component: <Contact size={16} /> },
+      ],
+      textarea: [
+        { value: 'message-square', label: language === 'ar' ? 'رسالة مربعة' : 'Message Square', component: <MessageSquare size={16} /> },
+        { value: 'message-circle', label: language === 'ar' ? 'رسالة دائرية' : 'Message Circle', component: <MessageCircle size={16} /> },
+        { value: 'file-text', label: language === 'ar' ? 'ملف نصي' : 'Text File', component: <FileText size={16} /> },
+        { value: 'edit', label: language === 'ar' ? 'تحرير' : 'Edit', component: <Edit size={16} /> },
+        { value: 'pen-tool', label: language === 'ar' ? 'أداة القلم' : 'Pen Tool', component: <PenTool size={16} /> },
+        { value: 'sticky-note', label: language === 'ar' ? 'ملاحظة لاصقة' : 'Sticky Note', component: <StickyNote size={16} /> },
+      ]
+    };
+
+    const commonIcons = [
+      { value: 'map-pin', label: language === 'ar' ? 'موقع' : 'Location', component: <MapPin size={16} /> },
+      { value: 'home', label: language === 'ar' ? 'منزل' : 'Home', component: <Home size={16} /> },
+      { value: 'building', label: language === 'ar' ? 'مبنى' : 'Building', component: <Building size={16} /> },
+      { value: 'calendar', label: language === 'ar' ? 'تقويم' : 'Calendar', component: <Calendar size={16} /> },
+      { value: 'clock', label: language === 'ar' ? 'ساعة' : 'Clock', component: <Clock size={16} /> },
+      { value: 'star', label: language === 'ar' ? 'نجمة' : 'Star', component: <Star size={16} /> },
+      { value: 'heart', label: language === 'ar' ? 'قلب' : 'Heart', component: <Heart size={16} /> },
+      { value: 'thumbs-up', label: language === 'ar' ? 'إعجاب' : 'Thumbs Up', component: <ThumbsUp size={16} /> },
+      { value: 'bookmark', label: language === 'ar' ? 'مرجعية' : 'Bookmark', component: <Bookmark size={16} /> },
+      { value: 'flag', label: language === 'ar' ? 'علم' : 'Flag', component: <Flag size={16} /> },
+    ];
+
+    return [...(fieldSpecificIcons[fieldType as keyof typeof fieldSpecificIcons] || []), ...commonIcons];
+  };
+
+  const availableIcons = getAvailableIconsForField(field.type);
 
   const getFieldIcon = () => {
     const iconProps = { size: 16, className: "text-gray-600" };
