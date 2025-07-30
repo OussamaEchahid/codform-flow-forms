@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { FormField } from '@/lib/form-utils';
-import { GripVertical, Copy, Trash, ChevronDown, ChevronUp, User, Phone, Mail, MapPin, MessageSquare, CheckSquare, Image, FileText, CreditCard, DollarSign, Truck, ShoppingCart, ArrowRight, Check, Send, Users, IdCard, Smartphone, PhoneCall, Home, Building, Map, StickyNote, Edit, Package, Banknote, Handshake, ShoppingBag, Heart, Star, Target, Gift, Crown, Zap, Sparkles, Award, Diamond, Gem } from 'lucide-react';
+import { GripVertical, Copy, Trash, ChevronDown, ChevronUp, User, Phone, Mail, MapPin, MessageSquare, CheckSquare, Image, FileText, CreditCard, DollarSign, Truck, ShoppingCart, ArrowRight, Check, Send, Users, IdCard, Smartphone, PhoneCall, Home, Building, Map, StickyNote, Edit, Package, Banknote, Handshake, ShoppingBag, Heart, Star, Target, Gift, Crown, Zap, Sparkles, Award, Diamond, Gem, Facebook, Instagram, Twitter, Youtube, Linkedin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -546,94 +546,380 @@ const SortableField: React.FC<SortableFieldProps> = ({
                       </div>
                     )}
                     
-                    {/* WhatsApp Background color */}
+                    {/* WhatsApp specific settings */}
                     {shouldShowWhatsAppSpecificSettings && (
+                      <>
+                        {/* WhatsApp Number */}
+                        <div className="space-y-1">
+                          <Label htmlFor={`field-whatsapp-number-${field.id}`}>
+                            {language === 'ar' ? 'رقم الواتساب' : 'WhatsApp phone number'}
+                          </Label>
+                          <Input
+                            id={`field-whatsapp-number-${field.id}`}
+                            value={editedField.whatsappNumber || ''}
+                            onChange={(e) => handleFieldChange('whatsappNumber', e.target.value)}
+                            className={language === 'ar' ? 'text-right' : ''}
+                            placeholder="123456789"
+                          />
+                        </div>
+
+                        {/* Font family */}
+                        <div className="space-y-1">
+                          <Label>{language === 'ar' ? 'نوع الخط' : 'Font family'}</Label>
+                          <Select
+                            value={editedField.style?.fontFamily || 'Cairo'}
+                            onValueChange={(value) => handleStyleChange('fontFamily', value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder={language === 'ar' ? 'اختر نوع الخط' : 'Select font family'} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Cairo">Cairo</SelectItem>
+                              <SelectItem value="Roboto">Roboto</SelectItem>
+                              <SelectItem value="Arial">Arial</SelectItem>
+                              <SelectItem value="Helvetica">Helvetica</SelectItem>
+                              <SelectItem value="Georgia">Georgia</SelectItem>
+                              <SelectItem value="Times New Roman">Times New Roman</SelectItem>
+                              <SelectItem value="Courier New">Courier New</SelectItem>
+                              <SelectItem value="Verdana">Verdana</SelectItem>
+                              <SelectItem value="Tahoma">Tahoma</SelectItem>
+                              <SelectItem value="Trebuchet MS">Trebuchet MS</SelectItem>
+                              <SelectItem value="Impact">Impact</SelectItem>
+                              <SelectItem value="Comic Sans MS">Comic Sans MS</SelectItem>
+                              <SelectItem value="Lucida Sans">Lucida Sans</SelectItem>
+                              <SelectItem value="Palatino">Palatino</SelectItem>
+                              <SelectItem value="Garamond">Garamond</SelectItem>
+                              <SelectItem value="Bookman">Bookman</SelectItem>
+                              <SelectItem value="Avant Garde">Avant Garde</SelectItem>
+                              <SelectItem value="Montserrat">Montserrat</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* Font size */}
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <Label>{language === 'ar' ? 'حجم الخط' : 'Font size'} ({((parseInt(editedField.style?.fontSize || '16') / 16) * 1.1).toFixed(1)})</Label>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm">0</span>
+                              <Slider
+                                value={[parseInt(editedField.style?.fontSize || '16')]}
+                                onValueChange={(value) => handleStyleChange('fontSize', `${value[0]}px`)}
+                                max={50}
+                                min={8}
+                                step={1}
+                                className="w-24"
+                              />
+                              <span className="text-sm">3</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Text weight */}
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <Label>{language === 'ar' ? 'وزن النص' : 'Text weight'} ({editedField.style?.fontWeight || '400'})</Label>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm">100</span>
+                              <Slider
+                                value={[parseInt(editedField.style?.fontWeight || '400')]}
+                                onValueChange={(value) => handleStyleChange('fontWeight', value[0].toString())}
+                                max={900}
+                                min={100}
+                                step={100}
+                                className="w-24"
+                              />
+                              <span className="text-sm">900</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Background color */}
+                        <div className="space-y-1">
+                          <Label>{language === 'ar' ? 'لون الخلفية' : 'Background color'}</Label>
+                          <div className="flex gap-2 items-center">
+                            <Input
+                              type="color"
+                              value={editedField.style?.backgroundColor || '#25d366'}
+                              onChange={(e) => handleStyleChange('backgroundColor', e.target.value)}
+                              className="w-9 h-9 p-1"
+                            />
+                            <Input
+                              value={editedField.style?.backgroundColor || '#25d366'}
+                              onChange={(e) => handleStyleChange('backgroundColor', e.target.value)}
+                              className="flex-1"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Message */}
+                        <div className="space-y-1">
+                          <Label htmlFor={`field-whatsapp-message-${field.id}`}>
+                            {language === 'ar' ? 'الرسالة' : 'Message'}
+                          </Label>
+                          <textarea
+                            id={`field-whatsapp-message-${field.id}`}
+                            value={editedField.message || ''}
+                            onChange={(e) => handleFieldChange('message', e.target.value)}
+                            className={`w-full p-2 border border-gray-300 rounded-md resize-none ${language === 'ar' ? 'text-right' : ''}`}
+                            rows={3}
+                            placeholder={language === 'ar' ? 'مرحبا، أنا مهتم بـ {product}. هل يمكنك تقديم مزيد من المعلومات؟' : 'Hello, I\'m interested in {product}. Can you provide more information?'}
+                          />
+                          <p className="text-xs text-gray-500">
+                            {language === 'ar' ? 'استخدم (product) لإظهار اسم المنتج' : 'Use (product) to show product name'}
+                          </p>
+                        </div>
+
+                        {/* Padding-Y */}
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <Label>{language === 'ar' ? 'المسافة العمودية' : 'Padding-Y'} ({parseInt(editedField.style?.paddingY || '10')})</Label>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm">0</span>
+                              <Slider
+                                value={[parseInt(editedField.style?.paddingY || '10')]}
+                                onValueChange={(value) => handleStyleChange('paddingY', `${value[0]}px`)}
+                                max={50}
+                                min={0}
+                                step={1}
+                                className="w-24"
+                              />
+                              <span className="text-sm">50</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Border radius */}
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <Label>{language === 'ar' ? 'استدارة الحدود' : 'Border radius'} ({parseInt(editedField.style?.borderRadius || '0')})</Label>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm">0</span>
+                              <Slider
+                                value={[parseInt(editedField.style?.borderRadius || '0')]}
+                                onValueChange={(value) => handleStyleChange('borderRadius', `${value[0]}px`)}
+                                max={30}
+                                min={0}
+                                step={1}
+                                className="w-24"
+                              />
+                              <span className="text-sm">30</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Border width */}
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <Label>{language === 'ar' ? 'سماكة الحدود' : 'Border width'} ({parseInt(editedField.style?.borderWidth || '0')})</Label>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm">0</span>
+                              <Slider
+                                value={[parseInt(editedField.style?.borderWidth || '0')]}
+                                onValueChange={(value) => handleStyleChange('borderWidth', `${value[0]}px`)}
+                                max={30}
+                                min={0}
+                                step={1}
+                                className="w-24"
+                              />
+                              <span className="text-sm">30</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Animation */}
+                        <div className="space-y-1">
+                          <Label>{language === 'ar' ? 'الرسوم المتحركة' : 'Animation'}</Label>
+                          <Select
+                            value={typeof editedField.style?.animation === 'string' ? editedField.style.animation : 'none'}
+                            onValueChange={(value) => handleStyleChange('animation', value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder={language === 'ar' ? 'اختر نوع التأثير' : 'Select animation'} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">{language === 'ar' ? 'بدون' : 'none'}</SelectItem>
+                              <SelectItem value="pulse">{language === 'ar' ? 'نبض' : 'pulse'}</SelectItem>
+                              <SelectItem value="bounce">{language === 'ar' ? 'ارتداد' : 'bounce'}</SelectItem>
+                              <SelectItem value="shake">{language === 'ar' ? 'اهتزاز' : 'shake'}</SelectItem>
+                              <SelectItem value="tada">{language === 'ar' ? 'تادا' : 'tada'}</SelectItem>
+                              <SelectItem value="swing">{language === 'ar' ? 'أرجحة' : 'swing'}</SelectItem>
+                              <SelectItem value="wobble">{language === 'ar' ? 'تذبذب' : 'wobble'}</SelectItem>
+                              <SelectItem value="jello">{language === 'ar' ? 'جيلو' : 'jello'}</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* Show icon */}
+                        <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                          <Switch 
+                            id={`field-show-icon-${field.id}`}
+                            checked={editedField.style?.showIcon !== false}
+                            onCheckedChange={(checked) => handleStyleChange('showIcon', checked)}
+                          />
+                          <Label htmlFor={`field-show-icon-${field.id}`}>
+                            {language === 'ar' ? 'إظهار الأيقونة' : 'Show icon'}
+                          </Label>
+                        </div>
+
+                        {/* Icon color */}
+                        <div className="space-y-1">
+                          <Label>{language === 'ar' ? 'لون الأيقونة' : 'Icon color'}</Label>
+                          <div className="flex gap-2 items-center">
+                            <Input
+                              type="color"
+                              value={editedField.style?.iconColor || '#ffffff'}
+                              onChange={(e) => handleStyleChange('iconColor', e.target.value)}
+                              className="w-9 h-9 p-1"
+                            />
+                            <Input
+                              value={editedField.style?.iconColor || '#ffffff'}
+                              onChange={(e) => handleStyleChange('iconColor', e.target.value)}
+                              className="flex-1"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Icon selection */}
+                        <div className="space-y-1">
+                          <Label>{language === 'ar' ? 'الأيقونة' : 'Icon'}</Label>
+                          <Select
+                            value={editedField.style?.icon || 'whatsapp'}
+                            onValueChange={(value) => handleStyleChange('icon', value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder={language === 'ar' ? 'اختر الأيقونة' : 'Select icon'} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="whatsapp">
+                                <div className="flex items-center gap-2">
+                                  <MessageSquare className="w-4 h-4" />
+                                  {language === 'ar' ? 'واتساب' : 'WhatsApp'}
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="facebook">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-4 h-4 bg-blue-600 rounded"></div>
+                                  {language === 'ar' ? 'فيسبوك' : 'Facebook'}
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="instagram">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-4 h-4 bg-gradient-to-br from-purple-600 to-pink-600 rounded"></div>
+                                  {language === 'ar' ? 'انستقرام' : 'Instagram'}
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="twitter">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-4 h-4 bg-blue-400 rounded"></div>
+                                  {language === 'ar' ? 'تويتر' : 'Twitter'}
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="youtube">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-4 h-4 bg-red-600 rounded"></div>
+                                  {language === 'ar' ? 'يوتيوب' : 'YouTube'}
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="linkedin">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-4 h-4 bg-blue-700 rounded"></div>
+                                  {language === 'ar' ? 'لينكد إن' : 'LinkedIn'}
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="phone">
+                                <div className="flex items-center gap-2">
+                                  <Phone className="w-4 h-4" />
+                                  {language === 'ar' ? 'هاتف' : 'Phone'}
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="email">
+                                <div className="flex items-center gap-2">
+                                  <Mail className="w-4 h-4" />
+                                  {language === 'ar' ? 'بريد إلكتروني' : 'Email'}
+                                </div>
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </>
+                    )}
+                    
+                    {/* Text color - hide for WhatsApp button */}
+                    {!shouldShowWhatsAppSpecificSettings && (
                       <div className="space-y-1">
-                        <Label>{language === 'ar' ? 'لون الخلفية' : 'Background color'}</Label>
+                        <Label>{language === 'ar' ? 'لون النص' : 'Text color'}</Label>
                         <div className="flex gap-2 items-center">
                           <Input
                             type="color"
-                            value={editedField.style?.backgroundColor || '#25d366'}
-                            onChange={(e) => handleStyleChange('backgroundColor', e.target.value)}
+                            value={editedField.style?.color || '#000000'}
+                            onChange={(e) => handleStyleChange('color', e.target.value)}
                             className="w-9 h-9 p-1"
                           />
                           <Input
-                            value={editedField.style?.backgroundColor || '#25d366'}
-                            onChange={(e) => handleStyleChange('backgroundColor', e.target.value)}
+                            value={editedField.style?.color || '#000000'}
+                            onChange={(e) => handleStyleChange('color', e.target.value)}
+                            className="flex-1"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Text color for WhatsApp */}
+                    {shouldShowWhatsAppSpecificSettings && (
+                      <div className="space-y-1">
+                        <Label>{language === 'ar' ? 'لون النص' : 'Text Color'}</Label>
+                        <div className="flex gap-2 items-center">
+                          <Input
+                            type="color"
+                            value={editedField.style?.color || '#ffffff'}
+                            onChange={(e) => handleStyleChange('color', e.target.value)}
+                            className="w-9 h-9 p-1"
+                          />
+                          <Input
+                            value={editedField.style?.color || '#ffffff'}
+                            onChange={(e) => handleStyleChange('color', e.target.value)}
                             className="flex-1"
                           />
                         </div>
                       </div>
                     )}
                     
-                     {/* WhatsApp Number */}
-                     {shouldShowWhatsAppSpecificSettings && (
-                       <div className="space-y-1">
-                         <Label htmlFor={`field-whatsapp-number-${field.id}`}>
-                           {language === 'ar' ? 'رقم الواتساب' : 'WhatsApp phone number'}
-                         </Label>
-                         <Input
-                           id={`field-whatsapp-number-${field.id}`}
-                           value={editedField.whatsappNumber || ''}
-                           onChange={(e) => {
-                             console.log('🔥 WhatsApp number changed:', e.target.value);
-                             handleFieldChange('whatsappNumber', e.target.value);
-                           }}
-                           className={language === 'ar' ? 'text-right' : ''}
-                           placeholder="123456789"
-                         />
-                       </div>
-                     )}
-                    
-                    {/* Text color */}
-                    <div className="space-y-1">
-                      <Label>{language === 'ar' ? 'لون النص' : 'Text color'}</Label>
-                      <div className="flex gap-2 items-center">
+                    {/* Font size - hide for WhatsApp button */}
+                    {!shouldShowWhatsAppSpecificSettings && (
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <Label>{language === 'ar' ? 'حجم الخط' : 'Font size'}</Label>
+                          <span className="text-sm">{editedField.style?.fontSize || '16'}px</span>
+                        </div>
                         <Input
-                          type="color"
-                          value={editedField.style?.color || '#000000'}
-                          onChange={(e) => handleStyleChange('color', e.target.value)}
-                          className="w-9 h-9 p-1"
-                        />
-                        <Input
-                          value={editedField.style?.color || '#000000'}
-                          onChange={(e) => handleStyleChange('color', e.target.value)}
-                          className="flex-1"
+                          type="number"
+                          min="8"
+                          max="72"
+                          value={parseInt(editedField.style?.fontSize || '16')}
+                          onChange={(e) => handleStyleChange('fontSize', `${e.target.value}px`)}
+                          className="w-full"
                         />
                       </div>
-                    </div>
+                    )}
                     
-                    {/* Font size */}
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <Label>{language === 'ar' ? 'حجم الخط' : 'Font size'}</Label>
-                        <span className="text-sm">{editedField.style?.fontSize || '16'}px</span>
+                    {/* Padding-Y - hide for WhatsApp button */}
+                    {!shouldShowWhatsAppSpecificSettings && (
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <Label>{language === 'ar' ? 'المسافة العمودية' : 'Padding-Y'}</Label>
+                          <span className="text-sm">{editedField.style?.paddingY || '8'}px</span>
+                        </div>
+                        <Input
+                          type="number"
+                          min="0"
+                          max="50"
+                          value={parseInt(editedField.style?.paddingY || '8')}
+                          onChange={(e) => handleStyleChange('paddingY', `${e.target.value}px`)}
+                          className="w-full"
+                        />
                       </div>
-                      <Input
-                        type="number"
-                        min="8"
-                        max="72"
-                        value={parseInt(editedField.style?.fontSize || '16')}
-                        onChange={(e) => handleStyleChange('fontSize', `${e.target.value}px`)}
-                        className="w-full"
-                      />
-                    </div>
-                    
-                    {/* Padding-Y */}
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <Label>{language === 'ar' ? 'المسافة العمودية' : 'Padding-Y'}</Label>
-                        <span className="text-sm">{editedField.style?.paddingY || '8'}px</span>
-                      </div>
-                      <Input
-                        type="number"
-                        min="0"
-                        max="50"
-                        value={parseInt(editedField.style?.paddingY || '8')}
-                        onChange={(e) => handleStyleChange('paddingY', `${e.target.value}px`)}
-                        className="w-full"
-                      />
-                    </div>
+                    )}
                     
                     {/* Animation settings for submit button */}
                     {shouldShowSubmitSpecificSettings && (
