@@ -28,24 +28,24 @@ function renderField(field, formStyle, formLanguage) {
   
   console.log('🔄 CODFORM: Detected form direction:', formDirection, 'for language:', formLanguage);
   
-  // Base styling configuration - Match TextInput.tsx exactly
-  const baseFontSize = getStyleValue(formStyle, 'fontSize', '1rem');
+  // Base styling configuration - FORCE exact sizes like in preview
+  const baseFontSize = '1rem'; // Force exact size
   const labelStyle = field.style || {};
   const showLabel = getStyleValue(labelStyle, 'showLabel', true);
   const isFloatingLabels = getStyleValue(formStyle, 'floatingLabels', false);
   
-  // Label styling - Match TextInput.tsx exactly with proper sizing
+  // Label styling - FORCE exact sizes to match preview
   const labelColor = getStyleValue(labelStyle, 'labelColor', '#333333');
-  const labelFontSize = getStyleValue(labelStyle, 'labelFontSize', '1rem'); // Use field.style.labelFontSize not formStyle.fontSize
+  const labelFontSize = '1rem'; // FORCE exact size
   const labelFontWeight = getStyleValue(labelStyle, 'labelFontWeight', '500');
   
-  // Field styling - Match TextInput.tsx exactly with proper sizing
+  // Field styling - FORCE exact sizes to match preview  
   const fieldBackgroundColor = '#FFFFFF';
   const fieldBorderColor = getStyleValue(labelStyle, 'borderColor', '#D1D5DB');
   const fieldBorderRadius = getStyleValue(labelStyle, 'borderRadius', '8px');
-  const fieldFontSize = getStyleValue(labelStyle, 'fontSize', '1rem'); // Use field.style.fontSize not formStyle.fontSize
+  const fieldFontSize = '1rem'; // FORCE exact size
   const fieldTextColor = getStyleValue(labelStyle, 'color', '#1F2937');
-  const placeholderFontSize = fieldFontSize; // Use same size as field text
+  const placeholderFontSize = '1rem'; // FORCE exact size
   const focusBorderColor = getStyleValue(formStyle, 'focusBorderColor', '#9b87f5');
   
   let html = '';
