@@ -9,36 +9,43 @@ import { AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
 
 interface ImageFieldEditorProps {
   field: FormField;
-  onUpdate: (field: FormField) => void;
+  onSave: (field: FormField) => void;
+  onClose: () => void;
 }
 
-const ImageFieldEditor: React.FC<ImageFieldEditorProps> = ({ field, onUpdate }) => {
+const ImageFieldEditor: React.FC<ImageFieldEditorProps> = ({ field, onSave, onClose }) => {
   const { language } = useI18n();
+  const [currentField, setCurrentField] = React.useState<FormField>(field);
 
   const handleChange = (property: string, value: any) => {
     if (property.includes('.')) {
       const [parent, child] = property.split('.');
-      onUpdate({
-        ...field,
+      setCurrentField({
+        ...currentField,
         [parent]: {
-          ...field[parent as keyof FormField],
+          ...currentField[parent as keyof FormField],
           [child]: value
         }
       });
     } else {
-      onUpdate({
-        ...field,
+      setCurrentField({
+        ...currentField,
         [property]: value
       });
     }
+  };
+
+  const handleSaveField = () => {
+    onSave(currentField);
+    onClose();
   };
 
   const handleAlignmentChange = (alignment: 'left' | 'center' | 'right') => {
     handleChange('style.textAlign', alignment);
   };
 
-  const currentWidth = typeof field.width === 'string' ? parseInt(field.width) : (field.width || 100);
-  const currentAlignment = field.style?.textAlign || 'center';
+  const currentWidth = typeof currentField.width === 'string' ? parseInt(currentField.width) : (currentField.width || 100);
+  const currentAlignment = currentField.style?.textAlign || 'center';
 
   return (
     <div className="space-y-4 p-4">
@@ -54,7 +61,7 @@ const ImageFieldEditor: React.FC<ImageFieldEditorProps> = ({ field, onUpdate }) 
         <Input
           id="image-url"
           type="url"
-          value={field.src || ''}
+          value={currentField.src || ''}
           onChange={(e) => handleChange('src', e.target.value)}
           placeholder="https://example.com/image.jpg"
           className="w-full"
@@ -68,7 +75,7 @@ const ImageFieldEditor: React.FC<ImageFieldEditorProps> = ({ field, onUpdate }) 
         </Label>
         <Input
           id="image-alt"
-          value={field.alt || ''}
+          value={currentField.alt || ''}
           onChange={(e) => handleChange('alt', e.target.value)}
           placeholder={language === 'ar' ? 'وصف الصورة' : 'Image description'}
           className="w-full"
@@ -140,7 +147,7 @@ const ImageFieldEditor: React.FC<ImageFieldEditorProps> = ({ field, onUpdate }) 
         </Label>
         <Input
           id="image-label"
-          value={field.label || ''}
+          value={currentField.label || ''}
           onChange={(e) => handleChange('label', e.target.value)}
           placeholder={language === 'ar' ? 'اسم الصورة' : 'Image name'}
           className="w-full"
@@ -154,11 +161,21 @@ const ImageFieldEditor: React.FC<ImageFieldEditorProps> = ({ field, onUpdate }) 
         </Label>
         <Input
           id="image-help"
-          value={field.helpText || ''}
+          value={currentField.helpText || ''}
           onChange={(e) => handleChange('helpText', e.target.value)}
           placeholder={language === 'ar' ? 'وصف إضافي للصورة' : 'Additional image description'}
           className="w-full"
         />
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex justify-end gap-2 pt-4 border-t">
+        <Button variant="outline" onClick={onClose}>
+          {language === 'ar' ? 'إلغاء' : 'Cancel'}
+        </Button>
+        <Button onClick={handleSaveField}>
+          {language === 'ar' ? 'حفظ' : 'Save'}
+        </Button>
       </div>
     </div>
   );
