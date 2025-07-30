@@ -55,21 +55,28 @@ export const useShopifyStoreSync = () => {
       // إذا لم يكن هناك بريد إلكتروني ولكن يوجد متجر نشط، جلب البريد الإلكتروني تلقائياً
       if (!userEmail && activeStore) {
         console.log('🔄 محاولة جلب البريد الإلكتروني تلقائياً للمتجر:', activeStore);
+        console.log('🔍 شروط الجلب: userEmail =', userEmail, ', activeStore =', activeStore);
+        
         try {
+          console.log('📞 استدعاء edge function update-shop-email...');
           const emailResponse = await supabase.functions.invoke('update-shop-email', {
             body: { shop: activeStore }
           });
+
+          console.log('📧 نتيجة استدعاء edge function:', emailResponse);
 
           if (emailResponse.data?.success) {
             userEmail = emailResponse.data.email;
             localStorage.setItem('shopify_user_email', userEmail);
             console.log('✅ تم جلب وحفظ البريد الإلكتروني:', userEmail);
           } else {
-            console.error('❌ فشل في جلب البريد الإلكتروني:', emailResponse.error);
+            console.error('❌ فشل في جلب البريد الإلكتروني:', emailResponse);
           }
         } catch (emailError) {
           console.error('❌ خطأ في جلب البريد الإلكتروني:', emailError);
         }
+      } else {
+        console.log('🔍 لن يتم جلب البريد الإلكتروني - userEmail:', userEmail, ', activeStore:', activeStore);
       }
 
       let storesList: any[] = [];
