@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/components/layout/AuthProvider';
 import { toast } from 'sonner';
 
 interface ShopifyStore {
@@ -11,67 +12,98 @@ interface ShopifyStore {
 }
 
 export const useShopifyStoreSync = () => {
+  const { user } = useAuth();
   const [stores, setStores] = useState<ShopifyStore[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentStore, setCurrentStore] = useState<string | null>(null);
 
-  // Get current active store from localStorage
+  // Get current active store from localStorage with better validation
   const getActiveStore = useCallback(() => {
-    const sources = ['shopify_store', 'simple_active_store', 'active_shop'];
+    const sources = [
+      'active_shopify_store', // UnifiedStoreManager key
+      'shopify_store', 
+      'simple_active_store', 
+      'active_shop'
+    ];
+    
     for (const source of sources) {
       const store = localStorage.getItem(source);
-      if (store && store !== 'null') {
+      if (store && store !== 'null' && store.includes('.myshopify.com')) {
+        console.log(`✅ Found active store from ${source}:`, store);
         return store;
       }
     }
+    console.log('⚠️ No active store found in localStorage');
     return null;
   }, []);
 
-  // Load stores from database - إصدار مُبسط بدون تعقيدات
+  // Load stores for current user only
   const loadStores = useCallback(async () => {
     try {
       setLoading(true);
       
-      console.log('🔄 جاري تحميل المتاجر من قاعدة البيانات...');
+      console.log('🔄 جاري تحميل المتاجر...');
       
-      // جلب جميع المتاجر مباشرة بدون شروط معقدة
-      const { data: storesList, error } = await supabase
+      // جلب المتجر النشط أولاً
+      const activeStore = getActiveStore();
+      console.log('🏪 المتجر النشط من localStorage:', activeStore);
+      
+      if (!activeStore) {
+        console.log('⚠️ لا يوجد متجر نشط');
+        setStores([]);
+        setCurrentStore(null);
+        setLoading(false);
+        return;
+      }
+
+      // جلب متجر واحد فقط - المتجر النشط من localStorage
+      const { data: storeData, error } = await supabase
         .from('shopify_stores')
         .select('shop, is_active, updated_at, access_token')
+        .eq('shop', activeStore)
         .eq('is_active', true)
         .not('access_token', 'is', null)
         .neq('access_token', '')
         .neq('access_token', 'placeholder_token')
-        .order('updated_at', { ascending: false });
+        .single();
 
-      if (error) {
-        console.error('❌ خطأ في جلب المتاجر:', error);
+      if (error && error.code !== 'PGRST116') {
+        console.error('❌ خطأ في جلب المتجر:', error);
         throw error;
       }
 
-      console.log('📋 المتاجر المستلمة من قاعدة البيانات:', storesList);
+      console.log('📋 بيانات المتجر المستلمة:', storeData);
       
-      setStores(storesList || []);
+      // إما أن نعرض المتجر من قاعدة البيانات أو من localStorage
+      const storeToShow = storeData || {
+        shop: activeStore,
+        is_active: true,
+        updated_at: new Date().toISOString(),
+        access_token: 'session_based'
+      };
       
-      // تحديث المتجر النشط
-      const activeStore = getActiveStore();
+      setStores([storeToShow]);
       setCurrentStore(activeStore);
       
-      console.log(`✅ تم تحميل ${(storesList || []).length} متجر، المتجر النشط: ${activeStore}`);
+      console.log(`✅ تم تحميل المتجر: ${activeStore}`);
       
     } catch (error) {
       console.error('❌ خطأ في تحميل المتاجر:', error);
       toast.error('فشل في تحميل المتاجر');
-      // في حالة الخطأ، نحاول جلب المتجر من localStorage على الأقل
+      
+      // fallback: عرض المتجر النشط من localStorage
       const activeStore = getActiveStore();
       if (activeStore) {
         setStores([{
           shop: activeStore,
           is_active: true,
           updated_at: new Date().toISOString(),
-          access_token: 'unknown'
+          access_token: 'fallback'
         }]);
         setCurrentStore(activeStore);
+      } else {
+        setStores([]);
+        setCurrentStore(null);
       }
     } finally {
       setLoading(false);
@@ -81,7 +113,8 @@ export const useShopifyStoreSync = () => {
   // Switch to a different store
   const switchToStore = useCallback((shopDomain: string) => {
     try {
-      // Update localStorage keys
+      // Update localStorage keys including UnifiedStoreManager
+      localStorage.setItem('active_shopify_store', shopDomain);
       localStorage.setItem('shopify_store', shopDomain);
       localStorage.setItem('simple_active_store', shopDomain);
       localStorage.setItem('active_shop', shopDomain);
@@ -109,6 +142,7 @@ export const useShopifyStoreSync = () => {
     try {
       // Clear localStorage
       const keysToRemove = [
+        'active_shopify_store', // UnifiedStoreManager key
         'shopify_store',
         'simple_active_store', 
         'active_shop',
