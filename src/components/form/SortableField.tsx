@@ -234,7 +234,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
   };
 
   // Check if this is a form title element
-  const isFormTitle = field.type === 'form-title';
+  const isImageField = field.type === 'image';
   const shouldShowSubmitSpecificSettings = field.type === 'submit';
   
   
@@ -322,6 +322,18 @@ const SortableField: React.FC<SortableFieldProps> = ({
                   : (language === 'ar' ? 'إعدادات الحقل' : 'Field Settings')
                 }
               </h2>
+              
+              {/* Image Fields use FieldEditor */}
+              {field.type === 'image' ? (
+                <div className="p-4">
+                  <p className="text-sm text-gray-600 mb-4">
+                    {language === 'ar' ? 'انقر على تحرير لفتح إعدادات الصورة' : 'Click Edit to open image settings'}
+                  </p>
+                  <Button onClick={() => setShowFieldEditor(true)} className="w-full">
+                    {language === 'ar' ? 'تحرير إعدادات الصورة' : 'Edit Image Settings'}
+                  </Button>
+                </div>
+              ) : (
               
               {/* Form Title Specific Settings */}
               {isFormTitle ? (
@@ -1178,6 +1190,19 @@ const SortableField: React.FC<SortableFieldProps> = ({
         </AccordionItem>
       </Accordion>
     </div>
+      
+      {/* Field Editor Modal for Image */}
+      {showFieldEditor && (
+        <FieldEditor
+          field={editedField}
+          onSave={(updatedField) => {
+            setEditedField(updatedField);
+            onUpdate(updatedField);
+            setShowFieldEditor(false);
+          }}
+          onClose={() => setShowFieldEditor(false)}
+        />
+      )}
   );
 };
 
