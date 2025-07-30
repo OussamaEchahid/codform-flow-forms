@@ -14,12 +14,20 @@ const Navbar = () => {
   const emailFromStorage = localStorage.getItem('shopify_user_email');
   const activeStore = currentStore || storeFromStorage;
   const activeEmail = shopifyUserEmail || emailFromStorage;
-  const hasConnection = !!activeStore;
+  
+  // التأكد من أن المتجر المتصل صحيح وليس "en" أو "ar"
+  const isValidStore = activeStore && 
+                      activeStore !== 'en' && 
+                      activeStore !== 'ar' && 
+                      activeStore.includes('.myshopify.com');
+  
+  const hasConnection = !!isValidStore;
 
   console.log('🔍 Navbar - Auth state:', { 
     currentStore, 
     storeFromStorage,
     activeStore,
+    isValidStore,
     shopifyUserEmail, 
     emailFromStorage,
     activeEmail,
@@ -44,43 +52,56 @@ const Navbar = () => {
               <Link to="/dashboard">لوحة التحكم</Link>
             </Button>
             
-            {/* عرض معلومات المستخدم والمتجر */}
-            {hasConnection ? (
+            {/* عرض معلومات المستخدم والمتجر - تحسين جديد */}
+            {hasConnection && isValidStore ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback>
-                        {activeEmail ? activeEmail.charAt(0).toUpperCase() : activeStore?.charAt(0).toUpperCase() || 'U'}
-                      </AvatarFallback>
-                    </Avatar>
+                  <Button variant="ghost" className="relative h-10 rounded-lg px-3 py-2 hover:bg-gray-100">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-8 w-8">
+                        <AvatarFallback className="bg-primary text-primary-foreground">
+                          {isValidStore ? activeStore.charAt(0).toUpperCase() : 'U'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="text-right hidden sm:block">
+                        <p className="text-sm font-medium leading-none">
+                          {isValidStore ? activeStore.replace('.myshopify.com', '') : 'متجر غير معروف'}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          متصل ونشط
+                        </p>
+                      </div>
+                    </div>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" align="end" forceMount>
-                  <div className="flex flex-col space-y-1 p-2">
-                    {activeEmail && (
-                      <p className="text-sm font-medium leading-none">{activeEmail}</p>
-                    )}
-                    {activeStore && (
-                      <p className="text-xs leading-none text-muted-foreground">
-                        <Store className="inline w-3 h-3 mr-1" />
-                        {activeStore}
-                      </p>
-                    )}
+                <DropdownMenuContent className="w-64" align="end" forceMount>
+                  <div className="flex flex-col space-y-2 p-3 border-b">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-10 w-10">
+                        <AvatarFallback className="bg-primary text-primary-foreground">
+                          {isValidStore ? activeStore.charAt(0).toUpperCase() : 'U'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium leading-none">
+                          {isValidStore ? activeStore.replace('.myshopify.com', '') : 'متجر غير معروف'}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          <Store className="inline w-3 h-3 mr-1" />
+                          {isValidStore ? activeStore : 'غير متصل'}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  <DropdownMenuItem asChild>
-                    <Link to="/settings" className="w-full">
-                      <Settings className="mr-2 h-4 w-4" />
-                      الإعدادات
-                    </Link>
-                  </DropdownMenuItem>
+                  
                   <DropdownMenuItem asChild>
                     <Link to="/my-stores" className="w-full">
                       <Store className="mr-2 h-4 w-4" />
                       متاجري
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleDisconnect}>
+                  
+                  <DropdownMenuItem onClick={handleDisconnect} className="text-red-600 focus:text-red-600">
                     <LogOut className="mr-2 h-4 w-4" />
                     قطع الاتصال
                   </DropdownMenuItem>
