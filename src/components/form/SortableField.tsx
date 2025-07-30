@@ -456,9 +456,12 @@ const SortableField: React.FC<SortableFieldProps> = ({
                     </div>
                   </div>
                 </div>
-               ) : (
-                 /* Regular field settings */
-                <div className="grid grid-cols-2 gap-4">
+                ) : field.type === 'whatsapp' ? (
+                  /* إعدادات زر الواتساب فقط - لا إعدادات عامة */
+                  null
+                ) : (
+                  /* Regular field settings */
+                 <div className="grid grid-cols-2 gap-4">
                     {/* Left column - General field settings */}
                     <div className="space-y-4">
                       {/* Placeholder - hide for submit button */}
