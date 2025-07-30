@@ -44,16 +44,8 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
           />
         );
       
-      case 'whatsapp':
-        return (
-          <WhatsAppFieldEditor
-            field={currentField}
-            onSave={handleSaveField}
-            onClose={onClose}
-          />
-        );
-      
       case 'image':
+        console.log('🚀 Opening IMAGE field editor for field:', currentField);
         return (
           <ImageFieldEditor
             field={currentField}
