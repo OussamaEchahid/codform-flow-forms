@@ -4,6 +4,7 @@ import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
 import { ShoppingCart } from 'lucide-react';
 import { useSimpleShopify } from '@/hooks/useSimpleShopify';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CartItemsProps {
   field: FormField;
@@ -19,23 +20,52 @@ const CartItems: React.FC<CartItemsProps> = ({ field, formStyle, productId }) =>
   const { language } = useI18n();
   const fieldStyle = field.style || {};
   const { products, loadProducts } = useSimpleShopify();
-  
+  const [linkedProductId, setLinkedProductId] = React.useState<string | null>(null);
+
+  // البحث عن المنتج المرتبط بالنموذج من قاعدة البيانات
+  React.useEffect(() => {
+    const fetchLinkedProduct = async () => {
+      try {
+        // الحصول على form ID من URL أو context
+        const pathParts = window.location.pathname.split('/');
+        const formId = pathParts[pathParts.length - 1];
+        
+        if (formId && formId !== 'form-builder') {
+          const { data, error } = await supabase
+            .from('shopify_product_settings')
+            .select('product_id')
+            .eq('form_id', formId)
+            .single();
+          
+          if (data && !error) {
+            console.log('Found linked product:', data.product_id);
+            setLinkedProductId(data.product_id);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching linked product:', error);
+      }
+    };
+
+    fetchLinkedProduct();
+  }, []);
+
   // تحميل المنتجات عند التهيئة
   React.useEffect(() => {
-    const finalProductId = field.productId || productId;
-    if (finalProductId && (!products || products.length === 0)) {
-      console.log('Loading products for cart items with productId:', finalProductId);
+    if ((linkedProductId || productId) && (!products || products.length === 0)) {
+      console.log('Loading products for cart items with productId:', linkedProductId || productId);
       loadProducts();
     }
-  }, [field.productId, productId, products, loadProducts]);
+  }, [linkedProductId, productId, products, loadProducts]);
   
-  // البحث عن المنتج المرتبط - استخدم field.productId أولاً ثم productId prop
-  const linkedProduct = (field.productId || productId) ? products?.find(p => p.id === (field.productId || productId)) : null;
+  // البحث عن المنتج المرتبط - استخدم linkedProductId أولاً
+  const finalProductId = linkedProductId || productId;
+  const linkedProduct = finalProductId ? products?.find(p => p.id === finalProductId) : null;
   
   console.log('Cart Items Debug:', {
-    fieldProductId: field.productId,
+    linkedProductId,
     propProductId: productId,
-    finalProductId: field.productId || productId,
+    finalProductId,
     productsCount: products?.length || 0,
     linkedProduct: linkedProduct?.title || 'Not found'
   });
