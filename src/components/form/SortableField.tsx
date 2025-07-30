@@ -202,8 +202,8 @@ const SortableField: React.FC<SortableFieldProps> = ({
   return (
     <div ref={setNodeRef} style={style}>
       <Accordion type="single" collapsible value={isExpanded ? field.id : ''}>
-        <AccordionItem value={field.id} className="border rounded-lg bg-white shadow-sm">
-          <div className="flex items-center justify-between p-3">
+        <AccordionItem value={field.id} className="border rounded-lg bg-white shadow-sm w-full">
+          <div className="flex items-center justify-between p-4 px-5">
             <div className="flex items-center gap-3 flex-1">
               <div {...attributes} {...listeners} className="cursor-grab">
                 <GripVertical size={16} className="text-gray-400" />
@@ -221,7 +221,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
               </div>
             </div>
             
-            <div className="flex gap-3 items-center">
+            <div className="flex gap-2 items-center">
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -263,7 +263,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
           </div>
           
           <AccordionContent className="border-t pt-2">
-            <div className="p-3">
+            <div className="p-4 px-5">
               <h2 className="font-medium text-sm border-b pb-2 mb-4">
                 {isFormTitle 
                   ? (language === 'ar' ? 'إعدادات العنوان' : 'Title Configuration')

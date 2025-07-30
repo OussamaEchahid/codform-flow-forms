@@ -124,7 +124,7 @@ const FormElementEditor: React.FC<FormElementEditorProps> = ({
   }, [elements, onUpdateElement]);
   
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Form Fields */}
       {elements.length === 0 && (
         <div className="text-center p-8 border-2 border-dashed border-gray-300 rounded-lg">
