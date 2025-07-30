@@ -971,11 +971,11 @@ EXTERNAL SCRIPTS
     const shopDomain = getShopDomain(); // استخدام دالة لجلب المتجر الصحيح
     
     if (!productId) {
-      console.log('❌ CODFORM: No product ID found');
+      
       return;
     }
 
-    console.log('🔄 CODFORM: Loading complete form for product:', productId, 'shop:', shopDomain);
+    
     
     // First check if this product has an associated form
     // محاولة البحث عن النموذج المحدد للمنتج أولاً، ثم البحث عن النموذج العام
@@ -987,10 +987,10 @@ EXTERNAL SCRIPTS
     })
     .then(response => response.json())
     .then(productSettings => {
-      console.log('🔍 CODFORM: Product settings check:', productSettings);
+      
       
       if (!productSettings || productSettings.length === 0) {
-        console.log('⚠️ CODFORM: No form associated with this product, hiding form');
+        
         const container = document.querySelector('[data-form-preview-id="form-preview-stable"]');
         if (container) {
           container.style.display = 'none';
@@ -1000,7 +1000,7 @@ EXTERNAL SCRIPTS
       
       // Product has associated form, continue loading
       const formId = productSettings[0].form_id;
-      console.log('✅ CODFORM: Product has associated form:', formId);
+      
       
       loadFormWithValidation(productId, shopDomain, formId);
     })
@@ -1015,7 +1015,7 @@ EXTERNAL SCRIPTS
   }
   
   function loadFormWithValidation(productId, shopDomain, formId) {
-    console.log('🔄 CODFORM: Loading validated form for product:', productId, 'shop:', shopDomain, 'form:', formId);
+    
     
     // Get current product data from Shopify liquid templates
     const currentProduct = {
@@ -1038,7 +1038,7 @@ EXTERNAL SCRIPTS
       ]
     };
     
-    console.log('🛍️ CODFORM: معلومات المنتج:', currentProduct);
+    
     
     // Try multiple API endpoints for better reliability
     const apiUrls = [
@@ -1049,15 +1049,15 @@ EXTERNAL SCRIPTS
     async function tryFetchForm() {
       for (let url of apiUrls) {
         try {
-          console.log('🔄 CODFORM: Trying API:', url);
+          
           const response = await fetch(url);
           if (response.ok) {
             const data = await response.json();
-            console.log('✅ CODFORM: Success with:', url);
+            
             return data;
           }
         } catch (error) {
-          console.log('❌ CODFORM: Failed with:', url, error);
+          
         }
       }
       throw new Error('All API endpoints failed');
