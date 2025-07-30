@@ -424,20 +424,61 @@ const MyStores = () => {
                 })}
               </div>
 
-              {/* رسالة إذا لم توجد متاجر */}
-              {stores.length === 0 && (
-                <div className="text-center py-12">
-                  <StoreIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground mb-4">لا توجد متاجر مضافة بعد</p>
-                  <Button 
-                    onClick={() => navigate('/shopify-stores')}
-                    className="bg-blue-600 hover:bg-blue-700"
-                  >
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    إضافة متجر جديد
-                  </Button>
-                </div>
-              )}
+              {/* رسالة إذا لم توجد متاجر - مع فحص UnifiedStoreManager مباشرة */}
+              {(() => {
+                const activeStoreCheck = UnifiedStoreManager.getActiveStore();
+                console.log('🔍 MyStores render check - Active store:', activeStoreCheck, 'Stores array:', stores);
+                
+                if (activeStoreCheck) {
+                  // إذا كان هناك متجر نشط ولكن لا يظهر في القائمة، أضفه فوراً
+                  if (stores.length === 0) {
+                    console.log('⚡ Force adding active store to display');
+                    return (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <Card className="transition-all border-green-500 bg-green-50">
+                          <CardHeader>
+                            <div className="flex items-start justify-between">
+                              <StoreIcon className="h-5 w-5 text-blue-600" />
+                              <Badge variant="default" className="bg-green-600">
+                                نشط
+                              </Badge>
+                            </div>
+                            <CardTitle className="text-lg">{activeStoreCheck}</CardTitle>
+                            <CardDescription>
+                              متصل ونشط الآن
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent className="pt-0">
+                            <Button variant="outline" disabled className="flex-1">
+                              <CheckCircle className="h-4 w-4 mr-2" />
+                              متصل حالياً
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    );
+                  }
+                }
+                
+                // إذا لم يكن هناك متجر نشط حقاً
+                if (stores.length === 0 && !activeStoreCheck) {
+                  return (
+                    <div className="text-center py-12">
+                      <StoreIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground mb-4">لا توجد متاجر مضافة بعد</p>
+                      <Button 
+                        onClick={() => navigate('/shopify-stores')}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        إضافة متجر جديد
+                      </Button>
+                    </div>
+                  );
+                }
+                
+                return null; // إذا كان هناك متاجر في القائمة
+              })()}
             </>
           )}
         </div>
