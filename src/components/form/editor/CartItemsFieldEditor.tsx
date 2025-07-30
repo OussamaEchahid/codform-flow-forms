@@ -318,6 +318,34 @@ const CartItemsFieldEditor: React.FC<CartItemsFieldEditorProps> = ({ field, onUp
                 onChange={(value) => handleStyleUpdate('priceFontWeight', value.toString())}
                 label={language === 'ar' ? 'وزن خط السعر' : 'Price Font Weight'}
               />
+              
+              {/* إعدادات السعر المخفض */}
+              <div className="space-y-3 pt-4 border-t">
+                <h5 className="font-medium text-sm text-gray-800">
+                  {language === 'ar' ? 'السعر المخفض (مشطوب)' : 'Discount Price (Crossed Out)'}
+                </h5>
+                
+                <div className="space-y-2">
+                  <Label className="text-sm">{language === 'ar' ? 'السعر المخفض' : 'Discount Price'}</Label>
+                  <Input
+                    type="text"
+                    value={currentStyle.discountPrice || ''}
+                    onChange={(e) => handleStyleUpdate('discountPrice', e.target.value)}
+                    placeholder={language === 'ar' ? 'مثال: 249.00 درهم' : 'Example: $39.99'}
+                    className="text-sm"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">
+                    {language === 'ar' ? 'إخفاء السعر المخفض' : 'Hide Discount Price'}
+                  </Label>
+                  <Switch
+                    checked={currentStyle.hideDiscountPrice || false}
+                    onCheckedChange={(checked) => handleStyleUpdate('hideDiscountPrice', checked)}
+                  />
+                </div>
+              </div>
             </TabsContent>
           </Tabs>
         </div>
