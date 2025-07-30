@@ -40,26 +40,31 @@ const MyStores = () => {
   }, [activeStore, loading]);
   
   useEffect(() => {
-    console.log('🔄 MyStores useEffect - Current active store:', activeStore);
+    console.log('🔄 MyStores useEffect - Setting up store listener');
     
-    // إضافة listener للتغييرات
+    // تحديث فوري للحالة الحالية
+    const currentStore = UnifiedStoreManager.getActiveStore();
+    console.log('🔄 MyStores - Current store from UnifiedStoreManager:', currentStore);
+    
+    if (currentStore !== activeStore) {
+      console.log('🔄 MyStores - Updating state from', activeStore, 'to', currentStore);
+      setActiveStore(currentStore);
+    }
+
+    // إضافة listener للتغييرات المستقبلية
     const handleStoreChange = (store: string | null) => {
-      console.log('🔄 MyStores - Store changed to:', store);
+      console.log('🔄 MyStores - Store changed via listener to:', store);
       setActiveStore(store);
     };
 
     // ربط الـ listener
     const unsubscribe = UnifiedStoreManager.onStoreChange(handleStoreChange);
 
-    // تحديث فوري للتأكد
-    const currentStore = UnifiedStoreManager.getActiveStore();
-    if (currentStore !== activeStore) {
-      console.log('🔄 MyStores - Syncing store state:', currentStore);
-      setActiveStore(currentStore);
-    }
-
-    return unsubscribe;
-  }, [activeStore]);
+    return () => {
+      console.log('🔄 MyStores - Cleaning up store listener');
+      unsubscribe();
+    };
+  }, []); // إزالة التبعية لتجنب اللوب
 
   const handleConnectStore = async (shopDomain: string) => {
     try {
