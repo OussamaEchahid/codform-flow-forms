@@ -457,416 +457,394 @@ const SortableField: React.FC<SortableFieldProps> = ({
                   </div>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-4">
-                  {/* Left column */}
+                {/* WhatsApp specific settings */}
+                {shouldShowWhatsAppSpecificSettings ? (
                   <div className="space-y-4">
-                    {/* Placeholder - hide for submit button */}
-                    {!shouldShowSubmitSpecificSettings && (
-                      <div className="space-y-1">
-                        <Label htmlFor={`field-placeholder-${field.id}`}>
-                          {language === 'ar' ? 'مكان النص' : 'Placeholder'}
-                        </Label>
-                        <Input
-                          id={`field-placeholder-${field.id}`}
-                          value={editedField.placeholder || ''}
-                          onChange={(e) => handleFieldChange('placeholder', e.target.value)}
-                          className={language === 'ar' ? 'text-right' : ''}
-                        />
-                      </div>
-                    )}
-                    
-                    {/* Required field */}
-                    <div className="flex items-center space-x-2 rtl:space-x-reverse">
-                      <Switch 
-                        id={`field-required-${field.id}`} 
-                        checked={editedField.required || false}
-                        onCheckedChange={(checked) => handleFieldChange('required', checked)}
-                      />
-                      <Label 
-                        htmlFor={`field-required-${field.id}`}
-                        className={language === 'ar' ? 'text-right' : ''}
-                      >
-                        {language === 'ar' ? 'مطلوب' : 'Required'}
-                      </Label>
-                    </div>
-                    
-                    {/* Label color */}
+                    {/* Text Label */}
                     <div className="space-y-1">
-                      <Label>{language === 'ar' ? 'لون التسمية' : 'Label color'}</Label>
-                      <div className="flex gap-2 items-center">
-                        <Input
-                          type="color"
-                          value={editedField.style?.labelColor || '#9b87f5'}
-                          onChange={(e) => handleStyleChange('labelColor', e.target.value)}
-                          className="w-9 h-9 p-1"
-                        />
-                        <Input
-                          value={editedField.style?.labelColor || '#9b87f5'}
-                          onChange={(e) => handleStyleChange('labelColor', e.target.value)}
-                          className="flex-1"
-                        />
-                      </div>
+                      <Label htmlFor={`field-label-${field.id}`}>
+                        {language === 'ar' ? 'النص' : 'Text'}
+                      </Label>
+                      <Input
+                        id={`field-label-${field.id}`}
+                        value={editedField.label || ''}
+                        onChange={(e) => handleFieldChange('label', e.target.value)}
+                        className={language === 'ar' ? 'text-right' : ''}
+                      />
                     </div>
-                    
+
+                    {/* WhatsApp Number */}
+                    <div className="space-y-1">
+                      <Label htmlFor={`field-whatsapp-number-${field.id}`}>
+                        {language === 'ar' ? 'رقم الواتساب' : 'WhatsApp number'}
+                      </Label>
+                      <Input
+                        id={`field-whatsapp-number-${field.id}`}
+                        value={editedField.whatsappNumber || ''}
+                        onChange={(e) => handleFieldChange('whatsappNumber', e.target.value)}
+                        className={language === 'ar' ? 'text-right' : ''}
+                        placeholder="123456789"
+                      />
+                    </div>
+
                     {/* Font family */}
                     <div className="space-y-1">
-                      <Label>{language === 'ar' ? 'نوع الخط' : 'Font family'}</Label>
+                      <Label>{language === 'ar' ? 'عائلة الخط' : 'Font family'}</Label>
                       <Select
-                        value={editedField.style?.fontFamily || 'sans-serif'}
+                        value={editedField.style?.fontFamily || 'Cairo'}
                         onValueChange={(value) => handleStyleChange('fontFamily', value)}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder={language === 'ar' ? 'اختر نوع الخط' : 'Select font family'} />
+                          <SelectValue placeholder={language === 'ar' ? 'اختر عائلة الخط' : 'Select font family'} />
                         </SelectTrigger>
                         <SelectContent>
-                          {fontFamilies.map(font => (
-                            <SelectItem key={font.value} value={font.value}>{font.label}</SelectItem>
-                          ))}
+                          <SelectItem value="Cairo">Cairo</SelectItem>
+                          <SelectItem value="Roboto">Roboto</SelectItem>
+                          <SelectItem value="Arial">Arial</SelectItem>
+                          <SelectItem value="Montserrat">Montserrat</SelectItem>
+                          <SelectItem value="Poppins">Poppins</SelectItem>
+                          <SelectItem value="Open Sans">Open Sans</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
-                    
-                    {/* Background color - only for submit button */}
-                    {shouldShowSubmitSpecificSettings && (
+
+                    <div className="grid grid-cols-2 gap-4">
+                      {/* Font size */}
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <Label>{language === 'ar' ? 'حجم الخط' : 'Font size'}</Label>
+                          <span className="text-sm">{parseInt(editedField.style?.fontSize || '16')}px</span>
+                        </div>
+                        <Slider
+                          value={[parseInt(editedField.style?.fontSize || '16')]}
+                          onValueChange={(value) => handleStyleChange('fontSize', `${value[0]}px`)}
+                          max={50}
+                          min={8}
+                          step={1}
+                          className="w-full"
+                        />
+                      </div>
+
+                      {/* Text weight */}
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <Label>{language === 'ar' ? 'وزن النص' : 'Text weight'}</Label>
+                          <span className="text-sm">{editedField.style?.fontWeight || '400'}</span>
+                        </div>
+                        <Slider
+                          value={[parseInt(editedField.style?.fontWeight || '400')]}
+                          onValueChange={(value) => handleStyleChange('fontWeight', value[0].toString())}
+                          max={900}
+                          min={100}
+                          step={100}
+                          className="w-full"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      {/* Text Color */}
+                      <div className="space-y-1">
+                        <Label>{language === 'ar' ? 'لون النص' : 'Text Color'}</Label>
+                        <Input
+                          type="color"
+                          value={editedField.style?.color || '#ffffff'}
+                          onChange={(e) => handleStyleChange('color', e.target.value)}
+                          className="w-full h-10"
+                        />
+                      </div>
+
+                      {/* Background color */}
                       <div className="space-y-1">
                         <Label>{language === 'ar' ? 'لون الخلفية' : 'Background color'}</Label>
+                        <Input
+                          type="color"
+                          value={editedField.style?.backgroundColor || '#25d366'}
+                          onChange={(e) => handleStyleChange('backgroundColor', e.target.value)}
+                          className="w-full h-10"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Message */}
+                    <div className="space-y-1">
+                      <Label htmlFor={`field-whatsapp-message-${field.id}`}>
+                        {language === 'ar' ? 'الرسالة' : 'Message'}
+                      </Label>
+                      <textarea
+                        id={`field-whatsapp-message-${field.id}`}
+                        value={editedField.message || ''}
+                        onChange={(e) => handleFieldChange('message', e.target.value)}
+                        className={`w-full p-2 border border-gray-300 rounded-md resize-none ${language === 'ar' ? 'text-right' : ''}`}
+                        rows={3}
+                        placeholder={language === 'ar' ? 'مرحبا، أنا مهتم بـ {product}. هل يمكنك تقديم مزيد من المعلومات؟' : 'Hello, I\'m interested in {product}. Can you provide more information?'}
+                      />
+                      <p className="text-xs text-gray-500">
+                        {language === 'ar' ? 'استخدم (product) لإظهار اسم المنتج' : 'Use (product) to show product name'}
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-4">
+                      {/* Padding-Y */}
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <Label>{language === 'ar' ? 'المسافة العمودية' : 'Padding-Y'}</Label>
+                          <span className="text-sm">{parseInt(editedField.style?.paddingY || '10')}px</span>
+                        </div>
+                        <Slider
+                          value={[parseInt(editedField.style?.paddingY || '10')]}
+                          onValueChange={(value) => handleStyleChange('paddingY', `${value[0]}px`)}
+                          max={50}
+                          min={0}
+                          step={1}
+                          className="w-full"
+                        />
+                      </div>
+
+                      {/* Border radius */}
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <Label>{language === 'ar' ? 'استدارة الحدود' : 'Border radius'}</Label>
+                          <span className="text-sm">{parseInt(editedField.style?.borderRadius || '0')}px</span>
+                        </div>
+                        <Slider
+                          value={[parseInt(editedField.style?.borderRadius || '0')]}
+                          onValueChange={(value) => handleStyleChange('borderRadius', `${value[0]}px`)}
+                          max={30}
+                          min={0}
+                          step={1}
+                          className="w-full"
+                        />
+                      </div>
+
+                      {/* Border width */}
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <Label>{language === 'ar' ? 'سماكة الحدود' : 'Border width'}</Label>
+                          <span className="text-sm">{parseInt(editedField.style?.borderWidth || '0')}px</span>
+                        </div>
+                        <Slider
+                          value={[parseInt(editedField.style?.borderWidth || '0')]}
+                          onValueChange={(value) => handleStyleChange('borderWidth', `${value[0]}px`)}
+                          max={30}
+                          min={0}
+                          step={1}
+                          className="w-full"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Border color */}
+                    <div className="space-y-1">
+                      <Label>{language === 'ar' ? 'لون الحدود' : 'Border color'}</Label>
+                      <Input
+                        type="color"
+                        value={editedField.style?.borderColor || '#25d366'}
+                        onChange={(e) => handleStyleChange('borderColor', e.target.value)}
+                        className="w-full h-10"
+                      />
+                    </div>
+
+                    {/* Animation */}
+                    <div className="space-y-1">
+                      <Label>{language === 'ar' ? 'الرسوم المتحركة' : 'Animation'}</Label>
+                      <Select
+                        value={typeof editedField.style?.animation === 'string' ? editedField.style.animation : 'none'}
+                        onValueChange={(value) => handleStyleChange('animation', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={language === 'ar' ? 'اختر نوع التأثير' : 'Select animation'} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">{language === 'ar' ? 'بدون' : 'None'}</SelectItem>
+                          <SelectItem value="pulse">{language === 'ar' ? 'نبض' : 'Pulse'}</SelectItem>
+                          <SelectItem value="bounce">{language === 'ar' ? 'ارتداد' : 'Bounce'}</SelectItem>
+                          <SelectItem value="shake">{language === 'ar' ? 'اهتزاز' : 'Shake'}</SelectItem>
+                          <SelectItem value="swing">{language === 'ar' ? 'أرجحة' : 'Swing'}</SelectItem>
+                          <SelectItem value="wobble">{language === 'ar' ? 'تذبذب' : 'Wobble'}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      {/* Show icon */}
+                      <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                        <Switch 
+                          id={`field-show-icon-${field.id}`}
+                          checked={editedField.style?.showIcon !== false}
+                          onCheckedChange={(checked) => handleStyleChange('showIcon', checked)}
+                        />
+                        <Label htmlFor={`field-show-icon-${field.id}`}>
+                          {language === 'ar' ? 'إظهار الأيقونة' : 'Show icon'}
+                        </Label>
+                      </div>
+
+                      {/* Icon color */}
+                      <div className="space-y-1">
+                        <Label>{language === 'ar' ? 'لون الأيقونة' : 'Icon color'}</Label>
+                        <Input
+                          type="color"
+                          value={editedField.style?.iconColor || '#ffffff'}
+                          onChange={(e) => handleStyleChange('iconColor', e.target.value)}
+                          className="w-full h-10"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Icon selection */}
+                    <div className="space-y-1">
+                      <Label>{language === 'ar' ? 'الأيقونة' : 'Icon'}</Label>
+                      <Select
+                        value={editedField.style?.icon || 'whatsapp'}
+                        onValueChange={(value) => handleStyleChange('icon', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={language === 'ar' ? 'اختر الأيقونة' : 'Select icon'} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="whatsapp">
+                            <div className="flex items-center gap-2">
+                              <MessageSquare className="w-4 h-4" />
+                              {language === 'ar' ? 'واتساب' : 'WhatsApp'}
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="facebook">
+                            <div className="flex items-center gap-2">
+                              <Facebook className="w-4 h-4" />
+                              {language === 'ar' ? 'فيسبوك' : 'Facebook'}
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="instagram">
+                            <div className="flex items-center gap-2">
+                              <Instagram className="w-4 h-4" />
+                              {language === 'ar' ? 'انستقرام' : 'Instagram'}
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="twitter">
+                            <div className="flex items-center gap-2">
+                              <Twitter className="w-4 h-4" />
+                              {language === 'ar' ? 'تويتر' : 'Twitter'}
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="youtube">
+                            <div className="flex items-center gap-2">
+                              <Youtube className="w-4 h-4" />
+                              {language === 'ar' ? 'يوتيوب' : 'YouTube'}
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="linkedin">
+                            <div className="flex items-center gap-2">
+                              <Linkedin className="w-4 h-4" />
+                              {language === 'ar' ? 'لينكد إن' : 'LinkedIn'}
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="phone">
+                            <div className="flex items-center gap-2">
+                              <Phone className="w-4 h-4" />
+                              {language === 'ar' ? 'هاتف' : 'Phone'}
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="email">
+                            <div className="flex items-center gap-2">
+                              <Mail className="w-4 h-4" />
+                              {language === 'ar' ? 'بريد إلكتروني' : 'Email'}
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-4">
+                    {/* Left column - General field settings */}
+                    <div className="space-y-4">
+                      {/* Placeholder - hide for submit button */}
+                      {!shouldShowSubmitSpecificSettings && (
+                        <div className="space-y-1">
+                          <Label htmlFor={`field-placeholder-${field.id}`}>
+                            {language === 'ar' ? 'مكان النص' : 'Placeholder'}
+                          </Label>
+                          <Input
+                            id={`field-placeholder-${field.id}`}
+                            value={editedField.placeholder || ''}
+                            onChange={(e) => handleFieldChange('placeholder', e.target.value)}
+                            className={language === 'ar' ? 'text-right' : ''}
+                          />
+                        </div>
+                      )}
+                      
+                      {/* Required field */}
+                      <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                        <Switch 
+                          id={`field-required-${field.id}`} 
+                          checked={editedField.required || false}
+                          onCheckedChange={(checked) => handleFieldChange('required', checked)}
+                        />
+                        <Label 
+                          htmlFor={`field-required-${field.id}`}
+                          className={language === 'ar' ? 'text-right' : ''}
+                        >
+                          {language === 'ar' ? 'مطلوب' : 'Required'}
+                        </Label>
+                      </div>
+                      
+                      {/* Label color */}
+                      <div className="space-y-1">
+                        <Label>{language === 'ar' ? 'لون التسمية' : 'Label color'}</Label>
                         <div className="flex gap-2 items-center">
                           <Input
                             type="color"
-                            value={editedField.style?.backgroundColor || '#9b87f5'}
-                            onChange={(e) => handleStyleChange('backgroundColor', e.target.value)}
+                            value={editedField.style?.labelColor || '#9b87f5'}
+                            onChange={(e) => handleStyleChange('labelColor', e.target.value)}
                             className="w-9 h-9 p-1"
                           />
                           <Input
-                            value={editedField.style?.backgroundColor || '#9b87f5'}
-                            onChange={(e) => handleStyleChange('backgroundColor', e.target.value)}
+                            value={editedField.style?.labelColor || '#9b87f5'}
+                            onChange={(e) => handleStyleChange('labelColor', e.target.value)}
                             className="flex-1"
                           />
                         </div>
                       </div>
-                    )}
-                    
-                    {/* WhatsApp specific settings */}
-                    {shouldShowWhatsAppSpecificSettings && (
-                      <>
-                        {/* Text Label */}
-                        <div className="space-y-1">
-                          <Label htmlFor={`field-label-${field.id}`}>
-                            {language === 'ar' ? 'النص' : 'Text'}
-                          </Label>
-                          <Input
-                            id={`field-label-${field.id}`}
-                            value={editedField.label || ''}
-                            onChange={(e) => handleFieldChange('label', e.target.value)}
-                            className={language === 'ar' ? 'text-right' : ''}
-                          />
-                        </div>
-
-                        {/* WhatsApp Number */}
-                        <div className="space-y-1">
-                          <Label htmlFor={`field-whatsapp-number-${field.id}`}>
-                            {language === 'ar' ? 'رقم الواتساب' : 'WhatsApp number'}
-                          </Label>
-                          <Input
-                            id={`field-whatsapp-number-${field.id}`}
-                            value={editedField.whatsappNumber || ''}
-                            onChange={(e) => handleFieldChange('whatsappNumber', e.target.value)}
-                            className={language === 'ar' ? 'text-right' : ''}
-                            placeholder="123456789"
-                          />
-                        </div>
-
-                        {/* Font family */}
-                        <div className="space-y-1">
-                          <Label>{language === 'ar' ? 'عائلة الخط' : 'Font family'}</Label>
-                          <Select
-                            value={editedField.style?.fontFamily || 'Cairo'}
-                            onValueChange={(value) => handleStyleChange('fontFamily', value)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder={language === 'ar' ? 'اختر عائلة الخط' : 'Select font family'} />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Cairo">Cairo</SelectItem>
-                              <SelectItem value="Roboto">Roboto</SelectItem>
-                              <SelectItem value="Arial">Arial</SelectItem>
-                              <SelectItem value="Montserrat">Montserrat</SelectItem>
-                              <SelectItem value="Poppins">Poppins</SelectItem>
-                              <SelectItem value="Open Sans">Open Sans</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        {/* Font size */}
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between">
-                            <Label>{language === 'ar' ? 'حجم الخط' : 'Font size'}</Label>
-                            <span className="text-sm">{parseInt(editedField.style?.fontSize || '16')}px</span>
-                          </div>
-                          <Slider
-                            value={[parseInt(editedField.style?.fontSize || '16')]}
-                            onValueChange={(value) => handleStyleChange('fontSize', `${value[0]}px`)}
-                            max={50}
-                            min={8}
-                            step={1}
-                            className="w-full"
-                          />
-                        </div>
-
-                        {/* Text weight */}
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between">
-                            <Label>{language === 'ar' ? 'وزن النص' : 'Text weight'}</Label>
-                            <span className="text-sm">{editedField.style?.fontWeight || '400'}</span>
-                          </div>
-                          <Slider
-                            value={[parseInt(editedField.style?.fontWeight || '400')]}
-                            onValueChange={(value) => handleStyleChange('fontWeight', value[0].toString())}
-                            max={900}
-                            min={100}
-                            step={100}
-                            className="w-full"
-                          />
-                        </div>
-
-                        {/* Text Color */}
-                        <div className="space-y-1">
-                          <Label>{language === 'ar' ? 'لون النص' : 'Text Color'}</Label>
-                          <div className="flex gap-2 items-center">
-                            <Input
-                              type="color"
-                              value={editedField.style?.color || '#ffffff'}
-                              onChange={(e) => handleStyleChange('color', e.target.value)}
-                              className="w-9 h-9 p-1"
-                            />
-                            <Input
-                              value={editedField.style?.color || '#ffffff'}
-                              onChange={(e) => handleStyleChange('color', e.target.value)}
-                              className="flex-1"
-                            />
-                          </div>
-                        </div>
-
-                        {/* Background color */}
+                      
+                      {/* Font family */}
+                      <div className="space-y-1">
+                        <Label>{language === 'ar' ? 'نوع الخط' : 'Font family'}</Label>
+                        <Select
+                          value={editedField.style?.fontFamily || 'sans-serif'}
+                          onValueChange={(value) => handleStyleChange('fontFamily', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder={language === 'ar' ? 'اختر نوع الخط' : 'Select font family'} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {fontFamilies.map(font => (
+                              <SelectItem key={font.value} value={font.value}>{font.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      {/* Background color - only for submit button */}
+                      {shouldShowSubmitSpecificSettings && (
                         <div className="space-y-1">
                           <Label>{language === 'ar' ? 'لون الخلفية' : 'Background color'}</Label>
                           <div className="flex gap-2 items-center">
                             <Input
                               type="color"
-                              value={editedField.style?.backgroundColor || '#25d366'}
+                              value={editedField.style?.backgroundColor || '#9b87f5'}
                               onChange={(e) => handleStyleChange('backgroundColor', e.target.value)}
                               className="w-9 h-9 p-1"
                             />
                             <Input
-                              value={editedField.style?.backgroundColor || '#25d366'}
+                              value={editedField.style?.backgroundColor || '#9b87f5'}
                               onChange={(e) => handleStyleChange('backgroundColor', e.target.value)}
                               className="flex-1"
                             />
                           </div>
                         </div>
-
-                        {/* Message */}
-                        <div className="space-y-1">
-                          <Label htmlFor={`field-whatsapp-message-${field.id}`}>
-                            {language === 'ar' ? 'الرسالة' : 'Message'}
-                          </Label>
-                          <textarea
-                            id={`field-whatsapp-message-${field.id}`}
-                            value={editedField.message || ''}
-                            onChange={(e) => handleFieldChange('message', e.target.value)}
-                            className={`w-full p-2 border border-gray-300 rounded-md resize-none ${language === 'ar' ? 'text-right' : ''}`}
-                            rows={3}
-                            placeholder={language === 'ar' ? 'مرحبا، أنا مهتم بـ {product}. هل يمكنك تقديم مزيد من المعلومات؟' : 'Hello, I\'m interested in {product}. Can you provide more information?'}
-                          />
-                          <p className="text-xs text-gray-500">
-                            {language === 'ar' ? 'استخدم (product) لإظهار اسم المنتج' : 'Use (product) to show product name'}
-                          </p>
-                        </div>
-
-                        {/* Padding-Y */}
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between">
-                            <Label>{language === 'ar' ? 'المسافة العمودية' : 'Padding-Y'}</Label>
-                            <span className="text-sm">{parseInt(editedField.style?.paddingY || '10')}px</span>
-                          </div>
-                          <Slider
-                            value={[parseInt(editedField.style?.paddingY || '10')]}
-                            onValueChange={(value) => handleStyleChange('paddingY', `${value[0]}px`)}
-                            max={50}
-                            min={0}
-                            step={1}
-                            className="w-full"
-                          />
-                        </div>
-
-                        {/* Border color */}
-                        <div className="space-y-1">
-                          <Label>{language === 'ar' ? 'لون الحدود' : 'Border color'}</Label>
-                          <div className="flex gap-2 items-center">
-                            <Input
-                              type="color"
-                              value={editedField.style?.borderColor || '#25d366'}
-                              onChange={(e) => handleStyleChange('borderColor', e.target.value)}
-                              className="w-9 h-9 p-1"
-                            />
-                            <Input
-                              value={editedField.style?.borderColor || '#25d366'}
-                              onChange={(e) => handleStyleChange('borderColor', e.target.value)}
-                              className="flex-1"
-                            />
-                          </div>
-                        </div>
-
-                        {/* Border radius */}
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between">
-                            <Label>{language === 'ar' ? 'استدارة الحدود' : 'Border radius'}</Label>
-                            <span className="text-sm">{parseInt(editedField.style?.borderRadius || '0')}px</span>
-                          </div>
-                          <Slider
-                            value={[parseInt(editedField.style?.borderRadius || '0')]}
-                            onValueChange={(value) => handleStyleChange('borderRadius', `${value[0]}px`)}
-                            max={30}
-                            min={0}
-                            step={1}
-                            className="w-full"
-                          />
-                        </div>
-
-                        {/* Border width */}
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between">
-                            <Label>{language === 'ar' ? 'سماكة الحدود' : 'Border width'}</Label>
-                            <span className="text-sm">{parseInt(editedField.style?.borderWidth || '0')}px</span>
-                          </div>
-                          <Slider
-                            value={[parseInt(editedField.style?.borderWidth || '0')]}
-                            onValueChange={(value) => handleStyleChange('borderWidth', `${value[0]}px`)}
-                            max={30}
-                            min={0}
-                            step={1}
-                            className="w-full"
-                          />
-                        </div>
-
-                        {/* Animation */}
-                        <div className="space-y-1">
-                          <Label>{language === 'ar' ? 'الرسوم المتحركة' : 'Animation'}</Label>
-                          <Select
-                            value={typeof editedField.style?.animation === 'string' ? editedField.style.animation : 'none'}
-                            onValueChange={(value) => handleStyleChange('animation', value)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder={language === 'ar' ? 'اختر نوع التأثير' : 'Select animation'} />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">{language === 'ar' ? 'بدون' : 'None'}</SelectItem>
-                              <SelectItem value="pulse">{language === 'ar' ? 'نبض' : 'Pulse'}</SelectItem>
-                              <SelectItem value="bounce">{language === 'ar' ? 'ارتداد' : 'Bounce'}</SelectItem>
-                              <SelectItem value="shake">{language === 'ar' ? 'اهتزاز' : 'Shake'}</SelectItem>
-                              <SelectItem value="swing">{language === 'ar' ? 'أرجحة' : 'Swing'}</SelectItem>
-                              <SelectItem value="wobble">{language === 'ar' ? 'تذبذب' : 'Wobble'}</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        {/* Show icon */}
-                        <div className="flex items-center space-x-2 rtl:space-x-reverse">
-                          <Switch 
-                            id={`field-show-icon-${field.id}`}
-                            checked={editedField.style?.showIcon !== false}
-                            onCheckedChange={(checked) => handleStyleChange('showIcon', checked)}
-                          />
-                          <Label htmlFor={`field-show-icon-${field.id}`}>
-                            {language === 'ar' ? 'إظهار الأيقونة' : 'Show icon'}
-                          </Label>
-                        </div>
-
-                        {/* Icon color */}
-                        <div className="space-y-1">
-                          <Label>{language === 'ar' ? 'لون الأيقونة' : 'Icon color'}</Label>
-                          <div className="flex gap-2 items-center">
-                            <Input
-                              type="color"
-                              value={editedField.style?.iconColor || '#ffffff'}
-                              onChange={(e) => handleStyleChange('iconColor', e.target.value)}
-                              className="w-9 h-9 p-1"
-                            />
-                            <Input
-                              value={editedField.style?.iconColor || '#ffffff'}
-                              onChange={(e) => handleStyleChange('iconColor', e.target.value)}
-                              className="flex-1"
-                            />
-                          </div>
-                        </div>
-
-                        {/* Icon selection */}
-                        <div className="space-y-1">
-                          <Label>{language === 'ar' ? 'الأيقونة' : 'Icon'}</Label>
-                          <Select
-                            value={editedField.style?.icon || 'whatsapp'}
-                            onValueChange={(value) => handleStyleChange('icon', value)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder={language === 'ar' ? 'اختر الأيقونة' : 'Select icon'} />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="whatsapp">
-                                <div className="flex items-center gap-2">
-                                  <MessageSquare className="w-4 h-4" />
-                                  {language === 'ar' ? 'واتساب' : 'WhatsApp'}
-                                </div>
-                              </SelectItem>
-                              <SelectItem value="facebook">
-                                <div className="flex items-center gap-2">
-                                  <Facebook className="w-4 h-4" />
-                                  {language === 'ar' ? 'فيسبوك' : 'Facebook'}
-                                </div>
-                              </SelectItem>
-                              <SelectItem value="instagram">
-                                <div className="flex items-center gap-2">
-                                  <Instagram className="w-4 h-4" />
-                                  {language === 'ar' ? 'انستقرام' : 'Instagram'}
-                                </div>
-                              </SelectItem>
-                              <SelectItem value="twitter">
-                                <div className="flex items-center gap-2">
-                                  <Twitter className="w-4 h-4" />
-                                  {language === 'ar' ? 'تويتر' : 'Twitter'}
-                                </div>
-                              </SelectItem>
-                              <SelectItem value="youtube">
-                                <div className="flex items-center gap-2">
-                                  <Youtube className="w-4 h-4" />
-                                  {language === 'ar' ? 'يوتيوب' : 'YouTube'}
-                                </div>
-                              </SelectItem>
-                              <SelectItem value="linkedin">
-                                <div className="flex items-center gap-2">
-                                  <Linkedin className="w-4 h-4" />
-                                  {language === 'ar' ? 'لينكد إن' : 'LinkedIn'}
-                                </div>
-                              </SelectItem>
-                              <SelectItem value="phone">
-                                <div className="flex items-center gap-2">
-                                  <Phone className="w-4 h-4" />
-                                  {language === 'ar' ? 'هاتف' : 'Phone'}
-                                </div>
-                              </SelectItem>
-                              <SelectItem value="email">
-                                <div className="flex items-center gap-2">
-                                  <Mail className="w-4 h-4" />
-                                  {language === 'ar' ? 'بريد إلكتروني' : 'Email'}
-                                </div>
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </>
-                    )}
-                    
-                    {/* Text color - hide for WhatsApp button */}
-                    {!shouldShowWhatsAppSpecificSettings && (
+                      )}
+                      
+                      {/* Text color */}
                       <div className="space-y-1">
                         <Label>{language === 'ar' ? 'لون النص' : 'Text color'}</Label>
                         <div className="flex gap-2 items-center">
@@ -883,30 +861,8 @@ const SortableField: React.FC<SortableFieldProps> = ({
                           />
                         </div>
                       </div>
-                    )}
-
-                    {/* Text color for WhatsApp */}
-                    {shouldShowWhatsAppSpecificSettings && (
-                      <div className="space-y-1">
-                        <Label>{language === 'ar' ? 'لون النص' : 'Text Color'}</Label>
-                        <div className="flex gap-2 items-center">
-                          <Input
-                            type="color"
-                            value={editedField.style?.color || '#ffffff'}
-                            onChange={(e) => handleStyleChange('color', e.target.value)}
-                            className="w-9 h-9 p-1"
-                          />
-                          <Input
-                            value={editedField.style?.color || '#ffffff'}
-                            onChange={(e) => handleStyleChange('color', e.target.value)}
-                            className="flex-1"
-                          />
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* Font size - hide for WhatsApp button */}
-                    {!shouldShowWhatsAppSpecificSettings && (
+                      
+                      {/* Font size */}
                       <div className="space-y-1">
                         <div className="flex items-center justify-between">
                           <Label>{language === 'ar' ? 'حجم الخط' : 'Font size'}</Label>
@@ -921,10 +877,8 @@ const SortableField: React.FC<SortableFieldProps> = ({
                           className="w-full"
                         />
                       </div>
-                    )}
-                    
-                    {/* Padding-Y - hide for WhatsApp button */}
-                    {!shouldShowWhatsAppSpecificSettings && (
+                      
+                      {/* Padding-Y */}
                       <div className="space-y-1">
                         <div className="flex items-center justify-between">
                           <Label>{language === 'ar' ? 'المسافة العمودية' : 'Padding-Y'}</Label>
@@ -939,50 +893,48 @@ const SortableField: React.FC<SortableFieldProps> = ({
                           className="w-full"
                         />
                       </div>
-                    )}
-                    
-                    {/* Animation settings for submit button */}
-                    {shouldShowSubmitSpecificSettings && (
-                      <div className="space-y-1">
-                        <div className="flex items-center space-x-2 rtl:space-x-reverse">
-                          <Switch 
-                            id={`field-animation-${field.id}`}
-                            checked={editedField.style?.animation || false}
-                            onCheckedChange={(checked) => handleStyleChange('animation', checked)}
-                          />
-                          <Label 
-                            htmlFor={`field-animation-${field.id}`}
-                          >
-                            {language === 'ar' ? 'تفعيل الرسوم المتحركة' : 'Enable Animation'}
-                          </Label>
-                        </div>
-                        
-                        {editedField.style?.animation && (
-                          <div className="mt-2">
-                            <Label>{language === 'ar' ? 'نوع الرسوم المتحركة' : 'Animation Type'}</Label>
-                            <Select
-                              value={editedField.style?.animationType || 'pulse'}
-                              onValueChange={(value) => handleStyleChange('animationType', value)}
+                      
+                      {/* Animation settings for submit button */}
+                      {shouldShowSubmitSpecificSettings && (
+                        <div className="space-y-1">
+                          <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                            <Switch 
+                              id={`field-animation-${field.id}`}
+                              checked={editedField.style?.animation || false}
+                              onCheckedChange={(checked) => handleStyleChange('animation', checked)}
+                            />
+                            <Label 
+                              htmlFor={`field-animation-${field.id}`}
                             >
-                              <SelectTrigger className="mt-1">
-                                <SelectValue placeholder={language === 'ar' ? 'اختر نوع التأثير' : 'Select animation type'} />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {animationTypes.map((type) => (
-                                  <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                              {language === 'ar' ? 'تفعيل الرسوم المتحركة' : 'Enable Animation'}
+                            </Label>
                           </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Right column */}
-                  <div className="space-y-4">
-                    {/* Input for - hide for submit and whatsapp buttons */}
-                    {!shouldShowSubmitSpecificSettings && !shouldShowWhatsAppSpecificSettings && (
+                          
+                          {editedField.style?.animation && (
+                            <div className="mt-2">
+                              <Label>{language === 'ar' ? 'نوع الرسوم المتحركة' : 'Animation Type'}</Label>
+                              <Select
+                                value={editedField.style?.animationType || 'pulse'}
+                                onValueChange={(value) => handleStyleChange('animationType', value)}
+                              >
+                                <SelectTrigger className="mt-1">
+                                  <SelectValue placeholder={language === 'ar' ? 'اختر نوع التأثير' : 'Select animation type'} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {animationTypes.map((type) => (
+                                    <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Right column - Additional settings */}
+                    <div className="space-y-4">
+                      {/* Input for */}
                       <div className="space-y-1">
                         <Label htmlFor={`field-input-for-${field.id}`}>
                           {language === 'ar' ? 'حقل الإدخال المرتبط' : 'Input for'}
@@ -994,10 +946,8 @@ const SortableField: React.FC<SortableFieldProps> = ({
                           className={language === 'ar' ? 'text-right' : ''}
                         />
                       </div>
-                    )}
-                    
-                    {/* Error message - hide for submit and whatsapp buttons */}
-                    {!shouldShowSubmitSpecificSettings && !shouldShowWhatsAppSpecificSettings && (
+                      
+                      {/* Error message */}
                       <div className="space-y-1">
                         <Label htmlFor={`field-error-message-${field.id}`}>
                           {language === 'ar' ? 'رسالة الخطأ' : 'Error message'}
@@ -1010,10 +960,8 @@ const SortableField: React.FC<SortableFieldProps> = ({
                           placeholder={language === 'ar' ? 'هذا الحقل مطلوب' : 'This field is required'}
                         />
                       </div>
-                    )}
-                    
-                    {/* Label text - hide for whatsapp button */}
-                    {!shouldShowWhatsAppSpecificSettings && (
+                      
+                      {/* Label text */}
                       <div className="space-y-1">
                         <Label htmlFor={`field-label-${field.id}`}>
                           {language === 'ar' ? 'نص التسمية' : 'Label text'}
@@ -1025,10 +973,8 @@ const SortableField: React.FC<SortableFieldProps> = ({
                           className={language === 'ar' ? 'text-right' : ''}
                         />
                       </div>
-                    )}
-                    
-                    {/* Show label - hide for whatsapp button */}
-                    {!shouldShowWhatsAppSpecificSettings && (
+                      
+                      {/* Show label */}
                       <div className="flex items-center space-x-2 rtl:space-x-reverse">
                         <Switch 
                           id={`field-show-label-${field.id}`}
@@ -1041,10 +987,8 @@ const SortableField: React.FC<SortableFieldProps> = ({
                           {language === 'ar' ? 'إظهار التسمية' : 'Show label'}
                         </Label>
                       </div>
-                    )}
-                    
-                    {/* Label weight - hide for whatsapp button */}
-                    {!shouldShowWhatsAppSpecificSettings && (
+                      
+                      {/* Label weight */}
                       <div className="space-y-1">
                         <div className="flex items-center justify-between">
                           <Label>{language === 'ar' ? 'وزن خط التسمية' : 'Label weight'}</Label>
@@ -1070,62 +1014,60 @@ const SortableField: React.FC<SortableFieldProps> = ({
                           </SelectContent>
                         </Select>
                       </div>
-                    )}
-                    
-                    {/* Border color */}
-                    <div className="space-y-1">
-                      <Label>{language === 'ar' ? 'لون الحدود' : 'Border color'}</Label>
-                      <div className="flex gap-2 items-center">
-                        <Input
-                          type="color"
-                          value={editedField.style?.borderColor || '#9b87f5'}
-                          onChange={(e) => handleStyleChange('borderColor', e.target.value)}
-                          className="w-9 h-9 p-1"
-                        />
-                        <Input
-                          value={editedField.style?.borderColor || '#9b87f5'}
-                          onChange={(e) => handleStyleChange('borderColor', e.target.value)}
-                          className="flex-1"
-                        />
+                      
+                      {/* Border color */}
+                      <div className="space-y-1">
+                        <Label>{language === 'ar' ? 'لون الحدود' : 'Border color'}</Label>
+                        <div className="flex gap-2 items-center">
+                          <Input
+                            type="color"
+                            value={editedField.style?.borderColor || '#9b87f5'}
+                            onChange={(e) => handleStyleChange('borderColor', e.target.value)}
+                            className="w-9 h-9 p-1"
+                          />
+                          <Input
+                            value={editedField.style?.borderColor || '#9b87f5'}
+                            onChange={(e) => handleStyleChange('borderColor', e.target.value)}
+                            className="flex-1"
+                          />
+                        </div>
                       </div>
-                    </div>
-                    
-                    {/* Border width */}
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <Label>{language === 'ar' ? 'سماكة الحدود' : 'Border width'}</Label>
-                        <span className="text-sm">{editedField.style?.borderWidth || '1'}px</span>
-                      </div>
-                      <Input
-                        type="number"
-                        min="0"
-                        max="10"
-                        value={parseInt(editedField.style?.borderWidth || '1')}
-                        onChange={(e) => handleStyleChange('borderWidth', `${e.target.value}px`)}
-                        className="w-full"
-                      />
-                    </div>
-                    
-                    {/* Border radius - only for submit button */}
-                    {shouldShowSubmitSpecificSettings && (
+                      
+                      {/* Border width */}
                       <div className="space-y-1">
                         <div className="flex items-center justify-between">
-                          <Label>{language === 'ar' ? 'استدارة الحدود' : 'Border radius'}</Label>
-                          <span className="text-sm">{editedField.style?.borderRadius || '8'}px</span>
+                          <Label>{language === 'ar' ? 'سماكة الحدود' : 'Border width'}</Label>
+                          <span className="text-sm">{editedField.style?.borderWidth || '1'}px</span>
                         </div>
                         <Input
                           type="number"
                           min="0"
-                          max="50"
-                          value={parseInt(editedField.style?.borderRadius || '8')}
-                          onChange={(e) => handleStyleChange('borderRadius', `${e.target.value}px`)}
+                          max="10"
+                          value={parseInt(editedField.style?.borderWidth || '1')}
+                          onChange={(e) => handleStyleChange('borderWidth', `${e.target.value}px`)}
                           className="w-full"
                         />
                       </div>
-                    )}
-                    
-                    {/* Show icon in Live Preview - hide for whatsapp button */}
-                    {!shouldShowWhatsAppSpecificSettings && (
+                      
+                      {/* Border radius - only for submit button */}
+                      {shouldShowSubmitSpecificSettings && (
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <Label>{language === 'ar' ? 'استدارة الحدود' : 'Border radius'}</Label>
+                            <span className="text-sm">{editedField.style?.borderRadius || '8'}px</span>
+                          </div>
+                          <Input
+                            type="number"
+                            min="0"
+                            max="50"
+                            value={parseInt(editedField.style?.borderRadius || '8')}
+                            onChange={(e) => handleStyleChange('borderRadius', `${e.target.value}px`)}
+                            className="w-full"
+                          />
+                        </div>
+                      )}
+                      
+                      {/* Show icon in Live Preview */}
                       <div className="flex items-center space-x-2 rtl:space-x-reverse">
                         <Switch 
                           id={`field-show-icon-${field.id}`}
@@ -1138,10 +1080,8 @@ const SortableField: React.FC<SortableFieldProps> = ({
                           {language === 'ar' ? 'إظهار الأيقونة في المعاينة' : 'Show icon in preview'}
                         </Label>
                       </div>
-                    )}
-                    
-                    {/* Icon for Live Preview with visual icons - hide for whatsapp button */}
-                    {!shouldShowWhatsAppSpecificSettings && (
+                      
+                      {/* Icon for Live Preview with visual icons */}
                       <div className="space-y-1">
                         <Label>{language === 'ar' ? 'أيقونة المعاينة' : 'Preview icon'}</Label>
                         <Select
@@ -1168,28 +1108,27 @@ const SortableField: React.FC<SortableFieldProps> = ({
                           </SelectContent>
                         </Select>
                       </div>
-                    )}
-                    
-                    {/* إعدادات لون الأيقونة - hide for whatsapp button */}
-                    {!shouldShowWhatsAppSpecificSettings && editedField.icon && editedField.icon !== 'none' && (
-                      <div className="space-y-1">
-                        <Label>{language === 'ar' ? 'لون الأيقونة' : 'Icon Color'}</Label>
-                        <div className="flex items-center gap-2">
-                          <Input
-                            type="color"
-                            value={editedField.style?.iconColor || '#6366f1'}
-                            onChange={(e) => handleStyleChange('iconColor', e.target.value)}
-                            className="w-12 h-8 p-1 rounded cursor-pointer"
-                          />
-                          <span className="text-sm text-gray-600">
-                            {editedField.style?.iconColor || '#6366f1'}
-                          </span>
+                      
+                      {/* إعدادات لون الأيقونة */}
+                      {editedField.icon && editedField.icon !== 'none' && (
+                        <div className="space-y-1">
+                          <Label>{language === 'ar' ? 'لون الأيقونة' : 'Icon Color'}</Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="color"
+                              value={editedField.style?.iconColor || '#6366f1'}
+                              onChange={(e) => handleStyleChange('iconColor', e.target.value)}
+                              className="w-12 h-8 p-1 rounded cursor-pointer"
+                            />
+                            <span className="text-sm text-gray-600">
+                              {editedField.style?.iconColor || '#6366f1'}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
               
               {/* Action buttons */}
               <div className="flex justify-end space-x-2 rtl:space-x-reverse pt-4 border-t mt-4">
