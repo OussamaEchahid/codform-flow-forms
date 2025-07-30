@@ -11,7 +11,7 @@ interface FormElementListProps {
 const FormElementList: React.FC<FormElementListProps> = ({ onAddElement }) => {
   const { language } = useI18n();
   
-  // Available elements - keeping only basics + WhatsApp
+  // Available elements - keeping only basics + WhatsApp + Image
   const availableElements = [
     { 
       type: 'form-title', 
@@ -27,6 +27,11 @@ const FormElementList: React.FC<FormElementListProps> = ({ onAddElement }) => {
       type: 'textarea', 
       label: language === 'ar' ? 'نص متعدد الأسطر' : 'Multi-line Input', 
       icon: '¶' 
+    },
+    { 
+      type: 'image', 
+      label: language === 'ar' ? 'صورة' : 'Image', 
+      icon: '🖼️' 
     },
     { 
       type: 'whatsapp', 

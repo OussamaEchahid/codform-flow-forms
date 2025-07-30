@@ -16,8 +16,8 @@ const ImageField: React.FC<ImageFieldProps> = ({ field, formStyle }) => {
   const { language } = useI18n();
   const fieldStyle = field.style || {};
   
-  // Use image source or placeholder
-  const imageSrc = field.src || 'https://codform.com/assets/image_place_holder.avif';
+  // Use image source or default to the trust badges image
+  const imageSrc = field.src || '/lovable-uploads/9e1cd769-7976-41fc-a2a0-189049772982.png';
   const imageAlt = field.alt || (language === 'ar' ? 'صورة' : 'Image');
   
   // Get width from field or default to 100%
