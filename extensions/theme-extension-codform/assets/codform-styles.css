@@ -15,6 +15,64 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
+/* Form field spacing consistency */
+.codform-field-wrapper {
+  margin-bottom: 16px;
+}
+
+.codform-field-wrapper:last-of-type {
+  margin-bottom: 20px;
+}
+
+/* Cart items styling */
+.codform-cart-item {
+  margin: 16px 0 20px 0;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f9fafb;
+}
+
+.codform-cart-item .item-title {
+  font-size: 16px !important;
+  font-weight: 600;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.codform-cart-item .item-price {
+  font-size: 16px !important;
+  font-weight: 600;
+  color: #059669;
+}
+
+.codform-cart-item .item-variant {
+  font-size: 14px !important;
+  color: #6b7280;
+  margin-bottom: 4px;
+}
+
+.codform-cart-item .quantity-selector {
+  margin: 12px 0;
+}
+
+.codform-cart-item .quantity-selector button {
+  padding: 6px 12px;
+  font-size: 14px;
+}
+
+.codform-cart-item .quantity-selector span {
+  font-size: 16px;
+  font-weight: 500;
+  min-width: 40px;
+  text-align: center;
+}
+
+/* Submit button spacing */
+.codform-submit-button {
+  margin-top: 20px !important;
+}
+
 /* Remove borders from popup button area only */
 .codform-popup-only-mode [data-form-preview-id="form-preview-stable"] {
   border: none !important;
