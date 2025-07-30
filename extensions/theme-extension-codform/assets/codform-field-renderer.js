@@ -30,21 +30,20 @@ function renderField(field, formStyle, formLanguage) {
   
   console.log('🔄 CODFORM: Detected form direction:', formDirection, 'for language:', formLanguage);
   
-  // Base styling configuration - Match TextInput.tsx exactly
-  const baseFontSize = getStyleValue(formStyle, 'fontSize', '1rem');
+  // Base styling configuration - FIXED: Extract fontSize properly from formStyle
+  const globalFontSize = formStyle?.fontSize || '1rem';
+  console.log('🔧 FIXED: globalFontSize extracted:', globalFontSize, 'from formStyle:', formStyle);
+  
   const labelStyle = field.style || {};
   const showLabel = getStyleValue(labelStyle, 'showLabel', true);
   const isFloatingLabels = getStyleValue(formStyle, 'floatingLabels', false);
   
-  // FIXED: Use formStyle.fontSize as primary source for font sizes
-  const globalFontSize = formStyle.fontSize || '1rem';
-  
-  // Label styling - Use field.style.fontSize for individual field settings, fallback to global
+  // Label styling - Use proper cascading: field.style.fontSize -> formStyle.fontSize -> 1rem
   const labelColor = getStyleValue(labelStyle, 'labelColor', '#333333');
   const labelFontSize = labelStyle.fontSize || globalFontSize;
   const labelFontWeight = getStyleValue(labelStyle, 'labelFontWeight', '500');
   
-  // Field styling - Use same fontSize for consistency, fallback to global
+  // Field styling - Use same cascading logic
   const fieldBackgroundColor = '#FFFFFF';
   const fieldBorderColor = getStyleValue(labelStyle, 'borderColor', '#D1D5DB');
   const fieldBorderRadius = getStyleValue(labelStyle, 'borderRadius', '8px');
