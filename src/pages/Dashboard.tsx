@@ -20,6 +20,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { getShopSubscription } from "@/lib/supabase-with-email";
 
 interface DashboardStats {
   totalForms: number;
@@ -52,6 +53,7 @@ const Dashboard = () => {
     activeStore: null
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [subscription, setSubscription] = useState<any>(null);
 
   useEffect(() => {
     // تحميل البيانات إذا كان المستخدم مصادق عليه (تقليدي أو Shopify)
@@ -79,8 +81,18 @@ const Dashboard = () => {
           totalOrders: 0,
           activeStore: null
         });
+        setSubscription(null);
         setIsLoading(false);
         return;
+      }
+
+      // جلب بيانات الاشتراك للمتجر النشط
+      try {
+        const { data: subscriptionData } = await getShopSubscription(activeStore);
+        setSubscription(subscriptionData);
+        console.log('💳 Dashboard - Subscription data loaded:', subscriptionData);
+      } catch (subscriptionError) {
+        console.error('❌ Dashboard - Error loading subscription:', subscriptionError);
       }
 
       // التحقق من البريد الإلكتروني وجلبه إذا لم يكن موجوداً
@@ -298,6 +310,18 @@ const Dashboard = () => {
                                 const email = localStorage.getItem('shopify_user_email');
                                 return email && email !== 'مغربي• VIP' ? email : `owner@${connectedStore}`;
                               })()}
+                            </small>
+                            <br />
+                            <small className="text-green-600/70">
+                              خطة الاشتراك: <span className="font-medium">
+                                {subscription?.plan_type ? 
+                                  subscription.plan_type.charAt(0).toUpperCase() + subscription.plan_type.slice(1) : 
+                                  'Free'
+                                }
+                              </span>
+                              {subscription?.status === 'active' && (
+                                <span className="text-green-700 ml-1">• نشط</span>
+                              )}
                             </small>
                           </div>
                           <div className="flex flex-col gap-2">

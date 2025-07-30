@@ -85,4 +85,53 @@ export const getFormSubmissions = async (formIds: string[]) => {
     .in('form_id', formIds);
 };
 
+// دالة للحصول على اشتراك المتجر (استخدام SQL مباشر حتى يتم تحديث الأنواع)
+export const getShopSubscription = async (shopDomain: string) => {
+  console.log(`💳 Getting subscription for shop: ${shopDomain}`);
+  
+  try {
+    const { data, error } = await (supabase as any)
+      .from('shop_subscriptions')
+      .select('*')
+      .eq('shop_domain', shopDomain)
+      .maybeSingle();
+      
+    if (error) {
+      console.error('❌ Error getting shop subscription:', error);
+      return { data: null, error };
+    }
+    
+    return { data: data || null, error: null };
+  } catch (err) {
+    console.error('❌ Exception getting shop subscription:', err);
+    return { data: null, error: err };
+  }
+};
+
+// دالة للحصول على جميع اشتراكات المستخدم
+export const getUserSubscriptions = async () => {
+  const userEmail = getCurrentUserEmail();
+  console.log(`💳 Getting all subscriptions for email: ${userEmail}`);
+  
+  const { data: stores } = await getUserStores();
+  
+  if (!stores || stores.length === 0) {
+    return { data: [], error: null };
+  }
+  
+  const subscriptions = [];
+  
+  // جلب اشتراك كل متجر
+  for (const store of stores) {
+    const { data: subscription } = await getShopSubscription(store.shop);
+    if (subscription) {
+      subscriptions.push({ ...subscription, store });
+    }
+  }
+  
+  console.log(`✅ Found ${subscriptions.length} subscriptions`);
+  
+  return { data: subscriptions, error: null };
+};
+
 export { supabase };
