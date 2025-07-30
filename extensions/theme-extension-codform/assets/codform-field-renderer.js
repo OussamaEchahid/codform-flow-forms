@@ -2,6 +2,12 @@
    CODFORM FIELD RENDERER - Complete field rendering functions
    =============================================================================== */
 
+// Helper function to get style values safely
+function getStyleValue(style, property, fallback) {
+  if (!style || typeof style !== 'object') return fallback;
+  return style[property] || fallback;
+}
+
 function renderField(field, formStyle, formLanguage) {
   if (!field || !field.type) return '';
   
