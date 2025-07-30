@@ -305,7 +305,6 @@ const SortableField: React.FC<SortableFieldProps> = ({
               </Button>
               
               <AccordionTrigger onClick={toggleExpand} className="py-0">
-                <ChevronDown size={16} />
               </AccordionTrigger>
             </div>
           </div>
