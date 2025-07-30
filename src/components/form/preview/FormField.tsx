@@ -11,6 +11,7 @@ import CheckboxGroup from './fields/CheckboxGroup';
 import RadioGroup from './fields/RadioGroup';
 import HtmlContent from './fields/HtmlContent';
 import WhatsAppButton from './fields/WhatsAppButton';
+import ImageField from './fields/ImageField';
 
 
 interface FormFieldProps {
@@ -93,6 +94,9 @@ const FormField: React.FC<FormFieldProps> = ({
     
     case 'whatsapp':
       return <WhatsAppButton field={enhancedField} formStyle={formStyle} />;
+    
+    case 'image':
+      return <ImageField field={enhancedField} formStyle={formStyle} />;
     
     default:
       return (

@@ -17,14 +17,19 @@ const ImageField: React.FC<ImageFieldProps> = ({ field, formStyle }) => {
   const fieldStyle = field.style || {};
   
   // Use image source or placeholder
-  const imageSrc = field.src || 'https://via.placeholder.com/800x400?text=Image';
+  const imageSrc = field.src || 'https://codform.com/assets/image_place_holder.avif';
   const imageAlt = field.alt || (language === 'ar' ? 'صورة' : 'Image');
   
   // Get width from field or default to 100%
-  const imageWidth = field.width || '100%';
+  const imageWidth = typeof field.width === 'string' ? 
+    (field.width.includes('%') ? field.width : `${field.width}%`) : 
+    (field.width ? `${field.width}%` : '100%');
   
   // Set border radius for the image
   const imageBorderRadius = fieldStyle.borderRadius || formStyle.borderRadius || '0.5rem';
+  
+  // Get alignment from field style
+  const alignment = fieldStyle.textAlign || 'center';
   
   return (
     <div className="mb-4">
@@ -46,8 +51,10 @@ const ImageField: React.FC<ImageFieldProps> = ({ field, formStyle }) => {
         style={{
           maxWidth: '100%',
           width: imageWidth,
-          margin: '0 auto',
-          borderRadius: imageBorderRadius
+          margin: alignment === 'center' ? '0 auto' : 
+                  alignment === 'right' ? '0 0 0 auto' : '0 auto 0 0',
+          borderRadius: imageBorderRadius,
+          textAlign: alignment
         }}
       >
         <img 

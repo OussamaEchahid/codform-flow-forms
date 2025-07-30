@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useForm } from 'react-hook-form';
 import WhatsAppFieldEditor from './editor/WhatsAppFieldEditor';
+import ImageFieldEditor from './editor/ImageFieldEditor';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -669,6 +670,14 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
             field={currentField}
             onSave={handleSaveField}
             onClose={onClose}
+          />
+        );
+      
+      case 'image':
+        return (
+          <ImageFieldEditor
+            field={currentField}
+            onUpdate={handleSaveField}
           />
         );
         

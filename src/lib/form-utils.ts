@@ -221,6 +221,15 @@ export const createEmptyField = (type: string): FormField => {
     case 'text/html':
       field.content = '<p>HTML Content</p>';
       break;
+    case 'image':
+      field.label = 'صورة';
+      field.src = 'https://codform.com/assets/image_place_holder.avif';
+      field.alt = 'صورة';
+      field.width = '100';
+      field.style = {
+        textAlign: 'center' as 'center'
+      };
+      break;
   }
   
   return field;
