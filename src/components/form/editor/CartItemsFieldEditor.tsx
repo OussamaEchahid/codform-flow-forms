@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import ProductSelector from './ProductSelector';
 
 interface CartItemsFieldEditorProps {
   field: FormField;
@@ -125,6 +126,19 @@ const CartItemsFieldEditor: React.FC<CartItemsFieldEditorProps> = ({ field, onUp
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
+          {/* Product Selection */}
+          <div className="space-y-4">
+            <div className="p-3 bg-blue-50 rounded-lg">
+              <h4 className="font-medium text-sm text-blue-900 mb-2">
+                {language === 'ar' ? 'اختيار المنتج' : 'Product Selection'}
+              </h4>
+              <ProductSelector 
+                value={field.productId || ''}
+                onChange={(productId) => onUpdate({ productId })}
+              />
+            </div>
+          </div>
+
           {/* Basic Settings */}
           <div className="space-y-4">
             <div className="p-3 bg-blue-50 rounded-lg">

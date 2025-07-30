@@ -22,13 +22,23 @@ const CartItems: React.FC<CartItemsProps> = ({ field, formStyle, productId }) =>
   
   // تحميل المنتجات عند التهيئة
   React.useEffect(() => {
-    if (productId && (!products || products.length === 0)) {
+    const finalProductId = field.productId || productId;
+    if (finalProductId && (!products || products.length === 0)) {
+      console.log('Loading products for cart items with productId:', finalProductId);
       loadProducts();
     }
-  }, [productId, products, loadProducts]);
+  }, [field.productId, productId, products, loadProducts]);
   
-  // البحث عن المنتج المرتبط
-  const linkedProduct = productId ? products?.find(p => p.id === productId) : null;
+  // البحث عن المنتج المرتبط - استخدم field.productId أولاً ثم productId prop
+  const linkedProduct = (field.productId || productId) ? products?.find(p => p.id === (field.productId || productId)) : null;
+  
+  console.log('Cart Items Debug:', {
+    fieldProductId: field.productId,
+    propProductId: productId,
+    finalProductId: field.productId || productId,
+    productsCount: products?.length || 0,
+    linkedProduct: linkedProduct?.title || 'Not found'
+  });
   
   // استخدم نصف قطر الحدود من نمط النموذج إذا كان متاحًا
   const borderRadius = formStyle.borderRadius || '0.5rem';

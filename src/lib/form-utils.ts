@@ -233,6 +233,7 @@ export const createEmptyField = (type: string): FormField => {
       break;
     case 'cart-items':
       field.label = 'عناصر السلة';
+      field.productId = '';
       field.style = {
         showBorders: true,
         hideImage: false,
