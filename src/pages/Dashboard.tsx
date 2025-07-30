@@ -170,17 +170,36 @@ const Dashboard = () => {
                 const activeStore = UnifiedStoreManager.getActiveStore();
                 const userEmail = localStorage.getItem('shopify_user_email');
                 
+                console.log('👤 Dashboard - Profile info:', { activeStore, userEmail, user: !!user });
+                
                 // إظهار البروفايل إذا كان هناك متجر نشط أو مستخدم مصادق تقليدياً
                 if (activeStore || user) {
                   return (
                     <div className="flex items-center gap-4">
                       <div className="text-right">
-                        <p className="font-medium text-sm">{activeStore || user?.email}</p>
-                        {userEmail && <p className="text-xs text-muted-foreground">{userEmail}</p>}
-                        {user && !activeStore && <p className="text-xs text-muted-foreground">Traditional Auth</p>}
+                        {userEmail ? (
+                          <>
+                            <p className="font-medium text-sm">{userEmail}</p>
+                            <p className="text-xs text-muted-foreground">{activeStore || 'متجر غير محدد'}</p>
+                          </>
+                        ) : user ? (
+                          <>
+                            <p className="font-medium text-sm">{user.email}</p>
+                            <p className="text-xs text-muted-foreground">Traditional Auth</p>
+                          </>
+                        ) : (
+                          <>
+                            <p className="font-medium text-sm">{activeStore}</p>
+                            <p className="text-xs text-muted-foreground">لا يوجد بريد إلكتروني</p>
+                          </>
+                        )}
                       </div>
                       <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center">
-                        <StoreIcon className="h-6 w-6 text-white" />
+                        <span className="text-white font-medium">
+                          {userEmail ? userEmail.charAt(0).toUpperCase() : 
+                           user?.email ? user.email.charAt(0).toUpperCase() : 
+                           activeStore ? activeStore.charAt(0).toUpperCase() : 'U'}
+                        </span>
                       </div>
                     </div>
                   );
