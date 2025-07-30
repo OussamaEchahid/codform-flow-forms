@@ -36,7 +36,6 @@ EXTERNAL SCRIPTS
 <script src="{{ 'codform-quantity-offers.js' | asset_url }}"></script>
 <script src="{{ 'codform-icons.js' | asset_url }}"></script>
 <script src="{{ 'codform-utilities.js' | asset_url }}"></script>
-<script src="{{ 'codform-simple-utilities.js' | asset_url }}"></script>
 
 {%- comment -%}
 ===============================================================================
@@ -75,25 +74,6 @@ EXTERNAL SCRIPTS
   4. UTILITY FUNCTIONS
   ===============================================================================
   {%- endcomment -%}
-  function getProductId() {
-    try {
-      const productId = '{{ product.id }}' || '{{ product.variants.first.id }}' || '{{ block.settings.product_id }}' || 'auto-detect';
-      return productId.trim();
-    } catch (error) {
-      console.error('❌ CODFORM: Error getting product ID:', error);
-      return 'auto-detect';
-    }
-  }
-
-  window.getShopDomain = function() {
-    try {
-      const shopDomain = '{{ shop.domain }}' || '{{ shop.permanent_domain }}' || 'auto-detect';
-      return shopDomain;
-    } catch (error) {
-      console.error('❌ CODFORM: Error getting shop domain:', error);
-      return 'auto-detect';
-    }
-  }
 
 
   {%- comment -%}
