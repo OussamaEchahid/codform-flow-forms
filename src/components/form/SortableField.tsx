@@ -961,8 +961,8 @@ const SortableField: React.FC<SortableFieldProps> = ({
                   
                   {/* Right column */}
                   <div className="space-y-4">
-                    {/* Input for - hide for submit button */}
-                    {!shouldShowSubmitSpecificSettings && (
+                    {/* Input for - hide for submit and whatsapp buttons */}
+                    {!shouldShowSubmitSpecificSettings && !shouldShowWhatsAppSpecificSettings && (
                       <div className="space-y-1">
                         <Label htmlFor={`field-input-for-${field.id}`}>
                           {language === 'ar' ? 'حقل الإدخال المرتبط' : 'Input for'}
@@ -976,8 +976,8 @@ const SortableField: React.FC<SortableFieldProps> = ({
                       </div>
                     )}
                     
-                    {/* Error message - hide for submit button */}
-                    {!shouldShowSubmitSpecificSettings && (
+                    {/* Error message - hide for submit and whatsapp buttons */}
+                    {!shouldShowSubmitSpecificSettings && !shouldShowWhatsAppSpecificSettings && (
                       <div className="space-y-1">
                         <Label htmlFor={`field-error-message-${field.id}`}>
                           {language === 'ar' ? 'رسالة الخطأ' : 'Error message'}
@@ -992,59 +992,65 @@ const SortableField: React.FC<SortableFieldProps> = ({
                       </div>
                     )}
                     
-                    {/* Label text */}
-                    <div className="space-y-1">
-                      <Label htmlFor={`field-label-${field.id}`}>
-                        {language === 'ar' ? 'نص التسمية' : 'Label text'}
-                      </Label>
-                      <Input
-                        id={`field-label-${field.id}`}
-                        value={editedField.label || ''}
-                        onChange={(e) => handleFieldChange('label', e.target.value)}
-                        className={language === 'ar' ? 'text-right' : ''}
-                      />
-                    </div>
-                    
-                    {/* Show label */}
-                    <div className="flex items-center space-x-2 rtl:space-x-reverse">
-                      <Switch 
-                        id={`field-show-label-${field.id}`}
-                        checked={editedField.style?.showLabel !== false}
-                        onCheckedChange={(checked) => handleStyleChange('showLabel', checked)}
-                      />
-                      <Label 
-                        htmlFor={`field-show-label-${field.id}`}
-                      >
-                        {language === 'ar' ? 'إظهار التسمية' : 'Show label'}
-                      </Label>
-                    </div>
-                    
-                    {/* Label weight */}
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <Label>{language === 'ar' ? 'وزن خط التسمية' : 'Label weight'}</Label>
-                        <span className="text-sm">{editedField.style?.labelFontWeight || '400'}</span>
+                    {/* Label text - hide for whatsapp button */}
+                    {!shouldShowWhatsAppSpecificSettings && (
+                      <div className="space-y-1">
+                        <Label htmlFor={`field-label-${field.id}`}>
+                          {language === 'ar' ? 'نص التسمية' : 'Label text'}
+                        </Label>
+                        <Input
+                          id={`field-label-${field.id}`}
+                          value={editedField.label || ''}
+                          onChange={(e) => handleFieldChange('label', e.target.value)}
+                          className={language === 'ar' ? 'text-right' : ''}
+                        />
                       </div>
-                      <Select
-                        value={editedField.style?.labelFontWeight || '400'}
-                        onValueChange={(value) => handleStyleChange('labelFontWeight', value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder={language === 'ar' ? 'اختر وزن الخط' : 'Select font weight'} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="100">100 (Thin)</SelectItem>
-                          <SelectItem value="200">200 (Extra Light)</SelectItem>
-                          <SelectItem value="300">300 (Light)</SelectItem>
-                          <SelectItem value="400">400 (Regular)</SelectItem>
-                          <SelectItem value="500">500 (Medium)</SelectItem>
-                          <SelectItem value="600">600 (Semi Bold)</SelectItem>
-                          <SelectItem value="700">700 (Bold)</SelectItem>
-                          <SelectItem value="800">800 (Extra Bold)</SelectItem>
-                          <SelectItem value="900">900 (Black)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    )}
+                    
+                    {/* Show label - hide for whatsapp button */}
+                    {!shouldShowWhatsAppSpecificSettings && (
+                      <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                        <Switch 
+                          id={`field-show-label-${field.id}`}
+                          checked={editedField.style?.showLabel !== false}
+                          onCheckedChange={(checked) => handleStyleChange('showLabel', checked)}
+                        />
+                        <Label 
+                          htmlFor={`field-show-label-${field.id}`}
+                        >
+                          {language === 'ar' ? 'إظهار التسمية' : 'Show label'}
+                        </Label>
+                      </div>
+                    )}
+                    
+                    {/* Label weight - hide for whatsapp button */}
+                    {!shouldShowWhatsAppSpecificSettings && (
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <Label>{language === 'ar' ? 'وزن خط التسمية' : 'Label weight'}</Label>
+                          <span className="text-sm">{editedField.style?.labelFontWeight || '400'}</span>
+                        </div>
+                        <Select
+                          value={editedField.style?.labelFontWeight || '400'}
+                          onValueChange={(value) => handleStyleChange('labelFontWeight', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder={language === 'ar' ? 'اختر وزن الخط' : 'Select font weight'} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="100">100 (Thin)</SelectItem>
+                            <SelectItem value="200">200 (Extra Light)</SelectItem>
+                            <SelectItem value="300">300 (Light)</SelectItem>
+                            <SelectItem value="400">400 (Regular)</SelectItem>
+                            <SelectItem value="500">500 (Medium)</SelectItem>
+                            <SelectItem value="600">600 (Semi Bold)</SelectItem>
+                            <SelectItem value="700">700 (Bold)</SelectItem>
+                            <SelectItem value="800">800 (Extra Bold)</SelectItem>
+                            <SelectItem value="900">900 (Black)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
                     
                     {/* Border color */}
                     <div className="space-y-1">
@@ -1098,50 +1104,54 @@ const SortableField: React.FC<SortableFieldProps> = ({
                       </div>
                     )}
                     
-                    {/* Show icon in Live Preview */}
-                    <div className="flex items-center space-x-2 rtl:space-x-reverse">
-                      <Switch 
-                        id={`field-show-icon-${field.id}`}
-                        checked={editedField.style?.showIcon || false}
-                        onCheckedChange={(checked) => handleStyleChange('showIcon', checked)}
-                      />
-                      <Label 
-                        htmlFor={`field-show-icon-${field.id}`}
-                      >
-                        {language === 'ar' ? 'إظهار الأيقونة في المعاينة' : 'Show icon in preview'}
-                      </Label>
-                    </div>
+                    {/* Show icon in Live Preview - hide for whatsapp button */}
+                    {!shouldShowWhatsAppSpecificSettings && (
+                      <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                        <Switch 
+                          id={`field-show-icon-${field.id}`}
+                          checked={editedField.style?.showIcon || false}
+                          onCheckedChange={(checked) => handleStyleChange('showIcon', checked)}
+                        />
+                        <Label 
+                          htmlFor={`field-show-icon-${field.id}`}
+                        >
+                          {language === 'ar' ? 'إظهار الأيقونة في المعاينة' : 'Show icon in preview'}
+                        </Label>
+                      </div>
+                    )}
                     
-                    {/* Icon for Live Preview with visual icons */}
-                    <div className="space-y-1">
-                      <Label>{language === 'ar' ? 'أيقونة المعاينة' : 'Preview icon'}</Label>
-                      <Select
-                        value={editedField.icon || 'none'}
-                        onValueChange={(value) => handleFieldChange('icon', value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder={language === 'ar' ? 'اختر أيقونة للمعاينة' : 'Select preview icon'}>
-                            <div className="flex items-center gap-2">
-                              {getIconComponent(editedField.icon || 'none')}
-                              <span>{getIconsForFieldType(field.type).find(i => i.value === (editedField.icon || 'none'))?.label || ''}</span>
-                            </div>
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent>
-                          {getIconsForFieldType(field.type).map(icon => (
-                            <SelectItem key={icon.value} value={icon.value}>
+                    {/* Icon for Live Preview with visual icons - hide for whatsapp button */}
+                    {!shouldShowWhatsAppSpecificSettings && (
+                      <div className="space-y-1">
+                        <Label>{language === 'ar' ? 'أيقونة المعاينة' : 'Preview icon'}</Label>
+                        <Select
+                          value={editedField.icon || 'none'}
+                          onValueChange={(value) => handleFieldChange('icon', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder={language === 'ar' ? 'اختر أيقونة للمعاينة' : 'Select preview icon'}>
                               <div className="flex items-center gap-2">
-                                {icon.component}
-                                <span>{icon.label}</span>
+                                {getIconComponent(editedField.icon || 'none')}
+                                <span>{getIconsForFieldType(field.type).find(i => i.value === (editedField.icon || 'none'))?.label || ''}</span>
                               </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {getIconsForFieldType(field.type).map(icon => (
+                              <SelectItem key={icon.value} value={icon.value}>
+                                <div className="flex items-center gap-2">
+                                  {icon.component}
+                                  <span>{icon.label}</span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
                     
-                    {/* إعدادات لون الأيقونة */}
-                    {editedField.icon && editedField.icon !== 'none' && (
+                    {/* إعدادات لون الأيقونة - hide for whatsapp button */}
+                    {!shouldShowWhatsAppSpecificSettings && editedField.icon && editedField.icon !== 'none' && (
                       <div className="space-y-1">
                         <Label>{language === 'ar' ? 'لون الأيقونة' : 'Icon Color'}</Label>
                         <div className="flex items-center gap-2">
