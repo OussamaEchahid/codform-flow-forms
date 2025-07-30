@@ -259,8 +259,44 @@ const SortableField: React.FC<SortableFieldProps> = ({
                 }
               </h2>
               
-              {/* للصور: إعدادات بسيطة + زر التحرير */}
-              {field.type === 'image' ? (
+              {/* لعناصر السلة: رسالة لاستخدام الإعدادات المتقدمة */}
+              {field.type === 'cart-items' ? (
+                <div className="space-y-4">
+                  {/* Label text */}
+                  <div className="space-y-1">
+                    <Label htmlFor={`cart-label-${field.id}`}>
+                      {language === 'ar' ? 'عنوان الحقل' : 'Field Label'}
+                    </Label>
+                    <Input
+                      id={`cart-label-${field.id}`}
+                      value={editedField.label || ''}
+                      onChange={(e) => handleFieldChange('label', e.target.value)}
+                      placeholder={language === 'ar' ? 'عناصر السلة' : 'Cart Items'}
+                      className={language === 'ar' ? 'text-right' : ''}
+                    />
+                  </div>
+                  
+                  <div className="pt-2 border-t">
+                    <Button 
+                      onClick={() => setShowFieldEditor(true)}
+                      className="w-full flex items-center gap-2"
+                      variant="outline"
+                    >
+                      <ArrowRight size={16} />
+                      {language === 'ar' ? 'الإعدادات المتقدمة' : 'Advanced Settings'}
+                    </Button>
+                  </div>
+                  
+                  <div className="pt-2">
+                    <p className="text-xs text-gray-500">
+                      {language === 'ar' 
+                        ? 'استخدم الزر أعلاه للوصول لجميع إعدادات التخصيص المتقدمة'
+                        : 'Use the button above to access all advanced customization settings'
+                      }
+                    </p>
+                  </div>
+                </div>
+              ) : field.type === 'image' ? (
                 <div className="space-y-4">
                   {/* Image URL */}
                   <div className="space-y-1">
