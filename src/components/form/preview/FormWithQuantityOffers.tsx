@@ -163,6 +163,7 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
             formStyle={formStyle}
             formCountry={formCountry}
             formPhonePrefix={formPhonePrefix}
+            productId={productId}
           />
         ))}
       </div>
@@ -295,6 +296,7 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
                   formStyle={formStyle}
                   formCountry={formCountry}
                   formPhonePrefix={formPhonePrefix}
+                  productId={productId}
                 />
               </div>
             </div>
@@ -308,6 +310,7 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
             formStyle={formStyle}
             formCountry={formCountry}
             formPhonePrefix={formPhonePrefix}
+            productId={productId}
           />
         );
       })}
