@@ -194,14 +194,13 @@ const CartItems: React.FC<CartItemsProps> = ({ field, formStyle, productId }) =>
                   (language === 'ar' ? '199.00 درهم' : '$29.99')
                 }
               </div>
-              <div className="text-xs text-gray-500 line-through" style={{
-                fontFamily: fieldStyle.priceFontFamily || 'Inter, Cairo, system-ui, sans-serif',
-              }}>
-                {!fieldStyle.hideDiscountPrice && fieldStyle.discountPrice ? 
-                  fieldStyle.discountPrice :
-                  (language === 'ar' ? '249.00 درهم' : '$39.99')
-                }
-              </div>
+              {!fieldStyle.hideDiscountPrice && fieldStyle.discountPrice && (
+                <div className="text-xs text-gray-500 line-through" style={{
+                  fontFamily: fieldStyle.priceFontFamily || 'Inter, Cairo, system-ui, sans-serif',
+                }}>
+                  {fieldStyle.discountPrice}
+                </div>
+              )}
             </div>
           )}
         </div>
