@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/layout/AuthProvider';
 import { toast } from 'sonner';
@@ -9,6 +9,7 @@ interface ShopifyStore {
   updated_at: string;
   access_token?: string;
   user_id?: string;
+  email?: string;
 }
 
 export const useShopifyStoreSync = () => {
@@ -17,10 +18,10 @@ export const useShopifyStoreSync = () => {
   const [loading, setLoading] = useState(true);
   const [currentStore, setCurrentStore] = useState<string | null>(null);
 
-  // Get current active store from localStorage with better validation
-  const getActiveStore = useCallback(() => {
+  // Get current active store from localStorage
+  const getActiveStore = () => {
     const sources = [
-      'active_shopify_store', // UnifiedStoreManager key
+      'active_shopify_store',
       'shopify_store', 
       'simple_active_store', 
       'active_shop'
@@ -35,57 +36,99 @@ export const useShopifyStoreSync = () => {
     }
     console.log('⚠️ No active store found in localStorage');
     return null;
-  }, []);
+  };
 
-  // Load stores for current user only
-  const loadStores = useCallback(async () => {
+  // Load stores based on email from localStorage
+  const loadStores = async () => {
     try {
       setLoading(true);
       
       console.log('🔄 جاري تحميل المتاجر...');
       
-      // جلب المتجر النشط أولاً
+      // جلب البريد الإلكتروني المحفوظ
+      const userEmail = localStorage.getItem('shopify_user_email');
       const activeStore = getActiveStore();
-      console.log('🏪 المتجر النشط من localStorage:', activeStore);
       
-      if (!activeStore) {
-        console.log('⚠️ لا يوجد متجر نشط');
+      console.log('📧 البريد الإلكتروني:', userEmail);
+      console.log('🏪 المتجر النشط:', activeStore);
+
+      if (!userEmail && !activeStore) {
+        console.log('⚠️ لا يوجد بريد إلكتروني أو متجر نشط');
         setStores([]);
         setCurrentStore(null);
         setLoading(false);
         return;
       }
 
-      // جلب متجر واحد فقط - المتجر النشط من localStorage
-      const { data: storeData, error } = await supabase
-        .from('shopify_stores')
-        .select('shop, is_active, updated_at, access_token')
-        .eq('shop', activeStore)
-        .eq('is_active', true)
-        .not('access_token', 'is', null)
-        .neq('access_token', '')
-        .neq('access_token', 'placeholder_token')
-        .single();
+      // جلب المتاجر بناء على البريد الإلكتروني
+      let storesList: any[] = [];
+      
+      if (userEmail) {
+        console.log('📧 جلب المتاجر بناء على البريد الإلكتروني:', userEmail);
+        const result = await supabase.rpc('get_stores_by_email', { p_email: userEmail });
+        
+        if (error) {
+          console.error('❌ خطأ في جلب المتاجر بالبريد الإلكتروني:', error);
+        } else if (data && data.length > 0) {
+          storesList = data;
+          console.log(`✅ تم العثور على ${data.length} متجر للبريد الإلكتروني`);
+        }
+      }
+      
+      // إذا لم نجد متاجر بالبريد الإلكتروني، جرب المتجر النشط
+      if (storesList.length === 0 && activeStore) {
+        console.log('🏪 جلب المتجر النشط:', activeStore);
+        const response = await supabase
+          .from('shopify_stores')
+          .select('*')
+          .eq('shop', activeStore)
+          .eq('is_active', true)
+          .single();
 
-      if (error && error.code !== 'PGRST116') {
-        console.error('❌ خطأ في جلب المتجر:', error);
-        throw error;
+        if (response.error && response.error.code !== 'PGRST116') {
+          console.error('❌ خطأ في جلب المتجر النشط:', response.error);
+        } else if (response.data) {
+          storesList = [response.data];
+          console.log('✅ تم العثور على المتجر النشط');
+          
+          // حفظ البريد الإلكتروني إذا كان موجود  
+          if ((response.data as any).email) {
+            localStorage.setItem('shopify_user_email', (response.data as any).email);
+            console.log('📧 تم حفظ البريد الإلكتروني:', (response.data as any).email);
+          }
+        }
       }
 
-      console.log('📋 بيانات المتجر المستلمة:', storeData);
+      console.log('📋 بيانات المتاجر المستلمة:', storesList);
       
-      // إما أن نعرض المتجر من قاعدة البيانات أو من localStorage
-      const storeToShow = storeData || {
-        shop: activeStore,
-        is_active: true,
-        updated_at: new Date().toISOString(),
-        access_token: 'session_based'
-      };
+      // تحديث حالة المتاجر
+      if (storesList.length === 0) {
+        // إذا لم نجد متاجر، عرض المتجر النشط من localStorage
+        if (activeStore) {
+          setStores([{
+            shop: activeStore,
+            is_active: true,
+            updated_at: new Date().toISOString(),
+            access_token: 'session_based'
+          }]);
+          setCurrentStore(activeStore);
+        } else {
+          setStores([]);
+          setCurrentStore(null);
+        }
+      } else {
+        setStores(storesList);
+        // تعيين المتجر النشط إذا كان موجود في القائمة
+        if (activeStore && storesList.some(store => store.shop === activeStore)) {
+          setCurrentStore(activeStore);
+        } else if (storesList.length > 0) {
+          setCurrentStore(storesList[0].shop);
+          // تحديث المتجر النشط في localStorage
+          localStorage.setItem('active_shopify_store', storesList[0].shop);
+        }
+      }
       
-      setStores([storeToShow]);
-      setCurrentStore(activeStore);
-      
-      console.log(`✅ تم تحميل المتجر: ${activeStore}`);
+      console.log(`✅ تم تحميل ${storesList.length} متجر`);
       
     } catch (error) {
       console.error('❌ خطأ في تحميل المتاجر:', error);
@@ -108,12 +151,12 @@ export const useShopifyStoreSync = () => {
     } finally {
       setLoading(false);
     }
-  }, [getActiveStore]);
+  };
 
   // Switch to a different store
-  const switchToStore = useCallback((shopDomain: string) => {
+  const switchToStore = (shopDomain: string) => {
     try {
-      // Update localStorage keys including UnifiedStoreManager
+      // Update localStorage keys
       localStorage.setItem('active_shopify_store', shopDomain);
       localStorage.setItem('shopify_store', shopDomain);
       localStorage.setItem('simple_active_store', shopDomain);
@@ -123,7 +166,7 @@ export const useShopifyStoreSync = () => {
       // Update current store state immediately
       setCurrentStore(shopDomain);
       
-      // Force reload stores to ensure UI consistency
+      // Force reload stores
       loadStores();
       
       console.log(`🔄 Switched to store: ${shopDomain}`);
@@ -135,24 +178,26 @@ export const useShopifyStoreSync = () => {
       toast.error('فشل في تبديل المتجر');
       return false;
     }
-  }, [loadStores]);
+  };
 
   // Disconnect from all stores
-  const disconnectAll = useCallback(() => {
+  const disconnectAll = () => {
     try {
       // Clear localStorage
       const keysToRemove = [
-        'active_shopify_store', // UnifiedStoreManager key
+        'active_shopify_store',
         'shopify_store',
         'simple_active_store', 
         'active_shop',
         'shopify_connected',
+        'shopify_user_email',
         'cached_forms'
       ];
       
       keysToRemove.forEach(key => localStorage.removeItem(key));
       
       // Update state
+      setStores([]);
       setCurrentStore(null);
       
       console.log('🔌 Disconnected from all stores');
@@ -164,12 +209,12 @@ export const useShopifyStoreSync = () => {
       toast.error('فشل في قطع الاتصال');
       return false;
     }
-  }, []);
+  };
 
   // Initial load
   useEffect(() => {
     loadStores();
-  }, [loadStores]);
+  }, []);
 
   return {
     stores,

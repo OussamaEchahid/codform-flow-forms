@@ -136,6 +136,20 @@ serve(async (req) => {
 
     console.log(`✅ Shop connected successfully: ${shop}`)
 
+    // إرسال رسالة لحفظ البريد الإلكتروني في localStorage
+    const clientScript = `
+      <script>
+        localStorage.setItem('shopify_user_email', '${shopOwnerEmail}');
+        localStorage.setItem('shopify_connected', 'true');
+        console.log('📧 Saved email to localStorage:', '${shopOwnerEmail}');
+        window.parent.postMessage({
+          type: 'SHOPIFY_CONNECT_SUCCESS',
+          shop: '${shop}',
+          email: '${shopOwnerEmail}'
+        }, '*');
+      </script>
+    `;
+
     return new Response(
       JSON.stringify({ 
         success: true,
@@ -143,6 +157,7 @@ serve(async (req) => {
         email: shopOwnerEmail,
         user_id: userId,
         auth_token: authToken,
+        client_script: clientScript,
         message: 'متجر متصل بنجاح'
       }),
       { 
