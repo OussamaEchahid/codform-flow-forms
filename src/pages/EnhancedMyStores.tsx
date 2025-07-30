@@ -3,45 +3,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Store, ArrowRight, Plus, ExternalLink } from 'lucide-react';
-import UnifiedStoreManager from '@/utils/unified-store-manager';
-import { useState, useEffect } from 'react';
+import { useShopifyStoreSync } from '@/hooks/useShopifyStoreSync';
 
 const EnhancedMyStores = () => {
-  const [currentStore, setCurrentStore] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [isConnected, setIsConnected] = useState(false);
-
-  useEffect(() => {
-    // استخدام UnifiedStoreManager كمصدر وحيد للحقيقة
-    const store = UnifiedStoreManager.getActiveStore();
-    const connected = UnifiedStoreManager.isConnected();
-    
-    console.log('🏪 EnhancedMyStores - Store from UnifiedStoreManager:', store);
-    console.log('🏪 EnhancedMyStores - Is connected:', connected);
-    
-    setCurrentStore(store);
-    setIsConnected(connected);
-    setLoading(false);
-
-    // مراقبة التغييرات
-    const unsubscribe = UnifiedStoreManager.onStoreChange((newStore) => {
-      console.log('🏪 EnhancedMyStores - Store changed to:', newStore);
-      setCurrentStore(newStore);
-      setIsConnected(!!newStore);
-    });
-
-    return unsubscribe;
-  }, []);
-
-  const switchToStore = (storeName: string) => {
-    console.log('🔄 Switching to store:', storeName);
-    UnifiedStoreManager.switchStore(storeName, true);
-  };
-
-  const disconnect = () => {
-    console.log('🔌 Disconnecting...');
-    UnifiedStoreManager.clearActiveStore();
-  };
+  const { 
+    stores, 
+    loading, 
+    currentStore, 
+    switchToStore, 
+    disconnectAll 
+  } = useShopifyStoreSync();
 
   if (loading) {
     return (
@@ -54,7 +25,7 @@ const EnhancedMyStores = () => {
     );
   }
 
-  if (!isConnected) {
+  if (!currentStore || stores.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
@@ -105,10 +76,10 @@ const EnhancedMyStores = () => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={disconnect}
+                onClick={disconnectAll}
                 className="text-red-600 border-red-200 hover:bg-red-50"
               >
-                قطع الاتصال
+                قطع الاتصال من جميع المتاجر
               </Button>
             </div>
           </CardHeader>
@@ -146,39 +117,61 @@ const EnhancedMyStores = () => {
           </Card>
         )}
 
-        {/* Current Store Only */}
-        {currentStore && (
+        {/* All Connected Stores */}
+        {stores.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">المتجر المتصل حالياً</CardTitle>
+              <CardTitle className="text-lg">جميع متاجرك المتصلة ({stores.length})</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="p-4 rounded-lg border border-primary bg-primary/5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center">
-                      <Store className="w-4 h-4 text-slate-600" />
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-slate-800">{currentStore}</h3>
-                      <p className="text-xs text-slate-500">
-                        متصل ونشط
-                      </p>
+              <div className="space-y-3">
+                {stores.map((store) => (
+                  <div 
+                    key={store.shop}
+                    className={`p-4 rounded-lg border ${
+                      store.shop === currentStore 
+                        ? 'border-primary bg-primary/5' 
+                        : 'border-slate-200 bg-slate-50'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center">
+                          <Store className="w-4 h-4 text-slate-600" />
+                        </div>
+                        <div>
+                          <h3 className="font-medium text-slate-800">{store.shop}</h3>
+                          <p className="text-xs text-slate-500">
+                            آخر تحديث: {new Date(store.updated_at).toLocaleDateString('ar')}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        {store.shop === currentStore ? (
+                          <Badge className="bg-green-100 text-green-800">نشط</Badge>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => switchToStore(store.shop)}
+                          >
+                            <ArrowRight className="w-4 h-4 mr-1" />
+                            تفعيل
+                          </Button>
+                        )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open(`https://${store.shop}/admin`, '_blank')}
+                        >
+                          <ExternalLink className="w-4 h-4 mr-1" />
+                          إدارة
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <Badge className="bg-green-100 text-green-800">نشط</Badge>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => window.open(`https://${currentStore}/admin`, '_blank')}
-                    >
-                      <ExternalLink className="w-4 h-4 mr-1" />
-                      إدارة
-                    </Button>
-                  </div>
-                </div>
+                ))}
               </div>
             </CardContent>
           </Card>
