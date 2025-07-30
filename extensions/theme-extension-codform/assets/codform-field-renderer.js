@@ -328,7 +328,7 @@ function renderField(field, formStyle, formLanguage) {
       const submitFontSize = submitStyle.fontSize || '1rem';
       const submitBorderRadius = submitStyle.borderRadius || '8px';
       const submitText = field.label || field.text || 'Submit Order';
-      const submitIcon = getIconSvg('send', submitTextColor);
+      const submitIcon = getIconSvg('shopping-cart', submitTextColor);
       
       html = `
         <div class="codform-submit-wrapper" style="
@@ -346,8 +346,8 @@ function renderField(field, formStyle, formLanguage) {
               border: none;
               border-radius: ${submitBorderRadius};
               font-size: ${submitFontSize};
-              font-weight: 600;
-              padding: 16px 32px;
+              font-weight: bold;
+              padding: 15px 24px;
               cursor: pointer;
               width: 100%;
               display: flex;
@@ -404,8 +404,8 @@ function renderField(field, formStyle, formLanguage) {
 function getIconSvg(iconName, color = '#9b87f5') {
   if (!iconName || iconName === 'none') return '';
   
-  const strokeStyle = `fill: none; stroke: ${color}; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; width: 20px; height: 20px;`;
-  const filledStyle = `fill: ${color}; width: 20px; height: 20px;`;
+  const strokeStyle = `fill: none; stroke: ${color}; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; width: 18px; height: 18px;`;
+  const filledStyle = `fill: ${color}; width: 18px; height: 18px;`;
   
   let svgResult = '';
   
@@ -422,6 +422,10 @@ function getIconSvg(iconName, color = '#9b87f5') {
       break;
     case 'send':
       svgResult = `<svg xmlns="http://www.w3.org/2000/svg" style="${strokeStyle}" viewBox="0 0 24 24"><path d="M22 2 11 13"></path><path d="M22 2 15 22 11 13 2 9 22 2Z"></path></svg>`;
+      break;
+    case 'shopping-cart':
+      const cartStyle = `fill: none; stroke: ${color}; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; width: 16px; height: 16px;`;
+      svgResult = `<svg xmlns="http://www.w3.org/2000/svg" style="${cartStyle}" viewBox="0 0 24 24"><circle cx="8" cy="21" r="1"></circle><circle cx="19" cy="21" r="1"></circle><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"></path></svg>`;
       break;
     default:
       svgResult = `<svg xmlns="http://www.w3.org/2000/svg" style="${strokeStyle}" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle></svg>`;
