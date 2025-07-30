@@ -85,10 +85,11 @@ const Dashboard = () => {
 
       // التحقق من البريد الإلكتروني وجلبه إذا لم يكن موجوداً
       let userEmail = localStorage.getItem('shopify_user_email');
-       console.log('📧 Dashboard - Current email in localStorage:', userEmail);
-       console.log('📧 Dashboard - Current name in localStorage:', localStorage.getItem('shopify_user_name'));
-       
-       if (!userEmail && activeStore) {
+      console.log('📧 Dashboard - Current email in localStorage:', userEmail);
+      console.log('📧 Dashboard - Current name in localStorage:', localStorage.getItem('shopify_user_name'));
+      
+      // إعادة تحميل بيانات المستخدم دائماً لضمان الحصول على البريد الإلكتروني
+      if (activeStore) {
         console.log('🔄 Dashboard - Fetching email for store:', activeStore);
         try {
           const emailResponse = await supabase.functions.invoke('update-shop-email', {

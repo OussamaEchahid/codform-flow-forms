@@ -84,8 +84,18 @@ serve(async (req) => {
 
       if (shopInfoResponse.ok) {
         const shopInfo = await shopInfoResponse.json()
-        shopOwnerEmail = shopInfo.shop?.email
-        shopOwnerName = shopInfo.shop?.shop_owner || shopInfo.shop?.name
+        console.log('🔍 Full shop info:', JSON.stringify(shopInfo.shop, null, 2))
+        
+        // Try multiple fields for email
+        shopOwnerEmail = shopInfo.shop?.email || 
+                        shopInfo.shop?.customer_email ||
+                        shopInfo.shop?.contact_email
+
+        // Try multiple fields for name  
+        shopOwnerName = shopInfo.shop?.shop_owner || 
+                       shopInfo.shop?.name ||
+                       shopInfo.shop?.myshopify_domain
+
         console.log(`📧 Found shop owner email: ${shopOwnerEmail}`)
         console.log(`👤 Found shop owner name: ${shopOwnerName}`)
       } else {
