@@ -10,9 +10,12 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Slider } from "@/components/ui/slider"
 import { useI18n } from '@/lib/i18n';
 
 interface WhatsAppFieldEditorProps {
@@ -23,20 +26,31 @@ interface WhatsAppFieldEditorProps {
 
 const WhatsAppFieldEditor: React.FC<WhatsAppFieldEditorProps> = ({ field, onSave, onClose }) => {
   const { t, language } = useI18n();
-  const [messageTitle, setMessageTitle] = useState(field.messageTitle || '');
-  const [messageText, setMessageText] = useState(field.messageText || '');
-  const [buttonText, setButtonText] = useState(field.buttonText || '');
+  const [buttonText, setButtonText] = useState(field.label || (language === 'ar' ? 'طلب عبر واتساب' : 'Order by WhatsApp'));
   const [whatsappNumber, setWhatsappNumber] = useState(field.whatsappNumber || '');
+  const [message, setMessage] = useState(field.message || (language === 'ar' ? 'مرحباً، أنا مهتم بـ {product}. هل يمكنك تقديم مزيد من المعلومات؟' : 'Hello, I\'m interested in {product}. Can you provide more information?'));
+  const [fontFamily, setFontFamily] = useState(field.style?.fontFamily || 'Montserrat');
+  const [fontSize, setFontSize] = useState(field.style?.fontSize ? parseFloat(field.style.fontSize) : 1.1);
+  const [fontWeight, setFontWeight] = useState(field.style?.fontWeight ? parseInt(field.style.fontWeight) : 400);
+  const [textColor, setTextColor] = useState(field.style?.color || '#ffffff');
+  const [backgroundColor, setBackgroundColor] = useState(field.style?.backgroundColor || '#25d366');
   const [isRequired, setIsRequired] = useState(field.required || false);
 
   const handleSave = () => {
     const updatedField = {
       ...field,
-      messageTitle: messageTitle || '',
-      messageText: messageText || '',
-      buttonText: buttonText || '',
-      whatsappNumber: whatsappNumber || '',
+      label: buttonText,
+      whatsappNumber: whatsappNumber,
+      message: message,
       required: isRequired,
+      style: {
+        ...field.style,
+        fontFamily: fontFamily,
+        fontSize: `${fontSize}rem`,
+        fontWeight: fontWeight.toString(),
+        color: textColor,
+        backgroundColor: backgroundColor,
+      }
     };
 
     onSave(updatedField);
@@ -46,47 +60,131 @@ const WhatsAppFieldEditor: React.FC<WhatsAppFieldEditorProps> = ({ field, onSave
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="messageTitle">{t('Message Title')}</Label>
-        <Input
-          id="messageTitle"
-          value={messageTitle}
-          onChange={(e) => setMessageTitle(e.target.value)}
-        />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="messageText">{t('Message Text')}</Label>
-        <Input
-          id="messageText"
-          value={messageText}
-          onChange={(e) => setMessageText(e.target.value)}
-        />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="buttonText">{t('Button Text')}</Label>
+        <Label htmlFor="buttonText">{language === 'ar' ? 'النص' : 'Text'}</Label>
         <Input
           id="buttonText"
           value={buttonText}
           onChange={(e) => setButtonText(e.target.value)}
+          placeholder={language === 'ar' ? 'طلب عبر واتساب' : 'Order by WhatsApp'}
         />
       </div>
+      
       <div className="space-y-2">
-        <Label htmlFor="whatsappNumber">{t('WhatsApp Number')}</Label>
+        <Label htmlFor="whatsappNumber">{language === 'ar' ? 'رقم الواتساب' : 'WhatsApp phone number'}</Label>
         <Input
           id="whatsappNumber"
           value={whatsappNumber}
           onChange={(e) => setWhatsappNumber(e.target.value)}
+          placeholder="123456789"
         />
       </div>
+      
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="fontFamily">{language === 'ar' ? 'نوع الخط' : 'Font family'}</Label>
+          <Select value={fontFamily} onValueChange={setFontFamily}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Montserrat">Montserrat</SelectItem>
+              <SelectItem value="Cairo">Cairo</SelectItem>
+              <SelectItem value="Arial">Arial</SelectItem>
+              <SelectItem value="Helvetica">Helvetica</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div className="space-y-2">
+          <Label>{language === 'ar' ? 'حجم الخط' : 'Font size'} ({fontSize})</Label>
+          <Slider
+            value={[fontSize]}
+            onValueChange={([value]) => setFontSize(value)}
+            min={0.8}
+            max={3}
+            step={0.1}
+            className="w-full"
+          />
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>{language === 'ar' ? 'وزن النص' : 'Text weight'} ({fontWeight})</Label>
+          <Slider
+            value={[fontWeight]}
+            onValueChange={([value]) => setFontWeight(value)}
+            min={100}
+            max={900}
+            step={100}
+            className="w-full"
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="textColor">{language === 'ar' ? 'لون النص' : 'Text Color'}</Label>
+          <div className="flex items-center space-x-2">
+            <Input
+              id="textColor"
+              type="color"
+              value={textColor}
+              onChange={(e) => setTextColor(e.target.value)}
+              className="w-12 h-10 p-1 border rounded"
+            />
+            <Input
+              value={textColor}
+              onChange={(e) => setTextColor(e.target.value)}
+              placeholder="#ffffff"
+              className="flex-1"
+            />
+          </div>
+        </div>
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="backgroundColor">{language === 'ar' ? 'لون الخلفية' : 'Background color'}</Label>
+        <div className="flex items-center space-x-2">
+          <Input
+            id="backgroundColor"
+            type="color"
+            value={backgroundColor}
+            onChange={(e) => setBackgroundColor(e.target.value)}
+            className="w-12 h-10 p-1 border rounded"
+          />
+          <Input
+            value={backgroundColor}
+            onChange={(e) => setBackgroundColor(e.target.value)}
+            placeholder="#25d366"
+            className="flex-1"
+          />
+        </div>
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="message">{language === 'ar' ? 'الرسالة' : 'Message'}</Label>
+        <Textarea
+          id="message"
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          placeholder={language === 'ar' ? 'مرحباً، أنا مهتم بـ {product}. هل يمكنك تقديم مزيد من المعلومات؟' : 'Hello, I\'m interested in {product}. Can you provide more information?'}
+          rows={3}
+        />
+        <p className="text-sm text-muted-foreground">
+          {language === 'ar' ? 'استخدم {product} لإظهار اسم المنتج' : 'Use {product} to show product name'}
+        </p>
+      </div>
+      
       <div className="flex items-center space-x-2">
         <Switch id="required" checked={isRequired} onCheckedChange={setIsRequired} />
-        <Label htmlFor="required">{t('Required')}</Label>
+        <Label htmlFor="required">{language === 'ar' ? 'مطلوب' : 'Required'}</Label>
       </div>
+      
       <div className="flex justify-end space-x-2">
         <Button variant="ghost" onClick={onClose}>
-          {t('Cancel')}
+          {language === 'ar' ? 'إلغاء' : 'Cancel'}
         </Button>
         <Button onClick={handleSave}>
-          {t('Save')}
+          {language === 'ar' ? 'حفظ' : 'Save'}
         </Button>
       </div>
     </div>

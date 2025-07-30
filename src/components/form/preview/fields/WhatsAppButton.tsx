@@ -28,7 +28,7 @@ const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({ field, formStyle }) => 
   const whatsappUrl = `https://wa.me/${whatsappNumber}${message ? `?text=${encodeURIComponent(message)}` : ''}`;
   
   // Determine button radius based on style
-  let buttonRadius = '8px'; // default to match the store's appearance
+  let buttonRadius = '8px';
   if (formStyle.buttonStyle === 'pill') {
     buttonRadius = '9999px';
   } else if (formStyle.buttonStyle === 'square') {
@@ -58,6 +58,8 @@ const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({ field, formStyle }) => 
           backgroundColor: fieldStyle.backgroundColor || '#25D366',
           color: fieldStyle.color || 'white',
           fontSize: fieldStyle.fontSize || formStyle.fontSize || '18px',
+          fontWeight: fieldStyle.fontWeight || '600',
+          fontFamily: fieldStyle.fontFamily || 'Cairo, sans-serif',
           borderRadius: fieldStyle.borderRadius || buttonRadius,
           textDecoration: 'none',
           boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
@@ -66,12 +68,10 @@ const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({ field, formStyle }) => 
           justifyContent: 'center',
           gap: '10px',
           padding: '14px 20px',
-          fontWeight: '600',
           width: '100%',
           border: 'none',
           cursor: 'pointer',
           transition: 'all 0.2s ease',
-          fontFamily: 'Cairo, sans-serif',
           marginTop: '14px',
           marginBottom: '8px',
           textAlign: 'center'

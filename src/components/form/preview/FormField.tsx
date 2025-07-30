@@ -10,6 +10,7 @@ import CartSummary from './fields/CartSummary';
 import CheckboxGroup from './fields/CheckboxGroup';
 import RadioGroup from './fields/RadioGroup';
 import HtmlContent from './fields/HtmlContent';
+import WhatsAppButton from './fields/WhatsAppButton';
 
 
 interface FormFieldProps {
@@ -90,6 +91,8 @@ const FormField: React.FC<FormFieldProps> = ({
     case 'title':
       return <FormTitleField field={enhancedField} formStyle={formStyle} />;
     
+    case 'whatsapp':
+      return <WhatsAppButton field={enhancedField} formStyle={formStyle} />;
     
     default:
       return (
