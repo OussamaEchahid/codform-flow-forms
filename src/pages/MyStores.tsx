@@ -35,12 +35,14 @@ const MyStores = () => {
   const { language } = useI18n();
   const { user, session, isShopifyAuthenticated, shop: activeShop, shopifyUserEmail } = useAuth();
 
-  // إعداد حالة المتاجر مع المتجر النشط من البداية
+  // فرض إعداد المتجر النشط مباشرة من UnifiedStoreManager
   const activeStoreFromManager = UnifiedStoreManager.getActiveStore();
+  console.log('🔄 MyStores INIT - UnifiedStoreManager active store:', activeStoreFromManager);
+  
   const [stores, setStores] = useState<Store[]>(() => {
-    // إعداد المتجر النشط فوراً إذا كان موجوداً
+    // إجبار إضافة المتجر النشط فوراً
     if (activeStoreFromManager) {
-      console.log('🔄 MyStores - Setting initial store from UnifiedStoreManager:', activeStoreFromManager);
+      console.log('✅ MyStores INIT - Forcing active store into state:', activeStoreFromManager);
       return [{
         shop: activeStoreFromManager,
         is_active: true,
@@ -49,6 +51,7 @@ const MyStores = () => {
         user_id: localStorage.getItem('shopify_user_email') || 'shopify_user'
       }];
     }
+    console.log('❌ MyStores INIT - No active store found');
     return [];
   });
   
