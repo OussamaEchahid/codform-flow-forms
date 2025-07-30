@@ -205,16 +205,11 @@ const Dashboard = () => {
                   return (
                     <div className="flex items-center gap-3">
                       <div className="text-right">
-                        {userName && userEmail ? (
+                        {userName ? (
                           <>
                             <p className="font-medium text-sm">{userName}</p>
-                            <p className="text-xs text-muted-foreground">{userEmail}</p>
+                            <p className="text-xs text-muted-foreground">{userEmail || 'البريد الإلكتروني غير متاح'}</p>
                             <p className="text-xs text-muted-foreground/60">{activeStore}</p>
-                          </>
-                        ) : userName ? (
-                          <>
-                            <p className="font-medium text-sm">{userName}</p>
-                            <p className="text-xs text-muted-foreground">{activeStore || 'متجر غير محدد'}</p>
                           </>
                         ) : userEmail ? (
                           <>
