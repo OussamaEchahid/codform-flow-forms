@@ -36,6 +36,7 @@ EXTERNAL SCRIPTS
 <script src="{{ 'codform-quantity-offers.js' | asset_url }}"></script>
 <script src="{{ 'codform-icons.js' | asset_url }}"></script>
 <script src="{{ 'codform-utilities.js' | asset_url }}"></script>
+<script src="{{ 'codform-simple-utilities.js' | asset_url }}"></script>
 
 {%- comment -%}
 ===============================================================================
@@ -94,10 +95,6 @@ EXTERNAL SCRIPTS
     }
   }
 
-  function getStyleValue(style, property, fallback) {
-    if (!style || typeof style !== 'object') return fallback;
-    return style[property] || fallback;
-  }
 
   {%- comment -%}
   ===============================================================================
