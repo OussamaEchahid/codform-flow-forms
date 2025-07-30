@@ -62,10 +62,12 @@ const formElementTypes = [
   { type: 'image', label: 'Image', icon: '🖼️' }
 ];
 
+// Import the unified store manager
+import UnifiedStoreManager from '@/utils/unified-store-manager';
+
 // Add function to get active shop ID
 const getActiveShopId = (): string | null => {
-  // استخدام مفتاح واحد فقط للمتجر النشط
-  return localStorage.getItem('current_shopify_store') || null;
+  return UnifiedStoreManager.getActiveStore();
 };
 
 interface FormBuilderEditorProps {
