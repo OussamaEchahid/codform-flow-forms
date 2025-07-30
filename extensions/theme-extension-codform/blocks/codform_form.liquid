@@ -58,8 +58,8 @@ EXTERNAL SCRIPTS
 <script>
 (function() {
   'use strict';
-  console.log('🚀 CODFORM: Form initialization started - checking for errors...');
   
+  console.log('🚀 CODFORM: Form initialization started');
   
   {%- comment -%}
   ===============================================================================
@@ -74,7 +74,32 @@ EXTERNAL SCRIPTS
   4. UTILITY FUNCTIONS
   ===============================================================================
   {%- endcomment -%}
+  function getProductId() {
+    try {
+      const productId = '{{ product.id }}' || '{{ product.variants.first.id }}' || '{{ block.settings.product_id }}' || 'auto-detect';
+      console.log('🔍 معرف المنتج المكتشف:', productId);
+      return productId.trim();
+    } catch (error) {
+      console.error('❌ CODFORM: Error getting product ID:', error);
+      return 'auto-detect';
+    }
+  }
 
+  window.getShopDomain = function() {
+    try {
+      const shopDomain = '{{ shop.domain }}' || '{{ shop.permanent_domain }}' || 'auto-detect';
+      console.log('🏪 CODFORM: Using shop domain:', shopDomain);
+      return shopDomain;
+    } catch (error) {
+      console.error('❌ CODFORM: Error getting shop domain:', error);
+      return 'auto-detect';
+    }
+  }
+
+  function getStyleValue(style, property, fallback) {
+    if (!style || typeof style !== 'object') return fallback;
+    return style[property] || fallback;
+  }
 
   {%- comment -%}
   ===============================================================================
@@ -83,6 +108,8 @@ EXTERNAL SCRIPTS
   {%- endcomment -%}
   function renderField(field, formStyle, formLanguage) {
     if (!field || !field.type) return '';
+    
+    console.log('🎨 Rendering field:', field.type, field.id);
     
     // Check if we're currently rendering inside a popup
     const isInPopup = window.codformCurrentlyInPopup === true;
@@ -96,6 +123,8 @@ EXTERNAL SCRIPTS
     } else if (field.label && /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(field.label)) {
       formDirection = 'rtl';
     }
+    
+    console.log('🔄 CODFORM: Detected form direction:', formDirection, 'for language:', formLanguage);
     
     // Base styling configuration
     const baseFontSize = getStyleValue(formStyle, 'baseFontSize', '16px');
@@ -822,7 +851,7 @@ EXTERNAL SCRIPTS
   ===============================================================================
   {%- endcomment -%}
   function getIconSvg(iconName, iconColor = '#9CA3AF') {
-    // Creating icon
+    console.log('🎨 ICON DEBUG: Creating icon:', iconName, 'with color:', iconColor);
     
     // Base styles for different icon types
     const strokeStyle = `width: 18px; height: 18px; stroke: ${iconColor}; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;`;
@@ -936,7 +965,7 @@ EXTERNAL SCRIPTS
         svgResult = `<svg xmlns="http://www.w3.org/2000/svg" style="${strokeStyle}" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle></svg>`;
     }
     
-    // Generated SVG icon
+    console.log('🎨 ICON DEBUG: Generated SVG for', iconName, ':', svgResult.substring(0, 100) + '...');
     return svgResult;
   }
 
@@ -948,11 +977,11 @@ EXTERNAL SCRIPTS
     const shopDomain = getShopDomain(); // استخدام دالة لجلب المتجر الصحيح
     
     if (!productId) {
-      
+      console.log('❌ CODFORM: No product ID found');
       return;
     }
 
-    
+    console.log('🔄 CODFORM: Loading complete form for product:', productId, 'shop:', shopDomain);
     
     // First check if this product has an associated form
     // محاولة البحث عن النموذج المحدد للمنتج أولاً، ثم البحث عن النموذج العام
@@ -964,10 +993,10 @@ EXTERNAL SCRIPTS
     })
     .then(response => response.json())
     .then(productSettings => {
-      
+      console.log('🔍 CODFORM: Product settings check:', productSettings);
       
       if (!productSettings || productSettings.length === 0) {
-        
+        console.log('⚠️ CODFORM: No form associated with this product, hiding form');
         const container = document.querySelector('[data-form-preview-id="form-preview-stable"]');
         if (container) {
           container.style.display = 'none';
@@ -977,7 +1006,7 @@ EXTERNAL SCRIPTS
       
       // Product has associated form, continue loading
       const formId = productSettings[0].form_id;
-      
+      console.log('✅ CODFORM: Product has associated form:', formId);
       
       loadFormWithValidation(productId, shopDomain, formId);
     })
@@ -992,7 +1021,7 @@ EXTERNAL SCRIPTS
   }
   
   function loadFormWithValidation(productId, shopDomain, formId) {
-    
+    console.log('🔄 CODFORM: Loading validated form for product:', productId, 'shop:', shopDomain, 'form:', formId);
     
     // Get current product data from Shopify liquid templates
     const currentProduct = {
@@ -1015,7 +1044,7 @@ EXTERNAL SCRIPTS
       ]
     };
     
-    
+    console.log('🛍️ CODFORM: معلومات المنتج:', currentProduct);
     
     // Try multiple API endpoints for better reliability
     const apiUrls = [
@@ -1026,15 +1055,15 @@ EXTERNAL SCRIPTS
     async function tryFetchForm() {
       for (let url of apiUrls) {
         try {
-          
+          console.log('🔄 CODFORM: Trying API:', url);
           const response = await fetch(url);
           if (response.ok) {
             const data = await response.json();
-            
+            console.log('✅ CODFORM: Success with:', url);
             return data;
           }
         } catch (error) {
-          
+          console.log('❌ CODFORM: Failed with:', url, error);
         }
       }
       throw new Error('All API endpoints failed');
@@ -1758,6 +1787,9 @@ window.CodformQuantityOffers = (function() {
     // استخدام البيانات الحقيقية من النموذج مع التأكد من وجود السعر الصحيح
     const realProductData = productData || window.currentFormData || {};
     
+    // استخدام البيانات الحقيقية من النموذج مع التأكد من وجود السعر الصحيح
+    const realProductData = productData || window.currentFormData || {};
+    
     // استخدام السعر من Shopify Liquid مباشرة كقيمة افتراضية صحيحة
     const liquidPrice = parseFloat('{{ product.price | divided_by: 100.0 }}') || 0;
     const liquidCurrency = '{{ shop.currency }}' || 'SAR';
@@ -2282,6 +2314,4 @@ style.textContent = `
   }
 `;
 document.head.appendChild(style);
-
-})(); // إغلاق الدالة الأساسية 
 </script>
