@@ -84,11 +84,30 @@ export const useShopifyStoreSync = () => {
             .select('*')
             .eq('shop', activeStore)
             .eq('is_active', true)
-            .single();
+            .maybeSingle();
 
-          if (response.error && response.error.code !== 'PGRST116') {
+          if (response.error) {
             console.error('❌ خطأ في جلب المتجر النشط:', response.error);
           } else if (response.data) {
+            // إذا لم يكن لديه بريد إلكتروني، حاول جلبه من Shopify
+            if (!(response.data as any).email) {
+              console.log('📧 محاولة جلب البريد الإلكتروني من Shopify...');
+              try {
+                const emailResponse = await supabase.functions.invoke('update-shop-email', {
+                  body: { shop: activeStore }
+                });
+
+                if (emailResponse.data?.success) {
+                  (response.data as any).email = emailResponse.data.email;
+                  console.log('✅ تم جلب البريد الإلكتروني:', emailResponse.data.email);
+                  // حفظ البريد الإلكتروني في localStorage
+                  localStorage.setItem('shopify_user_email', emailResponse.data.email);
+                }
+              } catch (emailError) {
+                console.error('❌ خطأ في جلب البريد الإلكتروني:', emailError);
+              }
+            }
+
             storesList = [response.data];
             console.log('✅ تم العثور على المتجر النشط');
             
