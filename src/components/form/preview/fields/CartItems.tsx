@@ -18,7 +18,14 @@ interface CartItemsProps {
 const CartItems: React.FC<CartItemsProps> = ({ field, formStyle, productId }) => {
   const { language } = useI18n();
   const fieldStyle = field.style || {};
-  const { products } = useSimpleShopify();
+  const { products, loadProducts } = useSimpleShopify();
+  
+  // تحميل المنتجات عند التهيئة
+  React.useEffect(() => {
+    if (productId && (!products || products.length === 0)) {
+      loadProducts();
+    }
+  }, [productId, products, loadProducts]);
   
   // البحث عن المنتج المرتبط
   const linkedProduct = productId ? products?.find(p => p.id === productId) : null;

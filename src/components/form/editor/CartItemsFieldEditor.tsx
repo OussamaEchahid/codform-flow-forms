@@ -127,13 +127,16 @@ const CartItemsFieldEditor: React.FC<CartItemsFieldEditorProps> = ({ field, onUp
         <div className="space-y-6">
           {/* Basic Settings */}
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>{language === 'ar' ? 'عنوان الحقل' : 'Field Label'}</Label>
-              <Input
-                value={field.label || ''}
-                onChange={(e) => onUpdate({ label: e.target.value })}
-                placeholder={language === 'ar' ? 'المنتج المختار' : 'Selected Product'}
-              />
+            <div className="p-3 bg-blue-50 rounded-lg">
+              <h4 className="font-medium text-sm text-blue-900 mb-1">
+                {language === 'ar' ? 'عنوان المنتج' : 'Product Title'}
+              </h4>
+              <p className="text-xs text-blue-700">
+                {language === 'ar' 
+                  ? 'سيتم عرض عنوان المنتج المرتبط تلقائياً. لا حاجة لتسمية منفصلة.'
+                  : 'The linked product title will be displayed automatically. No separate label needed.'
+                }
+              </p>
             </div>
 
             <div className="flex items-center space-x-2">
