@@ -230,17 +230,280 @@ const SortableField: React.FC<SortableFieldProps> = ({
                     }
                   </p>
                 </div>
-              ) : (
-                /* باقي الإعدادات للحقول الأخرى */
-                <div className="space-y-4">
-                  <p className="text-sm text-gray-500">
-                    {language === 'ar' 
-                      ? 'الإعدادات المفصلة متاحة قريباً'
-                      : 'Detailed settings available soon'
-                    }
-                  </p>
-                </div>
-              )}
+               ) : isFormTitle ? (
+                 /* إعدادات عنوان النموذج */
+                 <div className="grid grid-cols-2 gap-4">
+                   {/* Left column */}
+                   <div className="space-y-4">
+                     {/* Title Text */}
+                     <div className="space-y-1">
+                       <Label htmlFor={`field-title-${field.id}`}>
+                         {language === 'ar' ? 'عنوان النص' : 'Title'}
+                       </Label>
+                       <Input
+                         id={`field-title-${field.id}`}
+                         value={editedField.content || editedField.label || ''}
+                         onChange={(e) => {
+                           handleFieldChange('content', e.target.value);
+                           handleFieldChange('label', e.target.value);
+                         }}
+                         className={language === 'ar' ? 'text-right' : ''}
+                       />
+                     </div>
+                     
+                     {/* Color */}
+                     <div className="space-y-1">
+                       <Label>{language === 'ar' ? 'لون النص' : 'Text color'}</Label>
+                       <div className="flex gap-2 items-center">
+                         <Input
+                           type="color"
+                           value={editedField.style?.color || '#000000'}
+                           onChange={(e) => handleStyleChange('color', e.target.value)}
+                           className="w-9 h-9 p-1"
+                         />
+                         <Input
+                           value={editedField.style?.color || '#000000'}
+                           onChange={(e) => handleStyleChange('color', e.target.value)}
+                           className="flex-1"
+                         />
+                       </div>
+                     </div>
+                     
+                     {/* Font size */}
+                     <div className="space-y-1">
+                       <div className="flex items-center justify-between">
+                         <Label>{language === 'ar' ? 'حجم الخط' : 'Font size'}</Label>
+                         <span className="text-sm">{parseFloat(editedField.style?.fontSize?.replace('rem', '') || '1.5') || 1.5}</span>
+                       </div>
+                       <Slider
+                         value={[parseFloat(editedField.style?.fontSize?.replace('rem', '') || '1.5') || 1.5]}
+                         onValueChange={(value) => handleStyleChange('fontSize', `${value[0]}rem`)}
+                         max={4}
+                         min={0.75}
+                         step={0.25}
+                         className="w-full"
+                       />
+                     </div>
+                     
+                     {/* Font family */}
+                     <div className="space-y-1">
+                       <Label>{language === 'ar' ? 'نوع الخط' : 'Font family'}</Label>
+                       <Select
+                         value={editedField.style?.fontFamily || 'Tajawal'}
+                         onValueChange={(value) => handleStyleChange('fontFamily', value)}
+                       >
+                         <SelectTrigger>
+                           <SelectValue placeholder={language === 'ar' ? 'اختر نوع الخط' : 'Select font family'} />
+                         </SelectTrigger>
+                         <SelectContent>
+                           {fontFamilies.map(font => (
+                             <SelectItem key={font.value} value={font.value}>{font.label}</SelectItem>
+                           ))}
+                         </SelectContent>
+                       </Select>
+                     </div>
+                   </div>
+                   
+                   {/* Right column */}
+                   <div className="space-y-4">
+                     {/* Text Weight */}
+                     <div className="space-y-2">
+                       <div className="flex items-center justify-between">
+                         <Label>{language === 'ar' ? 'وزن النص' : 'Text weight'}</Label>
+                         <span className="text-sm">({editedField.style?.fontWeight || '600'})</span>
+                       </div>
+                       <Slider
+                         value={[parseInt(editedField.style?.fontWeight || '600')]}
+                         onValueChange={(value) => handleStyleChange('fontWeight', value[0].toString())}
+                         max={900}
+                         min={100}
+                         step={100}
+                         className="w-full"
+                       />
+                     </div>
+                     
+                     {/* Padding Top */}
+                     <div className="space-y-2">
+                       <div className="flex items-center justify-between">
+                         <Label>{language === 'ar' ? 'مسافة علوية' : 'padding-top'}</Label>
+                         <span className="text-sm">({parseInt(editedField.style?.paddingTop?.replace('px', '') || '12') || 12})</span>
+                       </div>
+                       <Slider
+                         value={[parseInt(editedField.style?.paddingTop?.replace('px', '') || '12') || 12]}
+                         onValueChange={(value) => handleStyleChange('paddingTop', `${value[0]}px`)}
+                         max={30}
+                         min={0}
+                         step={1}
+                         className="w-full"
+                       />
+                     </div>
+                     
+                     {/* Padding Bottom */}
+                     <div className="space-y-2">
+                       <div className="flex items-center justify-between">
+                         <Label>{language === 'ar' ? 'مسافة سفلية' : 'padding-bottom'}</Label>
+                         <span className="text-sm">({parseInt(editedField.style?.paddingBottom?.replace('px', '') || '12') || 12})</span>
+                       </div>
+                       <Slider
+                         value={[parseInt(editedField.style?.paddingBottom?.replace('px', '') || '12') || 12]}
+                         onValueChange={(value) => handleStyleChange('paddingBottom', `${value[0]}px`)}
+                         max={30}
+                         min={0}
+                         step={1}
+                         className="w-full"
+                       />
+                     </div>
+                   </div>
+                 </div>
+                 ) : isWhatsAppButton ? (
+                   /* إعدادات زر الواتساب فقط - لا إعدادات عامة */
+                   null
+                 ) : (
+                   /* Regular field settings للحقول الأخرى */
+                  <div className="grid grid-cols-2 gap-4">
+                     {/* Left column - General field settings */}
+                     <div className="space-y-4">
+                       {/* Placeholder - hide for submit button */}
+                       {!shouldShowSubmitSpecificSettings && (
+                         <div className="space-y-1">
+                           <Label htmlFor={`field-placeholder-${field.id}`}>
+                             {language === 'ar' ? 'مكان النص' : 'Placeholder'}
+                           </Label>
+                           <Input
+                             id={`field-placeholder-${field.id}`}
+                             value={editedField.placeholder || ''}
+                             onChange={(e) => handleFieldChange('placeholder', e.target.value)}
+                             className={language === 'ar' ? 'text-right' : ''}
+                           />
+                         </div>
+                       )}
+                       
+                       {/* Required field */}
+                       <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                         <Switch 
+                           id={`field-required-${field.id}`} 
+                           checked={editedField.required || false}
+                           onCheckedChange={(checked) => handleFieldChange('required', checked)}
+                         />
+                         <Label 
+                           htmlFor={`field-required-${field.id}`}
+                           className={language === 'ar' ? 'text-right' : ''}
+                         >
+                           {language === 'ar' ? 'مطلوب' : 'Required'}
+                         </Label>
+                       </div>
+                       
+                       {/* Label color */}
+                       <div className="space-y-1">
+                         <Label>{language === 'ar' ? 'لون التسمية' : 'Label color'}</Label>
+                         <div className="flex gap-2 items-center">
+                           <Input
+                             type="color"
+                             value={editedField.style?.labelColor || '#9b87f5'}
+                             onChange={(e) => handleStyleChange('labelColor', e.target.value)}
+                             className="w-9 h-9 p-1"
+                           />
+                           <Input
+                             value={editedField.style?.labelColor || '#9b87f5'}
+                             onChange={(e) => handleStyleChange('labelColor', e.target.value)}
+                             className="flex-1"
+                           />
+                         </div>
+                       </div>
+                       
+                       {/* Font family */}
+                       <div className="space-y-1">
+                         <Label>{language === 'ar' ? 'نوع الخط' : 'Font family'}</Label>
+                         <Select
+                           value={editedField.style?.fontFamily || 'sans-serif'}
+                           onValueChange={(value) => handleStyleChange('fontFamily', value)}
+                         >
+                           <SelectTrigger>
+                             <SelectValue placeholder={language === 'ar' ? 'اختر نوع الخط' : 'Select font family'} />
+                           </SelectTrigger>
+                           <SelectContent>
+                             {fontFamilies.map(font => (
+                               <SelectItem key={font.value} value={font.value}>{font.label}</SelectItem>
+                             ))}
+                           </SelectContent>
+                         </Select>
+                       </div>
+                       
+                       {/* Background color - only for submit button */}
+                       {shouldShowSubmitSpecificSettings && (
+                         <div className="space-y-1">
+                           <Label>{language === 'ar' ? 'لون الخلفية' : 'Background color'}</Label>
+                           <div className="flex gap-2 items-center">
+                             <Input
+                               type="color"
+                               value={editedField.style?.backgroundColor || '#9b87f5'}
+                               onChange={(e) => handleStyleChange('backgroundColor', e.target.value)}
+                               className="w-9 h-9 p-1"
+                             />
+                             <Input
+                               value={editedField.style?.backgroundColor || '#9b87f5'}
+                               onChange={(e) => handleStyleChange('backgroundColor', e.target.value)}
+                               className="flex-1"
+                             />
+                           </div>
+                         </div>
+                       )}
+                       
+                       {/* Text color */}
+                       <div className="space-y-1">
+                         <Label>{language === 'ar' ? 'لون النص' : 'Text color'}</Label>
+                         <div className="flex gap-2 items-center">
+                           <Input
+                             type="color"
+                             value={editedField.style?.color || '#000000'}
+                             onChange={(e) => handleStyleChange('color', e.target.value)}
+                             className="w-9 h-9 p-1"
+                           />
+                           <Input
+                             value={editedField.style?.color || '#000000'}
+                             onChange={(e) => handleStyleChange('color', e.target.value)}
+                             className="flex-1"
+                           />
+                         </div>
+                       </div>
+                     </div>
+                     
+                     {/* Right column - Style settings */}
+                     <div className="space-y-4">
+                       {/* Font size */}
+                       <div className="space-y-1">
+                         <div className="flex items-center justify-between">
+                           <Label>{language === 'ar' ? 'حجم الخط' : 'Font size'}</Label>
+                           <span className="text-sm">{editedField.style?.fontSize || '16'}px</span>
+                         </div>
+                         <Slider
+                           value={[parseInt(editedField.style?.fontSize || '16')]}
+                           onValueChange={(value) => handleStyleChange('fontSize', `${value[0]}px`)}
+                           max={24}
+                           min={10}
+                           step={1}
+                           className="w-full"
+                         />
+                       </div>
+                       
+                       {/* Padding Y */}
+                       <div className="space-y-1">
+                         <div className="flex items-center justify-between">
+                           <Label>{language === 'ar' ? 'الحشو العمودي' : 'Padding Y'}</Label>
+                           <span className="text-sm">{editedField.style?.paddingY || '8'}px</span>
+                         </div>
+                         <Slider
+                           value={[parseInt(editedField.style?.paddingY || '8')]}
+                           onValueChange={(value) => handleStyleChange('paddingY', `${value[0]}px`)}
+                           max={20}
+                           min={0}
+                           step={1}
+                           className="w-full"
+                         />
+                       </div>
+                     </div>
+                   </div>
+                 )}
             </div>
           </AccordionContent>
         </AccordionItem>
