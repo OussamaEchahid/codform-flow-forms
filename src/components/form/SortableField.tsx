@@ -274,7 +274,18 @@ const SortableField: React.FC<SortableFieldProps> = ({
               >
                 <GripVertical size={16} className="text-gray-500" />
               </div>
-              
+            </div>
+            
+            <div className={`flex-1 ${language === 'ar' ? 'text-right mr-2' : 'text-left ml-2'}`}>
+              <div className="font-medium">
+                {field.label || field.content || (language === 'ar' ? "حقل بدون عنوان" : "Untitled field")}
+              </div>
+              <div className="text-sm text-gray-500">
+                {field.required ? (language === 'ar' ? 'مطلوب' : 'Required') : (language === 'ar' ? 'اختياري' : 'Optional')} | {field.type}
+              </div>
+            </div>
+            
+            <div className="flex gap-2 items-center">
               {/* أزرار الحذف والتكرار */}
               <Button 
                 variant="outline" 
@@ -292,20 +303,11 @@ const SortableField: React.FC<SortableFieldProps> = ({
               >
                 <Trash size={12} />
               </Button>
+              
+              <AccordionTrigger onClick={toggleExpand} className="py-0">
+                <ChevronDown size={16} />
+              </AccordionTrigger>
             </div>
-            
-            <div className={`flex-1 ${language === 'ar' ? 'text-right mr-2' : 'text-left ml-2'}`}>
-              <div className="font-medium">
-                {field.label || field.content || (language === 'ar' ? "حقل بدون عنوان" : "Untitled field")}
-              </div>
-              <div className="text-sm text-gray-500">
-                {field.required ? (language === 'ar' ? 'مطلوب' : 'Required') : (language === 'ar' ? 'اختياري' : 'Optional')} | {field.type}
-              </div>
-            </div>
-            
-            <AccordionTrigger onClick={toggleExpand} className="py-0">
-              <ChevronDown size={16} />
-            </AccordionTrigger>
           </div>
           
           <AccordionContent className="border-t pt-2">
