@@ -9,6 +9,7 @@ import {
   useBuyerJourneyIntercept,
   useCartLines,
 } from '@shopify/ui-extensions-react/checkout';
+import { FormField } from './components/FormField';
 
 export default reactExtension(
   'purchase.checkout.block.render',
@@ -94,158 +95,8 @@ function Extension() {
     }));
   };
 
-  // Icon helper function for checkout UI
-  const getIconForField = (field) => {
-    if (!field.icon || field.icon === 'none') return null;
-    
-    const iconColor = field.style?.iconColor || '#9CA3AF';
-    const showIcon = field.style?.showIcon !== false && field.style?.showIconInPreview !== false;
-    
-    if (!showIcon) return null;
-    
-    // Map جميع الأيقونات المتاحة في النظام - نفس الطريقة التي نجحت
-    const iconMap = {
-      // الأيقونات الأساسية
-      user: '👤',
-      phone: '📱', 
-      mail: '📧',
-      email: '📧',
-      'map-pin': '📍',
-      
-      // الأيقونات المميزة الجديدة
-      home: '🏠',
-      heart: '❤️',
-      star: '⭐',
-      'shopping-cart': '🛒',
-      gift: '🎁',
-      calendar: '📅',
-      clock: '⏰',
-      'message-circle': '💬',
-      
-      // أيقونات الأشكال
-      diamond: '💎',
-      circle: '⭕',
-      square: '⬜',
-      triangle: '🔺',
-      hexagon: '⬣',
-      target: '🎯',
-      settings: '⚙️',
-      
-      // أيقونات زر الطلب
-      'shopping-bag': '🛍️',
-      'credit-card': '💳',
-      banknote: '💵',
-      handshake: '🤝',
-      truck: '🚚',
-      package: '📦',
-      send: '📤',
-      crown: '👑',
-      zap: '⚡',
-      check: '✅',
-      
-      // أيقونات حقول الاسم
-      users: '👥',
-      'id-card': '🆔',
-      award: '🏆',
-      
-      // أيقونات الهاتف
-      smartphone: '📱',
-      'phone-call': '📞',
-      
-      // أيقونات العنوان
-      building: '🏢',
-      map: '🗺️',
-      
-      // أيقونات الرسائل
-      'message-square': '💬',
-      'sticky-note': '📝',
-      edit: '✏️',
-      sparkles: '✨'
-    };
-    
-    return iconMap[field.icon] || '•';
-  };
-
   const renderField = (field) => {
-    if (field.type === 'form-title') {
-      return (
-        <Text 
-          key={field.id}
-          size="large"
-          emphasis="bold"
-          appearance="base"
-        >
-          {field.content || field.label || 'عنوان النموذج'}
-        </Text>
-      );
-    }
-
-    if (field.type === 'text' || field.type === 'email' || field.type === 'phone') {
-      const icon = getIconForField(field);
-      const showLabel = field.style?.showLabel !== false;
-      
-      return (
-        <BlockStack key={field.id}>
-          {showLabel && <Text>{icon ? `${icon} ${field.label}` : field.label}</Text>}
-          <input
-            type={field.type === 'email' ? 'email' : field.type === 'phone' ? 'tel' : 'text'}
-            placeholder={field.placeholder || field.label}
-            defaultValue={formData[field.id] || ''}
-            onChange={e => handleChange(field.id, e.target.value)}
-            style={{
-              padding: '8px 12px',
-              border: '1px solid #D1D5DB',
-              borderRadius: '8px',
-              fontSize: '16px',
-              width: '100%',
-              boxSizing: 'border-box'
-            }}
-          />
-        </BlockStack>
-      );
-    }
-
-    if (field.type === 'textarea') {
-      const showLabel = field.style?.showLabel !== false;
-      
-      return (
-        <BlockStack key={field.id}>
-          {showLabel && <Text>{field.label}</Text>}
-          <textarea
-            placeholder={field.placeholder || field.label}
-            defaultValue={formData[field.id] || ''}
-            onChange={e => handleChange(field.id, e.target.value)}
-            style={{
-              padding: '8px 12px',
-              border: '1px solid #D1D5DB',
-              borderRadius: '8px',
-              fontSize: '16px',
-              width: '100%',
-              minHeight: '80px',
-              resize: 'vertical',
-              boxSizing: 'border-box'
-            }}
-          />
-        </BlockStack>
-      );
-    }
-
-    if (field.type === 'checkbox') {
-      return (
-        <BlockStack key={field.id}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <input
-              type="checkbox"
-              checked={formData[field.id] || false}
-              onChange={e => handleChange(field.id, e.target.checked)}
-            />
-            <Text>{field.label}</Text>
-          </label>
-        </BlockStack>
-      );
-    }
-
-    return null;
+    return <FormField field={field} formData={formData} handleChange={handleChange} />;
   };
 
   if (!formConfig) {
