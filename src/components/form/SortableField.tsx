@@ -285,7 +285,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
               </div>
             </div>
             
-            <div className="flex gap-2 items-center">
+            <div className="flex gap-3 items-center">
               {/* أزرار الحذف والتكرار */}
               <Button 
                 variant="outline" 
@@ -295,17 +295,22 @@ const SortableField: React.FC<SortableFieldProps> = ({
               >
                 <Copy size={12} />
               </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={onDelete}
-                className="flex items-center gap-1 hover:text-red-500 hover:border-red-200 h-8 px-2"
-              >
-                <Trash size={12} />
-              </Button>
+              {/* منع حذف زر الطلب */}
+              {field.type !== 'submit' && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={onDelete}
+                  className="flex items-center gap-1 hover:text-red-500 hover:border-red-200 h-8 px-2"
+                >
+                  <Trash size={12} />
+                </Button>
+              )}
               
-              <AccordionTrigger onClick={toggleExpand} className="py-0">
-              </AccordionTrigger>
+              <div className="ml-3">
+                <AccordionTrigger onClick={toggleExpand} className="py-0">
+                </AccordionTrigger>
+              </div>
             </div>
           </div>
           
