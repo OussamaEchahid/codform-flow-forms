@@ -80,93 +80,187 @@ serve(async (req) => {
     // Get URL parameters
     const url = new URL(req.url);
     const pathParts = url.pathname.split('/');
-    const formId = pathParts[pathParts.length - 1];
-    const productId = url.searchParams.get('productId');
+    const productId = pathParts[pathParts.length - 1];
+    const shopDomain = url.searchParams.get('shop');
 
-    if (!formId) {
-      throw new Error('No form ID provided')
+    console.log('API Request - Product ID:', productId, 'Shop:', shopDomain);
+
+    if (!productId || !shopDomain) {
+      throw new Error('Missing product ID or shop domain')
     }
 
-    console.log('Fetching form with ID:', formId, productId ? `for product: ${productId}` : '');
-
-    // Get form from database
-    const { data: formData, error } = await supabase
-      .from('forms')
-      .select('*')
-      .eq('id', formId)
+    // Try to get form for specific product first
+    let { data: productSettings, error: productError } = await supabase
+      .from('shopify_product_settings')
+      .select(`
+        form_id,
+        forms (
+          id,
+          title,
+          data,
+          style,
+          language,
+          is_published
+        )
+      `)
+      .eq('shop_id', shopDomain)
+      .eq('product_id', productId)
+      .eq('enabled', true)
       .single();
 
-    if (error) {
-      console.error('Database error:', error)
-      throw error
-    }
-
-    if (!formData) {
-      console.error('Form not found:', formId)
-      throw new Error(`Form with ID ${formId} not found`)
-    }
-
-    // Verify the form is published
-    if (formData.is_published !== true) {
-      console.error('Form is not published:', formId)
-      throw new Error(`Form with ID ${formId} is not published`)
-    }
-
-    // If we have a product ID, check if this form is associated with this product
-    if (productId) {
-      const { data: productSettings, error: productError } = await supabase
+    // If no product-specific form found, try auto-detect form
+    if (productError || !productSettings) {
+      console.log('No product-specific form found, trying auto-detect...');
+      const { data: autoDetectSettings, error: autoDetectError } = await supabase
         .from('shopify_product_settings')
-        .select('*')
-        .eq('form_id', formId)
-        .eq('product_id', productId)
+        .select(`
+          form_id,
+          forms (
+            id,
+            title,
+            data,
+            style,
+            language,
+            is_published
+          )
+        `)
+        .eq('shop_id', shopDomain)
+        .eq('product_id', 'auto-detect')
+        .eq('enabled', true)
         .single();
 
-      if (productError) {
-        // If we don't find a product-specific setting, it might be a global form
-        console.log(`No specific product settings found for product ${productId}, checking if this is a global form`);
-        // We continue anyway - the form might be used globally
-      } else if (productSettings) {
-        console.log(`Found product-specific settings for form ${formId} and product ${productId}`);
-        // We confirmed this form is associated with this product
+      if (autoDetectError || !autoDetectSettings) {
+        // Create a default form if none exists
+        console.log('No forms found, creating default form response');
+        const defaultForm = {
+          id: 'default-cart-form',
+          title: 'نموذج طلب شراء',
+          fields: [
+            {
+              id: 'form-title-1',
+              type: 'form-title',
+              label: 'طلب شراء المنتج',
+              style: {
+                color: '#1F2937',
+                fontSize: '24px',
+                fontWeight: 'bold'
+              }
+            },
+            {
+              id: 'cart-items-1',
+              type: 'cart-items',
+              style: {
+                showImage: true,
+                showTitle: true,
+                showQuantity: true,
+                showPrice: true,
+                titleColor: '#1F2937',
+                titleFont: 'Cairo',
+                priceColor: '#059669',
+                priceFont: 'Cairo'
+              }
+            },
+            {
+              id: 'customer-name',
+              type: 'text',
+              label: 'الاسم الكامل',
+              placeholder: 'أدخل اسمك الكامل',
+              required: true,
+              style: {
+                labelColor: '#374151',
+                borderColor: '#D1D5DB'
+              }
+            },
+            {
+              id: 'customer-phone',
+              type: 'phone',
+              label: 'رقم الهاتف',
+              placeholder: '+966xxxxxxxxx',
+              required: true,
+              icon: 'phone',
+              style: {
+                labelColor: '#374151',
+                borderColor: '#D1D5DB',
+                showIcon: true,
+                iconColor: '#059669'
+              }
+            },
+            {
+              id: 'submit-btn',
+              type: 'submit',
+              label: 'تأكيد الطلب',
+              style: {
+                backgroundColor: '#059669',
+                color: '#FFFFFF'
+              }
+            }
+          ],
+          style: {
+            formDirection: 'rtl',
+            baseFontSize: '16px',
+            fieldBorderColor: '#D1D5DB',
+            focusBorderColor: '#059669'
+          },
+          language: 'ar',
+          is_published: true
+        };
+
+        return new Response(JSON.stringify({
+          success: true,
+          form: defaultForm,
+          shop: shopDomain,
+          productId: productId
+        }), {
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+          },
+          status: 200,
+        });
       }
+
+      productSettings = autoDetectSettings;
     }
 
-    // Get quantity offers if productId is provided
-    let quantityOffers = [];
-    if (productId) {
-      console.log('Fetching quantity offers for product:', productId);
-      const { data: offersData, error: offersError } = await supabase
-        .from('quantity_offers')
-        .select('*')
-        .eq('product_id', productId)
-        .eq('form_id', formId)
-        .eq('enabled', true);
-
-      if (offersData && !offersError) {
-        quantityOffers = offersData;
-        console.log('Found quantity offers:', quantityOffers.length);
-      } else if (offersError) {
-        console.error('Error fetching quantity offers:', offersError);
-      }
+    if (!productSettings?.forms) {
+      throw new Error('Form data not found');
     }
 
-    console.log('Successfully fetched form:', formData.title, 'ID:', formId)
+    const formData = productSettings.forms;
+    
+    // Verify the form is published
+    if (formData.is_published !== true) {
+      console.error('Form is not published:', formData.id)
+      throw new Error(`Form is not published`)
+    }
 
-    // Transform form data to the expected format, optimizing for size
+    console.log('Successfully fetched form:', formData.title, 'ID:', formData.id)
+
+    // Transform form data to the expected format
     const transformedData = transformFormData(formData)
     
-    // Add quantity offers to the response
-    const responseData = {
-      ...transformedData,
-      quantityOffers: quantityOffers
-    };
-    
-    // Return the form data with proper caching headers
-    return new Response(JSON.stringify(responseData), {
+    // Return the form data
+    return new Response(JSON.stringify({
+      success: true,
+      form: {
+        id: formData.id,
+        title: formData.title,
+        fields: formData.data || [],
+        style: formData.style || {
+          formDirection: 'rtl',
+          baseFontSize: '16px',
+          fieldBorderColor: '#D1D5DB',
+          focusBorderColor: '#059669'
+        },
+        language: formData.language || 'ar',
+        is_published: formData.is_published
+      },
+      shop: shopDomain,
+      productId: productId
+    }), {
       headers: {
         ...corsHeaders,
         'Content-Type': 'application/json',
-        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
       },
       status: 200,
     })
