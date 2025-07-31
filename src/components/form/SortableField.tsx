@@ -865,7 +865,6 @@ const SortableField: React.FC<SortableFieldProps> = ({
             if (onFieldUpdate) {
               onFieldUpdate(updatedField);
             }
-            setShowFieldEditor(false);
           }}
           onClose={() => setShowFieldEditor(false)}
         />
