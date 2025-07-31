@@ -181,8 +181,8 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
 
   return (
     <div 
-      className="mb-4" 
-      style={{ marginBottom: '4px', background: 'transparent' }}
+      className="mb-2" 
+      style={{ background: 'transparent' }}
       dir={formDirection}
     >
       {showLabel && !isFloatingLabels && (
