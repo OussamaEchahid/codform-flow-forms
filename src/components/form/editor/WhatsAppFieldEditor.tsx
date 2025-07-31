@@ -30,8 +30,8 @@ const WhatsAppFieldEditor: React.FC<WhatsAppFieldEditorProps> = ({ field, onSave
   const [buttonText, setButtonText] = useState(field.label || (language === 'ar' ? 'طلب عبر واتساب' : 'Order by WhatsApp'));
   const [whatsappNumber, setWhatsappNumber] = useState(field.whatsappNumber || '');
   const [message, setMessage] = useState(field.message || (language === 'ar' ? 'مرحباً، أنا مهتم بـ {product}. هل يمكنك تقديم مزيد من المعلومات؟' : 'Hello, I\'m interested in {product}. Can you provide more information?'));
-  const [fontFamily, setFontFamily] = useState(field.style?.fontFamily || 'Montserrat');
-  const [fontSize, setFontSize] = useState(field.style?.fontSize ? parseFloat(field.style.fontSize) : 1.1);
+  const [fontFamily, setFontFamily] = useState(field.style?.fontFamily || 'Tajawal');
+  const [fontSize, setFontSize] = useState(field.style?.fontSize ? parseFloat(field.style.fontSize.replace('px', '').replace('rem', '')) : 16);
   const [fontWeight, setFontWeight] = useState(field.style?.fontWeight ? parseInt(field.style.fontWeight) : 400);
   const [textColor, setTextColor] = useState(field.style?.color || '#ffffff');
   const [backgroundColor, setBackgroundColor] = useState(field.style?.backgroundColor || '#25d366');
@@ -73,7 +73,7 @@ const WhatsAppFieldEditor: React.FC<WhatsAppFieldEditorProps> = ({ field, onSave
       style: {
         ...field.style,
         fontFamily: fontFamily,
-        fontSize: `${fontSize}rem`,
+        fontSize: `${fontSize}px`,
         fontWeight: fontWeight.toString(),
         color: textColor,
         backgroundColor: backgroundColor,
@@ -124,6 +124,7 @@ const WhatsAppFieldEditor: React.FC<WhatsAppFieldEditorProps> = ({ field, onSave
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="Tajawal">Tajawal</SelectItem>
               <SelectItem value="Montserrat">Montserrat</SelectItem>
               <SelectItem value="Cairo">Cairo</SelectItem>
               <SelectItem value="Arial">Arial</SelectItem>
@@ -133,13 +134,13 @@ const WhatsAppFieldEditor: React.FC<WhatsAppFieldEditorProps> = ({ field, onSave
         </div>
         
         <div className="space-y-2">
-          <Label>{language === 'ar' ? 'حجم الخط' : 'Font size'} ({fontSize})</Label>
+          <Label>{language === 'ar' ? 'حجم الخط' : 'Font size'} ({fontSize}px)</Label>
           <Slider
             value={[fontSize]}
             onValueChange={([value]) => setFontSize(value)}
-            min={0}
-            max={3}
-            step={0.1}
+            min={10}
+            max={32}
+            step={1}
             className="w-full"
           />
         </div>

@@ -36,9 +36,9 @@ function renderWhatsAppField(field, formStyle) {
   const buttonStyle = `
     background-color: ${fieldStyle.backgroundColor || '#25D366'};
     color: ${fieldStyle.color || 'white'};
-    font-size: ${fieldStyle.fontSize || formStyle.fontSize || '18px'};
+    font-size: ${fieldStyle.fontSize || formStyle.fontSize || '16px'};
     font-weight: ${fieldStyle.fontWeight || '600'};
-    font-family: ${fieldStyle.fontFamily || 'Cairo, sans-serif'};
+    font-family: ${fieldStyle.fontFamily || 'Tajawal, sans-serif'};
     border-radius: ${buttonRadius};
     text-decoration: none;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
