@@ -82,7 +82,7 @@ const CartItems: React.FC<CartItemsProps> = ({ field, formStyle, productId }) =>
   const borderRadius = formStyle.borderRadius || '0.5rem';
   
   return (
-    <div className="mb-1 codform-cart-items w-full max-w-sm mx-auto" style={{ direction: fieldStyle.direction || (language === 'ar' ? 'rtl' : 'ltr') }}>
+    <div className="mb-2 codform-cart-items w-full max-w-sm mx-auto" style={{ direction: fieldStyle.direction || (language === 'ar' ? 'rtl' : 'ltr') }}>
       <div 
         className={`${fieldStyle.showBorders !== false ? 'border' : ''} rounded-lg overflow-hidden bg-white shadow-sm`} 
         style={{ 
@@ -92,7 +92,7 @@ const CartItems: React.FC<CartItemsProps> = ({ field, formStyle, productId }) =>
         }}
       >
         {/* عنصر العربة النموذجي للمعاينة */}
-        <div className={`flex items-center p-2 space-x-2 codform-cart-item ${fieldStyle.direction === 'rtl' || language === 'ar' ? 'space-x-reverse' : ''}`} data-product-item>
+        <div className={`flex items-center p-3 space-x-3 codform-cart-item ${fieldStyle.direction === 'rtl' || language === 'ar' ? 'space-x-reverse' : ''}`} data-product-item>
           {/* صورة المنتج */}
           {fieldStyle.hideImage !== true && (
             <div className="w-10 h-10 rounded-md flex-shrink-0 overflow-hidden">
