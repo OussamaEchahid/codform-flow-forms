@@ -182,7 +182,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
   return (
     <div 
       className="mb-4" 
-      style={{ marginBottom: '16px', background: 'transparent' }}
+      style={{ marginBottom: '4px', background: 'transparent' }}
       dir={formDirection}
     >
       {showLabel && !isFloatingLabels && (
@@ -194,7 +194,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
             fontSize: labelFontSize,
             fontWeight: labelFontWeight,
             fontFamily: fontFamily,
-            marginBottom: '8px',
+            marginBottom: '4px',
             display: 'block',
             backgroundColor: 'transparent',
             background: 'transparent',
