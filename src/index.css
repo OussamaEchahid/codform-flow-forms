@@ -130,9 +130,9 @@
 
 /* Override for form fields spacing in preview */
 .mb-4 {
-  margin-bottom: 10px !important;
+  margin-bottom: 0.5rem !important;
 }
 
 .form-control {
-  margin-bottom: 10px !important;
+  margin-bottom: 0.5rem !important;
 }
