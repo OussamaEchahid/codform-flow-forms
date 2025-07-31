@@ -152,8 +152,8 @@ const ImageFieldEditor: React.FC<ImageFieldEditorProps> = ({ field, onSave, onCl
   const currentAlignment = currentField.style?.textAlign || 'center';
 
   return (
-    <div className="space-y-4 p-4">
-      <h3 className="font-medium text-lg">
+    <div className="space-y-6 p-6">
+      <h3 className="font-medium text-lg mb-4">
         {language === 'ar' ? 'إعدادات الصورة' : 'Image Settings'}
       </h3>
 
@@ -172,12 +172,21 @@ const ImageFieldEditor: React.FC<ImageFieldEditorProps> = ({ field, onSave, onCl
         />
       </div>
 
-      {/* Upload Image */}
-      <div className="space-y-2">
-        <Label>
-          {language === 'ar' ? 'رفع صورة' : 'Upload Image'}
-        </Label>
-        <div className="flex items-center gap-2">
+      {/* Upload Image - NEW FEATURE */}
+      <div className="space-y-3 p-4 border border-dashed border-gray-300 rounded-lg bg-gray-50">
+        <div className="text-center">
+          <Label className="text-lg font-medium">
+            {language === 'ar' ? '🚀 رفع صورة جديدة' : '🚀 Upload New Image'}
+          </Label>
+          <p className="text-sm text-gray-600 mt-1">
+            {language === 'ar' 
+              ? 'اختر صورة من جهازك للرفع المباشر'
+              : 'Choose an image from your device for direct upload'
+            }
+          </p>
+        </div>
+        
+        <div className="flex justify-center">
           <input
             type="file"
             accept="image/*"
@@ -186,32 +195,36 @@ const ImageFieldEditor: React.FC<ImageFieldEditorProps> = ({ field, onSave, onCl
             className="hidden"
             id="image-upload"
           />
-          <label htmlFor="image-upload">
+          <label htmlFor="image-upload" className="cursor-pointer">
             <Button
               type="button"
               variant="outline"
               disabled={isUploading}
-              className="cursor-pointer"
+              size="lg"
+              className="cursor-pointer border-2 border-dashed hover:border-solid"
               asChild
             >
-              <span className="flex items-center gap-2">
+              <span className="flex items-center gap-3 px-6 py-3">
                 {isUploading ? (
-                  <Loader2 size={16} className="animate-spin" />
+                  <Loader2 size={20} className="animate-spin" />
                 ) : (
-                  <Upload size={16} />
+                  <Upload size={20} />
                 )}
-                {isUploading 
-                  ? (language === 'ar' ? 'جارٍ الرفع...' : 'Uploading...') 
-                  : (language === 'ar' ? 'اختر صورة' : 'Choose Image')
-                }
+                <span className="font-medium">
+                  {isUploading 
+                    ? (language === 'ar' ? 'جارٍ الرفع...' : 'Uploading...') 
+                    : (language === 'ar' ? 'اختر صورة للرفع' : 'Choose Image to Upload')
+                  }
+                </span>
               </span>
             </Button>
           </label>
         </div>
-        <p className="text-xs text-gray-500">
+        
+        <p className="text-xs text-gray-500 text-center">
           {language === 'ar' 
-            ? 'الحد الأقصى 5 ميجابايت. سيتم رفعها إلى Shopify Files إذا كان المتجر متصلاً.'
-            : 'Max 5MB. Will be uploaded to Shopify Files if store is connected.'
+            ? 'الحد الأقصى 5 ميجابايت • سيتم رفعها إلى Shopify Files إذا كان المتجر متصلاً'
+            : 'Max 5MB • Will be uploaded to Shopify Files if store is connected'
           }
         </p>
       </div>
