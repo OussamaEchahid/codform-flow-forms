@@ -43,7 +43,6 @@ const ImageFieldEditor: React.FC<ImageFieldEditorProps> = ({ field, onSave, onCl
 
   const handleSaveField = () => {
     onSave(currentField);
-    onClose();
   };
 
   const handleAlignmentChange = (alignment: 'left' | 'center' | 'right') => {

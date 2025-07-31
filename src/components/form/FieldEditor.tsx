@@ -17,8 +17,8 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
   const [currentField, setCurrentField] = useState<FormField>(field);
 
   const handleSaveField = (updatedField: FormField) => {
-    setCurrentField(updatedField);
     onSave(updatedField);
+    onClose();
   };
 
   const renderEditorByType = () => {
