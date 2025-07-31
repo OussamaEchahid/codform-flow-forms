@@ -491,7 +491,7 @@
       const buttonBorderWidth = getStyleValue(buttonStyle, 'borderWidth', '0px');
       const buttonBorderColor = getStyleValue(buttonStyle, 'borderColor', 'transparent');
       // Adjust padding for Arabic language only - reduce Y padding for better alignment
-      const defaultPaddingY = '10px';
+      const defaultPaddingY = (formDirection === 'rtl') ? '10px' : '15px';
       const buttonPaddingY = getStyleValue(buttonStyle, 'paddingY', defaultPaddingY);
       const buttonPaddingX = getStyleValue(buttonStyle, 'paddingX', '24px');
       
