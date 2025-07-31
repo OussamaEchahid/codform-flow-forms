@@ -65,7 +65,7 @@ const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({ field, formStyle }) => 
   };
   
   return (
-    <div className="mb-2">
+    <div className="mb-4">
       <a 
         href={whatsappUrl}
         target="_blank"

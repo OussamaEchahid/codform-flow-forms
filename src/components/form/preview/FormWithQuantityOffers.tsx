@@ -180,7 +180,7 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
 
   const renderQuantityOffers = (offers: QuantityOffer[]) => {
     return offers.map(offer => (
-      <div key={offer.id} className="space-y-2 mb-2" style={{ direction: formDirection }}>
+      <div key={offer.id} className="space-y-2 mb-4" style={{ direction: formDirection }}>
         {offer.offers.map((singleOffer, index) => {
           // استخدام السعر الفعلي للمنتج من Shopify
           const basePrice = productData?.price || 0; // استخدام السعر الفعلي من المنتج

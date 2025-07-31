@@ -19,7 +19,7 @@ const HtmlContent: React.FC<HtmlContentProps> = ({ field, formStyle }) => {
   
   return (
     <div 
-      className="mb-2"
+      className="mb-4"
       style={{
         color: fieldStyle.color || 'inherit',
         fontSize: fieldStyle.fontSize || formStyle.fontSize,
