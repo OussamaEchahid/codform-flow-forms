@@ -7,8 +7,8 @@ function renderImageField(field, formStyle) {
   
   const fieldStyle = field.style || {};
   
-  // Use image source or default to a placeholder
-  const imageSrc = field.src || 'https://via.placeholder.com/400x300/f3f4f6/9ca3af?text=Image';
+  // Use image source or default to the trust badges image
+  const imageSrc = field.src || '/lovable-uploads/9e1cd769-7976-41fc-a2a0-189049772982.png';
   const imageAlt = field.alt || (getLanguage() === 'ar' ? 'صورة' : 'Image');
   
   // Get width from field or default to 100%
