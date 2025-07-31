@@ -180,7 +180,7 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
         borderColor: '#eaeaff',
         borderRadius: '6px',
         borderWidth: '0px',
-        paddingY: '10px', // Updated to 10px
+        paddingY: '15px', // Updated to 15px
         showIcon: true,
         iconPosition: 'left',
       }
