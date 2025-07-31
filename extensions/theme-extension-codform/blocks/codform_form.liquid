@@ -94,8 +94,8 @@
     
     console.log('🔄 CODFORM: Detected form direction:', formDirection, 'for language:', formLanguage);
     
-    // Base styling configuration
-    const baseFontSize = getStyleValue(formStyle, 'baseFontSize', '16px');
+    // Base styling configuration - Arabic forms use smaller font
+    const baseFontSize = formDirection === 'rtl' ? '13px' : getStyleValue(formStyle, 'baseFontSize', '16px');
     const labelStyle = field.style || {};
     const showLabel = getStyleValue(labelStyle, 'showLabel', true);
     const isFloatingLabels = getStyleValue(formStyle, 'floatingLabels', false);
@@ -162,7 +162,7 @@
       
       // Field style configuration
       const fieldStyle = field.style || {};
-      const baseFontSize = getStyleValue(formStyle, 'baseFontSize', '16px');
+      const baseFontSize = formDirection === 'rtl' ? '13px' : getStyleValue(formStyle, 'baseFontSize', '16px');
       const actualLabelColor = getStyleValue(fieldStyle, 'labelColor', '#333333');
       const actualLabelFontSize = getStyleValue(fieldStyle, 'labelFontSize', baseFontSize);  
       const actualLabelWeight = getStyleValue(fieldStyle, 'labelFontWeight', '500');
@@ -324,7 +324,7 @@
       
       // Field style configuration
       const fieldStyle = field.style || {};
-      const baseFontSize = getStyleValue(formStyle, 'baseFontSize', '16px');
+      const baseFontSize = formDirection === 'rtl' ? '13px' : getStyleValue(formStyle, 'baseFontSize', '16px');
       const actualLabelColor = getStyleValue(fieldStyle, 'labelColor', 'rgb(51, 65, 85)');
       const actualLabelFontSize = getStyleValue(fieldStyle, 'labelFontSize', baseFontSize);  
       const actualLabelWeight = getStyleValue(fieldStyle, 'labelFontWeight', '500');
@@ -471,7 +471,7 @@
         }
       } else {
         // Normal submit button OR popup form submit button - use submit button settings
-        const baseFontSize = getStyleValue(formStyle, 'baseFontSize', '16px');
+        const baseFontSize = formDirection === 'rtl' ? '13px' : getStyleValue(formStyle, 'baseFontSize', '16px');
         finalButtonText = buttonText;
         finalBgColor = getStyleValue(buttonStyle, 'backgroundColor', formStyle?.primaryColor || 'rgb(155, 135, 245)');
         finalTextColor = getStyleValue(buttonStyle, 'color', 'rgb(255, 255, 255)');
@@ -2011,13 +2011,13 @@ window.openFormPopup = function(event) {
         <form onsubmit="handlePopupFormSubmission(event)">
           <div style="margin-bottom: 16px;">
             <label style="display: block; margin-bottom: 8px; font-weight: 600;">الاسم الكامل *</label>
-            <input type="text" name="fullName" required style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 16px; font-family: 'Cairo', sans-serif;" />
+            <input type="text" name="fullName" required style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; font-family: 'Cairo', sans-serif;" />
           </div>
           <div style="margin-bottom: 16px;">
             <label style="display: block; margin-bottom: 8px; font-weight: 600;">رقم الهاتف *</label>
-            <input type="tel" name="phone" required style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 16px; font-family: 'Cairo', sans-serif;" />
+            <input type="tel" name="phone" required style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 13px; font-family: 'Cairo', sans-serif;" />
           </div>
-          <button type="submit" style="background-color: #9b87f5; color: white; padding: 12px 24px; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; width: 100%; font-family: 'Cairo', sans-serif;">إرسال الطلب</button>
+          <button type="submit" style="background-color: #9b87f5; color: white; padding: 12px 24px; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; width: 100%; font-family: 'Cairo', sans-serif;">إرسال الطلب</button>
         </form>
       </div>
     `;
