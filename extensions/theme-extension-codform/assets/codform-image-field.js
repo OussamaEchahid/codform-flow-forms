@@ -7,8 +7,8 @@ function renderImageField(field, formStyle) {
   
   const fieldStyle = field.style || {};
   
-  // Use image source or default to a placeholder
-  const imageSrc = field.src || 'https://via.placeholder.com/400x200/e5e7eb/6b7280?text=Default+Image';
+  // Use image source or default to Supabase storage image
+  const imageSrc = field.src || 'https://trlklwixfeaexhydzaue.supabase.co/storage/v1/object/public/assets/images/1753992286618.png';
   const imageAlt = field.alt || (getLanguage() === 'ar' ? 'صورة' : 'Image');
   
   // Get width from field or default to 100%
