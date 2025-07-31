@@ -32,7 +32,7 @@ const ImageField: React.FC<ImageFieldProps> = ({ field, formStyle }) => {
   const alignment = fieldStyle.textAlign || 'center';
   
   return (
-    <div className="mb-4">
+    <div className="mb-2">
       <div
         className="overflow-hidden"
         style={{

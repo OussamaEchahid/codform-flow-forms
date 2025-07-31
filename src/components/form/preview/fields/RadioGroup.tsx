@@ -20,7 +20,7 @@ const RadioGroup: React.FC<RadioGroupProps> = ({ field, formStyle }) => {
   const options = Array.isArray(field.options) ? field.options : [];
   
   return (
-    <div className="mb-4">
+    <div className="mb-2">
       <label 
         className={`block mb-2 ${field.required ? 'relative pr-2' : ''}`}
         style={{ 

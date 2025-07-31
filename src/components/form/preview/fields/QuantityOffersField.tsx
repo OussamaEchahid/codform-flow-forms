@@ -129,7 +129,7 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
   // إذا لم يكن هناك سعر حقيقي، عرض رسالة تحذيرية
   if (!hasRealPrice) {
     return (
-      <div className="p-4 border-2 border-dashed border-yellow-300 rounded-lg text-center text-yellow-600 bg-yellow-50 mb-4">
+      <div className="p-4 border-2 border-dashed border-yellow-300 rounded-lg text-center text-yellow-600 bg-yellow-50 mb-2">
         <p className="text-sm font-medium">⚠️ لا توجد بيانات سعر حقيقية للمنتج</p>
         <p className="text-xs mt-1">يرجى التأكد من ربط المنتج بشكل صحيح</p>
       </div>
@@ -137,7 +137,7 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
   }
 
   return (
-    <div className="space-y-2 mb-4" style={{ direction: formDirection }}>
+    <div className="space-y-2 mb-2" style={{ direction: formDirection }}>
       {offers.map((offer, index) => {
         const totalPrice = calculatePrice(offer);
         const originalPrice = realPrice * offer.quantity;
