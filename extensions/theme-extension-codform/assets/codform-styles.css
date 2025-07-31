@@ -107,8 +107,20 @@ button[id^="codform-popup-btn"],
 .codform-popup-trigger,
 button[id^="codform-popup-btn"] {
   font-family: 'Cairo', 'Noto Sans Arabic', 'Amiri', sans-serif !important;
+  font-size: 13px !important;
   font-feature-settings: "liga" 1, "kern" 1;
   text-rendering: optimizeLegibility;
+}
+
+/* Additional specific targeting for Arabic forms */
+.codform-field-wrapper[dir="rtl"] input[type="text"],
+.codform-field-wrapper[dir="rtl"] input[type="email"],
+.codform-field-wrapper[dir="rtl"] input[type="tel"],
+.codform-field-wrapper[dir="rtl"] input[type="number"],
+.codform-field-wrapper[dir="rtl"] textarea,
+.codform-field-wrapper[dir="rtl"] select,
+.codform-field-wrapper[dir="rtl"] label {
+  font-size: 13px !important;
 }
 
 /* Animation Keyframes */
