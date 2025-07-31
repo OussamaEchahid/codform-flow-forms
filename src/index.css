@@ -104,7 +104,7 @@
   }
   
   .form-control {
-    @apply mb-4;
+    @apply mb-2;
   }
   
   .form-label {
