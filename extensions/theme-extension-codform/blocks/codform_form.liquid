@@ -190,7 +190,7 @@
       let iconHtml = '';
       if (showIcon && hasIcon) {
         const iconPosition = formDirection === 'rtl' ? 'right' : 'left';
-        const iconColor = getStyleValue(fieldStyle, 'iconColor', '#9b87f5');
+        const iconColor = getStyleValue(fieldStyle, 'iconColor', '#6b7280');
         const iconSvg = getIconSvg(field.icon, iconColor);
         iconHtml = `
           <div style="
@@ -490,7 +490,9 @@
       const buttonBoxShadow = getStyleValue(buttonStyle, 'boxShadow', 'none');
       const buttonBorderWidth = getStyleValue(buttonStyle, 'borderWidth', '0px');
       const buttonBorderColor = getStyleValue(buttonStyle, 'borderColor', 'transparent');
-      const buttonPaddingY = getStyleValue(buttonStyle, 'paddingY', '15px');
+      // Adjust padding for Arabic language only - reduce Y padding for better alignment
+      const defaultPaddingY = (formDirection === 'rtl') ? '10px' : '15px';
+      const buttonPaddingY = getStyleValue(buttonStyle, 'paddingY', defaultPaddingY);
       const buttonPaddingX = getStyleValue(buttonStyle, 'paddingX', '24px');
       
       const buttonBorder = buttonBorderWidth !== '0px' && buttonBorderColor !== 'transparent' 
@@ -501,7 +503,7 @@
       // Font weight handling
       const labelWeight = getStyleValue(buttonStyle, 'labelWeight', null);
       const fontWeight = getStyleValue(buttonStyle, 'fontWeight', null);
-      const actualButtonFontWeight = labelWeight || fontWeight || 'bold';
+      const actualButtonFontWeight = labelWeight || fontWeight || '700';
       
       // Icon handling
       const hasIcon = field.icon && field.icon !== 'none' && field.icon !== '';
@@ -811,7 +813,7 @@
   6. ICON GENERATION SYSTEM
   ===============================================================================
   {%- endcomment -%}
-  function getIconSvg(iconName, iconColor = '#9CA3AF') {
+  function getIconSvg(iconName, iconColor = '#6b7280') {
     console.log('🎨 ICON DEBUG: Creating icon:', iconName, 'with color:', iconColor);
     
     // Base styles for different icon types

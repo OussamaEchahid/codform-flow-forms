@@ -63,7 +63,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
   // القيم الافتراضية للتنسيق
   const showLabel = fieldStyle.showLabel !== false;
   const labelColor = fieldStyle.labelColor || '#333333';
-  const labelFontSize = fieldStyle.labelFontSize || '1rem';
+  const labelFontSize = fieldStyle.labelFontSize || '15px';
   const labelFontWeight = fieldStyle.labelFontWeight || '500';
   
   const fontFamily = language === 'ar' ? "'Cairo', sans-serif" : (fieldStyle.fontFamily || 'inherit');

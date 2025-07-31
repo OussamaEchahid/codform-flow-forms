@@ -173,6 +173,25 @@ const SubmitButtonEditor: React.FC<SubmitButtonEditorProps> = ({ field, onSave, 
         </div>
       )}
 
+      {/* Font Weight */}
+      <div className="space-y-2">
+        <Label htmlFor="font-weight">
+          {language === 'ar' ? 'سُمك الخط' : 'Font Weight'}
+        </Label>
+        <Select value={currentField.style?.fontWeight || '700'} onValueChange={(value) => handleChange('style.fontWeight', value)}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="400">{language === 'ar' ? 'عادي (400)' : 'Normal (400)'}</SelectItem>
+            <SelectItem value="500">{language === 'ar' ? 'متوسط (500)' : 'Medium (500)'}</SelectItem>
+            <SelectItem value="600">{language === 'ar' ? 'نصف عريض (600)' : 'Semi Bold (600)'}</SelectItem>
+            <SelectItem value="700">{language === 'ar' ? 'عريض (700)' : 'Bold (700)'}</SelectItem>
+            <SelectItem value="800">{language === 'ar' ? 'عريض جداً (800)' : 'Extra Bold (800)'}</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       {/* Animation */}
       <div className="flex items-center space-x-2 rtl:space-x-reverse">
         <Checkbox
