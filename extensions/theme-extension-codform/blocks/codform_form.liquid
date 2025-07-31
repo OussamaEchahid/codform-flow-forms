@@ -163,8 +163,9 @@
       // Field style configuration
       const fieldStyle = field.style || {};
       const baseFontSize = formDirection === 'rtl' ? '13px' : getStyleValue(formStyle, 'baseFontSize', '16px');
+      const defaultLabelSize = formDirection === 'rtl' ? '15px' : '16px';
       const actualLabelColor = getStyleValue(fieldStyle, 'labelColor', '#333333');
-      const actualLabelFontSize = getStyleValue(fieldStyle, 'labelFontSize', baseFontSize);  
+      const actualLabelFontSize = getStyleValue(fieldStyle, 'labelFontSize', defaultLabelSize);  
       const actualLabelWeight = getStyleValue(fieldStyle, 'labelFontWeight', '500');
       const actualShowLabel = fieldStyle.showLabel !== undefined ? fieldStyle.showLabel : true;
       
@@ -325,8 +326,9 @@
       // Field style configuration
       const fieldStyle = field.style || {};
       const baseFontSize = formDirection === 'rtl' ? '13px' : getStyleValue(formStyle, 'baseFontSize', '16px');
+      const defaultLabelSize = formDirection === 'rtl' ? '15px' : '16px';
       const actualLabelColor = getStyleValue(fieldStyle, 'labelColor', 'rgb(51, 65, 85)');
-      const actualLabelFontSize = getStyleValue(fieldStyle, 'labelFontSize', baseFontSize);  
+      const actualLabelFontSize = getStyleValue(fieldStyle, 'labelFontSize', defaultLabelSize);  
       const actualLabelWeight = getStyleValue(fieldStyle, 'labelFontWeight', '500');
       const actualShowLabel = fieldStyle.showLabel !== undefined ? fieldStyle.showLabel : true;
       

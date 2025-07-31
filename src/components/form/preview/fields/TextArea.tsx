@@ -44,10 +44,14 @@ const TextArea: React.FC<TextAreaProps> = ({ field, formStyle }) => {
   // استخدام اتجاه النموذج من formStyle
   const formDirection = formStyle.formDirection || 'ltr';
   
+  // Default label font sizes based on language/direction
+  const defaultLabelSize = formDirection === 'rtl' ? '15px' : '16px';
+  const defaultFieldSize = formDirection === 'rtl' ? '13px' : '16px';
+  
   // Set default values for styling
   const showLabel = fieldStyle.showLabel !== false;
   const labelColor = fieldStyle.labelColor || '#334155';
-  const labelFontSize = fieldStyle.labelFontSize || formStyle.fontSize || '16px';
+  const labelFontSize = fieldStyle.labelFontSize || defaultLabelSize;
   const labelFontWeight = fieldStyle.labelFontWeight || '500';
   
   // Set default values for border styling - force smaller radius for textarea
@@ -179,7 +183,7 @@ const TextArea: React.FC<TextAreaProps> = ({ field, formStyle }) => {
           className="w-full py-2 px-3 bg-white border outline-none focus:ring-2 focus:ring-opacity-50 transition-all"
           style={{
             color: fieldStyle.color || '#1f2937',
-            fontSize: fieldStyle.fontSize || formStyle.fontSize || '16px',
+            fontSize: fieldStyle.fontSize || defaultFieldSize,
             fontWeight: fieldStyle.fontWeight || '400',
             fontFamily: fieldStyle.fontFamily || 'inherit',
             backgroundColor: '#FFFFFF',

@@ -165,34 +165,44 @@ button[id^="codform-popup-btn"] {
   25%, 75% { opacity: 0.5; }
 }
 
-/* Animation Classes for popup buttons */
+/* Animation Classes for popup buttons AND submit buttons */
 .codform-popup-button.pulse-animation,
 button[id^="codform-popup-btn"].pulse-animation,
-.codform-popup-trigger.pulse-animation {
+.codform-popup-trigger.pulse-animation,
+.codform-submit-btn.pulse-animation,
+button[type="submit"].pulse-animation {
   animation: pulse 2s infinite !important;
 }
 
 .codform-popup-button.bounce-animation,
 button[id^="codform-popup-btn"].bounce-animation,
-.codform-popup-trigger.bounce-animation {
+.codform-popup-trigger.bounce-animation,
+.codform-submit-btn.bounce-animation,
+button[type="submit"].bounce-animation {
   animation: bounce 2s infinite !important;
 }
 
 .codform-popup-button.shake-animation,
 button[id^="codform-popup-btn"].shake-animation,
-.codform-popup-trigger.shake-animation {
+.codform-popup-trigger.shake-animation,
+.codform-submit-btn.shake-animation,
+button[type="submit"].shake-animation {
   animation: shake 0.8s infinite !important;
 }
 
 .codform-popup-button.wiggle-animation,
 button[id^="codform-popup-btn"].wiggle-animation,
-.codform-popup-trigger.wiggle-animation {
+.codform-popup-trigger.wiggle-animation,
+.codform-submit-btn.wiggle-animation,
+button[type="submit"].wiggle-animation {
   animation: wiggle 2s ease-in-out infinite !important;
 }
 
 .codform-popup-button.flash-animation,
 button[id^="codform-popup-btn"].flash-animation,
-.codform-popup-trigger.flash-animation {
+.codform-popup-trigger.flash-animation,
+.codform-submit-btn.flash-animation,
+button[type="submit"].flash-animation {
   animation: flash 2s infinite !important;
 }
 

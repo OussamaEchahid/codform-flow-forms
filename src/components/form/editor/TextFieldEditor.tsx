@@ -165,10 +165,36 @@ const TextFieldEditor: React.FC<TextFieldEditorProps> = ({ field, onSave, onClos
             </div>
           </div>
 
-          {/* Font Size */}
+          {/* Label Font Size */}
+          <div className="space-y-2">
+            <Label htmlFor="label-font-size">
+              {language === 'ar' ? 'حجم خط التسمية' : 'Label Font Size'}
+            </Label>
+            <Select
+              value={currentField.style?.labelFontSize || (language === 'ar' ? '15px' : '16px')}
+              onValueChange={(value) => handleChange('style.labelFontSize', value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="12px">12px</SelectItem>
+                <SelectItem value="13px">13px</SelectItem>
+                <SelectItem value="14px">14px</SelectItem>
+                <SelectItem value="15px">15px</SelectItem>
+                <SelectItem value="16px">16px</SelectItem>
+                <SelectItem value="18px">18px</SelectItem>
+                <SelectItem value="20px">20px</SelectItem>
+                <SelectItem value="22px">22px</SelectItem>
+                <SelectItem value="24px">24px</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Field Font Size */}
           <div className="space-y-2">
             <Label htmlFor="font-size">
-              {language === 'ar' ? 'حجم الخط' : 'Font Size'}
+              {language === 'ar' ? 'حجم خط الحقل' : 'Field Font Size'}
             </Label>
             <Select
               value={currentField.style?.fontSize || '16px'}
