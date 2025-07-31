@@ -129,10 +129,18 @@
 }
 
 /* Override for form fields spacing in preview */
-.mb-4 {
-  margin-bottom: 0.5rem !important;
+.mb-2, .mb-4, .mb-6 {
+  margin-bottom: 10px !important;
 }
 
 .form-control {
-  margin-bottom: 0.5rem !important;
+  margin-bottom: 10px !important;
+}
+
+.codform-cart-items {
+  margin-bottom: 10px !important;
+}
+
+.codform-field {
+  margin-bottom: 10px !important;
 }
