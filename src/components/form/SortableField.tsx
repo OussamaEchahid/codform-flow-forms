@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { FormField } from '@/lib/form-utils';
-import { GripVertical, Copy, Trash, ChevronDown, ChevronUp, User, Phone, Mail, MapPin, MessageSquare, CheckSquare, Image, FileText, CreditCard, DollarSign, Truck, ShoppingCart, ArrowRight, Check, Send, Users, IdCard, Smartphone, PhoneCall, Home, Building, Map, StickyNote, Edit, Package, Banknote, Handshake, ShoppingBag, Heart, Star, Target, Gift, Crown, Zap, Sparkles, Award, Diamond, Gem, Facebook, Instagram, Twitter, Youtube, Linkedin, AtSign, Inbox, MessageCircle, PenTool, Badge, Contact, Calendar, Clock, Tag, ThumbsUp, Bookmark, Flag, Globe, Headphones, Type } from 'lucide-react';
+import { GripVertical, Copy, Trash, ChevronDown, ChevronUp, User, Phone, Mail, MapPin, MessageSquare, CheckSquare, Image, FileText, CreditCard, DollarSign, Truck, ShoppingCart, ArrowRight, Check, Send, Users, IdCard, Smartphone, PhoneCall, Home, Building, Map, StickyNote, Edit, Package, Banknote, Handshake, ShoppingBag, Heart, Star, Target, Gift, Crown, Zap, Sparkles, Award, Diamond, Gem, Facebook, Instagram, Twitter, Youtube, Linkedin, AtSign, Inbox, MessageCircle, PenTool, Badge, Contact, Calendar, Clock, Tag, ThumbsUp, Bookmark, Flag, Globe, Headphones, Type, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Slider } from '@/components/ui/slider';
 import FieldEditor from './FieldEditor';
 import CartItemsFieldEditor from './editor/CartItemsFieldEditor';
+import { supabase } from '@/integrations/supabase/client';
 
 interface SortableFieldProps {
   field: FormField;
@@ -308,6 +309,100 @@ const SortableField: React.FC<SortableFieldProps> = ({
                       onChange={(e) => handleFieldChange('src', e.target.value)}
                       placeholder="https://example.com/image.jpg"
                     />
+                  </div>
+                  
+                  {/* Upload Image - NEW FEATURE */}
+                  <div className="space-y-3 p-3 border border-dashed border-blue-300 rounded-lg bg-blue-50">
+                    <div className="text-center">
+                      <Label className="text-sm font-medium text-blue-700">
+                        {language === 'ar' ? '🚀 رفع صورة جديدة' : '🚀 Upload New Image'}
+                      </Label>
+                      <p className="text-xs text-blue-600 mt-1">
+                        {language === 'ar' 
+                          ? 'اختر صورة من جهازك للرفع المباشر'
+                          : 'Choose an image from your device for direct upload'
+                        }
+                      </p>
+                    </div>
+                    
+                    <div className="flex justify-center">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={async (event) => {
+                          const file = event.target.files?.[0];
+                          if (!file) return;
+
+                          // Check file size (max 5MB)
+                          if (file.size > 5 * 1024 * 1024) {
+                            alert(language === 'ar' ? 'حجم الملف كبير جداً (الحد الأقصى 5 ميجابايت)' : 'File size too large (max 5MB)');
+                            return;
+                          }
+
+                          // Check file type
+                          if (!file.type.startsWith('image/')) {
+                            alert(language === 'ar' ? 'يرجى اختيار ملف صورة' : 'Please select an image file');
+                            return;
+                          }
+
+                          try {
+                            // Upload to Supabase Storage
+                            const fileExt = file.name.split('.').pop() || 'png';
+                            const fileName = `${Date.now()}.${fileExt}`;
+                            const filePath = `images/${fileName}`;
+
+                            const { data: uploadData, error: uploadError } = await supabase.storage
+                              .from('assets')
+                              .upload(filePath, file);
+
+                            if (uploadError) {
+                              throw uploadError;
+                            }
+
+                            // Get public URL
+                            const { data: { publicUrl } } = supabase.storage
+                              .from('assets')
+                              .getPublicUrl(filePath);
+
+                            // Update field with new image URL
+                            handleFieldChange('src', publicUrl);
+                            
+                            alert(language === 'ar' ? 'تم رفع الصورة بنجاح!' : 'Image uploaded successfully!');
+                          } catch (error) {
+                            console.error('Upload error:', error);
+                            alert(language === 'ar' ? 'فشل في رفع الصورة' : 'Failed to upload image');
+                          }
+                          
+                          // Reset the input
+                          event.target.value = '';
+                        }}
+                        className="hidden"
+                        id={`image-upload-${field.id}`}
+                      />
+                      <label htmlFor={`image-upload-${field.id}`} className="cursor-pointer">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="cursor-pointer border-2 border-dashed border-blue-300 hover:border-blue-400 text-blue-600"
+                          asChild
+                        >
+                          <span className="flex items-center gap-2 px-4 py-2">
+                            <Upload size={16} />
+                            <span className="font-medium">
+                              {language === 'ar' ? 'اختر صورة' : 'Choose Image'}
+                            </span>
+                          </span>
+                        </Button>
+                      </label>
+                    </div>
+                    
+                    <p className="text-xs text-blue-500 text-center">
+                      {language === 'ar' 
+                        ? 'الحد الأقصى 5 ميجابايت • سيتم حفظها في المجلد'
+                        : 'Max 5MB • Will be saved to storage'
+                      }
+                    </p>
                   </div>
                   
                   {/* Image Width */}
