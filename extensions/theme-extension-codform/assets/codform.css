@@ -7,7 +7,7 @@
 .codform-container {
   font-family: 'Cairo', sans-serif;
   direction: rtl;
-  margin: 20px 0;
+  margin: 10px 0;
   padding: 0; /* تم التعديل */
   border: none; /* تم التعديل */
   background-color: transparent; /* تم التعديل */
@@ -33,7 +33,7 @@
 
 /* ... keep existing code (from .codform-field to .codform-submit-btn svg) ... */
 .codform-field {
-  margin-bottom: 16px !important;
+  margin-bottom: 10px !important;
   display: block !important;
   background-color: #ffffff !important;
   padding: 12px !important;
