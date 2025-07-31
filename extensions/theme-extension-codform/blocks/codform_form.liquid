@@ -19,6 +19,8 @@
 <script src="{{ 'codform-quantity-offers.js' | asset_url }}"></script>
 <script src="{{ 'codform-icons.js' | asset_url }}"></script>
 <script src="{{ 'codform-utilities.js' | asset_url }}"></script>
+<script src="{{ 'codform-image-field.js' | asset_url }}"></script>
+<script src="{{ 'codform-whatsapp-field.js' | asset_url }}"></script>
 
 <div id="codform-popup-button-container" style="display: none;">
   
@@ -791,6 +793,14 @@
           </div>
         </div>
       `;
+    }
+    {%- comment -%} Image Field {%- endcomment -%}
+    else if (field.type === 'image') {
+      html = renderImageField(field, formStyle);
+    }
+    {%- comment -%} WhatsApp Button Field {%- endcomment -%}
+    else if (field.type === 'whatsapp') {
+      html = renderWhatsAppField(field, formStyle);
     }
     
     return html;
