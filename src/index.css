@@ -96,6 +96,11 @@
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* Placeholder styling for form preview */
+  .codform-input::placeholder {
+    font-size: 15px !important;
+  }
 }
 
 @layer components {

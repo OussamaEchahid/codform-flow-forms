@@ -68,7 +68,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
   
   const fontFamily = language === 'ar' ? "'Cairo', sans-serif" : (fieldStyle.fontFamily || 'inherit');
   const textColor = fieldStyle.color || 'rgb(31, 41, 55)';
-  const fontSize = fieldStyle.fontSize || '1rem';
+  const fontSize = fieldStyle.fontSize || '15px';
   const fontWeight = fieldStyle.fontWeight || '400';
   
   // خلفية بيضاء ثابتة للحقول

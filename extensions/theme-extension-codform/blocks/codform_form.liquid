@@ -510,7 +510,7 @@
       const showIcon = (isPopupMode && !isInPopup) ? 
         (formStyle.popupButton?.showIcon !== false) : 
         getStyleValue(buttonStyle, 'showIcon', hasIcon);
-      const iconColor = getStyleValue(buttonStyle, 'iconColor', finalTextColor);
+      const iconColor = getStyleValue(buttonStyle, 'iconColor', '#6b7280');
       
       let iconHtml = '';
       if (showIcon && hasIcon) {
