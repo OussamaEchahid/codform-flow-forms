@@ -127,3 +127,12 @@
     @apply border-gray-300 text-primary shadow-sm focus:border-primary focus:ring focus:ring-offset-0 focus:ring-primary/30 focus:ring-opacity-50;
   }
 }
+
+/* Override for form fields spacing in preview */
+.mb-4 {
+  margin-bottom: 0.5rem !important;
+}
+
+.form-control {
+  margin-bottom: 0.5rem !important;
+}
