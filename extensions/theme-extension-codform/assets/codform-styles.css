@@ -96,6 +96,7 @@ button[id^="codform-popup-btn"],
 #codform-popup-modal [dir="rtl"],
 #codform-popup-modal [dir="rtl"] * {
   font-family: 'Cairo', 'Noto Sans Arabic', 'Amiri', sans-serif !important;
+  font-size: 13px !important;
 }
 
 [dir="rtl"] input,
