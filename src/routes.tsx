@@ -6,6 +6,7 @@ import GeneralSettings from '@/pages/GeneralSettings';
 import SpamSettings from '@/pages/SpamSettings';
 import PlansSettings from '@/pages/PlansSettings';
 import QuantityOffers from '@/pages/QuantityOffers';
+import AdvertisingTracking from '@/pages/AdvertisingTracking';
 import Shopify from '@/pages/Shopify';
 import Index from '@/pages/Index';
 import ShopifyCallback from '@/pages/ShopifyCallback';
@@ -93,6 +94,10 @@ export const routes: RouteObject[] = [
   {
     path: '/settings/quantity-offers',
     Component: QuantityOffers
+  },
+  {
+    path: '/advertising-tracking',
+    Component: AdvertisingTracking
   },
   {
     path: '/shopify-callback',

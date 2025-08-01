@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, FileText, ShoppingCart, Settings, BarChart, Gift, ImageIcon, Globe, LogOut, RefreshCcw, ShoppingBag, ChevronDown, ListOrdered, AlertTriangle, Layers, Users, Shield, Crown, Package, User, CreditCard } from 'lucide-react';
+import { LayoutDashboard, FileText, ShoppingCart, Settings, BarChart, Gift, ImageIcon, Globe, LogOut, RefreshCcw, ShoppingBag, ChevronDown, ListOrdered, AlertTriangle, Layers, Users, Shield, Crown, Package, User, CreditCard, Target } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
@@ -212,6 +212,16 @@ const AppSidebar = () => {
             }) => cn('flex items-center gap-3 px-4 py-2 rounded-lg transition-colors', isActive ? 'bg-[#2A2E36] text-[#9b87f5]' : 'text-gray-400 hover:bg-[#2A2E36] hover:text-[#9b87f5]')}>
                 <Package size={20} />
                 <span>{language === 'ar' ? 'العروض الكمية' : 'Quantity Offers'}</span>
+              </NavLink>
+            </li>
+            
+            {/* Advertising Tracking - positioned after Quantity Offers */}
+            <li>
+              <NavLink to="/advertising-tracking" className={({
+              isActive
+            }) => cn('flex items-center gap-3 px-4 py-2 rounded-lg transition-colors', isActive ? 'bg-[#2A2E36] text-[#9b87f5]' : 'text-gray-400 hover:bg-[#2A2E36] hover:text-[#9b87f5]')}>
+                <Target size={20} />
+                <span>{language === 'ar' ? 'التتبع الإعلاني' : 'Advertising Tracking'}</span>
               </NavLink>
             </li>
             
