@@ -1,31 +1,25 @@
 import React, { useState } from 'react';
-import { useI18n } from '@/lib/i18n';
-import SettingsLayout from '@/components/layout/SettingsLayout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { toast } from '@/hooks/use-toast';
-import { 
-  Target, 
-  Facebook, 
-  Eye, 
-  BarChart3, 
-  Activity, 
-  AlertCircle,
-  CheckCircle,
-  Copy,
-  ExternalLink,
-  Zap
-} from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Copy, Facebook, Music, Plus, Settings, Target, BarChart3, Eye, Code } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface PixelSettings {
+  id: string;
   enabled: boolean;
   pixelId: string;
+  name: string;
+  eventType: 'Lead' | 'Purchase';
+  target: 'All' | 'Collection' | 'Product';
+  targetId?: string;
+  conversionApiEnabled: boolean;
   accessToken?: string;
 }
 
@@ -36,70 +30,107 @@ interface TrackingEvent {
 }
 
 const AdvertisingTracking = () => {
-  const { t, language } = useI18n();
+  const { toast } = useToast();
   
-  // Pixel Settings State
-  const [facebookPixel, setFacebookPixel] = useState<PixelSettings>({
-    enabled: false,
+  const [facebookPixels, setFacebookPixels] = useState<PixelSettings[]>([]);
+  const [snapchatPixels, setSnapchatPixels] = useState<PixelSettings[]>([]);
+  const [tiktokPixels, setTiktokPixels] = useState<PixelSettings[]>([]);
+  
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [selectedPlatform, setSelectedPlatform] = useState<'facebook' | 'snapchat' | 'tiktok'>('facebook');
+  
+  const [newPixel, setNewPixel] = useState<PixelSettings>({
+    id: '',
+    enabled: true,
     pixelId: '',
-    accessToken: ''
-  });
-  
-  const [snapchatPixel, setSnapchatPixel] = useState<PixelSettings>({
-    enabled: false,
-    pixelId: ''
-  });
-  
-  const [tiktokPixel, setTiktokPixel] = useState<PixelSettings>({
-    enabled: false,
-    pixelId: ''
+    name: '',
+    eventType: 'Lead',
+    target: 'All',
+    conversionApiEnabled: false,
   });
 
-  // Tracking Events
+  // Sample collections and products for demonstration
+  const collections = [
+    { id: 'collection1', name: 'Summer Collection' },
+    { id: 'collection2', name: 'Winter Collection' },
+    { id: 'collection3', name: 'New Arrivals' },
+  ];
+
+  const products = [
+    { id: 'product1', name: 'Product 1 - T-Shirt' },
+    { id: 'product2', name: 'Product 2 - Jeans' },
+    { id: 'product3', name: 'Product 3 - Jacket' },
+  ];
+
   const [trackingEvents, setTrackingEvents] = useState<TrackingEvent[]>([
-    {
-      name: 'PageView',
-      enabled: true,
-      description: language === 'ar' ? 'تتبع زيارات الصفحات' : 'Track page visits'
-    },
-    {
-      name: 'ViewContent',
-      enabled: true,
-      description: language === 'ar' ? 'تتبع عرض المنتجات' : 'Track product views'
-    },
-    {
-      name: 'AddToCart',
-      enabled: true,
-      description: language === 'ar' ? 'تتبع إضافة المنتجات للسلة' : 'Track add to cart events'
-    },
-    {
-      name: 'InitiateCheckout',
-      enabled: true,
-      description: language === 'ar' ? 'تتبع بدء عملية الشراء' : 'Track checkout initiation'
-    },
-    {
-      name: 'Purchase',
-      enabled: true,
-      description: language === 'ar' ? 'تتبع عمليات الشراء المكتملة' : 'Track completed purchases'
-    },
-    {
-      name: 'Lead',
-      enabled: true,
-      description: language === 'ar' ? 'تتبع تسجيل العملاء المحتملين' : 'Track lead generation'
-    }
+    { name: 'Page View', enabled: true, description: 'Track when users visit your website' },
+    { name: 'Add to Cart', enabled: true, description: 'Track when users add items to cart' },
+    { name: 'Purchase', enabled: true, description: 'Track completed purchases' },
+    { name: 'Lead', enabled: false, description: 'Track lead generation events' },
+    { name: 'Complete Registration', enabled: false, description: 'Track user registrations' },
+    { name: 'Contact', enabled: false, description: 'Track contact form submissions' },
   ]);
 
-  const handleSave = () => {
-    // Save logic here
+  const handleCreatePixel = () => {
+    if (!newPixel.name || !newPixel.pixelId) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const pixelToAdd = { ...newPixel, id: Date.now().toString() };
+    
+    switch (selectedPlatform) {
+      case 'facebook':
+        setFacebookPixels(prev => [...prev, pixelToAdd]);
+        break;
+      case 'snapchat':
+        setSnapchatPixels(prev => [...prev, pixelToAdd]);
+        break;
+      case 'tiktok':
+        setTiktokPixels(prev => [...prev, pixelToAdd]);
+        break;
+    }
+
+    setNewPixel({
+      id: '',
+      enabled: true,
+      pixelId: '',
+      name: '',
+      eventType: 'Lead',
+      target: 'All',
+      conversionApiEnabled: false,
+    });
+    
+    setIsCreateDialogOpen(false);
+    
     toast({
-      title: language === 'ar' ? 'تم الحفظ بنجاح' : 'Settings Saved',
-      description: language === 'ar' ? 'تم حفظ إعدادات التتبع الإعلاني' : 'Advertising tracking settings have been saved',
+      title: "Pixel Created",
+      description: `${selectedPlatform.charAt(0).toUpperCase() + selectedPlatform.slice(1)} pixel has been created successfully.`,
+    });
+  };
+
+  const handleSave = () => {
+    toast({
+      title: "Settings Saved",
+      description: "Your advertising tracking settings have been updated successfully.",
     });
   };
 
   const copyPixelCode = (platform: string, pixelId: string) => {
+    if (!pixelId) {
+      toast({
+        title: "Error",
+        description: "Please enter a pixel ID first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     let code = '';
-    
     switch (platform) {
       case 'facebook':
         code = `<!-- Facebook Pixel Code -->
@@ -148,11 +179,11 @@ snaptr('track', 'PAGE_VIEW');
 <!-- End TikTok Pixel Code -->`;
         break;
     }
-    
+
     navigator.clipboard.writeText(code);
     toast({
-      title: language === 'ar' ? 'تم النسخ' : 'Code Copied',
-      description: language === 'ar' ? `تم نسخ كود ${platform} Pixel` : `${platform} Pixel code copied to clipboard`,
+      title: "Code Copied",
+      description: `${platform.charAt(0).toUpperCase() + platform.slice(1)} pixel code has been copied to clipboard.`,
     });
   };
 
@@ -166,443 +197,502 @@ snaptr('track', 'PAGE_VIEW');
     );
   };
 
-  return (
-    <SettingsLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold flex items-center gap-3">
-              <Target className="h-8 w-8 text-primary" />
-              {language === 'ar' ? 'التتبع الإعلاني' : 'Advertising Tracking'}
-            </h1>
-            <p className="text-muted-foreground mt-2">
-              {language === 'ar' 
-                ? 'إعداد وإدارة بكسلات التتبع الإعلاني لتحسين حملاتك التسويقية'
-                : 'Set up and manage advertising tracking pixels to optimize your marketing campaigns'
-              }
-            </p>
+  const deletePixel = (platform: string, pixelId: string) => {
+    switch (platform) {
+      case 'facebook':
+        setFacebookPixels(prev => prev.filter(p => p.id !== pixelId));
+        break;
+      case 'snapchat':
+        setSnapchatPixels(prev => prev.filter(p => p.id !== pixelId));
+        break;
+      case 'tiktok':
+        setTiktokPixels(prev => prev.filter(p => p.id !== pixelId));
+        break;
+    }
+    
+    toast({
+      title: "Pixel Deleted",
+      description: "Pixel has been removed successfully.",
+    });
+  };
+
+  const getPlatformIcon = (platform: string) => {
+    switch (platform) {
+      case 'facebook':
+        return <Facebook className="h-5 w-5 text-blue-600" />;
+      case 'snapchat':
+        return (
+          <div className="h-5 w-5 bg-yellow-400 rounded-full flex items-center justify-center">
+            <span className="text-xs font-bold text-black">S</span>
           </div>
-          <Button onClick={handleSave} className="gap-2">
-            <CheckCircle className="h-4 w-4" />
-            {language === 'ar' ? 'حفظ الإعدادات' : 'Save Settings'}
+        );
+      case 'tiktok':
+        return <Music className="h-5 w-5 text-black" />;
+      default:
+        return null;
+    }
+  };
+
+  const renderPixelCard = (pixel: PixelSettings, platform: string) => (
+    <Card key={pixel.id} className="hover:shadow-lg transition-all duration-200 border-l-4 border-l-primary">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            {getPlatformIcon(platform)}
+            <div>
+              <CardTitle className="text-base font-semibold">{pixel.name}</CardTitle>
+              <CardDescription className="text-sm">
+                ID: {pixel.pixelId}
+              </CardDescription>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Badge variant={pixel.enabled ? "default" : "secondary"} className="text-xs">
+              {pixel.enabled ? "Active" : "Inactive"}
+            </Badge>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-2 gap-4 text-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground">Event:</span>
+            <Badge variant="outline" className="text-xs">{pixel.eventType}</Badge>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground">Target:</span>
+            <Badge variant="outline" className="text-xs">{pixel.target}</Badge>
+          </div>
+        </div>
+        
+        {pixel.conversionApiEnabled && (
+          <div className="flex items-center space-x-2 text-sm">
+            <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+            <span className="text-green-600">Conversion API Enabled</span>
+          </div>
+        )}
+        
+        <div className="flex space-x-2">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => copyPixelCode(platform, pixel.pixelId)}
+            className="flex-1"
+          >
+            <Copy className="h-4 w-4 mr-2" />
+            Copy Code
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => deletePixel(platform, pixel.id)}
+            className="text-red-500 hover:text-red-700 hover:bg-red-50"
+          >
+            Delete
           </Button>
         </div>
+      </CardContent>
+    </Card>
+  );
 
-        {/* Overview Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <Facebook className="h-5 w-5 text-blue-600" />
-                <div>
-                  <p className="text-sm font-medium">Facebook Pixel</p>
-                  <Badge variant={facebookPixel.enabled ? 'default' : 'secondary'}>
-                    {facebookPixel.enabled ? 
-                      (language === 'ar' ? 'نشط' : 'Active') : 
-                      (language === 'ar' ? 'غير نشط' : 'Inactive')
-                    }
-                  </Badge>
-                </div>
+  const totalActivePixels = facebookPixels.length + snapchatPixels.length + tiktokPixels.length;
+  const activeEvents = trackingEvents.filter(e => e.enabled).length;
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 max-w-7xl">
+        {/* Header */}
+        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start mb-8 space-y-4 lg:space-y-0">
+          <div className="space-y-2">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Target className="h-8 w-8 text-primary" />
               </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <div className="h-5 w-5 bg-yellow-400 rounded-full flex items-center justify-center">
-                  <span className="text-xs font-bold text-white">S</span>
-                </div>
-                <div>
-                  <p className="text-sm font-medium">Snapchat Pixel</p>
-                  <Badge variant={snapchatPixel.enabled ? 'default' : 'secondary'}>
-                    {snapchatPixel.enabled ? 
-                      (language === 'ar' ? 'نشط' : 'Active') : 
-                      (language === 'ar' ? 'غير نشط' : 'Inactive')
-                    }
-                  </Badge>
-                </div>
+              <div>
+                <h1 className="text-3xl font-bold text-foreground">Advertising Tracking</h1>
+                <p className="text-muted-foreground">
+                  Set up and manage advertising tracking pixels to optimize your marketing campaigns
+                </p>
               </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <div className="h-5 w-5 bg-black rounded-sm flex items-center justify-center">
-                  <span className="text-xs font-bold text-white">T</span>
+            </div>
+          </div>
+          <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button size="lg" className="shadow-lg hover:shadow-xl transition-shadow">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Pixel
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-lg">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center space-x-2">
+                    <Code className="h-5 w-5" />
+                    <span>Create Pixel</span>
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Platform</Label>
+                    <Select value={selectedPlatform} onValueChange={(value: 'facebook' | 'snapchat' | 'tiktok') => setSelectedPlatform(value)}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="facebook">
+                          <div className="flex items-center space-x-2">
+                            <Facebook className="h-4 w-4 text-blue-600" />
+                            <span>Facebook</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="snapchat">
+                          <div className="flex items-center space-x-2">
+                            <div className="h-4 w-4 bg-yellow-400 rounded-full flex items-center justify-center">
+                              <span className="text-xs font-bold text-black">S</span>
+                            </div>
+                            <span>Snapchat</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="tiktok">
+                          <div className="flex items-center space-x-2">
+                            <Music className="h-4 w-4 text-black" />
+                            <span>TikTok</span>
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Name</Label>
+                    <Input
+                      placeholder="This name will help you recognize your pixel"
+                      value={newPixel.name}
+                      onChange={(e) => setNewPixel(prev => ({ ...prev, name: e.target.value }))}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">
+                      {selectedPlatform.charAt(0).toUpperCase() + selectedPlatform.slice(1)} Pixel ID
+                    </Label>
+                    <Input
+                      placeholder={`Enter your ${selectedPlatform} pixel ID here`}
+                      value={newPixel.pixelId}
+                      onChange={(e) => setNewPixel(prev => ({ ...prev, pixelId: e.target.value }))}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Type event</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        variant={newPixel.eventType === 'Lead' ? 'default' : 'outline'}
+                        onClick={() => setNewPixel(prev => ({ ...prev, eventType: 'Lead' }))}
+                        className="w-full"
+                        size="sm"
+                      >
+                        Lead
+                      </Button>
+                      <Button
+                        variant={newPixel.eventType === 'Purchase' ? 'default' : 'outline'}
+                        onClick={() => setNewPixel(prev => ({ ...prev, eventType: 'Purchase' }))}
+                        className="w-full"
+                        size="sm"
+                      >
+                        Purchase
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Target</Label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {['All', 'Collection', 'Product'].map((target) => (
+                        <Button
+                          key={target}
+                          variant={newPixel.target === target ? 'default' : 'outline'}
+                          onClick={() => setNewPixel(prev => ({ ...prev, target: target as any }))}
+                          className="w-full"
+                          size="sm"
+                        >
+                          {target}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {newPixel.target === 'Collection' && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Select Collection</Label>
+                      <Select value={newPixel.targetId} onValueChange={(value) => setNewPixel(prev => ({ ...prev, targetId: value }))}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select / Search collection" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {collections.map((collection) => (
+                            <SelectItem key={collection.id} value={collection.id}>
+                              {collection.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                  
+                  {newPixel.target === 'Product' && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Select Product</Label>
+                      <Select value={newPixel.targetId} onValueChange={(value) => setNewPixel(prev => ({ ...prev, targetId: value }))}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select / Search product" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {products.map((product) => (
+                            <SelectItem key={product.id} value={product.id}>
+                              {product.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                        <span>🔄 sync products</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Conversion API status (optional)</Label>
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        checked={newPixel.conversionApiEnabled}
+                        onCheckedChange={(checked) => 
+                          setNewPixel(prev => ({ ...prev, conversionApiEnabled: checked }))
+                        }
+                      />
+                      <Label className="text-sm">Enable Conversion API</Label>
+                    </div>
+                  </div>
+                  
+                  <Button onClick={handleCreatePixel} className="w-full" size="lg">
+                    Save
+                  </Button>
                 </div>
-                <div>
-                  <p className="text-sm font-medium">TikTok Pixel</p>
-                  <Badge variant={tiktokPixel.enabled ? 'default' : 'secondary'}>
-                    {tiktokPixel.enabled ? 
-                      (language === 'ar' ? 'نشط' : 'Active') : 
-                      (language === 'ar' ? 'غير نشط' : 'Inactive')
-                    }
-                  </Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-green-600" />
-                <div>
-                  <p className="text-sm font-medium">
-                    {language === 'ar' ? 'الأحداث النشطة' : 'Active Events'}
-                  </p>
-                  <Badge variant="default">
-                    {trackingEvents.filter(e => e.enabled).length}/{trackingEvents.length}
-                  </Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </DialogContent>
+            </Dialog>
+            <Button variant="outline" onClick={handleSave} size="lg">
+              Save Settings
+            </Button>
+          </div>
         </div>
 
-        {/* Main Content */}
-        <Tabs defaultValue="pixels" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="pixels">
-              {language === 'ar' ? 'إعداد البكسلات' : 'Pixel Setup'}
-            </TabsTrigger>
-            <TabsTrigger value="events">
-              {language === 'ar' ? 'تتبع الأحداث' : 'Event Tracking'}
-            </TabsTrigger>
+        <Tabs defaultValue="pixel-setup" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2 max-w-md bg-muted/50">
+            <TabsTrigger value="pixel-setup" className="font-medium">Pixel Setup</TabsTrigger>
+            <TabsTrigger value="event-tracking" className="font-medium">Event Tracking</TabsTrigger>
           </TabsList>
 
-          {/* Pixels Setup Tab */}
-          <TabsContent value="pixels" className="space-y-6">
-            {/* Facebook Pixel */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-3">
-                  <Facebook className="h-6 w-6 text-blue-600" />
-                  Facebook Pixel
-                  <Badge variant={facebookPixel.enabled ? 'default' : 'secondary'}>
-                    {facebookPixel.enabled ? 
-                      (language === 'ar' ? 'نشط' : 'Active') : 
-                      (language === 'ar' ? 'غير نشط' : 'Inactive')
-                    }
-                  </Badge>
-                </CardTitle>
-                <CardDescription>
-                  {language === 'ar' 
-                    ? 'تتبع زوار موقعك وتحسين إعلانات فيسبوك وإنستجرام'
-                    : 'Track website visitors and optimize Facebook & Instagram ads'
-                  }
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center space-x-2">
-                  <Switch 
-                    checked={facebookPixel.enabled}
-                    onCheckedChange={(checked) => 
-                      setFacebookPixel(prev => ({ ...prev, enabled: checked }))
-                    }
-                  />
-                  <Label>
-                    {language === 'ar' ? 'تفعيل Facebook Pixel' : 'Enable Facebook Pixel'}
-                  </Label>
-                </div>
-                
-                {facebookPixel.enabled && (
-                  <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="facebook-pixel-id">
-                          {language === 'ar' ? 'معرف البكسل' : 'Pixel ID'}
-                        </Label>
-                        <Input
-                          id="facebook-pixel-id"
-                          placeholder="123456789012345"
-                          value={facebookPixel.pixelId}
-                          onChange={(e) => 
-                            setFacebookPixel(prev => ({ ...prev, pixelId: e.target.value }))
-                          }
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="facebook-access-token">
-                          {language === 'ar' ? 'رمز الوصول (اختياري)' : 'Access Token (Optional)'}
-                        </Label>
-                        <Input
-                          id="facebook-access-token"
-                          placeholder="Access Token"
-                          type="password"
-                          value={facebookPixel.accessToken || ''}
-                          onChange={(e) => 
-                            setFacebookPixel(prev => ({ ...prev, accessToken: e.target.value }))
-                          }
-                        />
-                      </div>
-                    </div>
-                    
-                    {facebookPixel.pixelId && (
-                      <div className="flex gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => copyPixelCode('facebook', facebookPixel.pixelId)}
-                          className="gap-2"
-                        >
-                          <Copy className="h-4 w-4" />
-                          {language === 'ar' ? 'نسخ الكود' : 'Copy Code'}
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          asChild
-                        >
-                          <a 
-                            href="https://www.facebook.com/events_manager" 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="gap-2"
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                            {language === 'ar' ? 'إدارة الأحداث' : 'Events Manager'}
-                          </a>
-                        </Button>
-                      </div>
-                    )}
-                  </>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Snapchat Pixel */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-3">
-                  <div className="h-6 w-6 bg-yellow-400 rounded-full flex items-center justify-center">
-                    <span className="text-sm font-bold text-white">S</span>
+          <TabsContent value="pixel-setup" className="space-y-6">
+            {/* Overview Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 hover:shadow-md transition-shadow">
+                <CardContent className="flex items-center p-4">
+                  <Facebook className="h-8 w-8 text-blue-600 mr-3" />
+                  <div>
+                    <p className="text-sm font-medium text-blue-900">Facebook Pixels</p>
+                    <p className="text-2xl font-bold text-blue-800">{facebookPixels.length}</p>
                   </div>
-                  Snapchat Pixel
-                  <Badge variant={snapchatPixel.enabled ? 'default' : 'secondary'}>
-                    {snapchatPixel.enabled ? 
-                      (language === 'ar' ? 'نشط' : 'Active') : 
-                      (language === 'ar' ? 'غير نشط' : 'Inactive')
-                    }
-                  </Badge>
-                </CardTitle>
-                <CardDescription>
-                  {language === 'ar' 
-                    ? 'تتبع التحويلات وتحسين إعلانات سناب شات'
-                    : 'Track conversions and optimize Snapchat ads'
-                  }
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center space-x-2">
-                  <Switch 
-                    checked={snapchatPixel.enabled}
-                    onCheckedChange={(checked) => 
-                      setSnapchatPixel(prev => ({ ...prev, enabled: checked }))
-                    }
-                  />
-                  <Label>
-                    {language === 'ar' ? 'تفعيل Snapchat Pixel' : 'Enable Snapchat Pixel'}
-                  </Label>
-                </div>
-                
-                {snapchatPixel.enabled && (
-                  <>
-                    <div className="space-y-2">
-                      <Label htmlFor="snapchat-pixel-id">
-                        {language === 'ar' ? 'معرف البكسل' : 'Pixel ID'}
-                      </Label>
-                      <Input
-                        id="snapchat-pixel-id"
-                        placeholder="12345678-1234-1234-1234-123456789012"
-                        value={snapchatPixel.pixelId}
-                        onChange={(e) => 
-                          setSnapchatPixel(prev => ({ ...prev, pixelId: e.target.value }))
-                        }
-                      />
-                    </div>
-                    
-                    {snapchatPixel.pixelId && (
-                      <div className="flex gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => copyPixelCode('snapchat', snapchatPixel.pixelId)}
-                          className="gap-2"
-                        >
-                          <Copy className="h-4 w-4" />
-                          {language === 'ar' ? 'نسخ الكود' : 'Copy Code'}
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          asChild
-                        >
-                          <a 
-                            href="https://ads.snapchat.com" 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="gap-2"
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                            {language === 'ar' ? 'إدارة الإعلانات' : 'Ads Manager'}
-                          </a>
-                        </Button>
-                      </div>
-                    )}
-                  </>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* TikTok Pixel */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-3">
-                  <div className="h-6 w-6 bg-black rounded-sm flex items-center justify-center">
-                    <span className="text-sm font-bold text-white">T</span>
+                </CardContent>
+              </Card>
+              
+              <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200 hover:shadow-md transition-shadow">
+                <CardContent className="flex items-center p-4">
+                  <div className="h-8 w-8 bg-yellow-400 rounded-full flex items-center justify-center mr-3">
+                    <span className="text-xs font-bold text-black">S</span>
                   </div>
-                  TikTok Pixel
-                  <Badge variant={tiktokPixel.enabled ? 'default' : 'secondary'}>
-                    {tiktokPixel.enabled ? 
-                      (language === 'ar' ? 'نشط' : 'Active') : 
-                      (language === 'ar' ? 'غير نشط' : 'Inactive')
-                    }
-                  </Badge>
-                </CardTitle>
-                <CardDescription>
-                  {language === 'ar' 
-                    ? 'تتبع الأحداث وتحسين إعلانات تيك توك'
-                    : 'Track events and optimize TikTok ads'
-                  }
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center space-x-2">
-                  <Switch 
-                    checked={tiktokPixel.enabled}
-                    onCheckedChange={(checked) => 
-                      setTiktokPixel(prev => ({ ...prev, enabled: checked }))
-                    }
-                  />
-                  <Label>
-                    {language === 'ar' ? 'تفعيل TikTok Pixel' : 'Enable TikTok Pixel'}
-                  </Label>
-                </div>
-                
-                {tiktokPixel.enabled && (
-                  <>
-                    <div className="space-y-2">
-                      <Label htmlFor="tiktok-pixel-id">
-                        {language === 'ar' ? 'معرف البكسل' : 'Pixel ID'}
-                      </Label>
-                      <Input
-                        id="tiktok-pixel-id"
-                        placeholder="C123456789012345ABCD"
-                        value={tiktokPixel.pixelId}
-                        onChange={(e) => 
-                          setTiktokPixel(prev => ({ ...prev, pixelId: e.target.value }))
-                        }
-                      />
+                  <div>
+                    <p className="text-sm font-medium text-yellow-900">Snapchat Pixels</p>
+                    <p className="text-2xl font-bold text-yellow-800">{snapchatPixels.length}</p>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card className="bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200 hover:shadow-md transition-shadow">
+                <CardContent className="flex items-center p-4">
+                  <Music className="h-8 w-8 text-black mr-3" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">TikTok Pixels</p>
+                    <p className="text-2xl font-bold text-gray-800">{tiktokPixels.length}</p>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200 hover:shadow-md transition-shadow">
+                <CardContent className="flex items-center p-4">
+                  <BarChart3 className="h-8 w-8 text-green-600 mr-3" />
+                  <div>
+                    <p className="text-sm font-medium text-green-900">Active Events</p>
+                    <p className="text-2xl font-bold text-green-800">{activeEvents}/{trackingEvents.length}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Pixels Grid */}
+            {totalActivePixels === 0 ? (
+              <Card className="text-center py-12 bg-gradient-to-br from-background to-muted/10">
+                <CardContent>
+                  <Target className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold mb-2">No Pixels Created Yet</h3>
+                  <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                    Create your first advertising pixel to start tracking your campaigns and optimize your marketing performance
+                  </p>
+                  <Button onClick={() => setIsCreateDialogOpen(true)} size="lg">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Your First Pixel
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-8">
+                {facebookPixels.length > 0 && (
+                  <div>
+                    <h3 className="text-xl font-semibold mb-4 flex items-center space-x-2">
+                      <Facebook className="h-6 w-6 text-blue-600" />
+                      <span>Facebook Pixels</span>
+                      <Badge variant="secondary">{facebookPixels.length}</Badge>
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                      {facebookPixels.map((pixel) => renderPixelCard(pixel, 'facebook'))}
                     </div>
-                    
-                    {tiktokPixel.pixelId && (
-                      <div className="flex gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => copyPixelCode('tiktok', tiktokPixel.pixelId)}
-                          className="gap-2"
-                        >
-                          <Copy className="h-4 w-4" />
-                          {language === 'ar' ? 'نسخ الكود' : 'Copy Code'}
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          asChild
-                        >
-                          <a 
-                            href="https://ads.tiktok.com" 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="gap-2"
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                            {language === 'ar' ? 'إدارة الإعلانات' : 'Ads Manager'}
-                          </a>
-                        </Button>
-                      </div>
-                    )}
-                  </>
+                  </div>
                 )}
-              </CardContent>
-            </Card>
+
+                {snapchatPixels.length > 0 && (
+                  <div>
+                    <h3 className="text-xl font-semibold mb-4 flex items-center space-x-2">
+                      <div className="h-6 w-6 bg-yellow-400 rounded-full flex items-center justify-center">
+                        <span className="text-xs font-bold text-black">S</span>
+                      </div>
+                      <span>Snapchat Pixels</span>
+                      <Badge variant="secondary">{snapchatPixels.length}</Badge>
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                      {snapchatPixels.map((pixel) => renderPixelCard(pixel, 'snapchat'))}
+                    </div>
+                  </div>
+                )}
+
+                {tiktokPixels.length > 0 && (
+                  <div>
+                    <h3 className="text-xl font-semibold mb-4 flex items-center space-x-2">
+                      <Music className="h-6 w-6 text-black" />
+                      <span>TikTok Pixels</span>
+                      <Badge variant="secondary">{tiktokPixels.length}</Badge>
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                      {tiktokPixels.map((pixel) => renderPixelCard(pixel, 'tiktok'))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </TabsContent>
 
-          {/* Events Tracking Tab */}
-          <TabsContent value="events" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-3">
-                  <Activity className="h-6 w-6 text-primary" />
-                  {language === 'ar' ? 'أحداث التتبع' : 'Tracking Events'}
+          <TabsContent value="event-tracking" className="space-y-6">
+            <Card className="border-0 shadow-lg">
+              <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10">
+                <CardTitle className="flex items-center space-x-2">
+                  <BarChart3 className="h-6 w-6 text-primary" />
+                  <span>Event Tracking Configuration</span>
                 </CardTitle>
                 <CardDescription>
-                  {language === 'ar' 
-                    ? 'تحديد الأحداث التي تريد تتبعها عبر جميع المنصات الإعلانية'
-                    : 'Configure which events to track across all advertising platforms'
-                  }
+                  Choose which events to track across all your advertising platforms
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
+              <CardContent className="p-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   {trackingEvents.map((event) => (
-                    <div key={event.name} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex items-center gap-4">
-                        <Switch 
-                          checked={event.enabled}
-                          onCheckedChange={() => toggleEvent(event.name)}
-                        />
-                        <div>
-                          <h4 className="font-medium">{event.name}</h4>
-                          <p className="text-sm text-muted-foreground">{event.description}</p>
-                        </div>
+                    <div key={event.name} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/30 transition-colors group">
+                      <div className="flex-1">
+                        <h4 className="font-medium group-hover:text-primary transition-colors">{event.name}</h4>
+                        <p className="text-sm text-muted-foreground">{event.description}</p>
                       </div>
-                      <Badge variant={event.enabled ? 'default' : 'secondary'}>
-                        {event.enabled ? 
-                          (language === 'ar' ? 'نشط' : 'Active') : 
-                          (language === 'ar' ? 'غير نشط' : 'Inactive')
-                        }
-                      </Badge>
+                      <Switch
+                        checked={event.enabled}
+                        onCheckedChange={() => toggleEvent(event.name)}
+                      />
                     </div>
                   ))}
                 </div>
               </CardContent>
             </Card>
 
-            {/* Implementation Guide */}
-            <Alert>
-              <Zap className="h-4 w-4" />
-              <AlertDescription>
-                <strong>
-                  {language === 'ar' ? 'دليل التنفيذ:' : 'Implementation Guide:'}
-                </strong>
-                <br />
-                {language === 'ar' 
-                  ? 'بعد حفظ الإعدادات، ستحتاج إلى إضافة أكواد البكسل إلى موقعك. يمكنك نسخ الأكواد من الأعلى ولصقها في قسم <head> في موقعك، أو استخدام Google Tag Manager لإدارة جميع البكسلات.'
-                  : 'After saving settings, you\'ll need to add the pixel codes to your website. You can copy the codes above and paste them in the <head> section of your site, or use Google Tag Manager to manage all pixels.'
-                }
-              </AlertDescription>
-            </Alert>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card className="border-0 shadow-lg">
+                <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 border-b border-blue-200">
+                  <CardTitle className="text-blue-900">Implementation Guide</CardTitle>
+                  <CardDescription className="text-blue-700">
+                    How to implement tracking events in your forms
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-6 space-y-4">
+                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <h4 className="font-medium mb-2 text-blue-900">Automatic Event Tracking</h4>
+                    <p className="text-sm text-blue-800 mb-3">
+                      Events are automatically tracked when users interact with your forms:
+                    </p>
+                    <ul className="text-sm text-blue-700 space-y-1">
+                      <li>• <strong>Page View:</strong> Tracked when form is loaded</li>
+                      <li>• <strong>Add to Cart:</strong> Tracked when items are added to cart</li>
+                      <li>• <strong>Purchase:</strong> Tracked when form is submitted successfully</li>
+                      <li>• <strong>Lead:</strong> Tracked when contact information is collected</li>
+                    </ul>
+                  </div>
+                  
+                  <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                    <h4 className="font-medium mb-2 text-green-900">Custom Parameters</h4>
+                    <p className="text-sm text-green-800">
+                      Configure additional parameters for each event in the form builder to send more detailed tracking data.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-0 shadow-lg">
+                <CardHeader className="bg-gradient-to-r from-amber-50 to-amber-100 border-b border-amber-200">
+                  <CardTitle className="text-amber-900">Privacy & Compliance</CardTitle>
+                  <CardDescription className="text-amber-700">
+                    Important considerations for tracking implementation
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-6 space-y-4">
+                  <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
+                    <h4 className="font-medium mb-2 text-amber-900">GDPR & CCPA Compliance</h4>
+                    <p className="text-sm text-amber-800 mb-3">
+                      Ensure compliance with privacy regulations:
+                    </p>
+                    <ul className="text-sm text-amber-700 space-y-1">
+                      <li>• Obtain proper consent before tracking</li>
+                      <li>• Provide clear privacy policies</li>
+                      <li>• Allow users to opt-out of tracking</li>
+                      <li>• Honor data deletion requests</li>
+                    </ul>
+                  </div>
+                  
+                  <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+                    <h4 className="font-medium mb-2 text-purple-900">Best Practices</h4>
+                    <p className="text-sm text-purple-800">
+                      Follow platform-specific guidelines and test your implementation thoroughly before going live.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </div>
-    </SettingsLayout>
+    </div>
   );
 };
 
