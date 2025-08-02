@@ -631,10 +631,17 @@
   pointer-events: none !important;
 }
 
-/* تحسين تنسيق الهوامش وpaddign للحقول */
-.codform-field {
+/* تحسين تنسيق الهوامش وpaddign للحقول - لكن ليس للـ submit buttons */
+.codform-field:not(.codform-submit-btn):not(.codform-submit-button) {
   padding: 12px !important;
   margin-bottom: 16px !important;
+}
+
+/* إضافة specificity عالية للـ submit button لضمان عمل inline padding */
+.codform-submit-btn,
+.codform-submit-button {
+  /* إزالة أي تداخل مع padding defaults - inline styles تأخذ الأولوية */
+  padding: unset !important;
 }
 
 /* تم إزالة القواعد المتضاربة مع inline styles - للسماح بعمل Padding Y من form builder */
