@@ -221,32 +221,25 @@ window.renderCountdownField = function(field, formStyle, formLanguage = 'en') {
         (function() {
           console.log('🕐 CODFORM: Starting countdown script for ${fieldId}');
           
-          // Get endDate properly from field data
-          const fieldData = ${JSON.stringify(field)};
-          console.log('🕐 CODFORM: Field data received:', fieldData);
-          
-          const fieldStyle = fieldData.style || {};
-          console.log('🕐 CODFORM: Field style:', fieldStyle);
-          
-          // Calculate end time immediately
+          // Calculate end time immediately with proper endDate parsing
           let endTime;
-          const endDateValue = fieldStyle.endDate || null;
-          console.log('🕐 CODFORM: End date from field style:', endDateValue);
+          const endDateValue = '${endDate || ''}';
+          console.log('🕐 CODFORM: End date value from template:', endDateValue);
           
-          if (endDateValue && endDateValue !== '' && endDateValue !== null) {
+          if (endDateValue && endDateValue.trim() !== '' && endDateValue !== 'null' && endDateValue !== 'undefined') {
             try {
               endTime = new Date(endDateValue).getTime();
               if (isNaN(endTime)) {
-                throw new Error('Invalid date');
+                throw new Error('Invalid date format');
               }
               console.log('🕐 CODFORM: Using custom end time:', new Date(endTime));
             } catch (e) {
-              console.log('🕐 CODFORM: Invalid end date, using default:', e);
+              console.log('🕐 CODFORM: Error parsing date, using default:', e);
               endTime = Date.now() + (2 * 24 * 60 * 60 * 1000) + (23 * 60 * 60 * 1000) + (59 * 60 * 1000) + (5 * 1000);
             }
           } else {
             endTime = Date.now() + (2 * 24 * 60 * 60 * 1000) + (23 * 60 * 60 * 1000) + (59 * 60 * 1000) + (5 * 1000);
-            console.log('🕐 CODFORM: Using default end time:', new Date(endTime));
+            console.log('🕐 CODFORM: Using default end time (no endDate provided):', new Date(endTime));
           }
           
           function updateCountdown() {
