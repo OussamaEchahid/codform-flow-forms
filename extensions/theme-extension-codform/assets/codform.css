@@ -651,16 +651,11 @@
   margin-bottom: 16px !important;
 }
 
-/* إصلاح مشكلة Padding Y - إزالة جميع قيود الـ padding للأزرار */
-.codform-submit-button,
-.codform-next-button, 
-.codform-prev-button,
-.codform-submit-btn,
-.codform-button {
-  padding: unset !important;
-}
-
-/* السماح للـ inline styles بالتحكم في الـ padding */
-button[style*="padding"] {
-  padding: var(--inline-padding) !important;
+/* إصلاح مشكلة Padding Y - السماح للـ inline styles بالتحكم في الـ padding */
+.codform-submit-button[style*="padding"],
+.codform-next-button[style*="padding"], 
+.codform-prev-button[style*="padding"],
+.codform-submit-btn[style*="padding"],
+.codform-button[style*="padding"] {
+  padding: revert !important;
 }
