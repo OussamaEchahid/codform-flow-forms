@@ -246,13 +246,13 @@ window.renderCountdownField = function(field, formStyle, formLanguage = 'en') {
           
           function updateCountdown() {
             const now = Date.now();
-            const timeLeft = endTime - now;
+            let timeLeft = endTime - now;
             
+            // If timer expired, reset to default duration
             if (timeLeft <= 0) {
-              // Timer expired
-              const numbers = countdownContainer.querySelectorAll('.countdown-number');
-              numbers.forEach(num => num.textContent = '00');
-              return;
+              console.log('🕐 CODFORM: Timer expired, resetting...');
+              endTime = Date.now() + (2 * 24 * 60 * 60 * 1000) + (23 * 60 * 60 * 1000) + (59 * 60 * 1000) + (5 * 1000);
+              timeLeft = endTime - Date.now();
             }
             
             const days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
