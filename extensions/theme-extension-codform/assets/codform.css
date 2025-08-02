@@ -207,7 +207,7 @@
   justify-content: center !important;
   gap: 8px !important;
   text-align: center !important;
-  padding: var(--codform-button-padding-y, 14px) var(--codform-button-padding-x, 24px) !important;
+  /* padding سيتم تطبيقه عبر inline styles */
 }
 
 .codform-submit-button:hover,
