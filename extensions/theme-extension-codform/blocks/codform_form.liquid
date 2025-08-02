@@ -499,7 +499,7 @@
         return strValue + 'px';
       };
       
-      const buttonPaddingY = ensurePxFormat(field.style?.paddingY, '10px');
+      const buttonPaddingY = ensurePxFormat(field.style?.paddingY, '0px');
       const buttonPaddingX = ensurePxFormat(field.style?.paddingX, '24px');
       
       const buttonBorder = buttonBorderWidth !== '0px' && buttonBorderColor !== 'transparent' 
@@ -1341,7 +1341,7 @@
                   border-radius: ${popupButton.borderRadius || '8px'};
                   font-size: ${popupButton.fontSize || '16px'};
                   font-weight: 600;
-                  padding: ${popupButton.paddingY || '16px'} ${popupButton.paddingX || '32px'};
+                  padding: ${popupButton.paddingY || '0px'} ${popupButton.paddingX || '32px'};
                   cursor: pointer;
                   display: block;
                   width: 100%;
