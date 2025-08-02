@@ -183,23 +183,16 @@
   margin-right: 3px;
 }
 
-/* أزرار الإرسال والتنقل بين الخطوات - تم تحسينها للسماح بـ inline styles */
+/* أزرار الإرسال والتنقل بين الخطوات - أساسية فقط، الأنماط الأخرى من inline styles */
 .codform-submit-button,
 .codform-next-button,
 .codform-prev-button,
 .codform-submit-btn {
-  background-color: #9b87f5 !important;
-  color: white !important;
-  border: none !important;
-  border-radius: 8px !important;
-  font-weight: 600 !important;
-  font-size: 18px !important;
   cursor: pointer !important;
   transition: all 0.2s ease-in-out !important;
   width: 100% !important;
   margin-top: 14px !important;
   font-family: 'Cairo', sans-serif !important;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
   position: relative !important;
   overflow: hidden !important;
   display: flex !important;
@@ -207,15 +200,14 @@
   justify-content: center !important;
   gap: 8px !important;
   text-align: center !important;
-  /* لا padding هنا - يتم التحكم فيه بالكامل بواسطة inline styles من form builder */
+  /* جميع الألوان والحجوم والحشو يتم التحكم فيها بالكامل بواسطة inline styles من form builder */
 }
 
 .codform-submit-button:hover,
 .codform-next-button:hover,
 .codform-submit-btn:hover {
-  background-color: #8a76e5 !important;
   transform: translateY(-1px) !important;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
+  filter: brightness(0.9) !important;
 }
 
 .codform-prev-button {
@@ -232,11 +224,10 @@
 .codform-next-button:disabled,
 .codform-prev-button:disabled,
 .codform-submit-btn:disabled {
-  background-color: #9ca3af !important;
   cursor: not-allowed !important;
   opacity: 0.7 !important;
   transform: none !important;
-  box-shadow: none !important;
+  filter: grayscale(1) !important;
 }
 
 /* حالة التحميل */
@@ -310,27 +301,21 @@
 }
 
 .codform-button {
-  background-color: #9b87f5 !important;
-  color: white !important;
-  border: none !important;
-  border-radius: 8px !important;
-  font-weight: 600 !important;
   cursor: pointer !important;
   margin-top: 14px !important;
   transition: all 0.2s ease-in-out !important;
   font-family: 'Cairo', sans-serif !important;
-  font-size: 18px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   gap: 8px !important;
   width: 100% !important;
+  /* جميع الأنماط الأخرى تأتي من inline styles */
 }
 
 .codform-button:hover {
-  background-color: #8a76e5 !important;
   transform: translateY(-1px) !important;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
+  filter: brightness(0.9) !important;
 }
 
 /* تنسيق النموذج متعدد الخطوات */
