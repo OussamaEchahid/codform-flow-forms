@@ -499,13 +499,27 @@
         return strValue + 'px';
       };
       
+      // Debug للتأكد من قراءة القيم بشكل صحيح
+      console.log('Submit Button Debug:', {
+        fieldStylePaddingY: field.style?.paddingY,
+        fieldStylePaddingX: field.style?.paddingX,
+        fieldStyle: field.style
+      });
+      
       const buttonPaddingY = ensurePxFormat(field.style?.paddingY, '10px');
       const buttonPaddingX = ensurePxFormat(field.style?.paddingX, '24px');
+      
+      console.log('Processed Padding Values:', {
+        buttonPaddingY,
+        buttonPaddingX
+      });
       
       const buttonBorder = buttonBorderWidth !== '0px' && buttonBorderColor !== 'transparent' 
         ? `${buttonBorderWidth} solid ${buttonBorderColor}` 
         : 'none';
       const buttonPadding = `${buttonPaddingY} ${buttonPaddingX}`;
+      
+      console.log('Final Button Padding:', buttonPadding);
       
       // Font weight handling
       const labelWeight = getStyleValue(buttonStyle, 'labelWeight', null);
