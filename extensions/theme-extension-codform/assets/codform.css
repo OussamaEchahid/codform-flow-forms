@@ -207,6 +207,7 @@
   justify-content: center !important;
   gap: 8px !important;
   text-align: center !important;
+  padding: var(--codform-button-padding-y, 14px) var(--codform-button-padding-x, 24px) !important;
 }
 
 .codform-submit-button:hover,
@@ -651,11 +652,11 @@
   margin-bottom: 16px !important;
 }
 
-/* إصلاح مشكلة Padding Y - السماح للـ inline styles بالتحكم في الـ padding */
-.codform-submit-button[style*="padding"],
-.codform-next-button[style*="padding"], 
-.codform-prev-button[style*="padding"],
-.codform-submit-btn[style*="padding"],
-.codform-button[style*="padding"] {
-  padding: revert !important;
+/* إزالة قيود الـ padding للأزرار - السماح للـ inline styles بالعمل */
+.codform-submit-button,
+.codform-next-button, 
+.codform-prev-button,
+.codform-submit-btn,
+.codform-button {
+  /* لا padding هنا - سيتم التحكم فيه عبر inline styles */
 }
