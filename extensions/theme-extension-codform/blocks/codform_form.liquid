@@ -494,6 +494,11 @@
       const buttonPaddingY = (buttonStyle && buttonStyle.paddingY !== undefined) ? buttonStyle.paddingY : '10px';
       const buttonPaddingX = (buttonStyle && buttonStyle.paddingX !== undefined) ? buttonStyle.paddingX : '24px';
       
+      const buttonBorder = buttonBorderWidth !== '0px' && buttonBorderColor !== 'transparent' 
+        ? `${buttonBorderWidth} solid ${buttonBorderColor}` 
+        : 'none';
+      const buttonPadding = `${buttonPaddingY} ${buttonPaddingX}`;
+      
       // Font weight handling
       const labelWeight = getStyleValue(buttonStyle, 'labelWeight', null);
       const fontWeight = getStyleValue(buttonStyle, 'fontWeight', null);
