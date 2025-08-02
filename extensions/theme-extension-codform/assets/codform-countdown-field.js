@@ -219,61 +219,32 @@ window.renderCountdownField = function(field, formStyle, formLanguage = 'en') {
       
       <script>
         (function() {
-          console.log('🕐 CODFORM: Starting countdown script for ${fieldId}');
+          console.log('🕐 Starting countdown for field');
           
-          // Log all available data for debugging
-          console.log('🕐 CODFORM: Raw field object:', ${JSON.stringify(field)});
-          console.log('🕐 CODFORM: Field style from template:', '${fieldStyle.endDate || 'NOT_SET'}');
-          console.log('🕐 CODFORM: EndDate from template variable:', '${endDate || 'NOT_SET'}');
+          // Parse field data directly from JSON
+          var fieldData = ${JSON.stringify(field)};
+          console.log('🕐 Field data:', fieldData);
           
-          // Calculate end time - try multiple sources
-          let endTime;
-          let endDateValue = null;
+          var endDateValue = null;
           
-          // Method 1: Try from field.style.endDate
-          try {
-            const fieldObj = ${JSON.stringify(field)};
-            if (fieldObj && fieldObj.style && fieldObj.style.endDate) {
-              endDateValue = fieldObj.style.endDate;
-              console.log('🕐 CODFORM: Found endDate in field.style:', endDateValue);
-            }
-          } catch (e) {
-            console.log('🕐 CODFORM: Error parsing field object:', e);
+          // Get endDate from field.style.endDate
+          if (fieldData && fieldData.style && fieldData.style.endDate) {
+            endDateValue = fieldData.style.endDate;
+            console.log('🕐 Found endDate:', endDateValue);
           }
           
-          // Method 2: Try from template variable
-          if (!endDateValue) {
-            const templateEndDate = '${endDate || ''}';
-            if (templateEndDate && templateEndDate !== '' && templateEndDate !== 'null') {
-              endDateValue = templateEndDate;
-              console.log('🕐 CODFORM: Found endDate in template variable:', endDateValue);
-            }
-          }
-          
-          // Method 3: Try from fieldStyle
-          if (!endDateValue) {
-            const styleEndDate = '${fieldStyle.endDate || ''}';
-            if (styleEndDate && styleEndDate !== '' && styleEndDate !== 'null') {
-              endDateValue = styleEndDate;
-              console.log('🕐 CODFORM: Found endDate in fieldStyle:', endDateValue);
-            }
-          }
-          
-          // Parse the date
-          if (endDateValue && endDateValue.trim() !== '' && endDateValue !== 'undefined') {
-            try {
-              endTime = new Date(endDateValue).getTime();
-              if (isNaN(endTime)) {
-                throw new Error('Invalid date format: ' + endDateValue);
-              }
-              console.log('🕐 CODFORM: ✅ Using custom end time:', new Date(endTime), 'from value:', endDateValue);
-            } catch (e) {
-              console.log('🕐 CODFORM: ❌ Error parsing date "' + endDateValue + '":', e);
-              endTime = Date.now() + (2 * 24 * 60 * 60 * 1000) + (23 * 60 * 60 * 1000) + (59 * 60 * 1000) + (5 * 1000);
+          var endTime;
+          if (endDateValue) {
+            endTime = new Date(endDateValue).getTime();
+            if (isNaN(endTime)) {
+              console.log('🕐 Invalid date, using default');
+              endTime = Date.now() + (2 * 24 * 60 * 60 * 1000);
+            } else {
+              console.log('🕐 Using custom endTime:', new Date(endTime));
             }
           } else {
-            console.log('🕐 CODFORM: ⚠️ No valid endDate found, using default countdown');
-            endTime = Date.now() + (2 * 24 * 60 * 60 * 1000) + (23 * 60 * 60 * 1000) + (59 * 60 * 1000) + (5 * 1000);
+            console.log('🕐 No endDate found, using default');
+            endTime = Date.now() + (2 * 24 * 60 * 60 * 1000);
           }
           
           function updateCountdown() {
