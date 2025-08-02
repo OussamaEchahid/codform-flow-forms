@@ -87,5 +87,58 @@ export const FormField: React.FC<FormFieldProps> = ({ field, formData, handleCha
     );
   }
 
+  if (field.type === 'countdown') {
+    const fieldStyle = field.style || {};
+    const title = field.label || 'Remaining on offer';
+    const backgroundColor = fieldStyle.backgroundColor || '#9b87f5';
+    const titleColor = fieldStyle.titleColor || '#ffffff';
+    const counterColor = fieldStyle.counterColor || '#9b87f5';
+    
+    return (
+      <BlockStack key={field.id}>
+        <div 
+          style={{
+            background: backgroundColor,
+            borderRadius: '12px',
+            padding: '16px',
+            textAlign: 'center',
+            marginBottom: '16px'
+          }}
+        >
+          <Text emphasis="bold" style={{ color: titleColor, marginBottom: '12px' }}>
+            {title}
+          </Text>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            gap: '8px',
+            flexWrap: 'wrap'
+          }}>
+            {['Days', 'Hrs', 'Mins', 'Secs'].map((label, index) => (
+              <div key={label} style={{
+                backgroundColor: 'rgba(255,255,255,0.9)',
+                borderRadius: '8px',
+                padding: '8px',
+                minWidth: '60px',
+                textAlign: 'center'
+              }}>
+                <div style={{ 
+                  color: counterColor, 
+                  fontSize: '20px', 
+                  fontWeight: 'bold' 
+                }}>
+                  {index === 0 ? '02' : index === 1 ? '23' : index === 2 ? '59' : '05'}
+                </div>
+                <div style={{ fontSize: '12px', color: '#666' }}>
+                  {label}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </BlockStack>
+    );
+  }
+
   return null;
 };

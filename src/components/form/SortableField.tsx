@@ -812,8 +812,24 @@ const SortableField: React.FC<SortableFieldProps> = ({
                              step={1}
                              className="w-full"
                            />
-                         </div>
-                         
+                          </div>
+                          
+                          {/* Counter Line Height */}
+                          <div className="space-y-1">
+                            <div className="flex items-center justify-between">
+                              <Label>{language === 'ar' ? 'ارتفاع سطر العداد' : 'Counter Line Height'}</Label>
+                              <span className="text-sm">{editedField.style?.counterLineHeight || '1.1'}</span>
+                            </div>
+                            <Slider
+                              value={[parseFloat(editedField.style?.counterLineHeight || '1.1') * 10]}
+                              onValueChange={(value) => handleStyleChange('counterLineHeight', `${value[0] / 10}`)}
+                              max={20}
+                              min={8}
+                              step={1}
+                              className="w-full"
+                            />
+                          </div>
+                          
                          {/* Border Radius */}
                          <div className="space-y-1">
                            <div className="flex items-center justify-between">

@@ -80,7 +80,7 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({ field, formStyle }) => 
   const counterBoxStyle = {
     backgroundColor: fieldStyle.counterBackgroundColor || 'hsl(var(--background))',
     borderRadius: '8px',
-    padding: '6px 4px',
+    padding: '4px 3px',
     minWidth: 'calc(20% - 6px)',
     maxWidth: 'calc(25% - 6px)',
     flex: '1',
@@ -94,7 +94,7 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({ field, formStyle }) => 
     color: fieldStyle.counterColor || defaultCounterColor,
     fontSize: `clamp(16px, ${fieldStyle.counterFontSize || '24px'}, 28px)`,
     fontWeight: fieldStyle.counterFontWeight || '700',
-    lineHeight: fieldStyle.counterLineHeight || '1.2',
+    lineHeight: fieldStyle.counterLineHeight || '1.1',
     margin: '0'
   };
 
