@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Copy, Facebook, Music, Plus, Settings, Target, BarChart3, Eye, Code } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import AppSidebar from '@/components/layout/AppSidebar';
 
 interface PixelSettings {
   id: string;
@@ -299,8 +300,10 @@ snaptr('track', 'PAGE_VIEW');
   const activeEvents = trackingEvents.filter(e => e.enabled).length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 max-w-7xl">
+    <div className="flex min-h-screen">
+      <AppSidebar />
+      <div className="flex-1 bg-gradient-to-br from-background to-muted/20">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 max-w-7xl">
         {/* Header */}
         <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start mb-8 space-y-4 lg:space-y-0">
           <div className="space-y-2">
@@ -486,13 +489,7 @@ snaptr('track', 'PAGE_VIEW');
           </div>
         </div>
 
-        <Tabs defaultValue="pixel-setup" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 max-w-md bg-muted/50">
-            <TabsTrigger value="pixel-setup" className="font-medium">Pixel Setup</TabsTrigger>
-            <TabsTrigger value="event-tracking" className="font-medium">Event Tracking</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="pixel-setup" className="space-y-6">
+        <div className="space-y-6">
             {/* Overview Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 hover:shadow-md transition-shadow">
@@ -597,100 +594,8 @@ snaptr('track', 'PAGE_VIEW');
                 )}
               </div>
             )}
-          </TabsContent>
-
-          <TabsContent value="event-tracking" className="space-y-6">
-            <Card className="border-0 shadow-lg">
-              <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10">
-                <CardTitle className="flex items-center space-x-2">
-                  <BarChart3 className="h-6 w-6 text-primary" />
-                  <span>Event Tracking Configuration</span>
-                </CardTitle>
-                <CardDescription>
-                  Choose which events to track across all your advertising platforms
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  {trackingEvents.map((event) => (
-                    <div key={event.name} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/30 transition-colors group">
-                      <div className="flex-1">
-                        <h4 className="font-medium group-hover:text-primary transition-colors">{event.name}</h4>
-                        <p className="text-sm text-muted-foreground">{event.description}</p>
-                      </div>
-                      <Switch
-                        checked={event.enabled}
-                        onCheckedChange={() => toggleEvent(event.name)}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="border-0 shadow-lg">
-                <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 border-b border-blue-200">
-                  <CardTitle className="text-blue-900">Implementation Guide</CardTitle>
-                  <CardDescription className="text-blue-700">
-                    How to implement tracking events in your forms
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-6 space-y-4">
-                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                    <h4 className="font-medium mb-2 text-blue-900">Automatic Event Tracking</h4>
-                    <p className="text-sm text-blue-800 mb-3">
-                      Events are automatically tracked when users interact with your forms:
-                    </p>
-                    <ul className="text-sm text-blue-700 space-y-1">
-                      <li>• <strong>Page View:</strong> Tracked when form is loaded</li>
-                      <li>• <strong>Add to Cart:</strong> Tracked when items are added to cart</li>
-                      <li>• <strong>Purchase:</strong> Tracked when form is submitted successfully</li>
-                      <li>• <strong>Lead:</strong> Tracked when contact information is collected</li>
-                    </ul>
-                  </div>
-                  
-                  <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                    <h4 className="font-medium mb-2 text-green-900">Custom Parameters</h4>
-                    <p className="text-sm text-green-800">
-                      Configure additional parameters for each event in the form builder to send more detailed tracking data.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-0 shadow-lg">
-                <CardHeader className="bg-gradient-to-r from-amber-50 to-amber-100 border-b border-amber-200">
-                  <CardTitle className="text-amber-900">Privacy & Compliance</CardTitle>
-                  <CardDescription className="text-amber-700">
-                    Important considerations for tracking implementation
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-6 space-y-4">
-                  <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
-                    <h4 className="font-medium mb-2 text-amber-900">GDPR & CCPA Compliance</h4>
-                    <p className="text-sm text-amber-800 mb-3">
-                      Ensure compliance with privacy regulations:
-                    </p>
-                    <ul className="text-sm text-amber-700 space-y-1">
-                      <li>• Obtain proper consent before tracking</li>
-                      <li>• Provide clear privacy policies</li>
-                      <li>• Allow users to opt-out of tracking</li>
-                      <li>• Honor data deletion requests</li>
-                    </ul>
-                  </div>
-                  
-                  <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
-                    <h4 className="font-medium mb-2 text-purple-900">Best Practices</h4>
-                    <p className="text-sm text-purple-800">
-                      Follow platform-specific guidelines and test your implementation thoroughly before going live.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-        </Tabs>
+          </div>
+        </div>
       </div>
     </div>
   );
