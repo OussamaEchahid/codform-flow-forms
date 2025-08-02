@@ -5,6 +5,7 @@ import WhatsAppFieldEditor from './editor/WhatsAppFieldEditor';
 import ImageFieldEditor from './editor/ImageFieldEditor';
 import TextFieldEditor from './editor/TextFieldEditor';
 import SubmitButtonEditor from './editor/SubmitButtonEditor';
+import CountdownFieldEditor from './editor/CountdownFieldEditor';
 
 interface FieldEditorProps {
   field: FormField;
@@ -48,6 +49,15 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
         console.log('🚀 Opening IMAGE field editor for field:', currentField);
         return (
           <ImageFieldEditor
+            field={currentField}
+            onSave={handleSaveField}
+            onClose={onClose}
+          />
+        );
+      
+      case 'countdown':
+        return (
+          <CountdownFieldEditor
             field={currentField}
             onSave={handleSaveField}
             onClose={onClose}

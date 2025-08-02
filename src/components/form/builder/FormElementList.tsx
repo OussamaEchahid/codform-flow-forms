@@ -11,7 +11,7 @@ interface FormElementListProps {
 const FormElementList: React.FC<FormElementListProps> = ({ onAddElement }) => {
   const { language } = useI18n();
   
-  // Available elements - keeping only basics + WhatsApp + Image
+  // Available elements - keeping only basics + WhatsApp + Image + CountDown
   const availableElements = [
     { 
       type: 'form-title', 
@@ -32,6 +32,11 @@ const FormElementList: React.FC<FormElementListProps> = ({ onAddElement }) => {
       type: 'image', 
       label: language === 'ar' ? 'صورة' : 'Image', 
       icon: '🖼️' 
+    },
+    { 
+      type: 'countdown', 
+      label: language === 'ar' ? 'عداد تنازلي' : 'Countdown Timer', 
+      icon: '⏰' 
     },
     { 
       type: 'cart-items', 

@@ -12,6 +12,7 @@ import RadioGroup from './fields/RadioGroup';
 import HtmlContent from './fields/HtmlContent';
 import WhatsAppButton from './fields/WhatsAppButton';
 import ImageField from './fields/ImageField';
+import CountdownTimer from './fields/CountdownTimer';
 
 
 interface FormFieldProps {
@@ -99,6 +100,9 @@ const FormField: React.FC<FormFieldProps> = ({
     
     case 'image':
       return <ImageField field={enhancedField} formStyle={formStyle} />;
+    
+    case 'countdown':
+      return <CountdownTimer field={enhancedField} formStyle={formStyle} />;
     
     default:
       return (
