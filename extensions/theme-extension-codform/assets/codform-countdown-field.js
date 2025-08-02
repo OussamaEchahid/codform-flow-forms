@@ -216,113 +216,68 @@ window.renderCountdownField = function(field, formStyle, formLanguage = 'en') {
           </div>
         </div>
       </div>
-      
-      <script>
-        (function() {
-          console.log('🕐 Starting countdown for field');
-          
-          // Parse the field data directly
-          try {
-            var fieldDataStr = \`${JSON.stringify(field).replace(/`/g, '\\`')}\`;
-            var fieldData = JSON.parse(fieldDataStr);
-            console.log('🕐 Parsed field data:', fieldData);
-            
-            var endDateValue = null;
-            if (fieldData && fieldData.style && fieldData.style.endDate) {
-              endDateValue = fieldData.style.endDate;
-              console.log('🕐 Found endDate:', endDateValue);
-            }
-            
-            var endTime;
-            if (endDateValue) {
-              endTime = new Date(endDateValue).getTime();
-              if (isNaN(endTime)) {
-                console.log('🕐 Invalid date, using default');
-                endTime = Date.now() + (2 * 24 * 60 * 60 * 1000);
-              } else {
-                console.log('🕐 Using custom endTime:', new Date(endTime));
-              }
-            } else {
-              console.log('🕐 No endDate found, using default');
-              endTime = Date.now() + (2 * 24 * 60 * 60 * 1000);
-            }
-            
-            function updateCountdown() {
-              var now = Date.now();
-              var timeLeft = endTime - now;
-              
-              if (timeLeft <= 0) {
-                endTime = Date.now() + (2 * 24 * 60 * 60 * 1000);
-                timeLeft = endTime - Date.now();
-              }
-              
-              var days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
-              var hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-              var minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
-              var seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
-              
-              function padZero(num) {
-                return num.toString().padStart ? num.toString().padStart(2, '0') : (num < 10 ? '0' + num : num.toString());
-              }
-              
-              var daysEl = document.getElementById("${fieldId}-days");
-              var hoursEl = document.getElementById("${fieldId}-hours");
-              var minutesEl = document.getElementById("${fieldId}-minutes");
-              var secondsEl = document.getElementById("${fieldId}-seconds");
-              
-              if (daysEl) daysEl.textContent = padZero(days);
-              if (hoursEl) hoursEl.textContent = padZero(hours);
-              if (minutesEl) minutesEl.textContent = padZero(minutes);
-              if (secondsEl) secondsEl.textContent = padZero(seconds);
-              
-              console.log('🕐 Updated:', days, hours, minutes, seconds);
-            }
-            
-            // Start countdown
-            updateCountdown();
-            setInterval(updateCountdown, 1000);
-            
-          } catch (error) {
-            console.error('🕐 Countdown error:', error);
-            // Fallback with default countdown
-            var endTime = Date.now() + (2 * 24 * 60 * 60 * 1000);
-            
-            function updateCountdown() {
-              var now = Date.now();
-              var timeLeft = endTime - now;
-              
-              if (timeLeft <= 0) {
-                endTime = Date.now() + (2 * 24 * 60 * 60 * 1000);
-                timeLeft = endTime - Date.now();
-              }
-              
-              var days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
-              var hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-              var minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
-              var seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
-              
-              function padZero(num) {
-                return num < 10 ? '0' + num : num.toString();
-              }
-              
-              var daysEl = document.getElementById("${fieldId}-days");
-              var hoursEl = document.getElementById("${fieldId}-hours");
-              var minutesEl = document.getElementById("${fieldId}-minutes");
-              var secondsEl = document.getElementById("${fieldId}-seconds");
-              
-              if (daysEl) daysEl.textContent = padZero(days);
-              if (hoursEl) hoursEl.textContent = padZero(hours);
-              if (minutesEl) minutesEl.textContent = padZero(minutes);
-              if (secondsEl) secondsEl.textContent = padZero(seconds);
-            }
-            
-            updateCountdown();
-            setInterval(updateCountdown, 1000);
-          }
-        })();
-      </script>
     </div>
   `;
+  
+  // Initialize countdown after DOM is ready
+  setTimeout(function() {
+    console.log('🕐 COUNTDOWN: Starting for field', fieldId);
+    
+    var endDateValue = null;
+    if (field && field.style && field.style.endDate) {
+      endDateValue = field.style.endDate;
+      console.log('🕐 COUNTDOWN: Found endDate:', endDateValue);
+    }
+    
+    var endTime;
+    if (endDateValue) {
+      endTime = new Date(endDateValue).getTime();
+      if (isNaN(endTime)) {
+        console.log('🕐 COUNTDOWN: Invalid date, using default');
+        endTime = Date.now() + (2 * 24 * 60 * 60 * 1000);
+      } else {
+        console.log('🕐 COUNTDOWN: Using custom endTime:', new Date(endTime));
+      }
+    } else {
+      console.log('🕐 COUNTDOWN: No endDate found, using default');
+      endTime = Date.now() + (2 * 24 * 60 * 60 * 1000);
+    }
+    
+    function updateCountdown() {
+      var now = Date.now();
+      var timeLeft = endTime - now;
+      
+      if (timeLeft <= 0) {
+        endTime = Date.now() + (2 * 24 * 60 * 60 * 1000);
+        timeLeft = endTime - Date.now();
+      }
+      
+      var days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
+      var hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      var minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+      var seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+      
+      function padZero(num) {
+        return num < 10 ? '0' + num : num.toString();
+      }
+      
+      var daysEl = document.getElementById(fieldId + '-days');
+      var hoursEl = document.getElementById(fieldId + '-hours');
+      var minutesEl = document.getElementById(fieldId + '-minutes');
+      var secondsEl = document.getElementById(fieldId + '-seconds');
+      
+      if (daysEl) daysEl.textContent = padZero(days);
+      if (hoursEl) hoursEl.textContent = padZero(hours);
+      if (minutesEl) minutesEl.textContent = padZero(minutes);
+      if (secondsEl) secondsEl.textContent = padZero(seconds);
+      
+      console.log('🕐 COUNTDOWN: Updated values:', days, hours, minutes, seconds);
+    }
+    
+    updateCountdown();
+    setInterval(updateCountdown, 1000);
+    console.log('🕐 COUNTDOWN: Timer started for field', fieldId);
+  }, 100);
 };
 
 console.log('🕐 CODFORM: Countdown field renderer loaded');
