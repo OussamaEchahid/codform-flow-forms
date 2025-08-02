@@ -689,7 +689,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
                              id={`countdown-title-${field.id}`}
                              value={editedField.label || ''}
                              onChange={(e) => handleFieldChange('label', e.target.value)}
-                             placeholder={language === 'ar' ? 'العرض ينتهي خلال' : 'Offer ends in'}
+                             placeholder={language === 'ar' ? 'المتبقي على العرض' : 'Remaining on offer'}
                              className={language === 'ar' ? 'text-right' : ''}
                            />
                          </div>

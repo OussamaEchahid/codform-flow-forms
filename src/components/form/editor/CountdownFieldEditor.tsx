@@ -23,7 +23,7 @@ const CountdownFieldEditor: React.FC<CountdownFieldEditorProps> = ({
   
   const [currentField, setCurrentField] = useState<FormField>({
     ...field,
-    label: field.label || (language === 'ar' ? 'العرض ينتهي خلال' : 'Offer ends in'),
+    label: field.label || (language === 'ar' ? 'المتبقي على العرض' : 'Remaining on offer'),
     style: {
       backgroundColor: '#d4ff00',
       borderColor: '#b8e600',
@@ -98,7 +98,7 @@ const CountdownFieldEditor: React.FC<CountdownFieldEditorProps> = ({
             <Input
               value={currentField.label || ''}
               onChange={(e) => setCurrentField(prev => ({ ...prev, label: e.target.value }))}
-              placeholder={language === 'ar' ? 'العرض ينتهي خلال' : 'Offer ends in'}
+              placeholder={language === 'ar' ? 'المتبقي على العرض' : 'Remaining on offer'}
               className="mt-1"
             />
           </div>

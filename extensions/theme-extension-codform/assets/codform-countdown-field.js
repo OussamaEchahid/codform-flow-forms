@@ -224,11 +224,20 @@ window.renderCountdownField = function(field, formStyle, formLanguage = 'en') {
           
           // Calculate end time
           let endTime;
-          const endDateValue = \`${endDate}\`;
+          const endDateValue = \`${endDate || ''}\`;
           console.log('🕐 CODFORM: End date value:', endDateValue);
-          if (endDateValue && endDateValue !== 'null' && endDateValue !== 'undefined' && endDateValue !== '') {
-            endTime = new Date(endDateValue).getTime();
-            console.log('🕐 CODFORM: Using custom end date:', new Date(endTime));
+          
+          if (endDateValue && endDateValue !== 'null' && endDateValue !== 'undefined' && endDateValue !== '' && endDateValue.length > 5) {
+            try {
+              endTime = new Date(endDateValue).getTime();
+              if (isNaN(endTime)) {
+                throw new Error('Invalid date');
+              }
+              console.log('🕐 CODFORM: Using custom end date:', new Date(endTime));
+            } catch (e) {
+              console.log('🕐 CODFORM: Invalid end date, using default');
+              endTime = Date.now() + (2 * 24 * 60 * 60 * 1000) + (23 * 60 * 60 * 1000) + (59 * 60 * 1000) + (5 * 1000);
+            }
           } else {
             // Default: 2 days 23:59:05 from now
             endTime = Date.now() + (2 * 24 * 60 * 60 * 1000) + (23 * 60 * 60 * 1000) + (59 * 60 * 1000) + (5 * 1000);
