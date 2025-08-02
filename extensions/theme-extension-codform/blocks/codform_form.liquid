@@ -490,10 +490,9 @@
       const buttonBoxShadow = getStyleValue(buttonStyle, 'boxShadow', 'none');
       const buttonBorderWidth = getStyleValue(buttonStyle, 'borderWidth', '0px');
       const buttonBorderColor = getStyleValue(buttonStyle, 'borderColor', 'transparent');
-      // Adjust padding for Arabic language only - reduce Y padding for better alignment
-      const defaultPaddingY = (formDirection === 'rtl') ? '10px' : '10px';
-      const buttonPaddingY = getStyleValue(buttonStyle, 'paddingY', defaultPaddingY);
-      const buttonPaddingX = getStyleValue(buttonStyle, 'paddingX', '24px');
+      // Get padding values directly from field style - respect form builder settings
+      const buttonPaddingY = (buttonStyle && buttonStyle.paddingY !== undefined) ? buttonStyle.paddingY : '10px';
+      const buttonPaddingX = (buttonStyle && buttonStyle.paddingX !== undefined) ? buttonStyle.paddingX : '24px';
       
       const buttonBorder = buttonBorderWidth !== '0px' && buttonBorderColor !== 'transparent' 
         ? `${buttonBorderWidth} solid ${buttonBorderColor}` 
