@@ -25,22 +25,23 @@ const CountdownFieldEditor: React.FC<CountdownFieldEditorProps> = ({
     ...field,
     label: field.label || (language === 'ar' ? 'المتبقي على العرض' : 'Remaining on offer'),
     style: {
-      backgroundColor: '#d4ff00',
-      borderColor: '#b8e600',
-      color: '#000000',
+      backgroundColor: '#9b87f5',
+      borderColor: '#9b87f5',
+      color: '#ffffff',
       fontSize: '18px',
       fontWeight: '700',
-      fontFamily: 'Tajawal',
+      fontFamily: 'Cairo',
       textAlign: 'center',
       borderRadius: '8px',
-      counterColor: '#000000',
-      counterBackgroundColor: '#ffffff',
+      borderWidth: '0px',
+      counterColor: '#ffffff',
+      counterBackgroundColor: 'transparent',
       counterFontSize: '24px',
       counterFontWeight: '700',
-      counterLineHeight: '1.2',
+      counterLineHeight: '0.9',
       titleSize: '18px',
       titleWeight: '700',
-      titleColor: '#000000',
+      titleColor: '#ffffff',
       endDate: '',
       daysLabel: language === 'ar' ? 'أيام' : 'Days',
       hoursLabel: language === 'ar' ? 'ساعات' : 'Hrs',
@@ -306,19 +307,38 @@ const CountdownFieldEditor: React.FC<CountdownFieldEditorProps> = ({
             </div>
           </div>
 
-          <div>
-            <Label>{language === 'ar' ? 'استدارة الحواف' : 'Border Radius'}</Label>
-            <div className="mt-2">
-              <Slider
-                value={[parseInt(currentField.style?.borderRadius?.replace('px', '') || '8')]}
-                onValueChange={(value) => handleStyleChange('borderRadius', `${value[0]}px`)}
-                max={24}
-                min={0}
-                step={1}
-                className="w-full"
-              />
-              <div className="text-sm text-gray-500 mt-1">
-                {currentField.style?.borderRadius || '8px'}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>{language === 'ar' ? 'عرض الحدود' : 'Border Width'}</Label>
+              <div className="mt-2">
+                <Slider
+                  value={[parseInt(currentField.style?.borderWidth?.replace('px', '') || '0')]}
+                  onValueChange={(value) => handleStyleChange('borderWidth', `${value[0]}px`)}
+                  max={8}
+                  min={0}
+                  step={1}
+                  className="w-full"
+                />
+                <div className="text-sm text-gray-500 mt-1">
+                  {currentField.style?.borderWidth || '0px'}
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <Label>{language === 'ar' ? 'استدارة الحواف' : 'Border Radius'}</Label>
+              <div className="mt-2">
+                <Slider
+                  value={[parseInt(currentField.style?.borderRadius?.replace('px', '') || '8')]}
+                  onValueChange={(value) => handleStyleChange('borderRadius', `${value[0]}px`)}
+                  max={24}
+                  min={0}
+                  step={1}
+                  className="w-full"
+                />
+                <div className="text-sm text-gray-500 mt-1">
+                  {currentField.style?.borderRadius || '8px'}
+                </div>
               </div>
             </div>
           </div>
