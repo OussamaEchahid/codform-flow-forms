@@ -221,21 +221,32 @@ window.renderCountdownField = function(field, formStyle, formLanguage = 'en') {
         (function() {
           console.log('🕐 CODFORM: Starting countdown script for ${fieldId}');
           
+          // Get endDate properly from field data
+          const fieldData = ${JSON.stringify(field)};
+          console.log('🕐 CODFORM: Field data received:', fieldData);
+          
+          const fieldStyle = fieldData.style || {};
+          console.log('🕐 CODFORM: Field style:', fieldStyle);
+          
           // Calculate end time immediately
           let endTime;
-          const endDateValue = '${endDate || ''}';
+          const endDateValue = fieldStyle.endDate || null;
+          console.log('🕐 CODFORM: End date from field style:', endDateValue);
           
-          if (endDateValue && endDateValue !== 'null' && endDateValue !== 'undefined' && endDateValue !== '' && endDateValue.length > 5) {
+          if (endDateValue && endDateValue !== '' && endDateValue !== null) {
             try {
               endTime = new Date(endDateValue).getTime();
               if (isNaN(endTime)) {
                 throw new Error('Invalid date');
               }
+              console.log('🕐 CODFORM: Using custom end time:', new Date(endTime));
             } catch (e) {
+              console.log('🕐 CODFORM: Invalid end date, using default:', e);
               endTime = Date.now() + (2 * 24 * 60 * 60 * 1000) + (23 * 60 * 60 * 1000) + (59 * 60 * 1000) + (5 * 1000);
             }
           } else {
             endTime = Date.now() + (2 * 24 * 60 * 60 * 1000) + (23 * 60 * 60 * 1000) + (59 * 60 * 1000) + (5 * 1000);
+            console.log('🕐 CODFORM: Using default end time:', new Date(endTime));
           }
           
           function updateCountdown() {
