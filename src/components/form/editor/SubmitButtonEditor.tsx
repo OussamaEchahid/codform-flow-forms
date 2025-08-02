@@ -203,8 +203,8 @@ const SubmitButtonEditor: React.FC<SubmitButtonEditorProps> = ({ field, onSave, 
           <Slider
             value={[parseInt(currentField.style?.paddingY?.replace('px', '') || '10')]}
             onValueChange={(value) => handleChange('style.paddingY', `${value[0]}px`)}
-            max={100}
-            min={5}
+            max={80}
+            min={0}
             step={1}
             className="flex-1"
           />
