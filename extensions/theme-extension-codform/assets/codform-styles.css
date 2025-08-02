@@ -206,19 +206,19 @@ button[type="submit"].flash-animation {
   animation: flash 2s infinite !important;
 }
 
-/* Popup button styles */
+/* Popup button styles - بدون padding ثابت لتجنب التداخل */
 .codform-popup-button,
 button[id^="codform-popup-btn"],
 .codform-popup-trigger {
   border: 0px solid transparent !important;
   outline: 0px solid transparent !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
-  padding: 12px 24px;
   cursor: pointer;
   font-family: 'Cairo', 'Noto Sans Arabic', 'Amiri', sans-serif !important;
   transition: all 0.3s ease;
   backdrop-filter: blur(10px);
   white-space: nowrap;
+  /* تم إزالة padding الثابت - يتم التحكم فيه بواسطة inline styles */
 }
 
 .codform-popup-button:hover,
