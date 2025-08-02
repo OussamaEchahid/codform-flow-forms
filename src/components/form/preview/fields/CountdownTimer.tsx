@@ -52,13 +52,14 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({ field, formStyle }) => 
   const formatNumber = (num: number) => num.toString().padStart(2, '0');
 
   const containerStyle = {
-    backgroundColor: fieldStyle.backgroundColor || '#d4ff00',
-    borderColor: fieldStyle.borderColor || '#b8e600',
-    borderRadius: fieldStyle.borderRadius || '8px',
+    background: fieldStyle.backgroundColor || 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary)/0.8))',
+    borderColor: fieldStyle.borderColor || 'hsl(var(--primary))',
+    borderRadius: fieldStyle.borderRadius || '12px',
     borderWidth: '2px',
     borderStyle: 'solid',
     fontFamily: fieldStyle.fontFamily || 'Tajawal',
-    direction: (language === 'ar' ? 'rtl' : 'ltr') as 'rtl' | 'ltr'
+    direction: (language === 'ar' ? 'rtl' : 'ltr') as 'rtl' | 'ltr',
+    boxShadow: '0 8px 32px rgba(155, 135, 245, 0.15)'
   };
 
   const titleStyle = {
@@ -72,10 +73,11 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({ field, formStyle }) => 
   const counterBoxStyle = {
     backgroundColor: fieldStyle.counterBackgroundColor || '#ffffff',
     borderRadius: '8px',
-    padding: '8px',
-    minWidth: '60px',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-    border: '1px solid rgba(0,0,0,0.1)'
+    padding: '12px 8px',
+    minWidth: '65px',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+    border: '1px solid rgba(155, 135, 245, 0.2)',
+    backdropFilter: 'blur(10px)'
   };
 
   const counterNumberStyle = {

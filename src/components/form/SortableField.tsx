@@ -179,6 +179,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
       case 'image': return <Image {...iconProps} />;
       case 'cart-items': return <ShoppingCart {...iconProps} />;
       case 'whatsapp': return <MessageSquare {...iconProps} className="text-green-500" />;
+      case 'countdown': return <Clock {...iconProps} />;
       case 'submit': return <Send {...iconProps} />;
       default: return <FileText {...iconProps} />;
     }
@@ -197,6 +198,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
       'image': language === 'ar' ? 'صورة' : 'Image',
       'cart-items': language === 'ar' ? 'عناصر السلة' : 'Cart Items',
       'whatsapp': language === 'ar' ? 'زر واتساب' : 'WhatsApp Button',
+      'countdown': language === 'ar' ? 'العداد التنازلي' : 'Countdown Timer',
       'submit': language === 'ar' ? 'زر الإرسال' : 'Submit Button',
     };
     
@@ -673,8 +675,202 @@ const SortableField: React.FC<SortableFieldProps> = ({
                        </div>
                      </div>
                    </div>
-                  ) : (
-                    /* Regular field settings للحقول الأخرى */
+                   ) : field.type === 'countdown' ? (
+                     /* إعدادات العداد التنازلي */
+                     <div className="grid grid-cols-2 gap-4">
+                       {/* Left column */}
+                       <div className="space-y-4">
+                         {/* Title Text */}
+                         <div className="space-y-1">
+                           <Label htmlFor={`countdown-title-${field.id}`}>
+                             {language === 'ar' ? 'عنوان العداد' : 'Countdown Title'}
+                           </Label>
+                           <Input
+                             id={`countdown-title-${field.id}`}
+                             value={editedField.label || ''}
+                             onChange={(e) => handleFieldChange('label', e.target.value)}
+                             placeholder={language === 'ar' ? 'العرض ينتهي خلال' : 'Offer ends in'}
+                             className={language === 'ar' ? 'text-right' : ''}
+                           />
+                         </div>
+                         
+                         {/* End Date */}
+                         <div className="space-y-1">
+                           <Label htmlFor={`countdown-enddate-${field.id}`}>
+                             {language === 'ar' ? 'تاريخ انتهاء العداد' : 'End Date'}
+                           </Label>
+                           <Input
+                             id={`countdown-enddate-${field.id}`}
+                             type="datetime-local"
+                             value={editedField.style?.endDate || ''}
+                             onChange={(e) => handleStyleChange('endDate', e.target.value)}
+                           />
+                         </div>
+                         
+                         {/* Title Color */}
+                         <div className="space-y-1">
+                           <Label>{language === 'ar' ? 'لون العنوان' : 'Title Color'}</Label>
+                           <div className="flex gap-2 items-center">
+                             <Input
+                               type="color"
+                               value={editedField.style?.titleColor || '#000000'}
+                               onChange={(e) => handleStyleChange('titleColor', e.target.value)}
+                               className="w-9 h-9 p-1"
+                             />
+                             <Input
+                               value={editedField.style?.titleColor || '#000000'}
+                               onChange={(e) => handleStyleChange('titleColor', e.target.value)}
+                               className="flex-1"
+                             />
+                           </div>
+                         </div>
+                         
+                         {/* Background Color */}
+                         <div className="space-y-1">
+                           <Label>{language === 'ar' ? 'لون الخلفية' : 'Background Color'}</Label>
+                           <div className="flex gap-2 items-center">
+                             <Input
+                               type="color"
+                               value={editedField.style?.backgroundColor || 'hsl(var(--primary))'}
+                               onChange={(e) => handleStyleChange('backgroundColor', e.target.value)}
+                               className="w-9 h-9 p-1"
+                             />
+                             <Input
+                               value={editedField.style?.backgroundColor || 'hsl(var(--primary))'}
+                               onChange={(e) => handleStyleChange('backgroundColor', e.target.value)}
+                               className="flex-1"
+                             />
+                           </div>
+                         </div>
+                         
+                         {/* Counter Text Color */}
+                         <div className="space-y-1">
+                           <Label>{language === 'ar' ? 'لون أرقام العداد' : 'Counter Color'}</Label>
+                           <div className="flex gap-2 items-center">
+                             <Input
+                               type="color"
+                               value={editedField.style?.counterColor || '#000000'}
+                               onChange={(e) => handleStyleChange('counterColor', e.target.value)}
+                               className="w-9 h-9 p-1"
+                             />
+                             <Input
+                               value={editedField.style?.counterColor || '#000000'}
+                               onChange={(e) => handleStyleChange('counterColor', e.target.value)}
+                               className="flex-1"
+                             />
+                           </div>
+                         </div>
+                         
+                         {/* Counter Background */}
+                         <div className="space-y-1">
+                           <Label>{language === 'ar' ? 'لون خلفية العداد' : 'Counter Background'}</Label>
+                           <div className="flex gap-2 items-center">
+                             <Input
+                               type="color"
+                               value={editedField.style?.counterBackgroundColor || '#ffffff'}
+                               onChange={(e) => handleStyleChange('counterBackgroundColor', e.target.value)}
+                               className="w-9 h-9 p-1"
+                             />
+                             <Input
+                               value={editedField.style?.counterBackgroundColor || '#ffffff'}
+                               onChange={(e) => handleStyleChange('counterBackgroundColor', e.target.value)}
+                               className="flex-1"
+                             />
+                           </div>
+                         </div>
+                       </div>
+                       
+                       {/* Right column */}
+                       <div className="space-y-4">
+                         {/* Title Font Size */}
+                         <div className="space-y-1">
+                           <div className="flex items-center justify-between">
+                             <Label>{language === 'ar' ? 'حجم العنوان' : 'Title Size'}</Label>
+                             <span className="text-sm">{parseInt(editedField.style?.titleSize?.replace('px', '') || '18')}px</span>
+                           </div>
+                           <Slider
+                             value={[parseInt(editedField.style?.titleSize?.replace('px', '') || '18')]}
+                             onValueChange={(value) => handleStyleChange('titleSize', `${value[0]}px`)}
+                             max={36}
+                             min={12}
+                             step={1}
+                             className="w-full"
+                           />
+                         </div>
+                         
+                         {/* Counter Font Size */}
+                         <div className="space-y-1">
+                           <div className="flex items-center justify-between">
+                             <Label>{language === 'ar' ? 'حجم أرقام العداد' : 'Counter Size'}</Label>
+                             <span className="text-sm">{parseInt(editedField.style?.counterFontSize?.replace('px', '') || '24')}px</span>
+                           </div>
+                           <Slider
+                             value={[parseInt(editedField.style?.counterFontSize?.replace('px', '') || '24')]}
+                             onValueChange={(value) => handleStyleChange('counterFontSize', `${value[0]}px`)}
+                             max={48}
+                             min={16}
+                             step={1}
+                             className="w-full"
+                           />
+                         </div>
+                         
+                         {/* Border Radius */}
+                         <div className="space-y-1">
+                           <div className="flex items-center justify-between">
+                             <Label>{language === 'ar' ? 'استدارة الحواف' : 'Border Radius'}</Label>
+                             <span className="text-sm">{parseInt(editedField.style?.borderRadius?.replace('px', '') || '8')}px</span>
+                           </div>
+                           <Slider
+                             value={[parseInt(editedField.style?.borderRadius?.replace('px', '') || '8')]}
+                             onValueChange={(value) => handleStyleChange('borderRadius', `${value[0]}px`)}
+                             max={24}
+                             min={0}
+                             step={1}
+                             className="w-full"
+                           />
+                         </div>
+                         
+                         {/* Font Family */}
+                         <div className="space-y-1">
+                           <Label>{language === 'ar' ? 'نوع الخط' : 'Font Family'}</Label>
+                           <Select
+                             value={editedField.style?.fontFamily || 'Tajawal'}
+                             onValueChange={(value) => handleStyleChange('fontFamily', value)}
+                           >
+                             <SelectTrigger>
+                               <SelectValue />
+                             </SelectTrigger>
+                             <SelectContent>
+                               {fontFamilies.map(font => (
+                                 <SelectItem key={font.value} value={font.value}>{font.label}</SelectItem>
+                               ))}
+                             </SelectContent>
+                           </Select>
+                         </div>
+                         
+                         {/* Days Label */}
+                         <div className="space-y-1">
+                           <Label>{language === 'ar' ? 'تسمية الأيام' : 'Days Label'}</Label>
+                           <Input
+                             value={editedField.style?.daysLabel || (language === 'ar' ? 'أيام' : 'Days')}
+                             onChange={(e) => handleStyleChange('daysLabel', e.target.value)}
+                             className={language === 'ar' ? 'text-right' : ''}
+                           />
+                         </div>
+                         
+                         {/* Hours Label */}
+                         <div className="space-y-1">
+                           <Label>{language === 'ar' ? 'تسمية الساعات' : 'Hours Label'}</Label>
+                           <Input
+                             value={editedField.style?.hoursLabel || (language === 'ar' ? 'ساعات' : 'Hrs')}
+                             onChange={(e) => handleStyleChange('hoursLabel', e.target.value)}
+                             className={language === 'ar' ? 'text-right' : ''}
+                           />
+                         </div>
+                       </div>
+                     </div>
+                   ) : (
+                     /* Regular field settings للحقول الأخرى */
                    <div className="grid grid-cols-2 gap-4">
                       {/* Left column - General field settings */}
                       <div className="space-y-4">
