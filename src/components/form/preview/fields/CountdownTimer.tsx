@@ -80,9 +80,9 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({ field, formStyle }) => 
   const counterBoxStyle = {
     backgroundColor: fieldStyle.counterBackgroundColor || 'hsl(var(--background))',
     borderRadius: '8px',
-    padding: '8px 6px',
-    minWidth: '50px',
-    maxWidth: '60px',
+    padding: '6px 4px',
+    minWidth: 'calc(20% - 6px)',
+    maxWidth: 'calc(25% - 6px)',
     flex: '1',
     boxShadow: '0 4px 16px hsl(var(--primary) / 0.15)',
     border: '1px solid hsl(var(--border))',
@@ -92,17 +92,25 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({ field, formStyle }) => 
 
   const counterNumberStyle = {
     color: fieldStyle.counterColor || defaultCounterColor,
-    fontSize: fieldStyle.counterFontSize || '24px',
+    fontSize: `clamp(16px, ${fieldStyle.counterFontSize || '24px'}, 28px)`,
     fontWeight: fieldStyle.counterFontWeight || '700',
     lineHeight: fieldStyle.counterLineHeight || '1.2',
     margin: '0'
   };
 
   const counterLabelStyle = {
-    fontSize: '12px',
+    fontSize: 'clamp(10px, 12px, 14px)',
     color: '#666666',
     marginTop: '4px',
     fontWeight: '500'
+  };
+
+  const separatorStyle = {
+    color: fieldStyle.counterColor || defaultCounterColor,
+    fontSize: `clamp(16px, ${fieldStyle.counterFontSize || '24px'}, 28px)`,
+    fontWeight: 'bold',
+    lineHeight: '1',
+    flexShrink: 0
   };
 
   return (
@@ -130,16 +138,7 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({ field, formStyle }) => 
           </div>
 
           {/* Separator */}
-          <div 
-            style={{ 
-              color: fieldStyle.counterColor || defaultCounterColor,
-              fontSize: fieldStyle.counterFontSize || '24px',
-              fontWeight: 'bold',
-              lineHeight: '1'
-            }}
-          >
-            :
-          </div>
+          <div style={separatorStyle}>:</div>
 
           {/* Hours */}
           <div style={counterBoxStyle} className="text-center">
@@ -152,16 +151,7 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({ field, formStyle }) => 
           </div>
 
           {/* Separator */}
-          <div 
-            style={{ 
-              color: fieldStyle.counterColor || defaultCounterColor,
-              fontSize: fieldStyle.counterFontSize || '24px',
-              fontWeight: 'bold',
-              lineHeight: '1'
-            }}
-          >
-            :
-          </div>
+          <div style={separatorStyle}>:</div>
 
           {/* Minutes */}
           <div style={counterBoxStyle} className="text-center">
@@ -174,16 +164,7 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({ field, formStyle }) => 
           </div>
 
           {/* Separator */}
-          <div 
-            style={{ 
-              color: fieldStyle.counterColor || defaultCounterColor,
-              fontSize: fieldStyle.counterFontSize || '24px',
-              fontWeight: 'bold',
-              lineHeight: '1'
-            }}
-          >
-            :
-          </div>
+          <div style={separatorStyle}>:</div>
 
           {/* Seconds */}
           <div style={counterBoxStyle} className="text-center">
