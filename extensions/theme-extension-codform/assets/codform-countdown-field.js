@@ -18,8 +18,8 @@ window.renderCountdownField = function(field, formStyle, formLanguage = 'en') {
   const defaultBackgroundColor = '#9b87f5';
   const defaultCounterColor = '#9b87f5';
   
-  // Field configuration
-  const title = field.label || defaultTitle;
+          // Field configuration
+  const title = field.label || field.title || defaultTitle;
   const endDate = fieldStyle.endDate || null;
   const backgroundColor = fieldStyle.backgroundColor || defaultBackgroundColor;
   const titleColor = fieldStyle.titleColor || fieldStyle.color || defaultTitleColor;
@@ -43,7 +43,7 @@ window.renderCountdownField = function(field, formStyle, formLanguage = 'en') {
   const flexDirection = formLanguage === 'ar' ? 'row-reverse' : 'row';
   
   return `
-    <div class="countdown-timer-container" style="margin-bottom: 24px;" id="${fieldId}">
+    <div class="countdown-timer-container" style="margin: 24px 0;" id="${fieldId}">
       <div style="
         background: ${backgroundColor};
         border: 2px solid ${backgroundColor};
@@ -224,8 +224,9 @@ window.renderCountdownField = function(field, formStyle, formLanguage = 'en') {
           
           // Calculate end time
           let endTime;
-          if ('${endDate}' && '${endDate}' !== 'null') {
-            endTime = new Date('${endDate}').getTime();
+          const endDateValue = '${endDate}';
+          if (endDateValue && endDateValue !== 'null' && endDateValue !== 'undefined') {
+            endTime = new Date(endDateValue).getTime();
           } else {
             // Default: 2 days 23:59:05 from now
             endTime = Date.now() + (2 * 24 * 60 * 60 * 1000) + (23 * 60 * 60 * 1000) + (59 * 60 * 1000) + (5 * 1000);
