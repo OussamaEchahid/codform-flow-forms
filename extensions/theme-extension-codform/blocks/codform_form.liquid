@@ -1762,9 +1762,6 @@ window.CodformQuantityOffers = (function() {
     // استخدام البيانات الحقيقية من النموذج مع التأكد من وجود السعر الصحيح
     const realProductData = productData || window.currentFormData || {};
     
-    // استخدام البيانات الحقيقية من النموذج مع التأكد من وجود السعر الصحيح
-    const realProductData = productData || window.currentFormData || {};
-    
     // استخدام السعر من Shopify Liquid مباشرة كقيمة افتراضية صحيحة
     const liquidPrice = parseFloat('{{ product.price | divided_by: 100.0 }}') || 0;
     const liquidCurrency = '{{ shop.currency }}' || 'SAR';
