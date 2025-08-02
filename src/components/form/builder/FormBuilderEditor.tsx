@@ -683,8 +683,8 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
           textAlign: 'center',
           borderRadius: '8px',
           borderWidth: '0px', // No border by default
-          counterColor: '#ffffff',
-          counterBackgroundColor: 'transparent',
+          counterColor: '#000000',
+          counterBackgroundColor: '#ffffff',
           counterFontSize: '24px',
           counterFontWeight: '700',
           counterLineHeight: '0.9',
