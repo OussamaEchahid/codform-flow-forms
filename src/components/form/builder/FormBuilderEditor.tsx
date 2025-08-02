@@ -668,6 +668,35 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
           icon: 'whatsapp',
         },
       };
+    } else if (type === 'countdown') {
+      newElement = {
+        type: 'countdown' as FormFieldType,
+        id: `countdown-${Date.now()}`,
+        label: language === 'ar' ? 'المتبقي على العرض' : 'Remaining on offer',
+        style: {
+          backgroundColor: '#d4ff00',
+          borderColor: '#b8e600',
+          color: '#000000',
+          fontSize: '18px',
+          fontWeight: '700',
+          fontFamily: 'Tajawal',
+          textAlign: 'center',
+          borderRadius: '8px',
+          counterColor: '#000000',
+          counterBackgroundColor: '#ffffff',
+          counterFontSize: '24px',
+          counterFontWeight: '700',
+          counterLineHeight: '1.2',
+          titleSize: '18px',
+          titleWeight: '700',
+          titleColor: '#000000',
+          endDate: '',
+          daysLabel: language === 'ar' ? 'أيام' : 'Days',
+          hoursLabel: language === 'ar' ? 'ساعات' : 'Hrs',
+          minutesLabel: language === 'ar' ? 'دقائق' : 'Mins',
+          secondsLabel: language === 'ar' ? 'ثواني' : 'Secs',
+        }
+      };
     } else {
       newElement = {
         type: type as FormFieldType,
