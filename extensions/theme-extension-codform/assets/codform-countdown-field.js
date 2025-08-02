@@ -43,7 +43,7 @@ window.renderCountdownField = function(field, formStyle, formLanguage = 'en') {
   const flexDirection = formLanguage === 'ar' ? 'row-reverse' : 'row';
   
   return `
-    <div class="countdown-timer-container" style="margin: 24px 0;" id="${fieldId}">
+    <div class="countdown-timer-container" style="margin: 20px 0 24px 0;" id="${fieldId}">
       <div style="
         background: ${backgroundColor};
         border: 2px solid ${backgroundColor};
@@ -224,12 +224,15 @@ window.renderCountdownField = function(field, formStyle, formLanguage = 'en') {
           
           // Calculate end time
           let endTime;
-          const endDateValue = '${endDate}';
-          if (endDateValue && endDateValue !== 'null' && endDateValue !== 'undefined') {
+          const endDateValue = \`${endDate}\`;
+          console.log('🕐 CODFORM: End date value:', endDateValue);
+          if (endDateValue && endDateValue !== 'null' && endDateValue !== 'undefined' && endDateValue !== '') {
             endTime = new Date(endDateValue).getTime();
+            console.log('🕐 CODFORM: Using custom end date:', new Date(endTime));
           } else {
             // Default: 2 days 23:59:05 from now
             endTime = Date.now() + (2 * 24 * 60 * 60 * 1000) + (23 * 60 * 60 * 1000) + (59 * 60 * 1000) + (5 * 1000);
+            console.log('🕐 CODFORM: Using default end date:', new Date(endTime));
           }
           
           function updateCountdown() {

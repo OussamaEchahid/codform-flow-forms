@@ -114,7 +114,7 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({ field, formStyle }) => 
   };
 
   return (
-    <div className="my-6">
+    <div className="my-5">
       <div className="p-4" style={containerStyle}>
         <h3 style={titleStyle as any}>
           {field.label || field.title || defaultTitle}
