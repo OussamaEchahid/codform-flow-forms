@@ -652,11 +652,13 @@
   margin-bottom: 16px !important;
 }
 
-/* إزالة قيود الـ padding للأزرار - السماح للـ inline styles بالعمل */
-.codform-submit-button,
-.codform-next-button, 
-.codform-prev-button,
-.codform-submit-btn,
-.codform-button {
-  /* لا padding هنا - سيتم التحكم فيه عبر inline styles */
+/* قاعدة عالية الخصوصية لضمان عمل padding من form builder */
+.codform-container .codform-submit-btn[style*="padding"],
+.codform-container button.codform-submit-btn[style*="padding"] {
+  padding: revert !important;
+}
+
+/* قاعدة احتياطية لجميع الأزرار */
+button[class*="codform-submit"][style*="padding"] {
+  padding: revert !important;
 }

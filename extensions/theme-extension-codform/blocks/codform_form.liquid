@@ -491,22 +491,8 @@
       const buttonBorderWidth = getStyleValue(buttonStyle, 'borderWidth', '0px');
       const buttonBorderColor = getStyleValue(buttonStyle, 'borderColor', 'transparent');
       // Get padding values directly from field style - respect form builder settings
-      console.log('🔍 CODFORM: buttonStyle:', buttonStyle);
-      console.log('🔍 CODFORM: buttonStyle.paddingY:', buttonStyle?.paddingY);
-      console.log('🔍 CODFORM: buttonStyle.paddingX:', buttonStyle?.paddingX);
-      
       const buttonPaddingY = (buttonStyle && buttonStyle.paddingY !== undefined) ? buttonStyle.paddingY : '10px';
       const buttonPaddingX = (buttonStyle && buttonStyle.paddingX !== undefined) ? buttonStyle.paddingX : '24px';
-      
-      console.log('🔍 CODFORM: Final buttonPaddingY:', buttonPaddingY);
-      console.log('🔍 CODFORM: Final buttonPaddingX:', buttonPaddingX);
-      
-      const buttonBorder = buttonBorderWidth !== '0px' && buttonBorderColor !== 'transparent' 
-        ? `${buttonBorderWidth} solid ${buttonBorderColor}` 
-        : 'none';
-      const buttonPadding = `${buttonPaddingY} ${buttonPaddingX}`;
-      
-      console.log('🔍 CODFORM: Final buttonPadding:', buttonPadding);
       
       // Font weight handling
       const labelWeight = getStyleValue(buttonStyle, 'labelWeight', null);
