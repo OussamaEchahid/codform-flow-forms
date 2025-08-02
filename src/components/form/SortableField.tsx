@@ -938,7 +938,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
                          <Slider
                            value={[parseInt(editedField.style?.paddingY || '8')]}
                            onValueChange={(value) => handleStyleChange('paddingY', `${value[0]}px`)}
-                           max={20}
+                           max={80}
                            min={0}
                            step={1}
                            className="w-full"
