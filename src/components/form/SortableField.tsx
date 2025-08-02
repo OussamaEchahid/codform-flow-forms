@@ -858,16 +858,36 @@ const SortableField: React.FC<SortableFieldProps> = ({
                            />
                          </div>
                          
-                         {/* Hours Label */}
-                         <div className="space-y-1">
-                           <Label>{language === 'ar' ? 'تسمية الساعات' : 'Hours Label'}</Label>
-                           <Input
-                             value={editedField.style?.hoursLabel || (language === 'ar' ? 'ساعات' : 'Hrs')}
-                             onChange={(e) => handleStyleChange('hoursLabel', e.target.value)}
-                             className={language === 'ar' ? 'text-right' : ''}
-                           />
-                         </div>
-                       </div>
+                          {/* Hours Label */}
+                          <div className="space-y-1">
+                            <Label>{language === 'ar' ? 'تسمية الساعات' : 'Hours Label'}</Label>
+                            <Input
+                              value={editedField.style?.hoursLabel || (language === 'ar' ? 'ساعات' : 'Hrs')}
+                              onChange={(e) => handleStyleChange('hoursLabel', e.target.value)}
+                              className={language === 'ar' ? 'text-right' : ''}
+                            />
+                          </div>
+                          
+                          {/* Minutes Label */}
+                          <div className="space-y-1">
+                            <Label>{language === 'ar' ? 'تسمية الدقائق' : 'Minutes Label'}</Label>
+                            <Input
+                              value={editedField.style?.minutesLabel || (language === 'ar' ? 'دقائق' : 'Mins')}
+                              onChange={(e) => handleStyleChange('minutesLabel', e.target.value)}
+                              className={language === 'ar' ? 'text-right' : ''}
+                            />
+                          </div>
+                          
+                          {/* Seconds Label */}
+                          <div className="space-y-1">
+                            <Label>{language === 'ar' ? 'تسمية الثواني' : 'Seconds Label'}</Label>
+                            <Input
+                              value={editedField.style?.secondsLabel || (language === 'ar' ? 'ثواني' : 'Secs')}
+                              onChange={(e) => handleStyleChange('secondsLabel', e.target.value)}
+                              className={language === 'ar' ? 'text-right' : ''}
+                            />
+                          </div>
+                        </div>
                      </div>
                    ) : (
                      /* Regular field settings للحقول الأخرى */

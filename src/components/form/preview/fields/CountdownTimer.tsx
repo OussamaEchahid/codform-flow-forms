@@ -16,6 +16,13 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({ field, formStyle }) => 
   const { t, language } = useI18n();
   const fieldStyle = field.style || {};
   
+  // Default values
+  const defaultTitle = language === 'ar' ? 'المتبقي على العرض' : 'Remaining on offer';
+  const defaultFontFamily = 'Cairo';
+  const defaultTitleColor = '#ffffff';
+  const defaultBackgroundColor = '#9b87f5';
+  const defaultCounterColor = '#9b87f5';
+  
   const [timeLeft, setTimeLeft] = useState({
     days: 2,
     hours: 23,
@@ -52,18 +59,18 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({ field, formStyle }) => 
   const formatNumber = (num: number) => num.toString().padStart(2, '0');
 
   const containerStyle = {
-    background: fieldStyle.backgroundColor || 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary)/0.8))',
-    borderColor: fieldStyle.borderColor || 'hsl(var(--primary))',
+    background: fieldStyle.backgroundColor || defaultBackgroundColor,
+    borderColor: fieldStyle.borderColor || defaultBackgroundColor,
     borderRadius: fieldStyle.borderRadius || '12px',
     borderWidth: '2px',
     borderStyle: 'solid',
-    fontFamily: fieldStyle.fontFamily || 'Tajawal',
+    fontFamily: fieldStyle.fontFamily || defaultFontFamily,
     direction: (language === 'ar' ? 'rtl' : 'ltr') as 'rtl' | 'ltr',
     boxShadow: '0 8px 32px rgba(155, 135, 245, 0.15)'
   };
 
   const titleStyle = {
-    color: fieldStyle.titleColor || fieldStyle.color || '#000000',
+    color: fieldStyle.titleColor || fieldStyle.color || defaultTitleColor,
     fontSize: fieldStyle.titleSize || fieldStyle.fontSize || '18px',
     fontWeight: fieldStyle.titleWeight || fieldStyle.fontWeight || '700',
     textAlign: fieldStyle.textAlign || 'center',
@@ -84,7 +91,7 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({ field, formStyle }) => 
   };
 
   const counterNumberStyle = {
-    color: fieldStyle.counterColor || '#000000',
+    color: fieldStyle.counterColor || defaultCounterColor,
     fontSize: fieldStyle.counterFontSize || '24px',
     fontWeight: fieldStyle.counterFontWeight || '700',
     lineHeight: fieldStyle.counterLineHeight || '1.2',
@@ -102,7 +109,7 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({ field, formStyle }) => 
     <div className="mb-6">
       <div className="p-4" style={containerStyle}>
         <h3 style={titleStyle as any}>
-          {field.label || (language === 'ar' ? 'العرض ينتهي خلال' : 'Offer ends in')}
+          {field.label || defaultTitle}
         </h3>
         
         <div 
@@ -125,7 +132,7 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({ field, formStyle }) => 
           {/* Separator */}
           <div 
             style={{ 
-              color: fieldStyle.counterColor || '#000000',
+              color: fieldStyle.counterColor || defaultCounterColor,
               fontSize: fieldStyle.counterFontSize || '24px',
               fontWeight: 'bold',
               lineHeight: '1'
@@ -147,7 +154,7 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({ field, formStyle }) => 
           {/* Separator */}
           <div 
             style={{ 
-              color: fieldStyle.counterColor || '#000000',
+              color: fieldStyle.counterColor || defaultCounterColor,
               fontSize: fieldStyle.counterFontSize || '24px',
               fontWeight: 'bold',
               lineHeight: '1'
@@ -169,7 +176,7 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({ field, formStyle }) => 
           {/* Separator */}
           <div 
             style={{ 
-              color: fieldStyle.counterColor || '#000000',
+              color: fieldStyle.counterColor || defaultCounterColor,
               fontSize: fieldStyle.counterFontSize || '24px',
               fontWeight: 'bold',
               lineHeight: '1'
