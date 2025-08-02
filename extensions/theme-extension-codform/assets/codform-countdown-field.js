@@ -295,17 +295,10 @@ window.renderCountdownField = function(field, formStyle, formLanguage = 'en') {
             }
             
             // Use direct getElementById for each element
-            const daysElement = document.getElementById('${fieldId}-days');
-            const hoursElement = document.getElementById('${fieldId}-hours');
-            const minutesElement = document.getElementById('${fieldId}-minutes');
-            const secondsElement = document.getElementById('${fieldId}-seconds');
-            
-            console.log('🕐 CODFORM: Found elements:', {
-              days: !!daysElement,
-              hours: !!hoursElement,
-              minutes: !!minutesElement,
-              seconds: !!secondsElement
-            });
+            const daysElement = document.getElementById("${fieldId}-days");
+            const hoursElement = document.getElementById("${fieldId}-hours");
+            const minutesElement = document.getElementById("${fieldId}-minutes");
+            const secondsElement = document.getElementById("${fieldId}-seconds");
             
             const values = {
               days: padZero(days),
@@ -314,24 +307,10 @@ window.renderCountdownField = function(field, formStyle, formLanguage = 'en') {
               seconds: padZero(seconds)
             };
             
-            console.log('🕐 CODFORM: Updating with values:', values);
-            
-            if (daysElement) {
-              daysElement.textContent = values.days;
-              console.log('🕐 CODFORM: Updated days element to:', values.days);
-            }
-            if (hoursElement) {
-              hoursElement.textContent = values.hours;
-              console.log('🕐 CODFORM: Updated hours element to:', values.hours);
-            }
-            if (minutesElement) {
-              minutesElement.textContent = values.minutes;
-              console.log('🕐 CODFORM: Updated minutes element to:', values.minutes);
-            }
-            if (secondsElement) {
-              secondsElement.textContent = values.seconds;
-              console.log('🕐 CODFORM: Updated seconds element to:', values.seconds);
-            }
+            if (daysElement) daysElement.textContent = values.days;
+            if (hoursElement) hoursElement.textContent = values.hours;
+            if (minutesElement) minutesElement.textContent = values.minutes;
+            if (secondsElement) secondsElement.textContent = values.seconds;
           }
           
           // Start countdown immediately
