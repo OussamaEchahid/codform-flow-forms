@@ -18,9 +18,9 @@ window.renderCountdownField = function(field, formStyle, formLanguage = 'en') {
   const defaultBackgroundColor = '#9b87f5';
   const defaultCounterColor = '#9b87f5';
   
-          // Field configuration
+          // Field configuration  
   const title = field.label || field.title || defaultTitle;
-  const endDate = fieldStyle.endDate || null;
+  const endDate = (field.style && field.style.endDate) ? field.style.endDate : null;
   const backgroundColor = fieldStyle.backgroundColor || defaultBackgroundColor;
   const titleColor = fieldStyle.titleColor || fieldStyle.color || defaultTitleColor;
   const titleSize = fieldStyle.titleSize || fieldStyle.fontSize || '18px';
@@ -221,10 +221,21 @@ window.renderCountdownField = function(field, formStyle, formLanguage = 'en') {
         (function() {
           console.log('🕐 CODFORM: Starting countdown script for ${fieldId}');
           
-          // Calculate end time immediately with proper endDate parsing
+          // Get the full field data and extract endDate properly
+          const fieldData = ${JSON.stringify(field)};
+          console.log('🕐 CODFORM: Complete field data:', fieldData);
+          
           let endTime;
-          const endDateValue = '${endDate || ''}';
-          console.log('🕐 CODFORM: End date value from template:', endDateValue);
+          let endDateValue = null;
+          
+          // Try multiple ways to get the endDate
+          if (fieldData && fieldData.style && fieldData.style.endDate) {
+            endDateValue = fieldData.style.endDate;
+          } else if ('${endDate || ''}' && '${endDate || ''}' !== '') {
+            endDateValue = '${endDate || ''}';
+          }
+          
+          console.log('🕐 CODFORM: Extracted endDate:', endDateValue);
           
           if (endDateValue && endDateValue.trim() !== '' && endDateValue !== 'null' && endDateValue !== 'undefined') {
             try {
@@ -232,14 +243,14 @@ window.renderCountdownField = function(field, formStyle, formLanguage = 'en') {
               if (isNaN(endTime)) {
                 throw new Error('Invalid date format');
               }
-              console.log('🕐 CODFORM: Using custom end time:', new Date(endTime));
+              console.log('🕐 CODFORM: ✅ Using custom end time:', new Date(endTime));
             } catch (e) {
-              console.log('🕐 CODFORM: Error parsing date, using default:', e);
+              console.log('🕐 CODFORM: ❌ Error parsing date, using default:', e);
               endTime = Date.now() + (2 * 24 * 60 * 60 * 1000) + (23 * 60 * 60 * 1000) + (59 * 60 * 1000) + (5 * 1000);
             }
           } else {
             endTime = Date.now() + (2 * 24 * 60 * 60 * 1000) + (23 * 60 * 60 * 1000) + (59 * 60 * 1000) + (5 * 1000);
-            console.log('🕐 CODFORM: Using default end time (no endDate provided):', new Date(endTime));
+            console.log('🕐 CODFORM: ⚠️ No endDate found, using default:', new Date(endTime));
           }
           
           function updateCountdown() {
