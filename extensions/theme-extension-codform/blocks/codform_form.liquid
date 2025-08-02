@@ -491,16 +491,16 @@
       const buttonBorderWidth = getStyleValue(buttonStyle, 'borderWidth', '0px');
       const buttonBorderColor = getStyleValue(buttonStyle, 'borderColor', 'transparent');
       // Get padding values directly from field style - respect form builder settings
-      // Add debug logging to see what values we're getting
-      console.log('🔍 Submit Button Debugging:', {
-        fieldStyle: field.style,
-        buttonStyle: buttonStyle,
-        paddingY: field.style?.paddingY,
-        fieldObj: field
-      });
+      // Helper function to ensure proper px format
+      const ensurePxFormat = (value, defaultValue) => {
+        if (value === undefined || value === null) return defaultValue;
+        const strValue = String(value);
+        if (strValue.endsWith('px')) return strValue;
+        return strValue + 'px';
+      };
       
-      const buttonPaddingY = field.style?.paddingY !== undefined ? field.style.paddingY + 'px' : '10px';
-      const buttonPaddingX = field.style?.paddingX !== undefined ? field.style.paddingX + 'px' : '24px';
+      const buttonPaddingY = ensurePxFormat(field.style?.paddingY, '10px');
+      const buttonPaddingX = ensurePxFormat(field.style?.paddingX, '24px');
       
       const buttonBorder = buttonBorderWidth !== '0px' && buttonBorderColor !== 'transparent' 
         ? `${buttonBorderWidth} solid ${buttonBorderColor}` 
