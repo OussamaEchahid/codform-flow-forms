@@ -86,7 +86,7 @@ window.renderCountdownField = function(field, formStyle, formLanguage = 'en') {
             transition: all 0.3s ease;
             text-align: center;
           ">
-            <div class="countdown-number" data-unit="days" style="
+            <div id="${fieldId}-days" style="
               color: ${counterColor};
               font-size: clamp(16px, ${counterFontSize}, 28px);
               font-weight: ${counterFontWeight};
@@ -124,7 +124,7 @@ window.renderCountdownField = function(field, formStyle, formLanguage = 'en') {
             transition: all 0.3s ease;
             text-align: center;
           ">
-            <div class="countdown-number" data-unit="hours" style="
+            <div id="${fieldId}-hours" style="
               color: ${counterColor};
               font-size: clamp(16px, ${counterFontSize}, 28px);
               font-weight: ${counterFontWeight};
@@ -162,7 +162,7 @@ window.renderCountdownField = function(field, formStyle, formLanguage = 'en') {
             transition: all 0.3s ease;
             text-align: center;
           ">
-            <div class="countdown-number" data-unit="minutes" style="
+            <div id="${fieldId}-minutes" style="
               color: ${counterColor};
               font-size: clamp(16px, ${counterFontSize}, 28px);
               font-weight: ${counterFontWeight};
@@ -200,7 +200,7 @@ window.renderCountdownField = function(field, formStyle, formLanguage = 'en') {
             transition: all 0.3s ease;
             text-align: center;
           ">
-            <div class="countdown-number" data-unit="seconds" style="
+            <div id="${fieldId}-seconds" style="
               color: ${counterColor};
               font-size: clamp(16px, ${counterFontSize}, 28px);
               font-weight: ${counterFontWeight};
@@ -256,34 +256,44 @@ window.renderCountdownField = function(field, formStyle, formLanguage = 'en') {
               return num.toString().padStart(2, '0');
             }
             
-            // Find elements in this specific countdown container
-            const container = document.getElementById('${fieldId}');
-            if (!container) {
-              console.log('🕐 CODFORM: Container ${fieldId} not found');
-              return;
-            }
+            // Use direct getElementById for each element
+            const daysElement = document.getElementById('${fieldId}-days');
+            const hoursElement = document.getElementById('${fieldId}-hours');
+            const minutesElement = document.getElementById('${fieldId}-minutes');
+            const secondsElement = document.getElementById('${fieldId}-seconds');
             
-            const elements = container.querySelectorAll('.countdown-number');
-            console.log('🕐 CODFORM: Found ' + elements.length + ' countdown elements');
-            
-            elements.forEach(function(element) {
-              const unit = element.getAttribute('data-unit');
-              console.log('🕐 CODFORM: Processing unit:', unit);
-              
-              if (unit === 'days') {
-                element.textContent = padZero(days);
-                console.log('🕐 CODFORM: Set days to:', padZero(days));
-              } else if (unit === 'hours') {
-                element.textContent = padZero(hours);
-                console.log('🕐 CODFORM: Set hours to:', padZero(hours));
-              } else if (unit === 'minutes') {
-                element.textContent = padZero(minutes);
-                console.log('🕐 CODFORM: Set minutes to:', padZero(minutes));
-              } else if (unit === 'seconds') {
-                element.textContent = padZero(seconds);
-                console.log('🕐 CODFORM: Set seconds to:', padZero(seconds));
-              }
+            console.log('🕐 CODFORM: Found elements:', {
+              days: !!daysElement,
+              hours: !!hoursElement,
+              minutes: !!minutesElement,
+              seconds: !!secondsElement
             });
+            
+            const values = {
+              days: padZero(days),
+              hours: padZero(hours),
+              minutes: padZero(minutes),
+              seconds: padZero(seconds)
+            };
+            
+            console.log('🕐 CODFORM: Updating with values:', values);
+            
+            if (daysElement) {
+              daysElement.textContent = values.days;
+              console.log('🕐 CODFORM: Updated days element to:', values.days);
+            }
+            if (hoursElement) {
+              hoursElement.textContent = values.hours;
+              console.log('🕐 CODFORM: Updated hours element to:', values.hours);
+            }
+            if (minutesElement) {
+              minutesElement.textContent = values.minutes;
+              console.log('🕐 CODFORM: Updated minutes element to:', values.minutes);
+            }
+            if (secondsElement) {
+              secondsElement.textContent = values.seconds;
+              console.log('🕐 CODFORM: Updated seconds element to:', values.seconds);
+            }
           }
           
           // Start countdown immediately
