@@ -218,21 +218,12 @@ window.renderCountdownField = function(field, formStyle, formLanguage = 'en') {
       </div>
       
       <script>
-        // Wait for DOM to be ready and elements to be available
-        function initCountdown_${fieldId.replace(/-/g, '_')}() {
-          const countdownContainer = document.getElementById('${fieldId}');
-          console.log('🕐 CODFORM: Looking for container:', '${fieldId}', countdownContainer);
+        (function() {
+          console.log('🕐 CODFORM: Starting countdown script for ${fieldId}');
           
-          if (!countdownContainer) {
-            console.log('🕐 CODFORM: Container not found, retrying...');
-            setTimeout(initCountdown_${fieldId.replace(/-/g, '_')}, 100);
-            return;
-          }
-          
-          // Calculate end time
+          // Calculate end time immediately
           let endTime;
           const endDateValue = '${endDate || ''}';
-          console.log('🕐 CODFORM: End date value:', endDateValue);
           
           if (endDateValue && endDateValue !== 'null' && endDateValue !== 'undefined' && endDateValue !== '' && endDateValue.length > 5) {
             try {
@@ -240,24 +231,18 @@ window.renderCountdownField = function(field, formStyle, formLanguage = 'en') {
               if (isNaN(endTime)) {
                 throw new Error('Invalid date');
               }
-              console.log('🕐 CODFORM: Using custom end date:', new Date(endTime));
             } catch (e) {
-              console.log('🕐 CODFORM: Invalid end date, using default');
               endTime = Date.now() + (2 * 24 * 60 * 60 * 1000) + (23 * 60 * 60 * 1000) + (59 * 60 * 1000) + (5 * 1000);
             }
           } else {
-            // Default: 2 days 23:59:05 from now
             endTime = Date.now() + (2 * 24 * 60 * 60 * 1000) + (23 * 60 * 60 * 1000) + (59 * 60 * 1000) + (5 * 1000);
-            console.log('🕐 CODFORM: Using default end date:', new Date(endTime));
           }
           
           function updateCountdown() {
             const now = Date.now();
             let timeLeft = endTime - now;
             
-            // If timer expired, reset to default duration
             if (timeLeft <= 0) {
-              console.log('🕐 CODFORM: Timer expired, resetting...');
               endTime = Date.now() + (2 * 24 * 60 * 60 * 1000) + (23 * 60 * 60 * 1000) + (59 * 60 * 1000) + (5 * 1000);
               timeLeft = endTime - Date.now();
             }
@@ -271,66 +256,44 @@ window.renderCountdownField = function(field, formStyle, formLanguage = 'en') {
               return num.toString().padStart(2, '0');
             }
             
-            // Use more specific selectors
-            const daysElement = countdownContainer.querySelector('.countdown-number[data-unit="days"]');
-            const hoursElement = countdownContainer.querySelector('.countdown-number[data-unit="hours"]');
-            const minutesElement = countdownContainer.querySelector('.countdown-number[data-unit="minutes"]');
-            const secondsElement = countdownContainer.querySelector('.countdown-number[data-unit="seconds"]');
+            // Find elements in this specific countdown container
+            const container = document.getElementById('${fieldId}');
+            if (!container) {
+              console.log('🕐 CODFORM: Container ${fieldId} not found');
+              return;
+            }
             
-            console.log('🕐 CODFORM: Found elements:', {
-              container: !!countdownContainer,
-              days: !!daysElement,
-              hours: !!hoursElement, 
-              minutes: !!minutesElement,
-              seconds: !!secondsElement
+            const elements = container.querySelectorAll('.countdown-number');
+            console.log('🕐 CODFORM: Found ' + elements.length + ' countdown elements');
+            
+            elements.forEach(function(element) {
+              const unit = element.getAttribute('data-unit');
+              console.log('🕐 CODFORM: Processing unit:', unit);
+              
+              if (unit === 'days') {
+                element.textContent = padZero(days);
+                console.log('🕐 CODFORM: Set days to:', padZero(days));
+              } else if (unit === 'hours') {
+                element.textContent = padZero(hours);
+                console.log('🕐 CODFORM: Set hours to:', padZero(hours));
+              } else if (unit === 'minutes') {
+                element.textContent = padZero(minutes);
+                console.log('🕐 CODFORM: Set minutes to:', padZero(minutes));
+              } else if (unit === 'seconds') {
+                element.textContent = padZero(seconds);
+                console.log('🕐 CODFORM: Set seconds to:', padZero(seconds));
+              }
             });
-            
-            const values = {
-              days: padZero(days),
-              hours: padZero(hours),
-              minutes: padZero(minutes),
-              seconds: padZero(seconds)
-            };
-            
-            console.log('🕐 CODFORM: Updating countdown values:', values);
-            
-            if (daysElement) {
-              daysElement.textContent = values.days;
-              console.log('🕐 CODFORM: Updated days to:', values.days);
-            }
-            if (hoursElement) {
-              hoursElement.textContent = values.hours;
-              console.log('🕐 CODFORM: Updated hours to:', values.hours);
-            }
-            if (minutesElement) {
-              minutesElement.textContent = values.minutes;
-              console.log('🕐 CODFORM: Updated minutes to:', values.minutes);
-            }
-            if (secondsElement) {
-              secondsElement.textContent = values.seconds;
-              console.log('🕐 CODFORM: Updated seconds to:', values.seconds);
-            }
           }
           
-          // Initialize countdown immediately
-          console.log('🕐 CODFORM: Initializing countdown for field ' + '${fieldId}');
+          // Start countdown immediately
           updateCountdown();
           
           // Update every second
-          const timer = setInterval(updateCountdown, 1000);
+          setInterval(updateCountdown, 1000);
           
-          // Store timer reference for cleanup
-          countdownContainer._countdownTimer = timer;
-          
-          console.log('🕐 CODFORM: Countdown timer initialized for field ' + '${fieldId}' + ' with end time:', new Date(endTime));
-        }
-        
-        // Start initialization
-        if (document.readyState === 'loading') {
-          document.addEventListener('DOMContentLoaded', initCountdown_${fieldId.replace(/-/g, '_')});
-        } else {
-          initCountdown_${fieldId.replace(/-/g, '_')}();
-        }
+          console.log('🕐 CODFORM: Countdown initialized with end time:', new Date(endTime));
+        })();
       </script>
     </div>
   `;
