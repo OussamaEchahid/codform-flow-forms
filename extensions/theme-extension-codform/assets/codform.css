@@ -183,7 +183,7 @@
   margin-right: 3px;
 }
 
-/* أزرار الإرسال والتنقل بين الخطوات */
+/* أزرار الإرسال والتنقل بين الخطوات - تم تحسينها للسماح بـ inline styles */
 .codform-submit-button,
 .codform-next-button,
 .codform-prev-button,
@@ -207,7 +207,7 @@
   justify-content: center !important;
   gap: 8px !important;
   text-align: center !important;
-  /* padding سيتم تطبيقه عبر inline styles */
+  /* لا padding هنا - يتم التحكم فيه بالكامل بواسطة inline styles من form builder */
 }
 
 .codform-submit-button:hover,
@@ -652,13 +652,4 @@
   margin-bottom: 16px !important;
 }
 
-/* قاعدة عالية الخصوصية لضمان عمل padding من form builder */
-.codform-container .codform-submit-btn[style*="padding"],
-.codform-container button.codform-submit-btn[style*="padding"] {
-  padding: revert !important;
-}
-
-/* قاعدة احتياطية لجميع الأزرار */
-button[class*="codform-submit"][style*="padding"] {
-  padding: revert !important;
-}
+/* تم إزالة القواعد المتضاربة مع inline styles - للسماح بعمل Padding Y من form builder */
