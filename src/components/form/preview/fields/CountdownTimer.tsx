@@ -71,13 +71,16 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({ field, formStyle }) => 
   };
 
   const counterBoxStyle = {
-    backgroundColor: fieldStyle.counterBackgroundColor || '#ffffff',
+    backgroundColor: fieldStyle.counterBackgroundColor || 'hsl(var(--background))',
     borderRadius: '8px',
-    padding: '12px 8px',
-    minWidth: '65px',
-    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-    border: '1px solid rgba(155, 135, 245, 0.2)',
-    backdropFilter: 'blur(10px)'
+    padding: '8px 6px',
+    minWidth: '50px',
+    maxWidth: '60px',
+    flex: '1',
+    boxShadow: '0 4px 16px hsl(var(--primary) / 0.15)',
+    border: '1px solid hsl(var(--border))',
+    backdropFilter: 'blur(10px)',
+    transition: 'all 0.3s ease'
   };
 
   const counterNumberStyle = {
@@ -103,10 +106,10 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({ field, formStyle }) => 
         </h3>
         
         <div 
-          className="flex justify-center gap-3"
+          className="flex justify-center items-center gap-2 max-w-full overflow-hidden px-2"
           style={{ 
             flexDirection: language === 'ar' ? 'row-reverse' : 'row',
-            alignItems: 'center'
+            flexWrap: 'nowrap'
           }}
         >
           {/* Days */}
