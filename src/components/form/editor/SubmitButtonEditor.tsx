@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
 
 interface SubmitButtonEditorProps {
   field: FormField;
@@ -172,6 +173,46 @@ const SubmitButtonEditor: React.FC<SubmitButtonEditorProps> = ({ field, onSave, 
           </Select>
         </div>
       )}
+
+      {/* Font Size */}
+      <div className="space-y-2">
+        <Label htmlFor="font-size">
+          {language === 'ar' ? 'حجم الخط' : 'Font size'}
+        </Label>
+        <div className="flex items-center gap-2">
+          <Slider
+            value={[parseInt(currentField.style?.fontSize?.replace('px', '') || '16')]}
+            onValueChange={(value) => handleChange('style.fontSize', `${value[0]}px`)}
+            max={40}
+            min={10}
+            step={1}
+            className="flex-1"
+          />
+          <span className="text-sm text-muted-foreground min-w-[50px]">
+            {parseInt(currentField.style?.fontSize?.replace('px', '') || '16')}px
+          </span>
+        </div>
+      </div>
+
+      {/* Padding Y */}
+      <div className="space-y-2">
+        <Label htmlFor="padding-y">
+          {language === 'ar' ? 'الحشو العمودي' : 'Padding Y'}
+        </Label>
+        <div className="flex items-center gap-2">
+          <Slider
+            value={[parseInt(currentField.style?.paddingY?.replace('px', '') || '10')]}
+            onValueChange={(value) => handleChange('style.paddingY', `${value[0]}px`)}
+            max={50}
+            min={5}
+            step={1}
+            className="flex-1"
+          />
+          <span className="text-sm text-muted-foreground min-w-[50px]">
+            {parseInt(currentField.style?.paddingY?.replace('px', '') || '10')}px
+          </span>
+        </div>
+      </div>
 
       {/* Font Weight */}
       <div className="space-y-2">
