@@ -250,7 +250,7 @@ window.CodformQuantityOffers = (function() {
     // ✅ FORCE: Use only API product data - no fallbacks to avoid wrong currency
     if (actualProductData && actualProductData.price && actualProductData.currency) {
       productPrice = parseFloat(actualProductData.price);
-      productCurrency = actualProductData.currency; // This MUST be MAD from API
+      productCurrency = actualProductData.currency; // This should be USD from Shopify API
       console.log("💰✅ FIXED - Using API product data:", {
         price: productPrice,
         currency: productCurrency,
@@ -276,9 +276,9 @@ window.CodformQuantityOffers = (function() {
     }
     
     // ✅ CRITICAL FIX: CORRECT CONVERSION LOGIC
-    // Product price from Shopify is in MAD (shop currency)
-    // Form currency is USD (target currency)
-    // We need to convert: productPrice_MAD → convertedPrice_USD
+    // Product price from Shopify API should be $1.00 USD (real product price)
+    // Form currency is GBP (target currency from form settings)
+    // We need to convert: productPrice_USD → convertedPrice_GBP
     const realPrice = convertCurrency(productPrice, productCurrency, targetFormCurrency);
     const finalCurrency = targetFormCurrency; // Display in form currency
     
