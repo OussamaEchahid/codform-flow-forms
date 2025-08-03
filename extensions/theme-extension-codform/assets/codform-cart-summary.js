@@ -407,45 +407,19 @@
     cartSummaryData.discountValue = parseFloat(config.discountValue) || 0;
     cartSummaryData.shippingCost = parseFloat(config.shippingCost) || 0;
     
-    // FINAL FIX: Use saved form currency 
-    let targetCurrency = 'SAR'; // Default fallback
+    // الحل الجذري: قراءة العملة مباشرة من إعدادات النموذج
+    const formCurrency = window.currentFormData?.form?.style?.currency;
     
-    // Get currency from the preserved form data
-    const possibleSources = [
-      window.currentFormData?.savedFormCurrency,         // PRIORITY: Saved form currency
-      window.currentFormData?.form?.style?.currency,     // Original form currency from API
-      window.currentFormData?.form?.style?.formCurrency, // Original form currency alt
-      window.currentFormData?.productData?.formCurrency, // Saved currency in product data
-      formStyle?.formCurrency,                          // Passed from form style
-      formStyle?.currency                               // General form style currency
-    ];
-    
-    console.log('🔍 [TARGET CURRENCY DEBUG] Checking possible sources:', possibleSources);
-    
-    for (const source of possibleSources) {
-      if (source && typeof source === 'string') {
-        console.log(`🔍 [TARGET CURRENCY DEBUG] Checking source: "${source}"`);
-        
-        // Handle "Morocco | MAD" or "Country | CURRENCY" format
-        if (source.includes('|')) {
-          const parts = source.split('|');
-          if (parts.length === 2) {
-            const extractedCurrency = parts[1].trim();
-            console.log(`✅ [TARGET CURRENCY DEBUG] Extracted currency from "${source}": "${extractedCurrency}"`);
-            targetCurrency = extractedCurrency;
-            break;
-          }
-        } 
-        // Handle direct currency codes (MAD, USD, etc.)
-        else if (source.match(/^[A-Z]{3}$/)) {
-          console.log(`✅ [TARGET CURRENCY DEBUG] Direct currency code found: "${source}"`);
-          targetCurrency = source;
-          break;
-        }
-      }
+    if (formCurrency && formCurrency.includes('|')) {
+      // التعامل مع صيغة "Morocco | MAD"
+      cartSummaryData.targetCurrency = formCurrency.split('|')[1].trim();
+    } else if (formCurrency && formCurrency.match(/^[A-Z]{3}$/)) {
+      // التعامل مع رمز العملة مباشرة
+      cartSummaryData.targetCurrency = formCurrency;
+    } else {
+      // الافتراضي
+      cartSummaryData.targetCurrency = 'MAD';
     }
-    
-    cartSummaryData.targetCurrency = targetCurrency;
     
     console.log('💾 [DEBUG] Cart summary data updated:', JSON.stringify(cartSummaryData, null, 2));
     console.log(`🎯 [TARGET CURRENCY DEBUG] FINAL target currency: "${cartSummaryData.targetCurrency}" (should match form configuration)`);
