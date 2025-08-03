@@ -219,8 +219,8 @@ window.CodformQuantityOffers = (function() {
       priceColor: quantityOffersData.styling?.priceColor || '#000000'
     };
 
-    // ✅ CRITICAL FIX: Use ONLY the product data passed from API call - ignore all other sources
-    let actualProductData = productData; // This comes from API response: {price: 1, currency: "USD"}
+    // ✅ CRITICAL FIX: Use real product data from API call - verify structure
+    let actualProductData = productData;
     
     console.log("🔥 FINAL DEBUG - Product data received:", {
       productDataFromAPI: productData,
@@ -228,62 +228,64 @@ window.CodformQuantityOffers = (function() {
       usingData: actualProductData
     });
     
-    // ✅ FIXED: Get form currency for display - this is the TARGET currency for conversion
+    // ✅ Get the real form currency from the form data
     let targetFormCurrency = formCurrency || window.CodformFormData?.currency || window.currentFormData?.savedFormCurrency;
     
     console.log('💰✅ Quantity Offers - Form currency parameter:', formCurrency);
     console.log('💰✅ Quantity Offers - window.CodformFormData.currency:', window.CodformFormData?.currency);
-    console.log('💰✅ Quantity Offers - currentFormData.savedFormCurrency:', window.currentFormData?.savedFormCurrency);
     console.log('💰✅ Quantity Offers - Final target currency:', targetFormCurrency);
     
-    // ✅ STRICT CURRENCY CHECK - NO DEFAULTS ALLOWED
-    if (!targetFormCurrency) {
-      console.error('❌🔥 Quantity Offers - CRITICAL ERROR: No currency from API response!');
-      console.error('❌🔥 Quantity Offers - Must call forms-product API first to get currency');
-      container.innerHTML = '<div style="color: red; padding: 10px; border: 2px solid red; background: #ffebee; margin: 10px; border-radius: 4px; font-weight: bold;">❌ ERROR: No currency from API. Calling API first...</div>';
-      return;
-    }
-    
-    // ✅ CRITICAL FIX: Get product data from API response with correct currency
+    // ✅ Get real product price from API response (not default 1.00)
     let productPrice = null;
     let productCurrency = null;
     
-    // ✅ CRITICAL FIX: Use ONLY API product data - no fallbacks
-    if (!actualProductData || !actualProductData.price || !actualProductData.currency) {
-      console.error("❌ CRITICAL: No valid product data from API!", actualProductData);
-      container.innerHTML = '<div style="color: red; padding: 10px; border: 2px solid red; background: #ffebee; margin: 10px; border-radius: 4px; font-weight: bold;">❌ ERROR: API not returning valid product data</div>';
+    // ✅ CRITICAL FIX: Get the REAL product price from window.CodformProductData or API
+    if (window.CodformProductData && window.CodformProductData.price) {
+      // Use the real product data that was loaded from forms-product API
+      productPrice = parseFloat(window.CodformProductData.price);
+      productCurrency = window.CodformProductData.currency || 'USD';
+      console.log("💰✅ Using REAL product data from CodformProductData:", {
+        price: productPrice,
+        currency: productCurrency,
+        source: "window.CodformProductData"
+      });
+    } else if (actualProductData && actualProductData.price && actualProductData.price > 0) {
+      productPrice = parseFloat(actualProductData.price);
+      productCurrency = actualProductData.currency || 'USD';
+      console.log("💰✅ Using product data from parameter:", {
+        price: productPrice,
+        currency: productCurrency,
+        source: "actualProductData parameter"
+      });
+    } else {
+      console.error("❌ CRITICAL: No valid product data found!", {
+        windowCodformProductData: window.CodformProductData,
+        actualProductData: actualProductData
+      });
+      container.innerHTML = '<div style="color: red; padding: 10px; border: 2px solid red; background: #ffebee; margin: 10px; border-radius: 4px; font-weight: bold;">❌ ERROR: No real product data found</div>';
       return;
     }
-
-    // ✅ FORCE: Use API data exclusively  
-    productPrice = parseFloat(actualProductData.price);
-    productCurrency = actualProductData.currency;
     
-    console.log("💰✅ USING CORRECT API DATA:", {
-      price: productPrice,
-      currency: productCurrency,
-      formCurrency: targetFormCurrency,
-      source: "API actualProductData ONLY"
-    });
+    // ✅ Default to form currency if no target currency found
+    if (!targetFormCurrency) {
+      targetFormCurrency = productCurrency || 'GBP';
+      console.log('💰✅ Using fallback currency:', targetFormCurrency);
+    }
     
-    // ✅ VERIFICATION: Ensure we have correct data before conversion
-    if (!productPrice || productPrice <= 0 || !productCurrency) {
-      console.error('❌🔥 FINAL CHECK FAILED:', {
+    // ✅ VERIFICATION: Ensure we have valid data before conversion
+    if (!productPrice || productPrice <= 0) {
+      console.error('❌🔥 FINAL CHECK FAILED - Invalid product price:', {
         productPrice,
         productCurrency,
-        hasValidPrice: productPrice > 0,
-        hasValidCurrency: !!productCurrency
+        hasValidPrice: productPrice > 0
       });
-      container.innerHTML = '<div style="color: red; padding: 10px; border: 1px solid red;">ERROR: Invalid product data after API call</div>';
+      container.innerHTML = '<div style="color: red; padding: 10px; border: 1px solid red;">ERROR: Invalid product price</div>';
       return;
     }
     
-    // ✅ CRITICAL FIX: CORRECT CONVERSION LOGIC
-    // Product price from Shopify API should be $1.00 USD (real product price)
-    // Form currency is GBP (target currency from form settings)
-    // We need to convert: productPrice_USD → convertedPrice_GBP
+    // ✅ CORRECT CONVERSION: Real product price → Form display currency
     const realPrice = convertCurrency(productPrice, productCurrency, targetFormCurrency);
-    const finalCurrency = targetFormCurrency; // Display in form currency
+    const finalCurrency = targetFormCurrency;
     
     console.log("💰✅ Quantity Offers - CORRECT CONVERSION APPLIED:", {
       shopifyProductPrice: productPrice,
