@@ -23,6 +23,7 @@
 <script src="{{ 'codform-image-field.js' | asset_url }}"></script>
 <script src="{{ 'codform-whatsapp-field.js' | asset_url }}"></script>
 <script src="{{ 'codform-countdown-field.js' | asset_url }}"></script>
+<script src="{{ 'codform-arabic-styling.js' | asset_url }}"></script>
 <script src="{{ 'codform-cart-summary.js' | asset_url }}"></script>
 
 <div id="codform-popup-button-container" style="display: none;">
@@ -1153,46 +1154,8 @@
         
         // Create empty container for quantity offers (will be populated by codform-quantity-offers.js)
         completeFormHTML = `<div id="quantity-offers-before-${blockId}" style="display: none;"></div>` + completeFormHTML;
-        // FIXED: Better Arabic language detection
-        let formLanguage = 'en';
-        
-        // Check multiple sources for Arabic language
-        if (data.form?.language === 'ar' || data.language === 'ar') {
-          formLanguage = 'ar';
-        } else if (data.form?.title && /[\u0600-\u06FF]/.test(data.form.title)) {
-          formLanguage = 'ar';
-        } else if (fieldsArray && fieldsArray.some(field => 
-          field.label && /[\u0600-\u06FF]/.test(field.label)
-        )) {
-          formLanguage = 'ar';
-        }
-        
-        
-        // Detected form language
-        
-        // FIXED: Apply Cairo font immediately when Arabic is detected
-        if (formLanguage === 'ar') {
-          // Add Arabic-specific CSS dynamically
-          const arabicStyle = document.createElement('style');
-          arabicStyle.innerHTML = `
-            .codform-arabic-form,
-            .codform-arabic-form *,
-            .codform-arabic-form input,
-            .codform-arabic-form textarea,
-            .codform-arabic-form label,
-            .codform-arabic-form button {
-              font-family: 'Cairo', 'Noto Sans Arabic', 'Amiri', sans-serif !important;
-              font-feature-settings: "liga" 1, "kern" 1 !important;
-              text-rendering: optimizeLegibility !important;
-            }
-          `;
-          document.head.appendChild(arabicStyle);
-          
-          // Apply Arabic class to container
-          if (container) {
-            container.classList.add('codform-arabic-form');
-          }
-        }
+        // FIXED: Better Arabic language detection and styling
+        const formLanguage = window.codformArabicStyling.initializeArabicStyling(data, fieldsArray, container);
         
         if (fieldsArray && Array.isArray(fieldsArray)) {
           // Check if popup mode is enabled
