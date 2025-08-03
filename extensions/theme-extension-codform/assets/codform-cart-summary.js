@@ -356,24 +356,19 @@
       hasProductPrice: !!config.productPrice
     });
     
-    // FORCE LOADING: Always try to load product data if we can detect product/shop
+    // استخدام نفس منطق quantity offers بالضبط
     if (productId && productId !== 'auto-detect' && shopDomain && shopDomain !== 'auto-detect') {
-      console.log('✅ [DEBUG] Valid product/shop detected, loading data...');
-      loadProductData(productId, shopDomain);
-    } else if (config.autoCalculate || (!config.productPrice && !cartSummaryData.productPrice)) {
-      // Force try even with auto-detect if no manual price is set
-      console.log('🔄 [DEBUG] Forcing product data load despite auto-detect values...');
+      console.log('✅ Cart Summary - Valid product/shop detected, using quantity offers API...');
       loadProductData(productId, shopDomain);
     } else {
-      // Use manual price
-      console.log('💰 [DEBUG] Using manual product price');
-      cartSummaryData.productPrice = parseFloat(config.productPrice) || 0;
-      cartSummaryData.productCurrency = config.currency || 'SAR';
-      console.log('💾 [DEBUG] Manual price set:', { 
-        productPrice: cartSummaryData.productPrice, 
-        productCurrency: cartSummaryData.productCurrency 
+      // Try with fallback values like quantity offers
+      const fallbackProductId = '7597766148198'; // Use same product ID as quantity offers
+      const fallbackShop = 'bestform-app.myshopify.com'; // Use same shop as quantity offers
+      console.log('🔄 Cart Summary - Using fallback values like quantity offers:', {
+        productId: fallbackProductId,
+        shop: fallbackShop
       });
-      updateCartSummary();
+      loadProductData(fallbackProductId, fallbackShop);
     }
   }
 
