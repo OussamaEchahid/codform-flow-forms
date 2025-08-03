@@ -69,6 +69,10 @@
     }
   }
 
+  // ✅ CRITICAL: Store the real shop currency globally for correct conversions
+  window.CodformShopCurrency = '{{ shop.currency }}';
+  console.log('💰 Real shop currency set:', window.CodformShopCurrency);
+
   function getStyleValue(style, property, fallback) {
     if (!style || typeof style !== 'object') return fallback;
     return style[property] || fallback;

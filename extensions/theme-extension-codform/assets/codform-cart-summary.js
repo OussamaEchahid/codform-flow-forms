@@ -6,21 +6,27 @@
 (function() {
   'use strict';
 
-  // Exchange rates (SAR as base)
+  // ✅ FIXED: Exchange rates - USD as base (same as quantity offers)
   const EXCHANGE_RATES = {
-    'SAR': 1,
-    'USD': 0.27,
-    'EUR': 0.24,
-    'GBP': 0.21,
-    'AED': 0.98,
-    'KWD': 0.08,
-    'BHD': 0.10,
-    'QAR': 0.97,
-    'OMR': 0.10,
-    'JOD': 0.19,
-    'EGP': 13.11,
-    'TRY': 7.39,
-    'MAD': 2.67
+    'USD': 1.0,
+    'SAR': 3.75,
+    'AED': 3.67,
+    'EGP': 30.85,
+    'QAR': 3.64,
+    'KWD': 0.31,
+    'BHD': 0.38,
+    'OMR': 0.38,
+    'JOD': 0.71,
+    'LBP': 89500,
+    'MAD': 9.85, // ✅ CRITICAL: 1 USD = 9.85 MAD, so 10 MAD = ~1.02 USD
+    'TND': 3.15,
+    'DZD': 134.25,
+    'EUR': 0.92,
+    'GBP': 0.79,
+    'CAD': 1.43,
+    'AUD': 1.57,
+    'TRY': 34.15,
+    'ILS': 3.67
   };
 
   let cartSummaryData = {
@@ -58,11 +64,11 @@
       return amount; // Return original amount if exchange rate not found
     }
     
-    // Convert to SAR first, then to target currency
-    const sarAmount = amount / fromRate;
-    const convertedAmount = sarAmount * toRate;
+    // ✅ FIXED: Convert through USD as base (same logic as quantity offers)
+    const usdAmount = amount / fromRate;
+    const convertedAmount = usdAmount * toRate;
     
-    console.log(`💱 [CONVERSION DEBUG] ${amount} ${fromCurrency} → ${sarAmount.toFixed(2)} SAR → ${convertedAmount.toFixed(2)} ${toCurrency}`);
+    console.log(`💱 [CONVERSION DEBUG] ${amount} ${fromCurrency} → ${usdAmount.toFixed(4)} USD → ${convertedAmount.toFixed(2)} ${toCurrency}`);
     
     return convertedAmount;
   }

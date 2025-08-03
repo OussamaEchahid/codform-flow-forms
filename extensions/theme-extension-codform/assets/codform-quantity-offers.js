@@ -271,17 +271,20 @@ window.CodformQuantityOffers = (function() {
       return;
     }
     
-    // ✅ FIXED: Convert product price from Shopify currency to form currency
+    // ✅ CRITICAL FIX: CORRECT CONVERSION LOGIC
+    // Product price from Shopify is in MAD (shop currency)
+    // Form currency is USD (target currency)
+    // We need to convert: productPrice_MAD → convertedPrice_USD
     const realPrice = convertCurrency(productPrice, productCurrency, targetFormCurrency);
     const finalCurrency = targetFormCurrency; // Display in form currency
     
-    console.log("💰✅ Quantity Offers - CONVERSION LOGIC FIXED:", {
-      originalProductPrice: productPrice,
+    console.log("💰✅ Quantity Offers - CORRECT CONVERSION APPLIED:", {
+      shopifyProductPrice: productPrice,
       shopifyProductCurrency: productCurrency,
-      targetFormCurrency: targetFormCurrency,
-      convertedPrice: realPrice,
-      finalDisplayCurrency: finalCurrency,
-      conversionNote: `Converting ${productPrice} ${productCurrency} → ${realPrice.toFixed(2)} ${targetFormCurrency}`
+      formTargetCurrency: targetFormCurrency,
+      convertedPriceForDisplay: realPrice,
+      conversionDetails: `${productPrice} ${productCurrency} → ${realPrice.toFixed(2)} ${targetFormCurrency}`,
+      exchangeRateUsed: `1 ${productCurrency} = ${(realPrice/productPrice).toFixed(4)} ${targetFormCurrency}`
     });
     
     // بيانات المنتج
