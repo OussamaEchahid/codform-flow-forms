@@ -140,32 +140,16 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
   const formatPrice = (amount: number) => {
     const currency = formCurrency || formStyle.currency || 'SAR';
     
-    // Convert price if needed from product currency to form currency
+    // إذا كان السعر من بيانات المنتج الحقيقي، استخدمه مباشرة بدون تحويل
+    // لأن Shopify يخزن السعر بالعملة الصحيحة للمتجر
     let convertedAmount = amount;
-    if (productData?.variants && productData.variants[0]?.price) {
-      const productCurrency = productData.currency || 'USD';
-      if (productCurrency !== currency) {
-        // Simple conversion rates - in production, use real-time rates
-        const rates: { [key: string]: number } = {
-          'USD': 1,
-          'SAR': 3.75,
-          'MAD': 10.5, // درهم مغربي
-          'AED': 3.67,
-          'EGP': 30.9
-        };
-        
-        const fromRate = rates[productCurrency] || 1;
-        const toRate = rates[currency] || 1;
-        convertedAmount = (amount / fromRate) * toRate;
-        
-        console.log('💱 Currency conversion:', {
-          original: amount,
-          from: productCurrency,
-          to: currency,
-          converted: convertedAmount
-        });
-      }
-    }
+    
+    console.log('💱 Price formatting:', {
+      originalAmount: amount,
+      productCurrency: productData?.currency,
+      targetCurrency: currency,
+      hasProductData: !!productData
+    });
     
     try {
       return new Intl.NumberFormat(language === 'ar' ? 'ar-SA' : 'en-US', {
