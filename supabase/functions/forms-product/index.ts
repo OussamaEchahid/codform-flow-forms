@@ -105,6 +105,25 @@ serve(async (req) => {
         .single();
       
       if (storeData?.access_token && productId && productId !== 'auto-detect') {
+        // First, get shop currency from Shopify Shop API
+        let shopCurrency = 'USD';
+        try {
+          const shopResponse = await fetch(`https://${shop}/admin/api/2023-10/shop.json`, {
+            headers: {
+              'X-Shopify-Access-Token': storeData.access_token,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (shopResponse.ok) {
+            const shopData = await shopResponse.json();
+            shopCurrency = shopData.shop?.currency || 'USD';
+            console.log('🏪 SHOP CURRENCY DETECTED:', shopCurrency);
+          }
+        } catch (error) {
+          console.error('⚠️ Failed to get shop currency, using USD:', error);
+        }
+        
         // Fetch real product data from Shopify
         const shopifyResponse = await fetch(`https://${shop}/admin/api/2023-10/products/${productId}.json`, {
           headers: {
@@ -122,11 +141,11 @@ serve(async (req) => {
             productData = {
               id: productId,
               price: parseFloat(variant.price),
-              currency: 'USD', // Default Shopify currency
+              currency: shopCurrency, // ✅ FIXED: Use actual shop currency
               title: product.title,
               image: product.images?.[0]?.src || null
             };
-            console.log('🛍️ REAL PRODUCT DATA FROM SHOPIFY:', productData);
+            console.log('🛍️ REAL PRODUCT DATA WITH CORRECT CURRENCY:', productData);
           }
         }
       }
