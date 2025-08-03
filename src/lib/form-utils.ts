@@ -87,6 +87,7 @@ export interface FormField {
     shippingType?: 'auto' | 'manual';
     shippingValue?: number;
     autoCalculate?: boolean;
+    currency?: string; // العملة المخصصة لحقل Cart Summary
   };
 }
 

@@ -399,27 +399,20 @@
   function initializeCartSummary(field, formStyle) {
     console.log('🚀 [DEBUG] initializeCartSummary called with:', { field, formStyle });
     
-    const config = field.config || {};
-    console.log('⚙️ [DEBUG] Config:', JSON.stringify(config, null, 2));
+    const config = field.cartSummaryConfig || field.config || {};
+    console.log('⚙️ [DEBUG] Cart Summary Config:', JSON.stringify(config, null, 2));
     
     // Update cart summary configuration
     cartSummaryData.discountType = config.discountType || 'percentage';
     cartSummaryData.discountValue = parseFloat(config.discountValue) || 0;
     cartSummaryData.shippingCost = parseFloat(config.shippingCost) || 0;
     
-    // الحل الجذري: قراءة العملة مباشرة من إعدادات النموذج
-    const formCurrency = window.currentFormData?.form?.style?.currency;
+    // الحل الجذري النهائي: استخدام العملة المحددة في إعدادات Cart Summary Field
+    const fieldCurrency = config.currency || 'MAD';
+    cartSummaryData.targetCurrency = fieldCurrency;
     
-    if (formCurrency && formCurrency.includes('|')) {
-      // التعامل مع صيغة "Morocco | MAD"
-      cartSummaryData.targetCurrency = formCurrency.split('|')[1].trim();
-    } else if (formCurrency && formCurrency.match(/^[A-Z]{3}$/)) {
-      // التعامل مع رمز العملة مباشرة
-      cartSummaryData.targetCurrency = formCurrency;
-    } else {
-      // الافتراضي
-      cartSummaryData.targetCurrency = 'MAD';
-    }
+    console.log('✅ [CURRENCY FINAL] Cart Summary field will use currency:', fieldCurrency);
+    console.log('✅ [CURRENCY FINAL] This currency is directly from field settings and will not change');
     
     console.log('💾 [DEBUG] Cart summary data updated:', JSON.stringify(cartSummaryData, null, 2));
     console.log(`🎯 [TARGET CURRENCY DEBUG] FINAL target currency: "${cartSummaryData.targetCurrency}" (should match form configuration)`);

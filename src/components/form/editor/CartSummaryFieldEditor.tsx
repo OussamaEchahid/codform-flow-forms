@@ -10,6 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { X, Plus, Minus } from 'lucide-react';
+import { CURRENCIES } from '@/lib/constants/countries-currencies';
 
 interface CartSummaryFieldEditorProps {
   field: FormField;
@@ -57,6 +58,7 @@ const CartSummaryFieldEditor: React.FC<CartSummaryFieldEditorProps> = ({
       shippingType: 'auto', // 'auto' or 'manual'
       shippingValue: 0,
       autoCalculate: true,
+      currency: 'MAD', // العملة المخصصة لهذا الحقل
       ...field.cartSummaryConfig
     }
   });
@@ -155,6 +157,25 @@ const CartSummaryFieldEditor: React.FC<CartSummaryFieldEditorProps> = ({
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
+              <div>
+                <Label>{language === 'ar' ? 'العملة' : 'Currency'}</Label>
+                <Select
+                  value={currentField.cartSummaryConfig?.currency || 'MAD'}
+                  onValueChange={(value) => handleConfigChange('currency', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CURRENCIES.map((currency) => (
+                      <SelectItem key={currency.code} value={currency.code}>
+                        {language === 'ar' ? currency.nameAr : currency.name} ({currency.symbol})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="flex items-center justify-between">
                 <Label>{language === 'ar' ? 'حساب تلقائي من المنتج' : 'Auto Calculate from Product'}</Label>
                 <Switch

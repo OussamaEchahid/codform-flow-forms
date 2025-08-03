@@ -821,8 +821,8 @@
     {%- comment -%} Cart Summary Field {%- endcomment -%}
     else if (field.type === 'cart-summary') {
       // Cart summary field with inline HTML (no include tag allowed in app blocks)
-      const config = field.config || {};
-      const currency = config.currency || 'SAR';
+      const config = field.cartSummaryConfig || field.config || {};
+      const currency = config.currency || 'MAD'; // الافتراضي للدرهم المغربي
       const subtotalLabel = formDirection === 'rtl' ? 'المجموع الفرعي' : 'Subtotal';
       const discountLabel = formDirection === 'rtl' ? 'الخصم' : 'Discount';
       const shippingLabel = formDirection === 'rtl' ? 'الشحن' : 'Shipping';
@@ -867,19 +867,23 @@
         if (window.codformCartSummary) {
           console.log('🛒 Initializing cart summary for field:', field);
           
-          // CRITICAL FIX: Pass currency and country from CORRECT API path  
-          const enhancedFormStyle = {
+          // الحل الجذري النهائي: تمرير العملة مباشرة من إعدادات الحقل
+          const fieldConfig = field.cartSummaryConfig || field.config || {};
+          const fieldCurrency = fieldConfig.currency || 'MAD';
+          
+          console.log('🎯 [CART SUMMARY INIT] Using field currency:', fieldCurrency);
+          console.log('🎯 [CART SUMMARY INIT] Field config:', fieldConfig);
+          
+          // تمرير العملة المخصصة للحقل
+          const cartSummaryFormStyle = {
             ...formStyle,
-            currency: window.currentFormData?.form?.style?.currency || window.currentFormData?.form?.style?.formCurrency || formStyle.currency || 'SAR',
-            country: window.currentFormData?.form?.style?.country || formStyle.country,
-            formCurrency: window.currentFormData?.form?.style?.currency || window.currentFormData?.form?.style?.formCurrency || formStyle.currency || 'SAR'
+            fieldCurrency: fieldCurrency
           };
           
-          console.log('🎯 [CART SUMMARY INIT] Enhanced form style with currency:', enhancedFormStyle);
-          window.codformCartSummary.initialize(field, enhancedFormStyle);
+          window.codformCartSummary.initialize(field, cartSummaryFormStyle);
           
           // Force load product data immediately if auto-calculate is enabled
-          if (field.config && field.config.autoCalculate) {
+          if (fieldConfig.autoCalculate) {
             const productId = '{{ product.id }}' || 'auto-detect';
             const shopDomain = '{{ shop.permanent_domain }}' || 'auto-detect';
             console.log('🛒 Auto-loading product data:', { productId, shopDomain });
