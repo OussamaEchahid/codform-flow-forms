@@ -867,12 +867,12 @@
         if (window.codformCartSummary) {
           console.log('🛒 Initializing cart summary for field:', field);
           
-          // CRITICAL FIX: Pass currency and country from form data to cart summary
+          // CRITICAL FIX: Pass currency and country from form style to cart summary
           const enhancedFormStyle = {
             ...formStyle,
-            currency: window.currentFormData?.form?.currency || window.currentFormData?.form?.country || formStyle.currency || 'SAR',
-            country: window.currentFormData?.form?.country || formStyle.country,
-            formCurrency: window.currentFormData?.form?.currency || window.currentFormData?.form?.country || formStyle.currency || 'SAR'
+            currency: window.currentFormData?.style?.currency || window.currentFormData?.style?.formCurrency || formStyle.currency || 'SAR',
+            country: window.currentFormData?.style?.country || formStyle.country,
+            formCurrency: window.currentFormData?.style?.currency || window.currentFormData?.style?.formCurrency || formStyle.currency || 'SAR'
           };
           
           console.log('🎯 [CART SUMMARY INIT] Enhanced form style with currency:', enhancedFormStyle);

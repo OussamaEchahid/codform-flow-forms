@@ -407,38 +407,21 @@
     cartSummaryData.discountValue = parseFloat(config.discountValue) || 0;
     cartSummaryData.shippingCost = parseFloat(config.shippingCost) || 0;
     
-    // CRITICAL: Extract target currency from form settings - handle "Morocco | MAD" format
+    // Extract target currency from form settings
     let targetCurrency = 'SAR'; // Default fallback
     
-    // CRITICAL DEBUG: Check window.currentFormData first
-    console.log('🚨 [CRITICAL DEBUG] window.currentFormData:', window.currentFormData);
-    console.log('🚨 [CRITICAL DEBUG] window.currentFormData?.form:', window.currentFormData?.form);
-    console.log('🚨 [CRITICAL DEBUG] window.currentFormData?.form?.currency:', window.currentFormData?.form?.currency);
-    console.log('🚨 [CRITICAL DEBUG] window.currentFormData?.form?.country:', window.currentFormData?.form?.country);
-    
-    console.log('🎯 [TARGET CURRENCY DEBUG] Raw form configuration:', {
-      'config.currency': config.currency,
-      'config.targetCurrency': config.targetCurrency,
-      'formStyle.currency': formStyle?.currency,
-      'formStyle.targetCurrency': formStyle?.targetCurrency,
-      'formStyle.formCurrency': formStyle?.formCurrency,
-      'config.country': config.country,
-      'formStyle.country': formStyle?.country,
-      'window.currentFormData.form.currency': window.currentFormData?.form?.currency,
-      'window.currentFormData.form.country': window.currentFormData?.form?.country
-    });
-    
-    // Try multiple sources for target currency - PRIORITIZE window.currentFormData FIRST
+    // Try multiple sources for target currency - PRIORITIZE style.currency from API
     const possibleSources = [
-      window.currentFormData?.form?.currency,      // HIGHEST PRIORITY: Form settings currency
-      window.currentFormData?.form?.country,      // SECOND: Form settings country 
-      formStyle?.formCurrency,                    // THIRD: Passed from form style
-      formStyle?.currency,                        // FOURTH: General form style currency
-      formStyle?.targetCurrency,                  // FIFTH: Target currency from style
-      config.currency,                           // SIXTH: Field config currency
-      config.targetCurrency,                     // SEVENTH: Field config target
-      config.country,                           // EIGHTH: Field config country
-      formStyle?.country                        // LAST: Form style country
+      window.currentFormData?.style?.currency,     // HIGHEST PRIORITY: Form style currency from API
+      window.currentFormData?.style?.formCurrency, // SECOND: Form currency from API style
+      window.currentFormData?.style?.country,      // THIRD: Form style country from API
+      formStyle?.formCurrency,                     // FOURTH: Passed from form style
+      formStyle?.currency,                         // FIFTH: General form style currency
+      formStyle?.targetCurrency,                   // SIXTH: Target currency from style
+      config.currency,                            // SEVENTH: Field config currency
+      config.targetCurrency,                      // EIGHTH: Field config target
+      config.country,                            // NINTH: Field config country
+      formStyle?.country                         // LAST: Form style country
     ];
     
     console.log('🔍 [TARGET CURRENCY DEBUG] Checking possible sources:', possibleSources);
