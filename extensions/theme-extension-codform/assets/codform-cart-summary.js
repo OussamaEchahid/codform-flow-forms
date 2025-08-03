@@ -494,13 +494,25 @@
   function updateCartSummaryQuantity(quantity) {
     const state = window.CodformStateManager ? window.CodformStateManager.getState() : null;
     
-    if (state && state.finalPrice !== null) {
-      // استخدام السعر من State Manager (مع تطبيق العروض)
-      cartSummaryData.productPrice = state.finalPrice;
+    if (state && state.unitPrice !== null && state.targetCurrency) {
+      // ✅ استخدام البيانات من State Manager مع التحقق الصحيح
+      cartSummaryData.productPrice = state.unitPrice * quantity;
+      cartSummaryData.currency = state.targetCurrency;
+      console.log(`💰✅ Cart Summary using State Manager data:`, {
+        unitPrice: state.unitPrice,
+        quantity: quantity,
+        totalPrice: cartSummaryData.productPrice,
+        currency: cartSummaryData.currency
+      });
     } else {
       // الطريقة القديمة كاحتياطي
       const originalPrice = cartSummaryData.productPrice / (cartSummaryData.currentQuantity || 1);
       cartSummaryData.productPrice = originalPrice * quantity;
+      console.log(`💰⚠️ Cart Summary using fallback calculation:`, {
+        originalPrice: originalPrice,
+        quantity: quantity,
+        totalPrice: cartSummaryData.productPrice
+      });
     }
     
     cartSummaryData.currentQuantity = quantity;
