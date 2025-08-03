@@ -157,7 +157,7 @@
     try {
       console.log('🛒 Cart Summary - Loading product data:', { productId, shopDomain });
       
-      const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-products`, {
+      const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-products-fixed`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -165,7 +165,7 @@
         },
         body: JSON.stringify({
           shop: shopDomain,
-          productIds: [productId]
+          productId: productId
         })
       });
       
