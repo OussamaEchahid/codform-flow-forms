@@ -866,38 +866,63 @@
         </div>
       `;
       
-      // Initialize cart summary after rendering
-      setTimeout(() => {
+      // ✅ NEW: Initialize cart summary with REAL API data (SAME METHOD AS QUANTITY OFFERS)
+      setTimeout(async () => {
         if (window.codformCartSummary) {
           console.log('🛒 Initializing cart summary for field:', field);
           
-          // الحل الجذري النهائي: تمرير العملة مباشرة من إعدادات الحقل
-          const fieldConfig = field.cartSummaryConfig || field.config || {};
-          const fieldCurrency = fieldConfig.currency || 'MAD';
+          // ✅ CRITICAL: Use API to get REAL form currency (same as quantity offers)
+          const productId = '{{ product.id }}' || 'auto-detect';
+          const shopDomain = '{{ shop.permanent_domain }}' || 'auto-detect';
           
-          console.log('🎯 [CART SUMMARY INIT] Using field currency:', fieldCurrency);
-          console.log('🎯 [CART SUMMARY INIT] Field config:', fieldConfig);
+          console.log('🌐 Cart Summary - Loading real currency from API:', { productId, shopDomain });
           
-          // تمرير العملة المخصصة للحقل
-          const cartSummaryFormStyle = {
-            ...formStyle,
-            fieldCurrency: fieldCurrency
-          };
-          
-          window.codformCartSummary.initialize(field, cartSummaryFormStyle);
-          
-          // Force load product data immediately if auto-calculate is enabled
-          if (fieldConfig.autoCalculate) {
-            const productId = '{{ product.id }}' || 'auto-detect';
-            const shopDomain = '{{ shop.permanent_domain }}' || 'auto-detect';
-            console.log('🛒 Auto-loading product data:', { productId, shopDomain });
+          try {
+            // ✅ Call the SAME API that quantity offers use for REAL currency
+            const apiUrl = `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/forms-product?shop=${encodeURIComponent(shopDomain)}&product=${encodeURIComponent(productId)}`;
             
-            // Load product data
-            setTimeout(() => {
-              if (window.codformCartSummary.loadProductData) {
-                window.codformCartSummary.loadProductData(productId, shopDomain);
+            const response = await fetch(apiUrl);
+            if (response.ok) {
+              const data = await response.json();
+              console.log('💰✅ Cart Summary - REAL API Response:', data);
+              
+              if (data.success && data.currency) {
+                // ✅ Save REAL currency from API (same format as quantity offers)
+                window.CodformFormData = window.CodformFormData || {};
+                window.CodformFormData.currency = data.currency;
+                console.log('💰✅ Cart Summary - REAL currency saved:', data.currency);
+                
+                // ✅ Pass REAL product data if available
+                if (data.product) {
+                  console.log('🛍️ Cart Summary - Setting REAL product data:', data.product);
+                  window.codformCartSummary.setProductData(
+                    parseFloat(data.product.price) || 0,
+                    data.product.currency || 'USD'
+                  );
+                }
+                
+                // ✅ Initialize with REAL API currency
+                const cartSummaryFormStyle = {
+                  currency: data.currency // Use REAL API currency
+                };
+                
+                console.log('✅ Cart Summary - Initializing with REAL API data:', cartSummaryFormStyle);
+                window.codformCartSummary.initialize(field, cartSummaryFormStyle);
+                
+              } else {
+                console.error('❌ Cart Summary - API missing currency data:', data);
+                // Fallback initialization without real data
+                window.codformCartSummary.initialize(field, formStyle);
               }
-            }, 500);
+            } else {
+              console.error('❌ Cart Summary - API call failed:', response.status);
+              // Fallback initialization
+              window.codformCartSummary.initialize(field, formStyle);
+            }
+          } catch (error) {
+            console.error('❌ Cart Summary - API error:', error);
+            // Fallback initialization
+            window.codformCartSummary.initialize(field, formStyle);
           }
         }
       }, 100);

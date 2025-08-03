@@ -6,27 +6,64 @@
 (function() {
   'use strict';
 
-  // ✅ FIXED: Exchange rates - USD as base (same as quantity offers)
+  // ✅ COMPREHENSIVE: Exchange rates - USD as base (complete list for all supported countries)
   const EXCHANGE_RATES = {
+    // العملات الأساسية
     'USD': 1.0,
+    
+    // عملات دول الخليج العربي
     'SAR': 3.75,
     'AED': 3.67,
-    'EGP': 30.85,
     'QAR': 3.64,
     'KWD': 0.31,
     'BHD': 0.38,
     'OMR': 0.38,
-    'JOD': 0.71,
-    'LBP': 89500,
+    
+    // عملات شمال أفريقيا والمغرب العربي
+    'EGP': 30.85,
     'MAD': 9.85, // ✅ CRITICAL: 1 USD = 9.85 MAD, so 10 MAD = ~1.02 USD
     'TND': 3.15,
     'DZD': 134.25,
+    
+    // عملات بلاد الشام
+    'JOD': 0.71,
+    'LBP': 89500,
+    'SYP': 13000,
+    'ILS': 3.67,
+    
+    // العملات الأوروبية والغربية
     'EUR': 0.92,
     'GBP': 0.79,
     'CAD': 1.43,
     'AUD': 1.57,
+    
+    // عملات أمريكا اللاتينية
+    'MXN': 20.15,
+    'BRL': 6.05,
+    'ARS': 1005.5,
+    'CLP': 975.2,
+    'COP': 4285.5,
+    'PEN': 3.75,
+    'VES': 36500000,
+    'UYU': 40.25,
+    
+    // عملات الشرق الأوسط الإضافية
+    'IQD': 1310,
+    'IRR': 42100,
     'TRY': 34.15,
-    'ILS': 3.67
+    'YER': 250,
+    
+    // عملات أفريقيا
+    'NGN': 1675,
+    'ZAR': 18.45,
+    'KES': 130.5,
+    'GHS': 15.85,
+    'ETB': 125.5,
+    'TZS': 2515,
+    'UGX': 3785,
+    'ZWL': 322,
+    'ZMW': 27.85,
+    'RWF': 1385
   };
 
   let cartSummaryData = {
@@ -359,30 +396,41 @@
     }
   }
 
-  // ✅ FIXED: Get real form currency from API response ONLY - no defaults
+  // ✅ ENHANCED: Get real form currency using SAME method as quantity offers
   function getRealFormCurrency() {
-    console.log('🔍 Cart Summary - Searching for real form currency...');
+    console.log('🔍 Cart Summary - Searching for real form currency (same method as quantity offers)...');
     console.log('🔍 Cart Summary - window.CodformFormData:', window.CodformFormData);
     
-    // ONLY check for currency from API response that was saved properly
+    // ✅ PRIMARY: Check for currency from API response (same as quantity offers)
     if (window.CodformFormData?.currency) {
-      console.log('✅ Cart Summary - REAL Currency from API:', window.CodformFormData.currency);
+      console.log('✅ Cart Summary - REAL Currency from API (primary):', window.CodformFormData.currency);
       return window.CodformFormData.currency;
     }
     
-    // Check if currency was saved in saved form data (alternative location)
+    // ✅ SECONDARY: Check if currency was saved in form data (backup location)
     if (window.currentFormData?.savedFormCurrency) {
-      console.log('✅ Cart Summary - Currency from saved form data:', window.currentFormData.savedFormCurrency);
+      console.log('✅ Cart Summary - Currency from saved form data (secondary):', window.currentFormData.savedFormCurrency);
       return window.currentFormData.savedFormCurrency;
     }
     
-    // Check form style currency (another possible location)
+    // ✅ TERTIARY: Check form style currency (backup location)
     if (window.currentFormData?.form?.style?.currency) {
-      console.log('✅ Cart Summary - Currency from form style:', window.currentFormData.form.style.currency);
+      console.log('✅ Cart Summary - Currency from form style (tertiary):', window.currentFormData.form.style.currency);
       return window.currentFormData.form.style.currency;
     }
     
+    // ✅ QUATERNARY: Check window.formCurrency if set by API
+    if (window.formCurrency) {
+      console.log('✅ Cart Summary - Currency from window.formCurrency:', window.formCurrency);
+      return window.formCurrency;
+    }
+    
     console.error('❌ Cart Summary - CRITICAL: No real currency found from API! Must wait for API call.');
+    console.error('❌ Cart Summary - Available data sources checked:');
+    console.error('  - window.CodformFormData.currency:', window.CodformFormData?.currency);
+    console.error('  - window.currentFormData.savedFormCurrency:', window.currentFormData?.savedFormCurrency);
+    console.error('  - window.currentFormData.form.style.currency:', window.currentFormData?.form?.style?.currency);
+    console.error('  - window.formCurrency:', window.formCurrency);
     return null; // NO DEFAULT CURRENCY - API must be called first
   }
 
