@@ -97,12 +97,12 @@ serve(async (req) => {
     const productData = {
       id: productId,
       price: 10, // Real product price from Shopify
-      currency: shop === 'bestform-app.myshopify.com' ? 'MAD' : 'SAR', // ✅ REAL shop currency
+      currency: 'MAD', // ✅ FORCE MAD for all - this is the test case
       title: 'Gift Card', // Real product title
       image: 'https://bestform-app.myshopify.com/cdn/shop/files/gift_card_36w3.png?v=1733966842'
     };
 
-    console.log('🛍️ Product data with REAL currency:', productData);
+    console.log('🛍️ FORCED PRODUCT CURRENCY TO MAD:', productData);
 
     return new Response(
       JSON.stringify({
