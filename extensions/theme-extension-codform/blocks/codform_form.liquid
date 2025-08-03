@@ -2026,15 +2026,21 @@ window.openFormPopup = function(event) {
   setTimeout(() => {
     if (window.CodformQuantityOffers && productId) {
       const shopDomain = getShopDomain();
-      const formCurrency = formStyle?.currency || 'SAR';
+      // ✅ STRICT CURRENCY CHECK for popup too
+      const apiFormCurrency = window.CodformFormData?.currency;
+      
+      if (!apiFormCurrency) {
+        console.error("❌ POPUP: No currency from form API response!");
+        return; // Don't load popup offers without valid currency
+      }
       
       const productData = {
         id: productId,
-        price: parseFloat('{{ product.price | divided_by: 100.0 }}') || 0,
-        comparePrice: parseFloat('{{ product.compare_at_price | divided_by: 100.0 }}') || 0,
+        price: null, // No default price
+        comparePrice: null,
         title: '{{ product.title }}' || 'منتج',
         image: '{{ product.featured_image | img_url: "400x400" }}' || '',
-        currency: '{{ shop.currency }}' || 'SAR'
+        currency: null // No default currency
       };
       
       console.log('🎯 FORCE LOADING popup quantity offers...');
@@ -2059,7 +2065,9 @@ window.openFormPopup = function(event) {
         .then(data => {
           console.log('✅ POPUP API Response:', data);
           if (data.success && data.quantity_offers && data.quantity_offers.offers.length > 0) {
-            window.CodformQuantityOffers.display(data.quantity_offers, 'popup-form', productId, formCurrency, productData);
+            // Use currency from API response, not default
+            const finalCurrency = data.form?.currency || apiFormCurrency;
+            window.CodformQuantityOffers.display(data.quantity_offers, 'popup-form', productId, finalCurrency, productData);
             console.log('✅ FORCED quantity offers display complete');
           } else {
             offersContainer.innerHTML = '<div style="background: yellow; padding: 8px;">لا توجد عروض متاحة</div>';
@@ -2185,28 +2193,46 @@ document.addEventListener('DOMContentLoaded', function() {
       console.log("🎯 Loading quantity offers after form is ready:", { productId, shopDomain, blockId });
       
       if (window.CodformQuantityOffers) {
-        // الحصول على عملة النموذج من البيانات المحملة
-        const formCurrency = window.currentFormData?.formStyle?.currency || 'SAR';
-        console.log("💰 Using form currency for quantity offers:", formCurrency);
+        // ✅ STRICT CURRENCY CHECK - Wait for API response first
+        console.log("🔍 Checking for form currency from API response...");
+        console.log("📋 window.CodformFormData:", window.CodformFormData);
         
-        // تمرير عملة النموذج وبيانات المنتج إلى عروض الكمية
+        const apiFormCurrency = window.CodformFormData?.currency;
+        console.log("💰 API Form currency:", apiFormCurrency);
+        
+        if (!apiFormCurrency) {
+          console.error("❌ CRITICAL: No currency from form API response!");
+          console.error("❌ Form API must be called first to set currency");
+          console.error("❌ window.CodformFormData.currency is undefined");
+          
+          // Show error message instead of loading with wrong currency
+          const quantityContainer = document.getElementById(`quantity-offers-before-${blockId}`);
+          if (quantityContainer) {
+            quantityContainer.innerHTML = '<div style="color: red; padding: 10px; border: 2px solid red; background: #ffebee; margin: 10px; border-radius: 4px; font-weight: bold;">❌ ERROR: No currency found from form settings. API call required first.</div>';
+          }
+          
+          formContainer.dataset.quantityOffersLoaded = 'true';
+          clearInterval(waitForFormLoad);
+          return;
+        }
+        
+        console.log("✅ Valid currency found from API:", apiFormCurrency);
+        
+        // Remove all default currencies - only use API currency
         const productData = {
           id: productId,
-          price: parseFloat('{{ product.price | divided_by: 100.0 }}') || 0,
-          comparePrice: parseFloat('{{ product.compare_at_price | divided_by: 100.0 }}') || 0,
+          price: null, // No default price - will be fetched from API
+          comparePrice: null,
           title: '{{ product.title }}' || 'منتج',
           image: '{{ product.featured_image | img_url: "400x400" }}' || '',
-          currency: '{{ shop.currency }}' || 'SAR'
+          currency: null // No default currency - only API currency
         };
         
-        console.log("🛍️ تمرير بيانات المنتج لعروض الكمية:", productData);
+        console.log("🛍️ تمرير بيانات المنتج بدون عملة افتراضية:", productData);
+        console.log("💰 استخدام عملة API فقط:", apiFormCurrency);
         
-        // CRITICAL: Preserve form data and add product data without overwriting
-        window.currentFormData = window.currentFormData || {};
-        window.currentFormData.productData = productData;
-        window.currentFormData.productData.formCurrency = window.currentFormData.savedFormCurrency;
-        
-        window.CodformQuantityOffers.loadAndDisplayOffers(blockId, productId, shopDomain, formCurrency, productData, formDirection);
+        // Pass API currency only - no defaults
+        window.CodformQuantityOffers.loadAndDisplayOffers(blockId, productId, shopDomain, apiFormCurrency, productData, formDirection);
         formContainer.dataset.quantityOffersLoaded = 'true';
         clearInterval(waitForFormLoad);
       }
