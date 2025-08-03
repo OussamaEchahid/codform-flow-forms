@@ -363,7 +363,10 @@
    * Initialize cart summary from field configuration
    */
   function initializeCartSummary(field, formStyle) {
+    console.log('🚀 [DEBUG] initializeCartSummary called with:', { field, formStyle });
+    
     const config = field.config || {};
+    console.log('⚙️ [DEBUG] Config:', JSON.stringify(config, null, 2));
     
     // Update cart summary configuration
     cartSummaryData.discountType = config.discountType || 'percentage';
@@ -371,17 +374,36 @@
     cartSummaryData.shippingCost = parseFloat(config.shippingCost) || 0;
     cartSummaryData.targetCurrency = config.currency || 'SAR';
     
-    // If auto-calculate is enabled, load product data
-    if (config.autoCalculate) {
-      const productId = window.getProductId ? window.getProductId() : 'auto-detect';
-      const shopDomain = window.getShopDomain ? window.getShopDomain() : 'auto-detect';
-      
-      if (productId && productId !== 'auto-detect' && shopDomain && shopDomain !== 'auto-detect') {
-        loadProductData(productId, shopDomain);
-      }
+    console.log('💾 [DEBUG] Cart summary data updated:', JSON.stringify(cartSummaryData, null, 2));
+    
+    // Always try to get product ID and shop domain
+    const productId = window.getProductId ? window.getProductId() : 'auto-detect';
+    const shopDomain = window.getShopDomain ? window.getShopDomain() : 'auto-detect';
+    
+    console.log('🔍 [DEBUG] Detection results:', { 
+      productId, 
+      shopDomain, 
+      autoCalculate: config.autoCalculate,
+      hasProductPrice: !!config.productPrice
+    });
+    
+    // FORCE LOADING: Always try to load product data if we can detect product/shop
+    if (productId && productId !== 'auto-detect' && shopDomain && shopDomain !== 'auto-detect') {
+      console.log('✅ [DEBUG] Valid product/shop detected, loading data...');
+      loadProductData(productId, shopDomain);
+    } else if (config.autoCalculate || (!config.productPrice && !cartSummaryData.productPrice)) {
+      // Force try even with auto-detect if no manual price is set
+      console.log('🔄 [DEBUG] Forcing product data load despite auto-detect values...');
+      loadProductData(productId, shopDomain);
     } else {
-      // Manual calculation with default product price
+      // Use manual price
+      console.log('💰 [DEBUG] Using manual product price');
       cartSummaryData.productPrice = parseFloat(config.productPrice) || 0;
+      cartSummaryData.productCurrency = config.currency || 'SAR';
+      console.log('💾 [DEBUG] Manual price set:', { 
+        productPrice: cartSummaryData.productPrice, 
+        productCurrency: cartSummaryData.productCurrency 
+      });
       updateCartSummary();
     }
   }
