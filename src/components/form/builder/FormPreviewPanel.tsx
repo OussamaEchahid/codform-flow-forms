@@ -9,6 +9,7 @@ import { ChevronLeft, ChevronRight, Eye, Share2, ExternalLink } from 'lucide-rea
 import { toast } from 'sonner';
 import FormFieldComponent from '../preview/FormField';
 import { useShopify } from '@/hooks/useShopify';
+import { supabase } from '@/integrations/supabase/client';
 
 interface FormPreviewPanelProps {
   formId?: string;
@@ -47,6 +48,35 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   const { shop } = useShopify();
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [associatedProductId, setAssociatedProductId] = useState<string | null>(null);
+
+  // Load associated product ID for this form
+  useEffect(() => {
+    const loadAssociatedProduct = async () => {
+      if (!formId || !shop) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('shopify_product_settings')
+          .select('product_id')
+          .eq('form_id', formId)
+          .eq('shop_id', shop)
+          .eq('enabled', true)
+          .single();
+          
+        if (data && !error) {
+          console.log('🎯 Found associated product:', data.product_id);
+          setAssociatedProductId(data.product_id);
+        } else {
+          console.log('⚠️ No associated product found for form:', formId);
+        }
+      } catch (error) {
+        console.error('❌ Error loading associated product:', error);
+      }
+    };
+    
+    loadAssociatedProduct();
+  }, [formId, shop]);
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
@@ -194,7 +224,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
                    formCurrency={formCurrency}
                    value={formData[field.id]}
                    onChange={(value) => handleInputChange(field.id, value)}
-                   productId={field.productId}
+                   productId={associatedProductId || field.productId}
                    {...(field.type === 'submit' && { 
                      onClick: () => handleSubmit({ preventDefault: () => {} } as React.FormEvent),
                      disabled: isSubmitting 
