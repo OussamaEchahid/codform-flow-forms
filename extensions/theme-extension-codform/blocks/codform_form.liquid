@@ -36,7 +36,7 @@
 (function() {
   'use strict';
   
-  console.log('🚀 CODFORM: Form initialization started');
+  // Form initialization started
   
   const API_BASE_URL = 'https://lovable-forms-api.netlify.app/.netlify/functions/api-forms';
   const DEFAULT_PRODUCT_ID = 'default';
@@ -49,10 +49,10 @@
   function getProductId() {
     try {
       const productId = '{{ product.id }}' || '{{ product.variants.first.id }}' || '{{ block.settings.product_id }}' || 'auto-detect';
-      console.log('🔍 معرف المنتج المكتشف:', productId);
+      // Product ID detected
       return productId.trim();
     } catch (error) {
-      console.error('❌ CODFORM: Error getting product ID:', error);
+      // Error getting product ID
       return 'auto-detect';
     }
   }
@@ -60,10 +60,10 @@
   window.getShopDomain = function() {
     try {
       const shopDomain = '{{ shop.domain }}' || '{{ shop.permanent_domain }}' || 'auto-detect';
-      console.log('🏪 CODFORM: Using shop domain:', shopDomain);
+      // Using shop domain
       return shopDomain;
     } catch (error) {
-      console.error('❌ CODFORM: Error getting shop domain:', error);
+      // Error getting shop domain
       return 'auto-detect';
     }
   }
@@ -81,7 +81,7 @@
   function renderField(field, formStyle, formLanguage) {
     if (!field || !field.type) return '';
     
-    console.log('🎨 Rendering field:', field.type, field.id);
+    // Rendering field
     
     // Check if we're currently rendering inside a popup
     const isInPopup = window.codformCurrentlyInPopup === true;
@@ -96,7 +96,7 @@
       formDirection = 'rtl';
     }
     
-    console.log('🔄 CODFORM: Detected form direction:', formDirection, 'for language:', formLanguage);
+    // Detected form direction
     
     // Base styling configuration - Arabic forms use smaller font
     const baseFontSize = formDirection === 'rtl' ? '13px' : getStyleValue(formStyle, 'baseFontSize', '16px');
@@ -964,11 +964,11 @@
     const shopDomain = getShopDomain(); // استخدام دالة لجلب المتجر الصحيح
     
     if (!productId) {
-      console.log('❌ CODFORM: No product ID found');
+      // No product ID found
       return;
     }
 
-    console.log('🔄 CODFORM: Loading complete form for product:', productId, 'shop:', shopDomain);
+    // Loading complete form
     
     // First check if this product has an associated form
     // محاولة البحث عن النموذج المحدد للمنتج أولاً، ثم البحث عن النموذج العام
@@ -980,10 +980,10 @@
     })
     .then(response => response.json())
     .then(productSettings => {
-      console.log('🔍 CODFORM: Product settings check:', productSettings);
+      // Product settings check
       
       if (!productSettings || productSettings.length === 0) {
-        console.log('⚠️ CODFORM: No form associated with this product, hiding form');
+        // No form associated with this product
         const container = document.querySelector('[data-form-preview-id="form-preview-stable"]');
         if (container) {
           container.style.display = 'none';
@@ -993,7 +993,7 @@
       
       // Product has associated form, continue loading
       const formId = productSettings[0].form_id;
-      console.log('✅ CODFORM: Product has associated form:', formId);
+      // Product has associated form
       
       loadFormWithValidation(productId, shopDomain, formId);
     })
@@ -1008,7 +1008,7 @@
   }
   
   function loadFormWithValidation(productId, shopDomain, formId) {
-    console.log('🔄 CODFORM: Loading validated form for product:', productId, 'shop:', shopDomain, 'form:', formId);
+    // Loading validated form
     
     // Get current product data from Shopify liquid templates
     const currentProduct = {
@@ -1031,7 +1031,7 @@
       ]
     };
     
-    console.log('🛍️ CODFORM: معلومات المنتج:', currentProduct);
+    // Product info
     
     // Try multiple API endpoints for better reliability
     const apiUrls = [
@@ -1042,15 +1042,15 @@
     async function tryFetchForm() {
       for (let url of apiUrls) {
         try {
-          console.log('🔄 CODFORM: Trying API:', url);
+          // Trying API
           const response = await fetch(url);
           if (response.ok) {
             const data = await response.json();
-            console.log('✅ CODFORM: Success with:', url);
+            // API success
             return data;
           }
         } catch (error) {
-          console.log('❌ CODFORM: Failed with:', url, error);
+          // API failed
         }
       }
       throw new Error('All API endpoints failed');
@@ -1069,14 +1069,14 @@
         
         const container = document.querySelector('[data-form-preview-id="form-preview-stable"]');
         if (!container) {
-          console.log('❌ CODFORM: Form container not found');
+          // Form container not found
           return;
         }
 
         // تجنب إعادة التحميل إذا كان النموذج محمل بالفعل (لا ينطبق على النموذج المنبثق)
         const isPopupContext = document.querySelector('.codform-popup-overlay') !== null;
         if (container.dataset.formLoaded === 'true' && !isPopupContext) {
-          console.log('📝 CODFORM: Form already loaded, skipping reload to preserve quantity offers');
+          // Form already loaded
           return;
         }
 
@@ -1186,7 +1186,7 @@
         }
         
         
-        console.log('🌐 CODFORM: Detected form language:', formLanguage);
+        // Detected form language
         
         // FIXED: Apply Cairo font immediately when Arabic is detected
         if (formLanguage === 'ar') {
@@ -1296,7 +1296,7 @@
             
         // Normal mode - show the full form
         fieldsArray.forEach((field, index) => {
-          console.log(`🎨 CODFORM: Processing field ${index}:`, field);
+          // Processing field
           formContent += renderField(field, formStyle, formLanguage);
         });
         
@@ -1311,7 +1311,7 @@
         `;
           }
         } else {
-          console.log('❌ CODFORM: No valid fields array found');
+          // No valid fields array found
         }
 
         // Check if popup mode is enabled
@@ -1453,7 +1453,7 @@
   window.handleFormSubmission = async function(event) {
     event.preventDefault();
     
-    console.log('🚀 CODFORM: Form submission started');
+    // Form submission started
     
     // Get form data
     const form = event.target;
@@ -1482,14 +1482,14 @@
       }
     });
     
-    console.log('📝 CODFORM: Collected form data:', submissionData);
+    // Collected form data
     
     try {
       // Get current product info from page
       const productId = '{{ product.id }}' || '{{ product.variants.first.id }}' || DEFAULT_PRODUCT_ID;
       const shopDomain = getShopDomain(); // استخدام دالة لجلب المتجر الصحيح
       
-      console.log('🏪 CODFORM: Submitting to shop:', shopDomain, 'product:', productId);
+      // Submitting to shop
       
       // Submit to edge function
       const response = await fetch('https://trlklwixfeaexhydzaue.supabase.co/functions/v1/api-submissions', {
@@ -1508,7 +1508,7 @@
       const result = await response.json();
       
       if (result.success) {
-        console.log('✅ CODFORM: Submission successful');
+        // Submission successful
         
         // Show success message
         const submitBtn = form.querySelector('.codform-submit-btn');
@@ -1546,7 +1546,7 @@
 // Popup Modal Functions
 function openFormPopup(event) {
   if (event) event.preventDefault();
-  console.log('🎯 CODFORM: Opening form popup');
+  // Opening form popup
   
   // Create modal overlay
   const overlay = document.createElement('div');
@@ -1944,7 +1944,7 @@ window.CodformQuantityOffers = (function() {
   };
 })();
 
-console.log("✅ CodformQuantityOffers loaded and ready!");
+// CodformQuantityOffers loaded and ready!
 </script>
 <script>
 // دالة لتوليد معرف فريد للبلوك
@@ -1956,7 +1956,7 @@ function generateBlockId(productId) {
 window.openFormPopup = function(event) {
   if (event) event.preventDefault();
   
-  console.log('🚀 CODFORM: Opening popup form');
+  // Opening popup form
   
   // Create popup modal
   const popup = document.createElement('div');
