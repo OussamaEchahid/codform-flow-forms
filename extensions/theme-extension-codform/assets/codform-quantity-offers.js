@@ -20,7 +20,7 @@ window.CodformQuantityOffers = (function() {
       'OMR': 0.38,
       'JOD': 0.71,
       'LBP': 89500,
-      'MAD': 9.85,
+      'MAD': 10.0, // ✅ UNIFIED: 1 USD = 10 MAD (consistent with currency rates file)
       'TND': 3.15,
       'DZD': 134.25,
       'EUR': 0.92,

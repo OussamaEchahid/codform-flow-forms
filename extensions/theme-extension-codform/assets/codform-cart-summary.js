@@ -21,7 +21,7 @@
     
     // عملات شمال أفريقيا والمغرب العربي
     'EGP': 30.85,
-    'MAD': 9.85, // ✅ CRITICAL: 1 USD = 9.85 MAD, so 10 MAD = ~1.02 USD
+    'MAD': 10.0, // ✅ UNIFIED: 1 USD = 10 MAD (consistent with currency rates file)
     'TND': 3.15,
     'DZD': 134.25,
     
