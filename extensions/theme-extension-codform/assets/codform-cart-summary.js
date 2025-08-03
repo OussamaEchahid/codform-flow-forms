@@ -184,14 +184,15 @@
       console.log(`\n🏷️ [DEBUG] Processing cart summary ${index}:`);
       console.log('Element HTML:', summary.outerHTML.substring(0, 200) + '...');
       
-      // استخدام العملة الحقيقية فقط - بدون أي عملة افتراضية
-      const currency = cartSummaryData.productCurrency || cartSummaryData.targetCurrency;
+      // ✅ FIXED: Use target currency (form currency) for display - this is where conversion has been applied
+      const currency = cartSummaryData.targetCurrency;
       if (!currency) {
-        console.error('❌🔥 Cart Summary - NO CURRENCY AVAILABLE! Cannot display prices.');
-        summary.innerHTML = '<div style="color: red;">ERROR: No currency available</div>';
+        console.error('❌🔥 Cart Summary - NO TARGET CURRENCY! Cannot display prices.');
+        console.error('❌🔥 Cart Summary - cartSummaryData:', cartSummaryData);
+        summary.innerHTML = '<div style="color: red; padding: 10px; border: 1px solid red;">ERROR: No currency found from API</div>';
         return;
       }
-      console.log(`💱🔥 Cart Summary - Using REAL currency only: ${currency}`);
+      console.log(`💱✅ Cart Summary - Using target currency (form currency): ${currency}`);
       
       const language = summary.style.direction === 'rtl' ? 'ar' : 'en';
       console.log(`🌐 [DEBUG] Using language: ${language}`);
@@ -292,15 +293,24 @@
       const data = await response.json();
       console.log('📊 Cart Summary - API Response (quantity offers format):', data);
       
-      // حفظ عملة النموذج لاستخدامها في باقي المكونات - بدون أي عملات افتراضية
+      // ✅ FIXED: Properly save currency from API response
       if (data.success && data.currency) {
         window.CodformFormData = window.CodformFormData || {};
         window.CodformFormData.currency = data.currency;
-        console.log('💰🔥 Cart Summary - REAL FORM CURRENCY SAVED FROM API:', data.currency);
-        console.log('💰🔥 Cart Summary - API Response contains currency:', data.currency);
-        console.log('💰🔥 Cart Summary - window.CodformFormData updated:', window.CodformFormData);
+        console.log('💰✅ Cart Summary - REAL FORM CURRENCY SAVED FROM API:', data.currency);
+        console.log('💰✅ Cart Summary - window.CodformFormData.currency set to:', window.CodformFormData.currency);
+        
+        // Also save in current form data for backup
+        if (window.currentFormData) {
+          window.currentFormData.savedFormCurrency = data.currency;
+        }
+        
+        cartSummaryData.targetCurrency = data.currency;
+        console.log('💰✅ Cart Summary - Target currency updated to:', data.currency);
       } else {
-        console.error('❌🔥 Cart Summary - API Response missing currency!', data);
+        console.error('❌🔥 Cart Summary - API Response missing currency field!', data);
+        // Don't proceed if no currency - this prevents incorrect calculations
+        return null;
       }
       
       if (data.success && data.product) {
@@ -338,27 +348,31 @@
     }
   }
 
-  // دالة للحصول على العملة الحقيقية من إعدادات النموذج - بدون أي عملات افتراضية
+  // ✅ FIXED: Get real form currency from API response ONLY - no defaults
   function getRealFormCurrency() {
     console.log('🔍 Cart Summary - Searching for real form currency...');
     console.log('🔍 Cart Summary - window.CodformFormData:', window.CodformFormData);
     
-    // 1. من النموذج المحفوظ عالمياً
+    // ONLY check for currency from API response that was saved properly
     if (window.CodformFormData?.currency) {
-      console.log('✅ Cart Summary - Currency from global form data:', window.CodformFormData.currency);
+      console.log('✅ Cart Summary - REAL Currency from API:', window.CodformFormData.currency);
       return window.CodformFormData.currency;
     }
     
-    // 2. محاولة قراءة من DOM أو مصادر أخرى
-    const currencyMeta = document.querySelector('meta[name="form-currency"]');
-    if (currencyMeta?.getAttribute('content')) {
-      console.log('✅ Cart Summary - Currency from DOM meta:', currencyMeta.getAttribute('content'));
-      return currencyMeta.getAttribute('content');
+    // Check if currency was saved in saved form data (alternative location)
+    if (window.currentFormData?.savedFormCurrency) {
+      console.log('✅ Cart Summary - Currency from saved form data:', window.currentFormData.savedFormCurrency);
+      return window.currentFormData.savedFormCurrency;
     }
     
-    console.error('❌ Cart Summary - CRITICAL: No real currency found! API may not have been called yet.');
-    console.error('❌ Cart Summary - Refusing to use any default currency as requested by user.');
-    return null; // لا توجد عملة افتراضية أبداً
+    // Check form style currency (another possible location)
+    if (window.currentFormData?.form?.style?.currency) {
+      console.log('✅ Cart Summary - Currency from form style:', window.currentFormData.form.style.currency);
+      return window.currentFormData.form.style.currency;
+    }
+    
+    console.error('❌ Cart Summary - CRITICAL: No real currency found from API! Must wait for API call.');
+    return null; // NO DEFAULT CURRENCY - API must be called first
   }
 
   /**

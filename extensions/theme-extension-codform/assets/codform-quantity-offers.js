@@ -227,80 +227,61 @@ window.CodformQuantityOffers = (function() {
       console.log("🛍️ Using global product data:", actualProductData);
     }
     
-    // ✅ CRITICAL: Get form currency for display - this is the TARGET currency
-    let targetFormCurrency = formCurrency || window.CodformFormData?.currency;
+    // ✅ FIXED: Get form currency for display - this is the TARGET currency for conversion
+    let targetFormCurrency = formCurrency || window.CodformFormData?.currency || window.currentFormData?.savedFormCurrency;
     
-    console.log('💰🔥 Quantity Offers - Form currency parameter:', formCurrency);
-    console.log('💰🔥 Quantity Offers - Final currency used:', targetFormCurrency);
-    console.log('💰🔥 Quantity Offers - window.CodformFormData:', window.CodformFormData);
+    console.log('💰✅ Quantity Offers - Form currency parameter:', formCurrency);
+    console.log('💰✅ Quantity Offers - window.CodformFormData.currency:', window.CodformFormData?.currency);
+    console.log('💰✅ Quantity Offers - currentFormData.savedFormCurrency:', window.currentFormData?.savedFormCurrency);
+    console.log('💰✅ Quantity Offers - Final target currency:', targetFormCurrency);
     
     // ✅ STRICT CURRENCY CHECK - NO DEFAULTS ALLOWED
     if (!targetFormCurrency) {
-      console.error('❌🔥 Quantity Offers - CRITICAL ERROR: No currency from API or form settings!');
-      console.error('❌🔥 Quantity Offers - formCurrency parameter:', formCurrency);
-      console.error('❌🔥 Quantity Offers - window.CodformFormData.currency:', window.CodformFormData?.currency);
-      container.innerHTML = '<div style="color: red; padding: 10px; border: 2px solid red; background: #ffebee; margin: 10px; border-radius: 4px; font-weight: bold;">❌ ERROR: No currency found from API or form settings. API call required first.</div>';
+      console.error('❌🔥 Quantity Offers - CRITICAL ERROR: No currency from API response!');
+      console.error('❌🔥 Quantity Offers - Must call forms-product API first to get currency');
+      container.innerHTML = '<div style="color: red; padding: 10px; border: 2px solid red; background: #ffebee; margin: 10px; border-radius: 4px; font-weight: bold;">❌ ERROR: No currency from API. Calling API first...</div>';
       return;
     }
     
-    // ✅ CRITICAL: Get PRODUCT price and currency from Shopify
+    // ✅ FIXED: Get REAL product price and currency from Shopify data
     let productPrice = null;
     let productCurrency = null; // This should be the ACTUAL product currency from Shopify
     
     if (actualProductData && actualProductData.price) {
       productPrice = parseFloat(actualProductData.price);
-      productCurrency = actualProductData.currency || 'MAD'; // Default to MAD if not found
-      console.log("💰🔥 Quantity Offers - Price from product data:", productPrice, productCurrency);
+      productCurrency = actualProductData.currency;
+      console.log("💰✅ Quantity Offers - REAL Price from API product data:", productPrice, productCurrency);
     } else if (actualProductData && actualProductData.variants && actualProductData.variants.length > 0) {
-      // إذا كان المنتج له variants، استخدم سعر أول variant
+      // If product has variants, use first variant price
       const firstVariant = actualProductData.variants[0];
       if (firstVariant.price) {
         productPrice = parseFloat(firstVariant.price);
-        productCurrency = firstVariant.currency || actualProductData.currency || 'MAD';
-        console.log("💰🔥 Quantity Offers - Price from variant:", productPrice, productCurrency);
-      }
-    } else {
-      // محاولة الحصول على السعر من DOM إذا لم تكن البيانات متوفرة
-      try {
-        const priceElement = document.querySelector('.price, [class*="price"], [data-price]');
-        if (priceElement) {
-          const priceText = priceElement.textContent || priceElement.getAttribute('data-price');
-          const priceMatch = priceText.match(/[\d,]+\.?\d*/);
-          if (priceMatch) {
-            productPrice = parseFloat(priceMatch[0].replace(',', ''));
-            productCurrency = 'MAD'; // Default for this store
-            console.log("💰🔥 Quantity Offers - Price from DOM:", productPrice, productCurrency);
-          }
-        }
-      } catch (e) {
-        console.log("⚠️🔥 Quantity Offers - Could not extract price from DOM");
+        productCurrency = firstVariant.currency || actualProductData.currency;
+        console.log("💰✅ Quantity Offers - REAL Price from variant:", productPrice, productCurrency);
       }
     }
     
-    // التحقق من وجود السعر والعملة
-    if (!productPrice || productPrice <= 0) {
-      console.error('❌🔥 Quantity Offers - CRITICAL: No valid product price available!');
-      container.innerHTML = '<div style="color: red; padding: 10px; border: 1px solid red;">ERROR: No valid product price found.</div>';
+    // ✅ CRITICAL: If no product data, this means API hasn't been called yet
+    if (!productPrice || productPrice <= 0 || !productCurrency) {
+      console.error('❌🔥 Quantity Offers - CRITICAL: No valid product data from API!');
+      console.error('❌🔥 Quantity Offers - This means forms-product API was not called first');
+      console.error('❌🔥 Quantity Offers - productPrice:', productPrice);
+      console.error('❌🔥 Quantity Offers - productCurrency:', productCurrency);
+      container.innerHTML = '<div style="color: red; padding: 10px; border: 1px solid red;">ERROR: No product data from API. API call required first.</div>';
       return;
     }
     
-    if (!productCurrency) {
-      console.error('❌🔥 Quantity Offers - CRITICAL: No product currency available!');
-      container.innerHTML = '<div style="color: red; padding: 10px; border: 1px solid red;">ERROR: No product currency found.</div>';
-      return;
-    }
-    
-    // ✅ CRITICAL: Convert product price to form currency
+    // ✅ FIXED: Convert product price from Shopify currency to form currency
     const realPrice = convertCurrency(productPrice, productCurrency, targetFormCurrency);
     const finalCurrency = targetFormCurrency; // Display in form currency
     
-    console.log("💰🔥 Quantity Offers - REAL Product Price Logic:", {
+    console.log("💰✅ Quantity Offers - CONVERSION LOGIC FIXED:", {
       originalProductPrice: productPrice,
-      productCurrency: productCurrency, 
+      shopifyProductCurrency: productCurrency,
       targetFormCurrency: targetFormCurrency,
       convertedPrice: realPrice,
-      finalCurrency: finalCurrency,
-      note: 'Converting FROM product currency TO form currency'
+      finalDisplayCurrency: finalCurrency,
+      conversionNote: `Converting ${productPrice} ${productCurrency} → ${realPrice.toFixed(2)} ${targetFormCurrency}`
     });
     
     // بيانات المنتج

@@ -1360,9 +1360,14 @@
         // تحديد أن النموذج تم تحميله
         container.dataset.formLoaded = 'true';
         
-        // CRITICAL: Save form currency BEFORE it gets lost
-        const formCurrency = data.form?.style?.currency || data.form?.style?.formCurrency || 'SAR';
-        console.log('💰 [CURRENCY FIX] Extracted form currency:', formCurrency);
+        // ✅ FIXED: Save form currency properly from API
+        const formCurrency = data.currency || data.form?.style?.currency || data.form?.style?.formCurrency;
+        console.log('💰✅ [CURRENCY FIX] Extracted form currency from API:', formCurrency);
+        
+        // ✅ CRITICAL: Save currency in window.CodformFormData immediately
+        window.CodformFormData = window.CodformFormData || {};
+        window.CodformFormData.currency = formCurrency;
+        console.log('💰✅ [CURRENCY FIX] window.CodformFormData.currency set to:', window.CodformFormData.currency);
         
         // حفظ بيانات النموذج مع العملة للاستخدام مع عروض الكمية
         window.currentFormData = data;
