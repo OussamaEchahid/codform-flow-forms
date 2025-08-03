@@ -234,6 +234,15 @@ window.CodformQuantityOffers = (function() {
     console.log('💰🔥 Quantity Offers - Form currency from window:', productCurrency);
     console.log('💰🔥 Quantity Offers - window.CodformFormData:', window.CodformFormData);
     
+    // ✅ STRICT CURRENCY CHECK - NO DEFAULTS ALLOWED
+    if (!productCurrency) {
+      console.error('❌🔥 Quantity Offers - CRITICAL ERROR: No currency from form settings!');
+      console.error('❌🔥 Quantity Offers - window.CodformFormData.currency is undefined');
+      console.error('❌🔥 Quantity Offers - Form API must be called first to set currency');
+      container.innerHTML = '<div style="color: red; padding: 10px; border: 2px solid red; background: #ffebee; margin: 10px; border-radius: 4px; font-weight: bold;">❌ ERROR: No currency found from form settings. API call required first.</div>';
+      return;
+    }
+    
     // محاولة الحصول على السعر الحقيقي من مصادر متعددة - بدون أي قيم افتراضية
     if (actualProductData && actualProductData.price) {
       productPrice = parseFloat(actualProductData.price);
@@ -263,13 +272,7 @@ window.CodformQuantityOffers = (function() {
       }
     }
     
-    // التحقق من وجود العملة والسعر قبل المتابعة
-    if (!productCurrency) {
-      console.error('❌🔥 Quantity Offers - CRITICAL: No form currency available!');
-      console.error('❌🔥 Quantity Offers - API must be called first to get currency from form settings.');
-      container.innerHTML = '<div style="color: red; padding: 10px; border: 1px solid red;">ERROR: No currency found from form settings. API call required.</div>';
-      return;
-    }
+    // التحقق من وجود السعر (تم التحقق من العملة مسبقاً)
     
     if (!productPrice || productPrice <= 0) {
       console.error('❌🔥 Quantity Offers - CRITICAL: No valid product price available!');
