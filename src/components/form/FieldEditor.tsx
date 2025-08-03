@@ -6,6 +6,7 @@ import ImageFieldEditor from './editor/ImageFieldEditor';
 import TextFieldEditor from './editor/TextFieldEditor';
 import SubmitButtonEditor from './editor/SubmitButtonEditor';
 import CountdownFieldEditor from './editor/CountdownFieldEditor';
+import CartSummaryFieldEditor from './editor/CartSummaryFieldEditor';
 
 interface FieldEditorProps {
   field: FormField;
@@ -58,6 +59,15 @@ const FieldEditor = ({ field, onSave, onClose }: FieldEditorProps) => {
       case 'countdown':
         return (
           <CountdownFieldEditor
+            field={currentField}
+            onSave={handleSaveField}
+            onClose={onClose}
+          />
+        );
+      
+      case 'cart-summary':
+        return (
+          <CartSummaryFieldEditor
             field={currentField}
             onSave={handleSaveField}
             onClose={onClose}

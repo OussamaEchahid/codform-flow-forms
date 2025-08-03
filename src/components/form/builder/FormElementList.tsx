@@ -44,6 +44,11 @@ const FormElementList: React.FC<FormElementListProps> = ({ onAddElement }) => {
       icon: '🛒' 
     },
     { 
+      type: 'cart-summary', 
+      label: language === 'ar' ? 'ملخص السلة' : 'Cart Summary', 
+      icon: '📊' 
+    },
+    { 
       type: 'whatsapp', 
       label: language === 'ar' ? 'زر واتساب' : 'WhatsApp Button', 
       icon: '💬' 
