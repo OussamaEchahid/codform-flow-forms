@@ -22,6 +22,7 @@
 <script src="{{ 'codform-image-field.js' | asset_url }}"></script>
 <script src="{{ 'codform-whatsapp-field.js' | asset_url }}"></script>
 <script src="{{ 'codform-countdown-field.js' | asset_url }}"></script>
+<script src="{{ 'codform-cart-summary.js' | asset_url }}"></script>
 
 <div id="codform-popup-button-container" style="display: none;">
   
@@ -815,6 +816,17 @@
     {%- comment -%} Countdown Timer Field {%- endcomment -%}
     else if (field.type === 'countdown') {
       html = renderCountdownField(field, formStyle, formLanguage);
+    }
+    {%- comment -%} Cart Summary Field {%- endcomment -%}
+    else if (field.type === 'cart-summary') {
+      html = `{% include 'cart-summary', field: ${JSON.stringify(field)}, formDirection: '${formDirection}' %}`;
+      
+      // Initialize cart summary after rendering
+      setTimeout(() => {
+        if (window.codformCartSummary) {
+          window.codformCartSummary.initialize(field, formStyle);
+        }
+      }, 100);
     }
     
     return html;
