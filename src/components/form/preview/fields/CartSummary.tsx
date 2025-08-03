@@ -74,6 +74,60 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
     };
   };
 
+  // وظيفة تحويل العملة
+  const convertCurrency = (amount: number, fromCurrency: string, toCurrency: string) => {
+    if (fromCurrency === toCurrency) return amount;
+    
+    // أسعار صرف شاملة لجميع العملات المدعومة
+    const exchangeRates: { [key: string]: number } = {
+      'USD': 1.0,
+      'EUR': 0.92,
+      'GBP': 0.79,
+      'CAD': 1.43,
+      'AUD': 1.57,
+      'SAR': 3.75,
+      'AED': 3.67,
+      'EGP': 30.85,
+      'QAR': 3.64,
+      'KWD': 0.31,
+      'BHD': 0.38,
+      'OMR': 0.38,
+      'JOD': 0.71,
+      'LBP': 89500,
+      'MAD': 9.85,
+      'TND': 3.15,
+      'DZD': 134.25,
+      'MXN': 20.15,
+      'BRL': 6.05,
+      'ARS': 350.50,
+      'CLP': 950.75,
+      'COP': 4250.30,
+      'PEN': 3.75,
+      'VES': 36.50,
+      'UYU': 39.85,
+      'IQD': 1470.25,
+      'IRR': 42000.00,
+      'TRY': 29.75,
+      'ILS': 3.70,
+      'SYP': 12500.00,
+      'YER': 250.75,
+      'NGN': 850.25,
+      'ZAR': 18.95,
+      'KES': 155.30,
+      'GHS': 15.85,
+      'ETB': 120.50,
+      'TZS': 2500.75,
+      'UGX': 3750.25,
+      'ZWL': 350.00,
+      'ZMW': 26.85,
+      'RWF': 1350.50
+    };
+    
+    const fromRate = exchangeRates[fromCurrency] || 1;
+    const toRate = exchangeRates[toCurrency] || 1;
+    return (amount / fromRate) * toRate;
+  };
+
   // Calculate prices using useMemo to prevent infinite loops
   const prices = useMemo(() => {
     console.log('🔍 Cart Summary Debug:', {
@@ -87,10 +141,21 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
     });
     
     if (productData && productData.variants && productData.variants.length > 0) {
-      const basePrice = parseFloat(productData.variants[0].price) || 0;
-      const currency = formCurrency || formStyle.currency || productData.currency || 'SAR';
-      console.log('💰 Using real product price:', basePrice, 'Currency:', currency);
-      return calculatePrices(basePrice, productData, config, currency);
+      const originalPrice = parseFloat(productData.variants[0].price) || 0;
+      const productCurrency = productData.currency || 'USD';
+      const targetCurrency = formCurrency || formStyle.currency || 'SAR';
+      
+      // تحويل السعر قبل الحسابات
+      const convertedPrice = convertCurrency(originalPrice, productCurrency, targetCurrency);
+      
+      console.log('💰 Currency conversion applied:', {
+        originalPrice,
+        productCurrency,
+        targetCurrency,
+        convertedPrice
+      });
+      
+      return calculatePrices(convertedPrice, productData, config, targetCurrency);
     }
     
     // Only show demo prices when not using auto calculation
@@ -140,79 +205,14 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
   const formatPrice = (amount: number) => {
     const currency = formCurrency || formStyle.currency || 'SAR';
     
-    // Convert price if needed from product currency to form currency
-    let convertedAmount = amount;
-    if (productData?.variants && productData.variants[0]?.price) {
-      const productCurrency = productData.currency || 'USD';
-      if (productCurrency !== currency) {
-        // أسعار صرف شاملة لجميع العملات المدعومة
-        const exchangeRates: { [key: string]: number } = {
-          'USD': 1.0,
-          'EUR': 0.92,
-          'GBP': 0.79,
-          'CAD': 1.43,
-          'AUD': 1.57,
-          'SAR': 3.75,
-          'AED': 3.67,
-          'EGP': 30.85,
-          'QAR': 3.64,
-          'KWD': 0.31,
-          'BHD': 0.38,
-          'OMR': 0.38,
-          'JOD': 0.71,
-          'LBP': 89500,
-          'MAD': 9.85,
-          'TND': 3.15,
-          'DZD': 134.25,
-          'MXN': 20.15,
-          'BRL': 6.05,
-          'ARS': 350.50,
-          'CLP': 950.75,
-          'COP': 4250.30,
-          'PEN': 3.75,
-          'VES': 36.50,
-          'UYU': 39.85,
-          'IQD': 1470.25,
-          'IRR': 42000.00,
-          'TRY': 29.75,
-          'ILS': 3.70,
-          'SYP': 12500.00,
-          'YER': 250.75,
-          'NGN': 850.25,
-          'ZAR': 18.95,
-          'KES': 155.30,
-          'GHS': 15.85,
-          'ETB': 120.50,
-          'TZS': 2500.75,
-          'UGX': 3750.25,
-          'ZWL': 350.00,
-          'ZMW': 26.85,
-          'RWF': 1350.50
-        };
-        
-        const fromRate = exchangeRates[productCurrency] || 1;
-        const toRate = exchangeRates[currency] || 1;
-        convertedAmount = (amount / fromRate) * toRate;
-        
-        console.log('💱 Currency conversion:', {
-          original: amount,
-          from: productCurrency,
-          to: currency,
-          converted: convertedAmount,
-          fromRate,
-          toRate
-        });
-      }
-    }
-    
     try {
       return new Intl.NumberFormat(language === 'ar' ? 'ar-SA' : 'en-US', {
         style: 'currency',
         currency: currency,
         minimumFractionDigits: 2
-      }).format(convertedAmount);
+      }).format(amount);
     } catch (error) {
-      return `${convertedAmount.toFixed(2)} ${currency}`;
+      return `${amount.toFixed(2)} ${currency}`;
     }
   };
   
