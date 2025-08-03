@@ -81,7 +81,7 @@ const FormField: React.FC<FormFieldProps> = ({
       return <SubmitButton field={enhancedField} formStyle={formStyle} onClick={onClick} disabled={disabled} />;
     
     case 'cart-items':
-      return <CartItems field={enhancedField} formStyle={formStyle} productId={productId} />;
+      return <CartItems field={enhancedField} formStyle={formStyle} productId={productId} formCurrency={formCurrency} />;
     
     case 'cart-summary':
       return <CartSummary field={enhancedField} formStyle={formStyle} productId={productId} formCurrency={formCurrency} />;

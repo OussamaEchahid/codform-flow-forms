@@ -146,7 +146,9 @@ const CartItems: React.FC<CartItemsProps> = ({ field, formStyle, productId, form
       console.log('💰 Cart Items Currency conversion:', {
         originalPrice,
         productCurrency,
-        targetCurrency
+        targetCurrency,
+        formCurrency,
+        formStyleCurrency: formStyle.currency
       });
       
       // تحويل السعر إلى العملة المطلوبة
