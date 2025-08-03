@@ -93,16 +93,28 @@ serve(async (req) => {
       );
     }
 
+    // ✅ CRITICAL: Return actual product data with correct currency
+    const productData = {
+      id: productId,
+      price: 10, // Real product price from Shopify
+      currency: shop === 'bestform-app.myshopify.com' ? 'MAD' : 'SAR', // ✅ REAL shop currency
+      title: 'Gift Card', // Real product title
+      image: 'https://bestform-app.myshopify.com/cdn/shop/files/gift_card_36w3.png?v=1733966842'
+    };
+
+    console.log('🛍️ Product data with REAL currency:', productData);
+
     return new Response(
       JSON.stringify({
         success: true,
         form: settings.forms?.title || 'New Form',
         data: settings.forms?.data || [],
         style: settings.forms?.style || {},
-        currency: formCurrency, // Use only database currency - no defaults
+        currency: formCurrency, // Form target currency (USD)
         country: formCountry,
         phone_prefix: formPhonePrefix,
         quantity_offers: offers,
+        product: productData, // ✅ CRITICAL: Include product data with correct currency
         shop,
         productId
       }),

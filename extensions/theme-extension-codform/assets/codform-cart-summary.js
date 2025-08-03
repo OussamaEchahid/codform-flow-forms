@@ -320,13 +320,16 @@
       }
       
       if (data.success && data.product) {
-        // Use the same logic as quantity offers
+        // ✅ CRITICAL: Use the same product data structure as quantity offers
         const price = parseFloat(data.product.price) || 0;
         const currency = data.product.currency || 'SAR';
         
-        console.log('💰 Cart Summary - Using real product data like quantity offers:', {
+        console.log('💰✅ Cart Summary - REAL PRODUCT DATA FROM API:', {
           price: price,
           currency: currency,
+          shopCurrency: currency,
+          formCurrency: data.currency,
+          conversionRequired: currency !== data.currency,
           source: 'forms-product API (same as quantity offers)'
         });
         
@@ -334,9 +337,11 @@
         cartSummaryData.productPrice = price;
         cartSummaryData.productCurrency = currency;
         
-        console.log('✅ Cart Summary - Updated with real product data:', {
+        console.log('✅ Cart Summary - Updated with REAL product data:', {
           productPrice: cartSummaryData.productPrice,
-          productCurrency: cartSummaryData.productCurrency
+          productCurrency: cartSummaryData.productCurrency,
+          targetCurrency: cartSummaryData.targetCurrency,
+          willConvertFrom: `${cartSummaryData.productCurrency} TO ${cartSummaryData.targetCurrency}`
         });
         
         // Update display

@@ -243,31 +243,35 @@ window.CodformQuantityOffers = (function() {
       return;
     }
     
-    // ✅ FIXED: Get REAL product price and currency from Shopify data
+    // ✅ CRITICAL FIX: Get product data from API response with correct currency
     let productPrice = null;
-    let productCurrency = null; // This should be the ACTUAL product currency from Shopify
+    let productCurrency = null;
     
-    if (actualProductData && actualProductData.price) {
+    // ✅ FORCE: Use only API product data - no fallbacks to avoid wrong currency
+    if (actualProductData && actualProductData.price && actualProductData.currency) {
       productPrice = parseFloat(actualProductData.price);
-      productCurrency = actualProductData.currency;
-      console.log("💰✅ Quantity Offers - REAL Price from API product data:", productPrice, productCurrency);
-    } else if (actualProductData && actualProductData.variants && actualProductData.variants.length > 0) {
-      // If product has variants, use first variant price
-      const firstVariant = actualProductData.variants[0];
-      if (firstVariant.price) {
-        productPrice = parseFloat(firstVariant.price);
-        productCurrency = firstVariant.currency || actualProductData.currency;
-        console.log("💰✅ Quantity Offers - REAL Price from variant:", productPrice, productCurrency);
-      }
+      productCurrency = actualProductData.currency; // This MUST be MAD from API
+      console.log("💰✅ FIXED - Using API product data:", {
+        price: productPrice,
+        currency: productCurrency,
+        source: 'API response only'
+      });
+    } else {
+      console.error('❌🔥 CRITICAL: API must return product data with currency!');
+      console.error('❌🔥 actualProductData:', actualProductData);
+      container.innerHTML = '<div style="color: red; padding: 10px; border: 2px solid red; background: #ffebee; margin: 10px; border-radius: 4px; font-weight: bold;">❌ ERROR: API not returning product data with currency</div>';
+      return;
     }
     
-    // ✅ CRITICAL: If no product data, this means API hasn't been called yet
+    // ✅ VERIFICATION: Ensure we have correct data before conversion
     if (!productPrice || productPrice <= 0 || !productCurrency) {
-      console.error('❌🔥 Quantity Offers - CRITICAL: No valid product data from API!');
-      console.error('❌🔥 Quantity Offers - This means forms-product API was not called first');
-      console.error('❌🔥 Quantity Offers - productPrice:', productPrice);
-      console.error('❌🔥 Quantity Offers - productCurrency:', productCurrency);
-      container.innerHTML = '<div style="color: red; padding: 10px; border: 1px solid red;">ERROR: No product data from API. API call required first.</div>';
+      console.error('❌🔥 FINAL CHECK FAILED:', {
+        productPrice,
+        productCurrency,
+        hasValidPrice: productPrice > 0,
+        hasValidCurrency: !!productCurrency
+      });
+      container.innerHTML = '<div style="color: red; padding: 10px; border: 1px solid red;">ERROR: Invalid product data after API call</div>';
       return;
     }
     
