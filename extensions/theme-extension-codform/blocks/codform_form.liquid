@@ -44,61 +44,37 @@
 (function() {
   'use strict';
   
-  // Form initialization started
-  
   const API_BASE_URL = 'https://lovable-forms-api.netlify.app/.netlify/functions/api-forms';
   const DEFAULT_PRODUCT_ID = 'default';
 
-  {%- comment -%}
-  ===============================================================================
-  4. UTILITY FUNCTIONS
-  ===============================================================================
-  {%- endcomment -%}
   function getProductId() {
     try {
-      const productId = '{{ product.id }}' || '{{ product.variants.first.id }}' || '{{ block.settings.product_id }}' || 'auto-detect';
-      // Product ID detected
-      return productId.trim();
+      return ('{{ product.id }}' || '{{ product.variants.first.id }}' || '{{ block.settings.product_id }}' || 'auto-detect').trim();
     } catch (error) {
-      // Error getting product ID
       return 'auto-detect';
     }
   }
 
   window.getShopDomain = function() {
     try {
-      const shopDomain = '{{ shop.domain }}' || '{{ shop.permanent_domain }}' || 'auto-detect';
-      // Using shop domain
-      return shopDomain;
+      return '{{ shop.domain }}' || '{{ shop.permanent_domain }}' || 'auto-detect';
     } catch (error) {
-      // Error getting shop domain
       return 'auto-detect';
     }
   }
 
-  // ✅ CRITICAL: Store the real shop currency globally for correct conversions
   window.CodformShopCurrency = '{{ shop.currency }}';
-  console.log('💰 Real shop currency set:', window.CodformShopCurrency);
 
   function getStyleValue(style, property, fallback) {
     if (!style || typeof style !== 'object') return fallback;
     return style[property] || fallback;
   }
 
-  {%- comment -%}
-  ===============================================================================
-  5. FIELD RENDERING FUNCTIONS
-  ===============================================================================
-  {%- endcomment -%}
   function renderField(field, formStyle, formLanguage) {
     if (!field || !field.type) return '';
     
-    // Rendering field
-    
-    // Check if we're currently rendering inside a popup
     const isInPopup = window.codformCurrentlyInPopup === true;
     
-    // Determine form direction - better detection
     let formDirection = 'ltr';
     if (formStyle && formStyle.formDirection) {
       formDirection = formStyle.formDirection;
@@ -107,8 +83,6 @@
     } else if (field.label && /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(field.label)) {
       formDirection = 'rtl';
     }
-    
-    // Detected form direction
     
     // Base styling configuration - Arabic forms use smaller font
     const baseFontSize = formDirection === 'rtl' ? '13px' : getStyleValue(formStyle, 'baseFontSize', '16px');
@@ -296,30 +270,6 @@
             />
           </div>
           
-          <style>
-            .codform-field-wrapper input::placeholder,
-            .codform-field-wrapper textarea::placeholder,
-            input[type="text"]::placeholder,
-            input[type="email"]::placeholder,
-            input[type="tel"]::placeholder,
-            input[type="number"]::placeholder,
-            input[placeholder]::placeholder,
-            textarea[placeholder]::placeholder {
-              font-family: ${formDirection === 'rtl' ? "'Cairo', 'Noto Sans Arabic', sans-serif" : "'Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', sans-serif"} !important;
-              font-size: 15px !important;
-              opacity: 0.7 !important;
-              font-weight: 400 !important;
-            }
-            
-            .codform-field-wrapper input,
-            .codform-field-wrapper textarea,
-            input[type="text"],
-            input[type="email"],
-            input[type="tel"],
-            input[type="number"] {
-              font-family: ${formDirection === 'rtl' ? "'Cairo', 'Noto Sans Arabic', sans-serif" : "'Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', sans-serif"} !important;
-            }
-          </style>
           
           ${field.helpText ? `
             <p style="
@@ -461,22 +411,15 @@
         }
       }
       
-      // Determine what settings to use based on context
       let finalButtonText, finalBgColor, finalTextColor, finalFontSize, finalBorderRadius;
       let finalAnimation = '';
-      
-      // If popup mode is enabled AND we're NOT in the popup (main page button), use popup button settings
-      // If we're IN the popup, use normal submit button settings
-      // Apply styles for submit button
       if (isPopupMode && !isInPopup && formStyle.popupButton) {
-        // Main page popup trigger button - use popup button settings
         finalButtonText = formStyle.popupButton.text || buttonText;
         finalBgColor = formStyle.popupButton.backgroundColor || formStyle?.primaryColor || 'rgb(155, 135, 245)';
         finalTextColor = formStyle.popupButton.textColor || 'rgb(255, 255, 255)';
         finalFontSize = formStyle.popupButton.fontSize || '16px';
         finalBorderRadius = formStyle.popupButton.borderRadius || '8px';
         
-        // Apply popup animation if set
         if (formStyle.popupButton.animation && formStyle.popupButton.animation !== 'none') {
           switch (formStyle.popupButton.animation) {
             case 'pulse': finalAnimation = 'pulse-animation'; break;
@@ -488,7 +431,6 @@
           }
         }
       } else {
-        // Normal submit button OR popup form submit button - use submit button settings
         const baseFontSize = formDirection === 'rtl' ? '13px' : getStyleValue(formStyle, 'baseFontSize', '16px');
         finalButtonText = buttonText;
         finalBgColor = getStyleValue(buttonStyle, 'backgroundColor', formStyle?.primaryColor || 'rgb(155, 135, 245)');
@@ -498,35 +440,29 @@
         finalAnimation = animationClass;
       }
       
-      // Other styling
       const buttonWidth = getStyleValue(buttonStyle, 'width', '100%');
       const buttonMinHeight = getStyleValue(buttonStyle, 'minHeight', 'auto');
       const buttonBoxShadow = getStyleValue(buttonStyle, 'boxShadow', 'none');
       const buttonBorderWidth = getStyleValue(buttonStyle, 'borderWidth', '0px');
       const buttonBorderColor = getStyleValue(buttonStyle, 'borderColor', 'transparent');
-      // Get padding values directly from field style - respect form builder settings
-      // Helper function to ensure proper px format
+      
       const ensurePxFormat = (value, defaultValue) => {
         if (value === undefined || value === null) return defaultValue;
         const strValue = String(value);
-        if (strValue.endsWith('px')) return strValue;
-        return strValue + 'px';
+        return strValue.endsWith('px') ? strValue : strValue + 'px';
       };
       
       const buttonPaddingY = ensurePxFormat(field.style?.paddingY, '0px');
       const buttonPaddingX = ensurePxFormat(field.style?.paddingX, '24px');
       
       const buttonBorder = buttonBorderWidth !== '0px' && buttonBorderColor !== 'transparent' 
-        ? `${buttonBorderWidth} solid ${buttonBorderColor}` 
-        : 'none';
+        ? `${buttonBorderWidth} solid ${buttonBorderColor}` : 'none';
       const buttonPadding = `${buttonPaddingY} ${buttonPaddingX}`;
       
-      // Font weight handling
       const labelWeight = getStyleValue(buttonStyle, 'labelWeight', null);
       const fontWeight = getStyleValue(buttonStyle, 'fontWeight', null);
       const actualButtonFontWeight = labelWeight || fontWeight || '700';
       
-      // Icon handling
       const hasIcon = field.icon && field.icon !== 'none' && field.icon !== '';
       const showIcon = (isPopupMode && !isInPopup) ? 
         (formStyle.popupButton?.showIcon !== false) : 
@@ -536,18 +472,12 @@
       let iconHtml = '';
       if (showIcon && hasIcon) {
         const iconSvg = getIconSvg(field.icon, iconColor);
-        const iconMargin = 'margin-right: 8px;';
-        iconHtml = `<span style="${iconMargin} display: inline-flex; align-items: center;">${iconSvg}</span>`;
+        iconHtml = `<span style="margin-right: 8px; display: inline-flex; align-items: center;">${iconSvg}</span>`;
       }
       
       const buttonContent = `${iconHtml}${finalButtonText}`;
-      
-      // Button click handler - different for popup vs normal
-      // If popup mode is enabled AND we're NOT in popup, this should open popup
-      // If we're in popup or no popup mode, this should submit the form
       const clickHandler = (isPopupMode && !isInPopup) ? 
-        'onclick="openFormPopup(event)"' : 
-        'type="submit"';
+        'onclick="openFormPopup(event)"' : 'type="submit"';
       
       html = `
         <div class="codform-submit-wrapper" style="
@@ -2379,12 +2309,12 @@ function decreaseCartQuantity(button) {
   }
 }
 
-// وظائف زيادة وتقليل الكمية للعروض
+}
+
 function increaseQuantity(button) {
   const quantitySpan = button.previousElementSibling;
   let currentQuantity = parseInt(quantitySpan.textContent);
   quantitySpan.textContent = currentQuantity + 1;
-  console.log('Offer quantity increased to:', currentQuantity + 1);
 }
 
 function decreaseQuantity(button) {
@@ -2392,10 +2322,6 @@ function decreaseQuantity(button) {
   let currentQuantity = parseInt(quantitySpan.textContent);
   if (currentQuantity > 1) {
     quantitySpan.textContent = currentQuantity - 1;
-    console.log('Offer quantity decreased to:', currentQuantity - 1);
   }
 }
 </script>
-
-<!-- تحميل ملف معدلات الصرف قبل استخدامه -->
-<script src="{{ 'codform-currency-rates.js' | asset_url }}"></script>
