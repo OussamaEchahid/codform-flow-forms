@@ -865,7 +865,22 @@
       // Initialize cart summary after rendering
       setTimeout(() => {
         if (window.codformCartSummary) {
+          console.log('🛒 Initializing cart summary for field:', field);
           window.codformCartSummary.initialize(field, formStyle);
+          
+          // Force load product data immediately if auto-calculate is enabled
+          if (field.config && field.config.autoCalculate) {
+            const productId = '{{ product.id }}' || 'auto-detect';
+            const shopDomain = '{{ shop.permanent_domain }}' || 'auto-detect';
+            console.log('🛒 Auto-loading product data:', { productId, shopDomain });
+            
+            // Load product data
+            setTimeout(() => {
+              if (window.codformCartSummary.loadProductData) {
+                window.codformCartSummary.loadProductData(productId, shopDomain);
+              }
+            }, 500);
+          }
         }
       }, 100);
     }

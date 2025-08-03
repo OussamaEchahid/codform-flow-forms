@@ -281,6 +281,7 @@
     initialize: initializeCartSummary,
     updateQuantity: updateCartSummaryQuantity,
     updatePrices: updateCartSummary,
+    loadProductData: loadProductData,  // Export loadProductData function
     setProductData: function(price, currency) {
       cartSummaryData.productPrice = price;
       cartSummaryData.productCurrency = currency;
