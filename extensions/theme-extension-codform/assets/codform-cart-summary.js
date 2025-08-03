@@ -174,7 +174,7 @@
         return;
       }
       
-      const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-products-fixed`, {
+      const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-products`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -182,7 +182,7 @@
         },
         body: JSON.stringify({
           shop: currentShopDomain,
-          productId: currentProductId
+          productIds: [currentProductId]
         })
       });
       
