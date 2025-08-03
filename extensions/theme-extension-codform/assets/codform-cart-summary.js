@@ -165,76 +165,105 @@
    */
   async function loadProductData(productId, shopDomain) {
     try {
-      console.log('🛒 Cart Summary - Loading product data:', { productId, shopDomain });
+      console.log('🛒 [DEBUG] Cart Summary - Loading product data:', { productId, shopDomain });
       
       // Always try to get current values first
       const currentProductId = window.getProductId ? window.getProductId() : productId;
       const currentShopDomain = window.getShopDomain ? window.getShopDomain() : shopDomain;
       
-      console.log('🛒 Cart Summary - Using values:', { 
+      console.log('🛒 [DEBUG] Cart Summary - Using values:', { 
         productId: currentProductId, 
-        shopDomain: currentShopDomain 
+        shopDomain: currentShopDomain,
+        windowFunctions: {
+          getProductId: typeof window.getProductId,
+          getShopDomain: typeof window.getShopDomain
+        }
       });
       
       // If we still can't detect, use fallback values
       if (!currentProductId || currentProductId === 'auto-detect' || 
           !currentShopDomain || currentShopDomain === 'auto-detect') {
-        console.log('❌ Cart Summary - Could not detect product/shop, using manual price');
+        console.log('❌ [DEBUG] Cart Summary - Could not detect product/shop, using manual price');
+        console.log('❌ [DEBUG] Cart Summary - Current cartSummaryData:', cartSummaryData);
         updateCartSummary();
         return;
       }
       
-      const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-products`, {
+      console.log('🔄 [DEBUG] Cart Summary - Making API call to shopify-products');
+      
+      const apiUrl = `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-products`;
+      const requestBody = {
+        shop: currentShopDomain,
+        productIds: [currentProductId]
+      };
+      
+      console.log('📡 [DEBUG] Cart Summary - API Request:', {
+        url: apiUrl,
+        body: requestBody
+      });
+      
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M'
         },
-        body: JSON.stringify({
-          shop: currentShopDomain,
-          productIds: [currentProductId]
-        })
+        body: JSON.stringify(requestBody)
       });
       
+      console.log('📥 [DEBUG] Cart Summary - Response status:', response.status);
+      
       if (!response.ok) {
-        console.error('❌ Cart Summary - HTTP Error:', response.status);
+        console.error('❌ [DEBUG] Cart Summary - HTTP Error:', response.status);
         throw new Error(`HTTP ${response.status}`);
       }
       
       const data = await response.json();
-      console.log('🛒 Cart Summary - API Response:', data);
-      
-      console.log('🛒 Cart Summary - Raw API Response:', data);
+      console.log('📦 [DEBUG] Cart Summary - Full API Response:', JSON.stringify(data, null, 2));
       
       if (data.success && data.products && data.products.length > 0) {
         const product = data.products[0];
-        console.log('🛒 Cart Summary - Product found:', product);
+        console.log('✅ [DEBUG] Cart Summary - Product found:', {
+          title: product.title,
+          id: product.id,
+          variants: product.variants?.length || 0
+        });
         
         // Get price from variants
         const price = product.variants && product.variants.length > 0 
           ? parseFloat(product.variants[0].price) 
           : 0;
         
-        console.log('🛒 Cart Summary - BEFORE UPDATE:', {
+        const currency = product.variants[0]?.currency_code || 'SAR';
+        
+        console.log('💰 [DEBUG] Cart Summary - Price extraction:', {
+          rawPrice: product.variants[0]?.price,
+          parsedPrice: price,
+          currency: currency
+        });
+        
+        console.log('🔄 [DEBUG] Cart Summary - BEFORE UPDATE:', {
           oldPrice: cartSummaryData.productPrice,
           oldCurrency: cartSummaryData.productCurrency,
           newPrice: price,
-          newCurrency: product.variants[0]?.currency_code
+          newCurrency: currency
         });
         
         // Update cart summary data with real product price
         cartSummaryData.productPrice = price;
-        cartSummaryData.productCurrency = product.variants[0]?.currency_code || 'SAR';
+        cartSummaryData.productCurrency = currency;
         
-        console.log('🛒 Cart Summary - AFTER UPDATE:', {
+        console.log('✅ [DEBUG] Cart Summary - AFTER UPDATE:', {
           productPrice: cartSummaryData.productPrice,
           productCurrency: cartSummaryData.productCurrency,
           productTitle: product.title
         });
         
         // Force update display with new price
+        console.log('🔄 [DEBUG] Cart Summary - Calling updateCartSummary()...');
         updateCartSummary();
-        console.log('🛒 Cart Summary - updateCartSummary() called');
+        console.log('✅ [DEBUG] Cart Summary - updateCartSummary() completed');
+        
       } else if (data.products && data.products.length > 0) {
         // Fallback for old API response format
         const product = data.products[0];
@@ -245,18 +274,20 @@
         cartSummaryData.productPrice = price;
         cartSummaryData.productCurrency = product.variants[0]?.currency_code || 'MAD';
         
-        console.log('💰 Cart Summary - Fallback product data loaded:', {
+        console.log('💰 [DEBUG] Cart Summary - Fallback product data loaded:', {
           price: cartSummaryData.productPrice,
           currency: cartSummaryData.productCurrency
         });
         
         updateCartSummary();
       } else {
-        console.error('❌ Cart Summary - No product data in response:', data);
+        console.error('❌ [DEBUG] Cart Summary - No product data in response:', data);
+        console.error('❌ [DEBUG] Cart Summary - API returned no products');
         updateCartSummary();
       }
     } catch (error) {
-      console.error('❌ Cart Summary - Error loading product data:', error);
+      console.error('❌ [DEBUG] Cart Summary - Error loading product data:', error);
+      console.error('❌ [DEBUG] Cart Summary - Error details:', error.message);
       updateCartSummary();
     }
   }
