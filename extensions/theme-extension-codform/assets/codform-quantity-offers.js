@@ -229,7 +229,7 @@ window.CodformQuantityOffers = (function() {
     
     // الحصول على السعر الحقيقي للمنتج وعملته من البيانات الفعلية
     let productPrice = 10.0; // قيمة افتراضية
-    let productCurrency = 'MAD'; // عملة افتراضية
+    let productCurrency = window.CodformFormData?.currency || 'MAD'; // من إعدادات النموذج
     
     // محاولة الحصول على السعر الحقيقي من مصادر متعددة
     if (actualProductData && actualProductData.price) {
@@ -701,18 +701,25 @@ window.CodformQuantityOffers = (function() {
       const data = await response.json();
       console.log("📊 API Response:", data);
       
+      // حفظ عملة النموذج لاستخدامها في باقي المكونات
+      if (data.success && data.currency) {
+        window.CodformFormData = window.CodformFormData || {};
+        window.CodformFormData.currency = data.currency;
+        console.log('💰 Quantity Offers - Form currency saved:', data.currency);
+      }
+      
       if (data.success && data.quantity_offers && data.quantity_offers.offers && data.quantity_offers.offers.length > 0) {
         console.log("✅ Found quantity offers and product data");
         
         const actualProductId = data.quantity_offers.product_id || productId;
         console.log("🎯 Using actual product ID:", actualProductId);
         
-        // عرض العروض مع البيانات الحقيقية من API
+        // عرض العروض مع البيانات الحقيقية من API باستخدام العملة من إعدادات النموذج
         displayQuantityOffers(
           data.quantity_offers, 
           blockId, 
           actualProductId,
-          data.form?.currency || 'SAR',
+          data.currency || 'MAD', // استخدام العملة من إعدادات النموذج
           data.product,
           formDirection
         );

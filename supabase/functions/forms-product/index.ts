@@ -80,6 +80,9 @@ serve(async (req) => {
         form: settings.forms?.title || 'New Form',
         data: settings.forms?.data || [],
         style: settings.forms?.style || {},
+        currency: settings.forms?.currency || 'MAD',
+        country: settings.forms?.country || 'MA',
+        phone_prefix: settings.forms?.phone_prefix || '+212',
         quantity_offers: offers,
         shop,
         productId

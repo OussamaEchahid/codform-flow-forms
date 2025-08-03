@@ -287,6 +287,13 @@
       const data = await response.json();
       console.log('📊 Cart Summary - API Response (quantity offers format):', data);
       
+      // حفظ عملة النموذج لاستخدامها في باقي المكونات
+      if (data.success && data.currency) {
+        window.CodformFormData = window.CodformFormData || {};
+        window.CodformFormData.currency = data.currency;
+        console.log('💰 Cart Summary - Form currency saved:', data.currency);
+      }
+      
       if (data.success && data.product) {
         // Use the same logic as quantity offers
         const price = parseFloat(data.product.price) || 0;
@@ -367,7 +374,7 @@
     
     // الحصول على السعر الحقيقي للمنتج وعملته من البيانات الفعلية
     let productPrice = parseFloat(config.productPrice) || 0;
-    let productCurrency = 'MAD'; // نفس quantity offers
+    let productCurrency = window.CodformFormData?.currency || 'MAD'; // من إعدادات النموذج
     
     // محاولة الحصول على السعر الحقيقي من مصادر متعددة مثل quantity offers
     if (actualProductData && actualProductData.price) {
