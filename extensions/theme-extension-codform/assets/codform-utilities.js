@@ -5,10 +5,10 @@
 function getProductId() {
   try {
     const productId = '{{ product.id }}' || '{{ product.variants.first.id }}' || '{{ block.settings.product_id }}' || 'auto-detect';
-    // Product ID detected
+    console.log('🔍 معرف المنتج المكتشف:', productId);
     return productId.trim();
   } catch (error) {
-    // Error getting product ID
+    console.error('❌ CODFORM: Error getting product ID:', error);
     return 'auto-detect';
   }
 }
@@ -16,10 +16,10 @@ function getProductId() {
 window.getShopDomain = function() {
   try {
     const shopDomain = '{{ shop.domain }}' || '{{ shop.permanent_domain }}' || 'auto-detect';
-    // Using shop domain
+    console.log('🏪 CODFORM: Using shop domain:', shopDomain);
     return shopDomain;
   } catch (error) {
-    // Error getting shop domain
+    console.error('❌ CODFORM: Error getting shop domain:', error);
     return 'auto-detect';
   }
 }

@@ -155,7 +155,7 @@
    */
   async function loadProductData(productId, shopDomain) {
     try {
-      // Loading product data for cart summary
+      console.log('🛒 CODFORM: Loading product data for cart summary:', productId);
       
       const response = await fetch(`https://lovable-forms-api.netlify.app/.netlify/functions/shopify-products?shop=${shopDomain}&productId=${productId}`);
       
@@ -177,13 +177,16 @@
         cartSummaryData.productPrice = price;
         cartSummaryData.productCurrency = data.shop?.currency || 'SAR';
         
-        // Product data loaded
+        console.log('🛒 CODFORM: Product data loaded:', {
+          price: cartSummaryData.productPrice,
+          currency: cartSummaryData.productCurrency
+        });
         
         // Update display
         updateCartSummary();
       }
     } catch (error) {
-      // Error loading product data for cart summary
+      console.error('❌ CODFORM: Error loading product data for cart summary:', error);
     }
   }
 
@@ -235,5 +238,5 @@
     }
   };
 
-  // Cart Summary module loaded
+  console.log('🛒 CODFORM: Cart Summary module loaded');
 })();
