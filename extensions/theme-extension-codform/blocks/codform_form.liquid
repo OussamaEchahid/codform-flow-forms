@@ -25,6 +25,8 @@
 <script src="{{ 'codform-countdown-field.js' | asset_url }}"></script>
 <script src="{{ 'codform-cart-summary.js' | asset_url }}"></script>
 
+{% render 'cart-summary-handler' %}
+
 <div id="codform-popup-button-container" style="display: none;">
   
 </div>
@@ -824,106 +826,34 @@
     }
     {%- comment -%} Cart Summary Field {%- endcomment -%}
     else if (field.type === 'cart-summary') {
-      // Cart summary field with inline HTML (no include tag allowed in app blocks)
-      const config = field.cartSummaryConfig || field.config || {};
-      const currency = config.currency || 'MAD'; // الافتراضي للدرهم المغربي
-      const subtotalLabel = formDirection === 'rtl' ? 'المجموع الفرعي' : 'Subtotal';
-      const discountLabel = formDirection === 'rtl' ? 'الخصم' : 'Discount';
-      const shippingLabel = formDirection === 'rtl' ? 'الشحن' : 'Shipping';
-      const totalLabel = formDirection === 'rtl' ? 'المجموع الكامل' : 'Total';
+      // Use modular cart summary handler
+      html = window.CodformCartSummaryHandler.renderCartSummary(field, formStyle, formLanguage);
       
-      html = `
-        <div class="cart-summary-field" data-currency="${currency}" style="
-          background: #f9fafb;
-          border: 1px solid #e5e7eb;
-          border-radius: 8px;
-          padding: 16px;
-          margin: 16px 0;
-          direction: ${formDirection};
-          font-family: Cairo, Arial, sans-serif;
-        ">
-          <div class="summary-row" style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-            <span style="color: #6b7280;">${subtotalLabel}:</span>
-            <span class="subtotal-value" data-amount="">...</span>
-          </div>
-          
-          <div class="summary-row discount-row" style="display: none; justify-content: space-between; margin-bottom: 8px;">
-            <span style="color: #ef4444;">${discountLabel}:</span>
-            <span class="discount-value" data-amount="0" style="color: #ef4444;">-0.00 ${currency}</span>
-          </div>
-          
-          <div class="summary-row" style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-            <span style="color: #6b7280;">${shippingLabel}:</span>
-            <span class="shipping-value" data-amount="0">${formDirection === 'rtl' ? 'مجاني' : 'Free'}</span>
-          </div>
-          
-          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 12px 0;">
-          
-          <div class="summary-row" style="display: flex; justify-content: space-between; font-weight: 600; font-size: 18px;">
-            <span style="color: #1f2937;">${totalLabel}:</span>
-            <span class="total-value" data-amount="" style="color: #059669;">...</span>
-          </div>
-        </div>
-      `;
-      
-      // ✅ NEW: Initialize cart summary with REAL API data (SAME METHOD AS QUANTITY OFFERS)
+      // Initialize cart summary with API data
       setTimeout(async () => {
-        if (window.codformCartSummary) {
-          console.log('🛒 Initializing cart summary for field:', field);
+        const productId = '{{ product.id }}' || 'auto-detect';
+        const shopDomain = '{{ shop.permanent_domain }}' || 'auto-detect';
+        
+        try {
+          const apiUrl = `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/forms-product?shop=${encodeURIComponent(shopDomain)}&product=${encodeURIComponent(productId)}`;
+          const response = await fetch(apiUrl);
           
-          // ✅ CRITICAL: Use API to get REAL form currency (same as quantity offers)
-          const productId = '{{ product.id }}' || 'auto-detect';
-          const shopDomain = '{{ shop.permanent_domain }}' || 'auto-detect';
-          
-          console.log('🌐 Cart Summary - Loading real currency from API:', { productId, shopDomain });
-          
-          try {
-            // ✅ Call the SAME API that quantity offers use for REAL currency
-            const apiUrl = `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/forms-product?shop=${encodeURIComponent(shopDomain)}&product=${encodeURIComponent(productId)}`;
+          if (response.ok) {
+            const data = await response.json();
+            const formCurrency = window.CodformCartSummaryHandler.getRealFormCurrency(data);
             
-            const response = await fetch(apiUrl);
-            if (response.ok) {
-              const data = await response.json();
-              console.log('💰✅ Cart Summary - REAL API Response:', data);
-              
-              if (data.success && data.currency) {
-                // ✅ Save REAL currency from API (same format as quantity offers)
-                window.CodformFormData = window.CodformFormData || {};
-                window.CodformFormData.currency = data.currency;
-                console.log('💰✅ Cart Summary - REAL currency saved:', data.currency);
-                
-                // ✅ Pass REAL product data if available
-                if (data.product) {
-                  console.log('🛍️ Cart Summary - Setting REAL product data:', data.product);
-                  window.codformCartSummary.setProductData(
-                    parseFloat(data.product.price) || 0,
-                    data.product.currency || 'USD'
-                  );
-                }
-                
-                // ✅ Initialize with REAL API currency
-                const cartSummaryFormStyle = {
-                  currency: data.currency // Use REAL API currency
-                };
-                
-                console.log('✅ Cart Summary - Initializing with REAL API data:', cartSummaryFormStyle);
-                window.codformCartSummary.initialize(field, cartSummaryFormStyle);
-                
-              } else {
-                console.error('❌ Cart Summary - API missing currency data:', data);
-                // Fallback initialization without real data
-                window.codformCartSummary.initialize(field, formStyle);
-              }
-            } else {
-              console.error('❌ Cart Summary - API call failed:', response.status);
-              // Fallback initialization
-              window.codformCartSummary.initialize(field, formStyle);
+            if (formCurrency && data.product) {
+              const fieldId = field.id || 'cart-summary-' + Math.random().toString(36).substr(2, 9);
+              window.CodformCartSummaryHandler.initializeCartSummary(
+                fieldId,
+                data.product,
+                formCurrency,
+                field.config || {}
+              );
             }
-          } catch (error) {
-            console.error('❌ Cart Summary - API error:', error);
-            // Fallback initialization
-            window.codformCartSummary.initialize(field, formStyle);
           }
+        } catch (error) {
+          console.error('❌ Cart Summary - API error:', error);
         }
       }, 100);
     }
