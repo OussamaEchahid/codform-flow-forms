@@ -407,26 +407,17 @@
     cartSummaryData.discountValue = parseFloat(config.discountValue) || 0;
     cartSummaryData.shippingCost = parseFloat(config.shippingCost) || 0;
     
-    // FINAL FIX: Extract target currency from correct API path
+    // FINAL FIX: Use saved form currency 
     let targetCurrency = 'SAR'; // Default fallback
     
-    // DEBUG: Print the actual data structure
-    console.log('🚨 [FINAL DEBUG] Full window.currentFormData:', window.currentFormData);
-    console.log('🚨 [FINAL DEBUG] window.currentFormData?.form:', window.currentFormData?.form);
-    console.log('🚨 [FINAL DEBUG] window.currentFormData?.form?.style:', window.currentFormData?.form?.style);
-    
-    // Try multiple sources for target currency - CORRECT API PATH
+    // Get currency from the preserved form data
     const possibleSources = [
-      window.currentFormData?.form?.style?.currency,      // CORRECT: Form style currency from API
-      window.currentFormData?.form?.style?.formCurrency,  // CORRECT: Form currency from API style  
-      window.currentFormData?.form?.style?.country,       // CORRECT: Form style country from API
-      formStyle?.formCurrency,                           // Passed from form style
-      formStyle?.currency,                               // General form style currency
-      formStyle?.targetCurrency,                         // Target currency from style
-      config.currency,                                   // Field config currency
-      config.targetCurrency,                             // Field config target
-      config.country,                                    // Field config country
-      formStyle?.country                                 // Form style country
+      window.currentFormData?.savedFormCurrency,         // PRIORITY: Saved form currency
+      window.currentFormData?.form?.style?.currency,     // Original form currency from API
+      window.currentFormData?.form?.style?.formCurrency, // Original form currency alt
+      window.currentFormData?.productData?.formCurrency, // Saved currency in product data
+      formStyle?.formCurrency,                          // Passed from form style
+      formStyle?.currency                               // General form style currency
     ];
     
     console.log('🔍 [TARGET CURRENCY DEBUG] Checking possible sources:', possibleSources);

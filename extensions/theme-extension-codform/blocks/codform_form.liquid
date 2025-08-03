@@ -1356,8 +1356,13 @@
         // تحديد أن النموذج تم تحميله
         container.dataset.formLoaded = 'true';
         
+        // CRITICAL: Save form currency BEFORE it gets lost
+        const formCurrency = data.form?.style?.currency || data.form?.style?.formCurrency || 'SAR';
+        console.log('💰 [CURRENCY FIX] Extracted form currency:', formCurrency);
+        
         // حفظ بيانات النموذج مع العملة للاستخدام مع عروض الكمية
         window.currentFormData = data;
+        window.currentFormData.savedFormCurrency = formCurrency;
 
         // تحميل عروض الكمية بعد تحميل النموذج  
         console.log('🎯 Starting quantity offers loading...');
@@ -2192,8 +2197,10 @@ document.addEventListener('DOMContentLoaded', function() {
         
         console.log("🛍️ تمرير بيانات المنتج لعروض الكمية:", productData);
         
-        // حفظ بيانات المنتج في متغير عام لاستخدامها في النافذة المنبثقة
-        window.currentFormData = Object.assign(window.currentFormData || {}, productData);
+        // CRITICAL: Preserve form data and add product data without overwriting
+        window.currentFormData = window.currentFormData || {};
+        window.currentFormData.productData = productData;
+        window.currentFormData.productData.formCurrency = window.currentFormData.savedFormCurrency;
         
         window.CodformQuantityOffers.loadAndDisplayOffers(blockId, productId, shopDomain, formCurrency, productData, formDirection);
         formContainer.dataset.quantityOffersLoaded = 'true';
