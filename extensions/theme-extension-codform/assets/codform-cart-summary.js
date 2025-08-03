@@ -24,8 +24,8 @@
   };
 
   let cartSummaryData = {
-    productPrice: 0,
-    productCurrency: 'SAR',
+    productPrice: null,
+    productCurrency: null,
     targetCurrency: 'SAR',
     discountType: 'percentage',
     discountValue: 0,
@@ -68,6 +68,16 @@
    */
   function calculatePrices() {
     const { productPrice, productCurrency, targetCurrency, discountType, discountValue, shippingCost } = cartSummaryData;
+    
+    // Don't calculate if product data is not loaded yet
+    if (productPrice === null || productCurrency === null) {
+      return {
+        subtotal: 0,
+        discount: 0,
+        shipping: 0,
+        total: 0
+      };
+    }
     
     // Convert product price to target currency
     const convertedPrice = convertCurrency(productPrice, productCurrency, targetCurrency);
