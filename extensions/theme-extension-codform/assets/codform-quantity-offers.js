@@ -8,8 +8,6 @@ window.CodformQuantityOffers = (function() {
 
   // دالة تحويل العملة مع الأسعار الدقيقة والصحيحة لجميع الدول
   function convertCurrency(amount, fromCurrency, toCurrency) {
-    console.log(`🔄 Starting conversion: ${amount} from ${fromCurrency} to ${toCurrency}`);
-    
     // معدلات التحويل الدقيقة والصحيحة لجميع العملات المدعومة
     const exchangeRates = {
       'USD': 1.0,
@@ -61,7 +59,6 @@ window.CodformQuantityOffers = (function() {
     
     // إذا كانت نفس العملة
     if (fromCurrency === toCurrency) {
-      console.log(`✅ Same currency, returning: ${amount} ${toCurrency}`);
       return amount;
     }
     
@@ -73,12 +70,9 @@ window.CodformQuantityOffers = (function() {
       // تحويل للدولار أولاً ثم للعملة المطلوبة
       const usdAmount = amount / fromRate;
       const convertedAmount = usdAmount * toRate;
-      console.log(`✅ CONVERSION SUCCESS: ${amount} ${fromCurrency} → ${convertedAmount.toFixed(2)} ${toCurrency}`);
-      console.log(`🔄 Via USD: ${amount} → ${usdAmount.toFixed(4)} USD → ${convertedAmount.toFixed(2)} ${toCurrency}`);
       return convertedAmount;
     }
     
-    console.warn(`❌ CONVERSION FAILED: No rate for ${fromCurrency} to ${toCurrency}, using original amount`);
     return amount;
   }
 
@@ -368,7 +362,7 @@ window.CodformQuantityOffers = (function() {
 
     // عرض العروض مع التخطيط المطابق للمعاينة بالضبط
     offers.forEach((offer, index) => {
-      // حساب السعر النهائي مع الخصم
+      // ✅ CORRECT PRICE CALCULATION - Using the converted price (realPrice)
       let totalPrice = realPrice * (offer.quantity || 1);
       let originalPrice = totalPrice;
       let savingsPercentage = 0;
@@ -387,16 +381,6 @@ window.CodformQuantityOffers = (function() {
 
       const isDiscounted = savingsPercentage > 0;
       const isHighlighted = index === 1;
-
-      console.log("💰 Price calculation:", {
-        quantity: offer.quantity,
-        realPrice,
-        originalPrice,
-        discountType,
-        discountValue,
-        finalTotalPrice: totalPrice,
-        savingsPercentage
-      });
 
       // عنصر العرض - نفس التصميم والحجم بالضبط من المعاينة
       const offerElement = document.createElement('div');
