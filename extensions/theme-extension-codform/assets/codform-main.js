@@ -6,7 +6,7 @@
 (function() {
   'use strict';
   
-  const API_BASE_URL = 'https://lovable-forms-api.netlify.app/.netlify/functions/api-forms';
+  const API_BASE_URL = 'https://trlklwixfeaexhydzaue.supabase.co/functions/v1/api-forms-proxy';
   const DEFAULT_PRODUCT_ID = 'default';
 
   // Main form rendering function
