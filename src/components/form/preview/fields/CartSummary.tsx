@@ -68,19 +68,32 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
 
   // Calculate prices using useMemo to prevent infinite loops
   const prices = useMemo(() => {
+    console.log('🔍 Cart Summary Debug:', {
+      productData,
+      autoCalculate: config.autoCalculate,
+      productId,
+      formCurrency,
+      formStyleCurrency: formStyle.currency,
+      productCurrency: productData?.currency,
+      variants: productData?.variants
+    });
+    
     if (productData && productData.variants && productData.variants.length > 0) {
       const basePrice = parseFloat(productData.variants[0].price) || 0;
       const currency = formCurrency || formStyle.currency || productData.currency || 'SAR';
+      console.log('💰 Using real product price:', basePrice, 'Currency:', currency);
       return calculatePrices(basePrice, productData, config, currency);
     }
     
     // Only show demo prices when not using auto calculation
     if (!config.autoCalculate) {
       const demoPrice = 99.00;
+      console.log('🎭 Using demo price:', demoPrice);
       return calculatePrices(demoPrice, null, config, formCurrency || formStyle.currency || 'SAR');
     }
     
     // Show loading state when auto calculation is enabled but no product data yet
+    console.log('⏳ Waiting for product data...');
     return { subtotal: 0, discount: 0, shipping: 0, total: 0 };
   }, [productData, config, formCurrency, formStyle.currency]);
 
