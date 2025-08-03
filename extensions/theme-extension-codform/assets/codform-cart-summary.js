@@ -79,33 +79,22 @@
    * Convert currency amount
    */
   function convertCurrency(amount, fromCurrency, toCurrency) {
-    console.log(`💱 [CONVERSION DEBUG] Converting ${amount} from ${fromCurrency} to ${toCurrency}`);
-    
+    // ✅ CRITICAL FIX: Same currency = no conversion needed
     if (fromCurrency === toCurrency) {
-      console.log(`💱 [CONVERSION DEBUG] Same currency, no conversion needed: ${amount}`);
       return amount;
     }
     
     const fromRate = EXCHANGE_RATES[fromCurrency];
     const toRate = EXCHANGE_RATES[toCurrency];
     
-    console.log(`💱 [CONVERSION DEBUG] Exchange rates - ${fromCurrency}: ${fromRate}, ${toCurrency}: ${toRate}`);
-    
-    if (!fromRate) {
-      console.error(`❌ [CONVERSION ERROR] Exchange rate not found for ${fromCurrency}`);
-      return amount; // Return original amount if exchange rate not found
+    if (!fromRate || !toRate) {
+      console.warn(`Currency rate missing: ${fromCurrency}=${fromRate}, ${toCurrency}=${toRate}`);
+      return amount;
     }
     
-    if (!toRate) {
-      console.error(`❌ [CONVERSION ERROR] Exchange rate not found for ${toCurrency}`);
-      return amount; // Return original amount if exchange rate not found
-    }
-    
-    // ✅ FIXED: Convert through USD as base (same logic as quantity offers)
+    // Convert through USD as base
     const usdAmount = amount / fromRate;
     const convertedAmount = usdAmount * toRate;
-    
-    console.log(`💱 [CONVERSION DEBUG] ${amount} ${fromCurrency} → ${usdAmount.toFixed(4)} USD → ${convertedAmount.toFixed(2)} ${toCurrency}`);
     
     return convertedAmount;
   }
@@ -128,38 +117,22 @@
   }
 
   /**
-   * Calculate all prices - updated for State Manager integration
+   * Calculate all prices - simplified for same currency handling
    */
   function calculatePrices() {
-    // استخدام State Manager إذا كان متاحاً للحصول على السعر الصحيح
     const state = window.CodformStateManager ? window.CodformStateManager.getState() : null;
     
     let effectivePrice;
     if (state && state.finalPrice !== null) {
-      // استخدام السعر من State Manager (يتضمن العروض)
       effectivePrice = state.finalPrice;
-      console.log('💰 Cart Summary using State Manager price:', effectivePrice);
     } else {
-      // استخدام السعر المحلي كاحتياطي
       effectivePrice = cartSummaryData.productPrice;
-      console.log('💰 Cart Summary using local price:', effectivePrice);
     }
     
     const { productCurrency, targetCurrency, discountType, discountValue, shippingCost } = cartSummaryData;
     
-    console.log(`🧮 [CALC DEBUG] Starting price calculation:`, {
-      effectivePrice,
-      productCurrency,
-      targetCurrency,
-      discountType,
-      discountValue,
-      shippingCost,
-      usingStateManager: !!state
-    });
-    
     // Don't calculate if product data is not loaded yet
     if (effectivePrice === null || productCurrency === null) {
-      console.log(`⚠️ [CALC DEBUG] Product data not loaded yet, returning zeros`);
       return {
         subtotal: 0,
         discount: 0,
@@ -168,10 +141,13 @@
       };
     }
     
-    // Convert effective price to target currency
-    console.log(`🔄 [CALC DEBUG] Converting effective price from ${productCurrency} to ${targetCurrency}`);
-    const convertedPrice = convertCurrency(effectivePrice, productCurrency, targetCurrency);
-    console.log(`✅ [CALC DEBUG] Effective price converted: ${effectivePrice} ${productCurrency} → ${convertedPrice} ${targetCurrency}`);
+    // ✅ CRITICAL FIX: Check if currencies match - no conversion needed
+    let convertedPrice;
+    if (productCurrency === targetCurrency) {
+      convertedPrice = effectivePrice; // Same currency - use price directly
+    } else {
+      convertedPrice = convertCurrency(effectivePrice, productCurrency, targetCurrency);
+    }
     
     // Calculate discount
     let discountAmount = 0;
@@ -199,99 +175,48 @@
   }
 
   /**
-   * Update cart summary display
+   * Update cart summary display - reduced logging
    */
   function updateCartSummary() {
-    console.log('🔄 [DEBUG] updateCartSummary called');
-    console.log('💰 [DEBUG] Current cartSummaryData:', JSON.stringify(cartSummaryData, null, 2));
-    
     const cartSummaries = document.querySelectorAll('.cart-summary-field');
-    console.log(`🔍 [DEBUG] Found ${cartSummaries.length} elements with .cart-summary-field`);
     
     if (cartSummaries.length === 0) {
-      console.log('❌ [DEBUG] No cart summary fields found with class .cart-summary-field');
-      // Try alternative selectors
-      const altFields = document.querySelectorAll('[data-field-type*="total"], [data-field-type*="subtotal"], [data-field-type*="shipping"], [data-field-type*="discount"]');
-      console.log(`🔍 [DEBUG] Alternative search found ${altFields.length} elements with data-field-type containing price terms`);
-      
-      // Debug: show all elements that might be cart summary related
-      const allElements = document.querySelectorAll('*');
-      console.log(`📊 [DEBUG] Total elements on page: ${allElements.length}`);
-      
-      // Look for any element with "cart" or "summary" in class/id
-      const possibleElements = Array.from(allElements).filter(el => {
-        const className = el.className || '';
-        const id = el.id || '';
-        return className.includes('cart') || className.includes('summary') || 
-               id.includes('cart') || id.includes('summary');
-      });
-      console.log(`🎯 [DEBUG] Elements with 'cart' or 'summary' in class/id:`, possibleElements.length);
-      possibleElements.forEach((el, i) => {
-        if (i < 10) { // Limit to first 10 to avoid spam
-          console.log(`   ${i}: ${el.tagName}.${el.className}#${el.id}`);
-        }
-      });
-      
       return;
     }
     
     const prices = calculatePrices();
-    console.log('💵 [DEBUG] Calculated prices:', JSON.stringify(prices, null, 2));
+    const currency = cartSummaryData.targetCurrency;
     
-    cartSummaries.forEach((summary, index) => {
-      console.log(`\n🏷️ [DEBUG] Processing cart summary ${index}:`);
-      console.log('Element HTML:', summary.outerHTML.substring(0, 200) + '...');
-      
-      // ✅ FIXED: Use target currency (form currency) for display - this is where conversion has been applied
-      const currency = cartSummaryData.targetCurrency;
-      if (!currency) {
-        console.error('❌🔥 Cart Summary - NO TARGET CURRENCY! Cannot display prices.');
-        console.error('❌🔥 Cart Summary - cartSummaryData:', cartSummaryData);
-        summary.innerHTML = '<div style="color: red; padding: 10px; border: 1px solid red;">ERROR: No currency found from API</div>';
-        return;
-      }
-      console.log(`💱✅ Cart Summary - Using target currency (form currency): ${currency}`);
-      
+    if (!currency) {
+      console.error('❌ Cart Summary - No target currency found');
+      return;
+    }
+    
+    cartSummaries.forEach((summary) => {
       const language = summary.style.direction === 'rtl' ? 'ar' : 'en';
-      console.log(`🌐 [DEBUG] Using language: ${language}`);
       
       // Update subtotal
       const subtotalElement = summary.querySelector('.subtotal-value');
-      console.log(`🔍 [DEBUG] Subtotal element:`, subtotalElement);
       if (subtotalElement) {
-        const formattedSubtotal = formatCurrency(prices.subtotal, currency, language);
-        console.log(`💰 [DEBUG] Updating subtotal: ${subtotalElement.textContent} → ${formattedSubtotal}`);
-        subtotalElement.textContent = formattedSubtotal;
+        subtotalElement.textContent = formatCurrency(prices.subtotal, currency, language);
         subtotalElement.dataset.amount = prices.subtotal;
-        console.log(`✅ [DEBUG] Subtotal updated successfully`);
-      } else {
-        console.log(`❌ [DEBUG] Subtotal element not found with .subtotal-value`);
       }
       
       // Update discount
       const discountElement = summary.querySelector('.discount-value');
       const discountRow = summary.querySelector('.discount-row');
-      console.log(`🔍 [DEBUG] Discount element:`, discountElement);
-      console.log(`🔍 [DEBUG] Discount row:`, discountRow);
       if (discountElement && discountRow) {
         if (prices.discount > 0) {
-          const formattedDiscount = '-' + formatCurrency(prices.discount, currency, language);
-          console.log(`💰 [DEBUG] Updating discount: ${discountElement.textContent} → ${formattedDiscount}`);
-          discountElement.textContent = formattedDiscount;
+          discountElement.textContent = '-' + formatCurrency(prices.discount, currency, language);
           discountElement.dataset.amount = prices.discount;
           discountRow.style.display = 'flex';
-          console.log(`✅ [DEBUG] Discount updated and shown`);
         } else {
           discountRow.style.display = 'none';
-          console.log(`ℹ️ [DEBUG] No discount, hiding row`);
         }
-      } else {
-        console.log(`❌ [DEBUG] Discount elements not found`);
       }
       
       // Update shipping
       const shippingElement = summary.querySelector('.shipping-value');
-      console.log(`🔍 [DEBUG] Shipping element:`, shippingElement);
       if (shippingElement) {
         let formattedShipping;
         if (prices.shipping === 0) {
@@ -299,29 +224,17 @@
         } else {
           formattedShipping = formatCurrency(prices.shipping, currency, language);
         }
-        console.log(`💰 [DEBUG] Updating shipping: ${shippingElement.textContent} → ${formattedShipping}`);
         shippingElement.textContent = formattedShipping;
         shippingElement.dataset.amount = prices.shipping;
-        console.log(`✅ [DEBUG] Shipping updated successfully`);
-      } else {
-        console.log(`❌ [DEBUG] Shipping element not found with .shipping-value`);
       }
       
       // Update total
       const totalElement = summary.querySelector('.total-value');
-      console.log(`🔍 [DEBUG] Total element:`, totalElement);
       if (totalElement) {
-        const formattedTotal = formatCurrency(prices.total, currency, language);
-        console.log(`💰 [DEBUG] Updating total: ${totalElement.textContent} → ${formattedTotal}`);
-        totalElement.textContent = formattedTotal;
+        totalElement.textContent = formatCurrency(prices.total, currency, language);
         totalElement.dataset.amount = prices.total;
-        console.log(`✅ [DEBUG] Total updated successfully`);
-      } else {
-        console.log(`❌ [DEBUG] Total element not found with .total-value`);
       }
     });
-    
-    console.log('🎯 [DEBUG] updateCartSummary completed');
   }
 
   /**
@@ -375,44 +288,20 @@
         // ✅ CRITICAL: Use the same product data structure as quantity offers
         const price = parseFloat(data.product.price) || 0;
         
-        // ✅ FIXED: If store and form have the same currency, use that instead of product currency
-        let currency = data.product.currency || 'SAR';
+        // ✅ CRITICAL FIX: Use form currency directly when currencies match
+        const productCurrency = data.product.currency || 'SAR';
+        const formCurrency = data.currency;
         
-        // ✅ CRITICAL: Check if both store and form use the same currency - if so, no conversion needed
-        if (data.currency && data.product.currency !== data.currency) {
-          // Only convert if currencies are different
-          console.log(`🔄 Currency conversion needed: Product ${data.product.currency} → Form ${data.currency}`);
-          currency = data.product.currency;
-        } else if (data.currency && data.product.currency === data.currency) {
-          // Same currency - no conversion needed, treat product as having form currency
-          console.log(`✅ Same currency detected: Product and Form both use ${data.currency} - no conversion needed`);
-          currency = data.currency;
-        }
-        
-        console.log('💰✅ Cart Summary - REAL PRODUCT DATA FROM API:', {
-          price: price,
-          currency: currency,
-          originalProductCurrency: data.product.currency,
-          formCurrency: data.currency,
-          conversionRequired: currency !== data.currency,
-          source: 'forms-product API (same as quantity offers)'
-        });
+        // If currencies match, treat product as having form currency (no conversion)
+        const finalCurrency = (productCurrency === formCurrency) ? formCurrency : productCurrency;
         
         // Update cart summary data with real product data
         cartSummaryData.productPrice = price;
-        cartSummaryData.productCurrency = currency;
-        
-        console.log('✅ Cart Summary - Updated with REAL product data:', {
-          productPrice: cartSummaryData.productPrice,
-          productCurrency: cartSummaryData.productCurrency,
-          targetCurrency: cartSummaryData.targetCurrency,
-          willConvertFrom: `${cartSummaryData.productCurrency} TO ${cartSummaryData.targetCurrency}`
-        });
+        cartSummaryData.productCurrency = finalCurrency;
         
         // تحديث State Manager مع بيانات المنتج الحقيقية
         if (window.CodformStateManager) {
-          window.CodformStateManager.setProductData(price, currency, data.currency);
-          console.log('✅ Cart Summary - State Manager updated with real product data');
+          window.CodformStateManager.setProductData(price, finalCurrency, formCurrency);
         }
         
         // Update display
@@ -430,18 +319,14 @@
     }
   }
 
-  // ✅ ENHANCED: Get real form currency using SAME method as quantity offers
+  // Get real form currency
   function getRealFormCurrency() {
-    console.log('🔍 Cart Summary - Searching for real form currency (same method as quantity offers)...');
-    console.log('🔍 Cart Summary - window.CodformFormData:', window.CodformFormData);
-    
-    // ✅ PRIMARY: Check for currency from API response (same as quantity offers)
+    // Primary: Check for currency from API response
     if (window.CodformFormData?.currency) {
-      console.log('✅ Cart Summary - REAL Currency from API (primary):', window.CodformFormData.currency);
       return window.CodformFormData.currency;
     }
     
-    // ✅ SECONDARY: Check if currency was saved in form data (backup location)
+    // Secondary: Check if currency was saved in form data
     if (window.currentFormData?.savedFormCurrency) {
       console.log('✅ Cart Summary - Currency from saved form data (secondary):', window.currentFormData.savedFormCurrency);
       return window.currentFormData.savedFormCurrency;

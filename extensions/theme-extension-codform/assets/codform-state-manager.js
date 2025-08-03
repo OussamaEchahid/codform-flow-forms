@@ -67,15 +67,18 @@
   }
 
   /**
-   * Set product data
+   * Set product data - enhanced for same currency handling
    */
   function setProductData(price, currency, targetCurrency) {
+    // ✅ CRITICAL FIX: If currencies match, no conversion needed
+    const effectivePrice = (currency === targetCurrency) ? price : price;
+    
     updateState({
       productPrice: price,
       productCurrency: currency,
       targetCurrency: targetCurrency,
       basePrice: price,
-      finalPrice: price // بدون عروض، السعر النهائي = السعر الأساسي
+      finalPrice: effectivePrice // Use price directly if same currency
     });
   }
 
