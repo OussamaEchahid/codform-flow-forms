@@ -155,18 +155,29 @@
    */
   async function loadProductData(productId, shopDomain) {
     try {
-      // Loading product data for cart summary
+      console.log('🛒 Cart Summary - Loading product data:', { productId, shopDomain });
       
-      const response = await fetch(`https://lovable-forms-api.netlify.app/.netlify/functions/shopify-products?shop=${shopDomain}&productId=${productId}`);
+      const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-products`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M'
+        },
+        body: JSON.stringify({
+          shop: shopDomain,
+          productIds: [productId]
+        })
+      });
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
       
       const data = await response.json();
+      console.log('🛒 Cart Summary - API Response:', data);
       
-      if (data.success && data.product) {
-        const product = data.product;
+      if (data.success && data.products && data.products.length > 0) {
+        const product = data.products[0];
         
         // Get price from variants
         const price = product.variants && product.variants.length > 0 
@@ -175,15 +186,19 @@
         
         // Update cart summary data
         cartSummaryData.productPrice = price;
-        cartSummaryData.productCurrency = data.shop?.currency || 'SAR';
+        cartSummaryData.productCurrency = product.variants[0]?.currency_code || data.shop?.currency || 'SAR';
         
-        // Product data loaded
+        console.log('💰 Cart Summary - Product data loaded:', {
+          price,
+          currency: cartSummaryData.productCurrency,
+          product: product.title
+        });
         
         // Update display
         updateCartSummary();
       }
     } catch (error) {
-      // Error loading product data for cart summary
+      console.error('❌ Cart Summary - Error loading product data:', error);
     }
   }
 
