@@ -374,12 +374,25 @@
       if (data.success && data.product) {
         // ✅ CRITICAL: Use the same product data structure as quantity offers
         const price = parseFloat(data.product.price) || 0;
-        const currency = data.product.currency || 'SAR';
+        
+        // ✅ FIXED: If store and form have the same currency, use that instead of product currency
+        let currency = data.product.currency || 'SAR';
+        
+        // ✅ CRITICAL: Check if both store and form use the same currency - if so, no conversion needed
+        if (data.currency && data.product.currency !== data.currency) {
+          // Only convert if currencies are different
+          console.log(`🔄 Currency conversion needed: Product ${data.product.currency} → Form ${data.currency}`);
+          currency = data.product.currency;
+        } else if (data.currency && data.product.currency === data.currency) {
+          // Same currency - no conversion needed, treat product as having form currency
+          console.log(`✅ Same currency detected: Product and Form both use ${data.currency} - no conversion needed`);
+          currency = data.currency;
+        }
         
         console.log('💰✅ Cart Summary - REAL PRODUCT DATA FROM API:', {
           price: price,
           currency: currency,
-          shopCurrency: currency,
+          originalProductCurrency: data.product.currency,
           formCurrency: data.currency,
           conversionRequired: currency !== data.currency,
           source: 'forms-product API (same as quantity offers)'
