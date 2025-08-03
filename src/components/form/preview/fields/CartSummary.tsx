@@ -171,9 +171,9 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
       return calculatePrices(demoPrice, null, config, formCurrency || formStyle.currency || 'SAR');
     }
     
-    // Show loading state when auto calculation is enabled but no product data yet
+    // Don't show any prices when waiting for data
     console.log('⏳ Waiting for product data...');
-    return { subtotal: 0, discount: 0, shipping: 0, total: 0 };
+    return { subtotal: null, discount: null, shipping: null, total: null };
   }, [productData, config, formCurrency, formStyle.currency]);
 
   // البحث عن المنتج المرتبط بالنموذج من قاعدة البيانات
@@ -237,7 +237,9 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
     }
   }, [config.shippingType, productData]);
 
-  const formatPrice = (amount: number) => {
+  const formatPrice = (amount: number | null) => {
+    if (amount === null) return '...';
+    
     const currency = formCurrency || formStyle.currency || 'SAR';
     
     try {
