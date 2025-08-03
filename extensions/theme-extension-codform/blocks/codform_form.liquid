@@ -18,6 +18,10 @@
 
 <!-- تحميل ملف معدلات الصرف أولاً -->
 <script src="{{ 'codform-currency-rates.js' | asset_url }}"></script>
+<!-- تحميل مدير الحالة المشتركة -->
+<script src="{{ 'codform-state-manager.js' | asset_url }}"></script>
+<!-- تحميل محدث واجهة المستخدم -->
+<script src="{{ 'codform-ui-updates.js' | asset_url }}"></script>
 <script src="{{ 'codform-quantity-offers.js' | asset_url }}"></script>
 <script src="{{ 'codform-icons.js' | asset_url }}"></script>
 
@@ -1799,7 +1803,7 @@ window.CodformQuantityOffers = (function() {
         text-align: right !important;
       `;
 
-      // إضافة إمكانية الاختيار
+      // إضافة إمكانية الاختيار - محدثة للتكامل مع State Manager
       offerElement.onclick = function() {
         // إزالة التحديد من العروض الأخرى
         const allOffers = container.querySelectorAll('.quantity-offer-item');
@@ -1812,8 +1816,24 @@ window.CodformQuantityOffers = (function() {
         this.style.borderColor = '#22c55e';
         this.style.backgroundColor = '#f0fdf4';
         
-        // حفظ العرض المختار
+        // حفظ العرض المختار في الحالة المشتركة
         window.selectedQuantityOffer = offer;
+        if (window.CodformStateManager) {
+          window.CodformStateManager.setSelectedOffer(offer);
+        }
+        
+        // إرسال حدث لإعلام المكونات الأخرى
+        window.dispatchEvent(new CustomEvent('codform:offer-selected', {
+          detail: { offer: offer, source: 'quantity-offers' }
+        }));
+        
+        // تحديث كمية cart-items إذا كانت موجودة
+        const cartQuantitySpans = document.querySelectorAll('.codform-cart-item span[style*="font-weight: 600"]');
+        cartQuantitySpans.forEach(span => {
+          if (span.textContent && !isNaN(parseInt(span.textContent))) {
+            span.textContent = offer.quantity || 1;
+          }
+        });
       };
 
       offerElement.className = 'quantity-offer-item';
@@ -1859,6 +1879,20 @@ window.CodformQuantityOffers = (function() {
     });
 
     console.log("✅ Quantity offers displayed successfully with real prices and images");
+    
+    // إرسال حدث بأن العروض تم تحميلها
+    window.dispatchEvent(new CustomEvent('codform:offers-loaded', {
+      detail: { 
+        offers: offers,
+        productData: {
+          price: productPrice,
+          currency: productCurrency,
+          image: productImage,
+          title: productTitle
+        },
+        targetCurrency: defaultCurrency
+      }
+    }));
   }
 
   // دالة تحميل وعرض العروض من API
@@ -1894,9 +1928,38 @@ window.CodformQuantityOffers = (function() {
         }
         
         console.log(`✅ Using form currency: ${targetCurrency} for quantity offers`);
+        
+        // حفظ العروض المتاحة للمرجع العالمي
+        window.availableQuantityOffers = data.quantity_offers.offers;
+        
+        // تحديث State Manager ببيانات المنتج
+        if (window.CodformStateManager && data.product) {
+          const productPrice = parseFloat(data.product.price) || 0;
+          const productCurrency = data.product.currency || targetCurrency;
+          window.CodformStateManager.setProductData(productPrice, productCurrency, targetCurrency);
+          console.log('✅ State Manager updated with product data:', {
+            price: productPrice,
+            currency: productCurrency,
+            targetCurrency: targetCurrency
+          });
+        }
+        
         displayQuantityOffers(data.quantity_offers, blockId, productId, targetCurrency, data.product);
       } else {
         console.log("ℹ️ No quantity offers found for this product");
+        
+        // حتى لو لم توجد عروض، نحدث State Manager ببيانات المنتج
+        if (window.CodformStateManager && data.product) {
+          const targetCurrency = data.form?.currency || data.currency;
+          const productPrice = parseFloat(data.product.price) || 0;
+          const productCurrency = data.product.currency || targetCurrency;
+          window.CodformStateManager.setProductData(productPrice, productCurrency, targetCurrency);
+          console.log('✅ State Manager updated with product data (no offers):', {
+            price: productPrice,
+            currency: productCurrency,
+            targetCurrency: targetCurrency
+          });
+        }
       }
       
     } catch (error) {
@@ -2275,20 +2338,44 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
-// وظائف زيادة وتقليل الكمية للعربة
+// وظائف زيادة وتقليل الكمية للعربة - محدثة للتكامل مع State Manager
 function increaseCartQuantity(button) {
   const quantitySpan = button.previousElementSibling;
   let currentQuantity = parseInt(quantitySpan.textContent);
-  quantitySpan.textContent = currentQuantity + 1;
-  console.log('Cart quantity increased to:', currentQuantity + 1);
+  const newQuantity = currentQuantity + 1;
+  quantitySpan.textContent = newQuantity;
+  
+  console.log('Cart quantity increased to:', newQuantity);
+  
+  // تحديث الحالة المشتركة
+  if (window.CodformStateManager) {
+    window.CodformStateManager.updateQuantity(newQuantity);
+  }
+  
+  // إرسال حدث لإعلام المكونات الأخرى
+  window.dispatchEvent(new CustomEvent('codform:quantity-changed', {
+    detail: { quantity: newQuantity, source: 'cart-items' }
+  }));
 }
 
 function decreaseCartQuantity(button) {
   const quantitySpan = button.nextElementSibling;
   let currentQuantity = parseInt(quantitySpan.textContent);
   if (currentQuantity > 1) {
-    quantitySpan.textContent = currentQuantity - 1;
-    console.log('Cart quantity decreased to:', currentQuantity - 1);
+    const newQuantity = currentQuantity - 1;
+    quantitySpan.textContent = newQuantity;
+    
+    console.log('Cart quantity decreased to:', newQuantity);
+    
+    // تحديث الحالة المشتركة
+    if (window.CodformStateManager) {
+      window.CodformStateManager.updateQuantity(newQuantity);
+    }
+    
+    // إرسال حدث لإعلام المكونات الأخرى
+    window.dispatchEvent(new CustomEvent('codform:quantity-changed', {
+      detail: { quantity: newQuantity, source: 'cart-items' }
+    }));
   }
 }
 

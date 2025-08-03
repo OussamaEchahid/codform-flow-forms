@@ -128,22 +128,37 @@
   }
 
   /**
-   * Calculate all prices
+   * Calculate all prices - updated for State Manager integration
    */
   function calculatePrices() {
-    const { productPrice, productCurrency, targetCurrency, discountType, discountValue, shippingCost } = cartSummaryData;
+    // استخدام State Manager إذا كان متاحاً للحصول على السعر الصحيح
+    const state = window.CodformStateManager ? window.CodformStateManager.getState() : null;
+    
+    let effectivePrice;
+    if (state && state.finalPrice !== null) {
+      // استخدام السعر من State Manager (يتضمن العروض)
+      effectivePrice = state.finalPrice;
+      console.log('💰 Cart Summary using State Manager price:', effectivePrice);
+    } else {
+      // استخدام السعر المحلي كاحتياطي
+      effectivePrice = cartSummaryData.productPrice;
+      console.log('💰 Cart Summary using local price:', effectivePrice);
+    }
+    
+    const { productCurrency, targetCurrency, discountType, discountValue, shippingCost } = cartSummaryData;
     
     console.log(`🧮 [CALC DEBUG] Starting price calculation:`, {
-      productPrice,
+      effectivePrice,
       productCurrency,
       targetCurrency,
       discountType,
       discountValue,
-      shippingCost
+      shippingCost,
+      usingStateManager: !!state
     });
     
     // Don't calculate if product data is not loaded yet
-    if (productPrice === null || productCurrency === null) {
+    if (effectivePrice === null || productCurrency === null) {
       console.log(`⚠️ [CALC DEBUG] Product data not loaded yet, returning zeros`);
       return {
         subtotal: 0,
@@ -153,10 +168,10 @@
       };
     }
     
-    // Convert product price to target currency
-    console.log(`🔄 [CALC DEBUG] Converting product price from ${productCurrency} to ${targetCurrency}`);
-    const convertedPrice = convertCurrency(productPrice, productCurrency, targetCurrency);
-    console.log(`✅ [CALC DEBUG] Product price converted: ${productPrice} ${productCurrency} → ${convertedPrice} ${targetCurrency}`);
+    // Convert effective price to target currency
+    console.log(`🔄 [CALC DEBUG] Converting effective price from ${productCurrency} to ${targetCurrency}`);
+    const convertedPrice = convertCurrency(effectivePrice, productCurrency, targetCurrency);
+    console.log(`✅ [CALC DEBUG] Effective price converted: ${effectivePrice} ${productCurrency} → ${convertedPrice} ${targetCurrency}`);
     
     // Calculate discount
     let discountAmount = 0;
@@ -381,6 +396,12 @@
           willConvertFrom: `${cartSummaryData.productCurrency} TO ${cartSummaryData.targetCurrency}`
         });
         
+        // تحديث State Manager مع بيانات المنتج الحقيقية
+        if (window.CodformStateManager) {
+          window.CodformStateManager.setProductData(price, currency, data.currency);
+          console.log('✅ Cart Summary - State Manager updated with real product data');
+        }
+        
         // Update display
         updateCartSummary();
         
@@ -546,6 +567,13 @@
       if (productPrice && productCurrency) {
         cartSummaryData.productPrice = productPrice;
         cartSummaryData.productCurrency = productCurrency;
+        
+        // تحديث State Manager أيضاً
+        if (window.CodformStateManager) {
+          window.CodformStateManager.setProductData(productPrice, productCurrency, formCurrency);
+          console.log("✅ Cart Summary - State Manager updated with local product data");
+        }
+        
         console.log("✅ Cart Summary - Product data loaded:", cartSummaryData);
       } else {
         console.error('❌ Cart Summary - CRITICAL: No product price or currency found!');
@@ -554,15 +582,62 @@
     
     // تحديث العرض
     updateCartSummary();
+    
+    // تهيئة Event Listeners إذا لم تكن مفعلة
+    if (!window.cartSummaryEventsSetup) {
+      setupEventListeners();
+      window.cartSummaryEventsSetup = true;
+    }
   }
 
   /**
    * Update cart summary when quantity changes
    */
   function updateCartSummaryQuantity(quantity) {
-    const originalPrice = cartSummaryData.productPrice;
-    cartSummaryData.productPrice = originalPrice * quantity;
+    const state = window.CodformStateManager ? window.CodformStateManager.getState() : null;
+    
+    if (state && state.finalPrice !== null) {
+      // استخدام السعر من State Manager (مع تطبيق العروض)
+      cartSummaryData.productPrice = state.finalPrice;
+    } else {
+      // الطريقة القديمة كاحتياطي
+      const originalPrice = cartSummaryData.productPrice / (cartSummaryData.currentQuantity || 1);
+      cartSummaryData.productPrice = originalPrice * quantity;
+    }
+    
+    cartSummaryData.currentQuantity = quantity;
     updateCartSummary();
+  }
+
+  // Setup event listeners for state management integration
+  function setupEventListeners() {
+    // الاستماع لأحداث تغيير الكمية
+    window.addEventListener('codform:quantity-changed', function(event) {
+      console.log('🔄 Cart Summary received quantity change event:', event.detail);
+      updateCartSummaryQuantity(event.detail.quantity);
+    });
+
+    // الاستماع لأحداث اختيار العروض
+    window.addEventListener('codform:offer-selected', function(event) {
+      console.log('🎯 Cart Summary received offer selection event:', event.detail);
+      const offer = event.detail.offer;
+      updateCartSummaryQuantity(offer.quantity || 1);
+    });
+
+    // الاستماع لتحديثات State Manager
+    if (window.CodformStateManager) {
+      window.CodformStateManager.subscribe(function(newState, previousState) {
+        console.log('🔄 Cart Summary: State changed', { newState, previousState });
+        
+        // تحديث cart summary عند تغيير الحالة
+        if (newState.finalPrice !== previousState.finalPrice || 
+            newState.currentQuantity !== previousState.currentQuantity) {
+          cartSummaryData.productPrice = newState.finalPrice;
+          cartSummaryData.currentQuantity = newState.currentQuantity;
+          updateCartSummary();
+        }
+      });
+    }
   }
 
   // Make functions globally available
@@ -574,9 +649,23 @@
     setProductData: function(price, currency) {
       cartSummaryData.productPrice = price;
       cartSummaryData.productCurrency = currency;
+      
+      // تحديث State Manager أيضاً
+      if (window.CodformStateManager) {
+        window.CodformStateManager.setProductData(price, currency, cartSummaryData.targetCurrency);
+      }
+      
       updateCartSummary();
-    }
+    },
+    setupEventListeners: setupEventListeners
   };
+
+  // تفعيل Event Listeners عند تحميل الصفحة
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupEventListeners);
+  } else {
+    setupEventListeners();
+  }
 
   // Cart Summary module loaded
 })();
