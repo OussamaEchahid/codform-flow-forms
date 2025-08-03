@@ -253,16 +253,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
   
   return (
     <div className="mb-6 codform-cart-summary">
-      {showTitle && (
-        <h3 className="text-lg font-medium mb-3" style={{
-          color: fieldStyle.color || '#1f2937',
-          fontSize: fieldStyle.fontSize || formStyle.fontSize || '1.2rem',
-          fontFamily: fieldStyle.fontFamily || 'Tajawal',
-        }}>
-          {field.label || (language === 'ar' ? 'ملخص الطلب' : 'Order Summary')}
-        </h3>
-      )}
-      <div 
+      <div
         className="border rounded-md p-4"
         style={{ 
           borderRadius,

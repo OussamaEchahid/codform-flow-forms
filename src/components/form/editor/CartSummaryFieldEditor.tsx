@@ -111,14 +111,6 @@ const CartSummaryFieldEditor: React.FC<CartSummaryFieldEditorProps> = ({
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <Label>{language === 'ar' ? 'عنوان ملخص السلة' : 'Cart Summary Title'}</Label>
-                <Input
-                  value={currentField.label || ''}
-                  onChange={(e) => setCurrentField(prev => ({ ...prev, label: e.target.value }))}
-                  placeholder={language === 'ar' ? 'ملخص الطلب' : 'Order Summary'}
-                />
-              </div>
 
               <div>
                 <Label>{language === 'ar' ? 'نص المجموع الفرعي' : 'Subtotal Text'}</Label>
