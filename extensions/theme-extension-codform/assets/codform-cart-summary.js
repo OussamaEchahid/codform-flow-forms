@@ -151,9 +151,9 @@
       console.log(`\n🏷️ [DEBUG] Processing cart summary ${index}:`);
       console.log('Element HTML:', summary.outerHTML.substring(0, 200) + '...');
       
-      const currency = summary.dataset.currency || 'SAR';
-      cartSummaryData.targetCurrency = currency;
-      console.log(`💱 [DEBUG] Using currency: ${currency}`);
+      // Use the target currency from configuration, NOT from element dataset
+      const currency = cartSummaryData.targetCurrency || 'SAR';
+      console.log(`💱 [DEBUG] Using target currency from config: ${currency} (NOT from element dataset)`);
       
       const language = summary.style.direction === 'rtl' ? 'ar' : 'en';
       console.log(`🌐 [DEBUG] Using language: ${language}`);
