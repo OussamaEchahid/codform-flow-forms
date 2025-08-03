@@ -204,28 +204,37 @@
       const data = await response.json();
       console.log('🛒 Cart Summary - API Response:', data);
       
+      console.log('🛒 Cart Summary - Raw API Response:', data);
+      
       if (data.success && data.products && data.products.length > 0) {
         const product = data.products[0];
+        console.log('🛒 Cart Summary - Product found:', product);
         
         // Get price from variants
         const price = product.variants && product.variants.length > 0 
           ? parseFloat(product.variants[0].price) 
           : 0;
         
+        console.log('🛒 Cart Summary - BEFORE UPDATE:', {
+          oldPrice: cartSummaryData.productPrice,
+          oldCurrency: cartSummaryData.productCurrency,
+          newPrice: price,
+          newCurrency: product.variants[0]?.currency_code
+        });
+        
         // Update cart summary data with real product price
         cartSummaryData.productPrice = price;
         cartSummaryData.productCurrency = product.variants[0]?.currency_code || 'SAR';
         
-        console.log('💰 Cart Summary - Product data loaded successfully:', {
-          price: cartSummaryData.productPrice,
-          currency: cartSummaryData.productCurrency,
-          product: product.title
+        console.log('🛒 Cart Summary - AFTER UPDATE:', {
+          productPrice: cartSummaryData.productPrice,
+          productCurrency: cartSummaryData.productCurrency,
+          productTitle: product.title
         });
         
         // Force update display with new price
-        setTimeout(() => {
-          updateCartSummary();
-        }, 100);
+        updateCartSummary();
+        console.log('🛒 Cart Summary - updateCartSummary() called');
       } else if (data.products && data.products.length > 0) {
         // Fallback for old API response format
         const product = data.products[0];
