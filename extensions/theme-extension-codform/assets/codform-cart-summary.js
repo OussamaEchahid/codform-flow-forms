@@ -213,7 +213,9 @@
         });
         
         // Force update display with new price
-        updateCartSummary();
+        setTimeout(() => {
+          updateCartSummary();
+        }, 100);
       } else if (data.products && data.products.length > 0) {
         // Fallback for old API response format
         const product = data.products[0];
