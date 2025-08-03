@@ -694,69 +694,121 @@ window.CodformQuantityOffers = (function() {
   }
 
   // دالة تحميل وعرض العروض من API
-  async function loadAndDisplayOffers(blockId, productId, shop, formCurrency = 'SAR', passedProductData = null, formDirection = null) {
+  async function loadAndDisplayOffers(blockId, productId, shop, formCurrency = null, passedProductData = null, formDirection = null) {
     try {
       if (!shop) {
         shop = (typeof Shopify !== 'undefined' && Shopify.shop) ? Shopify.shop : 'codmagnet.com';
       }
       
       console.log("🎯 Loading quantity offers for product", productId, "in", blockId, "from shop", shop);
+      console.log("💰 Form currency parameter:", formCurrency);
+      console.log("💰 Current window.CodformFormData:", window.CodformFormData);
       
-      const apiUrl = `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/forms-product?shop=${encodeURIComponent(shop)}&product=${encodeURIComponent(productId)}`;
-      
-      console.log("🌐 API URL:", apiUrl);
-      
-      const response = await fetch(apiUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
+      // ✅ CRITICAL: Check if currency is available from form settings first
+      if (!window.CodformFormData || !window.CodformFormData.currency) {
+        console.log('⏳ QUANTITY OFFERS: No currency from form settings, calling API to get it...');
+        
+        const apiUrl = `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/forms-product?shop=${encodeURIComponent(shop)}&product=${encodeURIComponent(productId)}`;
+        console.log("🌐 API URL:", apiUrl);
+        
+        const response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-      });
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      console.log("📊 API Response:", data);
-      
-      // حفظ عملة النموذج لاستخدامها في باقي المكونات - بدون أي عملات افتراضية
-      if (data.success && data.currency) {
-        window.CodformFormData = window.CodformFormData || {};
-        window.CodformFormData.currency = data.currency;
-        console.log('💰🔥 Quantity Offers - REAL FORM CURRENCY SAVED FROM API:', data.currency);
-        console.log('💰🔥 Quantity Offers - API Response contains currency:', data.currency);
-        console.log('💰🔥 Quantity Offers - window.CodformFormData updated:', window.CodformFormData);
-      } else {
-        console.error('❌🔥 Quantity Offers - API Response missing currency!', data);
-      }
-      
-      if (data.success && data.quantity_offers && data.quantity_offers.offers && data.quantity_offers.offers.length > 0) {
-        console.log("✅ Found quantity offers and product data");
+        const data = await response.json();
+        console.log("📊 API Response:", data);
         
-        const actualProductId = data.quantity_offers.product_id || productId;
-        console.log("🎯 Using actual product ID:", actualProductId);
-        
-        // عرض العروض مع البيانات الحقيقية من API باستخدام العملة من إعدادات النموذج فقط
-        if (!data.currency) {
-          console.error('❌🔥 Quantity Offers - CRITICAL: API response missing currency!');
+        // ✅ Save the form currency to window global object for other components
+        if (data.success && data.currency) {
+          if (!window.CodformFormData) {
+            window.CodformFormData = {};
+          }
+          window.CodformFormData.currency = data.currency;
+          console.log('💰🔥 Quantity Offers - FORM CURRENCY SAVED FROM API:', data.currency);
+        } else {
+          console.error('❌🔥 Quantity Offers - API Response missing currency!', data);
+          
+          // Show error message like Cart Summary does
+          const container = document.getElementById(`quantity-offers-before-${blockId}`);
+          if (container) {
+            container.innerHTML = '<div style="color: red; padding: 10px; border: 2px solid red; background: #ffebee; margin: 10px; border-radius: 4px; font-weight: bold; text-align: center;">❌ ERROR: No currency configured. Please set form currency first.</div>';
+          }
           return;
         }
         
-        displayQuantityOffers(
-          data.quantity_offers, 
-          blockId, 
-          actualProductId,
-          data.currency, // استخدام العملة من إعدادات النموذج فقط - بدون أي افتراضية
-          data.product,
-          formDirection
-        );
+        if (data.success && data.quantity_offers && data.quantity_offers.offers && data.quantity_offers.offers.length > 0) {
+          console.log("✅ Found quantity offers and product data");
+          
+          const actualProductId = data.quantity_offers.product_id || productId;
+          console.log("🎯 Using actual product ID:", actualProductId);
+          
+          // عرض العروض مع البيانات الحقيقية من API باستخدام العملة من إعدادات النموذج فقط
+          displayQuantityOffers(
+            data.quantity_offers, 
+            blockId, 
+            actualProductId,
+            data.currency, // استخدام العملة من إعدادات النموذج من API
+            data.product,
+            formDirection
+          );
+          
+          return { success: true, offers: data.quantity_offers };
+        } else {
+          console.log("❌ No quantity offers found for this product");
+          return { success: false, message: "No offers found" };
+        }
         
-        return { success: true, offers: data.quantity_offers };
       } else {
-        console.log("❌ No quantity offers found or API error");
-        return { success: false, message: "No offers found" };
+        // Currency is already available, just load offers
+        console.log('✅ QUANTITY OFFERS: Currency already available from form settings:', window.CodformFormData.currency);
+        
+        const apiUrl = `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/forms-product?shop=${encodeURIComponent(shop)}&product=${encodeURIComponent(productId)}`;
+        console.log("🌐 API URL:", apiUrl);
+        
+        const response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        console.log("📊 API Response:", data);
+        
+        if (data.success && data.quantity_offers && data.quantity_offers.offers && data.quantity_offers.offers.length > 0) {
+          console.log("✅ Found quantity offers and product data");
+          
+          const actualProductId = data.quantity_offers.product_id || productId;
+          console.log("🎯 Using actual product ID:", actualProductId);
+          
+          // عرض العروض باستخدام العملة المحفوظة من النموذج
+          displayQuantityOffers(
+            data.quantity_offers, 
+            blockId, 
+            actualProductId,
+            window.CodformFormData.currency, // استخدام العملة المحفوظة من النموذج
+            data.product,
+            formDirection
+          );
+          
+          return { success: true, offers: data.quantity_offers };
+        } else {
+          console.log("❌ No quantity offers found for this product");
+          return { success: false, message: "No offers found" };
+        }
       }
       
     } catch (error) {

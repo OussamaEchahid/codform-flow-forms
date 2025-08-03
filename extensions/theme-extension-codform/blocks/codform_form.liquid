@@ -2201,16 +2201,20 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log("💰 API Form currency:", apiFormCurrency);
         
         if (!apiFormCurrency) {
-          console.error("❌ CRITICAL: No currency from form API response!");
-          console.error("❌ Form API must be called first to set currency");
-          console.error("❌ window.CodformFormData.currency is undefined");
+          console.log("⏳ QUANTITY OFFERS: No currency available yet, will call API first...");
           
-          // Show error message instead of loading with wrong currency
-          const quantityContainer = document.getElementById(`quantity-offers-before-${blockId}`);
-          if (quantityContainer) {
-            quantityContainer.innerHTML = '<div style="color: red; padding: 10px; border: 2px solid red; background: #ffebee; margin: 10px; border-radius: 4px; font-weight: bold;">❌ ERROR: No currency found from form settings. API call required first.</div>';
-          }
+          // Let quantity offers component handle API call
+          const productData = {
+            id: productId,
+            price: null, // No default price - will be fetched from API
+            comparePrice: null,
+            title: '{{ product.title }}' || 'منتج',
+            image: '{{ product.featured_image | img_url: "400x400" }}' || '',
+            currency: null // No default currency - only API currency
+          };
           
+          // Pass null currency - function will call API to get it
+          window.CodformQuantityOffers.loadAndDisplayOffers(blockId, productId, shopDomain, null, productData, formDirection);
           formContainer.dataset.quantityOffersLoaded = 'true';
           clearInterval(waitForFormLoad);
           return;
