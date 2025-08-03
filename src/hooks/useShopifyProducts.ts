@@ -62,7 +62,12 @@ export const useShopifyProducts = () => {
   };
 
   const getProductById = async (productId: string, shopDomain?: string) => {
-    const currentStore = shopDomain || localStorage.getItem('current_shopify_store');
+    // استخدام نفس المنطق المستخدم في loadProducts للحصول على المتجر النشط
+    const currentStore = shopDomain || 
+      localStorage.getItem('current_shopify_store') ||
+      localStorage.getItem('simple_active_store') ||
+      localStorage.getItem('shopify_store') ||
+      localStorage.getItem('active_shop');
     
     if (!currentStore) {
       throw new Error('No store connected');
