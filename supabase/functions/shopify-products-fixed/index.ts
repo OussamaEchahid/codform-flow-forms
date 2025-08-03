@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { shop } = await req.json();
+    const { shop, productId } = await req.json();
 
     if (!shop) {
       console.error('❌ No shop provided');
@@ -52,7 +52,11 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`🏪 Fetching products for shop: ${shop}`);
+    if (productId) {
+      console.log(`🔍 Fetching specific product: ${productId} for shop: ${shop}`);
+    } else {
+      console.log(`🏪 Fetching all products for shop: ${shop}`);
+    }
 
     // Get store info directly from database using service role
     const { data: storeData, error: storeError } = await supabase
@@ -97,7 +101,14 @@ Deno.serve(async (req) => {
     console.log(`✅ Store found with valid token: ${shop}`);
 
     // جلب المنتجات من Shopify API
-    const shopifyUrl = `https://${shop}/admin/api/2024-07/products.json?limit=50`;
+    let shopifyUrl;
+    if (productId) {
+      // Get specific product
+      shopifyUrl = `https://${shop}/admin/api/2024-07/products/${productId}.json`;
+    } else {
+      // Get all products
+      shopifyUrl = `https://${shop}/admin/api/2024-07/products.json?limit=50`;
+    }
     
     console.log(`📡 Calling Shopify API: ${shopifyUrl}`);
 
@@ -113,6 +124,19 @@ Deno.serve(async (req) => {
       const errorText = await shopifyResponse.text();
       console.error(`❌ Shopify API error (${shopifyResponse.status}):`, errorText);
       
+      if (productId && shopifyResponse.status === 404) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'Product not found',
+            message: `المنتج بمعرف ${productId} غير موجود`
+          }),
+          { 
+            status: 404, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+      
       return new Response(
         JSON.stringify({ 
           error: 'Failed to fetch products from Shopify',
@@ -127,44 +151,98 @@ Deno.serve(async (req) => {
     }
 
     const data = await shopifyResponse.json();
-    const products: ShopifyProduct[] = data.products || [];
 
-    console.log(`✅ Successfully fetched ${products.length} products from ${shop}`);
-
-    // تحويل المنتجات إلى تنسيق مبسط
-    const formattedProducts = products.map(product => ({
-      id: product.id,
-      title: product.title,
-      handle: product.handle,
-      vendor: product.vendor || '',
-      product_type: product.product_type || '',
-      status: product.status,
-      tags: product.tags || '',
-      image: product.image?.src || null,
-      variants: product.variants?.map(variant => ({
-        id: variant.id,
-        title: variant.title,
-        price: variant.price,
-        sku: variant.sku || '',
-        inventory_quantity: variant.inventory_quantity || 0
-      })) || [],
-      created_at: product.created_at,
-      updated_at: product.updated_at
-    }));
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        shop,
-        products: formattedProducts,
-        total: formattedProducts.length,
-        message: `تم جلب ${formattedProducts.length} منتج بنجاح`
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    if (productId) {
+      // Handle single product response
+      const product = data.product;
+      if (!product) {
+        console.error('❌ Product not found in response');
+        return new Response(
+          JSON.stringify({ 
+            error: 'Product not found',
+            message: `المنتج بمعرف ${productId} غير موجود`
+          }),
+          { 
+            status: 404, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
       }
-    );
+
+      console.log(`✅ Successfully fetched product ${productId} from ${shop}`);
+
+      const formattedProduct = {
+        id: product.id,
+        title: product.title,
+        handle: product.handle,
+        vendor: product.vendor || '',
+        product_type: product.product_type || '',
+        status: product.status,
+        tags: product.tags || '',
+        image: product.image?.src || null,
+        variants: product.variants?.map((variant: any) => ({
+          id: variant.id,
+          title: variant.title,
+          price: variant.price,
+          sku: variant.sku || '',
+          inventory_quantity: variant.inventory_quantity || 0
+        })) || [],
+        created_at: product.created_at,
+        updated_at: product.updated_at
+      };
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          shop,
+          product: formattedProduct,
+          message: `تم جلب المنتج ${product.title} بنجاح`
+        }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    } else {
+      // Handle multiple products response
+      const products: ShopifyProduct[] = data.products || [];
+      console.log(`✅ Successfully fetched ${products.length} products from ${shop}`);
+
+      // تحويل المنتجات إلى تنسيق مبسط
+      const formattedProducts = products.map(product => ({
+        id: product.id,
+        title: product.title,
+        handle: product.handle,
+        vendor: product.vendor || '',
+        product_type: product.product_type || '',
+        status: product.status,
+        tags: product.tags || '',
+        image: product.image?.src || null,
+        variants: product.variants?.map(variant => ({
+          id: variant.id,
+          title: variant.title,
+          price: variant.price,
+          sku: variant.sku || '',
+          inventory_quantity: variant.inventory_quantity || 0
+        })) || [],
+        created_at: product.created_at,
+        updated_at: product.updated_at
+      }));
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          shop,
+          products: formattedProducts,
+          total: formattedProducts.length,
+          message: `تم جلب ${formattedProducts.length} منتج بنجاح`
+        }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
 
   } catch (error) {
     console.error('❌ Unexpected error:', error);
