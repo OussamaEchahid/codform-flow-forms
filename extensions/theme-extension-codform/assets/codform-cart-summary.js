@@ -334,7 +334,8 @@
           ? parseFloat(product.variants[0].price) 
           : 0;
         
-        const currency = product.variants[0]?.currency_code || 'SAR';
+        // FIXED: Use .currency instead of .currency_code based on API response
+        const currency = product.variants[0]?.currency || product.currency || 'MAD';
         
         console.log('💰 [DEBUG] Cart Summary - Price extraction:', {
           rawPrice: product.variants[0]?.price,
@@ -372,7 +373,7 @@
           : 0;
         
         cartSummaryData.productPrice = price;
-        cartSummaryData.productCurrency = product.variants[0]?.currency_code || 'MAD';
+        cartSummaryData.productCurrency = product.variants[0]?.currency || product.currency || 'MAD';
         
         console.log('💰 [DEBUG] Cart Summary - Fallback product data loaded:', {
           price: cartSummaryData.productPrice,
@@ -406,9 +407,28 @@
     cartSummaryData.discountValue = parseFloat(config.discountValue) || 0;
     cartSummaryData.shippingCost = parseFloat(config.shippingCost) || 0;
     
-    // CRITICAL: Use the currency from form configuration, NOT defaulting to SAR
-    const formCurrency = config.currency || formStyle?.currency || 'SAR';
-    cartSummaryData.targetCurrency = formCurrency;
+    // CRITICAL: Extract target currency from form settings - handle "Morocco | MAD" format
+    let targetCurrency = 'SAR'; // Default fallback
+    
+    // Try to extract from config.currency first
+    if (config.currency) {
+      // Handle "Morocco | MAD" format
+      if (config.currency.includes('|')) {
+        targetCurrency = config.currency.split('|')[1].trim();
+      } else {
+        targetCurrency = config.currency;
+      }
+    } 
+    // Fallback to formStyle currency
+    else if (formStyle?.currency) {
+      if (formStyle.currency.includes('|')) {
+        targetCurrency = formStyle.currency.split('|')[1].trim();
+      } else {
+        targetCurrency = formStyle.currency;
+      }
+    }
+    
+    cartSummaryData.targetCurrency = targetCurrency;
     
     console.log('💾 [DEBUG] Cart summary data updated:', JSON.stringify(cartSummaryData, null, 2));
     console.log(`🎯 [DEBUG] Target currency set to: ${cartSummaryData.targetCurrency} (from config.currency: ${config.currency}, formStyle.currency: ${formStyle?.currency})`);
