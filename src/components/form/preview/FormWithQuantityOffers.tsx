@@ -42,7 +42,8 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
 }) => {
   const [quantityOffers, setQuantityOffers] = useState<QuantityOffer[]>([]);
   const [loading, setLoading] = useState(true);
-  const [productData, setProductData] = useState<{price: number, currency: string, moneyFormat: string, moneyWithCurrencyFormat?: string} | null>(null);
+  const [productData, setProductData] = useState<{price: number, currency: string, formCurrency?: string, title?: string, image?: string, moneyFormat: string, moneyWithCurrencyFormat?: string} | null>(null);
+  const [formCurrency, setFormCurrency] = useState<string>('USD');
 
   // الحصول على رمز العملة بناءً على المنتج أو الدولة أو العملة المحددة
   const getCurrencySymbol = () => {
@@ -65,6 +66,44 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
     return currencyData?.symbol || 'ر.س';
   };
 
+  // ✅ Add currency conversion function
+  const convertCurrency = (amount: number, fromCurrency: string, toCurrency: string) => {
+    if (fromCurrency === toCurrency) return amount;
+    
+    const exchangeRates: { [key: string]: number } = {
+      'USD': 1.0,
+      'EUR': 0.92,
+      'GBP': 0.79,
+      'CAD': 1.43,
+      'AUD': 1.57,
+      'SAR': 3.75,
+      'AED': 3.67,
+      'MAD': 9.85
+    };
+    
+    const fromRate = exchangeRates[fromCurrency] || 1;
+    const toRate = exchangeRates[toCurrency] || 1;
+    const converted = (amount / fromRate) * toRate;
+    
+    console.log(`💱 Converted: ${amount} ${fromCurrency} → ${converted.toFixed(2)} ${toCurrency}`);
+    return converted;
+  };
+
+  // دالة لتنسيق السعر باستخدام العملة المحددة
+  const formatPriceWithCurrency = (amount: number, currency: string) => {
+    const currencySymbols: { [key: string]: string } = {
+      'USD': '$',
+      'EUR': '€',
+      'GBP': '£',
+      'SAR': 'ر.س',
+      'AED': 'د.إ',
+      'MAD': 'د.م'
+    };
+    
+    const symbol = currencySymbols[currency] || currency;
+    return `${symbol}${amount.toFixed(2)}`;
+  };
+
   // دالة لتنسيق السعر باستخدام تنسيق المتجر
   const formatPrice = (amount: number) => {
     // استخدام تنسيق المتجر الصحيح من Shopify
@@ -78,9 +117,9 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
 
   useEffect(() => {
     const loadQuantityOffers = async () => {
-      console.log('Loading quantity offers for productId:', productId, 'formId:', formId);
+      console.log('🔄 Loading quantity offers for productId:', productId, 'formId:', formId);
       if (!productId || !formId) {
-        console.log('Missing productId or formId, skipping load');
+        console.log('❌ Missing productId or formId, skipping load');
         setLoading(false);
         return;
       }
@@ -94,36 +133,45 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
           .single();
 
         if (formData?.shop_id) {
-          // Fetch product data from Shopify
-          const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-products`, {
-            method: 'POST',
+          console.log('📡 Fetching REAL product data from forms-product API...');
+          
+          // ✅ Use the forms-product API that returns REAL Shopify data
+          const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/forms-product?shop=${formData.shop_id}&product=${productId}`, {
             headers: {
               'Content-Type': 'application/json',
               'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M`
-            },
-            body: JSON.stringify({
-              shop: formData.shop_id,
-              productIds: [productId]
-            })
+            }
           });
 
           if (response.ok) {
-            const productResponse = await response.json();
-            if (productResponse.success && productResponse.products?.length > 0) {
-              const product = productResponse.products[0];
-              console.log('Product data from Shopify:', product);
+            const apiResponse = await response.json();
+            console.log('🛍️ REAL API Response:', apiResponse);
+            
+            if (apiResponse.success && apiResponse.product) {
+              const product = apiResponse.product;
+              const targetCurrency = apiResponse.currency || 'USD'; // Form target currency from API
               
-              setProductData({
-                price: parseFloat(product.price || '0'),
-                currency: product.currency || 'USD',
-                moneyFormat: product.money_format || '${{amount}}',
-                moneyWithCurrencyFormat: product.money_with_currency_format || '${{amount}} USD'
+              console.log('🔥 REAL PRODUCT DATA:', {
+                originalPrice: product.price,
+                productCurrency: product.currency,
+                formCurrency: targetCurrency
               });
               
-              console.log('Set product data:', {
-                price: parseFloat(product.price || '0'),
-                currency: product.currency,
-                moneyFormat: product.money_format
+              setFormCurrency(targetCurrency);
+              setProductData({
+                price: product.price, // Real product price from Shopify ($1.00)
+                currency: product.currency, // Real product currency (USD)
+                formCurrency: targetCurrency, // Target currency from form (GBP)
+                title: product.title,
+                image: product.image,
+                moneyFormat: '${{amount}}',
+                moneyWithCurrencyFormat: '${{amount}} USD'
+              });
+              
+              console.log('✅ Set REAL product data for conversion:', {
+                price: product.price,
+                productCurrency: product.currency,
+                targetCurrency: targetCurrency
               });
             }
           }
@@ -138,13 +186,13 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
           .eq('enabled', true);
 
         if (data && !error) {
-          console.log('Loaded quantity offers:', data);
+          console.log('📦 Loaded quantity offers:', data.length);
           setQuantityOffers(data);
         } else if (error) {
-          console.error('Error loading quantity offers:', error);
+          console.error('❌ Error loading quantity offers:', error);
         }
       } catch (error) {
-        console.error('Error loading quantity offers:', error);
+        console.error('❌ Error loading data:', error);
       } finally {
         setLoading(false);
       }
@@ -182,22 +230,34 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
     return offers.map(offer => (
       <div key={offer.id} className="space-y-2 mb-2" style={{ direction: formDirection }}>
         {offer.offers.map((singleOffer, index) => {
-          // استخدام السعر الفعلي للمنتج من Shopify
-          const basePrice = productData?.price || 0; // استخدام السعر الفعلي من المنتج
-          console.log(`Offer ${index}: basePrice = ${basePrice}, currency = ${productData?.currency}, quantity = ${singleOffer.quantity}`);
+          // ✅ Use REAL product data and convert currency properly
+          const originalPrice = productData?.price || 0; // Real price from Shopify ($1.00)
+          const productCurrency = productData?.currency || 'USD'; // Real currency (USD)
+          const targetCurrency = formCurrency || formStyle?.currency || 'USD'; // Form currency (GBP)
           
-          const totalPrice = calculatePrice(basePrice, singleOffer);
-          const originalPrice = basePrice * singleOffer.quantity;
+          // ✅ CRITICAL: Convert currency from product to form currency
+          const convertedPrice = convertCurrency(originalPrice, productCurrency, targetCurrency);
+          
+          console.log(`🔄 Offer ${index} - Currency Conversion:`, {
+            originalPrice,
+            productCurrency,
+            targetCurrency,
+            convertedPrice,
+            quantity: singleOffer.quantity
+          });
+          
+          const totalPrice = calculatePrice(convertedPrice, singleOffer);
+          const totalOriginalPrice = convertedPrice * singleOffer.quantity;
           const isDiscounted = singleOffer.discountType !== 'none' && singleOffer.discountValue && singleOffer.discountValue > 0;
           const isHighlighted = index === 1;
           
-          console.log(`Calculated prices: totalPrice = ${totalPrice}, originalPrice = ${originalPrice}`);
+          console.log(`✅ Final prices: totalPrice = ${totalPrice} ${targetCurrency}, originalPrice = ${totalOriginalPrice} ${targetCurrency}`);
           
           let savingsPercentage = 0;
           if (isDiscounted && singleOffer.discountType === 'percentage') {
             savingsPercentage = singleOffer.discountValue || 0;
           } else if (isDiscounted && singleOffer.discountType === 'fixed') {
-            savingsPercentage = Math.round(((singleOffer.discountValue || 0) / originalPrice) * 100);
+            savingsPercentage = Math.round(((singleOffer.discountValue || 0) / totalOriginalPrice) * 100);
           }
 
           return (
@@ -246,14 +306,14 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
               <div className={formDirection === 'rtl' ? 'text-left' : 'text-right'}>
                 {isDiscounted && (
                  <div className="text-sm line-through text-gray-400">
-                    {formatPrice(originalPrice)}
+                    {formatPriceWithCurrency(totalOriginalPrice, targetCurrency)}
                   </div>
                 )}
                  <div 
                   className="font-bold text-lg"
                   style={{ color: offer.styling?.priceColor || '#000000' }}
                 >
-                  {formatPrice(totalPrice)}
+                  {formatPriceWithCurrency(totalPrice, targetCurrency)}
                 </div>
               </div>
             </div>
