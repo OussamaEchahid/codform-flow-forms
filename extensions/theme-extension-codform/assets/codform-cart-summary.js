@@ -157,32 +157,19 @@
     try {
       console.log('🛒 Cart Summary - Loading product data:', { productId, shopDomain });
       
-      // If auto-detect, try to get real values
-      if (productId === 'auto-detect' || shopDomain === 'auto-detect') {
-        console.log('🛒 Cart Summary - Auto-detecting missing values...');
-        
-        // Try to get real product ID
-        if (productId === 'auto-detect') {
-          const realProductId = window.getProductId ? window.getProductId() : null;
-          if (realProductId && realProductId !== 'auto-detect') {
-            productId = realProductId;
-          }
-        }
-        
-        // Try to get real shop domain
-        if (shopDomain === 'auto-detect') {
-          const realShopDomain = window.getShopDomain ? window.getShopDomain() : null;
-          if (realShopDomain && realShopDomain !== 'auto-detect') {
-            shopDomain = realShopDomain;
-          }
-        }
-        
-        console.log('🛒 Cart Summary - After auto-detect:', { productId, shopDomain });
-      }
+      // Always try to get current values first
+      const currentProductId = window.getProductId ? window.getProductId() : productId;
+      const currentShopDomain = window.getShopDomain ? window.getShopDomain() : shopDomain;
       
-      // If we still don't have the data, show default
-      if (productId === 'auto-detect' || shopDomain === 'auto-detect') {
-        console.log('❌ Cart Summary - Could not auto-detect product/shop, using manual price');
+      console.log('🛒 Cart Summary - Using values:', { 
+        productId: currentProductId, 
+        shopDomain: currentShopDomain 
+      });
+      
+      // If we still can't detect, use fallback values
+      if (!currentProductId || currentProductId === 'auto-detect' || 
+          !currentShopDomain || currentShopDomain === 'auto-detect') {
+        console.log('❌ Cart Summary - Could not detect product/shop, using manual price');
         updateCartSummary();
         return;
       }
@@ -194,8 +181,8 @@
           'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M'
         },
         body: JSON.stringify({
-          shop: shopDomain,
-          productId: productId
+          shop: currentShopDomain,
+          productId: currentProductId
         })
       });
       
@@ -207,28 +194,44 @@
       const data = await response.json();
       console.log('🛒 Cart Summary - API Response:', data);
       
-      if (data.success && data.products && data.products.length > 0) {
-        const product = data.products[0];
+      if (data.success && data.product) {
+        const product = data.product;
         
         // Get price from variants
         const price = product.variants && product.variants.length > 0 
           ? parseFloat(product.variants[0].price) 
           : 0;
         
-        // Update cart summary data
+        // Update cart summary data with real product price
         cartSummaryData.productPrice = price;
-        cartSummaryData.productCurrency = product.variants[0]?.currency_code || data.shop?.currency || 'SAR';
+        cartSummaryData.productCurrency = product.variants[0]?.currency_code || data.shop?.currency || 'MAD';
         
-        console.log('💰 Cart Summary - Product data loaded:', {
-          price,
+        console.log('💰 Cart Summary - Product data loaded successfully:', {
+          price: cartSummaryData.productPrice,
           currency: cartSummaryData.productCurrency,
           product: product.title
         });
         
-        // Update display
+        // Force update display with new price
+        updateCartSummary();
+      } else if (data.products && data.products.length > 0) {
+        // Fallback for old API response format
+        const product = data.products[0];
+        const price = product.variants && product.variants.length > 0 
+          ? parseFloat(product.variants[0].price) 
+          : 0;
+        
+        cartSummaryData.productPrice = price;
+        cartSummaryData.productCurrency = product.variants[0]?.currency_code || 'MAD';
+        
+        console.log('💰 Cart Summary - Fallback product data loaded:', {
+          price: cartSummaryData.productPrice,
+          currency: cartSummaryData.productCurrency
+        });
+        
         updateCartSummary();
       } else {
-        console.error('❌ Cart Summary - No products in response:', data);
+        console.error('❌ Cart Summary - No product data in response:', data);
         updateCartSummary();
       }
     } catch (error) {
