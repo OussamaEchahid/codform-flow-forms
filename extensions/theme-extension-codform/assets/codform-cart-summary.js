@@ -367,7 +367,7 @@
     
     // الحصول على السعر الحقيقي للمنتج وعملته من البيانات الفعلية
     let productPrice = parseFloat(config.productPrice) || 0;
-    let productCurrency = config.currency || 'SAR';
+    let productCurrency = 'MAD'; // نفس quantity offers
     
     // محاولة الحصول على السعر الحقيقي من مصادر متعددة مثل quantity offers
     if (actualProductData && actualProductData.price) {
