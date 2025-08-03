@@ -74,15 +74,34 @@ serve(async (req) => {
 
     console.log('✅ Data found:', { form: settings.forms?.title, offers: !!offers });
 
+    const formCurrency = settings.forms?.currency;
+    const formCountry = settings.forms?.country;
+    const formPhonePrefix = settings.forms?.phone_prefix;
+    
+    console.log('💰 Form currency from database:', formCurrency);
+    
+    // ✅ CRITICAL: Don't return any default currencies - only what's in the database
+    if (!formCurrency) {
+      console.error('❌ No currency in form settings!');
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'NO_CURRENCY_CONFIGURED',
+          message: 'Form currency not configured' 
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
         form: settings.forms?.title || 'New Form',
         data: settings.forms?.data || [],
         style: settings.forms?.style || {},
-        currency: settings.forms?.currency || 'MAD',
-        country: settings.forms?.country || 'MA',
-        phone_prefix: settings.forms?.phone_prefix || '+212',
+        currency: formCurrency, // Use only database currency - no defaults
+        country: formCountry,
+        phone_prefix: formPhonePrefix,
         quantity_offers: offers,
         shop,
         productId
