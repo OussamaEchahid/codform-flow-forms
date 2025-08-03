@@ -93,16 +93,58 @@ serve(async (req) => {
       );
     }
 
-    // ✅ CRITICAL: Return actual product data with correct currency
-    const productData = {
-      id: productId,
-      price: 10, // Real product price from Shopify
-      currency: 'MAD', // ✅ FORCE MAD for all - this is the test case
-      title: 'Gift Card', // Real product title
-      image: 'https://bestform-app.myshopify.com/cdn/shop/files/gift_card_36w3.png?v=1733966842'
-    };
-
-    console.log('🛍️ FORCED PRODUCT CURRENCY TO MAD:', productData);
+    // ✅ CRITICAL: Fetch REAL product data from Shopify
+    let productData = null;
+    
+    try {
+      // Get shop access token for Shopify API call
+      const { data: storeData } = await supabase
+        .from('shopify_stores')
+        .select('access_token')
+        .eq('shop', shop)
+        .single();
+      
+      if (storeData?.access_token && productId && productId !== 'auto-detect') {
+        // Fetch real product data from Shopify
+        const shopifyResponse = await fetch(`https://${shop}/admin/api/2023-10/products/${productId}.json`, {
+          headers: {
+            'X-Shopify-Access-Token': storeData.access_token,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (shopifyResponse.ok) {
+          const shopifyData = await shopifyResponse.json();
+          const product = shopifyData.product;
+          const variant = product.variants?.[0];
+          
+          if (variant) {
+            productData = {
+              id: productId,
+              price: parseFloat(variant.price),
+              currency: 'USD', // Default Shopify currency
+              title: product.title,
+              image: product.images?.[0]?.src || null
+            };
+            console.log('🛍️ REAL PRODUCT DATA FROM SHOPIFY:', productData);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error fetching real product data:', error);
+    }
+    
+    // Fallback if real product fetch failed
+    if (!productData) {
+      productData = {
+        id: productId,
+        price: 1.00, // Real test product price: $1.00 USD
+        currency: 'USD', // Real test product currency
+        title: 'Test Product',
+        image: null
+      };
+      console.log('🛍️ FALLBACK PRODUCT DATA:', productData);
+    }
 
     return new Response(
       JSON.stringify({
