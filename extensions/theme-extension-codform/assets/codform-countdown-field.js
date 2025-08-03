@@ -232,11 +232,12 @@ window.renderCountdownField = function(field, formStyle, formLanguage = 'en') {
       </div>
     </div>
     <script>
-      (function() {
+      // Force immediate initialization
+      setTimeout(function() {
         if (typeof window.initializeCountdown === 'function') {
           window.initializeCountdown('${fieldId}');
         }
-      })();
+      }, 50);
     </script>
   `;
 };
@@ -302,5 +303,74 @@ window.initializeCountdown = function(fieldId) {
   setInterval(updateCountdown, 1000);
   console.log('🕐 COUNTDOWN: Timer started for field', fieldId);
 };
+
+// Auto-initialize countdown timers when DOM changes
+window.startCountdownObserver = function() {
+  console.log('🕐 COUNTDOWN: Starting observer for countdown timers');
+  
+  // Initialize existing countdown elements
+  function initializeExistingCountdowns() {
+    var countdownElements = document.querySelectorAll('[data-countdown-id]');
+    console.log('🕐 COUNTDOWN: Found', countdownElements.length, 'countdown elements');
+    
+    countdownElements.forEach(function(element) {
+      var countdownId = element.getAttribute('data-countdown-id');
+      if (countdownId && window.countdownConfigs[countdownId]) {
+        console.log('🕐 COUNTDOWN: Auto-initializing', countdownId);
+        window.initializeCountdown(countdownId);
+      }
+    });
+  }
+  
+  // Initialize immediately
+  initializeExistingCountdowns();
+  
+  // Watch for new countdown elements
+  if (typeof MutationObserver !== 'undefined') {
+    var observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(mutation) {
+        mutation.addedNodes.forEach(function(node) {
+          if (node.nodeType === 1) { // Element node
+            if (node.hasAttribute && node.hasAttribute('data-countdown-id')) {
+              var countdownId = node.getAttribute('data-countdown-id');
+              setTimeout(function() {
+                if (window.countdownConfigs[countdownId]) {
+                  console.log('🕐 COUNTDOWN: Auto-initializing new element', countdownId);
+                  window.initializeCountdown(countdownId);
+                }
+              }, 100);
+            }
+            // Check child elements too
+            var childCountdowns = node.querySelectorAll ? node.querySelectorAll('[data-countdown-id]') : [];
+            childCountdowns.forEach(function(childElement) {
+              var countdownId = childElement.getAttribute('data-countdown-id');
+              setTimeout(function() {
+                if (window.countdownConfigs[countdownId]) {
+                  console.log('🕐 COUNTDOWN: Auto-initializing child element', countdownId);
+                  window.initializeCountdown(countdownId);
+                }
+              }, 100);
+            });
+          }
+        });
+      });
+    });
+    
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+  }
+  
+  // Fallback: periodic check
+  setInterval(initializeExistingCountdowns, 2000);
+};
+
+// Start the observer when DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', window.startCountdownObserver);
+} else {
+  window.startCountdownObserver();
+}
 
 console.log('🕐 CODFORM: Countdown field renderer loaded');
