@@ -194,8 +194,8 @@
       const data = await response.json();
       console.log('🛒 Cart Summary - API Response:', data);
       
-      if (data.success && data.product) {
-        const product = data.product;
+      if (data.success && data.products && data.products.length > 0) {
+        const product = data.products[0];
         
         // Get price from variants
         const price = product.variants && product.variants.length > 0 
@@ -204,7 +204,7 @@
         
         // Update cart summary data with real product price
         cartSummaryData.productPrice = price;
-        cartSummaryData.productCurrency = product.variants[0]?.currency_code || data.shop?.currency || 'MAD';
+        cartSummaryData.productCurrency = product.variants[0]?.currency_code || 'SAR';
         
         console.log('💰 Cart Summary - Product data loaded successfully:', {
           price: cartSummaryData.productPrice,
