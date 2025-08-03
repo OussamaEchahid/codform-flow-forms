@@ -407,21 +407,26 @@
     cartSummaryData.discountValue = parseFloat(config.discountValue) || 0;
     cartSummaryData.shippingCost = parseFloat(config.shippingCost) || 0;
     
-    // Extract target currency from form settings
+    // FINAL FIX: Extract target currency from correct API path
     let targetCurrency = 'SAR'; // Default fallback
     
-    // Try multiple sources for target currency - PRIORITIZE style.currency from API
+    // DEBUG: Print the actual data structure
+    console.log('🚨 [FINAL DEBUG] Full window.currentFormData:', window.currentFormData);
+    console.log('🚨 [FINAL DEBUG] window.currentFormData?.form:', window.currentFormData?.form);
+    console.log('🚨 [FINAL DEBUG] window.currentFormData?.form?.style:', window.currentFormData?.form?.style);
+    
+    // Try multiple sources for target currency - CORRECT API PATH
     const possibleSources = [
-      window.currentFormData?.style?.currency,     // HIGHEST PRIORITY: Form style currency from API
-      window.currentFormData?.style?.formCurrency, // SECOND: Form currency from API style
-      window.currentFormData?.style?.country,      // THIRD: Form style country from API
-      formStyle?.formCurrency,                     // FOURTH: Passed from form style
-      formStyle?.currency,                         // FIFTH: General form style currency
-      formStyle?.targetCurrency,                   // SIXTH: Target currency from style
-      config.currency,                            // SEVENTH: Field config currency
-      config.targetCurrency,                      // EIGHTH: Field config target
-      config.country,                            // NINTH: Field config country
-      formStyle?.country                         // LAST: Form style country
+      window.currentFormData?.form?.style?.currency,      // CORRECT: Form style currency from API
+      window.currentFormData?.form?.style?.formCurrency,  // CORRECT: Form currency from API style  
+      window.currentFormData?.form?.style?.country,       // CORRECT: Form style country from API
+      formStyle?.formCurrency,                           // Passed from form style
+      formStyle?.currency,                               // General form style currency
+      formStyle?.targetCurrency,                         // Target currency from style
+      config.currency,                                   // Field config currency
+      config.targetCurrency,                             // Field config target
+      config.country,                                    // Field config country
+      formStyle?.country                                 // Form style country
     ];
     
     console.log('🔍 [TARGET CURRENCY DEBUG] Checking possible sources:', possibleSources);

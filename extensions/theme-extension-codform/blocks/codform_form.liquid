@@ -867,12 +867,12 @@
         if (window.codformCartSummary) {
           console.log('🛒 Initializing cart summary for field:', field);
           
-          // CRITICAL FIX: Pass currency and country from form style to cart summary
+          // CRITICAL FIX: Pass currency and country from CORRECT API path  
           const enhancedFormStyle = {
             ...formStyle,
-            currency: window.currentFormData?.style?.currency || window.currentFormData?.style?.formCurrency || formStyle.currency || 'SAR',
-            country: window.currentFormData?.style?.country || formStyle.country,
-            formCurrency: window.currentFormData?.style?.currency || window.currentFormData?.style?.formCurrency || formStyle.currency || 'SAR'
+            currency: window.currentFormData?.form?.style?.currency || window.currentFormData?.form?.style?.formCurrency || formStyle.currency || 'SAR',
+            country: window.currentFormData?.form?.style?.country || formStyle.country,
+            formCurrency: window.currentFormData?.form?.style?.currency || window.currentFormData?.form?.style?.formCurrency || formStyle.currency || 'SAR'
           };
           
           console.log('🎯 [CART SUMMARY INIT] Enhanced form style with currency:', enhancedFormStyle);
