@@ -66,27 +66,13 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
     return currencyData?.symbol || 'ر.س';
   };
 
-  // ✅ Add currency conversion function
+  // ✅ Add currency conversion function using unified service
   const convertCurrency = (amount: number, fromCurrency: string, toCurrency: string) => {
     if (fromCurrency === toCurrency) return amount;
     
-    const exchangeRates: { [key: string]: number } = {
-      'USD': 1.0,
-      'EUR': 0.92,
-      'GBP': 0.79,
-      'CAD': 1.43,
-      'AUD': 1.57,
-      'SAR': 3.75,
-      'AED': 3.67,
-      'MAD': 9.85
-    };
-    
-    const fromRate = exchangeRates[fromCurrency] || 1;
-    const toRate = exchangeRates[toCurrency] || 1;
-    const converted = (amount / fromRate) * toRate;
-    
-    console.log(`💱 Converted: ${amount} ${fromCurrency} → ${converted.toFixed(2)} ${toCurrency}`);
-    return converted;
+    // استخدام الخدمة الموحدة للعملات
+    const { convertCurrency: unifiedConvert } = require('@/lib/services/CurrencyService');
+    return unifiedConvert(amount, fromCurrency, toCurrency);
   };
 
   // دالة لتنسيق السعر باستخدام العملة المحددة

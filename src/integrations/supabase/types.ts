@@ -59,6 +59,63 @@ export type Database = {
         }
         Relationships: []
       }
+      currency_display_settings: {
+        Row: {
+          created_at: string
+          decimal_places: number
+          id: number
+          show_symbol: boolean
+          symbol_position: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          decimal_places?: number
+          id?: number
+          show_symbol?: boolean
+          symbol_position?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          decimal_places?: number
+          id?: number
+          show_symbol?: boolean
+          symbol_position?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      custom_currency_rates: {
+        Row: {
+          created_at: string
+          currency_code: string
+          exchange_rate: number
+          id: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          currency_code: string
+          exchange_rate: number
+          id?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          currency_code?: string
+          exchange_rate?: number
+          id?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       form_submissions: {
         Row: {
           created_at: string

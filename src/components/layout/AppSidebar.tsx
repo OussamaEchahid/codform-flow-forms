@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, FileText, ShoppingCart, Settings, BarChart, Gift, ImageIcon, Globe, LogOut, RefreshCcw, ShoppingBag, ChevronDown, ListOrdered, AlertTriangle, Layers, Users, Shield, Crown, Package, User, CreditCard, Target } from 'lucide-react';
+import { LayoutDashboard, FileText, ShoppingCart, Settings, BarChart, Gift, ImageIcon, Globe, LogOut, RefreshCcw, ShoppingBag, ChevronDown, ListOrdered, AlertTriangle, Layers, Users, Shield, Crown, Package, User, CreditCard, Target, DollarSign } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
@@ -89,6 +89,10 @@ const AppSidebar = () => {
     title: t('plansSettings'),
     path: '/settings/plans',
     icon: Crown
+  }, {
+    title: language === 'ar' ? 'إدارة العملات' : 'Currency Management',
+    path: '/settings/currency',
+    icon: DollarSign
   }];
   return <aside className="min-h-screen w-64 bg-[#1E2127] text-white">
       <div className="p-4">

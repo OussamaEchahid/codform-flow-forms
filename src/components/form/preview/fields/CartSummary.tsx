@@ -80,54 +80,9 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
   const convertCurrency = (amount: number, fromCurrency: string, toCurrency: string) => {
     if (fromCurrency === toCurrency) return amount;
     
-    // أسعار صرف شاملة لجميع العملات المدعومة
-    const exchangeRates: { [key: string]: number } = {
-      'USD': 1.0,
-      'EUR': 0.92,
-      'GBP': 0.79,
-      'CAD': 1.43,
-      'AUD': 1.57,
-      'SAR': 3.75,
-      'AED': 3.67,
-      'EGP': 30.85,
-      'QAR': 3.64,
-      'KWD': 0.31,
-      'BHD': 0.38,
-      'OMR': 0.38,
-      'JOD': 0.71,
-      'LBP': 89500,
-      'MAD': 9.85,
-      'TND': 3.15,
-      'DZD': 134.25,
-      'MXN': 20.15,
-      'BRL': 6.05,
-      'ARS': 350.50,
-      'CLP': 950.75,
-      'COP': 4250.30,
-      'PEN': 3.75,
-      'VES': 36.50,
-      'UYU': 39.85,
-      'IQD': 1470.25,
-      'IRR': 42000.00,
-      'TRY': 29.75,
-      'ILS': 3.70,
-      'SYP': 12500.00,
-      'YER': 250.75,
-      'NGN': 850.25,
-      'ZAR': 18.95,
-      'KES': 155.30,
-      'GHS': 15.85,
-      'ETB': 120.50,
-      'TZS': 2500.75,
-      'UGX': 3750.25,
-      'ZWL': 350.00,
-      'ZMW': 26.85,
-      'RWF': 1350.50
-    };
-    
-    const fromRate = exchangeRates[fromCurrency] || 1;
-    const toRate = exchangeRates[toCurrency] || 1;
-    return (amount / fromRate) * toRate;
+    // استخدام الخدمة الموحدة للعملات
+    const { convertCurrency: unifiedConvert } = require('@/lib/services/CurrencyService');
+    return unifiedConvert(amount, fromCurrency, toCurrency);
   };
 
   // Calculate prices using useMemo to prevent infinite loops

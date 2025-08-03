@@ -429,7 +429,7 @@ export const CURRENCIES: Currency[] = [
     name: 'Moroccan Dirham',
     nameAr: 'درهم مغربي',
     symbol: 'د.م',
-    exchangeRate: 9.85
+    exchangeRate: 10.0
   },
   {
     code: 'TND',

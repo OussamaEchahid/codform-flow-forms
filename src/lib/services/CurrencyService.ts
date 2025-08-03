@@ -1,5 +1,4 @@
 import { CURRENCIES } from '@/lib/constants/countries-currencies';
-import { supabase } from '@/integrations/supabase/client';
 
 export interface CustomCurrencyRate {
   code: string;
@@ -113,16 +112,10 @@ class CurrencyServiceClass {
         updatedAt: new Date()
       };
 
-      // حفظ في قاعدة البيانات
-      const { error } = await supabase
-        .from('custom_currency_rates')
-        .upsert({
-          currency_code: currencyCode,
-          exchange_rate: rate,
-          updated_at: new Date().toISOString()
-        });
-
-      if (error) throw error;
+      // حفظ في localStorage مؤقتاً
+      const savedRates = this.getCustomRatesFromStorage();
+      savedRates[currencyCode] = customRate;
+      localStorage.setItem('codform_custom_currency_rates', JSON.stringify(savedRates));
 
       // تحديث الكاش المحلي
       this.customRates.set(currencyCode, customRate);
@@ -139,12 +132,10 @@ class CurrencyServiceClass {
    */
   async deleteCustomRate(currencyCode: string): Promise<void> {
     try {
-      const { error } = await supabase
-        .from('custom_currency_rates')
-        .delete()
-        .eq('currency_code', currencyCode);
-
-      if (error) throw error;
+      // حذف من localStorage
+      const savedRates = this.getCustomRatesFromStorage();
+      delete savedRates[currencyCode];
+      localStorage.setItem('codform_custom_currency_rates', JSON.stringify(savedRates));
 
       this.customRates.delete(currencyCode);
       console.log(`✅ Deleted custom rate for ${currencyCode}`);
@@ -159,17 +150,8 @@ class CurrencyServiceClass {
    */
   async saveDisplaySettings(settings: CurrencyDisplaySettings): Promise<void> {
     try {
-      const { error } = await supabase
-        .from('currency_display_settings')
-        .upsert({
-          id: 1, // معرف ثابت لإعدادات المستخدم
-          show_symbol: settings.showSymbol,
-          symbol_position: settings.symbolPosition,
-          decimal_places: settings.decimalPlaces,
-          updated_at: new Date().toISOString()
-        });
-
-      if (error) throw error;
+      // حفظ في localStorage مؤقتاً
+      localStorage.setItem('codform_currency_display_settings', JSON.stringify(settings));
 
       this.displaySettings = { ...settings };
       console.log('✅ Saved display settings:', settings);
@@ -204,52 +186,48 @@ class CurrencyServiceClass {
   }
 
   /**
-   * تحميل المعدلات المخصصة من قاعدة البيانات
+   * الحصول على المعدلات المخصصة من localStorage
+   */
+  private getCustomRatesFromStorage(): Record<string, CustomCurrencyRate> {
+    try {
+      const saved = localStorage.getItem('codform_custom_currency_rates');
+      return saved ? JSON.parse(saved) : {};
+    } catch (error) {
+      console.error('❌ Error loading custom rates from storage:', error);
+      return {};
+    }
+  }
+
+  /**
+   * تحميل المعدلات المخصصة من localStorage
    */
   private async loadCustomRates(): Promise<void> {
     try {
-      const { data, error } = await supabase
-        .from('custom_currency_rates')
-        .select('*');
-
-      if (error) throw error;
-
-      if (data) {
-        this.customRates.clear();
-        data.forEach(rate => {
-          this.customRates.set(rate.currency_code, {
-            code: rate.currency_code,
-            rate: rate.exchange_rate,
-            updatedAt: new Date(rate.updated_at)
-          });
+      const savedRates = this.getCustomRatesFromStorage();
+      this.customRates.clear();
+      
+      Object.values(savedRates).forEach(rate => {
+        this.customRates.set(rate.code, {
+          ...rate,
+          updatedAt: new Date(rate.updatedAt)
         });
-        console.log(`📥 Loaded ${this.customRates.size} custom rates`);
-      }
+      });
+      
+      console.log(`📥 Loaded ${this.customRates.size} custom rates from localStorage`);
     } catch (error) {
       console.error('❌ Error loading custom rates:', error);
     }
   }
 
   /**
-   * تحميل إعدادات العرض من قاعدة البيانات
+   * تحميل إعدادات العرض من localStorage
    */
   private async loadDisplaySettings(): Promise<void> {
     try {
-      const { data, error } = await supabase
-        .from('currency_display_settings')
-        .select('*')
-        .eq('id', 1)
-        .single();
-
-      if (error && error.code !== 'PGRST116') throw error;
-
-      if (data) {
-        this.displaySettings = {
-          showSymbol: data.show_symbol,
-          symbolPosition: data.symbol_position,
-          decimalPlaces: data.decimal_places
-        };
-        console.log('📥 Loaded display settings:', this.displaySettings);
+      const saved = localStorage.getItem('codform_currency_display_settings');
+      if (saved) {
+        this.displaySettings = JSON.parse(saved);
+        console.log('📥 Loaded display settings from localStorage:', this.displaySettings);
       }
     } catch (error) {
       console.error('❌ Error loading display settings:', error);
@@ -261,14 +239,17 @@ class CurrencyServiceClass {
    */
   async resetToDefaults(): Promise<void> {
     try {
-      const { error } = await supabase
-        .from('custom_currency_rates')
-        .delete()
-        .neq('currency_code', ''); // حذف جميع السجلات
-
-      if (error) throw error;
+      // حذف من localStorage
+      localStorage.removeItem('codform_custom_currency_rates');
+      localStorage.removeItem('codform_currency_display_settings');
 
       this.customRates.clear();
+      this.displaySettings = {
+        showSymbol: true,
+        symbolPosition: 'before',
+        decimalPlaces: 2
+      };
+      
       console.log('✅ Reset all rates to defaults');
     } catch (error) {
       console.error('❌ Error resetting rates:', error);
