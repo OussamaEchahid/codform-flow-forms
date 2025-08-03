@@ -68,17 +68,19 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
 
   // Calculate prices using useMemo to prevent infinite loops
   const prices = useMemo(() => {
-    if (!productData && !config.autoCalculate) {
-      // Demo prices when not using auto calculation
+    if (productData && productData.variants && productData.variants.length > 0) {
+      const basePrice = parseFloat(productData.variants[0].price) || 0;
+      const currency = formCurrency || formStyle.currency || productData.currency || 'SAR';
+      return calculatePrices(basePrice, productData, config, currency);
+    }
+    
+    // Only show demo prices when not using auto calculation
+    if (!config.autoCalculate) {
       const demoPrice = 99.00;
       return calculatePrices(demoPrice, null, config, formCurrency || formStyle.currency || 'SAR');
     }
     
-    if (productData && productData.variants && productData.variants.length > 0) {
-      const basePrice = parseFloat(productData.variants[0].price) || 0;
-      return calculatePrices(basePrice, productData, config, formCurrency || formStyle.currency || productData.currency || 'SAR');
-    }
-    
+    // Show loading state when auto calculation is enabled but no product data yet
     return { subtotal: 0, discount: 0, shipping: 0, total: 0 };
   }, [productData, config, formCurrency, formStyle.currency]);
 
