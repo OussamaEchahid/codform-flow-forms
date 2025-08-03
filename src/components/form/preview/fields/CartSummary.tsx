@@ -3,6 +3,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
 import { useShopifyProducts } from '@/hooks/useShopifyProducts';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CartSummaryProps {
   field: FormField;
@@ -21,6 +22,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
   const { getProductById } = useShopifyProducts();
   const [productData, setProductData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [linkedProductId, setLinkedProductId] = React.useState<string | null>(null);
 
   const fieldStyle = field.style || {};
   const config = {
@@ -174,29 +176,58 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
     return { subtotal: 0, discount: 0, shipping: 0, total: 0 };
   }, [productData, config, formCurrency, formStyle.currency]);
 
+  // البحث عن المنتج المرتبط بالنموذج من قاعدة البيانات
+  React.useEffect(() => {
+    const fetchLinkedProduct = async () => {
+      try {
+        // الحصول على form ID من URL أو context
+        const pathParts = window.location.pathname.split('/');
+        const formId = pathParts[pathParts.length - 1];
+        
+        if (formId && formId !== 'form-builder') {
+          const { data, error } = await supabase
+            .from('shopify_product_settings')
+            .select('product_id')
+            .eq('form_id', formId)
+            .single();
+          
+          if (data && !error) {
+            console.log('✅ Cart Summary - Found linked product:', data.product_id);
+            setLinkedProductId(data.product_id);
+          }
+        }
+      } catch (error) {
+        console.error('❌ Cart Summary - Error fetching linked product:', error);
+      }
+    };
+
+    fetchLinkedProduct();
+  }, []);
+
   // Load product data
   useEffect(() => {
-    if (config.autoCalculate && productId && productId !== 'auto-detect' && !loading && !productData) {
+    const finalProductId = linkedProductId || productId;
+    if (config.autoCalculate && finalProductId && finalProductId !== 'auto-detect' && !loading && !productData) {
       setLoading(true);
-      console.log('📦 Starting to load product:', productId);
+      console.log('📦 Cart Summary - Starting to load product:', finalProductId);
       
-      getProductById(productId)
+      getProductById(finalProductId)
         .then(product => {
-          console.log('✅ Product loaded successfully:', product);
+          console.log('✅ Cart Summary - Product loaded successfully:', product);
           if (product && product.variants && product.variants.length > 0) {
             setProductData(product);
           } else {
-            console.warn('⚠️ Product has no variants:', product);
+            console.warn('⚠️ Cart Summary - Product has no variants:', product);
           }
         })
         .catch(error => {
-          console.error('❌ Error loading product data:', error);
+          console.error('❌ Cart Summary - Error loading product data:', error);
         })
         .finally(() => {
           setLoading(false);
         });
     }
-  }, [productId, config.autoCalculate]);
+  }, [linkedProductId, productId, config.autoCalculate]);
 
   // Load shipping rates from Shopify if auto shipping is enabled
   useEffect(() => {
