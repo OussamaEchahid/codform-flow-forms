@@ -22,9 +22,11 @@ interface FormFieldProps {
     borderRadius?: string;
     fontSize?: string;
     formDirection?: 'ltr' | 'rtl';
+    currency?: string;
   };
   formCountry?: string;
   formPhonePrefix?: string;
+  formCurrency?: string;
   value?: any;
   onChange?: (value: any) => void;
   onClick?: () => void;
@@ -37,6 +39,7 @@ const FormField: React.FC<FormFieldProps> = ({
   formStyle = {}, 
   formCountry = 'MA', 
   formPhonePrefix = '+212',
+  formCurrency,
   value,
   onChange,
   onClick,
@@ -81,7 +84,7 @@ const FormField: React.FC<FormFieldProps> = ({
       return <CartItems field={enhancedField} formStyle={formStyle} productId={productId} />;
     
     case 'cart-summary':
-      return <CartSummary field={enhancedField} formStyle={formStyle} />;
+      return <CartSummary field={enhancedField} formStyle={formStyle} productId={productId} formCurrency={formCurrency} />;
     
     case 'checkbox':
       return <CheckboxGroup field={enhancedField} formStyle={formStyle} />;

@@ -1042,6 +1042,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
                 onStyleChange={handleStyleChange}
                 formCountry={formCountry}
                 formPhonePrefix={formPhonePrefix}
+                formCurrency={formCurrency}
               />
             </TabsContent>
             

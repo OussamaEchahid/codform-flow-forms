@@ -24,6 +24,7 @@ interface FormPreviewPanelProps {
   onStyleChange: (style: any) => void;
   formCountry?: string;
   formPhonePrefix?: string;
+  formCurrency?: string;
 }
 
 const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
@@ -39,7 +40,8 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   refreshKey,
   onStyleChange,
   formCountry = 'SA',
-  formPhonePrefix = '+966'
+  formPhonePrefix = '+966',
+  formCurrency
 }) => {
   const { language } = useI18n();
   const { shop } = useShopify();
@@ -184,19 +186,20 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           >
             {fields.map((field, index) => (
               <div key={`${field.id}-${refreshKey}`} className="mb-4">
-                <FormFieldComponent
-                  field={field}
-                  formStyle={formStyle}
-                  formCountry={formCountry}
-                  formPhonePrefix={formPhonePrefix}
-                  value={formData[field.id]}
-                  onChange={(value) => handleInputChange(field.id, value)}
-                  productId={field.productId}
-                  {...(field.type === 'submit' && { 
-                    onClick: () => handleSubmit({ preventDefault: () => {} } as React.FormEvent),
-                    disabled: isSubmitting 
-                  })}
-                />
+                 <FormFieldComponent
+                   field={field}
+                   formStyle={formStyle}
+                   formCountry={formCountry}
+                   formPhonePrefix={formPhonePrefix}
+                   formCurrency={formCurrency}
+                   value={formData[field.id]}
+                   onChange={(value) => handleInputChange(field.id, value)}
+                   productId={field.productId}
+                   {...(field.type === 'submit' && { 
+                     onClick: () => handleSubmit({ preventDefault: () => {} } as React.FormEvent),
+                     disabled: isSubmitting 
+                   })}
+                 />
               </div>
             ))}
           </div>
