@@ -1893,11 +1893,19 @@ window.CodformQuantityOffers = (function() {
       console.log("📊 API Response:", data);
       
       if (data.success && data.quantity_offers && data.quantity_offers.offers && data.quantity_offers.offers.length > 0) {
-        // ✅ CRITICAL FIX: Use ONLY the form currency from API, never fallback to SAR
-        const targetCurrency = data.form.currency;
+        // ✅ CRITICAL FIX: Extract currency correctly from API response
+        const targetCurrency = data.form?.currency || data.currency;
+        
+        console.log("🔍 Debug currency extraction:", {
+          'data.form.currency': data.form?.currency,
+          'data.currency': data.currency,
+          'targetCurrency': targetCurrency,
+          'API response structure': Object.keys(data)
+        });
         
         if (!targetCurrency) {
           console.warn("⚠️ No form currency found in API response, skipping quantity offers");
+          console.log("❌ Full API response:", data);
           return;
         }
         
