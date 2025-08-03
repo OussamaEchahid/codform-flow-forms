@@ -36,14 +36,35 @@
    * Convert currency amount
    */
   function convertCurrency(amount, fromCurrency, toCurrency) {
-    if (fromCurrency === toCurrency) return amount;
+    console.log(`💱 [CONVERSION DEBUG] Converting ${amount} from ${fromCurrency} to ${toCurrency}`);
     
-    const fromRate = EXCHANGE_RATES[fromCurrency] || 1;
-    const toRate = EXCHANGE_RATES[toCurrency] || 1;
+    if (fromCurrency === toCurrency) {
+      console.log(`💱 [CONVERSION DEBUG] Same currency, no conversion needed: ${amount}`);
+      return amount;
+    }
+    
+    const fromRate = EXCHANGE_RATES[fromCurrency];
+    const toRate = EXCHANGE_RATES[toCurrency];
+    
+    console.log(`💱 [CONVERSION DEBUG] Exchange rates - ${fromCurrency}: ${fromRate}, ${toCurrency}: ${toRate}`);
+    
+    if (!fromRate) {
+      console.error(`❌ [CONVERSION ERROR] Exchange rate not found for ${fromCurrency}`);
+      return amount; // Return original amount if exchange rate not found
+    }
+    
+    if (!toRate) {
+      console.error(`❌ [CONVERSION ERROR] Exchange rate not found for ${toCurrency}`);
+      return amount; // Return original amount if exchange rate not found
+    }
     
     // Convert to SAR first, then to target currency
     const sarAmount = amount / fromRate;
-    return sarAmount * toRate;
+    const convertedAmount = sarAmount * toRate;
+    
+    console.log(`💱 [CONVERSION DEBUG] ${amount} ${fromCurrency} → ${sarAmount.toFixed(2)} SAR → ${convertedAmount.toFixed(2)} ${toCurrency}`);
+    
+    return convertedAmount;
   }
 
   /**
@@ -69,8 +90,18 @@
   function calculatePrices() {
     const { productPrice, productCurrency, targetCurrency, discountType, discountValue, shippingCost } = cartSummaryData;
     
+    console.log(`🧮 [CALC DEBUG] Starting price calculation:`, {
+      productPrice,
+      productCurrency,
+      targetCurrency,
+      discountType,
+      discountValue,
+      shippingCost
+    });
+    
     // Don't calculate if product data is not loaded yet
     if (productPrice === null || productCurrency === null) {
+      console.log(`⚠️ [CALC DEBUG] Product data not loaded yet, returning zeros`);
       return {
         subtotal: 0,
         discount: 0,
@@ -80,7 +111,9 @@
     }
     
     // Convert product price to target currency
+    console.log(`🔄 [CALC DEBUG] Converting product price from ${productCurrency} to ${targetCurrency}`);
     const convertedPrice = convertCurrency(productPrice, productCurrency, targetCurrency);
+    console.log(`✅ [CALC DEBUG] Product price converted: ${productPrice} ${productCurrency} → ${convertedPrice} ${targetCurrency}`);
     
     // Calculate discount
     let discountAmount = 0;
@@ -372,9 +405,13 @@
     cartSummaryData.discountType = config.discountType || 'percentage';
     cartSummaryData.discountValue = parseFloat(config.discountValue) || 0;
     cartSummaryData.shippingCost = parseFloat(config.shippingCost) || 0;
-    cartSummaryData.targetCurrency = config.currency || 'SAR';
+    
+    // CRITICAL: Use the currency from form configuration, NOT defaulting to SAR
+    const formCurrency = config.currency || formStyle?.currency || 'SAR';
+    cartSummaryData.targetCurrency = formCurrency;
     
     console.log('💾 [DEBUG] Cart summary data updated:', JSON.stringify(cartSummaryData, null, 2));
+    console.log(`🎯 [DEBUG] Target currency set to: ${cartSummaryData.targetCurrency} (from config.currency: ${config.currency}, formStyle.currency: ${formStyle?.currency})`);
     
     // Always try to get product ID and shop domain
     const productId = window.getProductId ? window.getProductId() : 'auto-detect';
