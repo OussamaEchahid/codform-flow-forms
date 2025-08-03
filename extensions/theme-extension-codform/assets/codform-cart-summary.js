@@ -356,20 +356,60 @@
       hasProductPrice: !!config.productPrice
     });
     
-    // استخدام نفس منطق quantity offers بالضبط
-    if (productId && productId !== 'auto-detect' && shopDomain && shopDomain !== 'auto-detect') {
-      console.log('✅ Cart Summary - Valid product/shop detected, using quantity offers API...');
-      loadProductData(productId, shopDomain);
-    } else {
-      // Try with fallback values like quantity offers
-      const fallbackProductId = '7597766148198'; // Use same product ID as quantity offers
-      const fallbackShop = 'bestform-app.myshopify.com'; // Use same shop as quantity offers
-      console.log('🔄 Cart Summary - Using fallback values like quantity offers:', {
-        productId: fallbackProductId,
-        shop: fallbackShop
-      });
-      loadProductData(fallbackProductId, fallbackShop);
+    // استخدام نفس منطق quantity offers - بدون API calls
+    let actualProductData = null;
+    
+    // استخدام window.CodformProductData أولاً مثل quantity offers
+    if (window.CodformProductData) {
+      actualProductData = window.CodformProductData;
+      console.log("🛍️ Cart Summary using global product data:", actualProductData);
     }
+    
+    // الحصول على السعر الحقيقي للمنتج وعملته من البيانات الفعلية
+    let productPrice = parseFloat(config.productPrice) || 0;
+    let productCurrency = config.currency || 'SAR';
+    
+    // محاولة الحصول على السعر الحقيقي من مصادر متعددة مثل quantity offers
+    if (actualProductData && actualProductData.price) {
+      productPrice = parseFloat(actualProductData.price);
+      productCurrency = actualProductData.currency || 'SAR';
+      console.log("💰 Cart Summary price from product data:", productPrice, productCurrency);
+    } else if (actualProductData && actualProductData.variants && actualProductData.variants.length > 0) {
+      // إذا كان المنتج له variants، استخدم سعر أول variant
+      const firstVariant = actualProductData.variants[0];
+      if (firstVariant.price) {
+        productPrice = parseFloat(firstVariant.price);
+        productCurrency = firstVariant.currency || actualProductData.currency || 'SAR';
+        console.log("💰 Cart Summary price from variant:", productPrice, productCurrency);
+      }
+    } else if (!config.productPrice) {
+      // محاولة الحصول على السعر من DOM إذا لم تكن البيانات متوفرة
+      try {
+        const priceElement = document.querySelector('.price, [class*="price"], [data-price]');
+        if (priceElement) {
+          const priceText = priceElement.textContent || priceElement.getAttribute('data-price');
+          const priceMatch = priceText.match(/[\d,]+\.?\d*/);
+          if (priceMatch) {
+            productPrice = parseFloat(priceMatch[0].replace(',', ''));
+            console.log("💰 Cart Summary price from DOM:", productPrice);
+          }
+        }
+      } catch (e) {
+        console.log("⚠️ Cart Summary could not extract price from DOM");
+      }
+    }
+    
+    // حفظ البيانات وتحديث العرض
+    cartSummaryData.productPrice = productPrice;
+    cartSummaryData.productCurrency = productCurrency;
+    
+    console.log("💰 Cart Summary final price data:", {
+      productPrice: cartSummaryData.productPrice,
+      productCurrency: cartSummaryData.productCurrency,
+      source: actualProductData ? 'actualProductData' : 'manual/DOM'
+    });
+    
+    updateCartSummary();
   }
 
   /**
