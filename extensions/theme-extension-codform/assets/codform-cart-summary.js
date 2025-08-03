@@ -157,6 +157,36 @@
     try {
       console.log('🛒 Cart Summary - Loading product data:', { productId, shopDomain });
       
+      // If auto-detect, try to get real values
+      if (productId === 'auto-detect' || shopDomain === 'auto-detect') {
+        console.log('🛒 Cart Summary - Auto-detecting missing values...');
+        
+        // Try to get real product ID
+        if (productId === 'auto-detect') {
+          const realProductId = window.getProductId ? window.getProductId() : null;
+          if (realProductId && realProductId !== 'auto-detect') {
+            productId = realProductId;
+          }
+        }
+        
+        // Try to get real shop domain
+        if (shopDomain === 'auto-detect') {
+          const realShopDomain = window.getShopDomain ? window.getShopDomain() : null;
+          if (realShopDomain && realShopDomain !== 'auto-detect') {
+            shopDomain = realShopDomain;
+          }
+        }
+        
+        console.log('🛒 Cart Summary - After auto-detect:', { productId, shopDomain });
+      }
+      
+      // If we still don't have the data, show default
+      if (productId === 'auto-detect' || shopDomain === 'auto-detect') {
+        console.log('❌ Cart Summary - Could not auto-detect product/shop, using manual price');
+        updateCartSummary();
+        return;
+      }
+      
       const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-products-fixed`, {
         method: 'POST',
         headers: {
@@ -170,6 +200,7 @@
       });
       
       if (!response.ok) {
+        console.error('❌ Cart Summary - HTTP Error:', response.status);
         throw new Error(`HTTP ${response.status}`);
       }
       
@@ -196,9 +227,13 @@
         
         // Update display
         updateCartSummary();
+      } else {
+        console.error('❌ Cart Summary - No products in response:', data);
+        updateCartSummary();
       }
     } catch (error) {
       console.error('❌ Cart Summary - Error loading product data:', error);
+      updateCartSummary();
     }
   }
 

@@ -4,22 +4,66 @@
 
 function getProductId() {
   try {
-    const productId = '{{ product.id }}' || '{{ product.variants.first.id }}' || '{{ block.settings.product_id }}' || 'auto-detect';
-    // Product ID detected
-    return productId.trim();
+    // Try to get from page meta or product object
+    if (window.meta && window.meta.product && window.meta.product.id) {
+      return window.meta.product.id.toString();
+    }
+    
+    // Try to get from Shopify product object
+    if (typeof ShopifyAnalytics !== 'undefined' && ShopifyAnalytics.meta && ShopifyAnalytics.meta.product) {
+      return ShopifyAnalytics.meta.product.id.toString();
+    }
+    
+    // Try to extract from page content or forms
+    const productForm = document.querySelector('form[action*="/cart/add"]');
+    if (productForm) {
+      const hiddenId = productForm.querySelector('input[name="id"]');
+      if (hiddenId && hiddenId.value) {
+        return hiddenId.value;
+      }
+    }
+    
+    // Try to get from URL if we're on a product page
+    const urlMatch = window.location.pathname.match(/\/products\/([^\/]+)/);
+    if (urlMatch) {
+      // We have a product handle, but we need the ID
+      // This will be handled by auto-detect in the API
+      return 'auto-detect';
+    }
+    
+    return 'auto-detect';
   } catch (error) {
-    // Error getting product ID
+    console.error('Error getting product ID:', error);
     return 'auto-detect';
   }
 }
 
 window.getShopDomain = function() {
   try {
-    const shopDomain = '{{ shop.domain }}' || '{{ shop.permanent_domain }}' || 'auto-detect';
-    // Using shop domain
-    return shopDomain;
+    // Try to get from Shopify object
+    if (typeof Shopify !== 'undefined' && Shopify.shop) {
+      return Shopify.shop;
+    }
+    
+    // Try to get from window location
+    const hostname = window.location.hostname;
+    if (hostname.includes('.myshopify.com')) {
+      return hostname;
+    }
+    
+    // Try to extract from forms or meta tags
+    const canonical = document.querySelector('link[rel="canonical"]');
+    if (canonical) {
+      const url = new URL(canonical.href);
+      if (url.hostname.includes('.myshopify.com')) {
+        return url.hostname;
+      }
+    }
+    
+    // Fallback - try to detect from page content
+    return 'auto-detect';
   } catch (error) {
-    // Error getting shop domain
+    console.error('Error getting shop domain:', error);
     return 'auto-detect';
   }
 }
