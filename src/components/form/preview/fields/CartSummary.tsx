@@ -107,14 +107,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
 
   // Load product data
   useEffect(() => {
-    console.log('🔍 Loading product data effect triggered:', {
-      autoCalculate: config.autoCalculate,
-      productId,
-      loading,
-      productData: !!productData
-    });
-    
-    if (config.autoCalculate && productId && productId !== 'auto-detect' && !loading) {
+    if (config.autoCalculate && productId && productId !== 'auto-detect' && !loading && !productData) {
       setLoading(true);
       console.log('📦 Starting to load product:', productId);
       
@@ -133,15 +126,8 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
         .finally(() => {
           setLoading(false);
         });
-    } else {
-      console.log('⏭️ Skipping product load because:', {
-        autoCalculate: config.autoCalculate,
-        productId,
-        loading,
-        condition: 'autoCalculate && productId && productId !== auto-detect && !loading'
-      });
     }
-  }, [productId, config.autoCalculate, getProductById]);
+  }, [productId, config.autoCalculate]);
 
   // Load shipping rates from Shopify if auto shipping is enabled
   useEffect(() => {
@@ -152,15 +138,43 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
   }, [config.shippingType, productData]);
 
   const formatPrice = (amount: number) => {
-    const currency = formCurrency || formStyle.currency || productData?.currency || 'SAR';
+    const currency = formCurrency || formStyle.currency || 'SAR';
+    
+    // Convert price if needed from product currency to form currency
+    let convertedAmount = amount;
+    if (productData?.variants && productData.variants[0]?.price) {
+      const productCurrency = productData.currency || 'USD';
+      if (productCurrency !== currency) {
+        // Simple conversion rates - in production, use real-time rates
+        const rates: { [key: string]: number } = {
+          'USD': 1,
+          'SAR': 3.75,
+          'MAD': 10.5, // درهم مغربي
+          'AED': 3.67,
+          'EGP': 30.9
+        };
+        
+        const fromRate = rates[productCurrency] || 1;
+        const toRate = rates[currency] || 1;
+        convertedAmount = (amount / fromRate) * toRate;
+        
+        console.log('💱 Currency conversion:', {
+          original: amount,
+          from: productCurrency,
+          to: currency,
+          converted: convertedAmount
+        });
+      }
+    }
+    
     try {
       return new Intl.NumberFormat(language === 'ar' ? 'ar-SA' : 'en-US', {
         style: 'currency',
         currency: currency,
         minimumFractionDigits: 2
-      }).format(amount);
+      }).format(convertedAmount);
     } catch (error) {
-      return `${amount.toFixed(2)} ${currency}`;
+      return `${convertedAmount.toFixed(2)} ${currency}`;
     }
   };
   
