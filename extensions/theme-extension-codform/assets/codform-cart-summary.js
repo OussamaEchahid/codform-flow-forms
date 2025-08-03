@@ -184,9 +184,9 @@
       console.log(`\n🏷️ [DEBUG] Processing cart summary ${index}:`);
       console.log('Element HTML:', summary.outerHTML.substring(0, 200) + '...');
       
-      // Use the target currency from configuration, NOT from element dataset
-      const currency = cartSummaryData.targetCurrency || 'SAR';
-      console.log(`💱 [DEBUG] Using target currency from config: ${currency} (NOT from element dataset)`);
+      // Use product currency like quantity offers (the working method)
+      const currency = cartSummaryData.productCurrency || 'SAR';
+      console.log(`💱 [DEBUG] Using product currency like quantity offers: ${currency}`);
       
       const language = summary.style.direction === 'rtl' ? 'ar' : 'en';
       console.log(`🌐 [DEBUG] Using language: ${language}`);
@@ -261,135 +261,64 @@
   }
 
   /**
-   * Load product data and update cart summary
+   * Load product data using quantity offers API (the working method)
    */
   async function loadProductData(productId, shopDomain) {
     try {
-      console.log('🛒 [DEBUG] Cart Summary - Loading product data:', { productId, shopDomain });
+      console.log('🎯 Cart Summary - Using quantity offers API method:', { productId, shopDomain });
       
-      // Always try to get current values first
-      const currentProductId = window.getProductId ? window.getProductId() : productId;
-      const currentShopDomain = window.getShopDomain ? window.getShopDomain() : shopDomain;
+      // Use the same API that works for quantity offers
+      const apiUrl = `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/forms-product?shop=${encodeURIComponent(shopDomain)}&product=${encodeURIComponent(productId)}`;
       
-      console.log('🛒 [DEBUG] Cart Summary - Using values:', { 
-        productId: currentProductId, 
-        shopDomain: currentShopDomain,
-        windowFunctions: {
-          getProductId: typeof window.getProductId,
-          getShopDomain: typeof window.getShopDomain
-        }
-      });
-      
-      // If we still can't detect, use fallback values
-      if (!currentProductId || currentProductId === 'auto-detect' || 
-          !currentShopDomain || currentShopDomain === 'auto-detect') {
-        console.log('❌ [DEBUG] Cart Summary - Could not detect product/shop, using manual price');
-        console.log('❌ [DEBUG] Cart Summary - Current cartSummaryData:', cartSummaryData);
-        updateCartSummary();
-        return;
-      }
-      
-      console.log('🔄 [DEBUG] Cart Summary - Making API call to shopify-products');
-      
-      const apiUrl = `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-products`;
-      const requestBody = {
-        shop: currentShopDomain,
-        productIds: [currentProductId]
-      };
-      
-      console.log('📡 [DEBUG] Cart Summary - API Request:', {
-        url: apiUrl,
-        body: requestBody
-      });
+      console.log('🌐 Cart Summary - API URL (same as quantity offers):', apiUrl);
       
       const response = await fetch(apiUrl, {
-        method: 'POST',
+        method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M'
-        },
-        body: JSON.stringify(requestBody)
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
       });
-      
-      console.log('📥 [DEBUG] Cart Summary - Response status:', response.status);
-      
+
       if (!response.ok) {
-        console.error('❌ [DEBUG] Cart Summary - HTTP Error:', response.status);
-        throw new Error(`HTTP ${response.status}`);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-      
+
       const data = await response.json();
-      console.log('📦 [DEBUG] Cart Summary - Full API Response:', JSON.stringify(data, null, 2));
+      console.log('📊 Cart Summary - API Response (quantity offers format):', data);
       
-      if (data.success && data.products && data.products.length > 0) {
-        const product = data.products[0];
-        console.log('✅ [DEBUG] Cart Summary - Product found:', {
-          title: product.title,
-          id: product.id,
-          variants: product.variants?.length || 0
+      if (data.success && data.product) {
+        // Use the same logic as quantity offers
+        const price = parseFloat(data.product.price) || 0;
+        const currency = data.product.currency || 'SAR';
+        
+        console.log('💰 Cart Summary - Using real product data like quantity offers:', {
+          price: price,
+          currency: currency,
+          source: 'forms-product API (same as quantity offers)'
         });
         
-        // Get price from variants
-        const price = product.variants && product.variants.length > 0 
-          ? parseFloat(product.variants[0].price) 
-          : 0;
-        
-        // FIXED: Use .currency instead of .currency_code based on API response
-        const currency = product.variants[0]?.currency || product.currency || 'MAD';
-        
-        console.log('💰 [DEBUG] Cart Summary - Price extraction:', {
-          rawPrice: product.variants[0]?.price,
-          parsedPrice: price,
-          currency: currency
-        });
-        
-        console.log('🔄 [DEBUG] Cart Summary - BEFORE UPDATE:', {
-          oldPrice: cartSummaryData.productPrice,
-          oldCurrency: cartSummaryData.productCurrency,
-          newPrice: price,
-          newCurrency: currency
-        });
-        
-        // Update cart summary data with real product price
+        // Update cart summary data with real product data
         cartSummaryData.productPrice = price;
         cartSummaryData.productCurrency = currency;
         
-        console.log('✅ [DEBUG] Cart Summary - AFTER UPDATE:', {
+        console.log('✅ Cart Summary - Updated with real product data:', {
           productPrice: cartSummaryData.productPrice,
-          productCurrency: cartSummaryData.productCurrency,
-          productTitle: product.title
+          productCurrency: cartSummaryData.productCurrency
         });
         
-        // Force update display with new price
-        console.log('🔄 [DEBUG] Cart Summary - Calling updateCartSummary()...');
+        // Update display
         updateCartSummary();
-        console.log('✅ [DEBUG] Cart Summary - updateCartSummary() completed');
         
-      } else if (data.products && data.products.length > 0) {
-        // Fallback for old API response format
-        const product = data.products[0];
-        const price = product.variants && product.variants.length > 0 
-          ? parseFloat(product.variants[0].price) 
-          : 0;
-        
-        cartSummaryData.productPrice = price;
-        cartSummaryData.productCurrency = product.variants[0]?.currency || product.currency || 'MAD';
-        
-        console.log('💰 [DEBUG] Cart Summary - Fallback product data loaded:', {
-          price: cartSummaryData.productPrice,
-          currency: cartSummaryData.productCurrency
-        });
-        
-        updateCartSummary();
+        return data.product;
       } else {
-        console.error('❌ [DEBUG] Cart Summary - No product data in response:', data);
-        console.error('❌ [DEBUG] Cart Summary - API returned no products');
-        updateCartSummary();
+        console.error('❌ Cart Summary - No product data in API response');
+        return null;
       }
+      
     } catch (error) {
-      console.error('❌ [DEBUG] Cart Summary - Error loading product data:', error);
-      console.error('❌ [DEBUG] Cart Summary - Error details:', error.message);
-      updateCartSummary();
+      console.error('❌ Cart Summary - Error loading product data:', error);
+      return null;
     }
   }
 
@@ -407,12 +336,10 @@
     cartSummaryData.discountValue = parseFloat(config.discountValue) || 0;
     cartSummaryData.shippingCost = parseFloat(config.shippingCost) || 0;
     
-    // الحل الجذري النهائي: استخدام العملة المحددة في إعدادات Cart Summary Field
-    const fieldCurrency = config.currency || 'MAD';
-    cartSummaryData.targetCurrency = fieldCurrency;
-    
-    console.log('✅ [CURRENCY FINAL] Cart Summary field will use currency:', fieldCurrency);
-    console.log('✅ [CURRENCY FINAL] This currency is directly from field settings and will not change');
+    // Use product currency like quantity offers (the working method)
+    // Don't set target currency here - it will be set from the real product data
+    console.log('🎯 [CURRENCY] Will use product currency like quantity offers');
+    console.log('🎯 [CURRENCY] Target currency will be set from real product data');
     
     console.log('💾 [DEBUG] Cart summary data updated:', JSON.stringify(cartSummaryData, null, 2));
     console.log(`🎯 [TARGET CURRENCY DEBUG] FINAL target currency: "${cartSummaryData.targetCurrency}" (should match form configuration)`);
