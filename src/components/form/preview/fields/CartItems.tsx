@@ -1,9 +1,8 @@
-
-import React from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
 import { ShoppingCart } from 'lucide-react';
-import { useSimpleShopify } from '@/hooks/useSimpleShopify';
+import { useShopifyProducts } from '@/hooks/useShopifyProducts';
 import { supabase } from '@/integrations/supabase/client';
 
 interface CartItemsProps {
@@ -12,15 +11,73 @@ interface CartItemsProps {
     primaryColor?: string;
     borderRadius?: string;
     fontSize?: string;
+    currency?: string;
   };
   productId?: string;
+  formCurrency?: string;
 }
 
-const CartItems: React.FC<CartItemsProps> = ({ field, formStyle, productId }) => {
+const CartItems: React.FC<CartItemsProps> = ({ field, formStyle, productId, formCurrency }) => {
   const { language } = useI18n();
+  const { getProductById } = useShopifyProducts();
+  const [productData, setProductData] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
   const fieldStyle = field.style || {};
-  const { products, loadProducts } = useSimpleShopify();
   const [linkedProductId, setLinkedProductId] = React.useState<string | null>(null);
+
+  // وظيفة تحويل العملة
+  const convertCurrency = (amount: number, fromCurrency: string, toCurrency: string) => {
+    if (fromCurrency === toCurrency) return amount;
+    
+    // أسعار صرف شاملة لجميع العملات المدعومة
+    const exchangeRates: { [key: string]: number } = {
+      'USD': 1.0,
+      'EUR': 0.92,
+      'GBP': 0.79,
+      'CAD': 1.43,
+      'AUD': 1.57,
+      'SAR': 3.75,
+      'AED': 3.67,
+      'EGP': 30.85,
+      'QAR': 3.64,
+      'KWD': 0.31,
+      'BHD': 0.38,
+      'OMR': 0.38,
+      'JOD': 0.71,
+      'LBP': 89500,
+      'MAD': 9.85,
+      'TND': 3.15,
+      'DZD': 134.25,
+      'MXN': 20.15,
+      'BRL': 6.05,
+      'ARS': 350.50,
+      'CLP': 950.75,
+      'COP': 4250.30,
+      'PEN': 3.75,
+      'VES': 36.50,
+      'UYU': 39.85,
+      'IQD': 1470.25,
+      'IRR': 42000.00,
+      'TRY': 29.75,
+      'ILS': 3.70,
+      'SYP': 12500.00,
+      'YER': 250.75,
+      'NGN': 850.25,
+      'ZAR': 18.95,
+      'KES': 155.30,
+      'GHS': 15.85,
+      'ETB': 120.50,
+      'TZS': 2500.75,
+      'UGX': 3750.25,
+      'ZWL': 350.00,
+      'ZMW': 26.85,
+      'RWF': 1350.50
+    };
+    
+    const fromRate = exchangeRates[fromCurrency] || 1;
+    const toRate = exchangeRates[toCurrency] || 1;
+    return (amount / fromRate) * toRate;
+  };
 
   // البحث عن المنتج المرتبط بالنموذج من قاعدة البيانات
   React.useEffect(() => {
@@ -50,33 +107,76 @@ const CartItems: React.FC<CartItemsProps> = ({ field, formStyle, productId }) =>
     fetchLinkedProduct();
   }, []);
 
-  // تحميل المنتجات عند التهيئة
-  React.useEffect(() => {
-    if ((linkedProductId || productId) && (!products || products.length === 0)) {
-      console.log('Loading products for cart items with productId:', linkedProductId || productId);
-      loadProducts();
+  // تحميل بيانات المنتج من Shopify
+  useEffect(() => {
+    const finalProductId = linkedProductId || productId;
+    if (finalProductId && finalProductId !== 'auto-detect' && !loading && !productData) {
+      setLoading(true);
+      console.log('📦 Starting to load product for cart items:', finalProductId);
+      
+      getProductById(finalProductId)
+        .then(product => {
+          console.log('✅ Product loaded successfully for cart items:', product);
+          if (product && product.variants && product.variants.length > 0) {
+            setProductData(product);
+          } else {
+            console.warn('⚠️ Product has no variants:', product);
+          }
+        })
+        .catch(error => {
+          console.error('❌ Error loading product data:', error);
+        })
+        .finally(() => {
+          setLoading(false);
+        });
     }
-  }, [linkedProductId, productId, products, loadProducts]);
-  
-  // البحث عن المنتج المرتبط - استخدم linkedProductId أولاً
-  const finalProductId = linkedProductId || productId;
-  const linkedProduct = finalProductId ? products?.find(p => p.id === finalProductId) : null;
-  
-  console.log('Cart Items Debug - جميع الخصائص تعمل:', {
-    linkedProductId,
-    propProductId: productId,
-    finalProductId,
-    productsCount: products?.length || 0,
-    linkedProduct: linkedProduct?.title || 'Not found',
-    style: fieldStyle,
-    showBorders: fieldStyle.showBorders,
-    hideImage: fieldStyle.hideImage,
-    hideTitle: fieldStyle.hideTitle,
-    hideQuantitySelector: fieldStyle.hideQuantitySelector,
-    hidePrice: fieldStyle.hidePrice,
-    discountPrice: fieldStyle.discountPrice,
-    hideDiscountPrice: fieldStyle.hideDiscountPrice
-  });
+  }, [linkedProductId, productId]);
+
+  // حساب السعر المحول
+  const convertedPrice = useMemo(() => {
+    if (productData && productData.variants && productData.variants.length > 0) {
+      const originalPrice = parseFloat(productData.variants[0].price) || 0;
+      // قراءة العملة من المنتج أو من المتغير
+      const productCurrency = productData.variants[0].currency_code || 
+                             productData.currency || 
+                             productData.shop?.currency || 
+                             'USD';
+      const targetCurrency = formCurrency || formStyle.currency || 'SAR';
+      
+      console.log('💰 Cart Items Currency conversion:', {
+        originalPrice,
+        productCurrency,
+        targetCurrency
+      });
+      
+      // تحويل السعر إلى العملة المطلوبة
+      const convertedPrice = convertCurrency(originalPrice, productCurrency, targetCurrency);
+      
+      return {
+        price: convertedPrice,
+        currency: targetCurrency
+      };
+    }
+    
+    return {
+      price: 29.99,
+      currency: formCurrency || formStyle.currency || 'SAR'
+    };
+  }, [productData, formCurrency, formStyle.currency]);
+
+  const formatPrice = (amount: number) => {
+    const currency = convertedPrice.currency;
+    
+    try {
+      return new Intl.NumberFormat(language === 'ar' ? 'ar-SA' : 'en-US', {
+        style: 'currency',
+        currency: currency,
+        minimumFractionDigits: 2
+      }).format(amount);
+    } catch (error) {
+      return `${amount.toFixed(2)} ${currency}`;
+    }
+  };
   
   // استخدم نصف قطر الحدود من نمط النموذج إذا كان متاحًا
   const borderRadius = formStyle.borderRadius || '0.5rem';
@@ -96,10 +196,10 @@ const CartItems: React.FC<CartItemsProps> = ({ field, formStyle, productId }) =>
           {/* صورة المنتج */}
           {fieldStyle.hideImage !== true && (
             <div className="w-10 h-10 rounded-md flex-shrink-0 overflow-hidden">
-              {linkedProduct?.featuredImage || linkedProduct?.images?.[0] ? (
+              {productData?.image ? (
                 <img 
-                  src={linkedProduct.featuredImage || linkedProduct.images[0]} 
-                  alt={linkedProduct.title}
+                  src={productData.image} 
+                  alt={productData.title}
                   className="w-full h-full object-cover"
                 />
               ) : (
@@ -124,21 +224,21 @@ const CartItems: React.FC<CartItemsProps> = ({ field, formStyle, productId }) =>
                 fontFamily: fieldStyle.fontFamily || 'Inter, Cairo, system-ui, sans-serif',
                 fontWeight: fieldStyle.fontWeight || '600',
               }}>
-                {linkedProduct?.title || (language === 'ar' ? 'عنوان المنتج' : 'Product Title')}
+                {productData?.title || (language === 'ar' ? 'عنوان المنتج' : 'Product Title')}
               </h4>
             )}
             
             {/* معلومات المتغير - عرض فقط إذا كان هناك متغيرات حقيقية */}
-            {linkedProduct?.variants && linkedProduct.variants.length > 0 && 
-             linkedProduct.variants[0]?.title !== 'Default Title' && 
-             linkedProduct.variants[0]?.title && (
+            {productData?.variants && productData.variants.length > 0 && 
+             productData.variants[0]?.title !== 'Default Title' && 
+             productData.variants[0]?.title && (
               <div className="product-variant" style={{
                 fontSize: fieldStyle.descriptionFontSize || '0.875rem',
                 color: fieldStyle.descriptionColor || '#6b7280',
                 fontFamily: fieldStyle.descriptionFontFamily || 'Inter, Cairo, system-ui, sans-serif',
                 fontWeight: fieldStyle.descriptionFontWeight || '400',
               }}>
-                {linkedProduct.variants[0].title}
+                {productData.variants[0].title}
               </div>
             )}
             
@@ -199,10 +299,7 @@ const CartItems: React.FC<CartItemsProps> = ({ field, formStyle, productId }) =>
                 fontFamily: fieldStyle.priceFontFamily || 'Inter, Cairo, system-ui, sans-serif',
                 fontWeight: fieldStyle.priceFontWeight || '700',
               }}>
-                {linkedProduct?.variants?.[0]?.price ? 
-                  `${linkedProduct.money_format?.replace('{{amount}}', linkedProduct.variants[0].price) || `${linkedProduct.variants[0].price} ${linkedProduct.currency || 'USD'}`}` :
-                  (language === 'ar' ? '199.00 درهم' : '$29.99')
-                }
+                {formatPrice(convertedPrice.price)}
               </div>
               {!fieldStyle.hideDiscountPrice && fieldStyle.discountPrice && (
                 <div className="text-xs text-gray-500 line-through" style={{
