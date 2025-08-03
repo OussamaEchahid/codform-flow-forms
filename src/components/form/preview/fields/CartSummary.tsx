@@ -142,7 +142,11 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
     
     if (productData && productData.variants && productData.variants.length > 0) {
       const originalPrice = parseFloat(productData.variants[0].price) || 0;
-      const productCurrency = productData.currency || 'USD';
+      // قراءة العملة من المنتج أو من المتجر أو من المتغير
+      const productCurrency = productData.variants[0].currency_code || 
+                             productData.currency || 
+                             productData.shop?.currency || 
+                             'USD';
       const targetCurrency = formCurrency || formStyle.currency || 'SAR';
       
       // تحويل السعر قبل الحسابات
