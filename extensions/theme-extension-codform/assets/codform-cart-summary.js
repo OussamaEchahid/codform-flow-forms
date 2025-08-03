@@ -436,19 +436,46 @@
     if (actualProductData) {
       console.log("🛍️ Cart Summary - Using existing global product data:", actualProductData);
       
+      // ✅ CRITICAL: Get PRODUCT price and currency from Shopify
       let productPrice = parseFloat(config.productPrice) || 0;
-      let productCurrency = null; // بدون عملة افتراضية
+      let productCurrency = null; // This should be the ACTUAL product currency from Shopify
       
       if (actualProductData.price) {
         productPrice = parseFloat(actualProductData.price);
-        productCurrency = actualProductData.currency;
+        productCurrency = actualProductData.currency || 'MAD'; // Default to MAD if not found
         console.log("💰 Cart Summary - Price from product data:", productPrice, productCurrency);
+      } else if (actualProductData.variants && actualProductData.variants.length > 0) {
+        // إذا كان المنتج له variants، استخدم سعر أول variant
+        const firstVariant = actualProductData.variants[0];
+        if (firstVariant.price) {
+          productPrice = parseFloat(firstVariant.price);
+          productCurrency = firstVariant.currency || actualProductData.currency || 'MAD';
+          console.log("💰 Cart Summary - Price from variant:", productPrice, productCurrency);
+        }
+      } else {
+        // Try to get price from DOM if product data not available
+        try {
+          const priceElement = document.querySelector('.price, [class*="price"], [data-price]');
+          if (priceElement) {
+            const priceText = priceElement.textContent || priceElement.getAttribute('data-price');
+            const priceMatch = priceText.match(/[\d,]+\.?\d*/);
+            if (priceMatch) {
+              productPrice = parseFloat(priceMatch[0].replace(',', ''));
+              productCurrency = 'MAD'; // Default for this store
+              console.log("💰 Cart Summary - Price from DOM:", productPrice, productCurrency);
+            }
+          }
+        } catch (e) {
+          console.log("⚠️ Cart Summary - Could not extract price from DOM");
+        }
       }
       
       if (productPrice && productCurrency) {
         cartSummaryData.productPrice = productPrice;
         cartSummaryData.productCurrency = productCurrency;
         console.log("✅ Cart Summary - Product data loaded:", cartSummaryData);
+      } else {
+        console.error('❌ Cart Summary - CRITICAL: No product price or currency found!');
       }
     }
     

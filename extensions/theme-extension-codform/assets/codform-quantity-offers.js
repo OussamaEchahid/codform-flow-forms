@@ -227,33 +227,37 @@ window.CodformQuantityOffers = (function() {
       console.log("🛍️ Using global product data:", actualProductData);
     }
     
-    // ✅ CRITICAL: Use the form currency from API - NO DEFAULTS ALLOWED
-    let productCurrency = formCurrency || window.CodformFormData?.currency;
+    // ✅ CRITICAL: Get form currency for display - this is the TARGET currency
+    let targetFormCurrency = formCurrency || window.CodformFormData?.currency;
     
     console.log('💰🔥 Quantity Offers - Form currency parameter:', formCurrency);
-    console.log('💰🔥 Quantity Offers - Final currency used:', productCurrency);
+    console.log('💰🔥 Quantity Offers - Final currency used:', targetFormCurrency);
     console.log('💰🔥 Quantity Offers - window.CodformFormData:', window.CodformFormData);
     
     // ✅ STRICT CURRENCY CHECK - NO DEFAULTS ALLOWED
-    if (!productCurrency) {
+    if (!targetFormCurrency) {
       console.error('❌🔥 Quantity Offers - CRITICAL ERROR: No currency from API or form settings!');
       console.error('❌🔥 Quantity Offers - formCurrency parameter:', formCurrency);
       console.error('❌🔥 Quantity Offers - window.CodformFormData.currency:', window.CodformFormData?.currency);
       container.innerHTML = '<div style="color: red; padding: 10px; border: 2px solid red; background: #ffebee; margin: 10px; border-radius: 4px; font-weight: bold;">❌ ERROR: No currency found from API or form settings. API call required first.</div>';
       return;
     }
-    // محاولة الحصول على السعر الحقيقي من مصادر متعددة - بدون أي قيم افتراضية
-    let productPrice = null; // لا توجد قيمة افتراضية
+    
+    // ✅ CRITICAL: Get PRODUCT price and currency from Shopify
+    let productPrice = null;
+    let productCurrency = null; // This should be the ACTUAL product currency from Shopify
+    
     if (actualProductData && actualProductData.price) {
       productPrice = parseFloat(actualProductData.price);
-      // لا نستخدم عملة المنتج، نستخدم عملة النموذج فقط
-      console.log("💰🔥 Quantity Offers - Price from product data:", productPrice);
+      productCurrency = actualProductData.currency || 'MAD'; // Default to MAD if not found
+      console.log("💰🔥 Quantity Offers - Price from product data:", productPrice, productCurrency);
     } else if (actualProductData && actualProductData.variants && actualProductData.variants.length > 0) {
       // إذا كان المنتج له variants، استخدم سعر أول variant
       const firstVariant = actualProductData.variants[0];
       if (firstVariant.price) {
         productPrice = parseFloat(firstVariant.price);
-        console.log("💰🔥 Quantity Offers - Price from variant:", productPrice);
+        productCurrency = firstVariant.currency || actualProductData.currency || 'MAD';
+        console.log("💰🔥 Quantity Offers - Price from variant:", productPrice, productCurrency);
       }
     } else {
       // محاولة الحصول على السعر من DOM إذا لم تكن البيانات متوفرة
@@ -264,7 +268,8 @@ window.CodformQuantityOffers = (function() {
           const priceMatch = priceText.match(/[\d,]+\.?\d*/);
           if (priceMatch) {
             productPrice = parseFloat(priceMatch[0].replace(',', ''));
-            console.log("💰🔥 Quantity Offers - Price from DOM:", productPrice);
+            productCurrency = 'MAD'; // Default for this store
+            console.log("💰🔥 Quantity Offers - Price from DOM:", productPrice, productCurrency);
           }
         }
       } catch (e) {
@@ -272,25 +277,30 @@ window.CodformQuantityOffers = (function() {
       }
     }
     
-    // التحقق من وجود السعر (تم التحقق من العملة مسبقاً)
-    
+    // التحقق من وجود السعر والعملة
     if (!productPrice || productPrice <= 0) {
       console.error('❌🔥 Quantity Offers - CRITICAL: No valid product price available!');
       container.innerHTML = '<div style="color: red; padding: 10px; border: 1px solid red;">ERROR: No valid product price found.</div>';
       return;
     }
     
-    // لا نحتاج لتحويل العملة - نستخدم عملة النموذج مباشرة
-    const realPrice = productPrice; // السعر بعملة النموذج
-    const finalCurrency = productCurrency; // عملة النموذج
+    if (!productCurrency) {
+      console.error('❌🔥 Quantity Offers - CRITICAL: No product currency available!');
+      container.innerHTML = '<div style="color: red; padding: 10px; border: 1px solid red;">ERROR: No product currency found.</div>';
+      return;
+    }
+    
+    // ✅ CRITICAL: Convert product price to form currency
+    const realPrice = convertCurrency(productPrice, productCurrency, targetFormCurrency);
+    const finalCurrency = targetFormCurrency; // Display in form currency
     
     console.log("💰🔥 Quantity Offers - REAL Product Price Logic:", {
-      actualProductData: actualProductData,
-      productPrice: productPrice,
-      formCurrency: productCurrency,
-      realPrice: realPrice,
+      originalProductPrice: productPrice,
+      productCurrency: productCurrency, 
+      targetFormCurrency: targetFormCurrency,
+      convertedPrice: realPrice,
       finalCurrency: finalCurrency,
-      note: 'Using form currency directly, no conversion needed'
+      note: 'Converting FROM product currency TO form currency'
     });
     
     // بيانات المنتج
@@ -444,7 +454,7 @@ window.CodformQuantityOffers = (function() {
             offerId: this.getAttribute('data-offer-id'),
             quantity: parseInt(quantity),
             totalPrice: parseFloat(totalPrice),
-            currency: productCurrency
+            currency: targetFormCurrency
           }
         }));
       });
