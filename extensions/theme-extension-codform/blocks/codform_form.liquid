@@ -820,7 +820,51 @@
     }
     {%- comment -%} Cart Summary Field {%- endcomment -%}
     else if (field.type === 'cart-summary') {
-      html = `{% include 'cart-summary', field: ${JSON.stringify(field)}, formDirection: '${formDirection}' %}`;
+      // Cart summary field with inline HTML (no include tag allowed in app blocks)
+      const config = field.config || {};
+      const currency = config.currency || 'SAR';
+      const subtotalLabel = formDirection === 'rtl' ? 'المجموع الفرعي' : 'Subtotal';
+      const discountLabel = formDirection === 'rtl' ? 'الخصم' : 'Discount';
+      const shippingLabel = formDirection === 'rtl' ? 'الشحن' : 'Shipping';
+      const totalLabel = formDirection === 'rtl' ? 'المجموع الكامل' : 'Total';
+      
+      html = `
+        <div class="cart-summary-field" data-currency="${currency}" style="
+          background: #f9fafb;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          padding: 16px;
+          margin: 16px 0;
+          direction: ${formDirection};
+          font-family: Cairo, Arial, sans-serif;
+        ">
+          <h3 style="margin: 0 0 12px 0; font-size: 16px; font-weight: 600; color: #1f2937;">
+            ${formDirection === 'rtl' ? 'ملخص الطلب' : 'Order Summary'}
+          </h3>
+          
+          <div class="summary-row" style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+            <span style="color: #6b7280;">${subtotalLabel}:</span>
+            <span class="subtotal-value" data-amount="0">0.00 ${currency}</span>
+          </div>
+          
+          <div class="summary-row discount-row" style="display: none; justify-content: space-between; margin-bottom: 8px;">
+            <span style="color: #ef4444;">${discountLabel}:</span>
+            <span class="discount-value" data-amount="0" style="color: #ef4444;">-0.00 ${currency}</span>
+          </div>
+          
+          <div class="summary-row" style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+            <span style="color: #6b7280;">${shippingLabel}:</span>
+            <span class="shipping-value" data-amount="0">${formDirection === 'rtl' ? 'مجاني' : 'Free'}</span>
+          </div>
+          
+          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 12px 0;">
+          
+          <div class="summary-row" style="display: flex; justify-content: space-between; font-weight: 600; font-size: 18px;">
+            <span style="color: #1f2937;">${totalLabel}:</span>
+            <span class="total-value" data-amount="0" style="color: #059669;">0.00 ${currency}</span>
+          </div>
+        </div>
+      `;
       
       // Initialize cart summary after rendering
       setTimeout(() => {
