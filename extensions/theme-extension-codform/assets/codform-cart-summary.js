@@ -111,53 +111,120 @@
    * Update cart summary display
    */
   function updateCartSummary() {
-    const cartSummaries = document.querySelectorAll('.cart-summary-field');
+    console.log('🔄 [DEBUG] updateCartSummary called');
+    console.log('💰 [DEBUG] Current cartSummaryData:', JSON.stringify(cartSummaryData, null, 2));
     
-    cartSummaries.forEach(summary => {
+    const cartSummaries = document.querySelectorAll('.cart-summary-field');
+    console.log(`🔍 [DEBUG] Found ${cartSummaries.length} elements with .cart-summary-field`);
+    
+    if (cartSummaries.length === 0) {
+      console.log('❌ [DEBUG] No cart summary fields found with class .cart-summary-field');
+      // Try alternative selectors
+      const altFields = document.querySelectorAll('[data-field-type*="total"], [data-field-type*="subtotal"], [data-field-type*="shipping"], [data-field-type*="discount"]');
+      console.log(`🔍 [DEBUG] Alternative search found ${altFields.length} elements with data-field-type containing price terms`);
+      
+      // Debug: show all elements that might be cart summary related
+      const allElements = document.querySelectorAll('*');
+      console.log(`📊 [DEBUG] Total elements on page: ${allElements.length}`);
+      
+      // Look for any element with "cart" or "summary" in class/id
+      const possibleElements = Array.from(allElements).filter(el => {
+        const className = el.className || '';
+        const id = el.id || '';
+        return className.includes('cart') || className.includes('summary') || 
+               id.includes('cart') || id.includes('summary');
+      });
+      console.log(`🎯 [DEBUG] Elements with 'cart' or 'summary' in class/id:`, possibleElements.length);
+      possibleElements.forEach((el, i) => {
+        if (i < 10) { // Limit to first 10 to avoid spam
+          console.log(`   ${i}: ${el.tagName}.${el.className}#${el.id}`);
+        }
+      });
+      
+      return;
+    }
+    
+    const prices = calculatePrices();
+    console.log('💵 [DEBUG] Calculated prices:', JSON.stringify(prices, null, 2));
+    
+    cartSummaries.forEach((summary, index) => {
+      console.log(`\n🏷️ [DEBUG] Processing cart summary ${index}:`);
+      console.log('Element HTML:', summary.outerHTML.substring(0, 200) + '...');
+      
       const currency = summary.dataset.currency || 'SAR';
       cartSummaryData.targetCurrency = currency;
+      console.log(`💱 [DEBUG] Using currency: ${currency}`);
       
-      const prices = calculatePrices();
       const language = summary.style.direction === 'rtl' ? 'ar' : 'en';
+      console.log(`🌐 [DEBUG] Using language: ${language}`);
       
       // Update subtotal
       const subtotalElement = summary.querySelector('.subtotal-value');
+      console.log(`🔍 [DEBUG] Subtotal element:`, subtotalElement);
       if (subtotalElement) {
-        subtotalElement.textContent = formatCurrency(prices.subtotal, currency, language);
+        const formattedSubtotal = formatCurrency(prices.subtotal, currency, language);
+        console.log(`💰 [DEBUG] Updating subtotal: ${subtotalElement.textContent} → ${formattedSubtotal}`);
+        subtotalElement.textContent = formattedSubtotal;
         subtotalElement.dataset.amount = prices.subtotal;
+        console.log(`✅ [DEBUG] Subtotal updated successfully`);
+      } else {
+        console.log(`❌ [DEBUG] Subtotal element not found with .subtotal-value`);
       }
       
       // Update discount
       const discountElement = summary.querySelector('.discount-value');
       const discountRow = summary.querySelector('.discount-row');
+      console.log(`🔍 [DEBUG] Discount element:`, discountElement);
+      console.log(`🔍 [DEBUG] Discount row:`, discountRow);
       if (discountElement && discountRow) {
         if (prices.discount > 0) {
-          discountElement.textContent = '-' + formatCurrency(prices.discount, currency, language);
+          const formattedDiscount = '-' + formatCurrency(prices.discount, currency, language);
+          console.log(`💰 [DEBUG] Updating discount: ${discountElement.textContent} → ${formattedDiscount}`);
+          discountElement.textContent = formattedDiscount;
           discountElement.dataset.amount = prices.discount;
           discountRow.style.display = 'flex';
+          console.log(`✅ [DEBUG] Discount updated and shown`);
         } else {
           discountRow.style.display = 'none';
+          console.log(`ℹ️ [DEBUG] No discount, hiding row`);
         }
+      } else {
+        console.log(`❌ [DEBUG] Discount elements not found`);
       }
       
       // Update shipping
       const shippingElement = summary.querySelector('.shipping-value');
+      console.log(`🔍 [DEBUG] Shipping element:`, shippingElement);
       if (shippingElement) {
+        let formattedShipping;
         if (prices.shipping === 0) {
-          shippingElement.textContent = language === 'ar' ? 'مجاني' : 'Free';
+          formattedShipping = language === 'ar' ? 'مجاني' : 'Free';
         } else {
-          shippingElement.textContent = formatCurrency(prices.shipping, currency, language);
+          formattedShipping = formatCurrency(prices.shipping, currency, language);
         }
+        console.log(`💰 [DEBUG] Updating shipping: ${shippingElement.textContent} → ${formattedShipping}`);
+        shippingElement.textContent = formattedShipping;
         shippingElement.dataset.amount = prices.shipping;
+        console.log(`✅ [DEBUG] Shipping updated successfully`);
+      } else {
+        console.log(`❌ [DEBUG] Shipping element not found with .shipping-value`);
       }
       
       // Update total
       const totalElement = summary.querySelector('.total-value');
+      console.log(`🔍 [DEBUG] Total element:`, totalElement);
       if (totalElement) {
-        totalElement.textContent = formatCurrency(prices.total, currency, language);
+        const formattedTotal = formatCurrency(prices.total, currency, language);
+        console.log(`💰 [DEBUG] Updating total: ${totalElement.textContent} → ${formattedTotal}`);
+        totalElement.textContent = formattedTotal;
         totalElement.dataset.amount = prices.total;
+        console.log(`✅ [DEBUG] Total updated successfully`);
+      } else {
+        console.log(`❌ [DEBUG] Total element not found with .total-value`);
       }
     });
+    
+    console.log('🎯 [DEBUG] updateCartSummary completed');
   }
 
   /**
