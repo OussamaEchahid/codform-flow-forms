@@ -23,7 +23,15 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
   const [loading, setLoading] = useState(false);
 
   const fieldStyle = field.style || {};
-  const config = field.cartSummaryConfig || {};
+  const config = {
+    autoCalculate: true, // Default to true if not set
+    showDiscount: true,
+    discountType: 'percentage',
+    discountValue: 0,
+    shippingType: 'auto',
+    shippingValue: 0,
+    ...field.cartSummaryConfig
+  };
   
   // استخدام نصف قطر الحدود من نمط النموذج إذا كان متاحًا
   const borderRadius = formStyle.borderRadius || '0.5rem';
