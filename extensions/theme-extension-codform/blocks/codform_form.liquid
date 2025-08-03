@@ -1878,7 +1878,7 @@ window.CodformQuantityOffers = (function() {
   }
 
   // دالة تحميل وعرض العروض من API
-  async function loadAndDisplayOffers(blockId, productId, shop, formCurrency = 'SAR', productData = null) {
+  async function loadAndDisplayOffers(blockId, productId, shop, formCurrency = null, productData = null) {
     try {
       console.log("🌐 Loading quantity offers for:", { blockId, productId, shop });
       
@@ -1893,9 +1893,16 @@ window.CodformQuantityOffers = (function() {
       console.log("📊 API Response:", data);
       
       if (data.success && data.quantity_offers && data.quantity_offers.offers && data.quantity_offers.offers.length > 0) {
-        console.log("✅ Quantity offers found, displaying...");
-        // ✅ FIXED: Pass the real product data and form currency from API response
-        displayQuantityOffers(data.quantity_offers, blockId, productId, data.form.currency || formCurrency, data.product);
+        // ✅ CRITICAL FIX: Use ONLY the form currency from API, never fallback to SAR
+        const targetCurrency = data.form.currency;
+        
+        if (!targetCurrency) {
+          console.warn("⚠️ No form currency found in API response, skipping quantity offers");
+          return;
+        }
+        
+        console.log(`✅ Using form currency: ${targetCurrency} for quantity offers`);
+        displayQuantityOffers(data.quantity_offers, blockId, productId, targetCurrency, data.product);
       } else {
         console.log("ℹ️ No quantity offers found for this product");
       }
