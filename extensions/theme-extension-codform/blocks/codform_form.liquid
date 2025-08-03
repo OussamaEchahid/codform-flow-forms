@@ -16,6 +16,8 @@
 
 <link rel="stylesheet" href="{{ 'codform-styles.css' | asset_url }}">
 
+<!-- تحميل ملف معدلات الصرف أولاً -->
+<script src="{{ 'codform-currency-rates.js' | asset_url }}"></script>
 <script src="{{ 'codform-quantity-offers.js' | asset_url }}"></script>
 <script src="{{ 'codform-icons.js' | asset_url }}"></script>
 
@@ -2306,6 +2308,7 @@ function decreaseQuantity(button) {
     console.log('Offer quantity decreased to:', currentQuantity - 1);
   }
 }
-<!-- تحميل ملف معدلات الصرف -->
-<script src="{{ 'codform-currency-rates.js' | asset_url }}" defer></script>
 </script>
+
+<!-- تحميل ملف معدلات الصرف قبل استخدامه -->
+<script src="{{ 'codform-currency-rates.js' | asset_url }}"></script>
