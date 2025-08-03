@@ -870,9 +870,9 @@
           // CRITICAL FIX: Pass currency and country from form data to cart summary
           const enhancedFormStyle = {
             ...formStyle,
-            currency: data.form?.currency || data.form?.country || formStyle.currency || 'SAR',
-            country: data.form?.country || formStyle.country,
-            formCurrency: data.form?.currency || data.form?.country || formStyle.currency || 'SAR'
+            currency: window.currentFormData?.form?.currency || window.currentFormData?.form?.country || formStyle.currency || 'SAR',
+            country: window.currentFormData?.form?.country || formStyle.country,
+            formCurrency: window.currentFormData?.form?.currency || window.currentFormData?.form?.country || formStyle.currency || 'SAR'
           };
           
           console.log('🎯 [CART SUMMARY INIT] Enhanced form style with currency:', enhancedFormStyle);
