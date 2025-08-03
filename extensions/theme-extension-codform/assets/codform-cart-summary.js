@@ -184,9 +184,14 @@
       console.log(`\n🏷️ [DEBUG] Processing cart summary ${index}:`);
       console.log('Element HTML:', summary.outerHTML.substring(0, 200) + '...');
       
-      // Use product currency like quantity offers (the working method)
-      const currency = cartSummaryData.productCurrency || 'SAR';
-      console.log(`💱 [DEBUG] Using product currency like quantity offers: ${currency}`);
+      // استخدام العملة الحقيقية فقط - بدون أي عملة افتراضية
+      const currency = cartSummaryData.productCurrency || cartSummaryData.targetCurrency;
+      if (!currency) {
+        console.error('❌🔥 Cart Summary - NO CURRENCY AVAILABLE! Cannot display prices.');
+        summary.innerHTML = '<div style="color: red;">ERROR: No currency available</div>';
+        return;
+      }
+      console.log(`💱🔥 Cart Summary - Using REAL currency only: ${currency}`);
       
       const language = summary.style.direction === 'rtl' ? 'ar' : 'en';
       console.log(`🌐 [DEBUG] Using language: ${language}`);
@@ -287,11 +292,15 @@
       const data = await response.json();
       console.log('📊 Cart Summary - API Response (quantity offers format):', data);
       
-      // حفظ عملة النموذج لاستخدامها في باقي المكونات
+      // حفظ عملة النموذج لاستخدامها في باقي المكونات - بدون أي عملات افتراضية
       if (data.success && data.currency) {
         window.CodformFormData = window.CodformFormData || {};
         window.CodformFormData.currency = data.currency;
-        console.log('💰 Cart Summary - Form currency saved:', data.currency);
+        console.log('💰🔥 Cart Summary - REAL FORM CURRENCY SAVED FROM API:', data.currency);
+        console.log('💰🔥 Cart Summary - API Response contains currency:', data.currency);
+        console.log('💰🔥 Cart Summary - window.CodformFormData updated:', window.CodformFormData);
+      } else {
+        console.error('❌🔥 Cart Summary - API Response missing currency!', data);
       }
       
       if (data.success && data.product) {
@@ -329,93 +338,121 @@
     }
   }
 
+  // دالة للحصول على العملة الحقيقية من إعدادات النموذج - بدون أي عملات افتراضية
+  function getRealFormCurrency() {
+    console.log('🔍 Cart Summary - Searching for real form currency...');
+    console.log('🔍 Cart Summary - window.CodformFormData:', window.CodformFormData);
+    
+    // 1. من النموذج المحفوظ عالمياً
+    if (window.CodformFormData?.currency) {
+      console.log('✅ Cart Summary - Currency from global form data:', window.CodformFormData.currency);
+      return window.CodformFormData.currency;
+    }
+    
+    // 2. محاولة قراءة من DOM أو مصادر أخرى
+    const currencyMeta = document.querySelector('meta[name="form-currency"]');
+    if (currencyMeta?.getAttribute('content')) {
+      console.log('✅ Cart Summary - Currency from DOM meta:', currencyMeta.getAttribute('content'));
+      return currencyMeta.getAttribute('content');
+    }
+    
+    console.error('❌ Cart Summary - CRITICAL: No real currency found! API may not have been called yet.');
+    console.error('❌ Cart Summary - Refusing to use any default currency as requested by user.');
+    return null; // لا توجد عملة افتراضية أبداً
+  }
+
   /**
    * Initialize cart summary from field configuration
    */
   function initializeCartSummary(field, formStyle) {
-    console.log('🚀 [DEBUG] initializeCartSummary called with:', { field, formStyle });
+    console.log('🚀 Cart Summary - Starting initialization');
+    console.log('📊 Cart Summary - window.CodformFormData at init:', window.CodformFormData);
+    console.log('📊 Cart Summary - field data:', field);
     
     const config = field.cartSummaryConfig || field.config || {};
-    console.log('⚙️ [DEBUG] Cart Summary Config:', JSON.stringify(config, null, 2));
+    console.log('⚙️ Cart Summary - Configuration loaded:', config);
+
+    // الحصول على العملة الحقيقية فقط - بدون أي عملات افتراضية
+    const formCurrency = getRealFormCurrency();
+    if (!formCurrency) {
+      console.error('🚨 Cart Summary - CRITICAL ERROR: No currency available!');
+      console.error('🚨 Cart Summary - Cannot proceed without real currency from form settings.');
+      
+      // عرض رسالة خطأ للمستخدم
+      const cartSummaries = document.querySelectorAll('.cart-summary-field');
+      cartSummaries.forEach(summary => {
+        summary.innerHTML = '<div style="color: red; padding: 10px; border: 1px solid red; border-radius: 4px;">ERROR: No currency found. API call required.</div>';
+      });
+      return;
+    }
     
-    // Update cart summary configuration
+    console.log('✅ Cart Summary - Real form currency confirmed:', formCurrency);
+    
+    // تحديث إعدادات Cart Summary
     cartSummaryData.discountType = config.discountType || 'percentage';
     cartSummaryData.discountValue = parseFloat(config.discountValue) || 0;
     cartSummaryData.shippingCost = parseFloat(config.shippingCost) || 0;
+    cartSummaryData.targetCurrency = formCurrency; // استخدام العملة الحقيقية فقط
     
-    // Use product currency like quantity offers (the working method)
-    // Don't set target currency here - it will be set from the real product data
-    console.log('🎯 [CURRENCY] Will use product currency like quantity offers');
-    console.log('🎯 [CURRENCY] Target currency will be set from real product data');
-    
-    console.log('💾 [DEBUG] Cart summary data updated:', JSON.stringify(cartSummaryData, null, 2));
-    console.log(`🎯 [TARGET CURRENCY DEBUG] FINAL target currency: "${cartSummaryData.targetCurrency}" (should match form configuration)`);
-    console.log(`🔍 [TARGET CURRENCY DEBUG] Available exchange rates:`, Object.keys(EXCHANGE_RATES));
-    
-    // Always try to get product ID and shop domain
-    const productId = window.getProductId ? window.getProductId() : 'auto-detect';
-    const shopDomain = window.getShopDomain ? window.getShopDomain() : 'auto-detect';
-    
-    console.log('🔍 [DEBUG] Detection results:', { 
-      productId, 
-      shopDomain, 
-      autoCalculate: config.autoCalculate,
-      hasProductPrice: !!config.productPrice
+    console.log('💾 Cart Summary - Data updated with real currency:', {
+      discountType: cartSummaryData.discountType,
+      discountValue: cartSummaryData.discountValue,
+      shippingCost: cartSummaryData.shippingCost,
+      targetCurrency: cartSummaryData.targetCurrency
     });
     
-    // استخدام نفس منطق quantity offers - بدون API calls
-    let actualProductData = null;
-    
-    // استخدام window.CodformProductData أولاً مثل quantity offers
-    if (window.CodformProductData) {
-      actualProductData = window.CodformProductData;
-      console.log("🛍️ Cart Summary using global product data:", actualProductData);
-    }
-    
-    // الحصول على السعر الحقيقي للمنتج وعملته من البيانات الفعلية
-    let productPrice = parseFloat(config.productPrice) || 0;
-    let productCurrency = window.CodformFormData?.currency || 'MAD'; // من إعدادات النموذج
-    
-    // محاولة الحصول على السعر الحقيقي من مصادر متعددة مثل quantity offers
-    if (actualProductData && actualProductData.price) {
-      productPrice = parseFloat(actualProductData.price);
-      productCurrency = actualProductData.currency || 'SAR';
-      console.log("💰 Cart Summary price from product data:", productPrice, productCurrency);
-    } else if (actualProductData && actualProductData.variants && actualProductData.variants.length > 0) {
-      // إذا كان المنتج له variants، استخدم سعر أول variant
-      const firstVariant = actualProductData.variants[0];
-      if (firstVariant.price) {
-        productPrice = parseFloat(firstVariant.price);
-        productCurrency = firstVariant.currency || actualProductData.currency || 'SAR';
-        console.log("💰 Cart Summary price from variant:", productPrice, productCurrency);
+    // محاولة جلب بيانات المنتج إذا كان التحديث التلقائي مفعل
+    if (config.autoCalculate) {
+      console.log('🔄 Cart Summary - Auto calculate enabled');
+      
+      let productId = window.CodformProductId || window.productId;
+      let shopDomain = window.CodformShopDomain || window.shopDomain;
+      
+      console.log('🏪 Cart Summary - Initial detection:', { shopDomain, productId });
+      
+      // جرب الحصول على البيانات من DOM
+      if (!productId || !shopDomain) {
+        console.log('⚠️ Cart Summary - Missing global variables, trying DOM...');
+        
+        const productMeta = document.querySelector('meta[name="product-id"]');
+        const shopMeta = document.querySelector('meta[name="shop-domain"]');
+        
+        productId = productId || productMeta?.getAttribute('content');
+        shopDomain = shopDomain || shopMeta?.getAttribute('content') || window.location.hostname;
+        
+        console.log('🔍 Cart Summary - After DOM check:', { shopDomain, productId });
       }
-    } else if (!config.productPrice) {
-      // محاولة الحصول على السعر من DOM إذا لم تكن البيانات متوفرة
-      try {
-        const priceElement = document.querySelector('.price, [class*="price"], [data-price]');
-        if (priceElement) {
-          const priceText = priceElement.textContent || priceElement.getAttribute('data-price');
-          const priceMatch = priceText.match(/[\d,]+\.?\d*/);
-          if (priceMatch) {
-            productPrice = parseFloat(priceMatch[0].replace(',', ''));
-            console.log("💰 Cart Summary price from DOM:", productPrice);
-          }
-        }
-      } catch (e) {
-        console.log("⚠️ Cart Summary could not extract price from DOM");
+      
+      if (productId && shopDomain) {
+        console.log('📲 Cart Summary - Calling loadProductData...');
+        loadProductData(productId, shopDomain);
+      } else {
+        console.warn('❌ Cart Summary - Cannot load product data: missing required data');
       }
     }
     
-    // حفظ البيانات وتحديث العرض
-    cartSummaryData.productPrice = productPrice;
-    cartSummaryData.productCurrency = productCurrency;
+    // استخدام البيانات المحلية إذا كانت متوفرة
+    let actualProductData = window.CodformProductData;
+    if (actualProductData) {
+      console.log("🛍️ Cart Summary - Using existing global product data:", actualProductData);
+      
+      let productPrice = parseFloat(config.productPrice) || 0;
+      let productCurrency = null; // بدون عملة افتراضية
+      
+      if (actualProductData.price) {
+        productPrice = parseFloat(actualProductData.price);
+        productCurrency = actualProductData.currency;
+        console.log("💰 Cart Summary - Price from product data:", productPrice, productCurrency);
+      }
+      
+      if (productPrice && productCurrency) {
+        cartSummaryData.productPrice = productPrice;
+        cartSummaryData.productCurrency = productCurrency;
+        console.log("✅ Cart Summary - Product data loaded:", cartSummaryData);
+      }
+    }
     
-    console.log("💰 Cart Summary final price data:", {
-      productPrice: cartSummaryData.productPrice,
-      productCurrency: cartSummaryData.productCurrency,
-      source: actualProductData ? 'actualProductData' : 'manual/DOM'
-    });
-    
+    // تحديث العرض
     updateCartSummary();
   }
 
