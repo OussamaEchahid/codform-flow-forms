@@ -99,20 +99,39 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
 
   // Load product data
   useEffect(() => {
+    console.log('🔍 Loading product data effect triggered:', {
+      autoCalculate: config.autoCalculate,
+      productId,
+      loading,
+      productData: !!productData
+    });
+    
     if (config.autoCalculate && productId && productId !== 'auto-detect' && !loading) {
       setLoading(true);
+      console.log('📦 Starting to load product:', productId);
+      
       getProductById(productId)
         .then(product => {
+          console.log('✅ Product loaded successfully:', product);
           if (product && product.variants && product.variants.length > 0) {
             setProductData(product);
+          } else {
+            console.warn('⚠️ Product has no variants:', product);
           }
         })
         .catch(error => {
-          console.error('Error loading product data:', error);
+          console.error('❌ Error loading product data:', error);
         })
         .finally(() => {
           setLoading(false);
         });
+    } else {
+      console.log('⏭️ Skipping product load because:', {
+        autoCalculate: config.autoCalculate,
+        productId,
+        loading,
+        condition: 'autoCalculate && productId && productId !== auto-detect && !loading'
+      });
     }
   }, [productId, config.autoCalculate, getProductById]);
 
