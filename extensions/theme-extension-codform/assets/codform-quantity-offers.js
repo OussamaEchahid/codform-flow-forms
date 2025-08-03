@@ -83,7 +83,7 @@ window.CodformQuantityOffers = (function() {
   }
 
   // دالة عرض quantity offers مطابقة بالضبط للمعاينة
-  function displayQuantityOffers(quantityOffersData, blockId, productId, defaultCurrency = 'SAR', productData = null, formDirection = null) {
+  function displayQuantityOffers(quantityOffersData, blockId, productId, formCurrency = null, productData = null, formDirection = null) {
     console.log("🎯 EXACT PREVIEW MATCH - Starting quantity offers display");
     
     // تحديد اتجاه النموذج بناءً على محتواه الفعلي
@@ -227,23 +227,23 @@ window.CodformQuantityOffers = (function() {
       console.log("🛍️ Using global product data:", actualProductData);
     }
     
-    // الحصول على السعر الحقيقي للمنتج وعملته من البيانات الفعلية - بدون أي قيم افتراضية
-    let productPrice = null; // لا توجد قيمة افتراضية
-    let productCurrency = window.CodformFormData?.currency; // من إعدادات النموذج فقط
+    // ✅ CRITICAL: Use the form currency from API - NO DEFAULTS ALLOWED
+    let productCurrency = formCurrency || window.CodformFormData?.currency;
     
-    console.log('💰🔥 Quantity Offers - Form currency from window:', productCurrency);
+    console.log('💰🔥 Quantity Offers - Form currency parameter:', formCurrency);
+    console.log('💰🔥 Quantity Offers - Final currency used:', productCurrency);
     console.log('💰🔥 Quantity Offers - window.CodformFormData:', window.CodformFormData);
     
     // ✅ STRICT CURRENCY CHECK - NO DEFAULTS ALLOWED
     if (!productCurrency) {
-      console.error('❌🔥 Quantity Offers - CRITICAL ERROR: No currency from form settings!');
-      console.error('❌🔥 Quantity Offers - window.CodformFormData.currency is undefined');
-      console.error('❌🔥 Quantity Offers - Form API must be called first to set currency');
-      container.innerHTML = '<div style="color: red; padding: 10px; border: 2px solid red; background: #ffebee; margin: 10px; border-radius: 4px; font-weight: bold;">❌ ERROR: No currency found from form settings. API call required first.</div>';
+      console.error('❌🔥 Quantity Offers - CRITICAL ERROR: No currency from API or form settings!');
+      console.error('❌🔥 Quantity Offers - formCurrency parameter:', formCurrency);
+      console.error('❌🔥 Quantity Offers - window.CodformFormData.currency:', window.CodformFormData?.currency);
+      container.innerHTML = '<div style="color: red; padding: 10px; border: 2px solid red; background: #ffebee; margin: 10px; border-radius: 4px; font-weight: bold;">❌ ERROR: No currency found from API or form settings. API call required first.</div>';
       return;
     }
-    
     // محاولة الحصول على السعر الحقيقي من مصادر متعددة - بدون أي قيم افتراضية
+    let productPrice = null; // لا توجد قيمة افتراضية
     if (actualProductData && actualProductData.price) {
       productPrice = parseFloat(actualProductData.price);
       // لا نستخدم عملة المنتج، نستخدم عملة النموذج فقط
@@ -444,7 +444,7 @@ window.CodformQuantityOffers = (function() {
             offerId: this.getAttribute('data-offer-id'),
             quantity: parseInt(quantity),
             totalPrice: parseFloat(totalPrice),
-            currency: defaultCurrency
+            currency: productCurrency
           }
         }));
       });
