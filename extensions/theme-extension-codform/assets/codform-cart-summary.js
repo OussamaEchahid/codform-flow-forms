@@ -410,28 +410,55 @@
     // CRITICAL: Extract target currency from form settings - handle "Morocco | MAD" format
     let targetCurrency = 'SAR'; // Default fallback
     
-    // Try to extract from config.currency first
-    if (config.currency) {
-      // Handle "Morocco | MAD" format
-      if (config.currency.includes('|')) {
-        targetCurrency = config.currency.split('|')[1].trim();
-      } else {
-        targetCurrency = config.currency;
-      }
-    } 
-    // Fallback to formStyle currency
-    else if (formStyle?.currency) {
-      if (formStyle.currency.includes('|')) {
-        targetCurrency = formStyle.currency.split('|')[1].trim();
-      } else {
-        targetCurrency = formStyle.currency;
+    console.log('🎯 [TARGET CURRENCY DEBUG] Raw form configuration:', {
+      'config.currency': config.currency,
+      'config.targetCurrency': config.targetCurrency,
+      'formStyle.currency': formStyle?.currency,
+      'formStyle.targetCurrency': formStyle?.targetCurrency,
+      'config.country': config.country,
+      'formStyle.country': formStyle?.country
+    });
+    
+    // Try multiple sources for target currency
+    const possibleSources = [
+      config.currency,
+      config.targetCurrency, 
+      config.country,
+      formStyle?.currency,
+      formStyle?.targetCurrency,
+      formStyle?.country
+    ];
+    
+    console.log('🔍 [TARGET CURRENCY DEBUG] Checking possible sources:', possibleSources);
+    
+    for (const source of possibleSources) {
+      if (source && typeof source === 'string') {
+        console.log(`🔍 [TARGET CURRENCY DEBUG] Checking source: "${source}"`);
+        
+        // Handle "Morocco | MAD" or "Country | CURRENCY" format
+        if (source.includes('|')) {
+          const parts = source.split('|');
+          if (parts.length === 2) {
+            const extractedCurrency = parts[1].trim();
+            console.log(`✅ [TARGET CURRENCY DEBUG] Extracted currency from "${source}": "${extractedCurrency}"`);
+            targetCurrency = extractedCurrency;
+            break;
+          }
+        } 
+        // Handle direct currency codes (MAD, USD, etc.)
+        else if (source.match(/^[A-Z]{3}$/)) {
+          console.log(`✅ [TARGET CURRENCY DEBUG] Direct currency code found: "${source}"`);
+          targetCurrency = source;
+          break;
+        }
       }
     }
     
     cartSummaryData.targetCurrency = targetCurrency;
     
     console.log('💾 [DEBUG] Cart summary data updated:', JSON.stringify(cartSummaryData, null, 2));
-    console.log(`🎯 [DEBUG] Target currency set to: ${cartSummaryData.targetCurrency} (from config.currency: ${config.currency}, formStyle.currency: ${formStyle?.currency})`);
+    console.log(`🎯 [TARGET CURRENCY DEBUG] FINAL target currency: "${cartSummaryData.targetCurrency}" (should match form configuration)`);
+    console.log(`🔍 [TARGET CURRENCY DEBUG] Available exchange rates:`, Object.keys(EXCHANGE_RATES));
     
     // Always try to get product ID and shop domain
     const productId = window.getProductId ? window.getProductId() : 'auto-detect';
