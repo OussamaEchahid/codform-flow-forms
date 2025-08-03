@@ -425,6 +425,7 @@
       config.targetCurrency, 
       config.country,
       formStyle?.currency,
+      formStyle?.formCurrency,
       formStyle?.targetCurrency,
       formStyle?.country
     ];

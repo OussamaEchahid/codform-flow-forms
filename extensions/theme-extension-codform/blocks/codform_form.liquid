@@ -866,7 +866,17 @@
       setTimeout(() => {
         if (window.codformCartSummary) {
           console.log('🛒 Initializing cart summary for field:', field);
-          window.codformCartSummary.initialize(field, formStyle);
+          
+          // CRITICAL FIX: Pass currency and country from form data to cart summary
+          const enhancedFormStyle = {
+            ...formStyle,
+            currency: data.form?.currency || data.form?.country || formStyle.currency || 'SAR',
+            country: data.form?.country || formStyle.country,
+            formCurrency: data.form?.currency || data.form?.country || formStyle.currency || 'SAR'
+          };
+          
+          console.log('🎯 [CART SUMMARY INIT] Enhanced form style with currency:', enhancedFormStyle);
+          window.codformCartSummary.initialize(field, enhancedFormStyle);
           
           // Force load product data immediately if auto-calculate is enabled
           if (field.config && field.config.autoCalculate) {
