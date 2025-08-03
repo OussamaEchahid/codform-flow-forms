@@ -3,6 +3,9 @@
  * Renders countdown timer fields for Shopify theme integration
  */
 
+// Store countdown configurations globally
+window.countdownConfigs = window.countdownConfigs || {};
+
 window.renderCountdownField = function(field, formStyle, formLanguage = 'en') {
   console.log('🕐 CODFORM: Rendering countdown field:', field);
   
@@ -18,7 +21,7 @@ window.renderCountdownField = function(field, formStyle, formLanguage = 'en') {
   const defaultBackgroundColor = '#9b87f5';
   const defaultCounterColor = '#9b87f5';
   
-          // Field configuration  
+  // Field configuration  
   const title = field.label || field.title || defaultTitle;
   const endDate = (field.style && field.style.endDate) ? field.style.endDate : null;
   const backgroundColor = fieldStyle.backgroundColor || defaultBackgroundColor;
@@ -42,8 +45,19 @@ window.renderCountdownField = function(field, formStyle, formLanguage = 'en') {
   const direction = formLanguage === 'ar' ? 'rtl' : 'ltr';
   const flexDirection = formLanguage === 'ar' ? 'row-reverse' : 'row';
   
+  // Store configuration for later initialization
+  window.countdownConfigs[fieldId] = {
+    endDate: endDate,
+    daysLabel: daysLabel,
+    hoursLabel: hoursLabel,
+    minutesLabel: minutesLabel,
+    secondsLabel: secondsLabel
+  };
+  
+  console.log('🕐 COUNTDOWN CONFIG: Stored config for', fieldId, window.countdownConfigs[fieldId]);
+  
   return `
-    <div class="countdown-timer-container" style="margin: 20px 0 24px 0;" id="${fieldId}">
+    <div class="countdown-timer-container" style="margin: 20px 0 24px 0;" id="${fieldId}" data-countdown-id="${fieldId}">
       <div style="
         background: ${backgroundColor};
         border: 2px solid ${backgroundColor};
@@ -217,67 +231,76 @@ window.renderCountdownField = function(field, formStyle, formLanguage = 'en') {
         </div>
       </div>
     </div>
+    <script>
+      (function() {
+        if (typeof window.initializeCountdown === 'function') {
+          window.initializeCountdown('${fieldId}');
+        }
+      })();
+    </script>
   `;
+};
+
+// Initialize countdown timer for a specific field
+window.initializeCountdown = function(fieldId) {
+  console.log('🕐 COUNTDOWN: Initializing countdown for field', fieldId);
   
-  // Initialize countdown after DOM is ready
-  setTimeout(function() {
-    console.log('🕐 COUNTDOWN: Starting for field', fieldId);
-    
-    var endDateValue = null;
-    if (field && field.style && field.style.endDate) {
-      endDateValue = field.style.endDate;
-      console.log('🕐 COUNTDOWN: Found endDate:', endDateValue);
-    }
-    
-    var endTime;
-    if (endDateValue) {
-      endTime = new Date(endDateValue).getTime();
-      if (isNaN(endTime)) {
-        console.log('🕐 COUNTDOWN: Invalid date, using default');
-        endTime = Date.now() + (2 * 24 * 60 * 60 * 1000);
-      } else {
-        console.log('🕐 COUNTDOWN: Using custom endTime:', new Date(endTime));
-      }
-    } else {
-      console.log('🕐 COUNTDOWN: No endDate found, using default');
+  var config = window.countdownConfigs[fieldId];
+  if (!config) {
+    console.log('🕐 COUNTDOWN: No config found for field', fieldId);
+    return;
+  }
+  
+  console.log('🕐 COUNTDOWN: Using config:', config);
+  
+  var endTime;
+  if (config.endDate) {
+    endTime = new Date(config.endDate).getTime();
+    if (isNaN(endTime)) {
+      console.log('🕐 COUNTDOWN: Invalid date, using default');
       endTime = Date.now() + (2 * 24 * 60 * 60 * 1000);
+    } else {
+      console.log('🕐 COUNTDOWN: Using custom endTime:', new Date(endTime));
+    }
+  } else {
+    console.log('🕐 COUNTDOWN: No endDate found, using default');
+    endTime = Date.now() + (2 * 24 * 60 * 60 * 1000);
+  }
+  
+  function updateCountdown() {
+    var now = Date.now();
+    var timeLeft = endTime - now;
+    
+    if (timeLeft <= 0) {
+      endTime = Date.now() + (2 * 24 * 60 * 60 * 1000);
+      timeLeft = endTime - Date.now();
     }
     
-    function updateCountdown() {
-      var now = Date.now();
-      var timeLeft = endTime - now;
-      
-      if (timeLeft <= 0) {
-        endTime = Date.now() + (2 * 24 * 60 * 60 * 1000);
-        timeLeft = endTime - Date.now();
-      }
-      
-      var days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
-      var hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      var minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
-      var seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
-      
-      function padZero(num) {
-        return num < 10 ? '0' + num : num.toString();
-      }
-      
-      var daysEl = document.getElementById(fieldId + '-days');
-      var hoursEl = document.getElementById(fieldId + '-hours');
-      var minutesEl = document.getElementById(fieldId + '-minutes');
-      var secondsEl = document.getElementById(fieldId + '-seconds');
-      
-      if (daysEl) daysEl.textContent = padZero(days);
-      if (hoursEl) hoursEl.textContent = padZero(hours);
-      if (minutesEl) minutesEl.textContent = padZero(minutes);
-      if (secondsEl) secondsEl.textContent = padZero(seconds);
-      
-      console.log('🕐 COUNTDOWN: Updated values:', days, hours, minutes, seconds);
+    var days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
+    var hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    var minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+    var seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+    
+    function padZero(num) {
+      return num < 10 ? '0' + num : num.toString();
     }
     
-    updateCountdown();
-    setInterval(updateCountdown, 1000);
-    console.log('🕐 COUNTDOWN: Timer started for field', fieldId);
-  }, 100);
+    var daysEl = document.getElementById(fieldId + '-days');
+    var hoursEl = document.getElementById(fieldId + '-hours');
+    var minutesEl = document.getElementById(fieldId + '-minutes');
+    var secondsEl = document.getElementById(fieldId + '-seconds');
+    
+    if (daysEl) daysEl.textContent = padZero(days);
+    if (hoursEl) hoursEl.textContent = padZero(hours);
+    if (minutesEl) minutesEl.textContent = padZero(minutes);
+    if (secondsEl) secondsEl.textContent = padZero(seconds);
+    
+    console.log('🕐 COUNTDOWN: Updated values for', fieldId, ':', days, hours, minutes, seconds);
+  }
+  
+  updateCountdown();
+  setInterval(updateCountdown, 1000);
+  console.log('🕐 COUNTDOWN: Timer started for field', fieldId);
 };
 
 console.log('🕐 CODFORM: Countdown field renderer loaded');
