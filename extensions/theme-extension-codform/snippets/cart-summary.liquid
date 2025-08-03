@@ -1,0 +1,138 @@
+{% comment %}
+  Cart Summary Field Partial
+  Renders cart summary with subtotal, discount, shipping, and total
+{% endcomment %}
+
+{% assign config = field.config | default: blank %}
+{% assign showSubtotal = config.showSubtotal | default: true %}
+{% assign showDiscount = config.showDiscount | default: true %}
+{% assign showShipping = config.showShipping | default: true %}
+{% assign showTotal = config.showTotal | default: true %}
+{% assign discountValue = config.discountValue | default: 0 %}
+{% assign discountType = config.discountType | default: 'percentage' %}
+{% assign shippingCost = config.shippingCost | default: 0 %}
+{% assign currency = config.currency | default: 'SAR' %}
+{% assign autoCalculate = config.autoCalculate | default: false %}
+
+{% comment %} Labels with direction support {% endcomment %}
+{% assign subtotalLabel = config.subtotalLabel | default: 'المجموع الفرعي' %}
+{% assign discountLabel = config.discountLabel | default: 'الخصم' %}
+{% assign shippingLabel = config.shippingLabel | default: 'الشحن' %}
+{% assign totalLabel = config.totalLabel | default: 'الإجمالي' %}
+
+{% if formDirection == 'ltr' %}
+  {% assign subtotalLabel = config.subtotalLabel | default: 'Subtotal' %}
+  {% assign discountLabel = config.discountLabel | default: 'Discount' %}
+  {% assign shippingLabel = config.shippingLabel | default: 'Shipping' %}
+  {% assign totalLabel = config.totalLabel | default: 'Total' %}
+{% endif %}
+
+{% comment %} Styling {% endcomment %}
+{% assign labelColor = field.style.labelColor | default: '#374151' %}
+{% assign valueColor = field.style.valueColor | default: '#111827' %}
+{% assign fontSize = field.style.fontSize | default: '16px' %}
+{% assign fontWeight = field.style.fontWeight | default: '500' %}
+
+<div class="cart-summary-field" 
+     data-field-id="{{ field.id }}" 
+     data-auto-calculate="{{ autoCalculate }}"
+     data-currency="{{ currency }}"
+     style="
+       width: 100%;
+       background: {{ field.style.backgroundColor | default: '#f9fafb' }};
+       border: 1px solid {{ field.style.borderColor | default: '#e5e7eb' }};
+       border-radius: {{ field.style.borderRadius | default: '8px' }};
+       padding: 16px;
+       margin: 16px 0;
+       direction: {{ formDirection }};
+       font-family: {{ formDirection == 'rtl' ? 'Cairo, Tajawal, Arial, sans-serif' : 'Inter, Arial, sans-serif' }};
+     ">
+  
+  {% if showSubtotal %}
+  <div class="summary-row" style="
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  ">
+    <span class="summary-label" style="
+      color: {{ labelColor }};
+      font-size: {{ fontSize }};
+      font-weight: {{ fontWeight }};
+    ">{{ subtotalLabel }}</span>
+    <span class="summary-value subtotal-value" style="
+      color: {{ valueColor }};
+      font-size: {{ fontSize }};
+      font-weight: 600;
+    " data-amount="0">{{ currency }} 0.00</span>
+  </div>
+  {% endif %}
+
+  {% if showDiscount %}
+  <div class="summary-row discount-row" style="
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    {% unless discountValue > 0 %}display: none;{% endunless %}
+  ">
+    <span class="summary-label" style="
+      color: {{ labelColor }};
+      font-size: {{ fontSize }};
+      font-weight: {{ fontWeight }};
+    ">{{ discountLabel }}</span>
+    <span class="summary-value discount-value" style="
+      color: #dc2626;
+      font-size: {{ fontSize }};
+      font-weight: 600;
+    " data-amount="0">-{{ currency }} 0.00</span>
+  </div>
+  {% endif %}
+
+  {% if showShipping %}
+  <div class="summary-row" style="
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    border-bottom: 1px solid {{ field.style.borderColor | default: '#e5e7eb' }};
+    padding-bottom: 8px;
+  ">
+    <span class="summary-label" style="
+      color: {{ labelColor }};
+      font-size: {{ fontSize }};
+      font-weight: {{ fontWeight }};
+    ">{{ shippingLabel }}</span>
+    <span class="summary-value shipping-value" style="
+      color: {{ valueColor }};
+      font-size: {{ fontSize }};
+      font-weight: 600;
+    " data-amount="{{ shippingCost }}">
+      {% if shippingCost == 0 %}
+        {{ formDirection == 'rtl' ? 'مجاني' : 'Free' }}
+      {% else %}
+        {{ currency }} {{ shippingCost | money_without_currency }}
+      {% endif %}
+    </span>
+  </div>
+  {% endif %}
+
+  {% if showTotal %}
+  <div class="summary-row total-row" style="
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  ">
+    <span class="summary-label" style="
+      color: {{ field.style.totalLabelColor | default: '#111827' }};
+      font-size: {{ field.style.totalFontSize | default: '18px' }};
+      font-weight: 700;
+    ">{{ totalLabel }}</span>
+    <span class="summary-value total-value" style="
+      color: {{ field.style.totalValueColor | default: '#059669' }};
+      font-size: {{ field.style.totalFontSize | default: '18px' }};
+      font-weight: 700;
+    " data-amount="0">{{ currency }} 0.00</span>
+  </div>
+  {% endif %}
+</div>

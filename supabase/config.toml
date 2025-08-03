@@ -44,9 +44,6 @@ enabled = true
 port = 54329
 ip_version = "ipv4"
 
-[functions.api-forms-proxy]
-verify_jwt = false
-
 [functions.api-forms]
 verify_jwt = false
 
