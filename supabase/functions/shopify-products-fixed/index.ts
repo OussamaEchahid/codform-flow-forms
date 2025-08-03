@@ -100,6 +100,27 @@ Deno.serve(async (req) => {
     const accessToken = storeData.access_token;
     console.log(`✅ Store found with valid token: ${shop}`);
 
+    // جلب معلومات المتجر للحصول على العملة
+    const shopInfoUrl = `https://${shop}/admin/api/2024-07/shop.json`;
+    console.log(`💰 Fetching shop currency from: ${shopInfoUrl}`);
+
+    const shopInfoResponse = await fetch(shopInfoUrl, {
+      method: 'GET',
+      headers: {
+        'X-Shopify-Access-Token': accessToken,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    let shopCurrency = 'USD'; // العملة الافتراضية
+    if (shopInfoResponse.ok) {
+      const shopInfoData = await shopInfoResponse.json();
+      shopCurrency = shopInfoData.shop?.currency || 'USD';
+      console.log(`💰 Shop currency detected: ${shopCurrency}`);
+    } else {
+      console.warn('⚠️ Could not fetch shop currency, using USD as default');
+    }
+
     // جلب المنتجات من Shopify API
     let shopifyUrl;
     if (productId) {
@@ -180,12 +201,14 @@ Deno.serve(async (req) => {
         status: product.status,
         tags: product.tags || '',
         image: product.image?.src || null,
+        currency: shopCurrency, // إضافة العملة
         variants: product.variants?.map((variant: any) => ({
           id: variant.id,
           title: variant.title,
           price: variant.price,
           sku: variant.sku || '',
-          inventory_quantity: variant.inventory_quantity || 0
+          inventory_quantity: variant.inventory_quantity || 0,
+          currency_code: shopCurrency // إضافة العملة للمتغير
         })) || [],
         created_at: product.created_at,
         updated_at: product.updated_at
@@ -196,6 +219,7 @@ Deno.serve(async (req) => {
           success: true,
           shop,
           product: formattedProduct,
+          currency: shopCurrency, // إضافة العملة للاستجابة
           message: `تم جلب المنتج ${product.title} بنجاح`
         }),
         {
@@ -218,12 +242,14 @@ Deno.serve(async (req) => {
         status: product.status,
         tags: product.tags || '',
         image: product.image?.src || null,
+        currency: shopCurrency, // إضافة العملة
         variants: product.variants?.map(variant => ({
           id: variant.id,
           title: variant.title,
           price: variant.price,
           sku: variant.sku || '',
-          inventory_quantity: variant.inventory_quantity || 0
+          inventory_quantity: variant.inventory_quantity || 0,
+          currency_code: shopCurrency // إضافة العملة للمتغير
         })) || [],
         created_at: product.created_at,
         updated_at: product.updated_at
@@ -234,6 +260,7 @@ Deno.serve(async (req) => {
           success: true,
           shop,
           products: formattedProducts,
+          currency: shopCurrency, // إضافة العملة للاستجابة
           total: formattedProducts.length,
           message: `تم جلب ${formattedProducts.length} منتج بنجاح`
         }),
