@@ -219,13 +219,14 @@ window.CodformQuantityOffers = (function() {
       priceColor: quantityOffersData.styling?.priceColor || '#000000'
     };
 
-    // استخدام بيانات المنتج المرسلة أولاً، ثم من API، ثم القيم الافتراضية
-    let actualProductData = productData;
+    // ✅ CRITICAL FIX: Use ONLY the product data passed from API call - ignore all other sources
+    let actualProductData = productData; // This comes from API response: {price: 1, currency: "USD"}
     
-    if (!actualProductData && window.CodformProductData) {
-      actualProductData = window.CodformProductData;
-      console.log("🛍️ Using global product data:", actualProductData);
-    }
+    console.log("🔥 FINAL DEBUG - Product data received:", {
+      productDataFromAPI: productData,
+      globalProductData: window.CodformProductData,
+      usingData: actualProductData
+    });
     
     // ✅ FIXED: Get form currency for display - this is the TARGET currency for conversion
     let targetFormCurrency = formCurrency || window.CodformFormData?.currency || window.currentFormData?.savedFormCurrency;
