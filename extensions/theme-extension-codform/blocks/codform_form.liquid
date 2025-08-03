@@ -1894,8 +1894,8 @@ window.CodformQuantityOffers = (function() {
       
       if (data.success && data.quantity_offers && data.quantity_offers.offers && data.quantity_offers.offers.length > 0) {
         console.log("✅ Quantity offers found, displaying...");
-        // تمرير بيانات المنتج المُستلمة
-        displayQuantityOffers(data.quantity_offers, blockId, productId, formCurrency, productData);
+        // ✅ FIXED: Pass the real product data from API response instead of local productData
+        displayQuantityOffers(data.quantity_offers, blockId, productId, formCurrency, data.product);
       } else {
         console.log("ℹ️ No quantity offers found for this product");
       }
