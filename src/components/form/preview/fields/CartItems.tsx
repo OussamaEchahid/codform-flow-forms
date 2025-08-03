@@ -132,7 +132,7 @@ const CartItems: React.FC<CartItemsProps> = ({ field, formStyle, productId, form
     }
   }, [linkedProductId, productId]);
 
-  // حساب السعر المحول
+  // حساب السعر مع العملة الأصلية
   const convertedPrice = useMemo(() => {
     if (productData && productData.variants && productData.variants.length > 0) {
       const originalPrice = parseFloat(productData.variants[0].price) || 0;
@@ -141,28 +141,24 @@ const CartItems: React.FC<CartItemsProps> = ({ field, formStyle, productId, form
                              productData.currency || 
                              productData.shop?.currency || 
                              'USD';
-      const targetCurrency = formCurrency || formStyle.currency || 'SAR';
       
-      console.log('💰 Cart Items Currency conversion:', {
+      console.log('💰 Cart Items Currency - keeping original:', {
         originalPrice,
-        productCurrency,
-        targetCurrency
+        productCurrency
       });
       
-      // تحويل السعر إلى العملة المطلوبة
-      const convertedPrice = convertCurrency(originalPrice, productCurrency, targetCurrency);
-      
+      // الاحتفاظ بالعملة الأصلية بدلاً من التحويل
       return {
-        price: convertedPrice,
-        currency: targetCurrency
+        price: originalPrice,
+        currency: productCurrency
       };
     }
     
     return {
       price: 29.99,
-      currency: formCurrency || formStyle.currency || 'SAR'
+      currency: 'USD'
     };
-  }, [productData, formCurrency, formStyle.currency]);
+  }, [productData]);
 
   const formatPrice = (amount: number) => {
     const currency = convertedPrice.currency;
