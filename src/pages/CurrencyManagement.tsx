@@ -12,9 +12,11 @@ import { useI18n } from "@/lib/i18n";
 import { CurrencyService, CurrencyDisplaySettings } from "@/lib/services/CurrencyService";
 import { CURRENCIES } from "@/lib/constants/countries-currencies";
 import { toast } from "sonner";
+import { useSimpleShopifyAuth } from "@/hooks/useSimpleShopifyAuth";
 
 const CurrencyManagement = () => {
   const { t, language } = useI18n();
+  const { currentStore, userStores } = useSimpleShopifyAuth();
   
   // إعدادات العرض
   const [displaySettings, setDisplaySettings] = useState<CurrencyDisplaySettings>({
@@ -33,10 +35,17 @@ const CurrencyManagement = () => {
   // تحميل الإعدادات عند بدء التشغيل
   useEffect(() => {
     loadSettings();
-  }, []);
+  }, [currentStore]);
 
   const loadSettings = async () => {
     try {
+      // تعيين سياق المتجر للخدمة
+      const currentStoreData = userStores.find(s => s.shop === currentStore);
+      if (currentStore) {
+        // استخدام معرف ثابت للمستخدم مؤقتاً حتى يتم إضافة user_id للنوع
+        CurrencyService.setShopContext(currentStore, '36d7eb85-0c45-4b4f-bea1-a9cb732ca893');
+      }
+      
       await CurrencyService.initialize();
       setDisplaySettings(CurrencyService.getDisplaySettings());
       setCustomRates(CurrencyService.getCustomRates());

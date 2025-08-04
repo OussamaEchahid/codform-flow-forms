@@ -46,8 +46,8 @@
       // محاولة الوصول إلى CurrencyService من التطبيق الرئيسي
       loadCurrencyService();
       
-      // تحميل الإعدادات المخصصة
-      loadCustomSettings();
+      // تحميل الإعدادات من API
+      loadSettingsFromAPI();
       
       isInitialized = true;
       console.log('✅ Currency Manager initialized');
@@ -74,8 +74,6 @@
             window.CurrencyService.initialize();
           }
           
-          // تحميل الإعدادات المخصصة
-          loadSettingsFromService();
           return true;
         }
       }
@@ -84,6 +82,65 @@
     }
     
     return false;
+  }
+  
+  /**
+   * تحميل الإعدادات من API
+   */
+  async function loadSettingsFromAPI() {
+    try {
+      // الحصول على shop من المتغيرات العامة
+      const shopId = window.Shopify?.shop || window.codformConfig?.shop;
+      
+      if (!shopId) {
+        console.warn('⚠️ Shop ID not found, using fallback settings');
+        return;
+      }
+      
+      console.log(`🔄 Loading currency settings for shop: ${shopId}`);
+      
+      // استدعاء edge function
+      const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/currency-settings?shop=${encodeURIComponent(shopId)}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        // تحديث الإعدادات المحلية
+        if (data.display_settings) {
+          currencySettings = {
+            showSymbol: data.display_settings.show_symbol !== false,
+            symbolPosition: data.display_settings.symbol_position || 'before',
+            decimalPlaces: data.display_settings.decimal_places || 2,
+            customSymbols: data.custom_symbols || {}
+          };
+        }
+        
+        if (data.custom_rates) {
+          customRates = { ...DEFAULT_RATES, ...data.custom_rates };
+        }
+        
+        console.log('✅ Currency settings loaded from API:', {
+          settings: currencySettings,
+          rates: Object.keys(customRates).length
+        });
+      } else {
+        console.warn('⚠️ API returned error, using default settings:', data.error);
+      }
+      
+    } catch (error) {
+      console.error('❌ Error loading currency settings from API:', error);
+      // استخدام الإعدادات المحلية كبديل
+      loadCustomSettings();
+    }
   }
   
   /**
