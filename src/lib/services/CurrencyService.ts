@@ -30,9 +30,11 @@ class CurrencyServiceClass {
    * تعيين معرف المتجر والمستخدم الحالي
    */
   setShopContext(shopId: string | null, userId: string | null = null) {
+    console.log('💫 CurrencyService.setShopContext called:', { shopId, userId, previous: { shop: this.currentShopId, user: this.currentUserId } });
     this.currentShopId = shopId;
     this.currentUserId = userId;
-    console.log(`💫 Currency service context updated - Shop: ${shopId}, User: ${userId}`);
+    this.initialized = false; // إعادة تعيين حالة التهيئة لإجبار إعادة التحميل
+    console.log(`✅ Currency service context updated - Shop: ${shopId}, User: ${userId}`);
   }
 
   /**
@@ -399,7 +401,14 @@ class CurrencyServiceClass {
    * تحميل إعدادات العرض من قاعدة البيانات
    */
   private async loadDisplaySettingsFromDatabase(): Promise<void> {
+    if (!this.currentShopId) {
+      console.log('⚠️ No shop_id set, skipping database load for display settings');
+      return;
+    }
+
     try {
+      console.log('🔍 Loading display settings from database for shop:', this.currentShopId);
+      
       const { data, error } = await (supabase as any)
         .from('currency_display_settings')
         .select('*')
@@ -407,7 +416,10 @@ class CurrencyServiceClass {
         .limit(1)
         .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Database error loading display settings:', error);
+        throw error;
+      }
 
       if (data) {
         this.displaySettings = {
@@ -421,6 +433,8 @@ class CurrencyServiceClass {
         await this.loadCustomSymbolsFromDatabase();
         
         console.log('✅ Display settings loaded from database:', this.displaySettings);
+      } else {
+        console.log('ℹ️ No display settings found in database, using defaults');
       }
     } catch (error) {
       console.error('❌ Error loading display settings from database:', error);
@@ -431,15 +445,25 @@ class CurrencyServiceClass {
    * تحميل الرموز المخصصة من قاعدة البيانات
    */
   private async loadCustomSymbolsFromDatabase(): Promise<void> {
+    if (!this.currentShopId) {
+      console.log('⚠️ No shop_id set, skipping database load for custom symbols');
+      return;
+    }
+
     try {
+      console.log('🔍 Loading custom symbols from database for shop:', this.currentShopId);
+      
       const { data, error } = await (supabase as any)
         .from('custom_currency_symbols')
         .select('currency_code, custom_symbol')
         .eq('shop_id', this.currentShopId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Database error loading custom symbols:', error);
+        throw error;
+      }
 
-      if (data) {
+      if (data && data.length > 0) {
         const customSymbols: Record<string, string> = {};
         data.forEach((row: any) => {
           customSymbols[row.currency_code] = row.custom_symbol;
@@ -447,6 +471,8 @@ class CurrencyServiceClass {
         
         this.displaySettings.customSymbols = customSymbols;
         console.log('✅ Custom symbols loaded from database:', customSymbols);
+      } else {
+        console.log('ℹ️ No custom symbols found in database');
       }
     } catch (error) {
       console.error('❌ Error loading custom symbols from database:', error);

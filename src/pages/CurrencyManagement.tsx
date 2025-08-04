@@ -32,26 +32,34 @@ const CurrencyManagement = () => {
   const [newRate, setNewRate] = useState({ currency: '', rate: '' });
   const [loading, setLoading] = useState(false);
 
-  // تحميل الإعدادات عند بدء التشغيل
+  // تحميل الإعدادات عند بدء التشغيل أو تغيير المتجر
   useEffect(() => {
-    loadSettings();
-  }, [currentStore]);
+    if (currentStore && userStores.length > 0) {
+      loadSettings();
+    }
+  }, [currentStore, userStores]);
 
   const loadSettings = async () => {
+    if (!currentStore) {
+      console.log('❌ No current store available');
+      return;
+    }
+
     try {
+      console.log('🏪 Loading currency settings for store:', currentStore);
+      
       // تعيين سياق المتجر للخدمة
-      if (currentStore) {
-        // استخدام معرف ثابت للمستخدم مؤقتاً
-        const userId = '36d7eb85-0c45-4b4f-bea1-a9cb732ca893';
-        console.log('🏪 Setting currency service context:', { shop: currentStore, userId });
-        CurrencyService.setShopContext(currentStore, userId);
-      }
+      const userId = '36d7eb85-0c45-4b4f-bea1-a9cb732ca893';
+      console.log('💫 Setting currency service context:', { shop: currentStore, userId });
+      CurrencyService.setShopContext(currentStore, userId);
       
       await CurrencyService.initialize();
       setDisplaySettings(CurrencyService.getDisplaySettings());
       setCustomRates(CurrencyService.getCustomRates());
+      
+      console.log('✅ Currency settings loaded successfully');
     } catch (error) {
-      console.error('Error loading currency settings:', error);
+      console.error('❌ Error loading currency settings:', error);
       toast.error('فشل في تحميل إعدادات العملة');
     }
   };
