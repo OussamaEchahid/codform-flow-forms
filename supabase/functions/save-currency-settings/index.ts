@@ -114,13 +114,7 @@ Deno.serve(async (req) => {
       
       const user_id = displayData?.user_id || '36d7eb85-0c45-4b4f-bea1-a9cb732ca893';
       
-      // حذف المعدلات الموجودة للمستخدم فقط
-      await supabase
-        .from('custom_currency_rates')
-        .delete()
-        .eq('user_id', user_id);
-      
-      // إدراج المعدلات الجديدة مع user_id
+      // استخدام upsert مع المفاتيح الصحيحة
       const ratesData = Object.entries(custom_rates).map(([currency_code, exchange_rate]) => ({
         currency_code,
         exchange_rate,
@@ -130,7 +124,9 @@ Deno.serve(async (req) => {
 
       const { error: rateError } = await supabase
         .from('custom_currency_rates')
-        .insert(ratesData);
+        .upsert(ratesData, {
+          onConflict: 'currency_code,user_id'
+        });
 
       if (rateError) {
         console.error('❌ Error saving custom rates:', rateError);
