@@ -6,17 +6,29 @@
 window.CodformQuantityOffers = (function() {
   'use strict';
 
-  // دالة تحويل العملة مبسطة
+  // دالة تحويل العملة موحدة مع النظام الأساسي
   function convertCurrency(amount, fromCurrency, toCurrency) {
-    const exchangeRates = {
-      'USD': { 'SAR': 3.75, 'MAD': 10.0, 'USD': 1 },
-      'SAR': { 'USD': 0.267, 'MAD': 2.67, 'SAR': 1 },
-      'MAD': { 'USD': 0.1, 'SAR': 0.375, 'MAD': 1 }
+    // استخدام معدلات التحويل الموحدة
+    const exchangeRates = window.CodformCurrencyRates || {
+      'USD': 1.0,
+      'SAR': 3.75,
+      'MAD': 10.0, // ✅ توحيد: متطابق مع النظام الأساسي
+      'AED': 3.67,
+      'EGP': 30.85
     };
     
     if (fromCurrency === toCurrency) return amount;
-    const rate = exchangeRates[fromCurrency]?.[toCurrency];
-    return rate ? amount * rate : amount;
+    
+    // التحويل عبر الدولار الأمريكي كعملة أساسية
+    const fromRate = exchangeRates[fromCurrency];
+    const toRate = exchangeRates[toCurrency];
+    
+    if (fromRate && toRate) {
+      const usdAmount = amount / fromRate;
+      return usdAmount * toRate;
+    }
+    
+    return amount; // إرجاع المبلغ الأصلي إذا فشل التحويل
   }
 
   // دالة عرض العروض مطابقة للمعاينة

@@ -6,51 +6,49 @@
 window.CodformQuantityOffers = (function() {
   'use strict';
 
-  // دالة تحويل العملة مع الأسعار الدقيقة والصحيحة لجميع الدول
+  // دالة تحويل العملة موحدة مع النظام الأساسي
   function convertCurrency(amount, fromCurrency, toCurrency) {
-    // معدلات التحويل الدقيقة والصحيحة لجميع العملات المدعومة
-    const exchangeRates = {
+    // استخدام معدلات التحويل الموحدة من النظام المركزي
+    const exchangeRates = window.CodformCurrencyRates || {
       'USD': 1.0,
       'SAR': 3.75,
       'AED': 3.67,
       'EGP': 30.85,
-      'QAR': 3.64,
+      'JOD': 0.71,
       'KWD': 0.31,
       'BHD': 0.38,
+      'QAR': 3.64,
       'OMR': 0.38,
-      'JOD': 0.71,
-      'LBP': 89500,
-      'MAD': 10.0, // ✅ UNIFIED: 1 USD = 10 MAD (consistent with currency rates file)
-      'TND': 3.15,
-      'DZD': 134.25,
-      'EUR': 0.92,
-      'GBP': 0.79,
-      'CAD': 1.43,
-      'AUD': 1.57,
-      'MXN': 20.15,
-      'BRL': 6.05,
-      'ARS': 1005.5,
-      'CLP': 975.2,
-      'COP': 4285.5,
-      'PEN': 3.75,
-      'VES': 36500000,
-      'UYU': 40.25,
+      'LBP': 15000,
+      'SYP': 2512,
       'IQD': 1310,
-      'IRR': 42100,
-      'TRY': 34.15,
-      'ILS': 3.67,
-      'SYP': 13000,
       'YER': 250,
-      'NGN': 1675,
-      'ZAR': 18.45,
-      'KES': 130.5,
-      'GHS': 15.85,
-      'ETB': 125.5,
-      'TZS': 2515,
-      'UGX': 3785,
-      'ZWL': 322,
-      'ZMW': 27.85,
-      'RWF': 1385
+      'MAD': 10.0, // ✅ توحيد: متطابق مع النظام الأساسي
+      'TND': 3.08,
+      'DZD': 134.5,
+      'EUR': 0.85,
+      'GBP': 0.75,
+      'TRY': 27.8,
+      'IRR': 42000,
+      'AFN': 72,
+      'PKR': 280,
+      'INR': 83,
+      'BDT': 110,
+      'LKR': 300,
+      'MVR': 15.4,
+      'NPR': 133,
+      'BTN': 83,
+      'MMK': 2100,
+      'KHR': 4100,
+      'LAK': 20000,
+      'VND': 24000,
+      'THB': 36,
+      'MYR': 4.7,
+      'SGD': 1.35,
+      'IDR': 15800,
+      'PHP': 56,
+      'BND': 1.35,
+      'LYD': 4.48
     };
     
     // تنظيف أسماء العملات
