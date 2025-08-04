@@ -73,6 +73,8 @@
     // ✅ CRITICAL FIX: If currencies match, no conversion needed
     const effectivePrice = (currency === targetCurrency) ? price : price;
     
+    console.log(`🏪 Setting product data: price=${price}, currency=${currency}, target=${targetCurrency}`);
+    
     updateState({
       productPrice: price,
       productCurrency: currency,

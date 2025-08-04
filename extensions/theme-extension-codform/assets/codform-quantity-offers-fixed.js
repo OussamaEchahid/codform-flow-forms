@@ -33,9 +33,9 @@ window.CodformQuantityOffers = (function() {
     return amount; // إرجاع المبلغ الأصلي إذا فشل التحويل
   }
 
-  // دالة عرض العروض مطابقة للمعاينة
+  // دالة عرض العروض متصلة مع State Manager
   function displayQuantityOffers(quantityOffersData, blockId, productId, defaultCurrency = 'SAR', productData = null) {
-    console.log("🎯 Fixed Quantity Offers Display Started");
+    console.log("🎯 Quantity Offers Display Started - Connected to State Manager");
     
     if (!quantityOffersData?.offers || !Array.isArray(quantityOffersData.offers)) {
       console.log("❌ No valid offers data");
@@ -53,15 +53,24 @@ window.CodformQuantityOffers = (function() {
     container.innerHTML = '';
     container.style.display = 'block';
 
-    // استخدام السعر الصحيح من المعاينة (3.66 SAR)
-    const basePrice = 3.66; // السعر الصحيح من المعاينة
-    const currency = defaultCurrency;
-    const currencySymbol = currency === 'SAR' ? 'ر.س' : currency === 'MAD' ? 'د.م' : currency;
+    // ✅ CRITICAL FIX: استخدام State Manager للحصول على البيانات الصحيحة
+    const stateManager = window.CodformStateManager;
+    const currentState = stateManager ? stateManager.getState() : null;
+    
+    // استخدام السعر من State Manager أو التراجع للسعر الافتراضي
+    const basePrice = currentState?.basePrice || productData?.price || 20; // منع استخدام القيم المتغيرة
+    const targetCurrency = currentState?.targetCurrency || defaultCurrency;
+    
+    // استخدام Currency Manager للتنسيق
+    const currencyManager = window.CodformCurrencyManager;
+    
+    console.log(`💰 Quantity Offers using: basePrice=${basePrice}, targetCurrency=${targetCurrency}`);
+    console.log(`💰 State Manager data:`, currentState);
     
     const productImage = productData?.image || productData?.featuredImage;
     const productTitle = productData?.title || 'المنتج';
 
-    console.log(`💰 Using base price: ${basePrice} ${currency}`);
+    console.log(`💰 Using base price: ${basePrice} ${targetCurrency}`);
 
     offers.forEach((offer, index) => {
       const offerElement = document.createElement('div');
@@ -84,7 +93,7 @@ window.CodformQuantityOffers = (function() {
         transition: all 0.2s ease;
       `;
 
-      // حساب الأسعار
+      // حساب الأسعار باستخدام Currency Manager
       const quantity = offer.quantity || 1;
       const totalPrice = basePrice * quantity;
       const discountValue = parseFloat(offer.discount || 0);
@@ -93,6 +102,23 @@ window.CodformQuantityOffers = (function() {
       if (discountValue > 0) {
         finalPrice = totalPrice - (totalPrice * discountValue / 100);
       }
+      
+      // ✅ تطبيق تنسيق العملة باستخدام Currency Manager
+      let formattedTotal, formattedFinal;
+      
+      if (currencyManager && currencyManager.formatCurrency) {
+        formattedTotal = currencyManager.formatCurrency(totalPrice, targetCurrency, 'ar');
+        formattedFinal = currencyManager.formatCurrency(finalPrice, targetCurrency, 'ar');
+      } else {
+        // تراجع للتنسيق الافتراضي
+        const currencySymbol = targetCurrency === 'SAR' ? 'ر.س' : 
+                              targetCurrency === 'MAD' ? 'د.م' : 
+                              targetCurrency === 'USD' ? '$' : targetCurrency;
+        formattedTotal = `${totalPrice.toFixed(0)} ${currencySymbol}`;
+        formattedFinal = `${finalPrice.toFixed(0)} ${currencySymbol}`;
+      }
+      
+      console.log(`💰 Offer ${index}: quantity=${quantity}, total=${formattedTotal}, final=${formattedFinal}`);
 
       // محتوى العرض
       offerElement.innerHTML = `
@@ -140,11 +166,11 @@ window.CodformQuantityOffers = (function() {
           <div style="text-align: right; direction: rtl; min-width: 70px;">
             ${discountValue > 0 ? `
               <div style="font-size: 11px; color: #9ca3af; text-decoration: line-through; margin-bottom: 2px;">
-                ${totalPrice.toFixed(2)} ${currencySymbol}
+                ${formattedTotal}
               </div>
             ` : ''}
             <div style="font-size: 16px; font-weight: bold; color: #059669;">
-              ${finalPrice.toFixed(2)} ${currencySymbol}
+              ${formattedFinal}
             </div>
           </div>
         </div>
@@ -202,6 +228,12 @@ window.CodformQuantityOffers = (function() {
       
       if (data.success && data.quantity_offers) {
         console.log("✅ Offers loaded successfully");
+        
+        // ✅ حفظ البيانات للاستخدام المستقبلي
+        window.currentQuantityOffersData = data.quantity_offers;
+        window.currentProductId = productId;
+        window.currentProductData = productData;
+        
         displayQuantityOffers(data.quantity_offers, blockId, productId, defaultCurrency, productData);
         return { success: true };
       } else {
@@ -214,11 +246,65 @@ window.CodformQuantityOffers = (function() {
     }
   }
 
+  // ✅ CRITICAL FIX: الاستماع للتغييرات في State Manager
+  function subscribeToStateChanges() {
+    if (window.CodformStateManager && window.CodformStateManager.subscribe) {
+      window.CodformStateManager.subscribe((newState, previousState) => {
+        console.log("🔄 Quantity Offers: State changed, checking for updates...");
+        
+        // تحديث العروض المعروضة إذا تغيرت العملة أو الإعدادات
+        if (newState.targetCurrency !== previousState.targetCurrency || 
+            newState.basePrice !== previousState.basePrice) {
+          console.log("🔄 Quantity Offers: Currency or price changed, updating displays...");
+          
+          // إعادة تطبيق تنسيق العملة على جميع العروض المعروضة
+          document.querySelectorAll('[id^="quantity-offers-before-"]').forEach(container => {
+            if (container.children.length > 0) {
+              const blockId = container.id.replace('quantity-offers-before-', '');
+              const productData = window.currentProductData; // استخدام البيانات المحفوظة
+              
+              // إعادة عرض العروض بالتنسيق الجديد
+              setTimeout(() => {
+                if (window.currentQuantityOffersData) {
+                  displayQuantityOffers(
+                    window.currentQuantityOffersData, 
+                    blockId, 
+                    window.currentProductId, 
+                    newState.targetCurrency, 
+                    productData
+                  );
+                }
+              }, 100);
+            }
+          });
+        }
+      });
+      console.log("✅ Quantity Offers subscribed to State Manager changes");
+    }
+  }
+
+  // محاولة الاشتراك فوراً أو انتظار تحميل State Manager
+  if (window.CodformStateManager) {
+    subscribeToStateChanges();
+  } else {
+    // انتظار تحميل State Manager
+    const checkStateManager = setInterval(() => {
+      if (window.CodformStateManager) {
+        subscribeToStateChanges();
+        clearInterval(checkStateManager);
+      }
+    }, 100);
+    
+    // إيقاف الفحص بعد 10 ثوان
+    setTimeout(() => clearInterval(checkStateManager), 10000);
+  }
+
   // API عام
   return {
     display: displayQuantityOffers,
-    loadAndDisplayOffers: loadAndDisplayOffers
+    loadAndDisplayOffers: loadAndDisplayOffers,
+    subscribeToStateChanges: subscribeToStateChanges
   };
 })();
 
-console.log("✅ Fixed CODFORM Quantity Offers loaded");
+console.log("✅ Fixed CODFORM Quantity Offers loaded with State Manager integration");
