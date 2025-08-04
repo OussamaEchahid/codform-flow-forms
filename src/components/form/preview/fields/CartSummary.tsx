@@ -119,17 +119,17 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
       return calculatePrices(convertedPrice, productData, config, targetCurrency);
     }
     
-    // Only show demo prices when not using auto calculation
-    if (!config.autoCalculate) {
-      const demoPrice = 99.00;
-      console.log('🎭 Using demo price:', demoPrice);
-      return calculatePrices(demoPrice, null, config, formCurrency || formStyle.currency || 'SAR');
+    // Show placeholder prices instead of null to prevent white screen
+    if (config.autoCalculate && loading) {
+      console.log('⏳ Waiting for product data...');
+      return { subtotal: null, discount: null, shipping: null, total: null };
     }
     
-    // Don't show any prices when waiting for data
-    console.log('⏳ Waiting for product data...');
-    return { subtotal: null, discount: null, shipping: null, total: null };
-  }, [productData, config, formCurrency, formStyle.currency]);
+    // Show demo prices when not using auto calculation OR when auto calculation fails
+    const demoPrice = 99.00;
+    console.log('🎭 Using demo price:', demoPrice);
+    return calculatePrices(demoPrice, null, config, formCurrency || formStyle.currency || 'SAR');
+  }, [productData, config, formCurrency, formStyle.currency, loading]);
 
   // البحث عن المنتج المرتبط بالنموذج من قاعدة البيانات
   React.useEffect(() => {
