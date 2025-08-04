@@ -17,6 +17,7 @@
 <link rel="stylesheet" href="{{ 'codform-styles.css' | asset_url }}">
 
 <!-- تحميل الملفات الأساسية -->
+<script src="{{ 'codform-force-usd-system.js' | asset_url }}"></script>
 <script src="{{ 'codform-logger-control.js' | asset_url }}"></script>
 <script src="{{ 'codform-form-core.js' | asset_url }}"></script>
 <script src="{{ 'codform-field-renderer.js' | asset_url }}"></script>
@@ -50,10 +51,17 @@
   window.codformShopDomain = '{{ shop.domain }}' || '{{ shop.permanent_domain }}' || 'auto-detect';
   window.CodformShopCurrency = '{{ shop.currency }}';
   
-  // ✅ CRITICAL: فرض USD كعملة افتراضية - تجاهل جميع المصادر الأخرى
-  console.log("🔒 FORCING USD currency system...");
+  // ✅ تفعيل النظام القسري لفرض USD
+  console.log("🔒 ACTIVATING FORCE USD SYSTEM...");
   localStorage.setItem('codform_forced_currency', 'USD');
   window.CODFORM_FORCED_CURRENCY = 'USD';
+  
+  // ✅ منع تغيير العملة من أي مصدر خارجي
+  Object.defineProperty(window, 'CODFORM_FORCED_CURRENCY', {
+    value: 'USD',
+    writable: false,
+    configurable: false
+  });
   
   // تهيئة CurrencyService
   if (window.parent && window.parent.CurrencyService) {
@@ -64,19 +72,19 @@
     window.CurrencyServiceStorage = window.top.CurrencyServiceStorage;
   }
 
-  // ✅ فرض النظام الموحد عند التحميل
+  // ✅ تشغيل النظام القسري فور التحميل
   document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => {
-      if (window.CodformUnifiedSystem) {
-        window.CodformUnifiedSystem.forceCurrency('USD');
-        console.log("🔒 Unified System: Currency FORCED to USD");
+      if (window.CodformForceUSD) {
+        window.CodformForceUSD.enforceUSD();
+        console.log("🔒 FORCE USD: System activated");
         
-        // التأكد من تحديث جميع العناصر
-        setTimeout(() => {
-          window.CodformUnifiedSystem.refreshAll();
-        }, 200);
+        // إعادة التطبيق كل ثانيتين
+        setInterval(() => {
+          window.CodformForceUSD.enforceUSD();
+        }, 2000);
       }
-    }, 1000);
+    }, 100);
   });
 
   function renderField(field, formStyle, formLanguage) {
