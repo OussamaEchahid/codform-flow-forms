@@ -1543,20 +1543,35 @@ window.CodformQuantityOffers = (function() {
       return finalAmount;
     }
 
-    // ✅ تحويل السعر بشكل صحيح
+    // ✅ استخدام العملة من إعدادات النموذج بدلاً من التحويل الثابت
     let realPrice;
-    if (productCurrency === 'MAD' && defaultCurrency === 'USD') {
-      realPrice = productPrice / 10;  // 20 MAD = 2 USD
-      console.log(`💰 Direct MAD to USD conversion: ${productPrice} MAD = ${realPrice} USD`);
+    let finalCurrency = defaultCurrency; // العملة المستهدفة من إعدادات النموذج
+    
+    console.log(`💰 Form currency settings: ${defaultCurrency}, Product: ${productPrice} ${productCurrency}`);
+    
+    // إذا كانت عملة المنتج مختلفة عن عملة النموذج، قم بالتحويل
+    if (productCurrency === defaultCurrency) {
+      // نفس العملة - لا حاجة للتحويل
+      realPrice = productPrice;
+      console.log(`✅ Same currency - no conversion needed: ${realPrice} ${finalCurrency}`);
     } else {
+      // تحويل مطلوب
       realPrice = convertCurrency(productPrice, productCurrency, defaultCurrency);
+      console.log(`💱 Converted: ${productPrice} ${productCurrency} → ${realPrice} ${defaultCurrency}`);
     }
     
     const currencySymbol = defaultCurrency === 'USD' ? '$' : 
                           defaultCurrency === 'SAR' ? 'ر.س' : 
-                          defaultCurrency === 'MAD' ? 'د.م' : defaultCurrency;
+                          defaultCurrency === 'MAD' ? 'د.م' : 
+                          defaultCurrency === 'AED' ? 'د.إ' : defaultCurrency;
 
-    console.log("💰 FINAL real price:", realPrice, defaultCurrency, "from original:", productPrice, productCurrency);
+    console.log("💰 FINAL calculation:", {
+      originalPrice: productPrice,
+      originalCurrency: productCurrency, 
+      convertedPrice: realPrice,
+      targetCurrency: defaultCurrency,
+      symbol: currencySymbol
+    });
 
     // إنشاء العروض
     offers.forEach((offer, index) => {
