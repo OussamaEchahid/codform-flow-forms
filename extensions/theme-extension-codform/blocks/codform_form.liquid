@@ -70,8 +70,13 @@
       if (window.CodformUnifiedSystem) {
         window.CodformUnifiedSystem.forceCurrency('USD');
         console.log("🔒 Unified System: Currency FORCED to USD");
+        
+        // التأكد من تحديث جميع العناصر
+        setTimeout(() => {
+          window.CodformUnifiedSystem.refreshAll();
+        }, 200);
       }
-    }, 500);
+    }, 1000);
   });
 
   function renderField(field, formStyle, formLanguage) {

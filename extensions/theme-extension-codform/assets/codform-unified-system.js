@@ -261,9 +261,12 @@
    */
   refreshAllComponents() {
     debugLog('🔄 Refreshing all components with unified currency...');
-    this.updateQuantityOffers();
-    this.updateCartSummary();
-    this.updateGeneralElements();
+    // استدعاء الدوال المعرفة خارج الـ class
+    setTimeout(() => {
+      updateQuantityOffersWithUnifiedSystem();
+      updateCartSummaryWithUnifiedSystem();
+      updateGeneralElementsWithUnifiedSystem();
+    }, 100);
   }
 
     /**
@@ -397,10 +400,14 @@
   window.CodformUnifiedSystem = {
     initialize: initializeUnifiedSystem,
     formatCurrency: (amount, currency) => unifiedSystem.formatCurrency(amount, currency),
+    convertCurrency: (amount, fromCurrency, toCurrency) => unifiedSystem.convertCurrency(amount, fromCurrency, toCurrency),
     subscribe: (listener) => unifiedSystem.subscribe(listener),
     getSettings: () => unifiedSystem.getSettings(),
     getPreferredCurrency: () => unifiedSystem.getPreferredCurrency(),
-    forceCurrency: (currency) => unifiedSystem.forceCurrency(currency),
+    forceCurrency: (currency) => {
+      debugLog(`🔒 Forcing currency to ${currency} via API`);
+      unifiedSystem.forceCurrency(currency);
+    },
     updateQuantityOffers: updateQuantityOffersWithUnifiedSystem,
     updateCartSummary: updateCartSummaryWithUnifiedSystem,
     updateGeneralElements: updateGeneralElementsWithUnifiedSystem,
