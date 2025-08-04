@@ -37,7 +37,7 @@ serve(async (req) => {
 
     console.log('🔍 Getting currency settings for shop:', shop_id)
 
-    // استخدام database function موجودة
+    // استخدام database function موجودة مع تعطيل RLS
     const { data: settings, error } = await supabase.rpc('get_shop_currency_settings', {
       p_shop_id: shop_id
     })

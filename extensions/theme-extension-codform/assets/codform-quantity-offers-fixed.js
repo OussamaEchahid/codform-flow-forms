@@ -18,8 +18,14 @@ window.CodformQuantityOffers = (function() {
     try {
       console.log(`🔍 Fetching custom currency settings for shop: ${shopId}`);
       
-      // استخدام الـ API الصحيح للحصول على إعدادات العملة المخصصة
-      const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/get-shop-currency-settings?shop_id=${encodeURIComponent(shopId)}`);
+      // استخدام الـ API الصحيح للحصول على إعدادات العملة المخصصة مع headers
+      const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/get-shop-currency-settings?shop_id=${encodeURIComponent(shopId)}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M'
+        }
+      });
       if (!response.ok) {
         console.warn(`⚠️ API returned ${response.status}, using default settings`);
         throw new Error(`HTTP ${response.status}`);
