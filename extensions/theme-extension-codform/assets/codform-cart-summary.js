@@ -76,10 +76,15 @@
   };
 
   /**
-   * Convert currency amount
+   * Convert currency amount using CurrencyService
    */
   function convertCurrency(amount, fromCurrency, toCurrency) {
-    // ✅ CRITICAL FIX: Same currency = no conversion needed
+    // استخدام CurrencyService إذا كان متاحاً
+    if (window.CurrencyService && typeof window.CurrencyService.convertCurrency === 'function') {
+      return window.CurrencyService.convertCurrency(amount, fromCurrency, toCurrency);
+    }
+    
+    // التحويل الاحتياطي
     if (fromCurrency === toCurrency) {
       return amount;
     }
@@ -100,9 +105,15 @@
   }
 
   /**
-   * Format currency amount
+   * Format currency amount using CurrencyService settings
    */
   function formatCurrency(amount, currency, language = 'ar') {
+    // استخدام CurrencyService إذا كان متاحاً للتنسيق المخصص
+    if (window.CurrencyService && typeof window.CurrencyService.formatCurrency === 'function') {
+      return window.CurrencyService.formatCurrency(amount, currency, language);
+    }
+    
+    // التنسيق الاحتياطي
     try {
       const locale = language === 'ar' ? 'ar-SA' : 'en-US';
       return new Intl.NumberFormat(locale, {

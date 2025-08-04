@@ -44,6 +44,14 @@
 (function() {
   'use strict';
   
+  // تهيئة CurrencyService إذا كان متاحاً
+  if (window.CurrencyService && typeof window.CurrencyService.initialize === 'function') {
+    window.CurrencyService.initialize();
+    console.log('✅ CurrencyService initialized in Shopify store');
+  } else {
+    console.warn('⚠️ CurrencyService not available in Shopify store');
+  }
+  
   const API_BASE_URL = 'https://lovable-forms-api.netlify.app/.netlify/functions/api-forms';
   const DEFAULT_PRODUCT_ID = 'default';
 

@@ -79,15 +79,24 @@ function generateOrderNumber() {
   return `CF-${timestamp}-${random}`;
 }
 
-function formatCurrency(amount, currency = 'SAR') {
+function formatCurrency(amount, currency = 'SAR', language = 'ar') {
+  // استخدام CurrencyService إذا كان متاحاً للتنسيق المخصص
+  if (window.CurrencyService && typeof window.CurrencyService.formatCurrency === 'function') {
+    return window.CurrencyService.formatCurrency(amount, currency, language);
+  }
+  
+  // التنسيق الاحتياطي
   try {
-    return new Intl.NumberFormat('ar-SA', {
+    const locale = language === 'ar' ? 'ar-SA' : 'en-US';
+    return new Intl.NumberFormat(locale, {
       style: 'currency',
       currency: currency,
-      minimumFractionDigits: 2
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
     }).format(amount);
   } catch (error) {
-    return `${amount} ${currency}`;
+    console.warn('Currency formatting error:', error);
+    return `${currency} ${amount.toFixed(2)}`;
   }
 }
 
