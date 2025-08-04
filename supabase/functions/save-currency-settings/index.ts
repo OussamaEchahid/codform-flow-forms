@@ -105,16 +105,26 @@ Deno.serve(async (req) => {
 
     // 3. حفظ معدلات التحويل المخصصة
     if (custom_rates && Object.keys(custom_rates).length > 0) {
-      // حذف جميع المعدلات الموجودة أولاً
+      // الحصول على user_id من إعدادات العرض
+      const { data: displayData } = await supabase
+        .from('currency_display_settings')
+        .select('user_id')
+        .eq('shop_id', shop_id)
+        .single();
+      
+      const user_id = displayData?.user_id || '36d7eb85-0c45-4b4f-bea1-a9cb732ca893';
+      
+      // حذف المعدلات الموجودة للمستخدم فقط
       await supabase
         .from('custom_currency_rates')
         .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000'); // حذف جميع السجلات
+        .eq('user_id', user_id);
       
-      // إدراج المعدلات الجديدة
+      // إدراج المعدلات الجديدة مع user_id
       const ratesData = Object.entries(custom_rates).map(([currency_code, exchange_rate]) => ({
         currency_code,
         exchange_rate,
+        user_id,
         updated_at: new Date().toISOString()
       }));
 
