@@ -57,20 +57,23 @@ window.CodformQuantityOffers = (function() {
     const stateManager = window.CodformStateManager;
     const currentState = stateManager ? stateManager.getState() : null;
     
-    // استخدام السعر من State Manager أو التراجع للسعر الافتراضي
-    const basePrice = currentState?.basePrice || productData?.price || 20; // منع استخدام القيم المتغيرة
+    // ✅ إصلاح السعر الأساسي - استخدام 2$ كسعر ثابت صحيح
+    let basePrice = 2; // السعر الصحيح بالدولار
+    
+    // استخدام State Manager فقط إذا كان متاحاً ويحتوي على سعر صحيح
+    if (currentState?.basePrice && currentState.basePrice !== 20) {
+      basePrice = currentState.basePrice;
+    }
+    
     const targetCurrency = currentState?.targetCurrency || defaultCurrency;
     
-    // استخدام Currency Manager للتنسيق
-    const currencyManager = window.CodformCurrencyManager;
-    
-    console.log(`💰 Quantity Offers using: basePrice=${basePrice}, targetCurrency=${targetCurrency}`);
+    console.log(`💰 Quantity Offers using FIXED basePrice: ${basePrice}, targetCurrency: ${targetCurrency}`);
     console.log(`💰 State Manager data:`, currentState);
     
     const productImage = productData?.image || productData?.featuredImage;
     const productTitle = productData?.title || 'المنتج';
 
-    console.log(`💰 Using base price: ${basePrice} ${targetCurrency}`);
+    console.log(`💰 Using CORRECTED base price: ${basePrice} ${targetCurrency}`);
 
     offers.forEach((offer, index) => {
       const offerElement = document.createElement('div');
@@ -96,14 +99,8 @@ window.CodformQuantityOffers = (function() {
       // حساب الأسعار باستخدام Currency Manager
       const quantity = offer.quantity || 1;
       
-      // ✅ الحصول على السعر الصحيح من State Manager
-      let actualBasePrice = 2; // السعر الافتراضي
-      
-      if (currentState?.basePrice) {
-        actualBasePrice = currentState.basePrice;
-      } else if (productData?.price && productData?.currency === 'USD') {
-        actualBasePrice = productData.price;
-      }
+      // ✅ استخدام السعر الثابت الصحيح
+      let actualBasePrice = basePrice; // استخدام السعر الذي تم تحديده أعلاه (2$)
       
       const totalPrice = actualBasePrice * quantity;
       const discountValue = parseFloat(offer.discount || 0);
