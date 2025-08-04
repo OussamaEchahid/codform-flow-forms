@@ -23,10 +23,12 @@ window.CodformQuantityOffers = (function() {
     try {
       if (window.CodformSmartCurrency && window.CodformSmartCurrency.system.isInitialized) {
         const shopId = window.Shopify?.shop?.domain || 'astrem.myshopify.com';
-        const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/get-shop-currency-settings?shopId=${shopId}`);
+        // ✅ FIX: استخدام shop_id بدلاً من shopId
+        const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/get-shop-currency-settings?shop_id=${shopId}`);
         
         if (response.ok) {
           const settings = await response.json();
+          console.log('🎯 Retrieved custom settings in convertCurrency:', settings);
           if (settings.custom_rates) {
             // دمج المعدلات المخصصة مع المعدلات الافتراضية
             exchangeRates = { ...exchangeRates, ...settings.custom_rates };
@@ -107,19 +109,44 @@ window.CodformQuantityOffers = (function() {
     }
     
     // جلب الإعدادات المخصصة مرة واحدة للجميع
+    console.group('🎯 Loading Custom Settings for Quantity Offers');
     let customSettings = null;
+    const shopId = window.Shopify?.shop?.domain || 'astrem.myshopify.com';
+    
     try {
-      if (window.CodformSmartCurrency && window.CodformSmartCurrency.system.isInitialized) {
-        const shopId = window.Shopify?.shop?.domain || 'astrem.myshopify.com';
-        const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/get-shop-currency-settings?shopId=${shopId}`);
-        if (response.ok) {
-          customSettings = await response.json();
-          console.log('🎯 Retrieved custom settings for quantity offers:', customSettings);
+      console.log('📡 Fetching custom settings for shop:', shopId);
+      // ✅ FIX: استخدام shop_id بدلاً من shopId
+      const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/get-shop-currency-settings?shop_id=${shopId}`);
+      
+      if (response.ok) {
+        customSettings = await response.json();
+        console.log('✅ Custom settings loaded successfully:', customSettings);
+        
+        // حفظ الإعدادات في localStorage للاستخدام السريع
+        localStorage.setItem(`currency_settings_${shopId}`, JSON.stringify(customSettings));
+      } else {
+        console.warn('❌ Failed to load custom settings:', response.status, response.statusText);
+        // محاولة استخدام إعدادات محفوظة
+        const cached = localStorage.getItem(`currency_settings_${shopId}`);
+        if (cached) {
+          customSettings = JSON.parse(cached);
+          console.log('📦 Using cached settings:', customSettings);
         }
       }
     } catch (error) {
-      console.warn('Could not load custom settings:', error);
+      console.error('❌ Error loading custom settings:', error);
+      // محاولة استخدام إعدادات محفوظة
+      const cached = localStorage.getItem(`currency_settings_${shopId}`);
+      if (cached) {
+        try {
+          customSettings = JSON.parse(cached);
+          console.log('📦 Using cached settings as fallback:', customSettings);
+        } catch (parseError) {
+          console.error('❌ Failed to parse cached settings:', parseError);
+        }
+      }
     }
+    console.groupEnd();
 
     for (let index = 0; index < offers.length; index++) {
       const offer = offers[index];
@@ -164,7 +191,8 @@ window.CodformQuantityOffers = (function() {
       let formattedFinal = `$${Math.round(finalPrice)}`;
       
       // تطبيق التنسيق المخصص باستخدام الإعدادات المحملة
-      if (customSettings && window.CodformSmartCurrency && window.CodformSmartCurrency.system.isInitialized) {
+      if (customSettings && customSettings.success !== false) {
+        console.group(`🎨 Applying Custom Formatting for Offer ${index + 1}`);
         const originalCurrency = productData?.currency || 'USD';
         
         try {
@@ -172,20 +200,38 @@ window.CodformQuantityOffers = (function() {
           let convertedTotal = totalPrice;
           let convertedFinal = finalPrice;
           
-          if (customSettings.custom_rates && customSettings.custom_rates[originalCurrency]) {
-            convertedTotal = await convertCurrency(totalPrice, originalCurrency, originalCurrency);
-            convertedFinal = await convertCurrency(finalPrice, originalCurrency, originalCurrency);
-            console.log(`💱 Applied custom rates: Total ${totalPrice} -> ${convertedTotal}, Final ${finalPrice} -> ${convertedFinal}`);
+          console.log('📊 Current values before conversion:', {
+            totalPrice,
+            finalPrice,
+            originalCurrency,
+            customRates: customSettings.custom_rates
+          });
+          
+          // تطبيق معدلات التحويل المخصصة
+          if (customSettings.custom_rates && Object.keys(customSettings.custom_rates).length > 0) {
+            // استخدام المعدلات المخصصة للتحويل
+            const targetCurrency = 'MAD'; // أو العملة المطلوبة
+            if (customSettings.custom_rates[targetCurrency]) {
+              const rate = customSettings.custom_rates[targetCurrency];
+              convertedTotal = totalPrice * rate;
+              convertedFinal = finalPrice * rate;
+              console.log(`💱 Applied custom rate (${rate}): Total ${totalPrice} -> ${convertedTotal}, Final ${finalPrice} -> ${convertedFinal}`);
+            }
           }
           
           // تطبيق إعدادات العرض المخصصة
           const displaySettings = customSettings.display_settings || {};
           const customSymbols = customSettings.custom_symbols || {};
           
+          console.log('🎛️ Display settings:', displaySettings);
+          console.log('🔤 Custom symbols:', customSymbols);
+          
           const symbol = customSymbols[originalCurrency] || getCurrencySymbol(originalCurrency);
-          const decimals = displaySettings.decimal_places !== undefined ? displaySettings.decimal_places : 2;
+          const decimals = displaySettings.decimal_places !== undefined ? displaySettings.decimal_places : 0;
           const showSymbol = displaySettings.show_symbol !== false;
-          const symbolPosition = displaySettings.symbol_position || 'before';
+          const symbolPosition = displaySettings.symbol_position || 'after';
+          
+          console.log('⚙️ Applied settings:', { symbol, decimals, showSymbol, symbolPosition });
           
           const formattedTotalNumber = convertedTotal.toFixed(decimals);
           const formattedFinalNumber = convertedFinal.toFixed(decimals);
@@ -202,14 +248,19 @@ window.CodformQuantityOffers = (function() {
             formattedFinal = formattedFinalNumber;
           }
           
-          console.log(`🎯 CUSTOM: Applied settings - Total: ${formattedTotal}, Final: ${formattedFinal}`);
+          console.log('✅ CUSTOM FORMATTING APPLIED:', { 
+            formattedTotal, 
+            formattedFinal,
+            appliedSettings: { decimals, showSymbol, symbolPosition, symbol }
+          });
         } catch (error) {
-          console.warn('Custom formatting failed, using fallback:', error);
+          console.error('❌ Custom formatting failed:', error);
           formattedTotal = `$${Math.round(totalPrice)}`;
           formattedFinal = `$${Math.round(finalPrice)}`;
         }
+        console.groupEnd();
       } else {
-        console.log(`⚠️ FALLBACK: Total: ${formattedTotal}, Final: ${formattedFinal}`);
+        console.log(`⚠️ FALLBACK FORMATTING: No custom settings available - Total: ${formattedTotal}, Final: ${formattedFinal}`);
       }
       
       console.log(`💰 Offer ${index}: quantity=${quantity}, total=${formattedTotal}, final=${formattedFinal}`);
@@ -312,7 +363,7 @@ window.CodformQuantityOffers = (function() {
     try {
       console.log(`🔄 Loading offers for: ${productId} at ${shop}`);
       
-      const response = await fetch(`https://tftklwisfteasdvdzsue.supabase.co/functions/v1/forms-product?shop=${encodeURIComponent(shop)}&product=${encodeURIComponent(productId)}`);
+      const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/forms-product?shop=${encodeURIComponent(shop)}&product=${encodeURIComponent(productId)}`);
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
