@@ -89,7 +89,15 @@ window.CodformQuantityOffers = (function() {
       basePrice = productData.price;
     }
     
-    const targetCurrency = 'USD'; // استخدام USD دائماً
+    // استخدام العملة من إعدادات المتجر أو الإعدادات المخصصة
+    let targetCurrency = defaultCurrency || 'USD';
+    
+    // جلب العملة المفضلة من الإعدادات إذا كانت متاحة
+    if (currentState && currentState.targetCurrency) {
+      targetCurrency = currentState.targetCurrency;
+    } else if (productData?.currency) {
+      targetCurrency = productData.currency;
+    }
     
     console.log(`💰 Quantity Offers using CONVERTED basePrice: ${basePrice} USD`);
     console.log(`💰 Original product data:`, productData);
@@ -210,9 +218,10 @@ window.CodformQuantityOffers = (function() {
           // تطبيق معدلات التحويل المخصصة
           if (customSettings.custom_rates && Object.keys(customSettings.custom_rates).length > 0) {
             // استخدام المعدلات المخصصة للتحويل
-            const targetCurrency = 'MAD'; // أو العملة المطلوبة
-            if (customSettings.custom_rates[targetCurrency]) {
-              const rate = customSettings.custom_rates[targetCurrency];
+            // استخدام العملة المختارة من الإعدادات
+            const finalTargetCurrency = targetCurrency; // العملة المحددة في أعلى الدالة
+            if (customSettings.custom_rates[finalTargetCurrency]) {
+              const rate = customSettings.custom_rates[finalTargetCurrency];
               convertedTotal = totalPrice * rate;
               convertedFinal = finalPrice * rate;
               console.log(`💱 Applied custom rate (${rate}): Total ${totalPrice} -> ${convertedTotal}, Final ${finalPrice} -> ${convertedFinal}`);
