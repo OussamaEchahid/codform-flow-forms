@@ -494,8 +494,14 @@
     initializeCurrencyManager();
   }
   
-  // إعادة تحميل كل 5 ثوان للتأكد من التحديثات
-  setInterval(reloadSettings, 5000);
+  // إعادة تحميل كل 3 ثوان للتأكد من التحديثات وفرض التطبيق
+  setInterval(() => {
+    console.log('🔄 Auto-reloading currency settings...');
+    loadSettingsFromAPI().then(() => {
+      // فرض إعادة تطبيق التنسيق بعد تحميل الإعدادات
+      setTimeout(reapplyCurrencyFormatting, 500);
+    });
+  }, 3000);
   
   console.log('📋 Codform Currency Manager loaded');
 })();
