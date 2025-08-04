@@ -210,18 +210,15 @@ window.CodformQuantityOffers = (function() {
         formattedTotal = totalPrice.toFixed(decimalPlaces);
         formattedFinal = finalPrice.toFixed(decimalPlaces);
         
-        if (showSymbol) {
-          if (symbolPosition === 'after') {
-            formattedTotal = `${formattedTotal} ${currencyDisplay}`;
-            formattedFinal = `${formattedFinal} ${currencyDisplay}`;
-          } else {
-            formattedTotal = `${currencyDisplay} ${formattedTotal}`;
-            formattedFinal = `${currencyDisplay} ${formattedFinal}`;
-          }
+        // ✅ إصلاح منطق العرض: إما رمز أو كود العملة
+        const displayText = showSymbol ? currencyDisplay : formCurrency;
+        
+        if (symbolPosition === 'after') {
+          formattedTotal = `${formattedTotal} ${displayText}`;
+          formattedFinal = `${formattedFinal} ${displayText}`;
         } else {
-          // إذا كان show_symbol = false، لا نعرض أي رمز
-          formattedTotal = formattedTotal;
-          formattedFinal = formattedFinal;
+          formattedTotal = `${displayText} ${formattedTotal}`;
+          formattedFinal = `${displayText} ${formattedFinal}`;
         }
         
         console.log(`🎨 Applied display settings: decimals=${decimalPlaces}, symbol=${showSymbol}, position=${symbolPosition}, display=${currencyDisplay}`);
