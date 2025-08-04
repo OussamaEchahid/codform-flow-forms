@@ -51,20 +51,15 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
     CurrencyService.initialize();
   }, []);
 
-  // الحصول على رمز العملة بناءً على المنتج أو الدولة أو العملة المحددة
+  // استخدام CurrencyService للحصول على رمز العملة
   const getCurrencySymbol = () => {
     if (productData?.currency) {
-      // Map common currencies to symbols
-      const currencySymbols: Record<string, string> = {
-        'AED': 'د.إ',
-        'SAR': 'ر.س',
-        'MAD': 'د.م', // الدرهم المغربي
-        'USD': '$',
-        'EUR': '€',
-        'GBP': '£'
-      };
-      
-      return currencySymbols[productData.currency] || productData.currency;
+      // استخدام CurrencyService للحصول على الرمز المناسب حسب الإعدادات
+      const settings = CurrencyService.getDisplaySettings();
+      if (settings.customSymbols && settings.customSymbols[productData.currency]) {
+        return settings.customSymbols[productData.currency];
+      }
+      return productData.currency;
     }
     
     const currency = formStyle?.currency || formCountry;
@@ -82,18 +77,15 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
 
   // دالة لتنسيق السعر باستخدام العملة المحددة
   const formatPriceWithCurrency = (amount: number, currency: string) => {
+    // استخدام CurrencyService مع ضمان استخدام الإعدادات المحفوظة
     return CurrencyService.formatCurrency(amount, currency, formDirection === 'rtl' ? 'ar' : 'en');
   };
 
   // دالة لتنسيق السعر باستخدام تنسيق المتجر
   const formatPrice = (amount: number) => {
-    // استخدام تنسيق المتجر الصحيح من Shopify
-    if (productData?.moneyWithCurrencyFormat) {
-      return productData.moneyWithCurrencyFormat.replace('{{amount}}', amount.toFixed(2));
-    } else if (productData?.moneyFormat) {
-      return productData.moneyFormat.replace('{{amount}}', amount.toFixed(2));
-    }
-    return `${amount.toFixed(2)} ${getCurrencySymbol()}`;
+    // استخدام CurrencyService بدلاً من التنسيق الثابت
+    const currency = productData?.currency || formStyle?.currency || formCountry || 'SAR';
+    return CurrencyService.formatCurrency(amount, currency, formDirection === 'rtl' ? 'ar' : 'en');
   };
 
   useEffect(() => {

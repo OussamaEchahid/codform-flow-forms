@@ -87,9 +87,18 @@ class CurrencyServiceClass {
    * تنسيق مبلغ مع رمز العملة
    */
   formatCurrency(amount: number, currencyCode: string, language: 'en' | 'ar' = 'en'): string {
+    console.log('🔧 CurrencyService.formatCurrency called:', {
+      amount,
+      currencyCode,
+      language,
+      displaySettings: this.displaySettings,
+      customSymbols: this.displaySettings.customSymbols
+    });
+    
     const currency = CURRENCIES.find(c => c.code === currencyCode);
     
     if (!currency) {
+      console.log('❌ Currency not found:', currencyCode);
       return `${amount.toFixed(this.displaySettings.decimalPlaces)} ${currencyCode}`;
     }
 
@@ -99,15 +108,18 @@ class CurrencyServiceClass {
     let displayText: string;
     if (this.displaySettings.customSymbols[currencyCode]) {
       displayText = this.displaySettings.customSymbols[currencyCode];
+      console.log('✅ Using custom symbol:', displayText, 'for currency:', currencyCode);
     } else {
       displayText = this.displaySettings.showSymbol ? currency.symbol : currency.code;
+      console.log('💡 Using default symbol:', displayText, 'for currency:', currencyCode);
     }
 
-    if (this.displaySettings.symbolPosition === 'before') {
-      return `${displayText}${formattedAmount}`;
-    } else {
-      return `${formattedAmount} ${displayText}`;
-    }
+    const result = this.displaySettings.symbolPosition === 'before' 
+      ? `${displayText}${formattedAmount}`
+      : `${formattedAmount} ${displayText}`;
+      
+    console.log('✅ Final formatted currency:', result);
+    return result;
   }
 
   /**
