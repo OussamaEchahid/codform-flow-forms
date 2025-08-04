@@ -64,6 +64,7 @@ export type Database = {
           created_at: string
           decimal_places: number
           id: number
+          shop_id: string | null
           show_symbol: boolean
           symbol_position: string
           updated_at: string
@@ -73,6 +74,7 @@ export type Database = {
           created_at?: string
           decimal_places?: number
           id?: number
+          shop_id?: string | null
           show_symbol?: boolean
           symbol_position?: string
           updated_at?: string
@@ -82,6 +84,7 @@ export type Database = {
           created_at?: string
           decimal_places?: number
           id?: number
+          shop_id?: string | null
           show_symbol?: boolean
           symbol_position?: string
           updated_at?: string
@@ -111,6 +114,36 @@ export type Database = {
           currency_code?: string
           exchange_rate?: number
           id?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      custom_currency_symbols: {
+        Row: {
+          created_at: string
+          currency_code: string
+          custom_symbol: string
+          id: string
+          shop_id: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          currency_code: string
+          custom_symbol: string
+          id?: string
+          shop_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          currency_code?: string
+          custom_symbol?: string
+          id?: string
+          shop_id?: string | null
           updated_at?: string
           user_id?: string | null
         }
@@ -566,6 +599,10 @@ export type Database = {
       }
       get_product_form_and_offers: {
         Args: { shop_id: string; product_id: string }
+        Returns: Json
+      }
+      get_shop_currency_settings: {
+        Args: { p_shop_id: string }
         Returns: Json
       }
       get_shop_subscription: {
