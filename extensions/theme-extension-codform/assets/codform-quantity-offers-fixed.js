@@ -179,8 +179,18 @@ window.CodformQuantityOffers = (function() {
           return window.CodformSmartCurrency.formatCurrency(amount, currency);
         };
         
-        formattedTotal = await formatWithCustomSettings(totalPrice, originalCurrency);
-        formattedFinal = await formatWithCustomSettings(finalPrice, originalCurrency);
+        // إجراء التنسيق بشكل متزامن للتجنب مشاكل async
+        formatWithCustomSettings(totalPrice, originalCurrency).then(result => {
+          formattedTotal = result;
+        }).catch(() => {
+          formattedTotal = `$${Math.round(totalPrice)}`;
+        });
+        
+        formatWithCustomSettings(finalPrice, originalCurrency).then(result => {
+          formattedFinal = result;
+        }).catch(() => {
+          formattedFinal = `$${Math.round(finalPrice)}`;
+        });
         console.log(`🎯 CUSTOM: Using custom formatting - Total: ${formattedTotal}, Final: ${formattedFinal}`);
       } else {
         formattedTotal = `$${Math.round(totalPrice)}`;
