@@ -111,15 +111,15 @@ Deno.serve(async (req) => {
         updated_at: new Date().toISOString()
       }));
 
-      for (const rateData of ratesData) {
-        const { error: rateError } = await supabase
-          .from('custom_currency_rates')
-          .upsert(rateData);
+      const { error: rateError } = await supabase
+        .from('custom_currency_rates')
+        .upsert(ratesData, {
+          onConflict: 'currency_code'
+        });
 
-        if (rateError) {
-          console.error('❌ Error saving custom rate:', rateError);
-          throw rateError;
-        }
+      if (rateError) {
+        console.error('❌ Error saving custom rates:', rateError);
+        throw rateError;
       }
       console.log('✅ Custom rates saved');
     }
