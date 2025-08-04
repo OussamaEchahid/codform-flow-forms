@@ -111,7 +111,7 @@ Deno.serve(async (req) => {
       console.log('✅ Custom symbols cleared');
     }
 
-    // 3. حفظ معدلات التحويل المخصصة بمعاملة واحدة
+    // 3. حفظ معدلات التحويل المخصصة باستخدام upsert لتجنب التضارب
     if (custom_rates && Object.keys(custom_rates).length > 0) {
       console.log(`🔄 Processing ${Object.keys(custom_rates).length} custom rates for shop: ${shop_id}`);
       
@@ -130,56 +130,37 @@ Deno.serve(async (req) => {
       const user_id = displayData?.user_id || '36d7eb85-0c45-4b4f-bea1-a9cb732ca893';
       console.log(`📝 Using user_id: ${user_id} for shop: ${shop_id}`);
       
-      // بدء معاملة: حذف المعدلات الموجودة أولاً
-      console.log('🗑️ Deleting existing rates...');
-      const { error: deleteError } = await supabase
-        .from('custom_currency_rates')
-        .delete()
-        .eq('user_id', user_id)
-        .eq('shop_id', shop_id);
-      
-      if (deleteError) {
-        console.error('❌ Error deleting existing rates:', deleteError);
-        throw deleteError;
-      }
-      
-      // التحقق من صحة البيانات قبل الإدراج
-      const validRates = Object.entries(custom_rates).filter(([currency_code, exchange_rate]) => {
+      // حفظ كل معدل على حدة باستخدام upsert لتجنب التضارب
+      for (const [currency_code, exchange_rate] of Object.entries(custom_rates)) {
+        // التحقق من صحة البيانات
         if (!currency_code || typeof currency_code !== 'string') {
           console.warn(`⚠️ Invalid currency code: ${currency_code}`);
-          return false;
+          continue;
         }
         if (!exchange_rate || isNaN(Number(exchange_rate))) {
           console.warn(`⚠️ Invalid exchange rate for ${currency_code}: ${exchange_rate}`);
-          return false;
+          continue;
         }
-        return true;
-      });
-      
-      if (validRates.length === 0) {
-        console.log('⚠️ No valid rates to insert');
-        return;
-      }
-      
-      // إدراج المعدلات الجديدة
-      const ratesData = validRates.map(([currency_code, exchange_rate]) => ({
-        currency_code: currency_code.toUpperCase(),
-        exchange_rate: Number(exchange_rate),
-        user_id,
-        shop_id,
-        updated_at: new Date().toISOString(),
-        created_at: new Date().toISOString()
-      }));
-
-      console.log(`📤 Inserting ${ratesData.length} rates:`, ratesData.map(r => `${r.currency_code}=${r.exchange_rate}`));
-      
-      const { error: ratesError } = await supabase
-        .from('custom_currency_rates')
-        .insert(ratesData);
-
-      if (ratesError) {
-        console.error('❌ Error saving custom rates:', ratesError);
-        throw ratesError;
+        
+        const rate = Number(exchange_rate);
+        console.log(`💱 Upserting rate: ${currency_code} = ${rate}`);
+        
+        const { error: upsertError } = await supabase
+          .from('custom_currency_rates')
+          .upsert({
+            currency_code: currency_code.toUpperCase(),
+            exchange_rate: rate,
+            user_id,
+            shop_id,
+            updated_at: new Date().toISOString()
+          }, {
+            onConflict: 'currency_code,user_id'
+          });
+        
+        if (upsertError) {
+          console.error(`❌ Error upserting rate for ${currency_code}:`, upsertError);
+          throw upsertError;
+        }
       }
 
       console.log('✅ Custom rates saved successfully');
