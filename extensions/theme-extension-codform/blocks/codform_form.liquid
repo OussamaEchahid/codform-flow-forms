@@ -18,6 +18,7 @@
 
 <!-- تحميل الملفات الأساسية -->
 <script src="{{ 'codform-smart-currency-system.js' | asset_url }}"></script>
+<script src="{{ 'codform-currency-manager.js' | asset_url }}"></script>
 <script src="{{ 'codform-logger-control.js' | asset_url }}"></script>
 <script src="{{ 'codform-form-core.js' | asset_url }}"></script>
 <script src="{{ 'codform-field-renderer.js' | asset_url }}"></script>
@@ -2199,4 +2200,23 @@ function decreaseQuantity(button) {
     quantitySpan.textContent = currentQuantity - 1;
   }
 }
+
+<!-- ✅ تهيئة Currency Manager -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // انتظار تحميل جميع الملفات ثم تهيئة Currency Manager
+  setTimeout(function() {
+    if (window.CodformCurrencyManager) {
+      window.CodformCurrencyManager.initialize();
+      console.log('✅ Currency Manager initialized successfully');
+    } else {
+      console.error('❌ Currency Manager not found - check file loading order');
+    }
+    
+    if (window.initializeCurrencyManager) {
+      window.initializeCurrencyManager();
+    }
+  }, 1000);
+});
+</script>
 </script>

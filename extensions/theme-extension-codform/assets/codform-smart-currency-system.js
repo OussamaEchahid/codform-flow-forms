@@ -83,8 +83,8 @@
       }
 
       try {
-        // استدعاء API للحصول على بيانات النموذج
-        const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/forms-default?form_id=${this.formId}`);
+        // استدعاء API للحصول على بيانات النموذج مع shop parameter
+        const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/forms-default?form_id=${this.formId}&shop=${encodeURIComponent(this.shopId || 'astrem.myshopify.com')}`);
         
         if (response.ok) {
           const data = await response.json();
@@ -109,7 +109,7 @@
       }
 
       try {
-        const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/currency-settings?shop_domain=${this.shopId}`);
+        const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/currency-settings?shop=${encodeURIComponent(this.shopId)}`);
         
         if (response.ok) {
           const data = await response.json();
