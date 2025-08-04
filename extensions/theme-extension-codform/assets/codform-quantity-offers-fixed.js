@@ -85,22 +85,30 @@ window.CodformQuantityOffers = (function() {
     return convertedAmount;
   }
 
-  // دالة مساعدة للحصول على رمز العملة
-  function getCurrencySymbol(currency, useSymbolOnly = false) {
-    const symbols = {
-      'USD': useSymbolOnly ? '$' : 'USD', 
-      'SAR': useSymbolOnly ? 'ر.س' : 'SAR', 
-      'MAD': useSymbolOnly ? 'د.م.' : 'MAD', 
-      'AED': useSymbolOnly ? 'د.إ' : 'AED',
-      'EGP': useSymbolOnly ? 'ج.م' : 'EGP', 
-      'EUR': useSymbolOnly ? '€' : 'EUR', 
-      'GBP': useSymbolOnly ? '£' : 'GBP'
+  // دالة مساعدة للحصول على رمز العملة مع تحسين منطق العرض
+  function getCurrencySymbol(currency, displayType = 'code') {
+    const currencyData = {
+      'USD': { symbol: '$', code: 'USD' }, 
+      'SAR': { symbol: 'ر.س', code: 'SAR' }, 
+      'MAD': { symbol: 'د.م.', code: 'MAD' }, 
+      'AED': { symbol: 'د.إ', code: 'AED' },
+      'EGP': { symbol: 'ج.م', code: 'EGP' }, 
+      'EUR': { symbol: '€', code: 'EUR' }, 
+      'GBP': { symbol: '£', code: 'GBP' },
+      'ARS': { symbol: '$', code: 'ARS' }
     };
-    return symbols[currency] || currency;
+    
+    const data = currencyData[currency] || { symbol: currency, code: currency };
+    
+    if (displayType === 'symbol') {
+      return data.symbol;
+    } else {
+      return data.code;
+    }
   }
 
-  // دالة عرض العروض مع إعدادات العملة المخصصة
-  async function displayQuantityOffers(quantityOffersData, blockId, productId, defaultCurrency = 'SAR', productData = null) {
+  // دالة عرض العروض مع إعدادات العملة المخصصة وتخصيص الألوان
+  async function displayQuantityOffers(quantityOffersData, blockId, productId, defaultCurrency = 'SAR', productData = null, customStyling = null) {
     console.log("🎯 Quantity Offers Display Started with Custom Currency Settings");
     
     if (!quantityOffersData?.offers || !Array.isArray(quantityOffersData.offers)) {
@@ -188,13 +196,15 @@ window.CodformQuantityOffers = (function() {
         const showSymbol = displaySettings.show_symbol !== false;
         const symbolPosition = displaySettings.symbol_position || 'before';
         
-        // استخدام رمز العملة المخصص إذا كان متاحاً
+        // ✅ FIX: تحديد نوع العرض بناءً على الإعدادات
         if (customSymbols[formCurrency]) {
           currencyDisplay = customSymbols[formCurrency];
           console.log(`🔤 Using custom symbol for ${formCurrency}: ${customSymbols[formCurrency]}`);
         } else {
-          // استخدام الرمز أو الكود حسب الإعدادات
-          currencyDisplay = getCurrencySymbol(formCurrency, showSymbol);
+          // تحديد نوع العرض: إذا كان showSymbol = true فعرض الرمز، وإلا عرض الكود
+          const displayType = showSymbol ? 'symbol' : 'code';
+          currencyDisplay = getCurrencySymbol(formCurrency, displayType);
+          console.log(`🔤 Display type: ${displayType}, Currency: ${formCurrency}, Display: ${currencyDisplay}`);
         }
         
         formattedTotal = totalPrice.toFixed(decimalPlaces);
@@ -223,10 +233,17 @@ window.CodformQuantityOffers = (function() {
       
       console.log(`✅ Final formatted prices: Total=${formattedTotal}, Final=${formattedFinal}`);
 
-      // تصميم العرض مطابق للمعاينة
+      // ✅ إعدادات الألوان المخصصة
+      const borderColors = {
+        default: '#e5e7eb',
+        selected: customStyling?.selectedBorderColor || '#22c55e', // اللون الأخضر افتراضياً
+        hover: '#94a3b8'
+      };
+      
+      // تصميم العرض مطابق للمعاينة مع إعدادات الألوان المخصصة
       offerElement.style.cssText = `
         background: #ffffff;
-        border: 2px solid ${index === 0 ? '#3b82f6' : '#e5e7eb'};
+        border: 2px solid ${index === 0 ? borderColors.selected : borderColors.default};
         border-radius: 8px;
         padding: 12px 16px;
         margin-bottom: 8px;
@@ -297,32 +314,40 @@ window.CodformQuantityOffers = (function() {
         </div>
       `;
 
-      // إضافة أحداث التفاعل
+      // إضافة أحداث التفاعل مع الألوان المخصصة
       offerElement.addEventListener('click', function() {
         // إزالة التحديد من العروض الأخرى
         container.querySelectorAll('div').forEach(el => {
           if (el !== this) {
-            el.style.borderColor = '#e5e7eb';
+            el.style.borderColor = borderColors.default;
             el.style.backgroundColor = '#ffffff';
           }
         });
         
-        // تحديد العرض الحالي
-        this.style.borderColor = '#3b82f6';
-        this.style.backgroundColor = '#f0f9ff';
+        // تحديد العرض الحالي باللون الأخضر (أو المخصص)
+        this.style.borderColor = borderColors.selected;
+        this.style.backgroundColor = '#f0fdf4'; // خلفية خضراء فاتحة
       });
 
       offerElement.addEventListener('mouseenter', function() {
-        if (this.style.borderColor !== 'rgb(59, 130, 246)') {
-          this.style.borderColor = '#94a3b8';
+        // التحقق من اللون الحالي لتجنب تغيير العنصر المحدد
+        const currentColor = this.style.borderColor;
+        const selectedColorRGB = 'rgb(34, 197, 94)'; // #22c55e in RGB
+        
+        if (currentColor !== selectedColorRGB) {
+          this.style.borderColor = borderColors.hover;
         }
         this.style.transform = 'translateY(-1px)';
         this.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)';
       });
 
       offerElement.addEventListener('mouseleave', function() {
-        if (this.style.borderColor !== 'rgb(59, 130, 246)') {
-          this.style.borderColor = '#e5e7eb';
+        // التحقق من اللون الحالي لتجنب تغيير العنصر المحدد
+        const currentColor = this.style.borderColor;
+        const selectedColorRGB = 'rgb(34, 197, 94)'; // #22c55e in RGB
+        
+        if (currentColor !== selectedColorRGB) {
+          this.style.borderColor = borderColors.default;
         }
         this.style.transform = 'translateY(0)';
         this.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
