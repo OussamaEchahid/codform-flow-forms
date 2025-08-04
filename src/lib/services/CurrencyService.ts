@@ -277,6 +277,9 @@ class CurrencyServiceClass {
       const result = await response.json();
       console.log('✅ Currency settings saved via edge function:', result);
       
+      // إعادة تحميل البيانات فوراً بعد الحفظ لضمان التحديث
+      await this.reloadDataFromDatabase();
+      
     } catch (error) {
       console.error('❌ Error saving currency settings via edge function:', error);
       throw error; // أزالة الـ fallback لتجنب الحفظ المزدوج
@@ -493,7 +496,7 @@ class CurrencyServiceClass {
   }
 
   /**
-   * تحميل إعدادات العرض من قاعدة البيانات
+   * تحميل إعدادات العرض من قاعدة البيانات عبر edge function
    */
   private async loadDisplaySettingsFromDatabase(): Promise<void> {
     if (!this.currentShopId) {
@@ -504,32 +507,30 @@ class CurrencyServiceClass {
     try {
       console.log('🔍 Loading display settings from database for shop:', this.currentShopId);
       
-      const { data, error } = await (supabase as any)
-        .from('currency_display_settings')
-        .select('*')
-        .eq('shop_id', this.currentShopId)
-        .limit(1)
-        .maybeSingle();
+      // استخدام edge function لجلب جميع الإعدادات
+      const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/get-shop-currency-settings?shop_id=${this.currentShopId}`, {
+        headers: {
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M`
+        }
+      });
 
-      if (error) {
-        console.error('❌ Database error loading display settings:', error);
-        throw error;
-      }
-
-      if (data) {
-        this.displaySettings = {
-          showSymbol: data.show_symbol,
-          symbolPosition: data.symbol_position,
-          decimalPlaces: data.decimal_places,
-          customSymbols: {}
-        };
-
-        // تحميل الرموز المخصصة
-        await this.loadCustomSymbolsFromDatabase();
+      if (response.ok) {
+        const result = await response.json();
         
-        console.log('✅ Display settings loaded from database:', this.displaySettings);
+        if (result.success && result.display_settings) {
+          this.displaySettings = {
+            showSymbol: result.display_settings.show_symbol ?? true,
+            symbolPosition: result.display_settings.symbol_position ?? 'before',
+            decimalPlaces: result.display_settings.decimal_places ?? 2,
+            customSymbols: result.custom_symbols || {}
+          };
+          
+          console.log('✅ Display settings loaded from database:', this.displaySettings);
+        } else {
+          console.log('ℹ️ No display settings found in database, using defaults');
+        }
       } else {
-        console.log('ℹ️ No display settings found in database, using defaults');
+        console.error('❌ Error response from edge function:', response.status, response.statusText);
       }
     } catch (error) {
       console.error('❌ Error loading display settings from database:', error);
@@ -620,6 +621,27 @@ class CurrencyServiceClass {
       }
     } catch (error) {
       console.error('❌ Error loading from edge function:', error);
+    }
+  }
+
+  /**
+   * إعادة تحميل البيانات من قاعدة البيانات بعد الحفظ
+   */
+  private async reloadDataFromDatabase(): Promise<void> {
+    try {
+      console.log('🔄 Reloading data from database after save...');
+      
+      // إعادة تعيين حالة التهيئة لإجبار إعادة التحميل
+      this.initialized = false;
+      
+      // تحميل البيانات من جديد
+      await this.loadCustomRatesFromDatabase();
+      await this.loadDisplaySettingsFromDatabase();
+      
+      this.initialized = true;
+      console.log('✅ Data reloaded successfully');
+    } catch (error) {
+      console.error('❌ Error reloading data:', error);
     }
   }
 }
