@@ -1521,25 +1521,29 @@ window.CodformQuantityOffers = (function() {
       title: productTitle
     });
     
-    // ✅ CRITICAL FIX: تحويل صحيح من MAD إلى USD
+    // ✅ CRITICAL FIX: معدلات تحويل صحيحة ومحدثة
     function convertCurrency(amount, fromCurrency, toCurrency) {
       console.log(`💱 Converting: ${amount} from ${fromCurrency} to ${toCurrency}`);
       
-      // معدلات تحويل ثابتة
+      // معدلات تحويل صحيحة (1 USD = X من العملة الأخرى)
       const rates = {
-        'MAD': 10.0,  // 1 USD = 10 MAD
         'USD': 1.0,
-        'SAR': 3.75,
-        'AED': 3.67
+        'MAD': 10.0,  // 1 USD = 10 MAD
+        'SAR': 3.75,  // 1 USD = 3.75 SAR
+        'AED': 3.67,  // 1 USD = 3.67 AED
+        'GBP': 0.79,  // 1 USD = 0.79 GBP (أي 1 GBP = 1.27 USD)
+        'EUR': 0.85   // 1 USD = 0.85 EUR
       };
       
       if (fromCurrency === toCurrency) return amount;
       
-      // تحويل إلى USD أولاً، ثم إلى العملة المطلوبة
+      // تحويل إلى USD أولاً
       const amountInUSD = amount / (rates[fromCurrency] || 1);
+      // ثم تحويل إلى العملة المطلوبة
       const finalAmount = amountInUSD * (rates[toCurrency] || 1);
       
       console.log(`💱 Conversion result: ${amount} ${fromCurrency} = ${finalAmount} ${toCurrency}`);
+      console.log(`💱 Steps: ${amount} ${fromCurrency} → ${amountInUSD} USD → ${finalAmount} ${toCurrency}`);
       return finalAmount;
     }
 
