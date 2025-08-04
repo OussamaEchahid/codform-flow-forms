@@ -157,6 +157,10 @@
           settings: currencySettings,
           rates: Object.keys(customRates).length
         });
+        
+        // إعادة تطبيق التنسيق على العناصر الموجودة
+        reapplyCurrencyFormatting();
+        
       } else {
         console.warn('⚠️ API returned error, using default settings:', data.error);
       }
@@ -166,6 +170,61 @@
       // استخدام الإعدادات المحلية كبديل
       loadCustomSettings();
     }
+  }
+  
+  /**
+   * إعادة تطبيق تنسيق العملة على جميع العناصر
+   */
+  function reapplyCurrencyFormatting() {
+    console.log('🔄 Reapplying currency formatting...');
+    
+    // العثور على جميع العناصر التي تحتوي على أسعار
+    const priceSelectors = [
+      '[data-price]', '.price', '.money', 
+      '.cart-summary-price', '.quantity-offer-price',
+      '.codform-price', '.unit-price', '.total-price',
+      '.offer-price', '.savings-amount'
+    ];
+    
+    const priceElements = document.querySelectorAll(priceSelectors.join(', '));
+    
+    priceElements.forEach(element => {
+      const originalPrice = element.dataset.originalPrice || element.textContent;
+      const currency = element.dataset.currency || 'MAD';
+      
+      // حفظ السعر الأصلي إذا لم يكن محفوظاً
+      if (!element.dataset.originalPrice) {
+        // استخراج الرقم من النص
+        const priceMatch = originalPrice.match(/[\d,]+\.?\d*/);
+        if (priceMatch) {
+          element.dataset.originalPrice = priceMatch[0].replace(/,/g, '');
+          element.dataset.currency = currency;
+        }
+      }
+      
+      // تطبيق التنسيق الجديد
+      if (element.dataset.originalPrice) {
+        const amount = parseFloat(element.dataset.originalPrice);
+        if (!isNaN(amount)) {
+          const formattedPrice = formatCurrency(amount, currency);
+          element.textContent = formattedPrice;
+          console.log(`💰 Updated price: ${element.dataset.originalPrice} → ${formattedPrice}`);
+        }
+      }
+    });
+    
+    // إشعار State Manager بالتحديث إذا كان متاحاً
+    if (window.CodformStateManager && typeof window.CodformStateManager.notifyStateChange === 'function') {
+      window.CodformStateManager.notifyStateChange();
+    }
+    
+    // إشعار UI Updates بالتحديث إذا كان متاحاً  
+    if (window.CodformUIUpdates && typeof window.CodformUIUpdates.updateUI === 'function') {
+      const currentState = window.CodformStateManager ? window.CodformStateManager.getState() : {};
+      window.CodformUIUpdates.updateUI(currentState);
+    }
+    
+    console.log(`✅ Currency formatting applied to ${priceElements.length} elements`);
   }
   
   /**
