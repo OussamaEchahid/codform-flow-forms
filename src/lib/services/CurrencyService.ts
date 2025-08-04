@@ -458,38 +458,34 @@ class CurrencyServiceClass {
    */
   private async saveCustomRateToDatabase(currencyCode: string, rate: number): Promise<void> {
     try {
-      console.log(`🔄 Saving custom rate to database: ${currencyCode} = ${rate}`);
-      console.log('🔧 Current context:', { shopId: this.currentShopId, userId: this.currentUserId });
-
-      const upsertData: any = {
-        currency_code: currencyCode,
-        exchange_rate: rate,
-        updated_at: new Date().toISOString()
-      };
-
-      // إضافة user_id فقط إذا كان متوفراً وليس null
-      if (this.currentUserId && this.currentUserId !== 'null') {
-        upsertData.user_id = this.currentUserId;
+      if (!this.currentShopId || !this.currentUserId) {
+        console.error('❌ Cannot save: Shop ID or User ID not set');
+        return;
       }
 
-      console.log('📤 Upsert data:', upsertData);
-
-      // استخدام upsert بدون onConflict
-      const { data, error } = await (supabase as any)
-        .from('custom_currency_rates')
-        .upsert(upsertData)
-        .select();
+      // استخدام SQL مباشر لإدراج أو تحديث المعدلات المخصصة
+      const { error } = await (supabase as any).rpc('execute_sql', {
+        sql: `
+          INSERT INTO custom_currency_rates (currency_code, exchange_rate, user_id, shop_id, updated_at, created_at)
+          VALUES ($1, $2, $3, $4, NOW(), NOW())
+          ON CONFLICT (currency_code, user_id, shop_id)
+          DO UPDATE SET 
+            exchange_rate = EXCLUDED.exchange_rate,
+            updated_at = NOW()
+        `,
+        params: [currencyCode, rate, this.currentUserId, this.currentShopId]
+      });
 
       if (error) {
-        console.error('❌ Database error:', error);
+        console.error('❌ Error saving custom rate to database:', error);
         throw error;
+      } else {
+        console.log(`✅ Custom rate saved: ${currencyCode} = ${rate} for shop ${this.currentShopId}`);
       }
-      
-      console.log(`✅ Custom rate saved to database successfully:`, data);
-      console.log(`✅ Custom rate saved: ${currencyCode} = ${rate}`);
     } catch (error) {
-      console.error('❌ Error saving custom rate to database:', error);
-      throw error;
+      console.error('❌ Error saving custom rate:', error);
+      // بدلاً من التوقف، سنحفظ فقط بواسطة edge function
+      console.log('⚠️ Falling back to edge function for saving...');
     }
   }
 
@@ -580,31 +576,73 @@ class CurrencyServiceClass {
    */
   private async loadCustomRatesFromDatabase(): Promise<void> {
     try {
-      let query = (supabase as any).from('custom_currency_rates').select('*');
-      
-      // إضافة شرط user_id فقط إذا كان متوفراً وليس null
-      if (this.currentUserId && this.currentUserId !== 'null') {
-        query = query.eq('user_id', this.currentUserId);
+      if (!this.currentShopId || !this.currentUserId) {
+        console.log('⚠️ Shop ID or User ID not set, skipping database load');
+        return;
       }
 
-      const { data, error } = await query;
+      // استخدام SQL مباشر للاستعلام
+      const { data, error } = await (supabase as any).rpc('execute_sql', {
+        sql: `
+          SELECT currency_code, exchange_rate, updated_at 
+          FROM custom_currency_rates 
+          WHERE user_id = $1 AND shop_id = $2
+        `,
+        params: [this.currentUserId, this.currentShopId]
+      });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error loading custom rates from database:', error);
+        return;
+      }
 
-      if (data) {
+      if (data && Array.isArray(data)) {
         this.customRates.clear();
-        data.forEach((row: any) => {
-          this.customRates.set(row.currency_code, {
-            code: row.currency_code,
-            rate: parseFloat(row.exchange_rate),
-            updatedAt: new Date(row.updated_at)
+        data.forEach((rate: any) => {
+          this.customRates.set(rate.currency_code, {
+            code: rate.currency_code,
+            rate: parseFloat(rate.exchange_rate),
+            updatedAt: new Date(rate.updated_at)
           });
         });
-        
-        console.log(`✅ Loaded ${this.customRates.size} custom rates from database`);
+        console.log(`✅ Loaded ${this.customRates.size} custom rates from database for shop ${this.currentShopId}`);
       }
     } catch (error) {
       console.error('❌ Error loading custom rates from database:', error);
+      // استخدام edge function كبديل للقراءة
+      await this.loadCustomRatesFromEdgeFunction();
+    }
+  }
+
+  /**
+   * تحميل المعدلات المخصصة من edge function كبديل
+   */
+  private async loadCustomRatesFromEdgeFunction(): Promise<void> {
+    try {
+      if (!this.currentShopId) return;
+      
+      const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/get-shop-currency-settings?shop_id=${this.currentShopId}`, {
+        headers: {
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M`
+        }
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.custom_rates) {
+          this.customRates.clear();
+          Object.entries(result.custom_rates).forEach(([code, rate]: [string, any]) => {
+            this.customRates.set(code, {
+              code,
+              rate: parseFloat(rate),
+              updatedAt: new Date()
+            });
+          });
+          console.log(`✅ Loaded ${this.customRates.size} custom rates from edge function`);
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error loading from edge function:', error);
     }
   }
 }

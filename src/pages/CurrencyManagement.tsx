@@ -67,13 +67,12 @@ const CurrencyManagement = () => {
       const userId = '36d7eb85-0c45-4b4f-bea1-a9cb732ca893';
       console.log('💫 Setting currency service context:', { shop: actualCurrentStore, userId });
       
-      // إجبار إعادة تعيين الخدمة
-      (CurrencyService as any).currentShopId = actualCurrentStore;
-      (CurrencyService as any).currentUserId = userId;
-      (CurrencyService as any).initialized = false;
+      // تعيين السياق الصحيح
+      CurrencyService.setShopContext(actualCurrentStore, userId);
       
-      console.log('✅ Forced context update - Shop ID:', (CurrencyService as any).currentShopId);
+      console.log('✅ Context set via setShopContext method');
       
+      // تهيئة الخدمة وتحميل البيانات
       await CurrencyService.initialize();
       setDisplaySettings(CurrencyService.getDisplaySettings());
       setCustomRates(CurrencyService.getCustomRates());

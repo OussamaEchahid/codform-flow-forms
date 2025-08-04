@@ -122,17 +122,19 @@ Deno.serve(async (req) => {
       
       const user_id = displayData?.user_id || '36d7eb85-0c45-4b4f-bea1-a9cb732ca893';
       
-      // حذف المعدلات الموجودة للمستخدم
+      // حذف المعدلات الموجودة للمستخدم وللمتجر
       await supabase
         .from('custom_currency_rates')
         .delete()
-        .eq('user_id', user_id);
+        .eq('user_id', user_id)
+        .eq('shop_id', shop_id);
       
-      // إدراج المعدلات الجديدة
+      // إدراج المعدلات الجديدة مع shop_id
       const ratesData = Object.entries(custom_rates).map(([currency_code, exchange_rate]) => ({
         currency_code,
         exchange_rate,
         user_id,
+        shop_id,
         updated_at: new Date().toISOString()
       }));
 
@@ -147,7 +149,7 @@ Deno.serve(async (req) => {
 
       console.log('✅ Custom rates saved');
     } else {
-      // إذا كانت custom_rates فارغة، احذف جميع المعدلات للمستخدم
+      // إذا كانت custom_rates فارغة، احذف جميع المعدلات للمستخدم وللمتجر
       const { data: displayData } = await supabase
         .from('currency_display_settings')
         .select('user_id')
@@ -159,7 +161,8 @@ Deno.serve(async (req) => {
       await supabase
         .from('custom_currency_rates')
         .delete()
-        .eq('user_id', user_id);
+        .eq('user_id', user_id)
+        .eq('shop_id', shop_id);
       
       console.log('✅ Custom rates cleared');
     }
