@@ -192,17 +192,74 @@ class CurrencyServiceClass {
    */
   async saveDisplaySettings(settings: CurrencyDisplaySettings): Promise<void> {
     try {
-      // حفظ في قاعدة البيانات أولاً
-      await this.saveDisplaySettingsToDatabase(settings);
-      
-      // حفظ في localStorage كنسخة احتياطية
-      localStorage.setItem('codform_currency_display_settings', JSON.stringify(settings));
-
       this.displaySettings = { ...settings };
-      console.log('✅ Saved display settings:', settings);
+      
+      // حفظ في localStorage أولاً
+      localStorage.setItem('codform_currency_display_settings', JSON.stringify(settings));
+      
+      // حفظ باستخدام edge function المحسن
+      await this.saveCurrencySettingsToDatabase();
+      
+      console.log('✅ Display settings saved successfully');
     } catch (error) {
       console.error('❌ Error saving display settings:', error);
       throw error;
+    }
+  }
+
+  /**
+   * حفظ جميع إعدادات العملة باستخدام edge function
+   */
+  async saveCurrencySettingsToDatabase(): Promise<void> {
+    if (!this.currentShopId) {
+      console.log('⚠️ No shop_id set, skipping database save');
+      return;
+    }
+
+    try {
+      console.log('🔄 Saving currency settings using edge function');
+      
+      // تحضير البيانات
+      const customRates: Record<string, number> = {};
+      this.customRates.forEach((value, key) => {
+        customRates[key] = value.rate;
+      });
+
+      const requestData = {
+        shop_id: this.currentShopId,
+        display_settings: {
+          show_symbol: this.displaySettings.showSymbol,
+          symbol_position: this.displaySettings.symbolPosition,
+          decimal_places: this.displaySettings.decimalPlaces
+        },
+        custom_symbols: this.displaySettings.customSymbols,
+        custom_rates: customRates
+      };
+
+      console.log('📤 Sending data to edge function:', requestData);
+
+      const response = await fetch('https://trlklwixfeaexhydzaue.supabase.co/functions/v1/save-currency-settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M`
+        },
+        body: JSON.stringify(requestData)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Edge function error: ${errorData.error || response.statusText}`);
+      }
+
+      const result = await response.json();
+      console.log('✅ Currency settings saved via edge function:', result);
+      
+    } catch (error) {
+      console.error('❌ Error saving currency settings via edge function:', error);
+      // Fallback to old method
+      await this.saveDisplaySettingsToDatabase(this.displaySettings);
+      await this.saveCustomSymbolsToDatabase(this.displaySettings.customSymbols);
     }
   }
 
@@ -374,9 +431,13 @@ class CurrencyServiceClass {
    */
   private async saveCustomRateToDatabase(currencyCode: string, rate: number): Promise<void> {
     try {
+      console.log(`🔄 Saving custom rate to database: ${currencyCode} = ${rate}`);
+      console.log('🔧 Current context:', { shopId: this.currentShopId, userId: this.currentUserId });
+
       const upsertData: any = {
         currency_code: currencyCode,
         exchange_rate: rate,
+        updated_at: new Date().toISOString()
       };
 
       // إضافة user_id فقط إذا كان متوفراً وليس null
@@ -384,13 +445,23 @@ class CurrencyServiceClass {
         upsertData.user_id = this.currentUserId;
       }
 
-      const { error } = await (supabase as any)
-        .from('custom_currency_rates')
-        .upsert(upsertData);
+      console.log('📤 Upsert data:', upsertData);
 
-      if (error) throw error;
+      // استخدام conflict resolution صحيح
+      const { data, error } = await (supabase as any)
+        .from('custom_currency_rates')
+        .upsert(upsertData, {
+          onConflict: this.currentUserId ? 'currency_code,user_id' : 'currency_code'
+        })
+        .select();
+
+      if (error) {
+        console.error('❌ Database error:', error);
+        throw error;
+      }
       
-      console.log(`✅ Custom rate saved to database: ${currencyCode} = ${rate}`);
+      console.log(`✅ Custom rate saved to database successfully:`, data);
+      console.log(`✅ Custom rate saved: ${currencyCode} = ${rate}`);
     } catch (error) {
       console.error('❌ Error saving custom rate to database:', error);
       throw error;

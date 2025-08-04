@@ -210,14 +210,17 @@
       // ✅ تحويل إلى العملة المطلوبة
       const convertedAmount = this.convertCurrency(amount, originalCurrency, this.currentCurrency);
       
-      // ✅ تطبيق عدد المنازل العشرية
-      const roundedAmount = this.displaySettings.decimalPlaces === 0 ? 
-        Math.round(convertedAmount) : 
-        Math.round(convertedAmount * Math.pow(10, this.displaySettings.decimalPlaces)) / Math.pow(10, this.displaySettings.decimalPlaces);
+      // ✅ تطبيق عدد المنازل العشرية بشكل صحيح
+      let formattedAmount;
       
-      const formattedAmount = this.displaySettings.decimalPlaces === 0 ? 
-        roundedAmount.toString() : 
-        roundedAmount.toFixed(this.displaySettings.decimalPlaces);
+      if (this.displaySettings.decimalPlaces === 0) {
+        // عدم إظهار منازل عشرية على الإطلاق
+        formattedAmount = Math.round(convertedAmount).toString();
+      } else {
+        // تطبيق العدد المحدد من المنازل العشرية
+        const roundedAmount = Math.round(convertedAmount * Math.pow(10, this.displaySettings.decimalPlaces)) / Math.pow(10, this.displaySettings.decimalPlaces);
+        formattedAmount = roundedAmount.toFixed(this.displaySettings.decimalPlaces);
+      }
 
       // ✅ إضافة رمز العملة إذا كان مطلوباً
       if (!this.displaySettings.showSymbol) {
@@ -262,6 +265,7 @@
     }
 
     updateQuantityOffers() {
+      // تحديث عروض الكمية الرئيسية
       document.querySelectorAll('[id^="quantity-offers-before-"]').forEach(container => {
         const offers = container.querySelectorAll('.offer-price, [data-price]');
         offers.forEach(element => {
@@ -275,6 +279,32 @@
             console.log(`💰 Updated quantity offer: ${amount} ${originalCurrency} → ${formatted}`);
           }
         });
+      });
+
+      // تحديث عروض الكمية المدمجة في النموذج
+      document.querySelectorAll('.codform-quantity-offer-price, .codform-offer-price').forEach(element => {
+        const amount = parseFloat(element.getAttribute('data-original-price') || element.getAttribute('data-price') || element.textContent.match(/\d+(\.\d+)?/)?.[0]);
+        const originalCurrency = element.getAttribute('data-original-currency') || element.getAttribute('data-currency') || 'SAR';
+        
+        if (!isNaN(amount)) {
+          const formatted = this.formatCurrency(amount, originalCurrency);
+          element.textContent = formatted;
+          element.setAttribute('data-currency', this.currentCurrency);
+          console.log(`💰 Updated inline quantity offer: ${amount} ${originalCurrency} → ${formatted}`);
+        }
+      });
+
+      // تحديث جميع العناصر التي تحتوي على أسعار
+      document.querySelectorAll('[data-currency-amount]').forEach(element => {
+        const amount = parseFloat(element.getAttribute('data-currency-amount'));
+        const originalCurrency = element.getAttribute('data-currency') || 'SAR';
+        
+        if (!isNaN(amount)) {
+          const formatted = this.formatCurrency(amount, originalCurrency);
+          element.textContent = formatted;
+          element.setAttribute('data-currency', this.currentCurrency);
+          console.log(`💰 Updated currency amount: ${amount} ${originalCurrency} → ${formatted}`);
+        }
       });
     }
 

@@ -412,8 +412,11 @@
       const discountPrice = fieldStyle.discountPrice || '';
       const hideDiscountPrice = fieldStyle.hideDiscountPrice === true;
       
-      // Format price
-      const formattedPrice = `${productPrice.toFixed(2)} ${currencySymbol}`;
+              // Format price with Smart Currency System
+              let formattedPrice = `${productPrice.toFixed(2)} ${currencySymbol}`;
+              if (window.CodformSmartCurrency && window.CodformSmartCurrency.system.isInitialized) {
+                formattedPrice = window.CodformSmartCurrency.formatCurrency(productPrice, productCurrency);
+              }
       
       html = `
         <div class="codform-cart-items" style="
@@ -565,7 +568,7 @@
                     font-family: Inter, Cairo, system-ui, sans-serif;
                     font-weight: 700;
                     margin: 0;
-                  ">
+                  " data-currency-amount="${productPrice}" data-original-price="${productPrice}" data-original-currency="${productCurrency}">
                     ${formattedPrice}
                   </div>
                   ${!hideDiscountPrice && discountPrice ? `
