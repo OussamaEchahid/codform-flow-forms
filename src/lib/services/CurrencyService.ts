@@ -151,9 +151,6 @@ class CurrencyServiceClass {
         updatedAt: new Date()
       };
 
-      // حفظ في قاعدة البيانات أولاً
-      await this.saveCustomRateToDatabase(currencyCode, rate);
-
       // حفظ في localStorage كنسخة احتياطية
       const savedRates = this.getCustomRatesFromStorage();
       savedRates[currencyCode] = customRate;
@@ -161,6 +158,9 @@ class CurrencyServiceClass {
 
       // تحديث الكاش المحلي
       this.customRates.set(currencyCode, customRate);
+      
+      // حفظ مباشرة بـ edge function بدلاً من الحفظ المزدوج
+      await this.saveCurrencySettingsToDatabase();
       
       console.log(`✅ Saved custom rate: ${currencyCode} = ${rate}`);
     } catch (error) {
@@ -463,29 +463,10 @@ class CurrencyServiceClass {
         return;
       }
 
-      // استخدام SQL مباشر لإدراج أو تحديث المعدلات المخصصة
-      const { error } = await (supabase as any).rpc('execute_sql', {
-        sql: `
-          INSERT INTO custom_currency_rates (currency_code, exchange_rate, user_id, shop_id, updated_at, created_at)
-          VALUES ($1, $2, $3, $4, NOW(), NOW())
-          ON CONFLICT (currency_code, user_id, shop_id)
-          DO UPDATE SET 
-            exchange_rate = EXCLUDED.exchange_rate,
-            updated_at = NOW()
-        `,
-        params: [currencyCode, rate, this.currentUserId, this.currentShopId]
-      });
-
-      if (error) {
-        console.error('❌ Error saving custom rate to database:', error);
-        throw error;
-      } else {
-        console.log(`✅ Custom rate saved: ${currencyCode} = ${rate} for shop ${this.currentShopId}`);
-      }
+      // نتجاهل الحفظ المباشر هنا لأننا سنحفظ بـ edge function
+      console.log(`⚠️ Skipping direct database save for: ${currencyCode} = ${rate} - will save via edge function`);
     } catch (error) {
-      console.error('❌ Error saving custom rate:', error);
-      // بدلاً من التوقف، سنحفظ فقط بواسطة edge function
-      console.log('⚠️ Falling back to edge function for saving...');
+      console.error('❌ Error in saveCustomRateToDatabase:', error);
     }
   }
 
@@ -581,41 +562,15 @@ class CurrencyServiceClass {
         return;
       }
 
-      // استخدام SQL مباشر للاستعلام
-      const { data, error } = await (supabase as any).rpc('execute_sql', {
-        sql: `
-          SELECT currency_code, exchange_rate, updated_at 
-          FROM custom_currency_rates 
-          WHERE user_id = $1 AND shop_id = $2
-        `,
-        params: [this.currentUserId, this.currentShopId]
-      });
-
-      if (error) {
-        console.error('❌ Error loading custom rates from database:', error);
-        return;
-      }
-
-      if (data && Array.isArray(data)) {
-        this.customRates.clear();
-        data.forEach((rate: any) => {
-          this.customRates.set(rate.currency_code, {
-            code: rate.currency_code,
-            rate: parseFloat(rate.exchange_rate),
-            updatedAt: new Date(rate.updated_at)
-          });
-        });
-        console.log(`✅ Loaded ${this.customRates.size} custom rates from database for shop ${this.currentShopId}`);
-      }
+      console.log('🔄 Loading custom rates via edge function for shop:', this.currentShopId);
+      await this.loadCustomRatesFromEdgeFunction();
     } catch (error) {
       console.error('❌ Error loading custom rates from database:', error);
-      // استخدام edge function كبديل للقراءة
-      await this.loadCustomRatesFromEdgeFunction();
     }
   }
 
   /**
-   * تحميل المعدلات المخصصة من edge function كبديل
+   * تحميل المعدلات المخصصة من edge function
    */
   private async loadCustomRatesFromEdgeFunction(): Promise<void> {
     try {
