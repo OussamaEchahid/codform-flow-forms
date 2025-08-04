@@ -2,7 +2,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.51.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, cache-control, x-requested-with',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, cache-control, x-requested-with, pragma, expires, accept, accept-encoding, accept-language, connection, host, referer, user-agent',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS, PUT, DELETE',
 }
 
 interface CurrencySettings {
