@@ -34,27 +34,41 @@ const CurrencyManagement = () => {
 
   // تحميل الإعدادات عند بدء التشغيل أو تغيير المتجر
   useEffect(() => {
-    if (currentStore && userStores.length > 0) {
-      loadSettings();
-    }
+    console.log('🔄 CurrencyManagement useEffect triggered:', { currentStore, userStoresLength: userStores.length });
+    
+    // استخدام setTimeout للتأكد من أن currentStore محدث
+    const timer = setTimeout(() => {
+      const actualCurrentStore = localStorage.getItem('current_shopify_store');
+      console.log('⏰ Delayed check - actual store:', actualCurrentStore);
+      
+      if (actualCurrentStore) {
+        loadSettings();
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
   }, [currentStore, userStores]);
 
   const loadSettings = async () => {
-    if (!currentStore) {
+    // الحصول على القيمة الطازجة مباشرة من localStorage
+    const actualCurrentStore = localStorage.getItem('current_shopify_store');
+    
+    if (!actualCurrentStore) {
       console.log('❌ No current store available for currency settings');
       return;
     }
 
     try {
-      console.log('🏪 Loading currency settings for store:', currentStore);
+      console.log('🏪 Loading currency settings for store:', actualCurrentStore);
+      console.log('📋 Hook current store:', currentStore);
       console.log('📋 Available user stores:', userStores.map(s => s.shop));
       
       // تعيين سياق المتجر للخدمة مع التأكد من التمرير الصحيح
       const userId = '36d7eb85-0c45-4b4f-bea1-a9cb732ca893';
-      console.log('💫 Setting currency service context:', { shop: currentStore, userId });
+      console.log('💫 Setting currency service context:', { shop: actualCurrentStore, userId });
       
       // إجبار إعادة تعيين الخدمة
-      (CurrencyService as any).currentShopId = currentStore;
+      (CurrencyService as any).currentShopId = actualCurrentStore;
       (CurrencyService as any).currentUserId = userId;
       (CurrencyService as any).initialized = false;
       
@@ -72,7 +86,9 @@ const CurrencyManagement = () => {
   };
 
   const saveDisplaySettings = async () => {
-    if (!currentStore) {
+    const actualCurrentStore = localStorage.getItem('current_shopify_store');
+    
+    if (!actualCurrentStore) {
       toast.error('يرجى اختيار متجر أولاً');
       return;
     }
@@ -80,7 +96,7 @@ const CurrencyManagement = () => {
     setLoading(true);
     try {
       // التأكد من أن السياق محدد بشكل صحيح قبل الحفظ
-      console.log('💾 Saving display settings for store:', currentStore);
+      console.log('💾 Saving display settings for store:', actualCurrentStore);
       console.log('🔧 Current service context:', {
         shopId: (CurrencyService as any).currentShopId,
         userId: (CurrencyService as any).currentUserId
@@ -170,13 +186,13 @@ const CurrencyManagement = () => {
       <div className="container mx-auto p-6 space-y-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>
         
         {/* Debug info - إظهار حالة المتجر الحالي */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
-            <strong>Debug Info:</strong> Current Store: {currentStore || 'غير محدد'} | 
-            User Stores: {userStores.length} | 
-            Service Shop ID: {(CurrencyService as any).currentShopId || 'غير محدد'}
-          </div>
-        )}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm mb-4">
+          <strong>Debug Info:</strong><br/>
+          Hook Current Store: {currentStore || 'غير محدد'}<br/>
+          LocalStorage Store: {localStorage.getItem('current_shopify_store') || 'غير محدد'}<br/>
+          User Stores: {userStores.length}<br/>
+          Service Shop ID: {(CurrencyService as any).currentShopId || 'غير محدد'}
+        </div>
 
         {!currentStore && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
