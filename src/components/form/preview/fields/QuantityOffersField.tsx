@@ -64,7 +64,19 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
 
   // تهيئة CurrencyService عند تحميل المكون
   React.useEffect(() => {
-    CurrencyService.initialize().catch(console.error);
+    const initializeService = async () => {
+      try {
+        await CurrencyService.initialize();
+        // إعادة تحديث التنسيق عند تغيير الإعدادات
+        if (offers.length > 0) {
+          // إجبار إعادة التحديث للواجهة
+          setOffers([...offers]);
+        }
+      } catch (error) {
+        console.error('Error initializing CurrencyService:', error);
+      }
+    };
+    initializeService();
   }, []);
 
   useEffect(() => {

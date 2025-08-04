@@ -6,18 +6,37 @@
 window.CodformQuantityOffers = (function() {
   'use strict';
 
-  // دالة تحويل العملة موحدة مع النظام الأساسي
-  function convertCurrency(amount, fromCurrency, toCurrency) {
-    // استخدام معدلات التحويل الموحدة
-    const exchangeRates = window.CodformCurrencyRates || {
+  // دالة تحويل العملة موحدة مع النظام الأساسي - مع دعم الإعدادات المخصصة
+  async function convertCurrency(amount, fromCurrency, toCurrency) {
+    // استخدام معدلات التحويل المخصصة أولاً
+    let exchangeRates = window.CodformCurrencyRates || {
       'USD': 1.0,
       'SAR': 3.75,
-      'MAD': 10.0, // ✅ توحيد: متطابق مع النظام الأساسي
+      'MAD': 10.0,
       'AED': 3.67,
       'EGP': 30.85,
-      'XOF': 655.96, // West African CFA Franc
-      'XAF': 655.96  // Central African CFA Franc
+      'XOF': 655.96,
+      'XAF': 655.96
     };
+
+    // جلب الإعدادات المخصصة من خدمة العملة
+    try {
+      if (window.CodformSmartCurrency && window.CodformSmartCurrency.system.isInitialized) {
+        const shopId = window.Shopify?.shop?.domain || 'astrem.myshopify.com';
+        const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/get-shop-currency-settings?shopId=${shopId}`);
+        
+        if (response.ok) {
+          const settings = await response.json();
+          if (settings.custom_rates) {
+            // دمج المعدلات المخصصة مع المعدلات الافتراضية
+            exchangeRates = { ...exchangeRates, ...settings.custom_rates };
+            console.log('✅ Using custom exchange rates:', settings.custom_rates);
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('⚠️ Could not load custom rates, using defaults:', error);
+    }
     
     if (fromCurrency === toCurrency) return amount;
     
@@ -30,7 +49,7 @@ window.CodformQuantityOffers = (function() {
       return usdAmount * toRate;
     }
     
-    return amount; // إرجاع المبلغ الأصلي إذا فشل التحويل
+    return amount;
   }
 
   // دالة عرض العروض متصلة مع State Manager
@@ -115,19 +134,67 @@ window.CodformQuantityOffers = (function() {
       
       console.log(`💰 Offer calculation: basePrice=${actualBasePrice}, quantity=${quantity}, total=${totalPrice}, discount=${discountValue}%, final=${finalPrice}`);
       
-      // ✅ استخدام النظام الذكي للتنسيق
+      // ✅ استخدام النظام الذكي للتنسيق مع الإعدادات المخصصة
       let formattedTotal, formattedFinal;
       
       if (window.CodformSmartCurrency && window.CodformSmartCurrency.system.isInitialized) {
         const originalCurrency = productData?.currency || 'USD';
-        formattedTotal = window.CodformSmartCurrency.formatCurrency(totalPrice, originalCurrency);
-        formattedFinal = window.CodformSmartCurrency.formatCurrency(finalPrice, originalCurrency);
-        console.log(`🎯 SMART: Using smart system - Total: ${formattedTotal}, Final: ${formattedFinal} (from ${originalCurrency})`);
+        
+        // تطبيق الإعدادات المخصصة للعرض
+        const shopId = window.Shopify?.shop?.domain || 'astrem.myshopify.com';
+        const formatWithCustomSettings = async (amount, currency) => {
+          try {
+            const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/get-shop-currency-settings?shopId=${shopId}`);
+            if (response.ok) {
+              const settings = await response.json();
+              
+              // تطبيق المعدلات المخصصة إذا كانت متاحة
+              let convertedAmount = amount;
+              if (settings.custom_rates && settings.custom_rates[currency]) {
+                convertedAmount = await convertCurrency(amount, originalCurrency, currency);
+              }
+              
+              // تطبيق إعدادات العرض المخصصة
+              const displaySettings = settings.display_settings || {};
+              const customSymbols = settings.custom_symbols || {};
+              
+              const symbol = customSymbols[currency] || getCurrencySymbol(currency);
+              const decimals = displaySettings.decimal_places || 2;
+              const showSymbol = displaySettings.show_symbol !== false;
+              const symbolPosition = displaySettings.symbol_position || 'before';
+              
+              const formattedNumber = convertedAmount.toFixed(decimals);
+              
+              if (!showSymbol) return formattedNumber;
+              
+              return symbolPosition === 'after' ? 
+                `${formattedNumber} ${symbol}` : 
+                `${symbol} ${formattedNumber}`;
+            }
+          } catch (error) {
+            console.warn('Could not apply custom formatting:', error);
+          }
+          
+          // تراجع للتنسيق الافتراضي
+          return window.CodformSmartCurrency.formatCurrency(amount, currency);
+        };
+        
+        formattedTotal = await formatWithCustomSettings(totalPrice, originalCurrency);
+        formattedFinal = await formatWithCustomSettings(finalPrice, originalCurrency);
+        console.log(`🎯 CUSTOM: Using custom formatting - Total: ${formattedTotal}, Final: ${formattedFinal}`);
       } else {
-        // تراجع للتنسيق الأساسي
         formattedTotal = `$${Math.round(totalPrice)}`;
         formattedFinal = `$${Math.round(finalPrice)}`;
         console.log(`⚠️ FALLBACK: Total: ${formattedTotal}, Final: ${formattedFinal}`);
+      }
+      
+      // دالة مساعدة للحصول على رمز العملة
+      function getCurrencySymbol(currency) {
+        const symbols = {
+          'USD': '$', 'SAR': 'ر.س', 'MAD': 'د.م.', 'AED': 'د.إ',
+          'EGP': 'ج.م', 'EUR': '€', 'GBP': '£'
+        };
+        return symbols[currency] || currency;
       }
       
       console.log(`💰 Offer ${index}: quantity=${quantity}, total=${formattedTotal}, final=${formattedFinal}`);

@@ -27,7 +27,16 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
   
   // تهيئة CurrencyService عند تحميل المكون
   React.useEffect(() => {
-    CurrencyService.initialize();
+    const initializeService = async () => {
+      try {
+        await CurrencyService.initialize();
+        // إعادة حساب الأسعار بعد تحميل الإعدادات المخصصة
+        setProductData(prev => prev ? { ...prev } : null);
+      } catch (error) {
+        console.error('Error initializing CurrencyService:', error);
+      }
+    };
+    initializeService();
   }, []);
 
   const fieldStyle = field.style || {};
