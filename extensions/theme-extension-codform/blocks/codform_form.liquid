@@ -1521,24 +1521,42 @@ window.CodformQuantityOffers = (function() {
       title: productTitle
     });
     
-    // استخدام دالة تحويل العملة من الملف المنفصل
+    // ✅ CRITICAL FIX: تحويل صحيح من MAD إلى USD
     function convertCurrency(amount, fromCurrency, toCurrency) {
-      // التأكد من تحميل ملف معدلات الصرف
-      if (typeof window.convertCurrency === 'function') {
-        return window.convertCurrency(amount, fromCurrency, toCurrency);
-      }
+      console.log(`💱 Converting: ${amount} from ${fromCurrency} to ${toCurrency}`);
       
-      // fallback في حالة عدم تحميل الملف
-      console.warn('⚠️ Currency rates file not loaded, using fallback');
-      return amount;
+      // معدلات تحويل ثابتة
+      const rates = {
+        'MAD': 10.0,  // 1 USD = 10 MAD
+        'USD': 1.0,
+        'SAR': 3.75,
+        'AED': 3.67
+      };
+      
+      if (fromCurrency === toCurrency) return amount;
+      
+      // تحويل إلى USD أولاً، ثم إلى العملة المطلوبة
+      const amountInUSD = amount / (rates[fromCurrency] || 1);
+      const finalAmount = amountInUSD * (rates[toCurrency] || 1);
+      
+      console.log(`💱 Conversion result: ${amount} ${fromCurrency} = ${finalAmount} ${toCurrency}`);
+      return finalAmount;
     }
 
-    const realPrice = convertCurrency(productPrice, productCurrency, defaultCurrency);
+    // ✅ تحويل السعر بشكل صحيح
+    let realPrice;
+    if (productCurrency === 'MAD' && defaultCurrency === 'USD') {
+      realPrice = productPrice / 10;  // 20 MAD = 2 USD
+      console.log(`💰 Direct MAD to USD conversion: ${productPrice} MAD = ${realPrice} USD`);
+    } else {
+      realPrice = convertCurrency(productPrice, productCurrency, defaultCurrency);
+    }
+    
     const currencySymbol = defaultCurrency === 'USD' ? '$' : 
                           defaultCurrency === 'SAR' ? 'ر.س' : 
                           defaultCurrency === 'MAD' ? 'د.م' : defaultCurrency;
 
-    console.log("💰 Using real price:", realPrice, defaultCurrency, "from original:", productPrice, productCurrency);
+    console.log("💰 FINAL real price:", realPrice, defaultCurrency, "from original:", productPrice, productCurrency);
 
     // إنشاء العروض
     offers.forEach((offer, index) => {
