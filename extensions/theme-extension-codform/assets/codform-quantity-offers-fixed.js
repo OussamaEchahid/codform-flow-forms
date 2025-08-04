@@ -53,7 +53,7 @@ window.CodformQuantityOffers = (function() {
   }
 
   // دالة عرض العروض متصلة مع State Manager
-  function displayQuantityOffers(quantityOffersData, blockId, productId, defaultCurrency = 'SAR', productData = null) {
+  async function displayQuantityOffers(quantityOffersData, blockId, productId, defaultCurrency = 'SAR', productData = null) {
     console.log("🎯 Quantity Offers Display Started - Connected to State Manager");
     
     if (!quantityOffersData?.offers || !Array.isArray(quantityOffersData.offers)) {
@@ -97,7 +97,32 @@ window.CodformQuantityOffers = (function() {
 
     console.log(`💰 Final calculation will use: ${basePrice} USD per item`);
 
-    offers.forEach((offer, index) => {
+    // دالة مساعدة للحصول على رمز العملة
+    function getCurrencySymbol(currency) {
+      const symbols = {
+        'USD': '$', 'SAR': 'ر.س', 'MAD': 'د.م.', 'AED': 'د.إ',
+        'EGP': 'ج.م', 'EUR': '€', 'GBP': '£'
+      };
+      return symbols[currency] || currency;
+    }
+    
+    // جلب الإعدادات المخصصة مرة واحدة للجميع
+    let customSettings = null;
+    try {
+      if (window.CodformSmartCurrency && window.CodformSmartCurrency.system.isInitialized) {
+        const shopId = window.Shopify?.shop?.domain || 'astrem.myshopify.com';
+        const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/get-shop-currency-settings?shopId=${shopId}`);
+        if (response.ok) {
+          customSettings = await response.json();
+          console.log('🎯 Retrieved custom settings for quantity offers:', customSettings);
+        }
+      }
+    } catch (error) {
+      console.warn('Could not load custom settings:', error);
+    }
+
+    for (let index = 0; index < offers.length; index++) {
+      const offer = offers[index];
       const offerElement = document.createElement('div');
       
       // تصميم العرض مطابق للمعاينة
@@ -135,76 +160,56 @@ window.CodformQuantityOffers = (function() {
       console.log(`💰 Offer calculation: basePrice=${actualBasePrice}, quantity=${quantity}, total=${totalPrice}, discount=${discountValue}%, final=${finalPrice}`);
       
       // ✅ استخدام النظام الذكي للتنسيق مع الإعدادات المخصصة
-      let formattedTotal, formattedFinal;
+      let formattedTotal = `$${Math.round(totalPrice)}`;
+      let formattedFinal = `$${Math.round(finalPrice)}`;
       
-      if (window.CodformSmartCurrency && window.CodformSmartCurrency.system.isInitialized) {
+      // تطبيق التنسيق المخصص باستخدام الإعدادات المحملة
+      if (customSettings && window.CodformSmartCurrency && window.CodformSmartCurrency.system.isInitialized) {
         const originalCurrency = productData?.currency || 'USD';
         
-        // تطبيق الإعدادات المخصصة للعرض
-        const shopId = window.Shopify?.shop?.domain || 'astrem.myshopify.com';
-        const formatWithCustomSettings = async (amount, currency) => {
-          try {
-            const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/get-shop-currency-settings?shopId=${shopId}`);
-            if (response.ok) {
-              const settings = await response.json();
-              
-              // تطبيق المعدلات المخصصة إذا كانت متاحة
-              let convertedAmount = amount;
-              if (settings.custom_rates && settings.custom_rates[currency]) {
-                convertedAmount = await convertCurrency(amount, originalCurrency, currency);
-              }
-              
-              // تطبيق إعدادات العرض المخصصة
-              const displaySettings = settings.display_settings || {};
-              const customSymbols = settings.custom_symbols || {};
-              
-              const symbol = customSymbols[currency] || getCurrencySymbol(currency);
-              const decimals = displaySettings.decimal_places || 2;
-              const showSymbol = displaySettings.show_symbol !== false;
-              const symbolPosition = displaySettings.symbol_position || 'before';
-              
-              const formattedNumber = convertedAmount.toFixed(decimals);
-              
-              if (!showSymbol) return formattedNumber;
-              
-              return symbolPosition === 'after' ? 
-                `${formattedNumber} ${symbol}` : 
-                `${symbol} ${formattedNumber}`;
-            }
-          } catch (error) {
-            console.warn('Could not apply custom formatting:', error);
+        try {
+          // تطبيق المعدلات المخصصة إذا كانت متاحة
+          let convertedTotal = totalPrice;
+          let convertedFinal = finalPrice;
+          
+          if (customSettings.custom_rates && customSettings.custom_rates[originalCurrency]) {
+            convertedTotal = await convertCurrency(totalPrice, originalCurrency, originalCurrency);
+            convertedFinal = await convertCurrency(finalPrice, originalCurrency, originalCurrency);
+            console.log(`💱 Applied custom rates: Total ${totalPrice} -> ${convertedTotal}, Final ${finalPrice} -> ${convertedFinal}`);
           }
           
-          // تراجع للتنسيق الافتراضي
-          return window.CodformSmartCurrency.formatCurrency(amount, currency);
-        };
-        
-        // إجراء التنسيق بشكل متزامن للتجنب مشاكل async
-        formatWithCustomSettings(totalPrice, originalCurrency).then(result => {
-          formattedTotal = result;
-        }).catch(() => {
+          // تطبيق إعدادات العرض المخصصة
+          const displaySettings = customSettings.display_settings || {};
+          const customSymbols = customSettings.custom_symbols || {};
+          
+          const symbol = customSymbols[originalCurrency] || getCurrencySymbol(originalCurrency);
+          const decimals = displaySettings.decimal_places !== undefined ? displaySettings.decimal_places : 2;
+          const showSymbol = displaySettings.show_symbol !== false;
+          const symbolPosition = displaySettings.symbol_position || 'before';
+          
+          const formattedTotalNumber = convertedTotal.toFixed(decimals);
+          const formattedFinalNumber = convertedFinal.toFixed(decimals);
+          
+          if (showSymbol) {
+            formattedTotal = symbolPosition === 'after' ? 
+              `${formattedTotalNumber} ${symbol}` : 
+              `${symbol} ${formattedTotalNumber}`;
+            formattedFinal = symbolPosition === 'after' ? 
+              `${formattedFinalNumber} ${symbol}` : 
+              `${symbol} ${formattedFinalNumber}`;
+          } else {
+            formattedTotal = formattedTotalNumber;
+            formattedFinal = formattedFinalNumber;
+          }
+          
+          console.log(`🎯 CUSTOM: Applied settings - Total: ${formattedTotal}, Final: ${formattedFinal}`);
+        } catch (error) {
+          console.warn('Custom formatting failed, using fallback:', error);
           formattedTotal = `$${Math.round(totalPrice)}`;
-        });
-        
-        formatWithCustomSettings(finalPrice, originalCurrency).then(result => {
-          formattedFinal = result;
-        }).catch(() => {
           formattedFinal = `$${Math.round(finalPrice)}`;
-        });
-        console.log(`🎯 CUSTOM: Using custom formatting - Total: ${formattedTotal}, Final: ${formattedFinal}`);
+        }
       } else {
-        formattedTotal = `$${Math.round(totalPrice)}`;
-        formattedFinal = `$${Math.round(finalPrice)}`;
         console.log(`⚠️ FALLBACK: Total: ${formattedTotal}, Final: ${formattedFinal}`);
-      }
-      
-      // دالة مساعدة للحصول على رمز العملة
-      function getCurrencySymbol(currency) {
-        const symbols = {
-          'USD': '$', 'SAR': 'ر.س', 'MAD': 'د.م.', 'AED': 'د.إ',
-          'EGP': 'ج.م', 'EUR': '€', 'GBP': '£'
-        };
-        return symbols[currency] || currency;
       }
       
       console.log(`💰 Offer ${index}: quantity=${quantity}, total=${formattedTotal}, final=${formattedFinal}`);
@@ -297,7 +302,7 @@ window.CodformQuantityOffers = (function() {
       });
 
       container.appendChild(offerElement);
-    });
+    }
 
     console.log("✅ Fixed quantity offers displayed successfully");
   }
