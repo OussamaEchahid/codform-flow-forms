@@ -162,27 +162,55 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
   // Load product data
   useEffect(() => {
     const finalProductId = linkedProductId || productId;
+    console.log('🔄 Cart Summary - useEffect triggered:', {
+      finalProductId,
+      autoCalculate: config.autoCalculate,
+      loading,
+      hasProductData: !!productData,
+      linkedProductId,
+      productId
+    });
+    
     if (config.autoCalculate && finalProductId && finalProductId !== 'auto-detect' && !loading && !productData) {
       setLoading(true);
       console.log('📦 Cart Summary - Starting to load product:', finalProductId);
       
       getProductById(finalProductId)
         .then(product => {
-          console.log('✅ Cart Summary - Product loaded successfully:', product);
+          console.log('✅ Cart Summary - Product loaded successfully:', {
+            product,
+            hasVariants: product?.variants?.length,
+            firstVariantPrice: product?.variants?.[0]?.price
+          });
+          
           if (product && product.variants && product.variants.length > 0) {
+            console.log('💾 Cart Summary - Setting product data...');
             setProductData(product);
+            console.log('✅ Cart Summary - Product data set successfully');
           } else {
             console.warn('⚠️ Cart Summary - Product has no variants:', product);
+            // Set empty product data to avoid infinite loading
+            setProductData({});
           }
         })
         .catch(error => {
           console.error('❌ Cart Summary - Error loading product data:', error);
+          // Set empty product data to avoid infinite loading
+          setProductData({});
         })
         .finally(() => {
+          console.log('🔄 Cart Summary - Loading finished');
           setLoading(false);
         });
+    } else {
+      console.log('⏭️ Cart Summary - Skipping product load:', {
+        autoCalculate: config.autoCalculate,
+        finalProductId,
+        loading,
+        hasProductData: !!productData
+      });
     }
-  }, [linkedProductId, productId, config.autoCalculate]);
+  }, [linkedProductId, productId, config.autoCalculate]); // Remove loading and productData dependencies
 
   // Load shipping rates from Shopify if auto shipping is enabled
   useEffect(() => {
