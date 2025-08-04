@@ -105,6 +105,13 @@ Deno.serve(async (req) => {
 
     // 3. حفظ معدلات التحويل المخصصة
     if (custom_rates && Object.keys(custom_rates).length > 0) {
+      // حذف جميع المعدلات الموجودة أولاً
+      await supabase
+        .from('custom_currency_rates')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // حذف جميع السجلات
+      
+      // إدراج المعدلات الجديدة
       const ratesData = Object.entries(custom_rates).map(([currency_code, exchange_rate]) => ({
         currency_code,
         exchange_rate,
@@ -113,9 +120,7 @@ Deno.serve(async (req) => {
 
       const { error: rateError } = await supabase
         .from('custom_currency_rates')
-        .upsert(ratesData, {
-          onConflict: 'currency_code'
-        });
+        .insert(ratesData);
 
       if (rateError) {
         console.error('❌ Error saving custom rates:', rateError);

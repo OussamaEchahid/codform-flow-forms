@@ -87,6 +87,7 @@
       this.currentCurrency = null;
       this.displaySettings = null;
       this.customSymbols = {};
+      this.customRates = {}; // ✅ إضافة معدلات التحويل المخصصة
       this.isInitialized = false;
       this.formId = null;
       this.shopId = null;
@@ -172,9 +173,19 @@
           if (data.success && data.display_settings) {
             console.log('📋 Display settings from DB:', data.display_settings);
             
-            // حفظ الرموز المخصصة
+            // ✅ حفظ الرموز المخصصة
             if (data.custom_symbols) {
               this.customSymbols = data.custom_symbols;
+              console.log('💰 Loaded custom symbols:', this.customSymbols);
+            }
+            
+            // ✅ حفظ جميع معدلات التحويل (مخصصة + افتراضية)
+            if (data.all_rates) {
+              this.customRates = data.all_rates;
+              console.log('💱 Loaded all rates:', this.customRates);
+            } else if (data.custom_rates) {
+              this.customRates = { ...EXCHANGE_RATES, ...data.custom_rates };
+              console.log('💱 Loaded custom rates merged with defaults:', this.customRates);
             }
             
             return {
@@ -240,12 +251,20 @@
     convertCurrency(amount, fromCurrency, toCurrency) {
       if (fromCurrency === toCurrency) return amount;
       
-      const fromRate = EXCHANGE_RATES[fromCurrency] || 1;
-      const toRate = EXCHANGE_RATES[toCurrency] || 1;
+      // ✅ استخدام المعدلات المخصصة أولاً، ثم الافتراضية
+      const allRates = { ...EXCHANGE_RATES, ...this.customRates };
+      
+      const fromRate = allRates[fromCurrency] || EXCHANGE_RATES[fromCurrency] || 1;
+      const toRate = allRates[toCurrency] || EXCHANGE_RATES[toCurrency] || 1;
+      
+      console.log(`💱 Converting ${amount} from ${fromCurrency} (rate: ${fromRate}) to ${toCurrency} (rate: ${toRate})`);
       
       // التحويل عبر الدولار كعملة أساسية
       const usdAmount = amount / fromRate;
-      return usdAmount * toRate;
+      const convertedAmount = usdAmount * toRate;
+      
+      console.log(`💱 Result: ${amount} ${fromCurrency} = ${convertedAmount} ${toCurrency}`);
+      return convertedAmount;
     }
 
     /**
