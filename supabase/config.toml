@@ -95,3 +95,6 @@ verify_jwt = true
 
 [functions.secure-product-manager]
 verify_jwt = true
+
+[functions.currency-settings]
+verify_jwt = false
