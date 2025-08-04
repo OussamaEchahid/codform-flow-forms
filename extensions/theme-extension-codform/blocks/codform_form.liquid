@@ -17,13 +17,10 @@
 <link rel="stylesheet" href="{{ 'codform-styles.css' | asset_url }}">
 
 <!-- تحميل الملفات الأساسية -->
-<script src="{{ 'codform-force-usd-system.js' | asset_url }}"></script>
+<script src="{{ 'codform-smart-currency-system.js' | asset_url }}"></script>
 <script src="{{ 'codform-logger-control.js' | asset_url }}"></script>
 <script src="{{ 'codform-form-core.js' | asset_url }}"></script>
 <script src="{{ 'codform-field-renderer.js' | asset_url }}"></script>
-<script src="{{ 'codform-currency-manager.js' | asset_url }}"></script>
-<script src="{{ 'codform-state-manager.js' | asset_url }}"></script>
-<script src="{{ 'codform-unified-system.js' | asset_url }}"></script>
 <script src="{{ 'codform-ui-updates.js' | asset_url }}"></script>
 <script src="{{ 'codform-quantity-offers-fixed.js' | asset_url }}"></script>
 <script src="{{ 'codform-icons.js' | asset_url }}"></script>
@@ -51,17 +48,11 @@
   window.codformShopDomain = '{{ shop.domain }}' || '{{ shop.permanent_domain }}' || 'auto-detect';
   window.CodformShopCurrency = '{{ shop.currency }}';
   
-  // ✅ تفعيل النظام القسري لفرض USD
-  console.log("🔒 ACTIVATING FORCE USD SYSTEM...");
-  localStorage.setItem('codform_forced_currency', 'USD');
-  window.CODFORM_FORCED_CURRENCY = 'USD';
+  // ✅ الحصول على معرفات النموذج والمتجر
+  const formId = window.codformProductId; // سيتم تحديده بواسطة النظام
+  const shopId = window.codformShopDomain;
   
-  // ✅ منع تغيير العملة من أي مصدر خارجي
-  Object.defineProperty(window, 'CODFORM_FORCED_CURRENCY', {
-    value: 'USD',
-    writable: false,
-    configurable: false
-  });
+  console.log(`🚀 Initializing Smart Currency System for Form: ${formId}, Shop: ${shopId}`);
   
   // تهيئة CurrencyService
   if (window.parent && window.parent.CurrencyService) {
@@ -72,19 +63,18 @@
     window.CurrencyServiceStorage = window.top.CurrencyServiceStorage;
   }
 
-  // ✅ تشغيل النظام القسري فور التحميل
+  // ✅ تشغيل النظام الذكي للعملات
   document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(() => {
-      if (window.CodformForceUSD) {
-        window.CodformForceUSD.enforceUSD();
-        console.log("🔒 FORCE USD: System activated");
-        
-        // إعادة التطبيق كل ثانيتين
-        setInterval(() => {
-          window.CodformForceUSD.enforceUSD();
-        }, 2000);
+    setTimeout(async () => {
+      if (window.CodformSmartCurrency) {
+        const success = await window.CodformSmartCurrency.initialize(formId, shopId);
+        if (success) {
+          console.log("✅ Smart Currency System: Successfully initialized");
+        } else {
+          console.log("⚠️ Smart Currency System: Initialization failed, using defaults");
+        }
       }
-    }, 100);
+    }, 1000);
   });
 
   function renderField(field, formStyle, formLanguage) {

@@ -103,20 +103,17 @@ window.CodformQuantityOffers = (function() {
         finalPrice = totalPrice - (totalPrice * discountValue / 100);
       }
       
-      // ✅ استخدام النظام الموحد فقط - تجاهل أي مصادر أخرى
-      const unifiedSystem = window.CodformUnifiedSystem;
+      // ✅ استخدام النظام الذكي للتنسيق
       let formattedTotal, formattedFinal;
       
-      if (unifiedSystem && unifiedSystem.formatCurrency) {
-        // ✅ فرض استخدام العملة المفضلة من النظام الموحد
-        const preferredCurrency = unifiedSystem.getPreferredCurrency();
-        formattedTotal = unifiedSystem.formatCurrency(totalPrice, 'USD');
-        formattedFinal = unifiedSystem.formatCurrency(finalPrice, 'USD');
-        console.log(`🔒 UNIFIED: Using ${preferredCurrency} - Total: ${formattedTotal}, Final: ${formattedFinal}`);
+      if (window.CodformSmartCurrency && window.CodformSmartCurrency.system.isInitialized) {
+        formattedTotal = window.CodformSmartCurrency.formatCurrency(totalPrice, 'SAR');
+        formattedFinal = window.CodformSmartCurrency.formatCurrency(finalPrice, 'SAR');
+        console.log(`🎯 SMART: Using smart system - Total: ${formattedTotal}, Final: ${formattedFinal}`);
       } else {
-        // تراجع للتنسيق الافتراضي - USD فقط
-        formattedTotal = `$${totalPrice.toFixed(0)}`;
-        formattedFinal = `$${finalPrice.toFixed(0)}`;
+        // تراجع للتنسيق الأساسي
+        formattedTotal = `${Math.round(totalPrice)}`;
+        formattedFinal = `${Math.round(finalPrice)}`;
         console.log(`⚠️ FALLBACK: Total: ${formattedTotal}, Final: ${formattedFinal}`);
       }
       
