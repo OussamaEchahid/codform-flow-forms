@@ -13,7 +13,7 @@
     symbolPosition: 'before', // 'before' | 'after'
     decimalPlaces: 2,
     customSymbols: {
-      'MAD': 'Dh',
+      'MAD': 'MAD',
       'SAR': 'ر.س',
       'AED': 'د.إ',
       'USD': '$',
@@ -177,12 +177,28 @@
    * تنسيق العملة
    */
   function formatCurrency(amount, currencyCode, language = 'ar') {
-    // استخدام CurrencyService إذا كان متاحاً
+    // تحديث الإعدادات من localStorage قبل التنسيق
+    loadCustomSettings();
+    
+    // استخدام CurrencyService إذا كان متاحاً مع ضمان استخدام الإعدادات المحدثة
     if (window.CurrencyService && typeof window.CurrencyService.formatCurrency === 'function') {
+      // تحديث إعدادات CurrencyService من localStorage
+      const savedSettings = localStorage.getItem('codform_currency_display_settings');
+      if (savedSettings) {
+        try {
+          const settings = JSON.parse(savedSettings);
+          if (window.CurrencyService.saveDisplaySettings) {
+            window.CurrencyService.saveDisplaySettings(settings);
+          }
+        } catch (e) {
+          console.warn('Failed to parse saved currency settings:', e);
+        }
+      }
+      
       return window.CurrencyService.formatCurrency(amount, currencyCode, language);
     }
     
-    // التنسيق المخصص
+    // التنسيق المخصص كحل احتياطي
     const formattedAmount = amount.toFixed(currencySettings.decimalPlaces);
     const symbol = currencySettings.customSymbols[currencyCode] || currencyCode;
     
