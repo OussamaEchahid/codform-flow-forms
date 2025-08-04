@@ -27,6 +27,7 @@ import OrderSettings from "@/pages/OrderSettings";
 import GeneralSettings from "@/pages/GeneralSettings";
 import SpamSettings from "@/pages/SpamSettings";
 import PlansSettings from "@/pages/PlansSettings";
+import CurrencySettings from "@/pages/CurrencySettings";
 import QuantityOffers from "@/pages/QuantityOffers";
 import AdvertisingTracking from "@/pages/AdvertisingTracking";
 import EnhancedMyStores from "@/pages/EnhancedMyStores";
@@ -154,6 +155,7 @@ function AppRoutes() {
       <Route path="/settings/general" element={<GeneralSettings />} />
       <Route path="/settings/spam" element={<SpamSettings />} />
       <Route path="/settings/plans" element={<PlansSettings />} />
+      <Route path="/settings/currency" element={<CurrencySettings />} />
       <Route path="/quantity-offers" element={<QuantityOffers />} />
       <Route path="/settings/quantity-offers" element={<QuantityOffers />} />
       <Route path="/advertising-tracking" element={<AdvertisingTracking />} />
