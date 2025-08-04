@@ -24,6 +24,11 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
   const [productData, setProductData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [linkedProductId, setLinkedProductId] = React.useState<string | null>(null);
+  
+  // تهيئة CurrencyService عند تحميل المكون
+  React.useEffect(() => {
+    CurrencyService.initialize();
+  }, []);
 
   const fieldStyle = field.style || {};
   const config = {
@@ -225,15 +230,8 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
     
     const currency = formCurrency || formStyle.currency || 'SAR';
     
-    try {
-      return new Intl.NumberFormat(language === 'ar' ? 'ar-SA' : 'en-US', {
-        style: 'currency',
-        currency: currency,
-        minimumFractionDigits: 2
-      }).format(amount);
-    } catch (error) {
-      return `${amount.toFixed(2)} ${currency}`;
-    }
+    // استخدام CurrencyService للتنسيق مع الإعدادات المخصصة
+    return CurrencyService.formatCurrency(amount, currency, language);
   };
   
   return (

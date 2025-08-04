@@ -25,6 +25,11 @@ const CartItems: React.FC<CartItemsProps> = ({ field, formStyle, productId, form
   const [loading, setLoading] = useState(false);
   const fieldStyle = field.style || {};
   const [linkedProductId, setLinkedProductId] = React.useState<string | null>(null);
+  
+  // تهيئة CurrencyService عند تحميل المكون
+  React.useEffect(() => {
+    CurrencyService.initialize();
+  }, []);
 
   // وظيفة تحويل العملة باستخدام الخدمة الموحدة
   const convertCurrency = (amount: number, fromCurrency: string, toCurrency: string) => {
@@ -124,15 +129,8 @@ const CartItems: React.FC<CartItemsProps> = ({ field, formStyle, productId, form
   const formatPrice = (amount: number) => {
     const currency = convertedPrice.currency;
     
-    try {
-      return new Intl.NumberFormat(language === 'ar' ? 'ar-SA' : 'en-US', {
-        style: 'currency',
-        currency: currency,
-        minimumFractionDigits: 2
-      }).format(amount);
-    } catch (error) {
-      return `${amount.toFixed(2)} ${currency}`;
-    }
+    // استخدام CurrencyService للتنسيق مع الإعدادات المخصصة
+    return CurrencyService.formatCurrency(amount, currency, language);
   };
   
   // استخدم نصف قطر الحدود من نمط النموذج إذا كان متاحًا
