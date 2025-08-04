@@ -103,19 +103,21 @@ window.CodformQuantityOffers = (function() {
         finalPrice = totalPrice - (totalPrice * discountValue / 100);
       }
       
-      // ✅ تطبيق تنسيق العملة باستخدام Currency Manager
+      // ✅ استخدام النظام الموحد فقط - تجاهل أي مصادر أخرى
+      const unifiedSystem = window.CodformUnifiedSystem;
       let formattedTotal, formattedFinal;
       
-      if (currencyManager && currencyManager.formatCurrency) {
-        formattedTotal = currencyManager.formatCurrency(totalPrice, targetCurrency, 'ar');
-        formattedFinal = currencyManager.formatCurrency(finalPrice, targetCurrency, 'ar');
+      if (unifiedSystem && unifiedSystem.formatCurrency) {
+        // ✅ فرض استخدام العملة المفضلة من النظام الموحد
+        const preferredCurrency = unifiedSystem.getPreferredCurrency();
+        formattedTotal = unifiedSystem.formatCurrency(totalPrice, 'USD');
+        formattedFinal = unifiedSystem.formatCurrency(finalPrice, 'USD');
+        console.log(`🔒 UNIFIED: Using ${preferredCurrency} - Total: ${formattedTotal}, Final: ${formattedFinal}`);
       } else {
-        // تراجع للتنسيق الافتراضي
-        const currencySymbol = targetCurrency === 'SAR' ? 'ر.س' : 
-                              targetCurrency === 'MAD' ? 'د.م' : 
-                              targetCurrency === 'USD' ? '$' : targetCurrency;
-        formattedTotal = `${totalPrice.toFixed(0)} ${currencySymbol}`;
-        formattedFinal = `${finalPrice.toFixed(0)} ${currencySymbol}`;
+        // تراجع للتنسيق الافتراضي - USD فقط
+        formattedTotal = `$${totalPrice.toFixed(0)}`;
+        formattedFinal = `$${finalPrice.toFixed(0)}`;
+        console.log(`⚠️ FALLBACK: Total: ${formattedTotal}, Final: ${formattedFinal}`);
       }
       
       console.log(`💰 Offer ${index}: quantity=${quantity}, total=${formattedTotal}, final=${formattedFinal}`);

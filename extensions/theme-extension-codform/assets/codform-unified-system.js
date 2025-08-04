@@ -158,34 +158,113 @@
       this.isInitialized = true;
     }
 
-    /**
-     * تنسيق العملة الموحد
-     */
-    formatCurrency(amount, currencyCode, language = 'ar') {
-      if (!this.isInitialized || !this.currentSettings) {
-        // استخدام تنسيق أساسي إذا لم يتم التهيئة بعد
-        const symbol = currencyCode === 'SAR' ? 'ر.س' : currencyCode === 'USD' ? '$' : currencyCode;
-        return `${Math.round(amount)} ${symbol}`;
-      }
-
-      const settings = this.currentSettings;
-      const symbol = settings.customSymbols[currencyCode] || currencyCode;
-      
-      // تطبيق عدد المنازل العشرية
-      const roundedAmount = Math.round(amount * Math.pow(10, settings.decimalPlaces)) / Math.pow(10, settings.decimalPlaces);
-      const formattedAmount = settings.decimalPlaces === 0 ? 
-        Math.round(roundedAmount).toString() : 
-        roundedAmount.toFixed(settings.decimalPlaces);
-
-      // تطبيق موضع الرمز
-      if (settings.showSymbol) {
-        return settings.symbolPosition === 'before' ? 
-          `${symbol} ${formattedAmount}` : 
-          `${formattedAmount} ${symbol}`;
-      } else {
-        return formattedAmount;
-      }
+  /**
+   * تحديد العملة المفضلة للنظام
+   */
+  getPreferredCurrency() {
+    // ✅ القوة الكاملة للنظام الموحد - لا نقبل تغييرات خارجية
+    const forcedCurrency = localStorage.getItem('codform_forced_currency');
+    if (forcedCurrency) {
+      debugLog(`🔒 Using forced currency: ${forcedCurrency}`);
+      return forcedCurrency;
     }
+
+    // ✅ الأولوية للإعدادات المحفوظة في API
+    if (this.isInitialized && this.currentSettings && this.currentSettings.preferredCurrency) {
+      return this.currentSettings.preferredCurrency;
+    }
+
+    // الافتراضي
+    return 'USD';
+  }
+
+  /**
+   * فرض عملة معينة (تجاهل جميع المصادر الأخرى)
+   */
+  forceCurrency(currencyCode) {
+    debugLog(`🔒 FORCING currency to: ${currencyCode}`);
+    localStorage.setItem('codform_forced_currency', currencyCode);
+    
+    // تحديث الحالة
+    if (this.currentSettings) {
+      this.currentSettings.preferredCurrency = currencyCode;
+    }
+    
+    // إشعار جميع المستمعين بالتغيير
+    this._notifyListeners();
+    
+    // تحديث جميع العناصر فوراً
+    this.refreshAllComponents();
+  }
+
+  /**
+   * تنسيق العملة الموحد مع فرض العملة المفضلة
+   */
+  formatCurrency(amount, originalCurrency, language = 'ar') {
+    const preferredCurrency = this.getPreferredCurrency();
+    
+    // ✅ تحويل إلى العملة المفضلة دائماً
+    const convertedAmount = this.convertCurrency(amount, originalCurrency, preferredCurrency);
+    
+    if (!this.isInitialized || !this.currentSettings) {
+      // استخدام تنسيق أساسي إذا لم يتم التهيئة بعد
+      const symbol = preferredCurrency === 'SAR' ? 'ر.س' : 
+                     preferredCurrency === 'USD' ? '$' : 
+                     preferredCurrency === 'MAD' ? 'د.م' :
+                     preferredCurrency === 'AED' ? 'د.إ' : preferredCurrency;
+      return `${Math.round(convertedAmount)} ${symbol}`;
+    }
+
+    const settings = this.currentSettings;
+    const symbol = settings.customSymbols[preferredCurrency] || preferredCurrency;
+    
+    // تطبيق عدد المنازل العشرية
+    const roundedAmount = Math.round(convertedAmount * Math.pow(10, settings.decimalPlaces)) / Math.pow(10, settings.decimalPlaces);
+    const formattedAmount = settings.decimalPlaces === 0 ? 
+      Math.round(roundedAmount).toString() : 
+      roundedAmount.toFixed(settings.decimalPlaces);
+
+    // تطبيق موضع الرمز
+    if (settings.showSymbol) {
+      return settings.symbolPosition === 'before' ? 
+        `${symbol} ${formattedAmount}` : 
+        `${formattedAmount} ${symbol}`;
+    } else {
+      return formattedAmount;
+    }
+  }
+
+  /**
+   * تحويل العملات
+   */
+  convertCurrency(amount, fromCurrency, toCurrency) {
+    if (fromCurrency === toCurrency) return amount;
+    
+    const exchangeRates = {
+      'USD': 1.0,
+      'SAR': 3.75,
+      'MAD': 10.0,
+      'AED': 3.67,
+      'EGP': 30.85
+    };
+    
+    // التحويل عبر الدولار كعملة أساسية
+    const fromRate = exchangeRates[fromCurrency] || 1;
+    const toRate = exchangeRates[toCurrency] || 1;
+    
+    const usdAmount = amount / fromRate;
+    return usdAmount * toRate;
+  }
+
+  /**
+   * تحديث جميع المكونات
+   */
+  refreshAllComponents() {
+    debugLog('🔄 Refreshing all components with unified currency...');
+    this.updateQuantityOffers();
+    this.updateCartSummary();
+    this.updateGeneralElements();
+  }
 
     /**
      * الاشتراك في تحديثات الإعدادات
@@ -295,14 +374,37 @@
     debugLog('✅ Unified system fully initialized and connected');
   }
 
+  /**
+   * تحديث العناصر العامة
+   */
+  function updateGeneralElementsWithUnifiedSystem() {
+    debugLog('🔄 Updating general elements with unified system...');
+    
+    // البحث عن جميع عناصر الأسعار العامة
+    document.querySelectorAll('[data-codform-price]').forEach(element => {
+      const amount = parseFloat(element.getAttribute('data-amount'));
+      const currency = element.getAttribute('data-original-currency') || 'USD';
+      
+      if (!isNaN(amount)) {
+        const formattedPrice = unifiedSystem.formatCurrency(amount, currency);
+        element.textContent = formattedPrice;
+        debugLog(`💰 Updated general price: ${amount} ${currency} → ${formattedPrice}`);
+      }
+    });
+  }
+
   // تصدير النظام الموحد
   window.CodformUnifiedSystem = {
     initialize: initializeUnifiedSystem,
     formatCurrency: (amount, currency) => unifiedSystem.formatCurrency(amount, currency),
     subscribe: (listener) => unifiedSystem.subscribe(listener),
     getSettings: () => unifiedSystem.getSettings(),
+    getPreferredCurrency: () => unifiedSystem.getPreferredCurrency(),
+    forceCurrency: (currency) => unifiedSystem.forceCurrency(currency),
     updateQuantityOffers: updateQuantityOffersWithUnifiedSystem,
-    updateCartSummary: updateCartSummaryWithUnifiedSystem
+    updateCartSummary: updateCartSummaryWithUnifiedSystem,
+    updateGeneralElements: updateGeneralElementsWithUnifiedSystem,
+    refreshAll: () => unifiedSystem.refreshAllComponents()
   };
 
   // تهيئة تلقائية

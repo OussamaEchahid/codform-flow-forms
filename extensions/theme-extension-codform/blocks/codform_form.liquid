@@ -50,6 +50,11 @@
   window.codformShopDomain = '{{ shop.domain }}' || '{{ shop.permanent_domain }}' || 'auto-detect';
   window.CodformShopCurrency = '{{ shop.currency }}';
   
+  // ✅ CRITICAL: فرض USD كعملة افتراضية - تجاهل جميع المصادر الأخرى
+  console.log("🔒 FORCING USD currency system...");
+  localStorage.setItem('codform_forced_currency', 'USD');
+  window.CODFORM_FORCED_CURRENCY = 'USD';
+  
   // تهيئة CurrencyService
   if (window.parent && window.parent.CurrencyService) {
     window.CurrencyService = window.parent.CurrencyService;
@@ -58,6 +63,16 @@
     window.CurrencyService = window.top.CurrencyService;
     window.CurrencyServiceStorage = window.top.CurrencyServiceStorage;
   }
+
+  // ✅ فرض النظام الموحد عند التحميل
+  document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(() => {
+      if (window.CodformUnifiedSystem) {
+        window.CodformUnifiedSystem.forceCurrency('USD');
+        console.log("🔒 Unified System: Currency FORCED to USD");
+      }
+    }, 500);
+  });
 
   function renderField(field, formStyle, formLanguage) {
     if (!field || !field.type) return '';
