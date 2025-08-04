@@ -95,7 +95,10 @@ window.CodformQuantityOffers = (function() {
 
       // حساب الأسعار باستخدام Currency Manager
       const quantity = offer.quantity || 1;
-      const totalPrice = basePrice * quantity;
+      
+      // ✅ استخدام السعر الأساسي الصحيح من بيانات المنتج
+      const actualBasePrice = productData?.price || basePrice || 20;
+      const totalPrice = actualBasePrice * quantity;
       const discountValue = parseFloat(offer.discount || 0);
       let finalPrice = totalPrice;
       
@@ -103,17 +106,20 @@ window.CodformQuantityOffers = (function() {
         finalPrice = totalPrice - (totalPrice * discountValue / 100);
       }
       
+      console.log(`💰 Offer calculation: basePrice=${actualBasePrice}, quantity=${quantity}, total=${totalPrice}, discount=${discountValue}%, final=${finalPrice}`);
+      
       // ✅ استخدام النظام الذكي للتنسيق
       let formattedTotal, formattedFinal;
       
       if (window.CodformSmartCurrency && window.CodformSmartCurrency.system.isInitialized) {
-        formattedTotal = window.CodformSmartCurrency.formatCurrency(totalPrice, 'SAR');
-        formattedFinal = window.CodformSmartCurrency.formatCurrency(finalPrice, 'SAR');
-        console.log(`🎯 SMART: Using smart system - Total: ${formattedTotal}, Final: ${formattedFinal}`);
+        const originalCurrency = productData?.currency || 'USD';
+        formattedTotal = window.CodformSmartCurrency.formatCurrency(totalPrice, originalCurrency);
+        formattedFinal = window.CodformSmartCurrency.formatCurrency(finalPrice, originalCurrency);
+        console.log(`🎯 SMART: Using smart system - Total: ${formattedTotal}, Final: ${formattedFinal} (from ${originalCurrency})`);
       } else {
         // تراجع للتنسيق الأساسي
-        formattedTotal = `${Math.round(totalPrice)}`;
-        formattedFinal = `${Math.round(finalPrice)}`;
+        formattedTotal = `$${Math.round(totalPrice)}`;
+        formattedFinal = `$${Math.round(finalPrice)}`;
         console.log(`⚠️ FALLBACK: Total: ${formattedTotal}, Final: ${formattedFinal}`);
       }
       

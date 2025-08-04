@@ -92,6 +92,36 @@ export type Database = {
         }
         Relationships: []
       }
+      currency_settings: {
+        Row: {
+          created_at: string | null
+          custom_symbols: Json | null
+          display_settings: Json
+          id: string
+          shop_domain: string
+          shop_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          custom_symbols?: Json | null
+          display_settings?: Json
+          id?: string
+          shop_domain: string
+          shop_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          custom_symbols?: Json | null
+          display_settings?: Json
+          id?: string
+          shop_domain?: string
+          shop_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       custom_currency_rates: {
         Row: {
           created_at: string

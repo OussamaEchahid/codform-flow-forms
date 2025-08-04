@@ -109,7 +109,7 @@
       }
 
       try {
-        const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/currency-settings?shop_id=${this.shopId}`);
+        const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/currency-settings?shop_domain=${this.shopId}`);
         
         if (response.ok) {
           const data = await response.json();
