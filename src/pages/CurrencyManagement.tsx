@@ -41,17 +41,24 @@ const CurrencyManagement = () => {
 
   const loadSettings = async () => {
     if (!currentStore) {
-      console.log('❌ No current store available');
+      console.log('❌ No current store available for currency settings');
       return;
     }
 
     try {
       console.log('🏪 Loading currency settings for store:', currentStore);
+      console.log('📋 Available user stores:', userStores.map(s => s.shop));
       
-      // تعيين سياق المتجر للخدمة
+      // تعيين سياق المتجر للخدمة مع التأكد من التمرير الصحيح
       const userId = '36d7eb85-0c45-4b4f-bea1-a9cb732ca893';
       console.log('💫 Setting currency service context:', { shop: currentStore, userId });
-      CurrencyService.setShopContext(currentStore, userId);
+      
+      // إجبار إعادة تعيين الخدمة
+      (CurrencyService as any).currentShopId = currentStore;
+      (CurrencyService as any).currentUserId = userId;
+      (CurrencyService as any).initialized = false;
+      
+      console.log('✅ Forced context update - Shop ID:', (CurrencyService as any).currentShopId);
       
       await CurrencyService.initialize();
       setDisplaySettings(CurrencyService.getDisplaySettings());
@@ -65,12 +72,24 @@ const CurrencyManagement = () => {
   };
 
   const saveDisplaySettings = async () => {
+    if (!currentStore) {
+      toast.error('يرجى اختيار متجر أولاً');
+      return;
+    }
+
     setLoading(true);
     try {
+      // التأكد من أن السياق محدد بشكل صحيح قبل الحفظ
+      console.log('💾 Saving display settings for store:', currentStore);
+      console.log('🔧 Current service context:', {
+        shopId: (CurrencyService as any).currentShopId,
+        userId: (CurrencyService as any).currentUserId
+      });
+      
       await CurrencyService.saveDisplaySettings(displaySettings);
       toast.success('تم حفظ إعدادات العرض بنجاح');
     } catch (error) {
-      console.error('Error saving display settings:', error);
+      console.error('❌ Error saving display settings:', error);
       toast.error('فشل في حفظ إعدادات العرض');
     } finally {
       setLoading(false);
@@ -149,6 +168,22 @@ const CurrencyManagement = () => {
   return (
     <SettingsLayout>
       <div className="container mx-auto p-6 space-y-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+        
+        {/* Debug info - إظهار حالة المتجر الحالي */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
+            <strong>Debug Info:</strong> Current Store: {currentStore || 'غير محدد'} | 
+            User Stores: {userStores.length} | 
+            Service Shop ID: {(CurrencyService as any).currentShopId || 'غير محدد'}
+          </div>
+        )}
+
+        {!currentStore && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <p className="text-yellow-800">⚠️ لا يوجد متجر محدد. يرجى اختيار متجر من قائمة المتاجر.</p>
+          </div>
+        )}
+
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">إدارة العملات</h1>
@@ -159,7 +194,11 @@ const CurrencyManagement = () => {
               <RotateCcw className="h-4 w-4" />
               إعادة تعيين
             </Button>
-            <Button onClick={saveDisplaySettings} disabled={loading} className="flex items-center gap-2">
+            <Button 
+              onClick={saveDisplaySettings} 
+              disabled={loading || !currentStore} 
+              className="flex items-center gap-2"
+            >
               <Save className="h-4 w-4" />
               حفظ الإعدادات
             </Button>
