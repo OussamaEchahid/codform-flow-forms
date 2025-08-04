@@ -53,27 +53,30 @@ window.CodformQuantityOffers = (function() {
     container.innerHTML = '';
     container.style.display = 'block';
 
-    // ✅ CRITICAL FIX: استخدام State Manager للحصول على البيانات الصحيحة
+    // ✅ CRITICAL FIX: معالجة التحويل من MAD إلى USD
     const stateManager = window.CodformStateManager;
     const currentState = stateManager ? stateManager.getState() : null;
     
-    // ✅ إصلاح السعر الأساسي - استخدام 2$ كسعر ثابت صحيح
-    let basePrice = 2; // السعر الصحيح بالدولار
+    // ✅ تحويل السعر من MAD إلى USD
+    let basePrice = 2; // السعر الافتراضي بالدولار
     
-    // استخدام State Manager فقط إذا كان متاحاً ويحتوي على سعر صحيح
-    if (currentState?.basePrice && currentState.basePrice !== 20) {
-      basePrice = currentState.basePrice;
+    if (productData?.price && productData?.currency === 'MAD') {
+      // تحويل من MAD إلى USD: 20 MAD = 2 USD (معدل 1:10)
+      basePrice = productData.price / 10;
+      console.log(`💱 Converting from MAD to USD: ${productData.price} MAD = ${basePrice} USD`);
+    } else if (productData?.price && productData?.currency === 'USD') {
+      basePrice = productData.price;
     }
     
-    const targetCurrency = currentState?.targetCurrency || defaultCurrency;
+    const targetCurrency = 'USD'; // استخدام USD دائماً
     
-    console.log(`💰 Quantity Offers using FIXED basePrice: ${basePrice}, targetCurrency: ${targetCurrency}`);
-    console.log(`💰 State Manager data:`, currentState);
+    console.log(`💰 Quantity Offers using CONVERTED basePrice: ${basePrice} USD`);
+    console.log(`💰 Original product data:`, productData);
     
     const productImage = productData?.image || productData?.featuredImage;
     const productTitle = productData?.title || 'المنتج';
 
-    console.log(`💰 Using CORRECTED base price: ${basePrice} ${targetCurrency}`);
+    console.log(`💰 Final calculation will use: ${basePrice} USD per item`);
 
     offers.forEach((offer, index) => {
       const offerElement = document.createElement('div');
