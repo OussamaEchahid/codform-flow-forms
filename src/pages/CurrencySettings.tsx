@@ -12,11 +12,11 @@ import { useI18n } from "@/lib/i18n";
 import { CurrencyService, CurrencyDisplaySettings } from "@/lib/services/CurrencyService";
 import { CURRENCIES } from "@/lib/constants/countries-currencies";
 import { toast } from "sonner";
-import { useSimpleShopifyAuth } from "@/hooks/useSimpleShopifyAuth";
+import { useAuth } from '@/components/layout/AuthProvider';
 
 const CurrencySettings = () => {
   const { t, language } = useI18n();
-  const { currentStore, userStores } = useSimpleShopifyAuth();
+  const { shop: currentStore, shops: userStores, isShopifyAuthenticated } = useAuth();
   
   // إعدادات العرض
   const [displaySettings, setDisplaySettings] = useState<CurrencyDisplaySettings>({
@@ -34,41 +34,37 @@ const CurrencySettings = () => {
 
   // تحميل الإعدادات عند بدء التشغيل
   useEffect(() => {
-    console.log('🔄 CurrencySettings useEffect triggered:', { currentStore, userStoresLength: userStores.length });
+    console.log('🔄 CurrencySettings useEffect triggered:', { currentStore, userStoresLength: userStores?.length || 0, isShopifyAuthenticated });
     
-    // استخدام setTimeout للتأكد من أن currentStore محدث
-    const timer = setTimeout(() => {
-      const actualCurrentStore = localStorage.getItem('current_shopify_store');
-      console.log('⏰ Delayed check - actual store:', actualCurrentStore);
-      
-      if (actualCurrentStore) {
-        loadSettings();
-      }
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [currentStore, userStores]);
-
-  const loadSettings = async () => {
-    // الحصول على القيمة الطازجة مباشرة من localStorage
-    const actualCurrentStore = localStorage.getItem('current_shopify_store');
+    // استخدام قيمة مباشرة من localStorage مع التحقق من useAuth
+    const storeFromStorage = localStorage.getItem('current_shopify_store');
+    const activeStore = currentStore || storeFromStorage;
     
-    if (!actualCurrentStore) {
-      console.log('❌ No current store available for currency settings');
+    console.log('⏰ Active store check:', { currentStore, storeFromStorage, activeStore });
+    
+    if (activeStore) {
+      loadSettings(activeStore);
+    }
+  }, [currentStore, userStores, isShopifyAuthenticated]);
+
+  const loadSettings = async (storeId: string) => {
+    
+    if (!storeId) {
+      console.log('❌ No store ID provided for currency settings');
       return;
     }
 
     try {
-      console.log('🏪 Loading currency settings for store:', actualCurrentStore);
+      console.log('🏪 Loading currency settings for store:', storeId);
       console.log('📋 Hook current store:', currentStore);
-      console.log('📋 Available user stores:', userStores.map(s => s.shop));
+      console.log('📋 Available user stores:', userStores?.length || 0);
       
       // تعيين سياق المتجر للخدمة مع التأكد من التمرير الصحيح
       const userId = '36d7eb85-0c45-4b4f-bea1-a9cb732ca893';
-      console.log('💫 Setting currency service context:', { shop: actualCurrentStore, userId });
+      console.log('💫 Setting currency service context:', { shop: storeId, userId });
       
       // إجبار إعادة تعيين الخدمة
-      (CurrencyService as any).currentShopId = actualCurrentStore;
+      (CurrencyService as any).currentShopId = storeId;
       (CurrencyService as any).currentUserId = userId;
       (CurrencyService as any).initialized = false;
       
@@ -86,9 +82,10 @@ const CurrencySettings = () => {
   };
 
   const saveDisplaySettings = async () => {
-    const actualCurrentStore = localStorage.getItem('current_shopify_store');
+    const storeFromStorage = localStorage.getItem('current_shopify_store');
+    const activeStore = currentStore || storeFromStorage;
     
-    if (!actualCurrentStore) {
+    if (!activeStore) {
       toast.error('يرجى اختيار متجر أولاً');
       return;
     }
@@ -96,7 +93,7 @@ const CurrencySettings = () => {
     setLoading(true);
     try {
       // التأكد من أن السياق محدد بشكل صحيح قبل الحفظ
-      console.log('💾 Saving display settings for store:', actualCurrentStore);
+      console.log('💾 Saving display settings for store:', activeStore);
       console.log('🔧 Current service context:', {
         shopId: (CurrencyService as any).currentShopId,
         userId: (CurrencyService as any).currentUserId
@@ -195,10 +192,11 @@ const CurrencySettings = () => {
         {/* Debug info - إظهار حالة المتجر الحالي */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm mb-4">
           <strong>Debug Info:</strong><br/>
-          Hook Current Store: {currentStore || 'غير محدد'}<br/>
+          useAuth Current Store: {currentStore || 'غير محدد'}<br/>
           LocalStorage Store: {localStorage.getItem('current_shopify_store') || 'غير محدد'}<br/>
-          User Stores: {userStores.length}<br/>
-          Service Shop ID: {(CurrencyService as any).currentShopId || 'غير محدد'}
+          User Stores: {userStores?.length || 0}<br/>
+          Service Shop ID: {(CurrencyService as any).currentShopId || 'غير محدد'}<br/>
+          Is Shopify Authenticated: {isShopifyAuthenticated ? 'نعم' : 'لا'}
         </div>
 
         {!currentStore && !localStorage.getItem('current_shopify_store') && (
