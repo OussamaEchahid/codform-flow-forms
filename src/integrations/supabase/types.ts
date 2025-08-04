@@ -128,6 +128,7 @@ export type Database = {
           currency_code: string
           exchange_rate: number
           id: string
+          shop_id: string | null
           updated_at: string
           user_id: string
         }
@@ -136,6 +137,7 @@ export type Database = {
           currency_code: string
           exchange_rate: number
           id?: string
+          shop_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -144,6 +146,7 @@ export type Database = {
           currency_code?: string
           exchange_rate?: number
           id?: string
+          shop_id?: string | null
           updated_at?: string
           user_id?: string
         }
