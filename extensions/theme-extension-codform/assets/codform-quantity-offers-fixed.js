@@ -74,38 +74,23 @@ window.CodformQuantityOffers = (function() {
     container.innerHTML = '';
     container.style.display = 'block';
 
-    // ✅ CRITICAL FIX: معالجة التحويل من MAD إلى USD
-    const stateManager = window.CodformStateManager;
-    const currentState = stateManager ? stateManager.getState() : null;
+    // ✅ تبسيط كامل: استخدام عملة وسعر المنتج مباشرة
+    let basePrice = 0;
+    let productCurrency = defaultCurrency || 'SAR';
     
-    // ✅ تحويل السعر من MAD إلى USD
-    let basePrice = 2; // السعر الافتراضي بالدولار
-    
-    if (productData?.price && productData?.currency === 'MAD') {
-      // تحويل من MAD إلى USD: 20 MAD = 2 USD (معدل 1:10)
-      basePrice = productData.price / 10;
-      console.log(`💱 Converting from MAD to USD: ${productData.price} MAD = ${basePrice} USD`);
-    } else if (productData?.price && productData?.currency === 'USD') {
+    if (productData && productData.price) {
       basePrice = productData.price;
+      productCurrency = productData.currency || defaultCurrency || 'SAR';
     }
     
-    // استخدام العملة من إعدادات المتجر أو الإعدادات المخصصة
-    let targetCurrency = defaultCurrency || 'USD';
-    
-    // جلب العملة المفضلة من الإعدادات إذا كانت متاحة
-    if (currentState && currentState.targetCurrency) {
-      targetCurrency = currentState.targetCurrency;
-    } else if (productData?.currency) {
-      targetCurrency = productData.currency;
-    }
-    
-    console.log(`💰 Quantity Offers using CONVERTED basePrice: ${basePrice} USD`);
-    console.log(`💰 Original product data:`, productData);
+    console.log(`🎯 SIMPLIFIED: Using product currency directly: ${productCurrency}`);
+    console.log(`💰 Base price: ${basePrice} ${productCurrency}`);
+    console.log(`📊 Product data:`, productData);
     
     const productImage = productData?.image || productData?.featuredImage;
     const productTitle = productData?.title || 'المنتج';
 
-    console.log(`💰 Final calculation will use: ${basePrice} USD per item`);
+    console.log(`💰 Final calculation will use: ${basePrice} ${productCurrency} per item`);
 
     // دالة مساعدة للحصول على رمز العملة
     function getCurrencySymbol(currency) {
@@ -215,17 +200,14 @@ window.CodformQuantityOffers = (function() {
             customRates: customSettings.custom_rates
           });
           
-          // تطبيق معدلات التحويل المخصصة
-          if (customSettings.custom_rates && Object.keys(customSettings.custom_rates).length > 0) {
-            // استخدام المعدلات المخصصة للتحويل
-            // استخدام العملة المختارة من الإعدادات
-            const finalTargetCurrency = targetCurrency; // العملة المحددة في أعلى الدالة
-            if (customSettings.custom_rates[finalTargetCurrency]) {
-              const rate = customSettings.custom_rates[finalTargetCurrency];
-              convertedTotal = totalPrice * rate;
-              convertedFinal = finalPrice * rate;
-              console.log(`💱 Applied custom rate (${rate}): Total ${totalPrice} -> ${convertedTotal}, Final ${finalPrice} -> ${convertedFinal}`);
-            }
+          // ✅ تطبيق المعدلات المخصصة مباشرة على عملة المنتج
+          if (customSettings.custom_rates && customSettings.custom_rates[productCurrency]) {
+            const rate = customSettings.custom_rates[productCurrency];
+            convertedTotal = totalPrice * rate;
+            convertedFinal = finalPrice * rate;
+            console.log(`💱 Applied custom rate for ${productCurrency} (${rate}): Total ${totalPrice} -> ${convertedTotal}, Final ${finalPrice} -> ${convertedFinal}`);
+          } else {
+            console.log(`📝 No custom rate found for ${productCurrency}, using original values`);
           }
           
           // تطبيق إعدادات العرض المخصصة
@@ -235,7 +217,8 @@ window.CodformQuantityOffers = (function() {
           console.log('🎛️ Display settings:', displaySettings);
           console.log('🔤 Custom symbols:', customSymbols);
           
-          const symbol = customSymbols[originalCurrency] || getCurrencySymbol(originalCurrency);
+          // ✅ استخدام رمز العملة للمنتج الحالي بدلاً من العملة الأصلية
+          const symbol = customSymbols[productCurrency] || getCurrencySymbol(productCurrency);
           const decimals = displaySettings.decimal_places !== undefined ? displaySettings.decimal_places : 0;
           const showSymbol = displaySettings.show_symbol !== false;
           const symbolPosition = displaySettings.symbol_position || 'after';
