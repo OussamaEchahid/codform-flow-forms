@@ -73,31 +73,28 @@ window.CodformQuantityOffers = (function() {
     
     if (fromCurrency === toCurrency) return amount;
     
-    // For direct rate application (not via USD)
-    if (settings.custom_rates && settings.custom_rates[fromCurrency]) {
-      const customRate = settings.custom_rates[fromCurrency];
-      const finalAmount = amount * customRate;
-      console.log(`💱 Direct custom rate applied: ${amount} ${fromCurrency} × ${customRate} = ${finalAmount}`);
-      return finalAmount;
-    }
+    // ✅ CRITICAL FIX: Use standard conversion, not direct multiplication
+    const fromRate = exchangeRates[fromCurrency] || 1;
+    const toRate = exchangeRates[toCurrency] || 1;
     
-    // Fallback to USD conversion
-    const fromRate = exchangeRates[fromCurrency];
-    const toRate = exchangeRates[toCurrency];
+    // Convert via USD base: amount / fromRate * toRate
+    const usdAmount = amount / fromRate;
+    const convertedAmount = usdAmount * toRate;
     
-    if (fromRate && toRate) {
-      const usdAmount = amount / fromRate;
-      return usdAmount * toRate;
-    }
-    
-    return amount;
+    console.log(`💱 Currency conversion: ${amount} ${fromCurrency} → ${convertedAmount} ${toCurrency} (via USD: ${usdAmount})`);
+    return convertedAmount;
   }
 
   // دالة مساعدة للحصول على رمز العملة
-  function getCurrencySymbol(currency) {
+  function getCurrencySymbol(currency, useSymbolOnly = false) {
     const symbols = {
-      'USD': '$', 'SAR': 'ر.س', 'MAD': 'د.م.', 'AED': 'د.إ',
-      'EGP': 'ج.م', 'EUR': '€', 'GBP': '£'
+      'USD': useSymbolOnly ? '$' : 'USD', 
+      'SAR': useSymbolOnly ? 'ر.س' : 'SAR', 
+      'MAD': useSymbolOnly ? 'د.م.' : 'MAD', 
+      'AED': useSymbolOnly ? 'د.إ' : 'AED',
+      'EGP': useSymbolOnly ? 'ج.م' : 'EGP', 
+      'EUR': useSymbolOnly ? '€' : 'EUR', 
+      'GBP': useSymbolOnly ? '£' : 'GBP'
     };
     return symbols[currency] || currency;
   }
@@ -172,20 +169,17 @@ window.CodformQuantityOffers = (function() {
       
       console.log(`💰 Offer ${index + 1}: basePrice=${convertedBasePrice}, quantity=${quantity}, total=${totalPrice}, discount=${discountValue}%, final=${finalPrice}`);
       
-      // ✅ تطبيق الإعدادات المخصصة للعرض باستخدام عملة النموذج
+      // ✅ CRITICAL FIX: تم إزالة تطبيق المعدلات المخصصة هنا لتجنب التطبيق المزدوج
+      // المعدلات المخصصة تطبق فقط في دالة convertCurrency
+      
       let formattedTotal = totalPrice.toFixed(2);
       let formattedFinal = finalPrice.toFixed(2);
-      let currencySymbol = getCurrencySymbol(formCurrency); // استخدام رمز عملة النموذج
       
-      // تطبيق المعدلات المخصصة إذا كانت متاحة لعملة النموذج
-      if (customSettings && customSettings.custom_rates && customSettings.custom_rates[formCurrency]) {
-        const customRate = customSettings.custom_rates[formCurrency];
-        totalPrice = totalPrice * customRate;
-        finalPrice = finalPrice * customRate;
-        console.log(`💱 Applied custom rate ${customRate} for ${formCurrency}: Total=${totalPrice}, Final=${finalPrice}`);
-      }
+      console.log(`💰 Final calculation: basePrice=${convertedBasePrice}, total=${totalPrice}, final=${finalPrice}`);
       
       // ✅ تطبيق إعدادات العرض المخصصة لعملة النموذج
+      let currencyDisplay = formCurrency; // عرض كود العملة كامل افتراضياً
+      
       if (customSettings && customSettings.display_settings) {
         const displaySettings = customSettings.display_settings;
         const customSymbols = customSettings.custom_symbols || {};
@@ -195,10 +189,12 @@ window.CodformQuantityOffers = (function() {
         const symbolPosition = displaySettings.symbol_position || 'before';
         
         // استخدام رمز العملة المخصص إذا كان متاحاً
-        const customSymbol = customSymbols[formCurrency];
-        if (customSymbol) {
-          currencySymbol = customSymbol;
-          console.log(`🔤 Using custom symbol for ${formCurrency}: ${customSymbol}`);
+        if (customSymbols[formCurrency]) {
+          currencyDisplay = customSymbols[formCurrency];
+          console.log(`🔤 Using custom symbol for ${formCurrency}: ${customSymbols[formCurrency]}`);
+        } else {
+          // استخدام الرمز أو الكود حسب الإعدادات
+          currencyDisplay = getCurrencySymbol(formCurrency, showSymbol);
         }
         
         formattedTotal = totalPrice.toFixed(decimalPlaces);
@@ -206,19 +202,23 @@ window.CodformQuantityOffers = (function() {
         
         if (showSymbol) {
           if (symbolPosition === 'after') {
-            formattedTotal = `${formattedTotal} ${currencySymbol}`;
-            formattedFinal = `${formattedFinal} ${currencySymbol}`;
+            formattedTotal = `${formattedTotal} ${currencyDisplay}`;
+            formattedFinal = `${formattedFinal} ${currencyDisplay}`;
           } else {
-            formattedTotal = `${currencySymbol} ${formattedTotal}`;
-            formattedFinal = `${currencySymbol} ${formattedFinal}`;
+            formattedTotal = `${currencyDisplay} ${formattedTotal}`;
+            formattedFinal = `${currencyDisplay} ${formattedFinal}`;
           }
+        } else {
+          // إذا كان show_symbol = false، لا نعرض أي رمز
+          formattedTotal = formattedTotal;
+          formattedFinal = formattedFinal;
         }
         
-        console.log(`🎨 Applied custom display settings: decimals=${decimalPlaces}, symbol=${showSymbol}, position=${symbolPosition}`);
+        console.log(`🎨 Applied display settings: decimals=${decimalPlaces}, symbol=${showSymbol}, position=${symbolPosition}, display=${currencyDisplay}`);
       } else {
-        // إعدادات افتراضية
-        formattedTotal = `${currencySymbol} ${totalPrice.toFixed(2)}`;
-        formattedFinal = `${currencySymbol} ${finalPrice.toFixed(2)}`;
+        // إعدادات افتراضية - عرض كود العملة
+        formattedTotal = `${totalPrice.toFixed(2)} ${formCurrency}`;
+        formattedFinal = `${finalPrice.toFixed(2)} ${formCurrency}`;
       }
       
       console.log(`✅ Final formatted prices: Total=${formattedTotal}, Final=${formattedFinal}`);
