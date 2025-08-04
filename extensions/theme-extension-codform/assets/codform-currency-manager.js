@@ -89,11 +89,36 @@
    */
   async function loadSettingsFromAPI() {
     try {
-      // الحصول على shop من المتغيرات العامة
-      const shopId = window.Shopify?.shop || window.codformConfig?.shop;
+      // الحصول على shop من المتغيرات العامة - مع تتبع أفضل
+      console.log('🔍 Available shop sources:', {
+        'window.Shopify.shop': window.Shopify?.shop,
+        'window.codformConfig.shop': window.codformConfig?.shop,
+        'location.hostname': location.hostname,
+        'window.location.href': window.location.href
+      });
+      
+      // تجربة مصادر مختلفة للحصول على shop_id
+      let shopId = window.Shopify?.shop || window.codformConfig?.shop;
+      
+      // إذا لم نجد shop_id، حاول استخراجه من URL أو hostname
+      if (!shopId && location.hostname.includes('myshopify.com')) {
+        shopId = location.hostname;
+        console.log(`📍 Extracted shop from hostname: ${shopId}`);
+      }
+      
+      // إذا كان في iframe، حاول الحصول عليه من parent
+      if (!shopId && window.parent !== window) {
+        try {
+          shopId = window.parent.Shopify?.shop || window.parent.location.hostname;
+          if (shopId) console.log(`🔗 Got shop from parent: ${shopId}`);
+        } catch (e) {
+          console.warn('Could not access parent window:', e);
+        }
+      }
       
       if (!shopId) {
-        console.warn('⚠️ Shop ID not found, using fallback settings');
+        console.warn('⚠️ Shop ID not found after all attempts, using fallback settings');
+        console.log('Available global objects:', Object.keys(window).filter(k => k.toLowerCase().includes('shop')));
         return;
       }
       
