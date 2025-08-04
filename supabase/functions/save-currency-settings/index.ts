@@ -114,24 +114,33 @@ Deno.serve(async (req) => {
       
       const user_id = displayData?.user_id || '36d7eb85-0c45-4b4f-bea1-a9cb732ca893';
       
-      // استخدام upsert مع المفاتيح الصحيحة
-      const ratesData = Object.entries(custom_rates).map(([currency_code, exchange_rate]) => ({
-        currency_code,
-        exchange_rate,
-        user_id,
-        updated_at: new Date().toISOString()
-      }));
-
-      const { error: rateError } = await supabase
-        .from('custom_currency_rates')
-        .upsert(ratesData, {
-          onConflict: 'currency_code,user_id'
-        });
-
-      if (rateError) {
-        console.error('❌ Error saving custom rates:', rateError);
-        throw rateError;
+      // حذف كل معدل بشكل منفصل ثم إدراجه
+      for (const [currency_code, exchange_rate] of Object.entries(custom_rates)) {
+        // حذف المعدل الموجود للعملة والمستخدم
+        await supabase
+          .from('custom_currency_rates')
+          .delete()
+          .eq('currency_code', currency_code)
+          .eq('user_id', user_id);
+        
+        // إدراج المعدل الجديد
+        const { error: insertError } = await supabase
+          .from('custom_currency_rates')
+          .insert({
+            currency_code,
+            exchange_rate,
+            user_id,
+            updated_at: new Date().toISOString()
+          });
+        
+        if (insertError) {
+          console.error(`❌ Error saving rate for ${currency_code}:`, insertError);
+          throw insertError;
+        }
+        
+        console.log(`✅ Saved rate for ${currency_code}: ${exchange_rate}`);
       }
+
       console.log('✅ Custom rates saved');
     }
 
