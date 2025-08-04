@@ -257,9 +257,7 @@ class CurrencyServiceClass {
       
     } catch (error) {
       console.error('❌ Error saving currency settings via edge function:', error);
-      // Fallback to old method
-      await this.saveDisplaySettingsToDatabase(this.displaySettings);
-      await this.saveCustomSymbolsToDatabase(this.displaySettings.customSymbols);
+      throw error; // أزالة الـ fallback لتجنب الحفظ المزدوج
     }
   }
 
@@ -344,6 +342,35 @@ class CurrencyServiceClass {
       // حذف من localStorage
       localStorage.removeItem('codform_custom_currency_rates');
       localStorage.removeItem('codform_currency_display_settings');
+
+      // حذف من قاعدة البيانات باستخدام edge function
+      if (this.currentShopId) {
+        try {
+          const response = await fetch('https://trlklwixfeaexhydzaue.supabase.co/functions/v1/save-currency-settings', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M`
+            },
+            body: JSON.stringify({
+              shop_id: this.currentShopId,
+              display_settings: {
+                show_symbol: true,
+                symbol_position: 'before',
+                decimal_places: 2
+              },
+              custom_symbols: {},
+              custom_rates: {}
+            })
+          });
+
+          if (!response.ok) {
+            console.error('❌ Error resetting via edge function');
+          }
+        } catch (error) {
+          console.error('❌ Error calling reset edge function:', error);
+        }
+      }
 
       this.customRates.clear();
       this.displaySettings = {

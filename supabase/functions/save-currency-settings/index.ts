@@ -101,6 +101,14 @@ Deno.serve(async (req) => {
         throw symbolsError;
       }
       console.log('✅ Custom symbols saved');
+    } else {
+      // إذا كانت custom_symbols فارغة، احذف جميع الرموز للمتجر
+      await supabase
+        .from('custom_currency_symbols')
+        .delete()
+        .eq('shop_id', shop_id);
+      
+      console.log('✅ Custom symbols cleared');
     }
 
     // 3. حفظ معدلات التحويل المخصصة
@@ -114,7 +122,13 @@ Deno.serve(async (req) => {
       
       const user_id = displayData?.user_id || '36d7eb85-0c45-4b4f-bea1-a9cb732ca893';
       
-      // استخدام upsert مع المفاتيح الصحيحة
+      // حذف المعدلات الموجودة للمستخدم
+      await supabase
+        .from('custom_currency_rates')
+        .delete()
+        .eq('user_id', user_id);
+      
+      // إدراج المعدلات الجديدة
       const ratesData = Object.entries(custom_rates).map(([currency_code, exchange_rate]) => ({
         currency_code,
         exchange_rate,
@@ -122,18 +136,32 @@ Deno.serve(async (req) => {
         updated_at: new Date().toISOString()
       }));
 
-      const { error: rateError } = await supabase
+      const { error: ratesError } = await supabase
         .from('custom_currency_rates')
-        .upsert(ratesData, {
-          onConflict: 'currency_code,user_id'
-        });
+        .insert(ratesData);
 
-      if (rateError) {
-        console.error('❌ Error saving custom rates:', rateError);
-        throw rateError;
+      if (ratesError) {
+        console.error('❌ Error saving custom rates:', ratesError);
+        throw ratesError;
       }
 
       console.log('✅ Custom rates saved');
+    } else {
+      // إذا كانت custom_rates فارغة، احذف جميع المعدلات للمستخدم
+      const { data: displayData } = await supabase
+        .from('currency_display_settings')
+        .select('user_id')
+        .eq('shop_id', shop_id)
+        .single();
+      
+      const user_id = displayData?.user_id || '36d7eb85-0c45-4b4f-bea1-a9cb732ca893';
+      
+      await supabase
+        .from('custom_currency_rates')
+        .delete()
+        .eq('user_id', user_id);
+      
+      console.log('✅ Custom rates cleared');
     }
 
     console.log('✅ All currency settings saved successfully');
