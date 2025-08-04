@@ -98,3 +98,6 @@ verify_jwt = true
 
 [functions.currency-settings]
 verify_jwt = false
+
+[functions.get-shop-currency-settings]
+verify_jwt = false
