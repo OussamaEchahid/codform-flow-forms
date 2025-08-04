@@ -91,23 +91,42 @@
    */
   function loadSettingsFromService() {
     try {
+      // محاولة 1: استخدام CurrencyService مباشرة
       if (window.CurrencyService) {
-        // تحميل إعدادات العرض
         const displaySettings = window.CurrencyService.getDisplaySettings();
         if (displaySettings) {
           currencySettings = { ...currencySettings, ...displaySettings };
+          console.log('✅ Display settings loaded from CurrencyService:', displaySettings);
         }
         
-        // تحميل المعدلات المخصصة
         const serviceRates = window.CurrencyService.getCustomRates();
         if (serviceRates && serviceRates.size > 0) {
           serviceRates.forEach((rate, currency) => {
             customRates[currency] = rate.rate;
           });
+          console.log('✅ Custom rates loaded from CurrencyService:', serviceRates.size);
+        }
+      }
+      
+      // محاولة 2: استخدام CurrencyServiceStorage للوصول المباشر لـ localStorage
+      if (window.CurrencyServiceStorage) {
+        const displaySettings = window.CurrencyServiceStorage.getDisplaySettings();
+        if (displaySettings) {
+          currencySettings = { ...currencySettings, ...displaySettings };
+          console.log('✅ Display settings loaded from Storage:', displaySettings);
         }
         
-        console.log('✅ Settings loaded from CurrencyService');
+        const storageRates = window.CurrencyServiceStorage.getCustomRates();
+        if (storageRates && Object.keys(storageRates).length > 0) {
+          Object.entries(storageRates).forEach(([currency, rateData]) => {
+            customRates[currency] = rateData.rate;
+          });
+          console.log('✅ Custom rates loaded from Storage:', Object.keys(storageRates).length);
+        }
       }
+      
+      console.log('✅ Final currency settings:', currencySettings);
+      console.log('✅ Final custom rates:', customRates);
     } catch (error) {
       console.warn('⚠️ Error loading settings from CurrencyService:', error);
     }
@@ -204,12 +223,29 @@
   window.formatCurrencyAmount = formatCurrency;
   window.getExchangeRate = getExchangeRate;
   
+  // إعادة تحميل الإعدادات عند تحديثها
+  function reloadSettings() {
+    loadCurrencyService();
+    loadCustomSettings();
+    console.log('🔄 Currency settings reloaded');
+  }
+  
+  // مراقبة تحديثات localStorage
+  window.addEventListener('storage', function(e) {
+    if (e.key === 'codform_currency_display_settings' || e.key === 'codform_custom_currency_rates') {
+      reloadSettings();
+    }
+  });
+  
   // تهيئة تلقائية
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initializeCurrencyManager);
   } else {
     initializeCurrencyManager();
   }
+  
+  // إعادة تحميل كل 5 ثوان للتأكد من التحديثات
+  setInterval(reloadSettings, 5000);
   
   console.log('📋 Codform Currency Manager loaded');
 })();

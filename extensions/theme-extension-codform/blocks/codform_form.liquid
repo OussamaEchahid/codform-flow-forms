@@ -16,8 +16,26 @@
 
 <link rel="stylesheet" href="{{ 'codform-styles.css' | asset_url }}">
 
+<!-- تهيئة CurrencyService للتطبيق -->
+<script>
+  // تهيئة CurrencyService إذا كان متاحاً من التطبيق الأساسي
+  if (window.parent && window.parent.CurrencyService) {
+    window.CurrencyService = window.parent.CurrencyService;
+    window.CurrencyServiceStorage = window.parent.CurrencyServiceStorage;
+    console.log('✅ CurrencyService loaded from parent window');
+  } else if (window.top && window.top.CurrencyService) {
+    window.CurrencyService = window.top.CurrencyService;
+    window.CurrencyServiceStorage = window.top.CurrencyServiceStorage;
+    console.log('✅ CurrencyService loaded from top window');
+  } else {
+    console.log('⚠️ CurrencyService not found, using fallback system');
+  }
+</script>
+
 <!-- تحميل ملف معدلات الصرف أولاً -->
 <script src="{{ 'codform-currency-rates.js' | asset_url }}"></script>
+<!-- تحميل مدير العملة الموحد -->
+<script src="{{ 'codform-currency-manager.js' | asset_url }}"></script>
 <!-- تحميل مدير الحالة المشتركة -->
 <script src="{{ 'codform-state-manager.js' | asset_url }}"></script>
 <!-- تحميل محدث واجهة المستخدم -->

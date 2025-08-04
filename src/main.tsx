@@ -16,11 +16,35 @@ CurrencyService.initialize().then(() => {
 declare global {
   interface Window {
     CurrencyService: typeof CurrencyService;
+    CurrencyServiceStorage: {
+      getDisplaySettings: () => any;
+      getCustomRates: () => Record<string, any>;
+    };
   }
 }
 
 // التأكد من أن CurrencyService متاح في النافذة العالمية
 window.CurrencyService = CurrencyService;
+
+// تصدير localStorage للـ Shopify Extensions
+window.CurrencyServiceStorage = {
+  getDisplaySettings: () => {
+    try {
+      const saved = localStorage.getItem('codform_currency_display_settings');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  },
+  getCustomRates: () => {
+    try {
+      const saved = localStorage.getItem('codform_custom_currency_rates');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  }
+};
 
 // إعادة تهيئة CurrencyService عند تحميل الصفحة
 document.addEventListener('DOMContentLoaded', function() {
