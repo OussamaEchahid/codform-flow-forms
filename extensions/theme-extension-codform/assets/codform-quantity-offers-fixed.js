@@ -18,8 +18,8 @@ window.CodformQuantityOffers = (function() {
     try {
       console.log(`🔍 Fetching custom currency settings for shop: ${shopId}`);
       
-      // Use the currency-settings endpoint instead of get-shop-currency-settings
-      const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/currency-settings?shopId=${encodeURIComponent(shopId)}`);
+      // استخدام الـ API الصحيح للحصول على إعدادات العملة المخصصة
+      const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/get-shop-currency-settings?shop_id=${encodeURIComponent(shopId)}`);
       if (!response.ok) {
         console.warn(`⚠️ API returned ${response.status}, using default settings`);
         throw new Error(`HTTP ${response.status}`);
@@ -122,35 +122,46 @@ window.CodformQuantityOffers = (function() {
     container.innerHTML = '';
     container.style.display = 'block';
 
-    // ✅ استخدام عملة وسعر المنتج مباشرة مع إصلاح الأخطاء
-    let basePrice = 20; // سعر افتراضي للاختبار
-    let productCurrency = 'MAD'; // عملة افتراضية
+    // ✅ الإصلاح الجوهري: استخدام عملة النموذج وليس عملة المنتج
+    let basePrice = 20; // سعر افتراضي
+    let formCurrency = defaultCurrency || 'USD'; // عملة النموذج (الأولوية)
+    let productCurrency = 'MAD'; // عملة المنتج من شوبيفاي
     
     if (productData) {
       basePrice = parseFloat(productData.price) || 20;
-      productCurrency = productData.currency || 'MAD';
+      productCurrency = productData.currency || 'MAD'; // عملة المنتج
     }
     
-    // جلب الإعدادات المخصصة للعرض (مع معالجة الأخطاء)
+    // ✅ استخدام عملة النموذج كعملة العرض النهائية
+    console.log(`🎯 Form Currency (Priority): ${formCurrency}`);
+    console.log(`🛍️ Product Currency: ${productCurrency}`);
+    console.log(`💰 Base price: ${basePrice} ${productCurrency}`);
+    
+    // جلب الإعدادات المخصصة للعرض
     const shopDomain = window.Shopify?.shop?.domain || 'astrem.myshopify.com';
     const customSettings = await getCustomCurrencySettings(shopDomain);
     
-    console.log(`🎯 Using product currency: ${productCurrency}`);
-    console.log(`💰 Base price: ${basePrice} ${productCurrency}`);
     console.log(`⚙️ Custom settings loaded:`, customSettings);
     
     const productImage = productData?.image || productData?.featuredImage;
     const productTitle = productData?.title || 'المنتج';
 
-    console.log(`💰 Final calculation will use: ${basePrice} ${productCurrency} per item`);
+    console.log(`💰 Final calculation will use: ${basePrice} ${formCurrency} (converted from ${productCurrency})`);
+
+    // ✅ تحويل السعر من عملة المنتج إلى عملة النموذج
+    let convertedBasePrice = basePrice;
+    if (productCurrency !== formCurrency) {
+      convertedBasePrice = await convertCurrency(basePrice, productCurrency, formCurrency, shopDomain);
+      console.log(`💱 Converted: ${basePrice} ${productCurrency} → ${convertedBasePrice} ${formCurrency}`);
+    }
 
     for (let index = 0; index < offers.length; index++) {
       const offer = offers[index];
       const offerElement = document.createElement('div');
       
-      // ✅ حساب السعر بشكل مبسط وواضح
+      // ✅ استخدام السعر المحول وعملة النموذج
       const quantity = offer.quantity || 1;
-      let totalPrice = basePrice * quantity;
+      let totalPrice = convertedBasePrice * quantity;
       const discountValue = parseFloat(offer.discount || 0);
       let finalPrice = totalPrice;
       
@@ -159,27 +170,36 @@ window.CodformQuantityOffers = (function() {
         finalPrice = totalPrice - (totalPrice * discountValue / 100);
       }
       
-      console.log(`💰 Offer ${index + 1}: basePrice=${basePrice}, quantity=${quantity}, total=${totalPrice}, discount=${discountValue}%, final=${finalPrice}`);
+      console.log(`💰 Offer ${index + 1}: basePrice=${convertedBasePrice}, quantity=${quantity}, total=${totalPrice}, discount=${discountValue}%, final=${finalPrice}`);
       
-      // ✅ تطبيق الإعدادات المخصصة للعرض
+      // ✅ تطبيق الإعدادات المخصصة للعرض باستخدام عملة النموذج
       let formattedTotal = totalPrice.toFixed(2);
       let formattedFinal = finalPrice.toFixed(2);
-      let currencySymbol = getCurrencySymbol(productCurrency);
+      let currencySymbol = getCurrencySymbol(formCurrency); // استخدام رمز عملة النموذج
       
-      // تطبيق المعدلات المخصصة إذا كانت متاحة
-      if (customSettings && customSettings.custom_rates && customSettings.custom_rates[productCurrency]) {
-        const customRate = customSettings.custom_rates[productCurrency];
+      // تطبيق المعدلات المخصصة إذا كانت متاحة لعملة النموذج
+      if (customSettings && customSettings.custom_rates && customSettings.custom_rates[formCurrency]) {
+        const customRate = customSettings.custom_rates[formCurrency];
         totalPrice = totalPrice * customRate;
         finalPrice = finalPrice * customRate;
-        console.log(`💱 Applied custom rate ${customRate} for ${productCurrency}: Total=${totalPrice}, Final=${finalPrice}`);
+        console.log(`💱 Applied custom rate ${customRate} for ${formCurrency}: Total=${totalPrice}, Final=${finalPrice}`);
       }
       
-      // تطبيق إعدادات العرض المخصصة
+      // ✅ تطبيق إعدادات العرض المخصصة لعملة النموذج
       if (customSettings && customSettings.display_settings) {
         const displaySettings = customSettings.display_settings;
+        const customSymbols = customSettings.custom_symbols || {};
+        
         const decimalPlaces = displaySettings.decimal_places || 2;
         const showSymbol = displaySettings.show_symbol !== false;
         const symbolPosition = displaySettings.symbol_position || 'before';
+        
+        // استخدام رمز العملة المخصص إذا كان متاحاً
+        const customSymbol = customSymbols[formCurrency];
+        if (customSymbol) {
+          currencySymbol = customSymbol;
+          console.log(`🔤 Using custom symbol for ${formCurrency}: ${customSymbol}`);
+        }
         
         formattedTotal = totalPrice.toFixed(decimalPlaces);
         formattedFinal = finalPrice.toFixed(decimalPlaces);
@@ -193,10 +213,12 @@ window.CodformQuantityOffers = (function() {
             formattedFinal = `${currencySymbol} ${formattedFinal}`;
           }
         }
+        
+        console.log(`🎨 Applied custom display settings: decimals=${decimalPlaces}, symbol=${showSymbol}, position=${symbolPosition}`);
       } else {
         // إعدادات افتراضية
-        formattedTotal = `${totalPrice.toFixed(2)} ${currencySymbol}`;
-        formattedFinal = `${finalPrice.toFixed(2)} ${currencySymbol}`;
+        formattedTotal = `${currencySymbol} ${totalPrice.toFixed(2)}`;
+        formattedFinal = `${currencySymbol} ${finalPrice.toFixed(2)}`;
       }
       
       console.log(`✅ Final formatted prices: Total=${formattedTotal}, Final=${formattedFinal}`);
