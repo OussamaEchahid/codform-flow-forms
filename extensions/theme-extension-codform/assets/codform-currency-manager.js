@@ -37,20 +37,20 @@
   let isInitialized = false;
   
   /**
-   * تهيئة إدارة العملة
+   * تهيئة إدارة العملة - محسنة لمنع التضارب
    */
   function initializeCurrencyManager() {
-    if (isInitialized) return;
+    if (isInitialized) {
+      console.log('⚠️ Currency Manager already initialized, skipping...');
+      return;
+    }
     
     try {
-      // محاولة الوصول إلى CurrencyService من التطبيق الرئيسي
-      loadCurrencyService();
-      
-      // تحميل الإعدادات من API
+      // تحميل الإعدادات مرة واحدة فقط
       loadSettingsFromAPI();
       
       isInitialized = true;
-      console.log('✅ Currency Manager initialized');
+      console.log('✅ Currency Manager initialized (no conflict mode)');
     } catch (error) {
       console.error('❌ Error initializing Currency Manager:', error);
     }
@@ -740,26 +740,9 @@
     initializeCurrencyManager();
   }
   
-  // تحميل دوري محدود للإعدادات المحدثة (كل 10 ثوان فقط)
-  let reloadCount = 0;
-  const MAX_RELOADS = 6; // 6 مرات × 10 ثوان = دقيقة واحدة
-  
-  const settingsReloadInterval = setInterval(async () => {
-    reloadCount++;
-    
-    if (reloadCount > MAX_RELOADS) {
-      clearInterval(settingsReloadInterval);
-      console.log('🛑 Stopped automatic settings reload after 1 minute');
-      return;
-    }
-    
-    console.log(`🔄 Automatic settings reload #${reloadCount}...`);
-    
-    const success = await loadSettingsFromAPI();
-    if (success) {
-      console.log('✅ Settings successfully reloaded from API');
-    }
-  }, 10000); // كل 10 ثوان
+  // ✅ إزالة التحميل الدوري المتضارب نهائياً
+  // سبب المشكلة: التحميل التلقائي كان يعيد تطبيق MAD كل 10 ثوان
+  console.log('🚫 Automatic periodic reloading disabled to prevent currency conflicts');
   
   console.log('📋 Codform Currency Manager loaded with enhanced debugging');
 })();

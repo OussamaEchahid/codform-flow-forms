@@ -286,10 +286,9 @@
         subtree: true
       });
 
-      // مراقبة دورية للتأكد من الاتساق
-      setInterval(() => {
-        this.applyToAllElements();
-      }, 5000);
+      // ✅ تحسين المراقبة: فقط عند الحاجة بدلاً من التحديث الدوري
+      // إزالة التحديث الدوري كل 5 ثوان لمنع التضارب
+      console.log('🔧 Smart Currency: Optimized monitoring without periodic interference');
 
       console.log('👁️ Smart Currency: Monitoring started');
     }

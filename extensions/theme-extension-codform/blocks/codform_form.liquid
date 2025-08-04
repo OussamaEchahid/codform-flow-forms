@@ -2201,21 +2201,28 @@ function decreaseQuantity(button) {
   }
 }
 
-<!-- ✅ تهيئة Currency Manager -->
+<!-- ✅ تهيئة Smart Currency System المحسن -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  // انتظار تحميل جميع الملفات ثم تهيئة Currency Manager
+  // إعطاء الأولوية للSmart Currency System بدلاً من Currency Manager
   setTimeout(function() {
-    if (window.CodformCurrencyManager) {
-      window.CodformCurrencyManager.initialize();
-      console.log('✅ Currency Manager initialized successfully');
-    } else {
-      console.error('❌ Currency Manager not found - check file loading order');
+    const formId = "{{ data.form.id }}";
+    const shopId = "{{ shop.permanent_domain | default: 'astrem.myshopify.com' }}";
+    
+    // تهيئة Smart Currency System أولاً
+    if (window.CodformSmartCurrency) {
+      window.CodformSmartCurrency.initialize(formId, shopId);
+      console.log('✅ Smart Currency System initialized with priority');
     }
     
-    if (window.initializeCurrencyManager) {
-      window.initializeCurrencyManager();
+    // حماية من تطبيق Currency Manager للإعدادات المتضاربة
+    if (window.CodformCurrencyManager && !window.smartCurrencySystemActive) {
+      // تهيئة محدودة بدون تحميل دوري
+      console.log('⚠️ Currency Manager in fallback mode only');
     }
+    
+    // تعيين علامة للحماية من التضارب
+    window.smartCurrencySystemActive = true;
   }, 1000);
 });
 </script>
