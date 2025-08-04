@@ -40,10 +40,11 @@ const CurrencyManagement = () => {
   const loadSettings = async () => {
     try {
       // تعيين سياق المتجر للخدمة
-      const currentStoreData = userStores.find(s => s.shop === currentStore);
       if (currentStore) {
-        // استخدام معرف ثابت للمستخدم مؤقتاً حتى يتم إضافة user_id للنوع
-        CurrencyService.setShopContext(currentStore, '36d7eb85-0c45-4b4f-bea1-a9cb732ca893');
+        // استخدام معرف ثابت للمستخدم مؤقتاً
+        const userId = '36d7eb85-0c45-4b4f-bea1-a9cb732ca893';
+        console.log('🏪 Setting currency service context:', { shop: currentStore, userId });
+        CurrencyService.setShopContext(currentStore, userId);
       }
       
       await CurrencyService.initialize();

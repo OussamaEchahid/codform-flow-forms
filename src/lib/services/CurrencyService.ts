@@ -306,15 +306,21 @@ class CurrencyServiceClass {
    */
   private async saveDisplaySettingsToDatabase(settings: CurrencyDisplaySettings): Promise<void> {
     try {
+      const upsertData: any = {
+        shop_id: this.currentShopId,
+        show_symbol: settings.showSymbol,
+        symbol_position: settings.symbolPosition,
+        decimal_places: settings.decimalPlaces,
+      };
+
+      // إضافة user_id فقط إذا كان متوفراً وليس null
+      if (this.currentUserId && this.currentUserId !== 'null') {
+        upsertData.user_id = this.currentUserId;
+      }
+
       const { error } = await (supabase as any)
         .from('currency_display_settings')
-        .upsert({
-          user_id: this.currentUserId,
-          shop_id: this.currentShopId,
-          show_symbol: settings.showSymbol,
-          symbol_position: settings.symbolPosition,
-          decimal_places: settings.decimalPlaces,
-        });
+        .upsert(upsertData);
 
       if (error) throw error;
 
@@ -336,14 +342,20 @@ class CurrencyServiceClass {
   private async saveCustomSymbolsToDatabase(customSymbols: Record<string, string>): Promise<void> {
     try {
       for (const [currencyCode, symbol] of Object.entries(customSymbols)) {
+        const upsertData: any = {
+          shop_id: this.currentShopId,
+          currency_code: currencyCode,
+          custom_symbol: symbol,
+        };
+
+        // إضافة user_id فقط إذا كان متوفراً وليس null
+        if (this.currentUserId && this.currentUserId !== 'null') {
+          upsertData.user_id = this.currentUserId;
+        }
+
         const { error } = await (supabase as any)
           .from('custom_currency_symbols')
-          .upsert({
-            user_id: this.currentUserId,
-            shop_id: this.currentShopId,
-            currency_code: currencyCode,
-            custom_symbol: symbol,
-          });
+          .upsert(upsertData);
 
         if (error) throw error;
       }
@@ -360,13 +372,19 @@ class CurrencyServiceClass {
    */
   private async saveCustomRateToDatabase(currencyCode: string, rate: number): Promise<void> {
     try {
+      const upsertData: any = {
+        currency_code: currencyCode,
+        exchange_rate: rate,
+      };
+
+      // إضافة user_id فقط إذا كان متوفراً وليس null
+      if (this.currentUserId && this.currentUserId !== 'null') {
+        upsertData.user_id = this.currentUserId;
+      }
+
       const { error } = await (supabase as any)
         .from('custom_currency_rates')
-        .upsert({
-          user_id: this.currentUserId,
-          currency_code: currencyCode,
-          exchange_rate: rate,
-        });
+        .upsert(upsertData);
 
       if (error) throw error;
       
@@ -440,10 +458,14 @@ class CurrencyServiceClass {
    */
   private async loadCustomRatesFromDatabase(): Promise<void> {
     try {
-      const { data, error } = await (supabase as any)
-        .from('custom_currency_rates')
-        .select('*')
-        .eq('user_id', this.currentUserId);
+      let query = (supabase as any).from('custom_currency_rates').select('*');
+      
+      // إضافة شرط user_id فقط إذا كان متوفراً وليس null
+      if (this.currentUserId && this.currentUserId !== 'null') {
+        query = query.eq('user_id', this.currentUserId);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
 
