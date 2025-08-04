@@ -4,6 +4,7 @@ import { useI18n } from '@/lib/i18n';
 import { ShoppingCart } from 'lucide-react';
 import { useShopifyProducts } from '@/hooks/useShopifyProducts';
 import { supabase } from '@/integrations/supabase/client';
+import { CurrencyService } from '@/lib/services/CurrencyService';
 
 interface CartItemsProps {
   field: FormField;
@@ -30,8 +31,7 @@ const CartItems: React.FC<CartItemsProps> = ({ field, formStyle, productId, form
     if (fromCurrency === toCurrency) return amount;
     
     // استخدام الخدمة الموحدة للعملات
-    const { convertCurrency: unifiedConvert } = require('@/lib/services/CurrencyService');
-    return unifiedConvert(amount, fromCurrency, toCurrency);
+    return CurrencyService.convertCurrency(amount, fromCurrency, toCurrency);
   };
 
   // البحث عن المنتج المرتبط بالنموذج من قاعدة البيانات
