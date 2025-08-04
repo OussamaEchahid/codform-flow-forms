@@ -89,46 +89,22 @@
    */
   async function loadSettingsFromAPI() {
     try {
-      // الحصول على shop من المتغيرات العامة - مع تتبع أفضل
-      console.log('🔍 Available shop sources:', {
-        'window.Shopify.shop': window.Shopify?.shop,
-        'window.codformConfig.shop': window.codformConfig?.shop,
-        'location.hostname': location.hostname,
-        'window.location.href': window.location.href
-      });
-      
-      // تجربة مصادر مختلفة للحصول على shop_id
-      let shopId = window.Shopify?.shop || window.codformConfig?.shop;
-      
-      // إذا لم نجد shop_id، حاول استخراجه من URL أو hostname
-      if (!shopId && location.hostname.includes('myshopify.com')) {
-        shopId = location.hostname;
-        console.log(`📍 Extracted shop from hostname: ${shopId}`);
-      }
-      
-      // إذا كان في iframe، حاول الحصول عليه من parent
-      if (!shopId && window.parent !== window) {
-        try {
-          shopId = window.parent.Shopify?.shop || window.parent.location.hostname;
-          if (shopId) console.log(`🔗 Got shop from parent: ${shopId}`);
-        } catch (e) {
-          console.warn('Could not access parent window:', e);
-        }
-      }
+      const shopId = getShopIdFromAllSources();
       
       if (!shopId) {
-        console.warn('⚠️ Shop ID not found after all attempts, using fallback settings');
-        console.log('Available global objects:', Object.keys(window).filter(k => k.toLowerCase().includes('shop')));
-        return;
+        console.warn('⚠️ Shop ID not found, cannot load settings from API');
+        return false;
       }
       
-      console.log(`🔄 Loading currency settings for shop: ${shopId}`);
+      console.log(`🔄 Loading currency settings from API for shop: ${shopId}`);
       
-      // استدعاء edge function
+      // استدعاء edge function مع headers محسنة
       const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/currency-settings?shop=${encodeURIComponent(shopId)}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
         }
       });
       
@@ -137,166 +113,410 @@
       }
       
       const data = await response.json();
+      console.log('📥 Raw API response:', data);
       
       if (data.success) {
-        // تحديث الإعدادات المحلية
+        // تحديث الإعدادات مع debugging مفصل
         if (data.display_settings) {
-          currencySettings = {
+          const newSettings = {
             showSymbol: data.display_settings.show_symbol !== false,
             symbolPosition: data.display_settings.symbol_position || 'before',
             decimalPlaces: data.display_settings.decimal_places || 2,
             customSymbols: data.custom_symbols || {}
           };
+          
+          console.log('🔄 Updating currency settings:', {
+            old: currencySettings,
+            new: newSettings
+          });
+          
+          currencySettings = newSettings;
+          
+          // حفظ في localStorage لضمان الاستمرارية
+          saveSettingsToLocalStorage();
         }
         
         if (data.custom_rates) {
           customRates = { ...DEFAULT_RATES, ...data.custom_rates };
+          console.log('💰 Updated custom rates:', customRates);
         }
         
-        console.log('✅ Currency settings loaded from API:', {
-          settings: currencySettings,
-          rates: Object.keys(customRates).length
-        });
+        console.log('✅ Currency settings successfully loaded and applied from API');
         
-        // إعادة تطبيق التنسيق على العناصر الموجودة
-        reapplyCurrencyFormatting();
+        // تطبيق فوري للتنسيق
+        setTimeout(() => {
+          reapplyCurrencyFormatting();
+          notifySystemUpdates();
+        }, 100);
+        
+        return true;
         
       } else {
-        console.warn('⚠️ API returned error, using default settings:', data.error);
+        console.warn('⚠️ API returned error:', data.error);
+        return false;
       }
       
     } catch (error) {
       console.error('❌ Error loading currency settings from API:', error);
       // استخدام الإعدادات المحلية كبديل
       loadCustomSettings();
+      return false;
     }
   }
   
   /**
-   * إعادة تطبيق تنسيق العملة على جميع العناصر
+   * الحصول على shop_id من جميع المصادر المتاحة
+   */
+  function getShopIdFromAllSources() {
+    console.log('🔍 Searching for shop ID from all available sources...');
+    
+    // المصادر المرتبة حسب الأولوية
+    const sources = [
+      () => window.Shopify?.shop,
+      () => window.codformConfig?.shop,
+      () => window.parent?.Shopify?.shop,
+      () => window.top?.Shopify?.shop,
+      () => {
+        // استخراج من hostname
+        const hostname = location.hostname;
+        if (hostname.includes('myshopify.com')) {
+          return hostname;
+        }
+        return null;
+      },
+      () => {
+        // البحث في localStorage
+        const stored = localStorage.getItem('current_shopify_store') || 
+                      localStorage.getItem('shopify_store');
+        return stored;
+      },
+      () => {
+        // محاولة الوصول للـ parent window
+        try {
+          if (window.parent !== window) {
+            return window.parent.location.hostname.includes('myshopify.com') ? 
+                   window.parent.location.hostname : null;
+          }
+        } catch (e) {
+          // Cross-origin restriction
+        }
+        return null;
+      }
+    ];
+    
+    for (const source of sources) {
+      try {
+        const shopId = source();
+        if (shopId && shopId !== 'auto-detect') {
+          console.log(`✅ Found shop ID: ${shopId}`);
+          return shopId;
+        }
+      } catch (error) {
+        console.warn('⚠️ Error accessing shop source:', error);
+      }
+    }
+    
+    console.error('❌ Could not find shop ID from any source');
+    console.log('Available global objects:', Object.keys(window).filter(k => 
+      k.toLowerCase().includes('shop') || k.toLowerCase().includes('codform')
+    ));
+    
+    return null;
+  }
+  
+  /**
+   * حفظ الإعدادات في localStorage
+   */
+  function saveSettingsToLocalStorage() {
+    try {
+      localStorage.setItem('codform_currency_settings', JSON.stringify(currencySettings));
+      localStorage.setItem('codform_custom_rates', JSON.stringify(customRates));
+      console.log('💾 Settings saved to localStorage');
+    } catch (error) {
+      console.error('❌ Error saving to localStorage:', error);
+    }
+  }
+  
+  /**
+   * إعادة تطبيق تنسيق العملة على جميع العناصر - محسن
    */
   function reapplyCurrencyFormatting() {
-    console.log('🔄 Reapplying currency formatting...');
+    console.log('🔄 Reapplying currency formatting with current settings:', currencySettings);
     
-    // العناصر المحددة للـ Cart Summary
-    const cartSummarySelectors = [
-      '.cart-summary-field .summary-value',
-      '.subtotal-value', '.discount-value', '.shipping-value', '.total-value'
-    ];
+    // التأكد من تحديث الإعدادات أولاً
+    loadCustomSettings();
     
-    // العناصر المحددة لعروض الكمية
-    const quantityOffersSelectors = [
-      '[id^="quantity-offers-before-"] [style*="font-weight: bold"]',
-      '[id^="quantity-offers-before-"] [style*="color: #059669"]'
-    ];
+    // تحديد العناصر بدقة أكبر
+    const selectors = {
+      cartSummary: [
+        '.cart-summary-field [data-amount]',
+        '.cart-summary-field .summary-value',
+        '.subtotal-value', '.discount-value', '.shipping-value', '.total-value',
+        '[class*="cart-summary"] [class*="price"]',
+        '[class*="cart-summary"] [class*="amount"]'
+      ],
+      quantityOffers: [
+        '[id*="quantity-offers"] [style*="color: #059669"]',
+        '[id*="quantity-offers"] [style*="font-weight: bold"]',
+        '[id*="quantity-offers"] .offer-price',
+        '[id*="quantity-offers"] .original-price',
+        '[id*="quantity-offers"] .discounted-price'
+      ],
+      general: [
+        '[data-price]', '[data-amount]', 
+        '.price', '.money', '.amount',
+        '.codform-price', '.unit-price', '.total-price',
+        '.offer-price', '.savings-amount',
+        '[class*="price"]', '[class*="amount"]'
+      ]
+    };
     
-    // العناصر العامة للأسعار
-    const generalPriceSelectors = [
-      '[data-price]', '.price', '.money', 
-      '.codform-price', '.unit-price', '.total-price',
-      '.offer-price', '.savings-amount'
-    ];
+    let totalUpdated = 0;
     
-    const allSelectors = [...cartSummarySelectors, ...quantityOffersSelectors, ...generalPriceSelectors];
-    const priceElements = document.querySelectorAll(allSelectors.join(', '));
-    
-    console.log(`🔍 Found ${priceElements.length} potential price elements to update`);
-    
-    let updatedCount = 0;
-    
-    priceElements.forEach((element, index) => {
-      const originalText = element.textContent || '';
-      const currency = element.dataset.currency || 
-                      (element.closest('[data-currency]')?.dataset.currency) || 
-                      'MAD';
+    // معالجة كل نوع من العناصر
+    Object.entries(selectors).forEach(([type, typeSelectors]) => {
+      console.log(`🔍 Processing ${type} elements...`);
       
-      console.log(`📝 Processing element ${index + 1}: "${originalText}"`);
+      const elements = document.querySelectorAll(typeSelectors.join(', '));
+      console.log(`Found ${elements.length} ${type} elements`);
       
-      // استخراج الرقم من النص - تحسين regex
-      const priceMatch = originalText.match(/(\d+(?:\.\d+)?)/);
-      if (priceMatch) {
-        const amount = parseFloat(priceMatch[1]);
-        if (!isNaN(amount) && amount > 0) {
-          // تطبيق التنسيق الجديد
-          const formattedPrice = formatCurrency(amount, currency);
-          
-          // التحقق من أن التنسيق مختلف
-          if (originalText !== formattedPrice) {
-            element.textContent = formattedPrice;
-            updatedCount++;
-            console.log(`💰 Updated price: "${originalText}" → "${formattedPrice}"`);
-          }
-        }
-      }
+      elements.forEach((element, index) => {
+        const updated = updateElementCurrency(element, type, index);
+        if (updated) totalUpdated++;
+      });
     });
     
-    // معالجة خاصة للـ Cart Summary
+    // معالجة خاصة لعناصر محددة
     updateCartSummaryPrices();
-    
-    // معالجة خاصة لعروض الكمية
     updateQuantityOffersPrices();
     
-    // إشعار الأنظمة الأخرى بالتحديث
+    // إشعار الأنظمة الأخرى
     notifySystemUpdates();
     
-    console.log(`✅ Currency formatting applied: ${updatedCount} elements updated out of ${priceElements.length} found`);
+    console.log(`✅ Currency formatting completed: ${totalUpdated} elements updated`);
   }
   
   /**
-   * تحديث أسعار Cart Summary تحديداً
+   * تحديث عنصر واحد
+   */
+  function updateElementCurrency(element, type, index) {
+    const originalText = element.textContent || '';
+    if (!originalText.trim()) return false;
+    
+    // الحصول على العملة من مصادر مختلفة
+    const currency = element.dataset.currency || 
+                    element.getAttribute('data-currency') ||
+                    (element.closest('[data-currency]')?.dataset.currency) ||
+                    (element.closest('[data-form-currency]')?.dataset.formCurrency) ||
+                    'MAD';
+    
+    console.log(`📝 Processing ${type} element ${index + 1}: "${originalText}" (currency: ${currency})`);
+    
+    // استخراج المبلغ بطرق مختلفة
+    let amount = null;
+    
+    // محاولة 1: من data-amount
+    if (element.dataset.amount) {
+      amount = parseFloat(element.dataset.amount);
+    }
+    
+    // محاولة 2: استخراج من النص
+    if (amount === null || isNaN(amount)) {
+      const priceMatches = originalText.match(/(\d+(?:[.,]\d+)?)/g);
+      if (priceMatches && priceMatches.length > 0) {
+        // أخذ أكبر رقم (عادة يكون السعر الرئيسي)
+        amount = Math.max(...priceMatches.map(p => parseFloat(p.replace(',', '.'))));
+      }
+    }
+    
+    if (amount && !isNaN(amount) && amount > 0) {
+      const formattedPrice = formatCurrency(amount, currency);
+      
+      if (originalText !== formattedPrice) {
+        // الحفاظ على التنسيق الخاص (مثل علامة الناقص للخصم)
+        let finalText = formattedPrice;
+        if (originalText.includes('-') && !formattedPrice.includes('-')) {
+          finalText = `-${formattedPrice}`;
+        }
+        
+        element.textContent = finalText;
+        console.log(`💰 Updated ${type}: "${originalText}" → "${finalText}"`);
+        return true;
+      }
+    }
+    
+    return false;
+  }
+  
+  /**
+   * تحديث أسعار Cart Summary تحديداً - محسن
    */
   function updateCartSummaryPrices() {
-    const cartSummaryFields = document.querySelectorAll('.cart-summary-field');
+    console.log('🛒 Updating Cart Summary prices specifically...');
     
-    cartSummaryFields.forEach(field => {
-      const currency = field.dataset.currency || 'MAD';
-      const summaryValues = field.querySelectorAll('.summary-value');
+    // البحث عن عناصر Cart Summary بطرق مختلفة
+    const cartSelectors = [
+      '.cart-summary-field',
+      '[class*="cart-summary"]',
+      '[id*="cart-summary"]',
+      '[data-field-type="cart_summary"]'
+    ];
+    
+    cartSelectors.forEach(selector => {
+      const cartElements = document.querySelectorAll(selector);
       
-      summaryValues.forEach(valueElement => {
-        const dataAmount = valueElement.dataset.amount;
-        if (dataAmount && !isNaN(parseFloat(dataAmount))) {
-          const amount = parseFloat(dataAmount);
-          const formattedPrice = formatCurrency(amount, currency);
+      cartElements.forEach(field => {
+        // الحصول على العملة من مصادر مختلفة
+        const currency = field.dataset.currency || 
+                        field.dataset.formCurrency ||
+                        field.closest('[data-currency]')?.dataset.currency ||
+                        field.closest('[data-form-currency]')?.dataset.formCurrency ||
+                        'MAD';
+        
+        console.log(`🔍 Processing cart summary field with currency: ${currency}`);
+        
+        // البحث عن عناصر القيم
+        const valueSelectors = [
+          '.summary-value',
+          '[data-amount]',
+          '[class*="price"]',
+          '[class*="amount"]',
+          '[class*="value"]'
+        ];
+        
+        valueSelectors.forEach(valueSelector => {
+          const valueElements = field.querySelectorAll(valueSelector);
           
-          // الحفاظ على العلامات الخاصة مثل علامة السالب للخصم
-          if (valueElement.textContent.includes('-')) {
-            valueElement.textContent = `-${formattedPrice}`;
-          } else {
-            valueElement.textContent = formattedPrice;
-          }
-          
-          console.log(`🛒 Updated Cart Summary: ${dataAmount} → ${formattedPrice}`);
-        }
+          valueElements.forEach(valueElement => {
+            updateCartValueElement(valueElement, currency);
+          });
+        });
       });
     });
   }
   
   /**
-   * تحديث أسعار عروض الكمية تحديداً
+   * تحديث عنصر قيمة في Cart Summary
+   */
+  function updateCartValueElement(valueElement, currency) {
+    // الحصول على المبلغ من مصادر مختلفة
+    let amount = null;
+    
+    if (valueElement.dataset.amount) {
+      amount = parseFloat(valueElement.dataset.amount);
+    } else if (valueElement.dataset.price) {
+      amount = parseFloat(valueElement.dataset.price);
+    } else {
+      // استخراج من النص
+      const text = valueElement.textContent || '';
+      const match = text.match(/(\d+(?:[.,]\d+)?)/);
+      if (match) {
+        amount = parseFloat(match[1].replace(',', '.'));
+      }
+    }
+    
+    if (amount && !isNaN(amount) && amount > 0) {
+      const originalText = valueElement.textContent || '';
+      const formattedPrice = formatCurrency(amount, currency);
+      
+      // الحفاظ على العلامات الخاصة
+      let finalText = formattedPrice;
+      if (originalText.includes('-') && !formattedPrice.includes('-')) {
+        finalText = `-${formattedPrice}`;
+      }
+      
+      if (originalText !== finalText) {
+        valueElement.textContent = finalText;
+        console.log(`🛒 Updated Cart Summary value: "${originalText}" → "${finalText}"`);
+      }
+    }
+  }
+  
+  /**
+   * تحديث أسعار عروض الكمية تحديداً - محسن
    */
   function updateQuantityOffersPrices() {
-    const quantityOfferContainers = document.querySelectorAll('[id^="quantity-offers-before-"]');
+    console.log('🎯 Updating Quantity Offers prices specifically...');
     
-    quantityOfferContainers.forEach(container => {
-      const priceElements = container.querySelectorAll('[style*="color: #059669"], [style*="text-decoration: line-through"]');
+    // البحث عن حاويات عروض الكمية بطرق مختلفة
+    const offerSelectors = [
+      '[id*="quantity-offers"]',
+      '[class*="quantity-offers"]',
+      '[data-field-type="quantity_offers"]'
+    ];
+    
+    offerSelectors.forEach(selector => {
+      const containers = document.querySelectorAll(selector);
       
-      priceElements.forEach(priceElement => {
-        const text = priceElement.textContent || '';
-        const priceMatch = text.match(/(\d+(?:\.\d+)?)/);
+      containers.forEach(container => {
+        // الحصول على العملة
+        const currency = container.dataset.currency ||
+                        container.dataset.formCurrency ||
+                        container.closest('[data-currency]')?.dataset.currency ||
+                        container.closest('[data-form-currency]')?.dataset.formCurrency ||
+                        'MAD';
         
-        if (priceMatch) {
-          const amount = parseFloat(priceMatch[1]);
-          if (!isNaN(amount) && amount > 0) {
-            const currency = 'MAD'; // العملة الافتراضية
-            const formattedPrice = formatCurrency(amount, currency);
-            
-            // الحفاظ على التنسيق الأصلي مع استبدال السعر فقط
-            priceElement.textContent = text.replace(priceMatch[0], formattedPrice.split(' ')[0]);
-            console.log(`🎯 Updated Quantity Offer: ${priceMatch[0]} → ${formattedPrice}`);
-          }
-        }
+        console.log(`🔍 Processing quantity offers container with currency: ${currency}`);
+        
+        // البحث عن عناصر الأسعار بطرق مختلفة
+        const priceSelectors = [
+          '[style*="color: #059669"]',  // الأسعار المخفضة (خضراء)
+          '[style*="text-decoration: line-through"]',  // الأسعار الأصلية (مشطوبة)
+          '[class*="price"]',
+          '[class*="amount"]',
+          '[data-price]',
+          '[data-amount]'
+        ];
+        
+        const priceElements = container.querySelectorAll(priceSelectors.join(', '));
+        
+        priceElements.forEach(priceElement => {
+          updateQuantityOfferElement(priceElement, currency);
+        });
       });
     });
+  }
+  
+  /**
+   * تحديث عنصر واحد في عروض الكمية
+   */
+  function updateQuantityOfferElement(priceElement, currency) {
+    const originalText = priceElement.textContent || '';
+    if (!originalText.trim()) return;
+    
+    // استخراج المبلغ
+    let amount = null;
+    
+    if (priceElement.dataset.amount) {
+      amount = parseFloat(priceElement.dataset.amount);
+    } else if (priceElement.dataset.price) {
+      amount = parseFloat(priceElement.dataset.price);
+    } else {
+      const priceMatch = originalText.match(/(\d+(?:[.,]\d+)?)/);
+      if (priceMatch) {
+        amount = parseFloat(priceMatch[1].replace(',', '.'));
+      }
+    }
+    
+    if (amount && !isNaN(amount) && amount > 0) {
+      const formattedPrice = formatCurrency(amount, currency);
+      
+      // الحفاظ على التنسيق الأصلي قدر الإمكان
+      let finalText;
+      
+      if (originalText.includes('line-through') || priceElement.style.textDecoration === 'line-through') {
+        // للأسعار المشطوبة، نستبدل الرقم فقط
+        finalText = originalText.replace(/\d+(?:[.,]\d+)?/, formattedPrice.replace(/[^\d.,]/g, ''));
+      } else {
+        // للأسعار العادية
+        finalText = formattedPrice;
+      }
+      
+      if (originalText !== finalText) {
+        priceElement.textContent = finalText;
+        console.log(`🎯 Updated Quantity Offer: "${originalText}" → "${finalText}"`);
+      }
+    }
   }
   
   /**
@@ -408,43 +628,69 @@
   }
   
   /**
-   * تنسيق العملة
+   * تنسيق العملة - محسن مع debugging مفصل
    */
   function formatCurrency(amount, currencyCode, language = 'ar') {
-    // تحديث الإعدادات من localStorage قبل التنسيق
+    console.log('🔧 formatCurrency called:', { amount, currencyCode, language, currentSettings: currencySettings });
+    
+    // تحديث الإعدادات أولاً
     loadCustomSettings();
     
-    // استخدام CurrencyService إذا كان متاحاً مع ضمان استخدام الإعدادات المحدثة
+    // محاولة استخدام CurrencyService من النافذة الرئيسية
     if (window.CurrencyService && typeof window.CurrencyService.formatCurrency === 'function') {
-      // تحديث إعدادات CurrencyService من localStorage
-      const savedSettings = localStorage.getItem('codform_currency_display_settings');
-      if (savedSettings) {
-        try {
-          const settings = JSON.parse(savedSettings);
-          if (window.CurrencyService.saveDisplaySettings) {
-            window.CurrencyService.saveDisplaySettings(settings);
-          }
-        } catch (e) {
-          console.warn('Failed to parse saved currency settings:', e);
-        }
+      try {
+        console.log('✅ Using CurrencyService from main window');
+        const result = window.CurrencyService.formatCurrency(amount, currencyCode, language);
+        console.log('✅ CurrencyService result:', result);
+        return result;
+      } catch (error) {
+        console.warn('⚠️ Error using CurrencyService:', error);
       }
-      
-      return window.CurrencyService.formatCurrency(amount, currencyCode, language);
     }
     
-    // التنسيق المخصص كحل احتياطي
-    const formattedAmount = amount.toFixed(currencySettings.decimalPlaces);
-    const symbol = currencySettings.customSymbols[currencyCode] || currencyCode;
+    // محاولة استخدام CurrencyService من parent window
+    if (window.parent && window.parent.CurrencyService && typeof window.parent.CurrencyService.formatCurrency === 'function') {
+      try {
+        console.log('✅ Using CurrencyService from parent window');
+        const result = window.parent.CurrencyService.formatCurrency(amount, currencyCode, language);
+        console.log('✅ Parent CurrencyService result:', result);
+        return result;
+      } catch (error) {
+        console.warn('⚠️ Error using parent CurrencyService:', error);
+      }
+    }
     
+    // التنسيق المحلي كحل احتياطي
+    console.log('🔄 Using local formatting with settings:', currencySettings);
+    
+    const formattedAmount = amount.toFixed(currencySettings.decimalPlaces);
+    let symbol = currencySettings.customSymbols[currencyCode] || currencyCode;
+    
+    // تطبيق رموز افتراضية إضافية
+    if (!currencySettings.customSymbols[currencyCode]) {
+      const defaultSymbols = {
+        'MAD': 'د.م',
+        'USD': '$',
+        'EUR': '€',
+        'SAR': 'ر.س',
+        'AED': 'د.إ'
+      };
+      symbol = defaultSymbols[currencyCode] || currencyCode;
+    }
+    
+    let result;
     if (currencySettings.showSymbol) {
       if (currencySettings.symbolPosition === 'before') {
-        return `${symbol} ${formattedAmount}`;
+        result = `${symbol}${formattedAmount}`;
       } else {
-        return `${formattedAmount} ${symbol}`;
+        result = `${formattedAmount} ${symbol}`;
       }
+    } else {
+      result = `${formattedAmount} ${currencyCode}`;
     }
     
-    return `${formattedAmount} ${currencyCode}`;
+    console.log(`🎨 Final formatted result: "${result}"`);
+    return result;
   }
   
   /**
@@ -494,8 +740,26 @@
     initializeCurrencyManager();
   }
   
-  // تحميل الإعدادات مرة واحدة فقط عند التهيئة
-  // إزالة إعادة التحميل التلقائي التي كانت تتسبب في مشاكل
+  // تحميل دوري محدود للإعدادات المحدثة (كل 10 ثوان فقط)
+  let reloadCount = 0;
+  const MAX_RELOADS = 6; // 6 مرات × 10 ثوان = دقيقة واحدة
   
-  console.log('📋 Codform Currency Manager loaded');
+  const settingsReloadInterval = setInterval(async () => {
+    reloadCount++;
+    
+    if (reloadCount > MAX_RELOADS) {
+      clearInterval(settingsReloadInterval);
+      console.log('🛑 Stopped automatic settings reload after 1 minute');
+      return;
+    }
+    
+    console.log(`🔄 Automatic settings reload #${reloadCount}...`);
+    
+    const success = await loadSettingsFromAPI();
+    if (success) {
+      console.log('✅ Settings successfully reloaded from API');
+    }
+  }, 10000); // كل 10 ثوان
+  
+  console.log('📋 Codform Currency Manager loaded with enhanced debugging');
 })();
