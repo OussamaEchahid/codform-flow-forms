@@ -31,10 +31,32 @@ class CurrencyServiceClass {
    */
   setShopContext(shopId: string | null, userId: string | null = null) {
     console.log('💫 CurrencyService.setShopContext called:', { shopId, userId, previous: { shop: this.currentShopId, user: this.currentUserId } });
+    
+    const previousShopId = this.currentShopId;
     this.currentShopId = shopId;
-    this.currentUserId = userId;
-    this.initialized = false; // إعادة تعيين حالة التهيئة لإجبار إعادة التحميل
-    console.log(`✅ Currency service context updated - Shop: ${shopId}, User: ${userId}`);
+    this.currentUserId = userId || '36d7eb85-0c45-4b4f-bea1-a9cb732ca893';
+    
+    // إذا تغير المتجر، نحتاج لإعادة تحميل البيانات
+    if (previousShopId !== shopId) {
+      console.log(`🔄 Shop context changed: ${previousShopId} → ${shopId}, clearing cache`);
+      this.customRates.clear();
+      this.displaySettings = {
+        showSymbol: true,
+        symbolPosition: 'before',
+        decimalPlaces: 2,
+        customSymbols: {}
+      };
+      this.initialized = false; // إعادة تعيين حالة التهيئة لإجبار إعادة التحميل
+      
+      // إعادة تحميل البيانات للمتجر الجديد
+      if (shopId) {
+        this.initialize().catch(error => {
+          console.error('❌ Error initializing after shop context change:', error);
+        });
+      }
+    }
+    
+    console.log(`✅ Currency service context updated - Shop: ${shopId}, User: ${this.currentUserId}`);
   }
 
   /**

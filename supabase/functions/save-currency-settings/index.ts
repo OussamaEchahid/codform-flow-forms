@@ -111,33 +111,68 @@ Deno.serve(async (req) => {
       console.log('✅ Custom symbols cleared');
     }
 
-    // 3. حفظ معدلات التحويل المخصصة
+    // 3. حفظ معدلات التحويل المخصصة بمعاملة واحدة
     if (custom_rates && Object.keys(custom_rates).length > 0) {
+      console.log(`🔄 Processing ${Object.keys(custom_rates).length} custom rates for shop: ${shop_id}`);
+      
       // الحصول على user_id من إعدادات العرض
-      const { data: displayData } = await supabase
+      const { data: displayData, error: displayError } = await supabase
         .from('currency_display_settings')
         .select('user_id')
         .eq('shop_id', shop_id)
         .single();
       
-      const user_id = displayData?.user_id || '36d7eb85-0c45-4b4f-bea1-a9cb732ca893';
+      if (displayError) {
+        console.error('❌ Error getting user_id:', displayError);
+        throw new Error('Could not determine user for shop');
+      }
       
-      // حذف المعدلات الموجودة للمستخدم وللمتجر
-      await supabase
+      const user_id = displayData?.user_id || '36d7eb85-0c45-4b4f-bea1-a9cb732ca893';
+      console.log(`📝 Using user_id: ${user_id} for shop: ${shop_id}`);
+      
+      // بدء معاملة: حذف المعدلات الموجودة أولاً
+      console.log('🗑️ Deleting existing rates...');
+      const { error: deleteError } = await supabase
         .from('custom_currency_rates')
         .delete()
         .eq('user_id', user_id)
         .eq('shop_id', shop_id);
       
-      // إدراج المعدلات الجديدة مع shop_id
-      const ratesData = Object.entries(custom_rates).map(([currency_code, exchange_rate]) => ({
-        currency_code,
-        exchange_rate,
+      if (deleteError) {
+        console.error('❌ Error deleting existing rates:', deleteError);
+        throw deleteError;
+      }
+      
+      // التحقق من صحة البيانات قبل الإدراج
+      const validRates = Object.entries(custom_rates).filter(([currency_code, exchange_rate]) => {
+        if (!currency_code || typeof currency_code !== 'string') {
+          console.warn(`⚠️ Invalid currency code: ${currency_code}`);
+          return false;
+        }
+        if (!exchange_rate || isNaN(Number(exchange_rate))) {
+          console.warn(`⚠️ Invalid exchange rate for ${currency_code}: ${exchange_rate}`);
+          return false;
+        }
+        return true;
+      });
+      
+      if (validRates.length === 0) {
+        console.log('⚠️ No valid rates to insert');
+        return;
+      }
+      
+      // إدراج المعدلات الجديدة
+      const ratesData = validRates.map(([currency_code, exchange_rate]) => ({
+        currency_code: currency_code.toUpperCase(),
+        exchange_rate: Number(exchange_rate),
         user_id,
         shop_id,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
+        created_at: new Date().toISOString()
       }));
 
+      console.log(`📤 Inserting ${ratesData.length} rates:`, ratesData.map(r => `${r.currency_code}=${r.exchange_rate}`));
+      
       const { error: ratesError } = await supabase
         .from('custom_currency_rates')
         .insert(ratesData);
@@ -147,9 +182,11 @@ Deno.serve(async (req) => {
         throw ratesError;
       }
 
-      console.log('✅ Custom rates saved');
+      console.log('✅ Custom rates saved successfully');
     } else {
-      // إذا كانت custom_rates فارغة، احذف جميع المعدلات للمستخدم وللمتجر
+      // إذا كانت custom_rates فارغة، احذف جميع المعدلات للمتجر والمستخدم
+      console.log('🗑️ Clearing all custom rates for shop:', shop_id);
+      
       const { data: displayData } = await supabase
         .from('currency_display_settings')
         .select('user_id')
@@ -158,11 +195,16 @@ Deno.serve(async (req) => {
       
       const user_id = displayData?.user_id || '36d7eb85-0c45-4b4f-bea1-a9cb732ca893';
       
-      await supabase
+      const { error: deleteError } = await supabase
         .from('custom_currency_rates')
         .delete()
         .eq('user_id', user_id)
         .eq('shop_id', shop_id);
+        
+      if (deleteError) {
+        console.error('❌ Error clearing custom rates:', deleteError);
+        throw deleteError;
+      }
       
       console.log('✅ Custom rates cleared');
     }

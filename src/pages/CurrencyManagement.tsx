@@ -94,7 +94,11 @@ const CurrencyManagement = () => {
 
     setLoading(true);
     try {
-      // التأكد من أن السياق محدد بشكل صحيح قبل الحفظ
+      // التأكد من تعيين السياق بشكل صحيح قبل الحفظ
+      const userId = '36d7eb85-0c45-4b4f-bea1-a9cb732ca893';
+      console.log('💾 Re-setting context before save:', { shop: actualCurrentStore, userId });
+      CurrencyService.setShopContext(actualCurrentStore, userId);
+      
       console.log('💾 Saving display settings for store:', actualCurrentStore);
       console.log('🔧 Current service context:', {
         shopId: (CurrencyService as any).currentShopId,
