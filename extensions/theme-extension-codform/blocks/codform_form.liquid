@@ -1155,7 +1155,7 @@
           });
           
           if (window.CodformQuantityOffers) {
-            window.CodformQuantityOffers.loadAndDisplayOffers('form', productId, shopDomain, '{{ shop.currency }}' || 'SAR', null, formDirection);
+            window.CodformQuantityOffers.loadAndDisplayOffers('form', productId, shopDomain, null, null, formDirection); // دع النظام يجلب عملة النموذج من API
           } else {
             console.error('❌ CodformQuantityOffers still not available');
           }
@@ -1401,7 +1401,7 @@ function openFormPopup(event) {
           submitButton.parentNode.insertBefore(popupContainer, submitButton);
           console.log('✅ Popup quantity offers container created');
           
-          window.CodformQuantityOffers.loadAndDisplayOffers('popup-form', productId, shopDomain, 'SAR', window.currentFormData, formDirection);
+          window.CodformQuantityOffers.loadAndDisplayOffers('popup-form', productId, shopDomain, null, window.currentFormData, formDirection); // دع النظام يجلب عملة النموذج من API
         } else {
           console.log('❌ Submit button not found in popup');
         }

@@ -334,8 +334,8 @@ window.CodformQuantityOffers = (function() {
     console.log("✅ Fixed quantity offers displayed successfully");
   }
 
-  // دالة تحميل وعرض العروض
-  async function loadAndDisplayOffers(blockId, productId, shop, defaultCurrency = 'SAR', productData = null) {
+  // دالة تحميل وعرض العروض مع جلب عملة النموذج من API
+  async function loadAndDisplayOffers(blockId, productId, shop, defaultCurrency = null, productData = null) {
     try {
       console.log(`🔄 Loading offers for: ${productId} at ${shop}`);
       
@@ -346,16 +346,23 @@ window.CodformQuantityOffers = (function() {
       }
       
       const data = await response.json();
+      console.log("📊 API Response:", data);
       
       if (data.success && data.quantity_offers) {
         console.log("✅ Offers loaded successfully");
         
+        // ✅ CRITICAL FIX: استخدام عملة النموذج من API وليس المرسلة
+        const formCurrency = data.form?.currency || data.currency || 'USD';
+        console.log(`🎯 FORM CURRENCY FROM API: ${formCurrency}`);
+        console.log(`🛍️ PRODUCT DATA FROM API:`, data.product);
+        
         // ✅ حفظ البيانات للاستخدام المستقبلي
         window.currentQuantityOffersData = data.quantity_offers;
         window.currentProductId = productId;
-        window.currentProductData = productData;
+        window.currentProductData = data.product; // استخدام بيانات المنتج من API
+        window.currentFormCurrency = formCurrency; // حفظ عملة النموذج
         
-        displayQuantityOffers(data.quantity_offers, blockId, productId, defaultCurrency, productData);
+        displayQuantityOffers(data.quantity_offers, blockId, productId, formCurrency, data.product);
         return { success: true };
       } else {
         console.log("ℹ️ No offers found");
