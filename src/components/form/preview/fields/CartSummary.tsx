@@ -4,6 +4,7 @@ import { FormField } from '@/lib/form-utils';
 import { useI18n } from '@/lib/i18n';
 import { useShopifyProducts } from '@/hooks/useShopifyProducts';
 import { supabase } from '@/integrations/supabase/client';
+import { CurrencyService } from '@/lib/services/CurrencyService';
 
 interface CartSummaryProps {
   field: FormField;
@@ -81,8 +82,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
     if (fromCurrency === toCurrency) return amount;
     
     // استخدام الخدمة الموحدة للعملات
-    const { convertCurrency: unifiedConvert } = require('@/lib/services/CurrencyService');
-    return unifiedConvert(amount, fromCurrency, toCurrency);
+    return CurrencyService.convertCurrency(amount, fromCurrency, toCurrency);
   };
 
   // Calculate prices using useMemo to prevent infinite loops
