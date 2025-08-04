@@ -20,7 +20,8 @@ const CurrencyManagement = () => {
   const [displaySettings, setDisplaySettings] = useState<CurrencyDisplaySettings>({
     showSymbol: true,
     symbolPosition: 'before',
-    decimalPlaces: 2
+    decimalPlaces: 2,
+    customSymbols: {}
   });
   
   // المعدلات المخصصة

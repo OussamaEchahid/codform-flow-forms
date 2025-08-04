@@ -10,6 +10,7 @@ export interface CurrencyDisplaySettings {
   showSymbol: boolean; // true = رمز (د.م), false = كود (MAD)
   symbolPosition: 'before' | 'after'; // موضع الرمز
   decimalPlaces: number; // عدد المنازل العشرية
+  customSymbols: Record<string, string>; // رموز عرض مخصصة: { "XOF": "CFA", "XAF": "CFA" }
 }
 
 class CurrencyServiceClass {
@@ -17,7 +18,8 @@ class CurrencyServiceClass {
   private displaySettings: CurrencyDisplaySettings = {
     showSymbol: true,
     symbolPosition: 'before',
-    decimalPlaces: 2
+    decimalPlaces: 2,
+    customSymbols: {}
   };
   private initialized = false;
 
@@ -92,7 +94,14 @@ class CurrencyServiceClass {
     }
 
     const formattedAmount = amount.toFixed(this.displaySettings.decimalPlaces);
-    const displayText = this.displaySettings.showSymbol ? currency.symbol : currency.code;
+    
+    // استخدام الرمز المخصص إذا كان متوفراً
+    let displayText: string;
+    if (this.displaySettings.customSymbols[currencyCode]) {
+      displayText = this.displaySettings.customSymbols[currencyCode];
+    } else {
+      displayText = this.displaySettings.showSymbol ? currency.symbol : currency.code;
+    }
 
     if (this.displaySettings.symbolPosition === 'before') {
       return `${displayText}${formattedAmount}`;
@@ -247,7 +256,8 @@ class CurrencyServiceClass {
       this.displaySettings = {
         showSymbol: true,
         symbolPosition: 'before',
-        decimalPlaces: 2
+        decimalPlaces: 2,
+        customSymbols: {}
       };
       
       console.log('✅ Reset all rates to defaults');

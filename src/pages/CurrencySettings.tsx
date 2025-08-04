@@ -20,7 +20,8 @@ const CurrencySettings = () => {
   const [displaySettings, setDisplaySettings] = useState<CurrencyDisplaySettings>({
     showSymbol: true,
     symbolPosition: 'before',
-    decimalPlaces: 2
+    decimalPlaces: 2,
+    customSymbols: {}
   });
   
   // المعدلات المخصصة
@@ -118,7 +119,14 @@ const CurrencySettings = () => {
     if (!currencyData) return `${amount.toFixed(displaySettings.decimalPlaces)} ${currency}`;
 
     const formattedAmount = amount.toFixed(displaySettings.decimalPlaces);
-    const displayText = displaySettings.showSymbol ? currencyData.symbol : currency;
+    
+    // استخدام الرمز المخصص إذا كان متوفراً
+    let displayText: string;
+    if (displaySettings.customSymbols[currency]) {
+      displayText = displaySettings.customSymbols[currency];
+    } else {
+      displayText = displaySettings.showSymbol ? currencyData.symbol : currency;
+    }
 
     if (displaySettings.symbolPosition === 'before') {
       return `${displayText}${formattedAmount}`;
@@ -221,12 +229,126 @@ const CurrencySettings = () => {
                   <span className="text-gray-600">MAD:</span> {previewFormat(299.99, 'MAD')}
                 </div>
                 <div>
-                  <span className="text-gray-600">SAR:</span> {previewFormat(112.50, 'SAR')}
+                  <span className="text-gray-600">XOF:</span> {previewFormat(19655, 'XOF')}
                 </div>
                 <div>
-                  <span className="text-gray-600">EUR:</span> {previewFormat(27.59, 'EUR')}
+                  <span className="text-gray-600">XAF:</span> {previewFormat(19655, 'XAF')}
                 </div>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* رموز العرض المخصصة */}
+        <Card>
+          <CardHeader>
+            <CardTitle>رموز العرض المخصصة</CardTitle>
+            <CardDescription>
+              تخصيص كيفية عرض رموز العملات. مثال: عرض "CFA" بدلاً من "XOF" أو "XAF"
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* اختصارات سريعة للفرنك الأفريقي */}
+            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <Label className="text-sm font-medium mb-3 block">اختصارات سريعة للفرنك الأفريقي:</Label>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setDisplaySettings(prev => ({
+                      ...prev,
+                      customSymbols: {
+                        ...prev.customSymbols,
+                        'XOF': 'CFA',
+                        'XAF': 'CFA'
+                      }
+                    }));
+                  }}
+                >
+                  استخدام "CFA" للفرنك الأفريقي
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const newSymbols = { ...displaySettings.customSymbols };
+                    delete newSymbols['XOF'];
+                    delete newSymbols['XAF'];
+                    setDisplaySettings(prev => ({
+                      ...prev,
+                      customSymbols: newSymbols
+                    }));
+                  }}
+                >
+                  إزالة تخصيص الفرنك
+                </Button>
+              </div>
+            </div>
+
+            {/* إدارة الرموز المخصصة */}
+            <div className="space-y-4">
+              <Label className="text-sm font-medium">الرموز المخصصة الحالية:</Label>
+              
+              {Object.keys(displaySettings.customSymbols).length === 0 ? (
+                <p className="text-gray-500 text-sm">لا توجد رموز مخصصة حالياً</p>
+              ) : (
+                <div className="space-y-2">
+                  {Object.entries(displaySettings.customSymbols).map(([currency, symbol]) => (
+                    <div key={currency} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <code className="px-2 py-1 bg-gray-200 rounded text-sm">{currency}</code>
+                        <span className="text-gray-600">→</span>
+                        <span className="font-medium">{symbol}</span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          const newSymbols = { ...displaySettings.customSymbols };
+                          delete newSymbols[currency];
+                          setDisplaySettings(prev => ({
+                            ...prev,
+                            customSymbols: newSymbols
+                          }));
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* إضافة رمز مخصص جديد */}
+            <div className="flex gap-2">
+              <Select
+                value=""
+                onValueChange={(currency) => {
+                  const symbol = prompt(`أدخل الرمز المخصص للعملة ${currency}:`);
+                  if (symbol && symbol.trim()) {
+                    setDisplaySettings(prev => ({
+                      ...prev,
+                      customSymbols: {
+                        ...prev.customSymbols,
+                        [currency]: symbol.trim()
+                      }
+                    }));
+                  }
+                }}
+              >
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="إضافة رمز مخصص..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {CURRENCIES.filter(c => !displaySettings.customSymbols[c.code]).map(currency => (
+                    <SelectItem key={currency.code} value={currency.code}>
+                      {currency.code} - {language === 'ar' ? currency.nameAr : currency.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </CardContent>
         </Card>
