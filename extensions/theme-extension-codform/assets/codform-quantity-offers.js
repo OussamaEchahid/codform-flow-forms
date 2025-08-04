@@ -6,8 +6,13 @@
 window.CodformQuantityOffers = (function() {
   'use strict';
 
-  // دالة تحويل العملة محسنة للاستفادة من CurrencyService
+  // دالة تحويل العملة مع Currency Manager
   function convertCurrency(amount, fromCurrency, toCurrency) {
+    // استخدام Currency Manager إذا كان متاحاً
+    if (window.CodformCurrencyManager && typeof window.CodformCurrencyManager.convertCurrency === 'function') {
+      return window.CodformCurrencyManager.convertCurrency(amount, fromCurrency, toCurrency);
+    }
+    
     // استخدام CurrencyService إذا كان متاحاً
     if (window.CurrencyService && typeof window.CurrencyService.convertCurrency === 'function') {
       return window.CurrencyService.convertCurrency(amount, fromCurrency, toCurrency);
@@ -29,8 +34,13 @@ window.CodformQuantityOffers = (function() {
     return usdAmount * toRate;
   }
   
-  // دالة تنسيق العملة مع الإعدادات المخصصة
+  // دالة تنسيق العملة مع Currency Manager
   function formatCurrency(amount, currency, language = 'en') {
+    // استخدام Currency Manager إذا كان متاحاً
+    if (window.CodformCurrencyManager && typeof window.CodformCurrencyManager.formatCurrency === 'function') {
+      return window.CodformCurrencyManager.formatCurrency(amount, currency, language);
+    }
+    
     // استخدام CurrencyService إذا كان متاحاً للتنسيق المخصص
     if (window.CurrencyService && typeof window.CurrencyService.formatCurrency === 'function') {
       return window.CurrencyService.formatCurrency(amount, currency, language);
@@ -584,7 +594,7 @@ window.CodformQuantityOffers = (function() {
           text-decoration: line-through;
           font-weight: 400;
         `;
-        originalPriceElement.textContent = formatCurrency(originalPrice, formCurrency, formDirection === 'rtl' ? 'ar' : 'en');
+        originalPriceElement.textContent = formatCurrency(originalPrice, finalCurrency, formDirection === 'rtl' ? 'ar' : 'en');
         priceSection.appendChild(originalPriceElement);
       }
 
@@ -596,7 +606,7 @@ window.CodformQuantityOffers = (function() {
         color: ${styling.priceColor};
         line-height: 1.2;
       `;
-      finalPriceElement.textContent = formatCurrency(totalPrice, formCurrency, formDirection === 'rtl' ? 'ar' : 'en');
+      finalPriceElement.textContent = formatCurrency(totalPrice, finalCurrency, formDirection === 'rtl' ? 'ar' : 'en');
       priceSection.appendChild(finalPriceElement);
 
       // السعر للقطعة الواحدة (إذا كانت الكمية أكثر من 1)
@@ -608,7 +618,7 @@ window.CodformQuantityOffers = (function() {
           margin-top: 2px;
           font-weight: 400;
         `;
-        unitPriceElement.textContent = `${formatCurrency(realPrice, formCurrency, formDirection === 'rtl' ? 'ar' : 'en')} × ${offer.quantity}`;
+        unitPriceElement.textContent = `${formatCurrency(realPrice, finalCurrency, formDirection === 'rtl' ? 'ar' : 'en')} × ${offer.quantity}`;
         priceSection.appendChild(unitPriceElement);
       }
 

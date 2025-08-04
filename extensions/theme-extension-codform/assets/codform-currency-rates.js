@@ -3,6 +3,7 @@
  * جميع المعدلات محسوبة بالنسبة للدولار الأمريكي (USD)
  * متطابقة مع src/lib/constants/countries-currencies.ts
  */
+// استخدام CurrencyService إذا كان متاحاً، وإلا استخدام المعدلات الافتراضية
 window.CodformCurrencyRates = {
   'USD': 1.0,
   'SAR': 3.75,
@@ -17,7 +18,7 @@ window.CodformCurrencyRates = {
   'SYP': 2512,
   'IQD': 1310,
   'YER': 250,
-  'MAD': 10.0, // ✅ توحيد: 1 USD = 10 MAD (متطابق مع النظام الأساسي)
+  'MAD': 10.0,
   'TND': 3.08,
   'DZD': 134.5,
   'EUR': 0.85,
@@ -43,8 +44,19 @@ window.CodformCurrencyRates = {
   'PHP': 56,
   'BND': 1.35,
   'LYD': 4.48,
-  'XOF': 655.96, // West African CFA Franc (فرنك أفريقيا الغربية)
-  'XAF': 655.96  // Central African CFA Franc (فرنك أفريقيا الوسطى)
+  'XOF': 655.96,
+  'XAF': 655.96
+};
+
+// دالة للحصول على معدل التحويل (مع إعطاء الأولوية لـ CurrencyService)
+window.getExchangeRate = function(currencyCode) {
+  // استخدام CurrencyService إذا كان متاحاً
+  if (window.CurrencyService && typeof window.CurrencyService.getExchangeRate === 'function') {
+    return window.CurrencyService.getExchangeRate(currencyCode);
+  }
+  
+  // استخدام المعدلات الافتراضية
+  return window.CodformCurrencyRates[currencyCode] || 1.0;
 };
 
 /**
@@ -57,19 +69,48 @@ window.CodformCurrencyRates = {
 window.convertCurrency = function(amount, fromCurrency, toCurrency) {
   console.log(`🔄 Converting: ${amount} from ${fromCurrency} to ${toCurrency}`);
   
+  // استخدام CurrencyService إذا كان متاحاً
+  if (window.CurrencyService && typeof window.CurrencyService.convertCurrency === 'function') {
+    return window.CurrencyService.convertCurrency(amount, fromCurrency, toCurrency);
+  }
+  
+  // التحويل الاحتياطي باستخدام المعدلات الافتراضية
   if (fromCurrency === toCurrency) return amount;
   
-  const rates = window.CodformCurrencyRates;
+  const fromRate = window.getExchangeRate(fromCurrency);
+  const toRate = window.getExchangeRate(toCurrency);
   
-  if (!rates[fromCurrency] || !rates[toCurrency]) {
+  if (!fromRate || !toRate) {
     console.warn(`⚠️ Currency not supported: ${fromCurrency} -> ${toCurrency}`);
     return amount;
   }
   
   // تحويل إلى USD أولاً، ثم إلى العملة المطلوبة
-  const usdAmount = amount / rates[fromCurrency];
-  const convertedAmount = usdAmount * rates[toCurrency];
+  const usdAmount = amount / fromRate;
+  const convertedAmount = usdAmount * toRate;
   
   console.log(`✅ Converted: ${amount} ${fromCurrency} -> ${convertedAmount.toFixed(2)} ${toCurrency}`);
   return convertedAmount;
+};
+
+// دالة تنسيق العملة مع إعطاء الأولوية لـ CurrencyService
+window.formatCurrencyWithService = function(amount, currency, language = 'ar') {
+  // استخدام CurrencyService إذا كان متاحاً
+  if (window.CurrencyService && typeof window.CurrencyService.formatCurrency === 'function') {
+    return window.CurrencyService.formatCurrency(amount, currency, language);
+  }
+  
+  // التنسيق الاحتياطي
+  try {
+    const locale = language === 'ar' ? 'ar-SA' : 'en-US';
+    return new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency: currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(amount);
+  } catch (error) {
+    console.warn('Currency formatting error:', error);
+    return `${currency} ${amount.toFixed(2)}`;
+  }
 };

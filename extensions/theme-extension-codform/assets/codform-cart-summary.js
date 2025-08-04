@@ -76,9 +76,14 @@
   };
 
   /**
-   * Convert currency amount using CurrencyService
+   * Convert currency amount using Currency Manager
    */
   function convertCurrency(amount, fromCurrency, toCurrency) {
+    // استخدام Currency Manager إذا كان متاحاً
+    if (window.CodformCurrencyManager && typeof window.CodformCurrencyManager.convertCurrency === 'function') {
+      return window.CodformCurrencyManager.convertCurrency(amount, fromCurrency, toCurrency);
+    }
+    
     // استخدام CurrencyService إذا كان متاحاً
     if (window.CurrencyService && typeof window.CurrencyService.convertCurrency === 'function') {
       return window.CurrencyService.convertCurrency(amount, fromCurrency, toCurrency);
@@ -105,9 +110,14 @@
   }
 
   /**
-   * Format currency amount using CurrencyService settings
+   * Format currency amount using Currency Manager
    */
   function formatCurrency(amount, currency, language = 'ar') {
+    // استخدام Currency Manager إذا كان متاحاً
+    if (window.CodformCurrencyManager && typeof window.CodformCurrencyManager.formatCurrency === 'function') {
+      return window.CodformCurrencyManager.formatCurrency(amount, currency, language);
+    }
+    
     // استخدام CurrencyService إذا كان متاحاً للتنسيق المخصص
     if (window.CurrencyService && typeof window.CurrencyService.formatCurrency === 'function') {
       return window.CurrencyService.formatCurrency(amount, currency, language);

@@ -30,6 +30,7 @@
 <script src="{{ 'codform-whatsapp-field.js' | asset_url }}"></script>
 <script src="{{ 'codform-countdown-field.js' | asset_url }}"></script>
 <script src="{{ 'codform-arabic-styling.js' | asset_url }}"></script>
+<script src="{{ 'codform-currency-manager.js' | asset_url }}"></script>
 <script src="{{ 'codform-cart-summary.js' | asset_url }}"></script>
 
 <div id="codform-popup-button-container" style="display: none;">
@@ -44,12 +45,12 @@
 (function() {
   'use strict';
   
-  // تهيئة CurrencyService إذا كان متاحاً
-  if (window.CurrencyService && typeof window.CurrencyService.initialize === 'function') {
-    window.CurrencyService.initialize();
-    console.log('✅ CurrencyService initialized in Shopify store');
+  // تهيئة Currency Manager
+  if (window.CodformCurrencyManager) {
+    window.CodformCurrencyManager.initialize();
+    console.log('✅ Currency Manager initialized in Shopify store');
   } else {
-    console.warn('⚠️ CurrencyService not available in Shopify store');
+    console.warn('⚠️ Currency Manager not loaded');
   }
   
   const API_BASE_URL = 'https://lovable-forms-api.netlify.app/.netlify/functions/api-forms';
