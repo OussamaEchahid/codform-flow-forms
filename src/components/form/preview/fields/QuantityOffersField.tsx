@@ -1,6 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { CurrencyService } from '@/lib/services/CurrencyService';
 
 interface Offer {
   id: string;
@@ -60,6 +61,11 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
     priceColor: '#000000'
   });
   const [loading, setLoading] = useState(true);
+
+  // تهيئة CurrencyService عند تحميل المكون
+  React.useEffect(() => {
+    CurrencyService.initialize();
+  }, []);
 
   useEffect(() => {
     const loadQuantityOffers = async () => {
@@ -217,18 +223,18 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
             <div className={formDirection === 'rtl' ? 'text-left' : 'text-right'}>
               {isDiscounted && (
                 <div className="text-sm line-through text-gray-400">
-                  {formDirection === 'rtl' ? `${displayCurrency} ${originalPrice.toFixed(2)}` : `${originalPrice.toFixed(2)} ${displayCurrency}`}
+                  {CurrencyService.formatCurrency(originalPrice, displayCurrency, formDirection === 'rtl' ? 'ar' : 'en')}
                 </div>
               )}
               <div 
                 className="font-bold text-lg"
                 style={{ color: styling.priceColor }}
               >
-                {formDirection === 'rtl' ? `${displayCurrency} ${totalPrice.toFixed(2)}` : `${totalPrice.toFixed(2)} ${displayCurrency}`}
+                {CurrencyService.formatCurrency(totalPrice, displayCurrency, formDirection === 'rtl' ? 'ar' : 'en')}
               </div>
               {offer.quantity > 1 && (
                 <div className="text-xs text-gray-500 mt-1">
-                  {formDirection === 'rtl' ? `${offer.quantity} × ${displayCurrency} ${realPrice.toFixed(2)}` : `${realPrice.toFixed(2)} ${displayCurrency} × ${offer.quantity}`}
+                  {CurrencyService.formatCurrency(realPrice, displayCurrency, formDirection === 'rtl' ? 'ar' : 'en')} × {offer.quantity}
                 </div>
               )}
             </div>

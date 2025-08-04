@@ -1,6 +1,7 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import FormField from '@/components/form/preview/FormField';
+import { CurrencyService } from '@/lib/services/CurrencyService';
 
 interface Offer {
   id: string;
@@ -46,6 +47,10 @@ const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
   productData,
   currency = 'SAR'
 }) => {
+  // تهيئة CurrencyService عند تحميل المكون
+  React.useEffect(() => {
+    CurrencyService.initialize();
+  }, []);
   // استخراج البيانات الحقيقية للمنتج
   const realPrice = productData?.price || 5000; // استخدام السعر الحقيقي من المنتج
   const productTitle = productData?.title || 'njhygfjuygfujk'; // استخدام اسم المنتج الحقيقي
@@ -170,18 +175,18 @@ const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
               <div className="text-right">
                 {isDiscounted && (
                   <div className="text-sm line-through text-gray-400">
-                    {originalPrice.toFixed(2)} {displayCurrency}
+                    {CurrencyService.formatCurrency(originalPrice, displayCurrency)}
                   </div>
                 )}
                 <div 
                   className="font-bold text-lg"
                   style={{ color: styling.priceColor || '#000000' }}
                 >
-                  {totalPrice.toFixed(2)} {displayCurrency}
+                  {CurrencyService.formatCurrency(totalPrice, displayCurrency)}
                 </div>
                 {offer.quantity > 1 && (
                   <div className="text-xs text-gray-500 mt-1">
-                    {realPrice.toFixed(2)} {displayCurrency} × {offer.quantity}
+                    {CurrencyService.formatCurrency(realPrice, displayCurrency)} × {offer.quantity}
                   </div>
                 )}
               </div>

@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import FormField from './FormField';
 import QuantityOffersField from './fields/QuantityOffersField';
 import { getCurrencyByCode } from '@/lib/constants/countries-currencies';
+import { CurrencyService } from '@/lib/services/CurrencyService';
 
 interface Offer {
   id: string;
@@ -45,6 +46,11 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
   const [productData, setProductData] = useState<{price: number, currency: string, formCurrency?: string, title?: string, image?: string, moneyFormat: string, moneyWithCurrencyFormat?: string} | null>(null);
   const [formCurrency, setFormCurrency] = useState<string>('USD');
 
+  // تهيئة CurrencyService عند تحميل المكون
+  React.useEffect(() => {
+    CurrencyService.initialize();
+  }, []);
+
   // الحصول على رمز العملة بناءً على المنتج أو الدولة أو العملة المحددة
   const getCurrencySymbol = () => {
     if (productData?.currency) {
@@ -71,23 +77,12 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
     if (fromCurrency === toCurrency) return amount;
     
     // استخدام الخدمة الموحدة للعملات
-    const { convertCurrency: unifiedConvert } = require('@/lib/services/CurrencyService');
-    return unifiedConvert(amount, fromCurrency, toCurrency);
+    return CurrencyService.convertCurrency(amount, fromCurrency, toCurrency);
   };
 
   // دالة لتنسيق السعر باستخدام العملة المحددة
   const formatPriceWithCurrency = (amount: number, currency: string) => {
-    const currencySymbols: { [key: string]: string } = {
-      'USD': '$',
-      'EUR': '€',
-      'GBP': '£',
-      'SAR': 'ر.س',
-      'AED': 'د.إ',
-      'MAD': 'د.م'
-    };
-    
-    const symbol = currencySymbols[currency] || currency;
-    return `${symbol}${amount.toFixed(2)}`;
+    return CurrencyService.formatCurrency(amount, currency, formDirection === 'rtl' ? 'ar' : 'en');
   };
 
   // دالة لتنسيق السعر باستخدام تنسيق المتجر

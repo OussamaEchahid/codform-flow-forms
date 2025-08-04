@@ -6,74 +6,42 @@
 window.CodformQuantityOffers = (function() {
   'use strict';
 
-  // دالة تحويل العملة موحدة مع النظام الأساسي
+  // دالة تحويل العملة محسنة للاستفادة من CurrencyService
   function convertCurrency(amount, fromCurrency, toCurrency) {
-    // استخدام معدلات التحويل الموحدة من النظام المركزي
-    const exchangeRates = window.CodformCurrencyRates || {
-      'USD': 1.0,
-      'SAR': 3.75,
-      'AED': 3.67,
-      'EGP': 30.85,
-      'JOD': 0.71,
-      'KWD': 0.31,
-      'BHD': 0.38,
-      'QAR': 3.64,
-      'OMR': 0.38,
-      'LBP': 15000,
-      'SYP': 2512,
-      'IQD': 1310,
-      'YER': 250,
-      'MAD': 10.0, // ✅ توحيد: متطابق مع النظام الأساسي
-      'TND': 3.08,
-      'DZD': 134.5,
-      'EUR': 0.85,
-      'GBP': 0.75,
-      'TRY': 27.8,
-      'IRR': 42000,
-      'AFN': 72,
-      'PKR': 280,
-      'INR': 83,
-      'BDT': 110,
-      'LKR': 300,
-      'MVR': 15.4,
-      'NPR': 133,
-      'BTN': 83,
-      'MMK': 2100,
-      'KHR': 4100,
-      'LAK': 20000,
-      'VND': 24000,
-      'THB': 36,
-      'MYR': 4.7,
-      'SGD': 1.35,
-      'IDR': 15800,
-      'PHP': 56,
-      'BND': 1.35,
-      'LYD': 4.48,
-      'XOF': 655.96, // West African CFA Franc (فرنك أفريقيا الغربية)
-      'XAF': 655.96  // Central African CFA Franc (فرنك أفريقيا الوسطى)
+    // استخدام CurrencyService إذا كان متاحاً
+    if (window.CurrencyService && typeof window.CurrencyService.convertCurrency === 'function') {
+      return window.CurrencyService.convertCurrency(amount, fromCurrency, toCurrency);
+    }
+    
+    // الاحتياطي: استخدام الأسعار المحلية
+    const exchangeRates = {
+      'USD': 1.0, 'SAR': 3.75, 'AED': 3.67, 'MAD': 10.0, 'EUR': 0.85, 'GBP': 0.75
     };
     
-    // تنظيف أسماء العملات
     fromCurrency = (fromCurrency || 'USD').toString().toUpperCase().trim();
     toCurrency = (toCurrency || 'MAD').toString().toUpperCase().trim();
     
-    // إذا كانت نفس العملة
-    if (fromCurrency === toCurrency) {
-      return amount;
+    if (fromCurrency === toCurrency) return amount;
+    
+    const fromRate = exchangeRates[fromCurrency] || 1;
+    const toRate = exchangeRates[toCurrency] || 1;
+    const usdAmount = amount / fromRate;
+    return usdAmount * toRate;
+  }
+  
+  // دالة تنسيق العملة مع الإعدادات المخصصة
+  function formatCurrency(amount, currency, language = 'en') {
+    // استخدام CurrencyService إذا كان متاحاً للتنسيق المخصص
+    if (window.CurrencyService && typeof window.CurrencyService.formatCurrency === 'function') {
+      return window.CurrencyService.formatCurrency(amount, currency, language);
     }
     
-    // التحويل عبر الدولار الأمريكي كعملة أساسية
-    const fromRate = exchangeRates[fromCurrency];
-    const toRate = exchangeRates[toCurrency];
-    
-    if (fromRate && toRate) {
-      // تحويل للدولار أولاً ثم للعملة المطلوبة
-      const usdAmount = amount / fromRate;
-      const convertedAmount = usdAmount * toRate;
-      return convertedAmount;
-    }
-    
-    return amount;
+    // التنسيق الاحتياطي
+    const symbols = {
+      'USD': '$', 'EUR': '€', 'GBP': '£', 'SAR': 'ر.س', 'AED': 'د.إ', 'MAD': 'د.م'
+    };
+    const symbol = symbols[currency] || currency;
+    return language === 'ar' ? `${symbol} ${amount.toFixed(2)}` : `${amount.toFixed(2)} ${symbol}`;
   }
 
   // دالة عرض quantity offers مطابقة بالضبط للمعاينة
@@ -616,9 +584,7 @@ window.CodformQuantityOffers = (function() {
           text-decoration: line-through;
           font-weight: 400;
         `;
-        originalPriceElement.textContent = formDirection === 'rtl' 
-          ? `${currencySymbol} ${originalPrice.toFixed(2)}`
-          : `${originalPrice.toFixed(2)} ${currencySymbol}`;
+        originalPriceElement.textContent = formatCurrency(originalPrice, formCurrency, formDirection === 'rtl' ? 'ar' : 'en');
         priceSection.appendChild(originalPriceElement);
       }
 
@@ -630,9 +596,7 @@ window.CodformQuantityOffers = (function() {
         color: ${styling.priceColor};
         line-height: 1.2;
       `;
-      finalPriceElement.textContent = formDirection === 'rtl' 
-        ? `${currencySymbol} ${totalPrice.toFixed(2)}`
-        : `${totalPrice.toFixed(2)} ${currencySymbol}`;
+      finalPriceElement.textContent = formatCurrency(totalPrice, formCurrency, formDirection === 'rtl' ? 'ar' : 'en');
       priceSection.appendChild(finalPriceElement);
 
       // السعر للقطعة الواحدة (إذا كانت الكمية أكثر من 1)
@@ -644,9 +608,7 @@ window.CodformQuantityOffers = (function() {
           margin-top: 2px;
           font-weight: 400;
         `;
-        unitPriceElement.textContent = formDirection === 'rtl' 
-          ? `${offer.quantity} × ${currencySymbol} ${realPrice.toFixed(2)}`
-          : `${realPrice.toFixed(2)} ${currencySymbol} × ${offer.quantity}`;
+        unitPriceElement.textContent = `${formatCurrency(realPrice, formCurrency, formDirection === 'rtl' ? 'ar' : 'en')} × ${offer.quantity}`;
         priceSection.appendChild(unitPriceElement);
       }
 
