@@ -96,8 +96,15 @@ window.CodformQuantityOffers = (function() {
       // حساب الأسعار باستخدام Currency Manager
       const quantity = offer.quantity || 1;
       
-      // ✅ استخدام السعر الأساسي الصحيح من بيانات المنتج
-      const actualBasePrice = productData?.price || basePrice || 20;
+      // ✅ الحصول على السعر الصحيح من State Manager
+      let actualBasePrice = 2; // السعر الافتراضي
+      
+      if (currentState?.basePrice) {
+        actualBasePrice = currentState.basePrice;
+      } else if (productData?.price && productData?.currency === 'USD') {
+        actualBasePrice = productData.price;
+      }
+      
       const totalPrice = actualBasePrice * quantity;
       const discountValue = parseFloat(offer.discount || 0);
       let finalPrice = totalPrice;
