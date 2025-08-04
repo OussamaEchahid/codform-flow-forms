@@ -64,7 +64,7 @@ export type Database = {
           created_at: string
           decimal_places: number
           id: number
-          shop_id: string | null
+          shop_id: string
           show_symbol: boolean
           symbol_position: string
           updated_at: string
@@ -73,8 +73,8 @@ export type Database = {
         Insert: {
           created_at?: string
           decimal_places?: number
-          id?: number
-          shop_id?: string | null
+          id?: never
+          shop_id: string
           show_symbol?: boolean
           symbol_position?: string
           updated_at?: string
@@ -83,8 +83,8 @@ export type Database = {
         Update: {
           created_at?: string
           decimal_places?: number
-          id?: number
-          shop_id?: string | null
+          id?: never
+          shop_id?: string
           show_symbol?: boolean
           symbol_position?: string
           updated_at?: string
