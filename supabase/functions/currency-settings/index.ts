@@ -6,6 +6,43 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS, PUT, DELETE',
 }
 
+// معدلات تحويل محدثة مع العملات الجديدة
+const EXCHANGE_RATES = {
+  'USD': 1.0,
+  'EUR': 0.85,
+  'GBP': 0.79,
+  'SAR': 3.75,
+  'MAD': 10.0,
+  'AED': 3.67,
+  'EGP': 30.85,
+  'CAD': 1.35,
+  'AUD': 1.52,
+  'JPY': 110.0,
+  'CHF': 0.92,
+  'CNY': 6.45,
+  'INR': 74.5,
+  'BRL': 5.2,
+  'RUB': 75.0,
+  'TRY': 8.5,
+  'KRW': 1180.0,
+  'SGD': 1.35,
+  'HKD': 7.8,
+  'NOK': 8.6,
+  'SEK': 8.9,
+  'DKK': 6.3,
+  'PLN': 3.9,
+  'CZK': 21.5,
+  'HUF': 295.0,
+  'ILS': 3.2,
+  'ZAR': 14.8,
+  'MXN': 20.1,
+  'THB': 33.2,
+  'MYR': 4.15,
+  'IDR': 14250.0,
+  'PHP': 50.5,
+  'VND': 22800.0
+};
+
 interface CurrencySettings {
   display_settings: {
     show_symbol: boolean;
@@ -65,10 +102,18 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log('✅ Currency settings fetched:', data);
+    // إضافة معدلات التحويل الافتراضية إلى النتيجة
+    const result = {
+      ...data,
+      default_rates: EXCHANGE_RATES,
+      // دمج المعدلات المخصصة مع الافتراضية
+      all_rates: { ...EXCHANGE_RATES, ...data.custom_rates }
+    };
+
+    console.log('✅ Currency settings fetched:', JSON.stringify(result));
 
     return new Response(
-      JSON.stringify(data),
+      JSON.stringify(result),
       { 
         status: 200, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 

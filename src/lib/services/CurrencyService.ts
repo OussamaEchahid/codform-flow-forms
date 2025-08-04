@@ -447,12 +447,10 @@ class CurrencyServiceClass {
 
       console.log('📤 Upsert data:', upsertData);
 
-      // استخدام conflict resolution صحيح
+      // استخدام upsert بدون onConflict
       const { data, error } = await (supabase as any)
         .from('custom_currency_rates')
-        .upsert(upsertData, {
-          onConflict: this.currentUserId ? 'currency_code,user_id' : 'currency_code'
-        })
+        .upsert(upsertData)
         .select();
 
       if (error) {

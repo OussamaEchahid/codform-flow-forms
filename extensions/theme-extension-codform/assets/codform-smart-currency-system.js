@@ -267,22 +267,23 @@
     updateQuantityOffers() {
       // تحديث عروض الكمية الرئيسية
       document.querySelectorAll('[id^="quantity-offers-before-"]').forEach(container => {
-        const offers = container.querySelectorAll('.offer-price, [data-price]');
+        const offers = container.querySelectorAll('.offer-price, [data-price], .quantity-offer-price, .price');
         offers.forEach(element => {
-          const amount = parseFloat(element.getAttribute('data-price') || element.textContent.match(/\d+(\.\d+)?/)?.[0]);
-          const originalCurrency = element.getAttribute('data-currency') || 'SAR';
+          const amount = parseFloat(element.getAttribute('data-price') || element.getAttribute('data-original-price') || element.textContent.match(/\d+(\.\d+)?/)?.[0]);
+          const originalCurrency = element.getAttribute('data-currency') || element.getAttribute('data-original-currency') || 'SAR';
           
           if (!isNaN(amount)) {
             const formatted = this.formatCurrency(amount, originalCurrency);
             element.textContent = formatted;
             element.setAttribute('data-currency', this.currentCurrency);
+            element.setAttribute('data-currency-amount', amount);
             console.log(`💰 Updated quantity offer: ${amount} ${originalCurrency} → ${formatted}`);
           }
         });
       });
 
       // تحديث عروض الكمية المدمجة في النموذج
-      document.querySelectorAll('.codform-quantity-offer-price, .codform-offer-price').forEach(element => {
+      document.querySelectorAll('.codform-quantity-offer-price, .codform-offer-price, .offer-price, .quantity-offer-price').forEach(element => {
         const amount = parseFloat(element.getAttribute('data-original-price') || element.getAttribute('data-price') || element.textContent.match(/\d+(\.\d+)?/)?.[0]);
         const originalCurrency = element.getAttribute('data-original-currency') || element.getAttribute('data-currency') || 'SAR';
         
@@ -290,6 +291,7 @@
           const formatted = this.formatCurrency(amount, originalCurrency);
           element.textContent = formatted;
           element.setAttribute('data-currency', this.currentCurrency);
+          element.setAttribute('data-currency-amount', amount);
           console.log(`💰 Updated inline quantity offer: ${amount} ${originalCurrency} → ${formatted}`);
         }
       });
@@ -305,6 +307,33 @@
           element.setAttribute('data-currency', this.currentCurrency);
           console.log(`💰 Updated currency amount: ${amount} ${originalCurrency} → ${formatted}`);
         }
+      });
+
+      // البحث عن أي عنصر يحتوي على نص مع أسعار في عروض الكمية
+      document.querySelectorAll('.quantity-offers-container, [class*="quantity"], [class*="offer"]').forEach(container => {
+        const elements = container.querySelectorAll('*');
+        elements.forEach(element => {
+          if (element.children.length === 0 && element.textContent.trim()) {
+            const text = element.textContent;
+            const priceMatch = text.match(/(\d+(?:\.\d{1,2})?)\s*(MAD|SAR|AED|USD|ر\.س|د\.م|د\.إ|\$)/);
+            if (priceMatch) {
+              const amount = parseFloat(priceMatch[1]);
+              let currency = priceMatch[2];
+              
+              // تحويل الرموز إلى أكواد العملات
+              if (currency === 'ر.س') currency = 'SAR';
+              else if (currency === 'د.م') currency = 'MAD';
+              else if (currency === 'د.إ') currency = 'AED';
+              else if (currency === '$') currency = 'USD';
+              
+              const formatted = this.formatCurrency(amount, currency);
+              element.textContent = text.replace(priceMatch[0], formatted);
+              element.setAttribute('data-currency-amount', amount);
+              element.setAttribute('data-currency', this.currentCurrency);
+              console.log(`💰 Updated quantity offer text: ${text} → ${element.textContent}`);
+            }
+          }
+        });
       });
     }
 
