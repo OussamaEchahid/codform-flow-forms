@@ -12,9 +12,11 @@ import { useI18n } from "@/lib/i18n";
 import { CurrencyService, CurrencyDisplaySettings } from "@/lib/services/CurrencyService";
 import { CURRENCIES } from "@/lib/constants/countries-currencies";
 import { toast } from "sonner";
+import { useSimpleShopifyAuth } from "@/hooks/useSimpleShopifyAuth";
 
 const CurrencySettings = () => {
   const { t, language } = useI18n();
+  const { currentStore, userStores } = useSimpleShopifyAuth();
   
   // إعدادات العرض
   const [displaySettings, setDisplaySettings] = useState<CurrencyDisplaySettings>({
@@ -32,27 +34,78 @@ const CurrencySettings = () => {
 
   // تحميل الإعدادات عند بدء التشغيل
   useEffect(() => {
-    loadSettings();
-  }, []);
+    console.log('🔄 CurrencySettings useEffect triggered:', { currentStore, userStoresLength: userStores.length });
+    
+    // استخدام setTimeout للتأكد من أن currentStore محدث
+    const timer = setTimeout(() => {
+      const actualCurrentStore = localStorage.getItem('current_shopify_store');
+      console.log('⏰ Delayed check - actual store:', actualCurrentStore);
+      
+      if (actualCurrentStore) {
+        loadSettings();
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [currentStore, userStores]);
 
   const loadSettings = async () => {
+    // الحصول على القيمة الطازجة مباشرة من localStorage
+    const actualCurrentStore = localStorage.getItem('current_shopify_store');
+    
+    if (!actualCurrentStore) {
+      console.log('❌ No current store available for currency settings');
+      return;
+    }
+
     try {
+      console.log('🏪 Loading currency settings for store:', actualCurrentStore);
+      console.log('📋 Hook current store:', currentStore);
+      console.log('📋 Available user stores:', userStores.map(s => s.shop));
+      
+      // تعيين سياق المتجر للخدمة مع التأكد من التمرير الصحيح
+      const userId = '36d7eb85-0c45-4b4f-bea1-a9cb732ca893';
+      console.log('💫 Setting currency service context:', { shop: actualCurrentStore, userId });
+      
+      // إجبار إعادة تعيين الخدمة
+      (CurrencyService as any).currentShopId = actualCurrentStore;
+      (CurrencyService as any).currentUserId = userId;
+      (CurrencyService as any).initialized = false;
+      
+      console.log('✅ Forced context update - Shop ID:', (CurrencyService as any).currentShopId);
+      
       await CurrencyService.initialize();
       setDisplaySettings(CurrencyService.getDisplaySettings());
       setCustomRates(CurrencyService.getCustomRates());
+      
+      console.log('✅ Currency settings loaded successfully');
     } catch (error) {
-      console.error('Error loading currency settings:', error);
+      console.error('❌ Error loading currency settings:', error);
       toast.error('فشل في تحميل إعدادات العملة');
     }
   };
 
   const saveDisplaySettings = async () => {
+    const actualCurrentStore = localStorage.getItem('current_shopify_store');
+    
+    if (!actualCurrentStore) {
+      toast.error('يرجى اختيار متجر أولاً');
+      return;
+    }
+
     setLoading(true);
     try {
+      // التأكد من أن السياق محدد بشكل صحيح قبل الحفظ
+      console.log('💾 Saving display settings for store:', actualCurrentStore);
+      console.log('🔧 Current service context:', {
+        shopId: (CurrencyService as any).currentShopId,
+        userId: (CurrencyService as any).currentUserId
+      });
+      
       await CurrencyService.saveDisplaySettings(displaySettings);
       toast.success('تم حفظ إعدادات العرض بنجاح');
     } catch (error) {
-      console.error('Error saving display settings:', error);
+      console.error('❌ Error saving display settings:', error);
       toast.error('فشل في حفظ إعدادات العرض');
     } finally {
       setLoading(false);
@@ -138,6 +191,22 @@ const CurrencySettings = () => {
   return (
     <SettingsLayout>
       <div className="container mx-auto p-6 space-y-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+        
+        {/* Debug info - إظهار حالة المتجر الحالي */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm mb-4">
+          <strong>Debug Info:</strong><br/>
+          Hook Current Store: {currentStore || 'غير محدد'}<br/>
+          LocalStorage Store: {localStorage.getItem('current_shopify_store') || 'غير محدد'}<br/>
+          User Stores: {userStores.length}<br/>
+          Service Shop ID: {(CurrencyService as any).currentShopId || 'غير محدد'}
+        </div>
+
+        {!currentStore && !localStorage.getItem('current_shopify_store') && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <p className="text-yellow-800">⚠️ لا يوجد متجر محدد. يرجى اختيار متجر من قائمة المتاجر.</p>
+          </div>
+        )}
+
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">إدارة العملات</h1>
@@ -148,7 +217,11 @@ const CurrencySettings = () => {
               <RotateCcw className="h-4 w-4" />
               إعادة تعيين
             </Button>
-            <Button onClick={saveDisplaySettings} disabled={loading} className="flex items-center gap-2">
+            <Button 
+              onClick={saveDisplaySettings} 
+              disabled={loading || (!currentStore && !localStorage.getItem('current_shopify_store'))} 
+              className="flex items-center gap-2"
+            >
               <Save className="h-4 w-4" />
               حفظ الإعدادات
             </Button>
