@@ -14,7 +14,9 @@ window.CodformQuantityOffers = (function() {
       'SAR': 3.75,
       'MAD': 10.0, // ✅ توحيد: متطابق مع النظام الأساسي
       'AED': 3.67,
-      'EGP': 30.85
+      'EGP': 30.85,
+      'XOF': 655.96, // West African CFA Franc
+      'XAF': 655.96  // Central African CFA Franc
     };
     
     if (fromCurrency === toCurrency) return amount;

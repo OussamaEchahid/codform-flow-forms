@@ -48,7 +48,9 @@ window.CodformQuantityOffers = (function() {
       'IDR': 15800,
       'PHP': 56,
       'BND': 1.35,
-      'LYD': 4.48
+      'LYD': 4.48,
+      'XOF': 655.96, // West African CFA Franc (فرنك أفريقيا الغربية)
+      'XAF': 655.96  // Central African CFA Franc (فرنك أفريقيا الوسطى)
     };
     
     // تنظيف أسماء العملات

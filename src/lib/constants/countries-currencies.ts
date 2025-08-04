@@ -357,6 +357,62 @@ export const COUNTRIES: Country[] = [
     phonePrefix: '+250',
     currency: 'RWF',
     flag: '🇷🇼'
+  },
+  {
+    code: 'SN',
+    name: 'Senegal',
+    nameAr: 'السنغال',
+    phonePrefix: '+221',
+    currency: 'XOF',
+    flag: '🇸🇳'
+  },
+  {
+    code: 'CI',
+    name: 'Côte d\'Ivoire',
+    nameAr: 'ساحل العاج',
+    phonePrefix: '+225',
+    currency: 'XOF',
+    flag: '🇨🇮'
+  },
+  {
+    code: 'ML',
+    name: 'Mali',
+    nameAr: 'مالي',
+    phonePrefix: '+223',
+    currency: 'XOF',
+    flag: '🇲🇱'
+  },
+  {
+    code: 'BF',
+    name: 'Burkina Faso',
+    nameAr: 'بوركينا فاسو',
+    phonePrefix: '+226',
+    currency: 'XOF',
+    flag: '🇧🇫'
+  },
+  {
+    code: 'CM',
+    name: 'Cameroon',
+    nameAr: 'الكاميرون',
+    phonePrefix: '+237',
+    currency: 'XAF',
+    flag: '🇨🇲'
+  },
+  {
+    code: 'GA',
+    name: 'Gabon',
+    nameAr: 'الغابون',
+    phonePrefix: '+241',
+    currency: 'XAF',
+    flag: '🇬🇦'
+  },
+  {
+    code: 'TD',
+    name: 'Chad',
+    nameAr: 'تشاد',
+    phonePrefix: '+235',
+    currency: 'XAF',
+    flag: '🇹🇩'
   }
 ];
 
@@ -650,6 +706,20 @@ export const CURRENCIES: Currency[] = [
     nameAr: 'فرنك رواندي',
     symbol: 'FRw',
     exchangeRate: 1385
+  },
+  {
+    code: 'XOF',
+    name: 'West African CFA Franc',
+    nameAr: 'فرنك أفريقيا الغربية',
+    symbol: 'CFA',
+    exchangeRate: 655.96
+  },
+  {
+    code: 'XAF',
+    name: 'Central African CFA Franc',
+    nameAr: 'فرنك أفريقيا الوسطى',
+    symbol: 'FCFA',
+    exchangeRate: 655.96
   }
 ];
 
