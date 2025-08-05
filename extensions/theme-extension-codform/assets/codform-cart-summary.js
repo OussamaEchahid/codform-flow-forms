@@ -199,7 +199,7 @@
    * Update cart summary text labels from field configuration
    */
   function updateCartSummaryLabels(field, config) {
-    const cartSummaries = document.querySelectorAll('.cart-summary-field');
+    const cartSummaries = document.querySelectorAll('.cart-summary-field, .codform-cart-summary');
     
     cartSummaries.forEach((summary) => {
       // Update direction
@@ -236,7 +236,7 @@
    * Update cart summary styles from field configuration
    */
   function updateCartSummaryStyles(field, config) {
-    const cartSummaries = document.querySelectorAll('.cart-summary-field');
+    const cartSummaries = document.querySelectorAll('.cart-summary-field, .codform-cart-summary');
     
     cartSummaries.forEach((summary) => {
       const style = field.style || {};
@@ -294,7 +294,7 @@
    * Update cart summary display - reduced logging
    */
   function updateCartSummary() {
-    const cartSummaries = document.querySelectorAll('.cart-summary-field');
+    const cartSummaries = document.querySelectorAll('.cart-summary-field, .codform-cart-summary');
     
     if (cartSummaries.length === 0) {
       return;
