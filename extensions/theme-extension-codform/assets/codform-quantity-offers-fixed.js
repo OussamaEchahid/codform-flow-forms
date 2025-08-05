@@ -258,11 +258,11 @@ window.CodformQuantityOffers = (function() {
         hover: '#94a3b8'
       };
       
-      // تصميم العرض مطابق للمعاينة مع إعدادات الألوان المخصصة
+      // تصميم العرض مطابق للمعاينة مع إعدادات الألوان المخصصة بدون خلفية خضراء
       const isHighlighted = index === 1; // العرض الثاني مُبرز
       
       offerElement.style.cssText = `
-        background: ${isHighlighted ? '#f0fdf4' : '#ffffff'};
+        background: #ffffff;
         border: 2px solid ${isHighlighted ? '#22c55e' : '#e5e7eb'};
         border-radius: 8px;
         padding: 12px;
@@ -340,24 +340,32 @@ window.CodformQuantityOffers = (function() {
           if (el !== this) {
             el.style.borderColor = borderColors.default;
             el.style.backgroundColor = '#ffffff';
-            // ✅ إعادة تعيين ألوان العلامات في العروض غير المحددة
-            const tags = el.querySelectorAll('div[style*="background: #22c55e"]');
-            tags.forEach(tag => {
-              tag.style.background = '#22c55e';
-              tag.style.color = 'white';
+            // ✅ إعادة تعيين ألوان العلامات في العروض غير المحددة - تحسين البحث
+            const allTags = el.querySelectorAll('div[style*="background"], div[style*="color"]');
+            allTags.forEach(tag => {
+              // فقط إذا كانت العلامة تحتوي على النص المناسب
+              if (tag.textContent && (tag.textContent.includes('Free') || tag.textContent.includes('Save') || 
+                  tag.textContent.includes('Gift') || tag.textContent.includes('%'))) {
+                tag.style.background = '#22c55e';
+                tag.style.color = 'white';
+              }
             });
           }
         });
         
-        // تحديد العرض الحالي باللون الأخضر (أو المخصص)
+        // تحديد العرض الحالي بدون خلفية خضراء - فقط الخط الأخضر
         this.style.borderColor = borderColors.selected;
-        this.style.backgroundColor = '#f0fdf4'; // خلفية خضراء فاتحة
+        this.style.backgroundColor = '#ffffff'; // خلفية بيضاء دائماً
         
         // ✅ الحفاظ على ألوان العلامات في العرض المحدد
-        const selectedTags = this.querySelectorAll('div[style*="background: #22c55e"], div[style*="background: rgb(255, 255, 255)"]');
+        const selectedTags = this.querySelectorAll('div[style*="background"], div[style*="color"]');
         selectedTags.forEach(tag => {
-          tag.style.background = '#22c55e';
-          tag.style.color = 'white';
+          // فقط إذا كانت العلامة تحتوي على النص المناسب
+          if (tag.textContent && (tag.textContent.includes('Free') || tag.textContent.includes('Save') || 
+              tag.textContent.includes('Gift') || tag.textContent.includes('%'))) {
+            tag.style.background = '#22c55e';
+            tag.style.color = 'white';
+          }
         });
       });
 
