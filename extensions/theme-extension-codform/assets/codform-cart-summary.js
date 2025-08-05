@@ -294,46 +294,47 @@
    * Update cart summary display - reduced logging
    */
   function updateCartSummary() {
-    console.log('🔍 DEBUG: Looking for cart summary elements in updateCartSummary()...');
+    console.log('🔍 FINAL DEBUG: Searching for cart summary elements...');
     
-    // تجربة جميع أساليب البحث الممكنة
-    const selectors = [
-      '.cart-summary-field',
-      '.codform-cart-summary', 
-      '[class*="cart-summary"]',
-      '[class*="codform-cart-summary"]',
-      'div[data-field-type="cartSummary"]',
-      'div[class*="CartSummary"]'
-    ];
+    // البحث الشامل في كل عنصر في الصفحة
+    const allElements = document.querySelectorAll('*');
+    console.log(`🔍 Total elements on page: ${allElements.length}`);
     
-    let allElements = [];
-    selectors.forEach(selector => {
-      const elements = document.querySelectorAll(selector);
-      console.log(`🔍 Selector "${selector}" found: ${elements.length} elements`);
-      allElements.push(...elements);
+    let foundCartElements = [];
+    
+    allElements.forEach(element => {
+      const elementText = element.textContent || '';
+      const className = element.className || '';
+      
+      // البحث عن العناصر التي تحتوي على نصوص Cart Summary
+      if (elementText.includes('Subtotal') || elementText.includes('Total') || elementText.includes('Shipping') ||
+          elementText.includes('المجموع') || elementText.includes('الإجمالي') || elementText.includes('الشحن') ||
+          className.includes('summary') || className.includes('cart') || className.includes('total') || className.includes('subtotal')) {
+        
+        console.log(`🎯 Found potential cart element:`, {
+          tagName: element.tagName,
+          className: className,
+          id: element.id,
+          textContent: elementText.substring(0, 100),
+          element: element
+        });
+        
+        foundCartElements.push(element);
+        
+        // تطبيق الستايل مباشرة على كل العناصر المحتملة
+        if (elementText.includes('...') || elementText.includes('USD') || elementText.includes('SAR')) {
+          element.style.fontFamily = 'Cairo, Arial, sans-serif';
+          element.style.color = '#059669';
+          element.style.fontWeight = 'bold';
+          console.log(`🎨 Applied styling to element:`, element);
+        }
+      }
     });
     
-    // إزالة التكرارات
-    const cartSummaries = [...new Set(allElements)];
+    console.log(`🎯 Total potential cart elements found: ${foundCartElements.length}`);
     
-    console.log(`🔍 Total unique cart summary elements found: ${cartSummaries.length}`);
-    
-    if (cartSummaries.length === 0) {
-      console.log('🔍 No cart summaries found, checking all divs...');
-      const allDivs = document.querySelectorAll('div');
-      console.log(`🔍 Total divs on page: ${allDivs.length}`);
-      
-      let potentialElements = [];
-      allDivs.forEach(div => {
-        if (div.className && (div.className.includes('cart') || div.className.includes('summary') || div.className.includes('CartSummary'))) {
-          console.log(`🔍 Found potential cart div:`, div.className, div);
-          potentialElements.push(div);
-        }
-      });
-      
-      if (potentialElements.length === 0) {
-        console.log('❌ No cart summary elements found anywhere on the page');
-      }
+    if (foundCartElements.length === 0) {
+      console.log('❌ No cart elements found anywhere on the page');
       return;
     }
     
