@@ -302,7 +302,7 @@ window.CodformQuantityOffers = (function() {
               <div style="font-weight: 600; color: #1f2937; text-align: ${formDirection === 'rtl' ? 'right' : 'left'};">
                 ${offer.text || (formDirection === 'rtl' ? `اشترِ ${quantity} قطعة` : `Buy ${quantity} item${quantity > 1 ? 's' : ''}`)}
               </div>
-              <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px; ${formDirection === 'rtl' ? 'justify-content: flex-end;' : 'justify-content: flex-start;'}">
+              <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px; justify-content: flex-start; ${formDirection === 'rtl' ? 'direction: rtl;' : 'direction: ltr;'}">
                 ${offer.tag ? `
                   <div style="background: #22c55e; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; text-align: center;">
                     ${offer.tag}
