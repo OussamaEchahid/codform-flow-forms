@@ -112,13 +112,12 @@ const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
     }
 
     return (
-      <div className="space-y-2 mb-4" style={{ direction: formStyle.formDirection || 'ltr' }}>
+      <div className="space-y-2 mb-4">
         {offers.map((offer, index) => {
           const totalPrice = calculatePrice(offer);
           const originalPrice = realPrice * offer.quantity;
           const isDiscounted = offer.discountType !== 'none' && offer.discountValue && offer.discountValue > 0;
           const isHighlighted = index === 1; // Highlight second offer
-          const formDirection = formStyle.formDirection || 'ltr';
           
           // Calculate savings percentage for display
           let savingsPercentage = 0;
@@ -131,52 +130,17 @@ const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
           return (
             <div 
               key={offer.id}
-              style={{
-                background: isHighlighted ? '#f0fdf4' : styling.backgroundColor,
-                border: isHighlighted ? '2px solid #22c55e' : '2px solid #22c55e',
-                borderRadius: '8px',
-                padding: '12px 16px',
-                marginBottom: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                fontFamily: 'Cairo, Arial, sans-serif',
-                cursor: 'pointer',
-                direction: formDirection,
-                textAlign: formDirection === 'rtl' ? 'right' : 'left',
-                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-                transition: '0.2s',
-                transform: 'translateY(0px)'
-              }}
+              className={`p-3 rounded-lg border-2 flex items-center justify-between bg-white ${
+                isHighlighted ? 'border-green-500 bg-green-50' : 'border-gray-200'
+              }`}
             >
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                width: '100%',
-                direction: formDirection,
-                gap: '12px',
-                borderColor: '#e5e7eb',
-                backgroundColor: '#ffffff'
-              }}>
-                {/* صورة المنتج */}
-                <div style={{
-                  width: '40px',
-                  height: '40px',
-                  flexShrink: 0,
-                  borderRadius: '6px',
-                  overflow: 'hidden',
-                  background: '#ffffff',
-                  border: '1px solid #e5e7eb'
-                }}>
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 bg-gray-100 rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden">
                   {productImage ? (
                     <img 
                       src={productImage} 
                       alt={productTitle}
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover'
-                      }}
+                      className="w-full h-full object-cover rounded-lg"
                     />
                   ) : (
                     <svg className="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
@@ -185,72 +149,46 @@ const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
                   )}
                 </div>
                 
-                {/* النص */}
-                <div style={{
-                  flex: '1 1 0%',
-                  textAlign: formDirection === 'rtl' ? 'right' : 'left',
-                  direction: formDirection,
-                  borderColor: '#e5e7eb',
-                  backgroundColor: '#ffffff'
-                }}>
-                  <div style={{
-                    fontWeight: '600',
-                    fontSize: '14px',
-                    color: '#1f2937',
-                    marginBottom: '2px',
-                    borderColor: '#e5e7eb',
-                    backgroundColor: '#ffffff'
-                  }}>
+                <div>
+                  <div 
+                    className="font-semibold"
+                    style={{ color: styling.textColor || '#000000' }}
+                  >
                     {offer.text || `Buy ${offer.quantity} Item${offer.quantity > 1 ? 's' : ''}`}
                   </div>
-                  
                   {offer.tag && (
-                    <span style={{
-                      background: '#22c55e',
-                      color: 'white',
-                      padding: '2px 6px',
-                      borderRadius: '10px',
-                      fontSize: '10px',
-                      fontWeight: '600'
-                    }}>
+                    <div 
+                      className="inline-block px-2 py-1 rounded text-xs font-medium text-white mt-1"
+                      style={{ backgroundColor: styling.tagColor }}
+                    >
                       {offer.tag}
-                    </span>
+                    </div>
+                  )}
+                  {savingsPercentage > 0 && (
+                    <div className="inline-block px-2 py-1 rounded text-xs font-medium text-white bg-green-500 mt-1 ml-2">
+                      Save {savingsPercentage}%
+                    </div>
                   )}
                 </div>
-                
-                {/* زر الكمية */}
-                <button style={{
-                  background: '#22c55e',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  padding: '6px 12px',
-                  fontSize: '12px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap'
-                }}>
-                  {formDirection === 'rtl' ? `اشتر ${offer.quantity} قطع` : `Buy ${offer.quantity} Items`}
-                </button>
-                
-                {/* السعر */}
-                <div style={{
-                  textAlign: formDirection === 'rtl' ? 'right' : 'left',
-                  direction: formDirection,
-                  minWidth: '70px',
-                  borderColor: '#e5e7eb',
-                  backgroundColor: '#ffffff'
-                }}>
-                  <div style={{
-                    fontSize: '16px',
-                    fontWeight: 'bold',
-                    color: '#059669',
-                    borderColor: '#e5e7eb',
-                    backgroundColor: '#ffffff'
-                  }}>
-                    {CurrencyService.formatCurrency(totalPrice, displayCurrency)}
+              </div>
+
+              <div className="text-right">
+                {isDiscounted && (
+                  <div className="text-sm line-through text-gray-400">
+                    {CurrencyService.formatCurrency(originalPrice, displayCurrency)}
                   </div>
+                )}
+                <div 
+                  className="font-bold text-lg"
+                  style={{ color: styling.priceColor || '#000000' }}
+                >
+                  {CurrencyService.formatCurrency(totalPrice, displayCurrency)}
                 </div>
+                {offer.quantity > 1 && (
+                  <div className="text-xs text-gray-500 mt-1">
+                    {CurrencyService.formatCurrency(realPrice, displayCurrency)} × {offer.quantity}
+                  </div>
+                )}
               </div>
             </div>
           );

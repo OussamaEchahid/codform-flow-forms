@@ -172,125 +172,83 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
         return (
           <div 
             key={offer.id}
-            style={{
-              background: isHighlighted ? '#f0fdf4' : styling.backgroundColor,
-              border: isHighlighted ? '2px solid #22c55e' : '2px solid #22c55e',
-              borderRadius: '8px',
-              padding: '12px 16px',
-              marginBottom: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              fontFamily: 'Cairo, Arial, sans-serif',
-              cursor: 'pointer',
-              direction: formDirection,
-              textAlign: formDirection === 'rtl' ? 'right' : 'left',
-              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-              transition: '0.2s',
-              transform: 'translateY(0px)'
+            className={`p-3 rounded-lg border-2 flex items-center justify-between transition-all cursor-pointer hover:shadow-md ${
+              isHighlighted 
+                ? 'border-green-500 bg-green-50 shadow-sm' 
+                : 'border-gray-200 bg-white'
+            }`}
+            style={{ 
+              backgroundColor: isHighlighted ? '#f0fdf4' : styling.backgroundColor,
+              direction: formDirection 
             }}
           >
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              width: '100%',
-              direction: formDirection,
-              gap: '12px',
-              borderColor: '#e5e7eb',
-              backgroundColor: '#ffffff'
-            }}>
-              {/* صورة المنتج */}
-              <div style={{
-                width: '40px',
-                height: '40px',
-                flexShrink: 0,
-                borderRadius: '6px',
-                overflow: 'hidden',
-                background: '#ffffff',
-                border: '1px solid #e5e7eb'
-              }}>
+            <div className={`flex items-center ${formDirection === 'rtl' ? 'space-x-reverse space-x-3' : 'space-x-3'}`}>
+              <div className="w-12 h-12 bg-gray-100 rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden">
                 {productImage ? (
                   <img 
                     src={productImage} 
                     alt={productTitle}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover'
-                    }}
+                    className="w-full h-full object-cover rounded-lg"
                     onError={(e) => {
+                      console.log('❌ Image failed to load:', productImage);
                       e.currentTarget.style.display = 'none';
+                      const nextElement = e.currentTarget.nextElementSibling as HTMLElement;
+                      if (nextElement) nextElement.style.display = 'flex';
                     }}
                   />
                 ) : null}
+                <svg 
+                  className="w-8 h-8 text-gray-400" 
+                  fill="currentColor" 
+                  viewBox="0 0 20 20"
+                  style={{ display: productImage ? 'none' : 'block' }}
+                >
+                  <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                </svg>
               </div>
               
-              {/* النص */}
-              <div style={{
-                flex: '1 1 0%',
-                textAlign: formDirection === 'rtl' ? 'right' : 'left',
-                direction: formDirection,
-                borderColor: '#e5e7eb',
-                backgroundColor: '#ffffff'
-              }}>
-                <div style={{
-                  fontWeight: '600',
-                  fontSize: '14px',
-                  color: '#1f2937',
-                  marginBottom: '2px',
-                  borderColor: '#e5e7eb',
-                  backgroundColor: '#ffffff'
-                }}>
+              <div>
+                <div 
+                  className="font-semibold"
+                  style={{ color: styling.textColor, textAlign: formDirection === 'rtl' ? 'right' : 'left' }}
+                >
                   {offer.text || `Buy ${offer.quantity} Item${offer.quantity > 1 ? 's' : ''}`}
                 </div>
-                
-                {offer.tag && (
-                  <span style={{
-                    background: '#22c55e',
-                    color: 'white',
-                    padding: '2px 6px',
-                    borderRadius: '10px',
-                    fontSize: '10px',
-                    fontWeight: '600'
-                  }}>
-                    {offer.tag}
-                  </span>
-                )}
-              </div>
-              
-              {/* زر الكمية */}
-              <button style={{
-                background: '#22c55e',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                padding: '6px 12px',
-                fontSize: '12px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap'
-              }}>
-                {formDirection === 'rtl' ? `اشتر ${offer.quantity} قطع` : `Buy ${offer.quantity} Items`}
-              </button>
-              
-              {/* السعر */}
-              <div style={{
-                textAlign: formDirection === 'rtl' ? 'right' : 'left',
-                direction: formDirection,
-                minWidth: '70px',
-                borderColor: '#e5e7eb',
-                backgroundColor: '#ffffff'
-              }}>
-                <div style={{
-                  fontSize: '16px',
-                  fontWeight: 'bold',
-                  color: '#059669',
-                  borderColor: '#e5e7eb',
-                  backgroundColor: '#ffffff'
-                }}>
-                  {CurrencyService.formatCurrency(totalPrice, displayCurrency, formDirection === 'rtl' ? 'ar' : 'en')}
+                <div className={`flex items-center gap-2 mt-1 ${formDirection === 'rtl' ? 'justify-end' : 'justify-start'}`}>
+                  {offer.tag && (
+                    <div 
+                      className="inline-block px-2 py-1 rounded text-xs font-medium text-white"
+                      style={{ backgroundColor: styling.tagColor }}
+                    >
+                      {offer.tag}
+                    </div>
+                  )}
+                  {savingsPercentage > 0 && (
+                    <div className="inline-block px-2 py-1 rounded text-xs font-medium text-white bg-green-500">
+                      Save {savingsPercentage}%
+                    </div>
+                  )}
                 </div>
               </div>
+            </div>
+
+            <div className={formDirection === 'rtl' ? 'text-left' : 'text-right'}>
+              {isDiscounted && (
+                <div className="text-sm line-through text-gray-400">
+                  {CurrencyService.formatCurrency(originalPrice, displayCurrency, formDirection === 'rtl' ? 'ar' : 'en')}
+                </div>
+              )}
+              <div 
+                className="font-bold text-lg"
+                style={{ color: styling.priceColor }}
+              >
+                {CurrencyService.formatCurrency(totalPrice, displayCurrency, formDirection === 'rtl' ? 'ar' : 'en')}
+              </div>
+              {offer.quantity > 1 && (
+                <div className="text-xs text-gray-500 mt-1">
+                  {CurrencyService.formatCurrency(realPrice, displayCurrency, formDirection === 'rtl' ? 'ar' : 'en')} × {offer.quantity}
+                </div>
+              )}
             </div>
           </div>
         );
