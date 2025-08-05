@@ -4,6 +4,7 @@ import AppSidebar from '@/components/layout/AppSidebar';
 import { useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
 import { supabase } from '@/integrations/supabase/client';
+import OrderDetailsDialog from '@/components/orders/OrderDetailsDialog';
 import {
   Table,
   TableBody,
@@ -40,6 +41,8 @@ const OrdersList = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   
   // Allow access if either authenticated with user or connected with Shopify
   const hasAccess = !!user || shopifyConnected;
@@ -151,6 +154,24 @@ const OrdersList = () => {
   const processingCount = ordersData.filter(order => order.status === 'processing').length;
   const deliveredCount = ordersData.filter(order => order.status === 'delivered').length;
   const cancelledCount = ordersData.filter(order => order.status === 'cancelled').length;
+
+  // Handle opening order details
+  const handleViewOrder = (order) => {
+    setSelectedOrder(order);
+    setIsDialogOpen(true);
+  };
+
+  // Handle closing order details
+  const handleCloseDialog = () => {
+    setIsDialogOpen(false);
+    setSelectedOrder(null);
+  };
+
+  // Handle saving order changes
+  const handleSaveOrder = (updatedOrder) => {
+    // TODO: Implement order update logic
+    console.log('Saving order:', updatedOrder);
+  };
 
   return (
     <div className="flex min-h-screen bg-[#F8F9FB]">
@@ -316,13 +337,20 @@ const OrdersList = () => {
                       <TableCell>{getStatusBadge(order.status)}</TableCell>
                       <TableCell>
                         <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title={language === 'ar' ? 'عرض التفاصيل' : 'View Details'}>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 w-8 p-0" 
+                            title={language === 'ar' ? 'عرض التفاصيل' : 'View Details'}
+                            onClick={() => handleViewOrder(order)}
+                          >
                             <Eye className="h-4 w-4" />
                           </Button>
                           <Button 
                             variant="default" 
                             size="sm" 
                             className="flex items-center gap-1 bg-[#9b87f5] hover:bg-[#8b77e5]"
+                            onClick={() => handleViewOrder(order)}
                           >
                             {language === 'ar' ? 'عرض' : 'View'}
                           </Button>
@@ -344,6 +372,14 @@ const OrdersList = () => {
           </div>
         </div>
       </div>
+
+      {/* Order Details Dialog */}
+      <OrderDetailsDialog
+        order={selectedOrder}
+        isOpen={isDialogOpen}
+        onClose={handleCloseDialog}
+        onSave={handleSaveOrder}
+      />
     </div>
   );
 };
