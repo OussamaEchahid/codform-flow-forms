@@ -483,19 +483,39 @@
     // Update cart summary text configuration from field settings
     updateCartSummaryLabels(field, config);
 
-    // الحصول على العملة الحقيقية فقط - بدون أي عملات افتراضية
-    const formCurrency = getRealFormCurrency();
-    if (!formCurrency) {
-      console.error('🚨 Cart Summary - CRITICAL ERROR: No currency available!');
-      console.error('🚨 Cart Summary - Cannot proceed without real currency from form settings.');
-      
-      // عرض رسالة خطأ للمستخدم
-      const cartSummaries = document.querySelectorAll('.cart-summary-field');
-      cartSummaries.forEach(summary => {
-        summary.innerHTML = '<div style="color: red; padding: 10px; border: 1px solid red; border-radius: 4px;">ERROR: No currency found. API call required.</div>';
-      });
+    // تأكد من وجود العناصر في DOM أولاً
+    const cartSummaries = document.querySelectorAll('.codform-cart-summary, .cart-summary-field');
+    console.log(`🔍 Processing cartSummary elements - Found ${cartSummaries.length} elements`);
+    
+    if (cartSummaries.length === 0) {
+      console.warn('⚠️ Cart Summary - No cart summary elements found in DOM. Waiting for DOM...');
+      // انتظار قليل للسماح للـ DOM بالتحميل الكامل
+      setTimeout(() => {
+        const delayedCartSummaries = document.querySelectorAll('.codform-cart-summary, .cart-summary-field');
+        console.log(`🔍 After delay - Found ${delayedCartSummaries.length} cartSummary elements`);
+        if (delayedCartSummaries.length > 0) {
+          proceedWithInitialization();
+        }
+      }, 500);
       return;
     }
+
+    proceedWithInitialization();
+
+    function proceedWithInitialization() {
+      // الحصول على العملة الحقيقية فقط - بدون أي عملات افتراضية
+      const formCurrency = getRealFormCurrency();
+      if (!formCurrency) {
+        console.error('🚨 Cart Summary - CRITICAL ERROR: No currency available!');
+        console.error('🚨 Cart Summary - Cannot proceed without real currency from form settings.');
+        
+        // عرض رسالة خطأ للمستخدم
+        const cartSummaries = document.querySelectorAll('.codform-cart-summary, .cart-summary-field');
+        cartSummaries.forEach(summary => {
+          summary.innerHTML = '<div style="color: red; padding: 10px; border: 1px solid red; border-radius: 4px;">ERROR: No currency found. API call required.</div>';
+        });
+        return;
+      }
     
     console.log('✅ Cart Summary - Real form currency confirmed:', formCurrency);
     
