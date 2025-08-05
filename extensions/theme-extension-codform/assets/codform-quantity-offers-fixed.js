@@ -127,6 +127,27 @@ window.CodformQuantityOffers = (function() {
     container.innerHTML = '';
     container.style.display = 'block';
 
+    // ✅ تحديد اتجاه النموذج بناءً على لغة المحتوى
+    const detectFormDirection = () => {
+      // البحث عن أي نص عربي في العروض
+      const hasArabicText = offers.some(offer => {
+        const text = offer.text || '';
+        return /[\u0600-\u06FF]/.test(text);
+      });
+      
+      // البحث عن نص عربي في النموذج نفسه
+      const formElements = document.querySelectorAll('input, label, button, p, h1, h2, h3, h4, h5, h6');
+      const hasArabicInForm = Array.from(formElements).some(el => {
+        return /[\u0600-\u06FF]/.test(el.textContent || el.placeholder || '');
+      });
+      
+      console.log(`🔍 Language detection: Arabic in offers: ${hasArabicText}, Arabic in form: ${hasArabicInForm}`);
+      
+      return (hasArabicText || hasArabicInForm) ? 'rtl' : 'ltr';
+    };
+
+    const formDirection = detectFormDirection();
+
     // ✅ الإصلاح الجوهري: استخدام عملة النموذج وليس عملة المنتج
     let basePrice = 20; // سعر افتراضي
     let formCurrency = defaultCurrency || 'USD'; // عملة النموذج (الأولوية)
@@ -239,7 +260,6 @@ window.CodformQuantityOffers = (function() {
       
       // تصميم العرض مطابق للمعاينة مع إعدادات الألوان المخصصة
       const isHighlighted = index === 1; // العرض الثاني مُبرز
-      const formDirection = 'rtl'; // افتراضي للعربية
       
       offerElement.style.cssText = `
         background: ${isHighlighted ? '#f0fdf4' : '#ffffff'};
@@ -253,45 +273,45 @@ window.CodformQuantityOffers = (function() {
         font-family: 'Cairo', Arial, sans-serif;
         cursor: pointer;
         direction: ${formDirection};
-        text-align: right;
+        text-align: ${formDirection === 'rtl' ? 'right' : 'left'};
         box-shadow: ${isHighlighted ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none'};
         transition: all 0.3s ease;
       `;
 
       // محتوى العرض مطابق للمعاينة تماماً
       offerElement.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 12px;">
-          <div style="width: 48px; height: 48px; background: #f3f4f6; border-radius: 8px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; overflow: hidden;">
-            ${productImage ? `
-              <img src="${productImage}" 
-                   alt="${productTitle}"
-                   style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;"
-                   onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-              <svg style="width: 32px; height: 32px; color: #9ca3af; display: none;" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
-              </svg>
-            ` : `
-              <svg style="width: 32px; height: 32px; color: #9ca3af;" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
-              </svg>
-            `}
+        <div style="display: flex; align-items: flex-start; gap: 12px; ${formDirection === 'rtl' ? 'flex-direction: row;' : 'flex-direction: row;'}">
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+            <div style="width: 48px; height: 48px; background: #f3f4f6; border-radius: 8px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+              ${productImage ? `
+                <img src="${productImage}" 
+                     alt="${productTitle}"
+                     style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;"
+                     onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                <svg style="width: 32px; height: 32px; color: #9ca3af; display: none;" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                </svg>
+              ` : `
+                <svg style="width: 32px; height: 32px; color: #9ca3af;" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                </svg>
+              `}
+            </div>
+            ${offer.tag ? `
+              <div style="background: #22c55e; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; text-align: center;">
+                ${offer.tag}
+              </div>
+            ` : ''}
+            ${discountValue > 0 ? `
+              <div style="background: #22c55e; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; text-align: center;">
+                Save ${Math.round(discountValue)}%
+              </div>
+            ` : ''}
           </div>
           
-          <div>
+          <div style="flex: 1;">
             <div style="font-weight: 600; color: #1f2937; text-align: ${formDirection === 'rtl' ? 'right' : 'left'};">
-              ${offer.text || `اشترِ ${quantity} قطعة`}
-            </div>
-            <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px; ${formDirection === 'rtl' ? 'justify-content: flex-end;' : 'justify-content: flex-start;'}">
-              ${offer.tag ? `
-                <div style="background: #22c55e; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 500;">
-                  ${offer.tag}
-                </div>
-              ` : ''}
-              ${discountValue > 0 ? `
-                <div style="background: #22c55e; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 500;">
-                  Save ${Math.round(discountValue)}%
-                </div>
-              ` : ''}
+              ${offer.text || (formDirection === 'rtl' ? `اشترِ ${quantity} قطعة` : `Buy ${quantity} item${quantity > 1 ? 's' : ''}`)}
             </div>
           </div>
         </div>
