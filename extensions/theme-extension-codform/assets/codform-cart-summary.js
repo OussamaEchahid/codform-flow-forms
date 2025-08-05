@@ -483,14 +483,36 @@
     // Update cart summary text configuration from field settings
     updateCartSummaryLabels(field, config);
 
-    // البحث عن العناصر مع تأخير للتأكد من تحميل DOM
-    setTimeout(() => {
-      const cartSummaries = document.querySelectorAll('.codform-cart-summary, .cart-summary-field, [class*="cart"], [class*="summary"], [class*="total"]');
+    // البحث عن العناصر مع معالجة متقدمة للتوقيت
+    function findAndProcessCartSummary() {
+      // البحث في جميع العناصر المحتملة
+      const selectors = [
+        '.codform-cart-summary',
+        '.cart-summary-field', 
+        '[class*="cart-summary"]',
+        '[data-field-id]',
+        '[class*="cart"]',
+        '[class*="summary"]'
+      ];
+      
+      let cartSummaries = [];
+      
+      // جمع جميع العناصر من جميع الـ selectors
+      selectors.forEach(selector => {
+        const elements = document.querySelectorAll(selector);
+        elements.forEach(el => {
+          if (!cartSummaries.includes(el)) {
+            cartSummaries.push(el);
+          }
+        });
+      });
+
       console.log(`🔍 Processing cartSummary elements - Found ${cartSummaries.length} elements`);
+      console.log('Elements found:', cartSummaries);
       
       if (cartSummaries.length === 0) {
         console.warn('⚠️ No cart summary elements found, searching for price elements');
-        const priceElements = document.querySelectorAll('[class*="price"], [data-product-price], .product-price, .total-price, .subtotal, .shipping-price');
+        const priceElements = document.querySelectorAll('[class*="price"], [data-product-price], .product-price, .total-price, .subtotal, .shipping-price, .summary-value, .total-value');
         console.log(`Found ${priceElements.length} price elements as fallback`);
         
         if (priceElements.length > 0) {
@@ -498,13 +520,38 @@
             applyCartSummarySettings(element, field, config);
           });
         }
-        return;
+        return false; // لم نجد cart summary containers
       }
 
       cartSummaries.forEach((element, index) => {
         applyCartSummarySettings(element, field, config);
       });
-    }, 1000);
+      
+      return true; // وجدنا عناصر cart summary
+    }
+
+    // محاولة البحث فوراً
+    let found = findAndProcessCartSummary();
+    
+    // إذا لم نجد، أعد المحاولة عدة مرات
+    if (!found) {
+      let attempts = 0;
+      const maxAttempts = 10;
+      
+      const retryInterval = setInterval(() => {
+        attempts++;
+        console.log(`🔄 Retry attempt ${attempts}/${maxAttempts} to find cart summary elements`);
+        
+        found = findAndProcessCartSummary();
+        
+        if (found || attempts >= maxAttempts) {
+          clearInterval(retryInterval);
+          if (!found) {
+            console.error('❌ Failed to find cart summary elements after all attempts');
+          }
+        }
+      }, 500); // محاولة كل نصف ثانية
+    }
 
     function applyCartSummarySettings(element, field, config) {
       console.log('🛒 Applying Cart Summary settings to element:', element);
