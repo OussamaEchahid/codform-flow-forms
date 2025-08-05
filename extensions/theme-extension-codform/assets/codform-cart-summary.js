@@ -404,7 +404,15 @@
     // تحديث إعدادات Cart Summary
     cartSummaryData.discountType = config.discountType || 'percentage';
     cartSummaryData.discountValue = parseFloat(config.discountValue) || 0;
-    cartSummaryData.shippingCost = parseFloat(config.shippingCost) || 0;
+    
+    // ✅ FIXED: Read shipping settings correctly from config
+    let shippingValue = 0;
+    if (config.shippingType === 'manual' && config.shippingValue) {
+      shippingValue = parseFloat(config.shippingValue) || 0;
+    } else if (config.shippingCost) {
+      shippingValue = parseFloat(config.shippingCost) || 0;
+    }
+    cartSummaryData.shippingCost = shippingValue;
     cartSummaryData.targetCurrency = formCurrency; // استخدام العملة الحقيقية فقط
     
     console.log('💾 Cart Summary - Data updated with real currency:', {
