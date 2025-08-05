@@ -35,8 +35,8 @@ const CartSummaryFieldEditor: React.FC<CartSummaryFieldEditorProps> = ({
       labelColor: '#6b7280',
       valueColor: '#1f2937',
       totalLabelColor: '#1f2937',
-      totalValueColor: '#059669',
-      fontFamily: 'Cairo',
+      totalValueColor: '#059669', // ✅ أخضر كما هو مطلوب
+      fontFamily: 'Cairo', // ✅ خط Cairo كما هو مطلوب
       labelFontSize: '1rem',
       valueFontSize: '1rem',
       totalLabelFontSize: '1.1rem',
@@ -45,6 +45,7 @@ const CartSummaryFieldEditor: React.FC<CartSummaryFieldEditorProps> = ({
       valueWeight: '500',
       totalLabelWeight: 'bold',
       totalValueWeight: 'bold',
+      direction: 'auto', // ✅ اتجاه تلقائي
       ...field.style
     },
     cartSummaryConfig: {
@@ -52,13 +53,13 @@ const CartSummaryFieldEditor: React.FC<CartSummaryFieldEditorProps> = ({
       discountText: language === 'ar' ? 'الخصم' : 'Discount',
       shippingText: language === 'ar' ? 'الشحن' : 'Shipping',
       totalText: language === 'ar' ? 'الإجمالي' : 'Total',
-      showDiscount: true,
+      showDiscount: false, // ✅ إخفاء الخصم افتراضياً
       discountType: 'percentage', // 'percentage' or 'fixed'
       discountValue: 0,
       shippingType: 'manual', // 'manual' or 'free'
       shippingValue: 0,
       autoCalculate: true,
-      currency: 'MAD', // العملة المخصصة لهذا الحقل
+      direction: 'auto', // ✅ اتجاه تلقائي للنص
       ...field.cartSummaryConfig
     }
   });
@@ -179,25 +180,6 @@ const CartSummaryFieldEditor: React.FC<CartSummaryFieldEditorProps> = ({
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div>
-                <Label>{language === 'ar' ? 'العملة' : 'Currency'}</Label>
-                <Select
-                  value={currentField.cartSummaryConfig?.currency || 'MAD'}
-                  onValueChange={(value) => handleConfigChange('currency', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CURRENCIES.map((currency) => (
-                      <SelectItem key={currency.code} value={currency.code}>
-                        {language === 'ar' ? currency.nameAr : currency.name} ({currency.symbol})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
               <div className="flex items-center justify-between">
                 <Label>{language === 'ar' ? 'حساب تلقائي من المنتج' : 'Auto Calculate from Product'}</Label>
                 <Switch

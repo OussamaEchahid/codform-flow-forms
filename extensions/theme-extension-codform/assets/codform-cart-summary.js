@@ -578,46 +578,55 @@
       cartSummaryData.productCurrency = productCurrency;
       
       // Update State Manager with real product data
-      if (window.CodformStateManager) {
-        window.CodformStateManager.setProductData(productPrice, productCurrency, formCurrency);
-      }
+      window.CodformStateManager?.updateCartState?.({
+        productPrice,
+        productCurrency,
+        targetCurrency: formCurrency,
+        shippingCost: cartSummaryData.shippingCost,
+        discountType: cartSummaryData.discountType,
+        discountValue: cartSummaryData.discountValue
+      });
       
-      console.log("💾 Cart Summary - Updated with actual product data:", cartSummaryData);
+      console.log('💾 Cart Summary - Product data applied:', {
+        price: cartSummaryData.productPrice,
+        currency: cartSummaryData.productCurrency
+      });
       
-      // Update display immediately
+      // تحديث العرض فوراً
       updateCartSummary();
     } else {
-      console.log("⚠️ Cart Summary - No global product data found, trying API...");
+      console.log("⏳ Cart Summary - Product data not found. Attempting to load...");
       
-      // محاولة جلب بيانات المنتج إذا كان التحديث التلقائي مفعل
-      if (config.autoCalculate) {
-        console.log('🔄 Cart Summary - Auto calculate enabled');
+      // محاولة الحصول على بيانات المنتج من المتغيرات العامة
+      let productId = window.productId || window.codformProductId;
+      let shopDomain = window.shopDomain || window.codformShopDomain;
+      
+      console.log('🔍 Cart Summary - Global variables check:', { shopDomain, productId });
         
-        let productId = window.CodformProductId || window.productId;
-        let shopDomain = window.CodformShopDomain || window.shopDomain;
+      // جرب الحصول على البيانات من DOM
+      if (!productId || !shopDomain) {
+        console.log('⚠️ Cart Summary - Missing global variables, trying DOM...');
         
-        console.log('🏪 Cart Summary - Initial detection:', { shopDomain, productId });
+        const productMeta = document.querySelector('meta[name="product-id"]');
+        const shopMeta = document.querySelector('meta[name="shop-domain"]');
         
-        // جرب الحصول على البيانات من DOM
-        if (!productId || !shopDomain) {
-          console.log('⚠️ Cart Summary - Missing global variables, trying DOM...');
-          
-          const productMeta = document.querySelector('meta[name="product-id"]');
-          const shopMeta = document.querySelector('meta[name="shop-domain"]');
-          
-          productId = productId || productMeta?.getAttribute('content');
-          shopDomain = shopDomain || shopMeta?.getAttribute('content') || window.location.hostname;
-          
-          console.log('🔍 Cart Summary - After DOM check:', { shopDomain, productId });
-        }
+        productId = productId || productMeta?.getAttribute('content');
+        shopDomain = shopDomain || shopMeta?.getAttribute('content') || window.location.hostname;
         
-        if (productId && shopDomain) {
-          console.log('📲 Cart Summary - Calling loadProductData...');
-          loadProductData(productId, shopDomain);
-        } else {
-          console.warn('❌ Cart Summary - Cannot load product data: missing required data');
-        }
+        console.log('🔍 Cart Summary - After DOM check:', { shopDomain, productId });
       }
+      
+      if (productId && shopDomain) {
+        console.log('📲 Cart Summary - Calling loadProductData...');
+        loadProductData(productId, shopDomain);
+      } else {
+        console.warn('❌ Cart Summary - Cannot load product data: missing required data');
+        // عرض أسعار تجريبية بدلاً من عدم عرض شيء
+        cartSummaryData.productPrice = 99.00;
+        cartSummaryData.productCurrency = formCurrency;
+        updateCartSummary();
+      }
+    }
     }
     
     console.log('✅ Cart Summary - Initialization complete');
