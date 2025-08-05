@@ -294,9 +294,46 @@
    * Update cart summary display - reduced logging
    */
   function updateCartSummary() {
-    const cartSummaries = document.querySelectorAll('[class*="cart-summary"], [class*="codform-cart-summary"]');
+    console.log('🔍 DEBUG: Looking for cart summary elements in updateCartSummary()...');
+    
+    // تجربة جميع أساليب البحث الممكنة
+    const selectors = [
+      '.cart-summary-field',
+      '.codform-cart-summary', 
+      '[class*="cart-summary"]',
+      '[class*="codform-cart-summary"]',
+      'div[data-field-type="cartSummary"]',
+      'div[class*="CartSummary"]'
+    ];
+    
+    let allElements = [];
+    selectors.forEach(selector => {
+      const elements = document.querySelectorAll(selector);
+      console.log(`🔍 Selector "${selector}" found: ${elements.length} elements`);
+      allElements.push(...elements);
+    });
+    
+    // إزالة التكرارات
+    const cartSummaries = [...new Set(allElements)];
+    
+    console.log(`🔍 Total unique cart summary elements found: ${cartSummaries.length}`);
     
     if (cartSummaries.length === 0) {
+      console.log('🔍 No cart summaries found, checking all divs...');
+      const allDivs = document.querySelectorAll('div');
+      console.log(`🔍 Total divs on page: ${allDivs.length}`);
+      
+      let potentialElements = [];
+      allDivs.forEach(div => {
+        if (div.className && (div.className.includes('cart') || div.className.includes('summary') || div.className.includes('CartSummary'))) {
+          console.log(`🔍 Found potential cart div:`, div.className, div);
+          potentialElements.push(div);
+        }
+      });
+      
+      if (potentialElements.length === 0) {
+        console.log('❌ No cart summary elements found anywhere on the page');
+      }
       return;
     }
     
