@@ -261,6 +261,7 @@ window.CodformQuantityOffers = (function() {
       // تصميم العرض مطابق للمعاينة مع إعدادات الألوان المخصصة بدون خلفية خضراء
       const isHighlighted = index === 1; // العرض الثاني مُبرز
       
+      offerElement.setAttribute('data-offer', index);
       offerElement.style.cssText = `
         background: #ffffff;
         border: 2px solid ${isHighlighted ? '#22c55e' : '#e5e7eb'};
@@ -336,50 +337,16 @@ window.CodformQuantityOffers = (function() {
       // إضافة أحداث التفاعل مع الألوان المخصصة
       offerElement.addEventListener('click', function() {
         // إزالة التحديد من العروض الأخرى
-        container.querySelectorAll('div').forEach(el => {
+        container.querySelectorAll('[data-offer]').forEach(el => {
           if (el !== this) {
             el.style.borderColor = borderColors.default;
             el.style.backgroundColor = '#ffffff';
-            // إعادة تعيين العناصر الداخلية للألوان الطبيعية
-            el.querySelectorAll('*').forEach(child => {
-              child.style.removeProperty('background');
-              child.style.removeProperty('color');
-              child.style.removeProperty('background-color');
-            });
-            // إعادة تعيين العلامات فقط للون الأخضر
-            const tags = el.querySelectorAll('div');
-            tags.forEach(tag => {
-              const text = tag.textContent?.trim();
-              if (text && (text.includes('Free') || text.includes('Save') || 
-                  text.includes('Gift') || text.includes('%') || text.includes('وفر') || text.includes('مجاني'))) {
-                tag.style.background = '#22c55e';
-                tag.style.color = 'white';
-              }
-            });
           }
         });
         
         // تحديد العرض الحالي - فقط الحدود الخضراء
         this.style.borderColor = borderColors.selected;
         this.style.backgroundColor = '#ffffff';
-        
-        // إزالة جميع الألوان الخضراء من العناصر الداخلية
-        this.querySelectorAll('*').forEach(child => {
-          child.style.removeProperty('background');
-          child.style.removeProperty('color');
-          child.style.removeProperty('background-color');
-        });
-        
-        // تطبيق اللون الأخضر فقط على العلامات
-        const tags = this.querySelectorAll('div');
-        tags.forEach(tag => {
-          const text = tag.textContent?.trim();
-          if (text && (text.includes('Free') || text.includes('Save') || 
-              text.includes('Gift') || text.includes('%') || text.includes('وفر') || text.includes('مجاني'))) {
-            tag.style.background = '#22c55e';
-            tag.style.color = 'white';
-          }
-        });
       });
 
       offerElement.addEventListener('mouseenter', function() {
