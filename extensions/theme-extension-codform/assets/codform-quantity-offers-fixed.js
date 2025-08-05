@@ -238,76 +238,78 @@ window.CodformQuantityOffers = (function() {
       };
       
       // تصميم العرض مطابق للمعاينة مع إعدادات الألوان المخصصة
+      const isHighlighted = index === 1; // العرض الثاني مُبرز
+      const formDirection = 'rtl'; // افتراضي للعربية
+      
       offerElement.style.cssText = `
-        background: #ffffff;
-        border: 2px solid ${index === 0 ? borderColors.selected : borderColors.default};
+        background: ${isHighlighted ? '#f0fdf4' : '#ffffff'};
+        border: 2px solid ${isHighlighted ? '#22c55e' : '#e5e7eb'};
         border-radius: 8px;
-        padding: 12px 16px;
+        padding: 12px;
         margin-bottom: 8px;
         display: flex;
         align-items: center;
         justify-content: space-between;
         font-family: 'Cairo', Arial, sans-serif;
         cursor: pointer;
-        direction: rtl;
+        direction: ${formDirection};
         text-align: right;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        transition: all 0.2s ease;
+        box-shadow: ${isHighlighted ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none'};
+        transition: all 0.3s ease;
       `;
 
-      // محتوى العرض
+      // محتوى العرض مطابق للمعاينة تماماً
       offerElement.innerHTML = `
-        <div style="display: flex; align-items: center; width: 100%; direction: rtl; gap: 12px;">
-          <!-- صورة المنتج -->
-          <div style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 6px; overflow: hidden; background: #f3f4f6; border: 1px solid #e5e7eb;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div style="width: 48px; height: 48px; background: #f3f4f6; border-radius: 8px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; overflow: hidden;">
             ${productImage ? `
               <img src="${productImage}" 
                    alt="${productTitle}"
-                   style="width: 100%; height: 100%; object-fit: cover;"
-                   onerror="this.style.display='none'">
+                   style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;"
+                   onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+              <svg style="width: 32px; height: 32px; color: #9ca3af; display: none;" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+              </svg>
             ` : `
-              <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 16px;">📦</div>
+              <svg style="width: 32px; height: 32px; color: #9ca3af;" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+              </svg>
             `}
           </div>
           
-          <!-- النص -->
-          <div style="flex: 1; text-align: right; direction: rtl;">
-            <div style="font-weight: 600; font-size: 14px; color: #1f2937; margin-bottom: 2px;">
+          <div>
+            <div style="font-weight: 600; color: #1f2937; text-align: ${formDirection === 'rtl' ? 'right' : 'left'};">
               ${offer.text || `اشترِ ${quantity} قطعة`}
             </div>
-            ${offer.tag ? `
-              <span style="background: #22c55e; color: white; padding: 2px 6px; border-radius: 10px; font-size: 10px; font-weight: 600;">
-                ${offer.tag}
-              </span>
-            ` : ''}
-          </div>
-          
-          <!-- زر الكمية -->
-          <button style="
-            background: #22c55e;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            padding: 6px 12px;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            white-space: nowrap;
-          ">
-            Buy ${quantity} Item${quantity > 1 ? 's' : ''}
-          </button>
-          
-          <!-- السعر -->
-          <div style="text-align: right; direction: rtl; min-width: 70px;">
-            ${discountValue > 0 ? `
-              <div style="font-size: 11px; color: #9ca3af; text-decoration: line-through; margin-bottom: 2px;">
-                ${formattedTotal}
-              </div>
-            ` : ''}
-            <div style="font-size: 16px; font-weight: bold; color: #059669;">
-              ${formattedFinal}
+            <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px; ${formDirection === 'rtl' ? 'justify-content: flex-end;' : 'justify-content: flex-start;'}">
+              ${offer.tag ? `
+                <div style="background: #22c55e; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 500;">
+                  ${offer.tag}
+                </div>
+              ` : ''}
+              ${discountValue > 0 ? `
+                <div style="background: #22c55e; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 500;">
+                  Save ${Math.round(discountValue)}%
+                </div>
+              ` : ''}
             </div>
           </div>
+        </div>
+
+        <div style="text-align: ${formDirection === 'rtl' ? 'left' : 'right'}; direction: ${formDirection};">
+          ${discountValue > 0 ? `
+            <div style="font-size: 14px; text-decoration: line-through; color: #9ca3af; margin-bottom: 2px;">
+              ${formattedTotal}
+            </div>
+          ` : ''}
+          <div style="font-weight: 700; font-size: 18px; color: #059669;">
+            ${formattedFinal}
+          </div>
+          ${quantity > 1 ? `
+            <div style="font-size: 12px; color: #6b7280; margin-top: 2px;">
+              ${(finalPrice / quantity).toFixed(2)} ${formCurrency} × ${quantity}
+            </div>
+          ` : ''}
         </div>
       `;
 

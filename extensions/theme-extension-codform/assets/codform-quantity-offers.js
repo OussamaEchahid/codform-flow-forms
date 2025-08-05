@@ -371,10 +371,10 @@ window.CodformQuantityOffers = (function() {
         padding: 12px;
         border-radius: 8px;
         border: 2px solid ${isHighlighted ? '#22c55e' : '#e5e7eb'};
-        background-color: ${isHighlighted ? '#f0fdf4' : styling.backgroundColor};
+        background-color: ${isHighlighted ? '#f0fdf4' : '#ffffff'};
         display: flex;
         align-items: center;
-        gap: 12px;
+        justify-content: space-between;
         transition: all 0.3s ease;
         cursor: pointer;
         margin-bottom: 8px;
