@@ -340,12 +340,18 @@ window.CodformQuantityOffers = (function() {
           if (el !== this) {
             el.style.borderColor = borderColors.default;
             el.style.backgroundColor = '#ffffff';
-            // ✅ إعادة تعيين ألوان العلامات في العروض غير المحددة - تحسين البحث
-            const allTags = el.querySelectorAll('div[style*="background"], div[style*="color"]');
-            allTags.forEach(tag => {
-              // فقط إذا كانت العلامة تحتوي على النص المناسب
-              if (tag.textContent && (tag.textContent.includes('Free') || tag.textContent.includes('Save') || 
-                  tag.textContent.includes('Gift') || tag.textContent.includes('%'))) {
+            // إعادة تعيين العناصر الداخلية للألوان الطبيعية
+            el.querySelectorAll('*').forEach(child => {
+              child.style.removeProperty('background');
+              child.style.removeProperty('color');
+              child.style.removeProperty('background-color');
+            });
+            // إعادة تعيين العلامات فقط للون الأخضر
+            const tags = el.querySelectorAll('div');
+            tags.forEach(tag => {
+              const text = tag.textContent?.trim();
+              if (text && (text.includes('Free') || text.includes('Save') || 
+                  text.includes('Gift') || text.includes('%') || text.includes('وفر') || text.includes('مجاني'))) {
                 tag.style.background = '#22c55e';
                 tag.style.color = 'white';
               }
@@ -353,16 +359,23 @@ window.CodformQuantityOffers = (function() {
           }
         });
         
-        // تحديد العرض الحالي بدون خلفية خضراء - فقط الخط الأخضر
+        // تحديد العرض الحالي - فقط الحدود الخضراء
         this.style.borderColor = borderColors.selected;
-        this.style.backgroundColor = '#ffffff'; // خلفية بيضاء دائماً
+        this.style.backgroundColor = '#ffffff';
         
-        // ✅ الحفاظ على ألوان العلامات في العرض المحدد
-        const selectedTags = this.querySelectorAll('div[style*="background"], div[style*="color"]');
-        selectedTags.forEach(tag => {
-          // فقط إذا كانت العلامة تحتوي على النص المناسب
-          if (tag.textContent && (tag.textContent.includes('Free') || tag.textContent.includes('Save') || 
-              tag.textContent.includes('Gift') || tag.textContent.includes('%'))) {
+        // إزالة جميع الألوان الخضراء من العناصر الداخلية
+        this.querySelectorAll('*').forEach(child => {
+          child.style.removeProperty('background');
+          child.style.removeProperty('color');
+          child.style.removeProperty('background-color');
+        });
+        
+        // تطبيق اللون الأخضر فقط على العلامات
+        const tags = this.querySelectorAll('div');
+        tags.forEach(tag => {
+          const text = tag.textContent?.trim();
+          if (text && (text.includes('Free') || text.includes('Save') || 
+              text.includes('Gift') || text.includes('%') || text.includes('وفر') || text.includes('مجاني'))) {
             tag.style.background = '#22c55e';
             tag.style.color = 'white';
           }
