@@ -180,8 +180,8 @@
       }
     }
     
-    // Convert shipping cost (only if manual shipping)
-    const convertedShipping = shippingCost > 0 ? convertCurrency(shippingCost, productCurrency, targetCurrency) : 0;
+    // ✅ FIXED: Shipping cost should NOT be converted - it's already in target currency
+    const convertedShipping = shippingCost > 0 ? shippingCost : 0;
     
     // Calculate totals
     const subtotal = convertedPrice;
