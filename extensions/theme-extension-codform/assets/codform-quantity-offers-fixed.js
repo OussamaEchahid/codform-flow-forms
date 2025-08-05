@@ -239,7 +239,21 @@ window.CodformQuantityOffers = (function() {
       
       // تصميم العرض مطابق للمعاينة مع إعدادات الألوان المخصصة
       const isHighlighted = index === 1; // العرض الثاني مُبرز
-      const formDirection = 'rtl'; // افتراضي للعربية
+      
+      // ✅ تحديد اتجاه النص حسب لغة النموذج
+      let formDirection = 'rtl'; // افتراضي للعربية
+      
+      // التحقق من لغة النموذج أو لغة المتجر
+      const formLanguage = quantityOffersData?.language || 
+                          document.documentElement.lang || 
+                          window.Shopify?.locale || 
+                          'ar';
+      
+      if (formLanguage.startsWith('en') || formLanguage === 'English') {
+        formDirection = 'ltr';
+      }
+      
+      console.log(`🌐 Form language: ${formLanguage}, Direction: ${formDirection}`);
       
       offerElement.style.cssText = `
         background: ${isHighlighted ? '#f0fdf4' : '#ffffff'};
@@ -261,20 +275,27 @@ window.CodformQuantityOffers = (function() {
       // محتوى العرض مطابق للمعاينة تماماً
       offerElement.innerHTML = `
         <div style="display: flex; align-items: center; gap: 12px;">
-          <div style="width: 48px; height: 48px; background: #f3f4f6; border-radius: 8px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; overflow: hidden;">
-            ${productImage ? `
-              <img src="${productImage}" 
-                   alt="${productTitle}"
-                   style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;"
-                   onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-              <svg style="width: 32px; height: 32px; color: #9ca3af; display: none;" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
-              </svg>
-            ` : `
-              <svg style="width: 32px; height: 32px; color: #9ca3af;" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
-              </svg>
-            `}
+          <div style="position: relative;">
+            <div style="width: 48px; height: 48px; background: #f3f4f6; border-radius: 8px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+              ${productImage ? `
+                <img src="${productImage}" 
+                     alt="${productTitle}"
+                     style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;"
+                     onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                <svg style="width: 32px; height: 32px; color: #9ca3af; display: none;" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                </svg>
+              ` : `
+                <svg style="width: 32px; height: 32px; color: #9ca3af;" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                </svg>
+              `}
+            </div>
+            ${offer.tag ? `
+              <div style="position: absolute; bottom: -8px; ${formDirection === 'rtl' ? 'right: -4px;' : 'left: -4px;'} background: #22c55e; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 500; white-space: nowrap;">
+                ${offer.tag}
+              </div>
+            ` : ''}
           </div>
           
           <div>
@@ -282,11 +303,6 @@ window.CodformQuantityOffers = (function() {
               ${offer.text || `اشترِ ${quantity} قطعة`}
             </div>
             <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px; ${formDirection === 'rtl' ? 'justify-content: flex-end;' : 'justify-content: flex-start;'}">
-              ${offer.tag ? `
-                <div style="background: #22c55e; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 500;">
-                  ${offer.tag}
-                </div>
-              ` : ''}
               ${discountValue > 0 ? `
                 <div style="background: #22c55e; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 500;">
                   Save ${Math.round(discountValue)}%
