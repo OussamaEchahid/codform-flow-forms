@@ -928,25 +928,52 @@ const SortableField: React.FC<SortableFieldProps> = ({
                           </div>
                         </div>
                      </div>
-                   ) : field.type === 'cart-summary' ? (
-                     /* Cart Summary Settings */
-                     <div className="space-y-4">
-                       {/* Content Settings */}
-                       <div className="space-y-3">
-                         <h3 className="font-medium text-sm border-b pb-2">
-                           {language === 'ar' ? 'إعدادات المحتوى' : 'Content Settings'}
-                         </h3>
-                         
-                         {/* Cart Summary Title */}
-                         <div className="space-y-1">
-                           <Label>{language === 'ar' ? 'عنوان ملخص السلة' : 'Cart Summary Title'}</Label>
-                           <Input
-                             value={editedField.label || ''}
-                             onChange={(e) => handleFieldChange('label', e.target.value)}
-                             placeholder={language === 'ar' ? 'ملخص الطلب' : 'Order Summary'}
-                             className={language === 'ar' ? 'text-right' : ''}
-                           />
-                         </div>
+                    ) : field.type === 'cart-summary' ? (
+                      /* Cart Summary Settings */
+                      <div className="space-y-4">
+                        {/* Content Settings */}
+                        <div className="space-y-3">
+                          <h3 className="font-medium text-sm border-b pb-2">
+                            {language === 'ar' ? 'إعدادات المحتوى' : 'Content Settings'}
+                          </h3>
+                          
+                          {/* Text Direction */}
+                          <div className="space-y-1">
+                            <Label>{language === 'ar' ? 'اتجاه النص' : 'Text Direction'}</Label>
+                            <Select
+                              value={editedField.cartSummaryConfig?.direction || 'auto'}
+                              onValueChange={(value) => {
+                                const config = { ...editedField.cartSummaryConfig, direction: value };
+                                handleFieldChange('cartSummaryConfig', config);
+                              }}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="auto">
+                                  {language === 'ar' ? 'تلقائي' : 'Auto'}
+                                </SelectItem>
+                                <SelectItem value="rtl">
+                                  {language === 'ar' ? 'من اليمين لليسار' : 'Right to Left'}
+                                </SelectItem>
+                                <SelectItem value="ltr">
+                                  {language === 'ar' ? 'من اليسار لليمين' : 'Left to Right'}
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          
+                          {/* Cart Summary Title */}
+                          <div className="space-y-1">
+                            <Label>{language === 'ar' ? 'عنوان ملخص السلة' : 'Cart Summary Title'}</Label>
+                            <Input
+                              value={editedField.label || ''}
+                              onChange={(e) => handleFieldChange('label', e.target.value)}
+                              placeholder={language === 'ar' ? 'ملخص الطلب' : 'Order Summary'}
+                              className={language === 'ar' ? 'text-right' : ''}
+                            />
+                          </div>
                          
                          {/* Text Labels */}
                          <div className="grid grid-cols-2 gap-3">
@@ -1182,54 +1209,101 @@ const SortableField: React.FC<SortableFieldProps> = ({
                            <div className="space-y-1">
                              <Label>{language === 'ar' ? 'لون الإجمالي' : 'Total Color'}</Label>
                              <div className="flex gap-2 items-center">
-                               <Input
-                                 type="color"
-                                 value={editedField.style?.totalValueColor || '#9b87f5'}
-                                 onChange={(e) => handleStyleChange('totalValueColor', e.target.value)}
-                                 className="w-9 h-9 p-1"
-                               />
-                               <Input
-                                 value={editedField.style?.totalValueColor || '#9b87f5'}
-                                 onChange={(e) => handleStyleChange('totalValueColor', e.target.value)}
-                                 className="flex-1"
-                               />
-                             </div>
-                           </div>
+                              <Input
+                                type="color"
+                                value={editedField.style?.totalValueColor || '#059669'}
+                                onChange={(e) => handleStyleChange('totalValueColor', e.target.value)}
+                                className="w-9 h-9 p-1"
+                              />
+                              <Input
+                                value={editedField.style?.totalValueColor || '#059669'}
+                                onChange={(e) => handleStyleChange('totalValueColor', e.target.value)}
+                                className="flex-1"
+                              />
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-1">
+                            <Label>{language === 'ar' ? 'لون القيم' : 'Values Color'}</Label>
+                            <div className="flex gap-2 items-center">
+                              <Input
+                                type="color"
+                                value={editedField.style?.valueColor || '#1f2937'}
+                                onChange={(e) => handleStyleChange('valueColor', e.target.value)}
+                                className="w-9 h-9 p-1"
+                              />
+                              <Input
+                                value={editedField.style?.valueColor || '#1f2937'}
+                                onChange={(e) => handleStyleChange('valueColor', e.target.value)}
+                                className="flex-1"
+                              />
+                            </div>
+                          </div>
                          </div>
                          
                          {/* Font Settings */}
                          <div className="grid grid-cols-2 gap-3">
                            <div className="space-y-1">
-                             <Label>{language === 'ar' ? 'عائلة الخط' : 'Font Family'}</Label>
-                             <Select
-                               value={editedField.style?.fontFamily || 'Tajawal'}
-                               onValueChange={(value) => handleStyleChange('fontFamily', value)}
-                             >
-                               <SelectTrigger>
-                                 <SelectValue />
-                               </SelectTrigger>
-                               <SelectContent>
-                                 {fontFamilies.map(font => (
-                                   <SelectItem key={font.value} value={font.value}>{font.label}</SelectItem>
-                                 ))}
-                               </SelectContent>
-                             </Select>
+                              <Label>{language === 'ar' ? 'عائلة الخط' : 'Font Family'}</Label>
+                              <Select
+                                value={editedField.style?.fontFamily || 'Cairo'}
+                                onValueChange={(value) => handleStyleChange('fontFamily', value)}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {fontFamilies.map(font => (
+                                    <SelectItem key={font.value} value={font.value}>{font.label}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
                            </div>
-                           
-                           <div className="space-y-1">
-                             <div className="flex items-center justify-between">
-                               <Label>{language === 'ar' ? 'حجم خط التسميات' : 'Labels Font Size'}</Label>
-                               <span className="text-sm">{editedField.style?.labelFontSize || '1rem'}</span>
-                             </div>
-                             <Slider
-                               value={[parseFloat(editedField.style?.labelFontSize?.replace('rem', '') || '1')]}
-                               onValueChange={(value) => handleStyleChange('labelFontSize', `${value[0]}rem`)}
-                               max={2}
-                               min={0.8}
-                               step={0.1}
-                               className="w-full"
-                             />
-                           </div>
+                            
+                            <div className="space-y-1">
+                              <div className="flex items-center justify-between">
+                                <Label>{language === 'ar' ? 'حجم خط التسميات' : 'Labels Font Size'}</Label>
+                                <span className="text-sm">{editedField.style?.labelFontSize || '1rem'}</span>
+                              </div>
+                              <Slider
+                                value={[parseFloat(editedField.style?.labelFontSize?.replace('rem', '') || '1')]}
+                                onValueChange={(value) => handleStyleChange('labelFontSize', `${value[0]}rem`)}
+                                max={2}
+                                min={0.8}
+                                step={0.1}
+                                className="w-full"
+                              />
+                            </div>
+                            
+                            <div className="space-y-1">
+                              <div className="flex items-center justify-between">
+                                <Label>{language === 'ar' ? 'حجم خط القيم' : 'Values Font Size'}</Label>
+                                <span className="text-sm">{editedField.style?.valueFontSize || '1rem'}</span>
+                              </div>
+                              <Slider
+                                value={[parseFloat(editedField.style?.valueFontSize?.replace('rem', '') || '1')]}
+                                onValueChange={(value) => handleStyleChange('valueFontSize', `${value[0]}rem`)}
+                                max={2}
+                                min={0.8}
+                                step={0.1}
+                                className="w-full"
+                              />
+                            </div>
+                            
+                            <div className="space-y-1">
+                              <div className="flex items-center justify-between">
+                                <Label>{language === 'ar' ? 'حجم خط الإجمالي' : 'Total Font Size'}</Label>
+                                <span className="text-sm">{editedField.style?.totalValueFontSize || '1.1rem'}</span>
+                              </div>
+                              <Slider
+                                value={[parseFloat(editedField.style?.totalValueFontSize?.replace('rem', '') || '1.1')]}
+                                onValueChange={(value) => handleStyleChange('totalValueFontSize', `${value[0]}rem`)}
+                                max={2.5}
+                                min={1}
+                                step={0.1}
+                                className="w-full"
+                              />
+                            </div>
                          </div>
                        </div>
                      </div>
