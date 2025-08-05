@@ -347,6 +347,32 @@ window.CodformQuantityOffers = (function() {
         // تحديد العرض الحالي - فقط الحدود الخضراء
         this.style.borderColor = borderColors.selected;
         this.style.backgroundColor = '#ffffff';
+
+        // 🎯 CRITICAL FIX: إرسال حدث لتحديث Cart Summary
+        const selectedOffer = {
+          quantity: quantity,
+          finalPrice: finalPrice,
+          originalPrice: convertedBasePrice, // استخدام السعر الأساسي المحول
+          text: offer.text || (formDirection === 'rtl' ? `اشترِ ${quantity} قطعة` : `Buy ${quantity} item${quantity > 1 ? 's' : ''}`),
+          tag: offer.tag
+        };
+
+        console.log('🎯 Quantity Offers - Dispatching offer-selected event:', selectedOffer);
+        
+        // إرسال حدث لتحديث Cart Summary
+        window.dispatchEvent(new CustomEvent('codform:offer-selected', {
+          detail: { offer: selectedOffer }
+        }));
+
+        // تحديث State Manager إذا كان متوفراً
+        if (window.CodformStateManager) {
+          window.CodformStateManager.setState({
+            currentQuantity: quantity,
+            finalPrice: finalPrice,
+            unitPrice: convertedBasePrice, // استخدام السعر الأساسي المحول
+            selectedOffer: selectedOffer
+          });
+        }
       });
 
       offerElement.addEventListener('mouseenter', function() {
