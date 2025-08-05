@@ -196,6 +196,101 @@
   }
 
   /**
+   * Update cart summary text labels from field configuration
+   */
+  function updateCartSummaryLabels(field, config) {
+    const cartSummaries = document.querySelectorAll('.cart-summary-field');
+    
+    cartSummaries.forEach((summary) => {
+      // Update direction
+      const direction = config.direction || 'auto';
+      if (direction === 'auto') {
+        const isArabic = config.subtotalText && /[\u0600-\u06FF]/.test(config.subtotalText);
+        summary.style.direction = isArabic ? 'rtl' : 'ltr';
+      } else {
+        summary.style.direction = direction;
+      }
+      
+      // Update text labels
+      const subtotalLabel = summary.querySelector('.summary-label');
+      const discountLabel = summary.querySelector('.discount-row .summary-label');
+      const shippingLabel = summary.querySelector('.shipping-value').parentElement.querySelector('.summary-label');
+      const totalLabel = summary.querySelector('.total-row .summary-label');
+      
+      if (subtotalLabel && config.subtotalText) {
+        subtotalLabel.textContent = config.subtotalText;
+      }
+      if (discountLabel && config.discountText) {
+        discountLabel.textContent = config.discountText;
+      }
+      if (shippingLabel && config.shippingText) {
+        shippingLabel.textContent = config.shippingText;
+      }
+      if (totalLabel && config.totalText) {
+        totalLabel.textContent = config.totalText;
+      }
+    });
+  }
+
+  /**
+   * Update cart summary styles from field configuration
+   */
+  function updateCartSummaryStyles(field, config) {
+    const cartSummaries = document.querySelectorAll('.cart-summary-field');
+    
+    cartSummaries.forEach((summary) => {
+      const style = field.style || {};
+      
+      // Apply container styles
+      if (style.backgroundColor) {
+        summary.style.backgroundColor = style.backgroundColor;
+      }
+      if (style.borderColor) {
+        summary.style.borderColor = style.borderColor;
+      }
+      if (style.borderRadius) {
+        summary.style.borderRadius = style.borderRadius;
+      }
+      
+      // Apply font family - default to Cairo
+      const fontFamily = style.fontFamily || 'Cairo';
+      summary.style.fontFamily = fontFamily;
+      
+      // Update all labels
+      const labels = summary.querySelectorAll('.summary-label');
+      labels.forEach((label) => {
+        if (style.labelColor) label.style.color = style.labelColor;
+        if (style.labelFontSize) label.style.fontSize = style.labelFontSize;
+        label.style.fontFamily = fontFamily;
+      });
+      
+      // Update all values
+      const values = summary.querySelectorAll('.summary-value:not(.total-value)');
+      values.forEach((value) => {
+        if (style.valueColor) value.style.color = style.valueColor;
+        if (style.valueFontSize) value.style.fontSize = style.valueFontSize;
+        value.style.fontFamily = fontFamily;
+      });
+      
+      // Update total label
+      const totalLabel = summary.querySelector('.total-row .summary-label');
+      if (totalLabel) {
+        if (style.totalLabelColor) totalLabel.style.color = style.totalLabelColor;
+        if (style.totalLabelFontSize) totalLabel.style.fontSize = style.totalLabelFontSize;
+        totalLabel.style.fontFamily = fontFamily;
+      }
+      
+      // Update total value - default to green
+      const totalValue = summary.querySelector('.total-value');
+      if (totalValue) {
+        totalValue.style.color = style.totalValueColor || '#059669';
+        if (style.totalValueFontSize) totalValue.style.fontSize = style.totalValueFontSize;
+        totalValue.style.fontFamily = fontFamily;
+      }
+    });
+  }
+
+  /**
    * Update cart summary display - reduced logging
    */
   function updateCartSummary() {
@@ -385,6 +480,9 @@
     const config = field.cartSummaryConfig || field.config || {};
     console.log('⚙️ Cart Summary - Configuration loaded:', config);
 
+    // Update cart summary text configuration from field settings
+    updateCartSummaryLabels(field, config);
+
     // الحصول على العملة الحقيقية فقط - بدون أي عملات افتراضية
     const formCurrency = getRealFormCurrency();
     if (!formCurrency) {
@@ -422,35 +520,8 @@
       targetCurrency: cartSummaryData.targetCurrency
     });
     
-    // محاولة جلب بيانات المنتج إذا كان التحديث التلقائي مفعل
-    if (config.autoCalculate) {
-      console.log('🔄 Cart Summary - Auto calculate enabled');
-      
-      let productId = window.CodformProductId || window.productId;
-      let shopDomain = window.CodformShopDomain || window.shopDomain;
-      
-      console.log('🏪 Cart Summary - Initial detection:', { shopDomain, productId });
-      
-      // جرب الحصول على البيانات من DOM
-      if (!productId || !shopDomain) {
-        console.log('⚠️ Cart Summary - Missing global variables, trying DOM...');
-        
-        const productMeta = document.querySelector('meta[name="product-id"]');
-        const shopMeta = document.querySelector('meta[name="shop-domain"]');
-        
-        productId = productId || productMeta?.getAttribute('content');
-        shopDomain = shopDomain || shopMeta?.getAttribute('content') || window.location.hostname;
-        
-        console.log('🔍 Cart Summary - After DOM check:', { shopDomain, productId });
-      }
-      
-      if (productId && shopDomain) {
-        console.log('📲 Cart Summary - Calling loadProductData...');
-        loadProductData(productId, shopDomain);
-      } else {
-        console.warn('❌ Cart Summary - Cannot load product data: missing required data');
-      }
-    }
+    // Apply styling to cart summary elements
+    updateCartSummaryStyles(field, config);
     
     // استخدام البيانات المحلية إذا كانت متوفرة
     let actualProductData = window.CodformProductData;
@@ -467,144 +538,91 @@
         console.log("💰 Cart Summary - Price from product data:", productPrice, productCurrency);
       } else if (actualProductData.variants && actualProductData.variants.length > 0) {
         // إذا كان المنتج له variants، استخدم سعر أول variant
-        const firstVariant = actualProductData.variants[0];
-        if (firstVariant.price) {
-          productPrice = parseFloat(firstVariant.price);
-          productCurrency = firstVariant.currency || actualProductData.currency || 'MAD';
-          console.log("💰 Cart Summary - Price from variant:", productPrice, productCurrency);
-        }
-      } else {
-        // Try to get price from DOM if product data not available
-        try {
-          const priceElement = document.querySelector('.price, [class*="price"], [data-price]');
-          if (priceElement) {
-            const priceText = priceElement.textContent || priceElement.getAttribute('data-price');
-            const priceMatch = priceText.match(/[\d,]+\.?\d*/);
-            if (priceMatch) {
-              productPrice = parseFloat(priceMatch[0].replace(',', ''));
-              productCurrency = 'MAD'; // Default for this store
-              console.log("💰 Cart Summary - Price from DOM:", productPrice, productCurrency);
-            }
-          }
-        } catch (e) {
-          console.log("⚠️ Cart Summary - Could not extract price from DOM");
-        }
+        productPrice = parseFloat(actualProductData.variants[0].price) || 0;
+        productCurrency = actualProductData.variants[0].currency_code || actualProductData.currency || 'MAD';
+        console.log("💰 Cart Summary - Price from first variant:", productPrice, productCurrency);
       }
       
-      if (productPrice && productCurrency) {
-        cartSummaryData.productPrice = productPrice;
-        cartSummaryData.productCurrency = productCurrency;
+      // ✅ CRITICAL: Check if product currency and form currency are the same
+      if (productCurrency === formCurrency) {
+        console.log("✅ Cart Summary - SAME CURRENCY DETECTED! No conversion needed:", {
+          productCurrency,
+          formCurrency
+        });
+        // Set final currency to form currency since they match
+        productCurrency = formCurrency;
+      }
+      
+      // Update cart summary data with actual product data
+      cartSummaryData.productPrice = productPrice;
+      cartSummaryData.productCurrency = productCurrency;
+      
+      // Update State Manager with real product data
+      if (window.CodformStateManager) {
+        window.CodformStateManager.setProductData(productPrice, productCurrency, formCurrency);
+      }
+      
+      console.log("💾 Cart Summary - Updated with actual product data:", cartSummaryData);
+      
+      // Update display immediately
+      updateCartSummary();
+    } else {
+      console.log("⚠️ Cart Summary - No global product data found, trying API...");
+      
+      // محاولة جلب بيانات المنتج إذا كان التحديث التلقائي مفعل
+      if (config.autoCalculate) {
+        console.log('🔄 Cart Summary - Auto calculate enabled');
         
-        // تحديث State Manager أيضاً
-        if (window.CodformStateManager) {
-          window.CodformStateManager.setProductData(productPrice, productCurrency, formCurrency);
-          console.log("✅ Cart Summary - State Manager updated with local product data");
+        let productId = window.CodformProductId || window.productId;
+        let shopDomain = window.CodformShopDomain || window.shopDomain;
+        
+        console.log('🏪 Cart Summary - Initial detection:', { shopDomain, productId });
+        
+        // جرب الحصول على البيانات من DOM
+        if (!productId || !shopDomain) {
+          console.log('⚠️ Cart Summary - Missing global variables, trying DOM...');
+          
+          const productMeta = document.querySelector('meta[name="product-id"]');
+          const shopMeta = document.querySelector('meta[name="shop-domain"]');
+          
+          productId = productId || productMeta?.getAttribute('content');
+          shopDomain = shopDomain || shopMeta?.getAttribute('content') || window.location.hostname;
+          
+          console.log('🔍 Cart Summary - After DOM check:', { shopDomain, productId });
         }
         
-        console.log("✅ Cart Summary - Product data loaded:", cartSummaryData);
-      } else {
-        console.error('❌ Cart Summary - CRITICAL: No product price or currency found!');
+        if (productId && shopDomain) {
+          console.log('📲 Cart Summary - Calling loadProductData...');
+          loadProductData(productId, shopDomain);
+        } else {
+          console.warn('❌ Cart Summary - Cannot load product data: missing required data');
+        }
       }
     }
     
-    // تحديث العرض
-    updateCartSummary();
-    
-    // تهيئة Event Listeners إذا لم تكن مفعلة
-    if (!window.cartSummaryEventsSetup) {
-      setupEventListeners();
-      window.cartSummaryEventsSetup = true;
-    }
+    console.log('✅ Cart Summary - Initialization complete');
   }
 
-  /**
-   * Update cart summary when quantity changes
-   */
-  function updateCartSummaryQuantity(quantity) {
-    const state = window.CodformStateManager ? window.CodformStateManager.getState() : null;
-    
-    if (state && state.unitPrice !== null && state.targetCurrency) {
-      // ✅ استخدام البيانات من State Manager مع التحقق الصحيح
-      cartSummaryData.productPrice = state.unitPrice * quantity;
-      cartSummaryData.currency = state.targetCurrency;
-      console.log(`💰✅ Cart Summary using State Manager data:`, {
-        unitPrice: state.unitPrice,
-        quantity: quantity,
-        totalPrice: cartSummaryData.productPrice,
-        currency: cartSummaryData.currency
-      });
-    } else {
-      // الطريقة القديمة كاحتياطي
-      const originalPrice = cartSummaryData.productPrice / (cartSummaryData.currentQuantity || 1);
-      cartSummaryData.productPrice = originalPrice * quantity;
-      console.log(`💰⚠️ Cart Summary using fallback calculation:`, {
-        originalPrice: originalPrice,
-        quantity: quantity,
-        totalPrice: cartSummaryData.productPrice
-      });
-    }
-    
-    cartSummaryData.currentQuantity = quantity;
-    updateCartSummary();
-  }
-
-  // Setup event listeners for state management integration
-  function setupEventListeners() {
-    // الاستماع لأحداث تغيير الكمية
-    window.addEventListener('codform:quantity-changed', function(event) {
-      console.log('🔄 Cart Summary received quantity change event:', event.detail);
-      updateCartSummaryQuantity(event.detail.quantity);
-    });
-
-    // الاستماع لأحداث اختيار العروض
-    window.addEventListener('codform:offer-selected', function(event) {
-      console.log('🎯 Cart Summary received offer selection event:', event.detail);
-      const offer = event.detail.offer;
-      updateCartSummaryQuantity(offer.quantity || 1);
-    });
-
-    // الاستماع لتحديثات State Manager
-    if (window.CodformStateManager) {
-      window.CodformStateManager.subscribe(function(newState, previousState) {
-        console.log('🔄 Cart Summary: State changed', { newState, previousState });
-        
-        // تحديث cart summary عند تغيير الحالة
-        if (newState.finalPrice !== previousState.finalPrice || 
-            newState.currentQuantity !== previousState.currentQuantity) {
-          cartSummaryData.productPrice = newState.finalPrice;
-          cartSummaryData.currentQuantity = newState.currentQuantity;
-          updateCartSummary();
-        }
-      });
-    }
-  }
-
-  // Make functions globally available
-  window.codformCartSummary = {
+  // Add to global namespace
+  window.CodformCartSummary = {
     initialize: initializeCartSummary,
-    updateQuantity: updateCartSummaryQuantity,
-    updatePrices: updateCartSummary,
-    loadProductData: loadProductData,  // Export loadProductData function
+    update: updateCartSummary,
     setProductData: function(price, currency) {
       cartSummaryData.productPrice = price;
       cartSummaryData.productCurrency = currency;
-      
-      // تحديث State Manager أيضاً
-      if (window.CodformStateManager) {
-        window.CodformStateManager.setProductData(price, currency, cartSummaryData.targetCurrency);
-      }
-      
       updateCartSummary();
     },
-    setupEventListeners: setupEventListeners
+    setShippingCost: function(cost) {
+      cartSummaryData.shippingCost = cost;
+      updateCartSummary();
+    },
+    setDiscount: function(type, value) {
+      cartSummaryData.discountType = type;
+      cartSummaryData.discountValue = value;
+      updateCartSummary();
+    }
   };
 
-  // تفعيل Event Listeners عند تحميل الصفحة
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', setupEventListeners);
-  } else {
-    setupEventListeners();
-  }
+  console.log('✅ CODFORM Cart Summary Handler loaded');
 
-  // Cart Summary module loaded
 })();

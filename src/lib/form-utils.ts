@@ -81,6 +81,7 @@ export interface FormField {
     discountText?: string;
     shippingText?: string;
     totalText?: string;
+    direction?: 'auto' | 'rtl' | 'ltr';
     showDiscount?: boolean;
     discountType?: 'percentage' | 'fixed';
     discountValue?: number;
