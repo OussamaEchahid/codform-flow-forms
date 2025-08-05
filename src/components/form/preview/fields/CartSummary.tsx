@@ -41,10 +41,11 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
 
   const fieldStyle = field.style || {};
   const config = {
+    autoCalculate: true, // Default to true if not set
     showDiscount: true,
     discountType: 'percentage',
     discountValue: 0,
-    shippingType: 'manual',
+    shippingType: 'auto',
     shippingValue: 0,
     ...field.cartSummaryConfig
   };
@@ -73,6 +74,9 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
     // Calculate shipping
     if (configSettings.shippingType === 'manual') {
       shipping = configSettings.shippingValue || 0;
+    } else if (configSettings.shippingType === 'auto') {
+      // Auto shipping from Shopify - would need API integration
+      shipping = 10.00; // Placeholder - should integrate with Shopify shipping API
     } else {
       shipping = 0; // Free shipping
     }
@@ -95,13 +99,140 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
     return CurrencyService.convertCurrency(amount, fromCurrency, toCurrency);
   };
 
-  // Calculate prices using manual values only
+  // Calculate prices using useMemo to prevent infinite loops
   const prices = useMemo(() => {
-    // Always use demo prices for manual configuration
+    console.log('🔍 Cart Summary Debug:', {
+      productData,
+      autoCalculate: config.autoCalculate,
+      productId,
+      formCurrency,
+      formStyleCurrency: formStyle.currency,
+      productCurrency: productData?.currency,
+      variants: productData?.variants
+    });
+    
+    if (productData && productData.variants && productData.variants.length > 0) {
+      const originalPrice = parseFloat(productData.variants[0].price) || 0;
+      // قراءة العملة من المنتج أو من المتجر أو من المتغير
+      const productCurrency = productData.variants[0].currency_code || 
+                             productData.currency || 
+                             productData.shop?.currency || 
+                             'USD';
+      const targetCurrency = formCurrency || formStyle.currency || 'SAR';
+      
+      // تحويل السعر قبل الحسابات
+      const convertedPrice = convertCurrency(originalPrice, productCurrency, targetCurrency);
+      
+      console.log('💰 Currency conversion applied:', {
+        originalPrice,
+        productCurrency,
+        targetCurrency,
+        convertedPrice
+      });
+      
+      return calculatePrices(convertedPrice, productData, config, targetCurrency);
+    }
+    
+    // Show placeholder prices instead of null to prevent white screen
+    if (config.autoCalculate && loading) {
+      console.log('⏳ Waiting for product data...');
+      return { subtotal: null, discount: null, shipping: null, total: null };
+    }
+    
+    // Show demo prices when not using auto calculation OR when auto calculation fails
     const demoPrice = 99.00;
+    console.log('🎭 Using demo price:', demoPrice);
     return calculatePrices(demoPrice, null, config, formCurrency || formStyle.currency || 'SAR');
-  }, [config, formCurrency, formStyle.currency]);
+  }, [productData, config, formCurrency, formStyle.currency, loading]);
 
+  // البحث عن المنتج المرتبط بالنموذج من قاعدة البيانات
+  React.useEffect(() => {
+    const fetchLinkedProduct = async () => {
+      try {
+        // الحصول على form ID من URL أو context
+        const pathParts = window.location.pathname.split('/');
+        const formId = pathParts[pathParts.length - 1];
+        
+        if (formId && formId !== 'form-builder') {
+          const { data, error } = await supabase
+            .from('shopify_product_settings')
+            .select('product_id')
+            .eq('form_id', formId)
+            .single();
+          
+          if (data && !error) {
+            console.log('✅ Cart Summary - Found linked product:', data.product_id);
+            setLinkedProductId(data.product_id);
+          }
+        }
+      } catch (error) {
+        console.error('❌ Cart Summary - Error fetching linked product:', error);
+      }
+    };
+
+    fetchLinkedProduct();
+  }, []);
+
+  // Load product data
+  useEffect(() => {
+    const finalProductId = linkedProductId || productId;
+    console.log('🔄 Cart Summary - useEffect triggered:', {
+      finalProductId,
+      autoCalculate: config.autoCalculate,
+      loading,
+      hasProductData: !!productData,
+      linkedProductId,
+      productId
+    });
+    
+    if (config.autoCalculate && finalProductId && finalProductId !== 'auto-detect' && !loading && !productData) {
+      setLoading(true);
+      console.log('📦 Cart Summary - Starting to load product:', finalProductId);
+      
+      getProductById(finalProductId)
+        .then(product => {
+          console.log('✅ Cart Summary - Product loaded successfully:', {
+            product,
+            hasVariants: product?.variants?.length,
+            firstVariantPrice: product?.variants?.[0]?.price
+          });
+          
+          if (product && product.variants && product.variants.length > 0) {
+            console.log('💾 Cart Summary - Setting product data...');
+            setProductData(product);
+            console.log('✅ Cart Summary - Product data set successfully');
+          } else {
+            console.warn('⚠️ Cart Summary - Product has no variants:', product);
+            // Set empty product data to avoid infinite loading
+            setProductData({});
+          }
+        })
+        .catch(error => {
+          console.error('❌ Cart Summary - Error loading product data:', error);
+          // Set empty product data to avoid infinite loading
+          setProductData({});
+        })
+        .finally(() => {
+          console.log('🔄 Cart Summary - Loading finished');
+          setLoading(false);
+        });
+    } else {
+      console.log('⏭️ Cart Summary - Skipping product load:', {
+        autoCalculate: config.autoCalculate,
+        finalProductId,
+        loading,
+        hasProductData: !!productData
+      });
+    }
+  }, [linkedProductId, productId, config.autoCalculate]); // Remove loading and productData dependencies
+
+  // Load shipping rates from Shopify if auto shipping is enabled
+  useEffect(() => {
+    if (config.shippingType === 'auto' && productData && productData.shop) {
+      // This would call Shopify shipping API - placeholder for now
+      console.log('Loading shipping rates from Shopify...');
+    }
+  }, [config.shippingType, productData]);
 
   const formatPrice = (amount: number | null) => {
     if (amount === null) return '...';

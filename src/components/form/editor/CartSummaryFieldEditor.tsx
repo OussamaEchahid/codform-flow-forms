@@ -55,8 +55,9 @@ const CartSummaryFieldEditor: React.FC<CartSummaryFieldEditorProps> = ({
       showDiscount: true,
       discountType: 'percentage', // 'percentage' or 'fixed'
       discountValue: 0,
-      shippingType: 'manual', // 'manual' or 'free'
+      shippingType: 'auto', // 'auto' or 'manual'
       shippingValue: 0,
+      autoCalculate: true,
       currency: 'MAD', // العملة المخصصة لهذا الحقل
       ...field.cartSummaryConfig
     }
@@ -175,6 +176,13 @@ const CartSummaryFieldEditor: React.FC<CartSummaryFieldEditorProps> = ({
                 </Select>
               </div>
 
+              <div className="flex items-center justify-between">
+                <Label>{language === 'ar' ? 'حساب تلقائي من المنتج' : 'Auto Calculate from Product'}</Label>
+                <Switch
+                  checked={currentField.cartSummaryConfig?.autoCalculate || false}
+                  onCheckedChange={(checked) => handleConfigChange('autoCalculate', checked)}
+                />
+              </div>
 
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -228,18 +236,18 @@ const CartSummaryFieldEditor: React.FC<CartSummaryFieldEditorProps> = ({
                 <div>
                   <Label>{language === 'ar' ? 'نوع الشحن' : 'Shipping Type'}</Label>
                   <Select
-                    value={currentField.cartSummaryConfig?.shippingType || 'manual'}
+                    value={currentField.cartSummaryConfig?.shippingType || 'auto'}
                     onValueChange={(value) => handleConfigChange('shippingType', value)}
                   >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="auto">
+                        {language === 'ar' ? 'تلقائي من شوبيفاي' : 'Auto from Shopify'}
+                      </SelectItem>
                       <SelectItem value="manual">
                         {language === 'ar' ? 'يدوي' : 'Manual'}
-                      </SelectItem>
-                      <SelectItem value="free">
-                        {language === 'ar' ? 'مجاني' : 'Free'}
                       </SelectItem>
                     </SelectContent>
                   </Select>
