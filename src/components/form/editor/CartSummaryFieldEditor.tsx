@@ -55,7 +55,7 @@ const CartSummaryFieldEditor: React.FC<CartSummaryFieldEditorProps> = ({
       showDiscount: true,
       discountType: 'percentage', // 'percentage' or 'fixed'
       discountValue: 0,
-      shippingType: 'auto', // 'auto' or 'manual'
+      shippingType: 'manual', // 'manual' or 'free'
       shippingValue: 0,
       autoCalculate: true,
       currency: 'MAD', // العملة المخصصة لهذا الحقل
@@ -236,18 +236,18 @@ const CartSummaryFieldEditor: React.FC<CartSummaryFieldEditorProps> = ({
                 <div>
                   <Label>{language === 'ar' ? 'نوع الشحن' : 'Shipping Type'}</Label>
                   <Select
-                    value={currentField.cartSummaryConfig?.shippingType || 'auto'}
+                    value={currentField.cartSummaryConfig?.shippingType || 'manual'}
                     onValueChange={(value) => handleConfigChange('shippingType', value)}
                   >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="auto">
-                        {language === 'ar' ? 'تلقائي من شوبيفاي' : 'Auto from Shopify'}
-                      </SelectItem>
                       <SelectItem value="manual">
                         {language === 'ar' ? 'يدوي' : 'Manual'}
+                      </SelectItem>
+                      <SelectItem value="free">
+                        {language === 'ar' ? 'مجاني' : 'Free'}
                       </SelectItem>
                     </SelectContent>
                   </Select>

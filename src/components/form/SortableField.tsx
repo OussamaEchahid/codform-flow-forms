@@ -1081,25 +1081,25 @@ const SortableField: React.FC<SortableFieldProps> = ({
                          <div className="space-y-3">
                            <div className="space-y-1">
                              <Label>{language === 'ar' ? 'نوع الشحن' : 'Shipping Type'}</Label>
-                             <Select
-                               value={editedField.cartSummaryConfig?.shippingType || 'auto'}
-                               onValueChange={(value) => {
-                                 const config = { ...editedField.cartSummaryConfig, shippingType: value };
-                                 handleFieldChange('cartSummaryConfig', config);
-                               }}
-                             >
-                               <SelectTrigger>
-                                 <SelectValue />
-                               </SelectTrigger>
-                               <SelectContent>
-                                 <SelectItem value="auto">
-                                   {language === 'ar' ? 'تلقائي من شوبيفاي' : 'Auto from Shopify'}
-                                 </SelectItem>
-                                 <SelectItem value="manual">
-                                   {language === 'ar' ? 'يدوي' : 'Manual'}
-                                 </SelectItem>
-                               </SelectContent>
-                             </Select>
+                              <Select
+                                value={editedField.cartSummaryConfig?.shippingType || 'manual'}
+                                onValueChange={(value) => {
+                                  const config = { ...editedField.cartSummaryConfig, shippingType: value };
+                                  handleFieldChange('cartSummaryConfig', config);
+                                }}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="manual">
+                                    {language === 'ar' ? 'يدوي' : 'Manual'}
+                                  </SelectItem>
+                                  <SelectItem value="free">
+                                    {language === 'ar' ? 'مجاني' : 'Free'}
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
                            </div>
                            
                            {editedField.cartSummaryConfig?.shippingType === 'manual' && (

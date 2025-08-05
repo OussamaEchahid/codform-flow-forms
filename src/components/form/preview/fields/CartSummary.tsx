@@ -45,7 +45,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
     showDiscount: true,
     discountType: 'percentage',
     discountValue: 0,
-    shippingType: 'auto',
+    shippingType: 'manual',
     shippingValue: 0,
     ...field.cartSummaryConfig
   };
@@ -74,9 +74,6 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
     // Calculate shipping
     if (configSettings.shippingType === 'manual') {
       shipping = configSettings.shippingValue || 0;
-    } else if (configSettings.shippingType === 'auto') {
-      // Auto shipping from Shopify - would need API integration
-      shipping = 10.00; // Placeholder - should integrate with Shopify shipping API
     } else {
       shipping = 0; // Free shipping
     }
