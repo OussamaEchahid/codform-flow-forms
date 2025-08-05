@@ -483,75 +483,98 @@
     // Update cart summary text configuration from field settings
     updateCartSummaryLabels(field, config);
 
-    // البحث عن العناصر مع معالجة متقدمة للتوقيت
-    function findAndProcessCartSummary() {
-      // البحث في جميع العناصر المحتملة
-      const selectors = [
-        '.codform-cart-summary',
-        '.cart-summary-field', 
-        '[class*="cart-summary"]',
-        '[data-field-id]',
-        '[class*="cart"]',
-        '[class*="summary"]'
-      ];
+    // ✅ حل بسيط ومضمون - البحث في جميع العناصر في الصفحة
+    function findCartSummaryElements() {
+      console.log('🔍 Starting comprehensive search for cart summary elements...');
       
-      let cartSummaries = [];
+      // ابحث في كل عنصر في الصفحة
+      const allElements = document.querySelectorAll('*');
+      const cartElements = [];
       
-      // جمع جميع العناصر من جميع الـ selectors
-      selectors.forEach(selector => {
-        const elements = document.querySelectorAll(selector);
-        elements.forEach(el => {
-          if (!cartSummaries.includes(el)) {
-            cartSummaries.push(el);
+      allElements.forEach(element => {
+        const className = element.className ? element.className.toString().toLowerCase() : '';
+        const tagName = element.tagName.toLowerCase();
+        const innerHTML = element.innerHTML ? element.innerHTML.toLowerCase() : '';
+        
+        // ابحث عن أي عنصر يحتوي على كلمات مرتبطة بـ cart summary
+        if (
+          className.includes('cart') || 
+          className.includes('summary') || 
+          className.includes('total') ||
+          innerHTML.includes('subtotal') ||
+          innerHTML.includes('shipping') ||
+          innerHTML.includes('total:') ||
+          innerHTML.includes('المجموع') ||
+          innerHTML.includes('الشحن') ||
+          innerHTML.includes('الإجمالي')
+        ) {
+          cartElements.push(element);
+        }
+      });
+      
+      console.log(`✅ Found ${cartElements.length} potential cart elements:`, cartElements);
+      
+      // طبق التنسيقات على جميع العناصر المحتملة
+      cartElements.forEach((element, index) => {
+        console.log(`🎨 Applying styles to element ${index + 1}:`, element);
+        
+        // تطبيق خط Cairo
+        element.style.fontFamily = 'Cairo, sans-serif';
+        
+        // البحث عن عناصر الأسعار بداخله
+        const priceElements = element.querySelectorAll('*');
+        priceElements.forEach(priceEl => {
+          const text = priceEl.textContent || '';
+          
+          // إذا كان يحتوي على أرقام أو عملة
+          if (/\d/.test(text) || text.includes('USD') || text.includes('SAR') || text.includes('Free') || text.includes('مجاني')) {
+            priceEl.style.fontFamily = 'Cairo, sans-serif';
+            
+            // إذا كان هذا هو الإجمالي
+            if (text.includes('Total') || text.includes('الإجمالي') || priceEl.className.includes('total')) {
+              priceEl.style.color = '#059669';
+              priceEl.style.fontWeight = 'bold';
+            }
           }
         });
-      });
-
-      console.log(`🔍 Processing cartSummary elements - Found ${cartSummaries.length} elements`);
-      console.log('Elements found:', cartSummaries);
-      
-      if (cartSummaries.length === 0) {
-        console.warn('⚠️ No cart summary elements found, searching for price elements');
-        const priceElements = document.querySelectorAll('[class*="price"], [data-product-price], .product-price, .total-price, .subtotal, .shipping-price, .summary-value, .total-value');
-        console.log(`Found ${priceElements.length} price elements as fallback`);
         
-        if (priceElements.length > 0) {
-          priceElements.forEach((element, index) => {
-            applyCartSummarySettings(element, field, config);
-          });
-        }
-        return false; // لم نجد cart summary containers
-      }
-
-      cartSummaries.forEach((element, index) => {
-        applyCartSummarySettings(element, field, config);
-      });
-      
-      return true; // وجدنا عناصر cart summary
-    }
-
-    // محاولة البحث فوراً
-    let found = findAndProcessCartSummary();
-    
-    // إذا لم نجد، أعد المحاولة عدة مرات
-    if (!found) {
-      let attempts = 0;
-      const maxAttempts = 10;
-      
-      const retryInterval = setInterval(() => {
-        attempts++;
-        console.log(`🔄 Retry attempt ${attempts}/${maxAttempts} to find cart summary elements`);
-        
-        found = findAndProcessCartSummary();
-        
-        if (found || attempts >= maxAttempts) {
-          clearInterval(retryInterval);
-          if (!found) {
-            console.error('❌ Failed to find cart summary elements after all attempts');
+        // تطبيق الألوان من الإعدادات
+        if (field.style) {
+          if (field.style.backgroundColor) {
+            element.style.backgroundColor = field.style.backgroundColor;
+          }
+          if (field.style.borderColor) {
+            element.style.borderColor = field.style.borderColor;
           }
         }
-      }, 500); // محاولة كل نصف ثانية
+      });
+      
+      // تطبيق إضافي على جميع النصوص في الصفحة التي تحتوي على كلمات معينة
+      document.querySelectorAll('*').forEach(el => {
+        if (el.textContent) {
+          const text = el.textContent.toLowerCase();
+          if (text.includes('subtotal') || text.includes('total') || text.includes('shipping') || 
+              text.includes('المجموع') || text.includes('الإجمالي') || text.includes('الشحن')) {
+            el.style.fontFamily = 'Cairo, sans-serif';
+            
+            if (text.includes('total') || text.includes('الإجمالي')) {
+              el.style.color = '#059669';
+              el.style.fontWeight = 'bold';
+            }
+          }
+        }
+      });
+      
+      console.log('✅ Cart summary styling applied successfully');
+      return cartElements.length > 0;
     }
+
+    // تطبيق فوري
+    findCartSummaryElements();
+    
+    // تطبيق مؤجل للتأكد
+    setTimeout(findCartSummaryElements, 1000);
+    setTimeout(findCartSummaryElements, 3000);
 
     function applyCartSummarySettings(element, field, config) {
       console.log('🛒 Applying Cart Summary settings to element:', element);
