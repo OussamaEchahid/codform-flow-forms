@@ -350,6 +350,59 @@ const QuantityOffers = () => {
     }
     
     console.log('⚙️ Proceeding to settings step');
+    
+    // إضافة العروض الافتراضية إذا لم تكن موجودة
+    if (quantityOffer.offers.length === 0) {
+      // تحديد لغة النموذج من البيانات
+      const isArabic = selectedForm.data?.some((step: any) => 
+        step.fields?.some((field: any) => 
+          field.label?.includes('اسم') || field.label?.includes('هاتف') || 
+          field.placeholder?.includes('اسم') || field.placeholder?.includes('هاتف')
+        )
+      ) || selectedForm.title?.match(/[\u0600-\u06FF]/);
+      
+      const defaultOffers = isArabic ? [
+        {
+          id: Date.now().toString(),
+          tag: 'هدية مجانية',
+          text: 'اشتر 3 واحصل على 1 مجانًا',
+          quantity: 3,
+          discountType: 'none' as const,
+          discountValue: 0
+        },
+        {
+          id: (Date.now() + 1).toString(),
+          tag: 'هدية مجانية',
+          text: 'اشتر 5 واحصل على 2 مجانًا',
+          quantity: 5,
+          discountType: 'none' as const,
+          discountValue: 0
+        }
+      ] : [
+        {
+          id: Date.now().toString(),
+          tag: 'Free Gift',
+          text: 'Buy 3 get 1 free',
+          quantity: 3,
+          discountType: 'none' as const,
+          discountValue: 0
+        },
+        {
+          id: (Date.now() + 1).toString(),
+          tag: 'Free Gift',
+          text: 'Buy 5 get 2 free',
+          quantity: 5,
+          discountType: 'none' as const,
+          discountValue: 0
+        }
+      ];
+      
+      setQuantityOffer(prev => ({
+        ...prev,
+        offers: defaultOffers
+      }));
+    }
+    
     setCurrentStep('settings');
   };
 
