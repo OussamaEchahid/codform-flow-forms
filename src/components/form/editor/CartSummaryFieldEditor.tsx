@@ -45,7 +45,6 @@ const CartSummaryFieldEditor: React.FC<CartSummaryFieldEditorProps> = ({
       valueWeight: '500',
       totalLabelWeight: 'bold',
       totalValueWeight: 'bold',
-      direction: 'auto', // ✅ اتجاه تلقائي
       ...field.style
     },
     cartSummaryConfig: {

@@ -483,10 +483,151 @@
     // Update cart summary text configuration from field settings
     updateCartSummaryLabels(field, config);
 
-    // تأكد من وجود العناصر في DOM أولاً
-    const cartSummaries = document.querySelectorAll('.codform-cart-summary, .cart-summary-field');
-    console.log(`🔍 Processing cartSummary elements - Found ${cartSummaries.length} elements`);
-    
+    // البحث عن العناصر مع تأخير للتأكد من تحميل DOM
+    setTimeout(() => {
+      const cartSummaries = document.querySelectorAll('.codform-cart-summary, .cart-summary-field, [class*="cart"], [class*="summary"], [class*="total"]');
+      console.log(`🔍 Processing cartSummary elements - Found ${cartSummaries.length} elements`);
+      
+      if (cartSummaries.length === 0) {
+        console.warn('⚠️ No cart summary elements found, searching for price elements');
+        const priceElements = document.querySelectorAll('[class*="price"], [data-product-price], .product-price, .total-price, .subtotal, .shipping-price');
+        console.log(`Found ${priceElements.length} price elements as fallback`);
+        
+        if (priceElements.length > 0) {
+          priceElements.forEach((element, index) => {
+            applyCartSummarySettings(element, field, config);
+          });
+        }
+        return;
+      }
+
+      cartSummaries.forEach((element, index) => {
+        applyCartSummarySettings(element, field, config);
+      });
+    }, 1000);
+
+    function applyCartSummarySettings(element, field, config) {
+      console.log('🛒 Applying Cart Summary settings to element:', element);
+
+      // Apply styles
+      if (element) {
+        const style = field.style || {};
+        
+        // Background and border
+        if (style.backgroundColor) {
+          element.style.backgroundColor = style.backgroundColor;
+        }
+        if (style.borderColor) {
+          element.style.borderColor = style.borderColor;
+        }
+
+        // Text direction
+        if (config.direction) {
+          if (config.direction === 'auto') {
+            element.style.direction = window.CODFORM?.language === 'ar' ? 'rtl' : 'ltr';
+          } else {
+            element.style.direction = config.direction;
+          }
+        }
+
+        // Font family - تطبيق خط Cairo كما هو مطلوب
+        const fontFamily = style.fontFamily || 'Cairo';
+        element.style.fontFamily = fontFamily + ', sans-serif';
+
+        // Update text labels
+        updateTextLabels(element, config);
+        
+        // Update colors and fonts
+        updateElementStyles(element, style, fontFamily);
+
+        console.log(`✅ Cart Summary element updated successfully`);
+      }
+    }
+
+    function updateTextLabels(element, config) {
+      // تحديث النصوص حسب الإعدادات
+      const subtotalElements = element.querySelectorAll('[class*="subtotal"], .subtotal-value');
+      const discountElements = element.querySelectorAll('[class*="discount"], .discount-value');
+      const shippingElements = element.querySelectorAll('[class*="shipping"], .shipping-value');
+      const totalElements = element.querySelectorAll('[class*="total"], .total-value');
+
+      // تطبيق النصوص المخصصة
+      subtotalElements.forEach(el => {
+        if (config.subtotalText && el.previousElementSibling) {
+          el.previousElementSibling.textContent = config.subtotalText;
+        }
+      });
+
+      discountElements.forEach(el => {
+        if (config.discountText && el.previousElementSibling) {
+          el.previousElementSibling.textContent = config.discountText;
+        }
+      });
+
+      shippingElements.forEach(el => {
+        if (config.shippingText && el.previousElementSibling) {
+          el.previousElementSibling.textContent = config.shippingText;
+        }
+      });
+
+      totalElements.forEach(el => {
+        if (config.totalText && el.previousElementSibling) {
+          el.previousElementSibling.textContent = config.totalText;
+        }
+      });
+    }
+
+    function updateElementStyles(element, style, fontFamily) {
+      // Update label colors and fonts
+      const labelElements = element.querySelectorAll('span:first-child, .label, [class*="label"]');
+      labelElements.forEach(label => {
+        if (style.labelColor) {
+          label.style.color = style.labelColor;
+        }
+        if (style.labelFontSize) {
+          label.style.fontSize = style.labelFontSize;
+        }
+        label.style.fontFamily = fontFamily + ', sans-serif';
+      });
+
+      // Update value colors and fonts
+      const valueElements = element.querySelectorAll('span:last-child, .value, [class*="value"], .product-price, .shipping-price');
+      valueElements.forEach(value => {
+        if (style.valueColor) {
+          value.style.color = style.valueColor;
+        } else {
+          value.style.color = '#1f2937'; // لون افتراضي للقيم
+        }
+        if (style.valueFontSize) {
+          value.style.fontSize = style.valueFontSize;
+        }
+        value.style.fontFamily = fontFamily + ', sans-serif';
+      });
+
+      // Update total elements with special styling - أهم جزء للإجمالي
+      const totalElements = element.querySelectorAll('.total-price, [class*="total"], [data-product-price-display="total"]');
+      totalElements.forEach(total => {
+        if (style.totalValueColor) {
+          total.style.color = style.totalValueColor;
+        } else {
+          total.style.color = '#059669'; // ✅ لون أخضر افتراضي للإجمالي
+        }
+        if (style.totalValueFontSize) {
+          total.style.fontSize = style.totalValueFontSize;
+        } else {
+          total.style.fontSize = '1.1rem'; // حجم أكبر للإجمالي
+        }
+        total.style.fontFamily = fontFamily + ', sans-serif';
+        total.style.fontWeight = 'bold';
+      });
+
+      // البحث عن جميع عناصر الأسعار وتطبيق الخط عليها
+      const allPriceElements = element.querySelectorAll('[class*="price"], [data-price], .amount, [class*="amount"]');
+      allPriceElements.forEach(priceEl => {
+        priceEl.style.fontFamily = fontFamily + ', sans-serif';
+      });
+    }
+
     if (cartSummaries.length === 0) {
       console.warn('⚠️ Cart Summary - No cart summary elements found in DOM. Waiting for DOM...');
       // انتظار قليل للسماح للـ DOM بالتحميل الكامل
