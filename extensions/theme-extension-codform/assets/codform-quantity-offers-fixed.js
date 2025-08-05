@@ -340,12 +340,25 @@ window.CodformQuantityOffers = (function() {
           if (el !== this) {
             el.style.borderColor = borderColors.default;
             el.style.backgroundColor = '#ffffff';
+            // ✅ إعادة تعيين ألوان العلامات في العروض غير المحددة
+            const tags = el.querySelectorAll('div[style*="background: #22c55e"]');
+            tags.forEach(tag => {
+              tag.style.background = '#22c55e';
+              tag.style.color = 'white';
+            });
           }
         });
         
         // تحديد العرض الحالي باللون الأخضر (أو المخصص)
         this.style.borderColor = borderColors.selected;
         this.style.backgroundColor = '#f0fdf4'; // خلفية خضراء فاتحة
+        
+        // ✅ الحفاظ على ألوان العلامات في العرض المحدد
+        const selectedTags = this.querySelectorAll('div[style*="background: #22c55e"], div[style*="background: rgb(255, 255, 255)"]');
+        selectedTags.forEach(tag => {
+          tag.style.background = '#22c55e';
+          tag.style.color = 'white';
+        });
       });
 
       offerElement.addEventListener('mouseenter', function() {
