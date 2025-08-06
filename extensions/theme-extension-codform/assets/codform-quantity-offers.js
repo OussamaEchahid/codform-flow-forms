@@ -652,16 +652,37 @@ window.CodformQuantityOffers = (function() {
     console.log("✅ EXACT PREVIEW MATCH - Quantity offers displayed with identical styling");
   }
 
-  // دالة تحميل وعرض العروض من API
+  // ✅ SPEED BOOST: دالة محسّنة لتحميل وعرض العروض من API مع cache
   async function loadAndDisplayOffers(blockId, productId, shop, formCurrency = null, passedProductData = null, formDirection = null) {
     try {
       if (!shop) {
         shop = (typeof Shopify !== 'undefined' && Shopify.shop) ? Shopify.shop : 'codmagnet.com';
       }
       
-      console.log("🎯 Loading quantity offers for product", productId, "in", blockId, "from shop", shop);
+      console.log("🚀 SPEED BOOST: Loading quantity offers for product", productId, "in", blockId, "from shop", shop);
       console.log("💰 Form currency parameter:", formCurrency);
       console.log("💰 Current window.CodformFormData:", window.CodformFormData);
+      
+      // ✅ SPEED BOOST: تحقق من cache البيانات أولاً
+      const cacheKey = `offers_${shop}_${productId}`;
+      const cachedData = sessionStorage.getItem(cacheKey);
+      
+      if (cachedData) {
+        try {
+          const parsedCache = JSON.parse(cachedData);
+          const isExpired = Date.now() - parsedCache.timestamp > (5 * 60 * 1000); // 5 دقائق
+          
+          if (!isExpired && parsedCache.data) {
+            console.log("🚀 SPEED BOOST: Using cached offers data");
+            displayQuantityOffers(parsedCache.data.quantity_offers, blockId, productId, parsedCache.data.currency, parsedCache.data.product, formDirection);
+            return { success: true, cached: true };
+          } else {
+            sessionStorage.removeItem(cacheKey); // إزالة cache منتهي الصلاحية
+          }
+        } catch (e) {
+          sessionStorage.removeItem(cacheKey);
+        }
+      }
       
       // ✅ CRITICAL: Check if currency is available from form settings first
       if (!window.CodformFormData || !window.CodformFormData.currency) {
@@ -706,6 +727,15 @@ window.CodformQuantityOffers = (function() {
         if (data.success && data.quantity_offers && data.quantity_offers.offers && data.quantity_offers.offers.length > 0) {
           console.log("✅ Found quantity offers and product data");
           
+          // ✅ SPEED BOOST: حفظ البيانات في cache
+          const cacheKey = `offers_${shop}_${productId}`;
+          const cacheData = {
+            data: data,
+            timestamp: Date.now()
+          };
+          sessionStorage.setItem(cacheKey, JSON.stringify(cacheData));
+          console.log("🚀 SPEED BOOST: Data cached for future requests");
+          
           const actualProductId = data.quantity_offers.product_id || productId;
           console.log("🎯 Using actual product ID:", actualProductId);
           
@@ -749,6 +779,15 @@ window.CodformQuantityOffers = (function() {
         
         if (data.success && data.quantity_offers && data.quantity_offers.offers && data.quantity_offers.offers.length > 0) {
           console.log("✅ Found quantity offers and product data");
+          
+          // ✅ SPEED BOOST: حفظ البيانات في cache 
+          const cacheKey = `offers_${shop}_${productId}`;
+          const cacheData = {
+            data: { ...data, currency: window.CodformFormData.currency },
+            timestamp: Date.now()
+          };
+          sessionStorage.setItem(cacheKey, JSON.stringify(cacheData));
+          console.log("🚀 SPEED BOOST: Data cached with form currency");
           
           const actualProductId = data.quantity_offers.product_id || productId;
           console.log("🎯 Using actual product ID:", actualProductId);

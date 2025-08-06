@@ -1153,8 +1153,9 @@
         console.log('🎯 Starting quantity offers loading...');
         const shopDomain = getShopDomain();
         
+        // ✅ SPEED BOOST: تحميل فوري للعروض الكمية مع تقليل التأخير
         setTimeout(() => {
-          console.log('🚀 Calling quantity offers with:', {
+          console.log('🚀 SPEED BOOST: Calling quantity offers with reduced delay:', {
             blockId: 'form',
             productId: productId,
             shopDomain: shopDomain
@@ -1165,7 +1166,7 @@
           } else {
             console.error('❌ CodformQuantityOffers still not available');
           }
-        }, 2000);
+        }, 200); // تقليل التأخير من 2000ms إلى 200ms
 
         console.log('🎉 CODFORM: Form rendered successfully with quantity offers container');
       })
@@ -1416,12 +1417,12 @@ function openFormPopup(event) {
         }
       } else {
         console.log('⏳ Waiting for CodformQuantityOffers in popup...');
-        setTimeout(waitForQuantityOffersPopup, 200);
+        setTimeout(waitForQuantityOffersPopup, 50); // تسريع انتظار العروض في النافذة المنبثقة
       }
     }
     
     waitForQuantityOffersPopup();
-  }, 500);
+  }, 100); // تسريع تحميل العروض في النافذة المنبثقة
 }
 
 function closeFormPopup() {
@@ -1748,9 +1749,9 @@ async function handleFormSubmissionPopup(formData, submitBtn, popup) {
   }
 }
 
-// تهيئة عروض الكمية عند تحميل الصفحة
+// ✅ SPEED BOOST: تهيئة محسّنة للعروض الكمية مع تحميل مبكر
 document.addEventListener('DOMContentLoaded', function() {
-  // انتظار حتى يتم إنهاء تحميل النموذج تماماً
+  // تحميل فوري للعروض بدون انتظار طويل
   const waitForFormLoad = setInterval(function() {
     const formContainer = document.querySelector('.codform-dynamic-form');
     if (formContainer && !formContainer.dataset.quantityOffersLoaded) {
@@ -1809,10 +1810,10 @@ document.addEventListener('DOMContentLoaded', function() {
         clearInterval(waitForFormLoad);
       }
     }
-  }, 100);
+  }, 50); // تسريع فحص العروض من 100ms إلى 50ms
   
-  // تنظيف الفاصل الزمني بعد 10 ثوان إذا لم يتم العثور على النموذج
-  setTimeout(() => clearInterval(waitForFormLoad), 10000);
+  // تنظيف الفاصل الزمني بعد 5 ثوان بدلاً من 10 للأداء الأفضل
+  setTimeout(() => clearInterval(waitForFormLoad), 5000);
 });
 
 // Add CSS animations
