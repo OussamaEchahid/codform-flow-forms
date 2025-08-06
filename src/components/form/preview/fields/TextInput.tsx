@@ -116,35 +116,49 @@ const TextInput: React.FC<TextInputProps> = ({
     }
   };
 
-  // Enhanced input styling with proper Padding Y application
+  // Enhanced input styling with proper Padding Y application - using px units consistently
   const inputStyle: React.CSSProperties = {
     backgroundColor,
     color,
-    fontSize,
+    fontSize: typeof fontSize === 'string' && fontSize.includes('rem') ? 
+      `${parseFloat(fontSize) * 16}px` : fontSize, // Convert rem to px
     fontWeight,
-    borderRadius,
+    borderRadius: typeof borderRadius === 'string' && borderRadius.includes('rem') ? 
+      `${parseFloat(borderRadius) * 16}px` : borderRadius, // Convert rem to px
     border: `${borderWidth} solid ${borderColor}`,
     paddingTop: `${finalPaddingY}px`,
     paddingBottom: `${finalPaddingY}px`,
-    paddingLeft: showIcon ? '48px' : '16px',
-    paddingRight: '16px',
+    paddingLeft: showIcon ? 
+      (formCountry === 'ar' || formStyle.formDirection === 'rtl' ? '16px' : '48px') : '16px',
+    paddingRight: showIcon ? 
+      (formCountry === 'ar' || formStyle.formDirection === 'rtl' ? '48px' : '16px') : '16px',
     fontFamily: 'Cairo, Tajawal, Arial, sans-serif',
     outline: 'none',
     transition: 'all 0.2s ease-in-out',
-    width: '100%'
+    width: '100%',
+    direction: formStyle.formDirection === 'rtl' ? 'rtl' : 'ltr',
+    textAlign: formStyle.formDirection === 'rtl' ? 'right' : 'left'
   };
 
   const labelStyle: React.CSSProperties = {
     color: labelColor,
-    fontSize: labelFontSize,
+    fontSize: typeof labelFontSize === 'string' && labelFontSize.includes('rem') ? 
+      `${parseFloat(labelFontSize) * 16}px` : labelFontSize, // Convert rem to px
     fontWeight: labelFontWeight,
     fontFamily: 'Cairo, Tajawal, Arial, sans-serif',
     marginBottom: '8px',
-    display: 'block'
+    display: 'block',
+    textAlign: formStyle.formDirection === 'rtl' ? 'right' : 'left'
   };
 
   return (
-    <div className="form-field mb-5">
+    <div 
+      className="form-field"
+      style={{ 
+        marginBottom: formStyle.formGap || '20px',
+        direction: formStyle.formDirection === 'rtl' ? 'rtl' : 'ltr'
+      }}
+    >
       {field.label && !field.hideLabel && (
         <label style={labelStyle} className="block">
           {field.label}
@@ -155,7 +169,10 @@ const TextInput: React.FC<TextInputProps> = ({
       <div className="relative">
         {showIcon && (
           <div 
-            className="absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none z-10"
+            className={cn(
+              "absolute top-1/2 transform -translate-y-1/2 pointer-events-none z-10",
+              formStyle.formDirection === 'rtl' ? "right-3" : "left-3"
+            )}
             style={{ color: iconColor }}
           >
             {getIconComponent(field.icon as string)}
@@ -180,7 +197,13 @@ const TextInput: React.FC<TextInputProps> = ({
       </div>
       
       {field.helpText && (
-        <p className="mt-2 text-xs text-gray-600" style={{ fontFamily: 'Cairo, Tajawal, Arial, sans-serif' }}>
+        <p 
+          className="mt-2 text-xs text-gray-600" 
+          style={{ 
+            fontFamily: 'Cairo, Tajawal, Arial, sans-serif',
+            textAlign: formStyle.formDirection === 'rtl' ? 'right' : 'left'
+          }}
+        >
           {field.helpText}
         </p>
       )}
