@@ -282,7 +282,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
           name={field.id}
           placeholder={isFloatingLabels ? '' : placeholderText}
           aria-label={field.inputFor || labelText}
-          className="w-full outline-none transition-all codform-input"
+          className="w-full outline-none transition-all codform-input codform-fixed-placeholder"
           style={{
             color: textColor,
             fontSize: fontSize,

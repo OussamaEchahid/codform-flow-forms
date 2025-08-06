@@ -141,3 +141,39 @@
 .form-control {
   margin-bottom: 0.5rem !important;
 }
+
+/* Fixed placeholder styling to prevent font size interference */
+.codform-fixed-placeholder::placeholder {
+  font-size: 14px !important;
+  color: #9CA3AF !important;
+  font-weight: 400 !important;
+  opacity: 1 !important;
+}
+
+.codform-fixed-placeholder::-webkit-input-placeholder { /* Safari/Chrome */
+  font-size: 14px !important;
+  color: #9CA3AF !important;
+  font-weight: 400 !important;
+  opacity: 1 !important;
+}
+
+.codform-fixed-placeholder::-moz-placeholder { /* Firefox 19+ */
+  font-size: 14px !important;
+  color: #9CA3AF !important;
+  font-weight: 400 !important;
+  opacity: 1 !important;
+}
+
+.codform-fixed-placeholder:-ms-input-placeholder { /* IE 10+ */
+  font-size: 14px !important;
+  color: #9CA3AF !important;
+  font-weight: 400 !important;
+  opacity: 1 !important;
+}
+
+.codform-fixed-placeholder:-moz-placeholder { /* Firefox 18- */
+  font-size: 14px !important;
+  color: #9CA3AF !important;
+  font-weight: 400 !important;
+  opacity: 1 !important;
+}
