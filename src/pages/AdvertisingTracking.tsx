@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -8,9 +8,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Copy, Facebook, Music, Plus, Settings, Target, BarChart3, Eye, Code } from 'lucide-react';
+import { Copy, Facebook, Music, Plus, Settings, Target, BarChart3, Eye, Code, Play, TestTube } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import AppSidebar from '@/components/layout/AppSidebar';
+import { supabase } from '@/integrations/supabase/client';
+import { useShopifyStores } from '@/hooks/useShopifyStores';
 
 interface PixelSettings {
   id: string;
@@ -32,12 +34,16 @@ interface TrackingEvent {
 
 const AdvertisingTracking = () => {
   const { toast } = useToast();
+  const { stores, activeStore } = useShopifyStores();
   
   const [facebookPixels, setFacebookPixels] = useState<PixelSettings[]>([]);
   const [snapchatPixels, setSnapchatPixels] = useState<PixelSettings[]>([]);
   const [tiktokPixels, setTiktokPixels] = useState<PixelSettings[]>([]);
+  const [forms, setForms] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isTestDialogOpen, setIsTestDialogOpen] = useState(false);
   const [selectedPlatform, setSelectedPlatform] = useState<'facebook' | 'snapchat' | 'tiktok'>('facebook');
   
   const [newPixel, setNewPixel] = useState<PixelSettings>({
@@ -50,7 +56,47 @@ const AdvertisingTracking = () => {
     conversionApiEnabled: false,
   });
 
-  // Sample collections and products for demonstration
+  // Load data on component mount
+  useEffect(() => {
+    loadPixelsAndForms();
+  }, []);
+
+  const loadPixelsAndForms = async () => {
+    setIsLoading(true);
+    try {
+      // Load saved pixels from Supabase
+      const { data: pixelsData } = await supabase
+        .from('advertising_pixels')
+        .select('*')
+        .eq('shop_id', activeStore?.shop || '');
+
+      if (pixelsData) {
+        const facebook = pixelsData.filter(p => p.platform === 'facebook');
+        const snapchat = pixelsData.filter(p => p.platform === 'snapchat');
+        const tiktok = pixelsData.filter(p => p.platform === 'tiktok');
+        
+        setFacebookPixels(facebook);
+        setSnapchatPixels(snapchat);
+        setTiktokPixels(tiktok);
+      }
+
+      // Load forms for tracking
+      const { data: formsData } = await supabase
+        .from('forms')
+        .select('*')
+        .eq('shop_id', activeStore?.shop || '');
+
+      if (formsData) {
+        setForms(formsData);
+      }
+    } catch (error) {
+      console.error('Error loading data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Collections and products from Shopify store
   const collections = [
     { id: 'collection1', name: 'Summer Collection' },
     { id: 'collection2', name: 'Winter Collection' },
@@ -72,7 +118,7 @@ const AdvertisingTracking = () => {
     { name: 'Contact', enabled: false, description: 'Track contact form submissions' },
   ]);
 
-  const handleCreatePixel = () => {
+  const handleCreatePixel = async () => {
     if (!newPixel.name || !newPixel.pixelId) {
       toast({
         title: "Error",
@@ -82,46 +128,123 @@ const AdvertisingTracking = () => {
       return;
     }
 
-    const pixelToAdd = { ...newPixel, id: Date.now().toString() };
-    
-    switch (selectedPlatform) {
+    if (!activeStore?.shop) {
+      toast({
+        title: "Error",
+        description: "No active store connected.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const pixelToAdd = { 
+        ...newPixel, 
+        id: Date.now().toString(),
+        platform: selectedPlatform,
+        shop_id: activeStore.shop,
+        created_at: new Date().toISOString()
+      };
+
+      // Save to Supabase
+      const { error } = await supabase
+        .from('advertising_pixels')
+        .insert([pixelToAdd]);
+
+      if (error) throw error;
+      
+      // Update local state
+      switch (selectedPlatform) {
+        case 'facebook':
+          setFacebookPixels(prev => [...prev, pixelToAdd]);
+          break;
+        case 'snapchat':
+          setSnapchatPixels(prev => [...prev, pixelToAdd]);
+          break;
+        case 'tiktok':
+          setTiktokPixels(prev => [...prev, pixelToAdd]);
+          break;
+      }
+
+      setNewPixel({
+        id: '',
+        enabled: true,
+        pixelId: '',
+        name: '',
+        eventType: 'Lead',
+        target: 'All',
+        conversionApiEnabled: false,
+      });
+      
+      setIsCreateDialogOpen(false);
+      
+      toast({
+        title: "Pixel Created",
+        description: `${selectedPlatform.charAt(0).toUpperCase() + selectedPlatform.slice(1)} pixel has been created and saved successfully.`,
+      });
+    } catch (error) {
+      console.error('Error creating pixel:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create pixel. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      // Save all pixels to Supabase
+      const allPixels = [...facebookPixels, ...snapchatPixels, ...tiktokPixels];
+      
+      for (const pixel of allPixels) {
+        await supabase
+          .from('advertising_pixels')
+          .upsert({
+            ...pixel,
+            shop_id: activeStore?.shop,
+            updated_at: new Date().toISOString()
+          });
+      }
+
+      toast({
+        title: "Settings Saved",
+        description: "Your advertising tracking settings have been updated successfully.",
+      });
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save settings. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const testPixelEvent = (platform: string, pixelId: string, eventType: string) => {
+    // Generate test event code
+    let testCode = '';
+    switch (platform) {
       case 'facebook':
-        setFacebookPixels(prev => [...prev, pixelToAdd]);
+        testCode = `fbq('track', '${eventType}', { test_event_code: 'TEST123' });`;
         break;
       case 'snapchat':
-        setSnapchatPixels(prev => [...prev, pixelToAdd]);
+        testCode = `snaptr('track', '${eventType.toUpperCase()}', { test_mode: true });`;
         break;
       case 'tiktok':
-        setTiktokPixels(prev => [...prev, pixelToAdd]);
+        testCode = `ttq.track('${eventType}', { test_event_code: 'TEST123' });`;
         break;
     }
 
-    setNewPixel({
-      id: '',
-      enabled: true,
-      pixelId: '',
-      name: '',
-      eventType: 'Lead',
-      target: 'All',
-      conversionApiEnabled: false,
-    });
-    
-    setIsCreateDialogOpen(false);
-    
+    // For testing, we'll show the code to copy to browser console
+    navigator.clipboard.writeText(testCode);
     toast({
-      title: "Pixel Created",
-      description: `${selectedPlatform.charAt(0).toUpperCase() + selectedPlatform.slice(1)} pixel has been created successfully.`,
+      title: "Test Code Copied",
+      description: `Test code for ${platform} pixel has been copied. Paste it in browser console to test.`,
     });
   };
 
-  const handleSave = () => {
-    toast({
-      title: "Settings Saved",
-      description: "Your advertising tracking settings have been updated successfully.",
-    });
-  };
-
-  const copyPixelCode = (platform: string, pixelId: string) => {
+  const copyPixelCode = (platform: string, pixelId: string, eventType: string = 'Lead') => {
     if (!pixelId) {
       toast({
         title: "Error",
@@ -134,7 +257,7 @@ const AdvertisingTracking = () => {
     let code = '';
     switch (platform) {
       case 'facebook':
-        code = `<!-- Facebook Pixel Code -->
+        code = `<!-- Facebook Pixel Code with Form Integration -->
 <script>
 !function(f,b,e,v,n,t,s)
 {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
@@ -146,6 +269,16 @@ s.parentNode.insertBefore(t,s)}(window, document,'script',
 'https://connect.facebook.net/en_US/fbevents.js');
 fbq('init', '${pixelId}');
 fbq('track', 'PageView');
+
+// Form submission tracking
+document.addEventListener('formSubmitted', function(e) {
+  fbq('track', '${eventType}', {
+    content_name: e.detail.formName || 'Lead Form',
+    content_category: 'form_submission',
+    value: 1.00,
+    currency: 'USD'
+  });
+});
 </script>
 <noscript><img height="1" width="1" style="display:none"
 src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
@@ -153,7 +286,7 @@ src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1"
 <!-- End Facebook Pixel Code -->`;
         break;
       case 'snapchat':
-        code = `<!-- Snapchat Pixel Code -->
+        code = `<!-- Snapchat Pixel Code with Form Integration -->
 <script type='text/javascript'>
 (function(e,t,n){if(e.snaptr)return;var a=e.snaptr=function()
 {a.handleRequest?a.handleRequest.apply(a,arguments):a.queue.push(arguments)};
@@ -165,16 +298,35 @@ snaptr('init', '${pixelId}', {
 'user_email': '__INSERT_USER_EMAIL__'
 });
 snaptr('track', 'PAGE_VIEW');
+
+// Form submission tracking
+document.addEventListener('formSubmitted', function(e) {
+  snaptr('track', '${eventType.toUpperCase()}', {
+    'item_category': 'form_submission',
+    'currency': 'USD',
+    'price': '1.00'
+  });
+});
 </script>
 <!-- End Snapchat Pixel Code -->`;
         break;
       case 'tiktok':
-        code = `<!-- TikTok Pixel Code -->
+        code = `<!-- TikTok Pixel Code with Form Integration -->
 <script>
 !function (w, d, t) {
   w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie"],ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e},ttq.load=function(e,n){var i="https://analytics.tiktok.com/i18n/pixel/events.js";ttq._i=ttq._i||{},ttq._i[e]=[],ttq._i[e]._u=i,ttq._t=ttq._t||{},ttq._t[e]=+new Date,ttq._o=ttq._o||{},ttq._o[e]=n||{};var o=document.createElement("script");o.type="text/javascript",o.async=!0,o.src=i+"?sdkid="+e+"&lib="+t;var a=document.getElementsByTagName("script")[0];a.parentNode.insertBefore(o,a)};
   ttq.load('${pixelId}');
   ttq.page();
+  
+  // Form submission tracking
+  document.addEventListener('formSubmitted', function(e) {
+    ttq.track('${eventType}', {
+      'content_type': 'form_submission',
+      'content_name': e.detail.formName || 'Lead Form',
+      'value': 1.00,
+      'currency': 'USD'
+    });
+  });
 }(window, document, 'ttq');
 </script>
 <!-- End TikTok Pixel Code -->`;
@@ -184,7 +336,7 @@ snaptr('track', 'PAGE_VIEW');
     navigator.clipboard.writeText(code);
     toast({
       title: "Code Copied",
-      description: `${platform.charAt(0).toUpperCase() + platform.slice(1)} pixel code has been copied to clipboard.`,
+      description: `${platform.charAt(0).toUpperCase() + platform.slice(1)} pixel code with form tracking has been copied to clipboard.`,
     });
   };
 
@@ -198,23 +350,39 @@ snaptr('track', 'PAGE_VIEW');
     );
   };
 
-  const deletePixel = (platform: string, pixelId: string) => {
-    switch (platform) {
-      case 'facebook':
-        setFacebookPixels(prev => prev.filter(p => p.id !== pixelId));
-        break;
-      case 'snapchat':
-        setSnapchatPixels(prev => prev.filter(p => p.id !== pixelId));
-        break;
-      case 'tiktok':
-        setTiktokPixels(prev => prev.filter(p => p.id !== pixelId));
-        break;
+  const deletePixel = async (platform: string, pixelId: string) => {
+    try {
+      // Delete from Supabase
+      await supabase
+        .from('advertising_pixels')
+        .delete()
+        .eq('id', pixelId);
+
+      // Update local state
+      switch (platform) {
+        case 'facebook':
+          setFacebookPixels(prev => prev.filter(p => p.id !== pixelId));
+          break;
+        case 'snapchat':
+          setSnapchatPixels(prev => prev.filter(p => p.id !== pixelId));
+          break;
+        case 'tiktok':
+          setTiktokPixels(prev => prev.filter(p => p.id !== pixelId));
+          break;
+      }
+      
+      toast({
+        title: "Pixel Deleted",
+        description: "Pixel has been removed successfully.",
+      });
+    } catch (error) {
+      console.error('Error deleting pixel:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete pixel. Please try again.",
+        variant: "destructive",
+      });
     }
-    
-    toast({
-      title: "Pixel Deleted",
-      description: "Pixel has been removed successfully.",
-    });
   };
 
   const getPlatformIcon = (platform: string) => {
@@ -277,11 +445,19 @@ snaptr('track', 'PAGE_VIEW');
           <Button 
             variant="outline" 
             size="sm"
-            onClick={() => copyPixelCode(platform, pixel.pixelId)}
+            onClick={() => copyPixelCode(platform, pixel.pixelId, pixel.eventType)}
             className="flex-1"
           >
             <Copy className="h-4 w-4 mr-2" />
             Copy Code
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => testPixelEvent(platform, pixel.pixelId, pixel.eventType)}
+            className="px-2"
+          >
+            <TestTube className="h-4 w-4" />
           </Button>
           <Button 
             variant="ghost" 
