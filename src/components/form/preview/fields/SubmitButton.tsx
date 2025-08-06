@@ -34,21 +34,40 @@ interface SubmitButtonProps {
 }
 
 const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, onClick, disabled = false }) => {
-  // Extract style values with fallbacks
+  // Extract style values with fallbacks and enhanced Padding Y support
   const {
     backgroundColor = field.style?.backgroundColor || formStyle.primaryColor || '#9b87f5',
     color = field.style?.color || '#ffffff',
     fontSize = field.style?.fontSize || formStyle.fontSize || '16px',
-    fontWeight = field.style?.fontWeight || '700',
+    fontWeight = field.style?.fontWeight || '700', // Enhanced font weight matching
     animation = field.style?.animation || false,
     animationType = field.style?.animationType || 'pulse',
     borderRadius = formStyle.borderRadius || '8px',
-    paddingY = field.style?.paddingY || '10px',
+    paddingY = field.style?.paddingY || '12px', // Enhanced Padding Y support
     showIcon = field.style?.showIcon || false,
     iconPosition = field.style?.iconPosition || 'left',
     borderColor = field.style?.borderColor,
     borderWidth = field.style?.borderWidth || '0px',
   } = field.style || {};
+
+  // Enhanced Padding Y calculation - matching TextInput logic
+  const getPaddingYValue = () => {
+    let numericValue = 12; // default value
+    
+    if (typeof paddingY === 'string') {
+      const parsed = parseInt(paddingY.replace(/[^0-9]/g, ''), 10);
+      if (!isNaN(parsed)) {
+        numericValue = parsed;
+      }
+    } else if (typeof paddingY === 'number') {
+      numericValue = paddingY;
+    }
+    
+    // Ensure reasonable bounds
+    return Math.max(6, Math.min(numericValue, 60));
+  };
+
+  const finalPaddingY = getPaddingYValue();
 
   // Generate animation class based on animation type
   const getAnimationClass = () => {
@@ -70,12 +89,12 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, onClick, 
     }
   };
 
-  // Get the appropriate icon component
+  // Get the appropriate icon component - exact matching with Shopify
   const getIconComponent = (iconType: string) => {
     const iconProps = {
-      size: 16,
+      size: 18,
       className: "submit-button-icon",
-      style: { color: field.style?.iconColor || '#6b7280' }
+      style: { color: field.style?.iconColor || color }
     };
 
     switch (iconType) {
@@ -116,14 +135,17 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, onClick, 
     }
   };
 
-  // Define button style
+  // Enhanced button style with proper Padding Y and font weight
   const btnStyle: React.CSSProperties = {
     backgroundColor,
     color,
     fontSize,
-    fontWeight,
+    fontWeight, // Properly apply font weight
     borderRadius,
-    padding: `${paddingY} 24px`,
+    paddingTop: `${finalPaddingY}px`,
+    paddingBottom: `${finalPaddingY}px`,
+    paddingLeft: '24px',
+    paddingRight: '24px',
     border: borderColor ? `${borderWidth} solid ${borderColor}` : 'none',
     display: 'inline-flex',
     alignItems: 'center',
@@ -132,6 +154,8 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, onClick, 
     cursor: 'pointer',
     textAlign: 'center',
     transition: 'all 0.2s ease-in-out',
+    fontFamily: 'Cairo, Tajawal, Arial, sans-serif', // Ensure font consistency
+    width: '100%'
   };
 
   // Add className for animation
