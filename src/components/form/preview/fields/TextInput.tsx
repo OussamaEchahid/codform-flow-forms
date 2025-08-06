@@ -69,8 +69,18 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
   const textColor = fieldStyle.color || 'rgb(31, 41, 55)';
   
   
+  // Debug: طباعة قيم fontSize للفهم
+  console.log('🔍 TextInput fontSize Debug:', { 
+    fieldId: field.id,
+    fieldStyleFontSize: fieldStyle.fontSize,
+    fieldStyle: fieldStyle,
+    field: field
+  });
+  
   // استخدام fontSize من الستايل مع قيمة افتراضية ثابتة
   const fontSize = fieldStyle.fontSize || '16px';
+  
+  console.log('✅ Final fontSize in TextInput:', fontSize);
   
   const fontWeight = fieldStyle.fontWeight || '400';
   
