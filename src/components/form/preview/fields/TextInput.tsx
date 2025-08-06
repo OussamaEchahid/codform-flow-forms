@@ -59,32 +59,27 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
   // استخدام اتجاه النموذج من formStyle
   const formDirection = formStyle.formDirection || 'ltr';
   
-  // القيم الافتراضية للتنسيق
+  // Debug: نفس منطق TextArea بالضبط
+  console.log('🔥 TextInput Rebuild - Using exact TextArea logic:', {
+    fieldId: field.id,
+    fontSize: fieldStyle.fontSize,
+    labelFontSize: fieldStyle.labelFontSize
+  });
+  
+  // Default label font sizes based on language/direction - نفس TextArea
+  const defaultLabelSize = formDirection === 'rtl' ? '15px' : '16px';
+  const defaultFieldSize = formDirection === 'rtl' ? '13px' : '16px';
+  
+  // Set default values for styling - نفس TextArea
   const showLabel = fieldStyle.showLabel !== false;
-  const labelColor = fieldStyle.labelColor || '#333333';
-  const labelFontSize = fieldStyle.labelFontSize || '15px';
+  const labelColor = fieldStyle.labelColor || '#334155';
+  const labelFontSize = fieldStyle.labelFontSize || defaultLabelSize;
   const labelFontWeight = fieldStyle.labelFontWeight || '500';
   
-  const fontFamily = language === 'ar' ? "'Cairo', sans-serif" : (fieldStyle.fontFamily || 'inherit');
-  const textColor = fieldStyle.color || 'rgb(31, 41, 55)';
-  
-  
-  // استخدام fontSize من الستايل مع قيمة افتراضية ثابتة
-  const fontSize = fieldStyle.fontSize || '15px';
-  const fontWeight = fieldStyle.fontWeight || '400';
-  
-  // تحويل fontSize إلى رقم للحسابات
-  const fontSizeNum = parseInt(fontSize) || 15;
-  
-  // حساب ديناميكي للـ padding Y حسب حجم النص - نفس منطق TextArea
-  const dynamicPaddingY = Math.max(10, Math.round(fontSizeNum * 0.7));
-  const dynamicMinHeight = Math.max(44, fontSizeNum + (dynamicPaddingY * 2));
-  
-  // خلفية بيضاء ثابتة للحقول
-  const backgroundColor = 'rgb(255, 255, 255)';
-  const borderColor = fieldStyle.borderColor || formStyle.fieldBorderColor || 'rgb(209, 213, 219)';
-  const borderWidth = fieldStyle.borderWidth || formStyle.fieldBorderWidth || '1px';
-  const borderRadius = fieldStyle.borderRadius || formStyle.fieldBorderRadius || '8px';
+  // Set default values for border styling - نفس TextArea
+  const inputBorderRadius = fieldStyle.borderRadius || formStyle.fieldBorderRadius || '8px';
+  const inputBorderWidth = fieldStyle.borderWidth || formStyle.fieldBorderWidth || '1px';
+  const inputBorderColor = fieldStyle.borderColor || formStyle.fieldBorderColor || '#d1d5db';
   const focusBorderColor = formStyle.focusBorderColor || formStyle.primaryColor || '#9b87f5';
   
   // تحديد إذا كان هناك أيقونة وإذا كان يجب إظهارها
@@ -201,7 +196,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
             color: labelColor,
             fontSize: labelFontSize,
             fontWeight: labelFontWeight,
-            fontFamily: fontFamily,
+            fontFamily: fieldStyle.fontFamily || 'inherit',
             marginBottom: '4px',
             display: 'block',
             backgroundColor: 'transparent',
@@ -261,8 +256,8 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
               fontSize: (hasValue || isFocused) ? '12px' : labelFontSize,
               color: isFocused ? (formStyle.primaryColor || '#9b87f5') : labelColor,
               fontWeight: labelFontWeight,
-              fontFamily: fontFamily,
-              backgroundColor: backgroundColor,
+              fontFamily: fieldStyle.fontFamily || 'inherit',
+              backgroundColor: '#FFFFFF',
               padding: (hasValue || isFocused) ? '0 4px' : '0',
               zIndex: 3,
               transition: 'all 0.2s ease',
@@ -290,32 +285,30 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
           name={field.id}
           placeholder={isFloatingLabels ? '' : placeholderText}
           aria-label={field.inputFor || labelText}
-          className="w-full outline-none transition-all codform-input codform-fixed-placeholder"
+          className="w-full py-2 px-3 bg-white border outline-none focus:ring-2 focus:ring-opacity-50 transition-all codform-input-rebuild"
           style={{
-            color: textColor,
-            fontSize: fontSize,
-            fontWeight: fontWeight,
-            fontFamily: fontFamily,
-            backgroundColor: backgroundColor,
-            borderColor: isFocused ? focusBorderColor : borderColor,
-            borderRadius: borderRadius,
-            borderWidth: borderWidth,
+            color: fieldStyle.color || '#1f2937',
+            fontSize: fieldStyle.fontSize || '15px',
+            fontWeight: fieldStyle.fontWeight || '400',
+            fontFamily: fieldStyle.fontFamily || 'inherit',
+            backgroundColor: '#FFFFFF',
+            borderColor: isFocused ? focusBorderColor : inputBorderColor,
+            borderRadius: inputBorderRadius,
+            borderWidth: inputBorderWidth,
             borderStyle: 'solid',
-            paddingTop: `${dynamicPaddingY}px`,
-            paddingBottom: `${dynamicPaddingY}px`,
+            paddingTop: '10px',
+            paddingBottom: '10px',
             paddingLeft: paddingLeft,
             paddingRight: paddingRight,
             boxShadow: isFocused 
               ? `0 0 0 3px ${focusBorderColor}20` 
-              : 'rgba(0, 0, 0, 0.05) 0px 1px 2px',
+              : '0 1px 2px rgba(0, 0, 0, 0.05)',
             width: '100%',
-            minHeight: `${dynamicMinHeight}px`,
+            minHeight: '44px',
             height: 'auto',
             lineHeight: 1.5,
-            boxSizing: 'border-box',
             direction: formDirection,
             textAlign: formDirection === 'rtl' ? 'right' : 'left',
-            outline: 'none',
             transition: 'all 0.2s ease'
           }}
           required={field.required}
