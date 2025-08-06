@@ -14,40 +14,26 @@
 {% assign currency = config.currency | default: 'SAR' %}
 {% assign autoCalculate = config.autoCalculate | default: false %}
 
-{% comment %} Text direction and labels {% endcomment %}
-{% assign direction = config.direction | default: 'auto' %}
-{% if direction == 'auto' %}
-  {% if config.subtotalText contains 'ا' or config.subtotalText contains 'ع' or config.subtotalText contains 'ر' %}
-    {% assign direction = 'rtl' %}
-  {% else %}
-    {% assign direction = 'ltr' %}
-  {% endif %}
+{% comment %} Labels with direction support {% endcomment %}
+{% assign subtotalLabel = config.subtotalLabel | default: 'المجموع الفرعي' %}
+{% assign discountLabel = config.discountLabel | default: 'الخصم' %}
+{% assign shippingLabel = config.shippingLabel | default: 'الشحن' %}
+{% assign totalLabel = config.totalLabel | default: 'الإجمالي' %}
+
+{% if formDirection == 'ltr' %}
+  {% assign subtotalLabel = config.subtotalLabel | default: 'Subtotal' %}
+  {% assign discountLabel = config.discountLabel | default: 'Discount' %}
+  {% assign shippingLabel = config.shippingLabel | default: 'Shipping' %}
+  {% assign totalLabel = config.totalLabel | default: 'Total' %}
 {% endif %}
 
-{% comment %} Labels from config with fallbacks {% endcomment %}
-{% assign subtotalLabel = config.subtotalText | default: 'المجموع الفرعي' %}
-{% assign discountLabel = config.discountText | default: 'الخصم' %}
-{% assign shippingLabel = config.shippingText | default: 'الشحن' %}
-{% assign totalLabel = config.totalText | default: 'الإجمالي' %}
-
-{% if direction == 'ltr' %}
-  {% assign subtotalLabel = config.subtotalText | default: 'Subtotal' %}
-  {% assign discountLabel = config.discountText | default: 'Discount' %}
-  {% assign shippingLabel = config.shippingText | default: 'Shipping' %}
-  {% assign totalLabel = config.totalText | default: 'Total' %}
-{% endif %}
-
-{% comment %} Styling from field configuration {% endcomment %}
+{% comment %} Styling {% endcomment %}
 {% assign labelColor = field.style.labelColor | default: '#374151' %}
 {% assign valueColor = field.style.valueColor | default: '#111827' %}
-{% assign totalValueColor = field.style.totalValueColor | default: '#059669' %}
-{% assign fontSize = field.style.labelFontSize | default: '16px' %}
-{% assign valueFontSize = field.style.valueFontSize | default: '16px' %}
-{% assign totalFontSize = field.style.totalValueFontSize | default: '18px' %}
-{% assign fontFamily = field.style.fontFamily | default: 'Cairo' %}
+{% assign fontSize = field.style.fontSize | default: '16px' %}
 {% assign fontWeight = field.style.fontWeight | default: '500' %}
 
-<div class="cart-summary-field codform-cart-summary" 
+<div class="cart-summary-field" 
      data-field-id="{{ field.id }}" 
      data-auto-calculate="{{ autoCalculate }}"
      data-currency="{{ currency }}"
@@ -58,8 +44,8 @@
        border-radius: {{ field.style.borderRadius | default: '8px' }};
        padding: 16px;
        margin: 16px 0;
-        direction: {{ direction }};
-        font-family: {{ fontFamily }}, {{ direction == 'rtl' ? 'Cairo, Tajawal, Arial, sans-serif' : 'Inter, Arial, sans-serif' }};
+       direction: {{ formDirection }};
+       font-family: {{ formDirection == 'rtl' ? 'Cairo, Tajawal, Arial, sans-serif' : 'Inter, Arial, sans-serif' }};
      ">
   
   {% if showSubtotal %}
@@ -73,13 +59,11 @@
       color: {{ labelColor }};
       font-size: {{ fontSize }};
       font-weight: {{ fontWeight }};
-      font-family: {{ fontFamily }};
     ">{{ subtotalLabel }}</span>
     <span class="summary-value subtotal-value" style="
       color: {{ valueColor }};
-      font-size: {{ valueFontSize }};
+      font-size: {{ fontSize }};
       font-weight: 600;
-      font-family: {{ fontFamily }};
     " data-amount="0">{{ currency }} 0.00</span>
   </div>
   {% endif %}
@@ -96,13 +80,11 @@
       color: {{ labelColor }};
       font-size: {{ fontSize }};
       font-weight: {{ fontWeight }};
-      font-family: {{ fontFamily }};
     ">{{ discountLabel }}</span>
     <span class="summary-value discount-value" style="
       color: #dc2626;
-      font-size: {{ valueFontSize }};
+      font-size: {{ fontSize }};
       font-weight: 600;
-      font-family: {{ fontFamily }};
     " data-amount="0">-{{ currency }} 0.00</span>
   </div>
   {% endif %}
@@ -120,13 +102,11 @@
       color: {{ labelColor }};
       font-size: {{ fontSize }};
       font-weight: {{ fontWeight }};
-      font-family: {{ fontFamily }};
     ">{{ shippingLabel }}</span>
     <span class="summary-value shipping-value" style="
       color: {{ valueColor }};
-      font-size: {{ valueFontSize }};
+      font-size: {{ fontSize }};
       font-weight: 600;
-      font-family: {{ fontFamily }};
     " data-amount="{{ shippingCost }}">
       {% if shippingCost == 0 %}
         {{ formDirection == 'rtl' ? 'مجاني' : 'Free' }}
@@ -145,15 +125,13 @@
   ">
     <span class="summary-label" style="
       color: {{ field.style.totalLabelColor | default: '#111827' }};
-      font-size: {{ totalFontSize }};
+      font-size: {{ field.style.totalFontSize | default: '18px' }};
       font-weight: 700;
-      font-family: {{ fontFamily }};
     ">{{ totalLabel }}</span>
     <span class="summary-value total-value" style="
-      color: {{ totalValueColor }};
-      font-size: {{ totalFontSize }};
+      color: {{ field.style.totalValueColor | default: '#059669' }};
+      font-size: {{ field.style.totalFontSize | default: '18px' }};
       font-weight: 700;
-      font-family: {{ fontFamily }};
     " data-amount="0">{{ currency }} 0.00</span>
   </div>
   {% endif %}

@@ -35,8 +35,8 @@ const CartSummaryFieldEditor: React.FC<CartSummaryFieldEditorProps> = ({
       labelColor: '#6b7280',
       valueColor: '#1f2937',
       totalLabelColor: '#1f2937',
-      totalValueColor: '#059669', // ✅ أخضر كما هو مطلوب
-      fontFamily: 'Cairo', // ✅ خط Cairo كما هو مطلوب
+      totalValueColor: '#9b87f5',
+      fontFamily: 'Tajawal',
       labelFontSize: '1rem',
       valueFontSize: '1rem',
       totalLabelFontSize: '1.1rem',
@@ -52,13 +52,13 @@ const CartSummaryFieldEditor: React.FC<CartSummaryFieldEditorProps> = ({
       discountText: language === 'ar' ? 'الخصم' : 'Discount',
       shippingText: language === 'ar' ? 'الشحن' : 'Shipping',
       totalText: language === 'ar' ? 'الإجمالي' : 'Total',
-      showDiscount: false, // ✅ إخفاء الخصم افتراضياً
+      showDiscount: true,
       discountType: 'percentage', // 'percentage' or 'fixed'
       discountValue: 0,
       shippingType: 'manual', // 'manual' or 'free'
       shippingValue: 0,
       autoCalculate: true,
-      direction: 'auto', // ✅ اتجاه تلقائي للنص
+      currency: 'MAD', // العملة المخصصة لهذا الحقل
       ...field.cartSummaryConfig
     }
   });
@@ -113,28 +113,6 @@ const CartSummaryFieldEditor: React.FC<CartSummaryFieldEditorProps> = ({
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <Label>{language === 'ar' ? 'اتجاه النص' : 'Text Direction'}</Label>
-                <Select
-                  value={currentField.cartSummaryConfig?.direction || 'auto'}
-                  onValueChange={(value) => handleConfigChange('direction', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="auto">
-                      {language === 'ar' ? 'تلقائي' : 'Auto'}
-                    </SelectItem>
-                    <SelectItem value="rtl">
-                      {language === 'ar' ? 'من اليمين لليسار' : 'Right to Left'}
-                    </SelectItem>
-                    <SelectItem value="ltr">
-                      {language === 'ar' ? 'من اليسار لليمين' : 'Left to Right'}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
 
               <div>
                 <Label>{language === 'ar' ? 'نص المجموع الفرعي' : 'Subtotal Text'}</Label>
@@ -179,6 +157,25 @@ const CartSummaryFieldEditor: React.FC<CartSummaryFieldEditorProps> = ({
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
+              <div>
+                <Label>{language === 'ar' ? 'العملة' : 'Currency'}</Label>
+                <Select
+                  value={currentField.cartSummaryConfig?.currency || 'MAD'}
+                  onValueChange={(value) => handleConfigChange('currency', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CURRENCIES.map((currency) => (
+                      <SelectItem key={currency.code} value={currency.code}>
+                        {language === 'ar' ? currency.nameAr : currency.name} ({currency.symbol})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="flex items-center justify-between">
                 <Label>{language === 'ar' ? 'حساب تلقائي من المنتج' : 'Auto Calculate from Product'}</Label>
                 <Switch
@@ -321,7 +318,7 @@ const CartSummaryFieldEditor: React.FC<CartSummaryFieldEditorProps> = ({
                 <Label>{language === 'ar' ? 'لون الإجمالي' : 'Total Color'}</Label>
                 <Input
                   type="color"
-                  value={currentField.style?.totalValueColor || '#059669'}
+                  value={currentField.style?.totalValueColor || '#9b87f5'}
                   onChange={(e) => handleStyleChange('totalValueColor', e.target.value)}
                 />
               </div>
@@ -338,14 +335,13 @@ const CartSummaryFieldEditor: React.FC<CartSummaryFieldEditorProps> = ({
               <div>
                 <Label>{language === 'ar' ? 'خط العائلة' : 'Font Family'}</Label>
                 <Select
-                  value={currentField.style?.fontFamily || 'Cairo'}
+                  value={currentField.style?.fontFamily || 'Tajawal'}
                   onValueChange={(value) => handleStyleChange('fontFamily', value)}
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Cairo">Cairo</SelectItem>
                     <SelectItem value="Tajawal">Tajawal</SelectItem>
                     <SelectItem value="Arial">Arial</SelectItem>
                     <SelectItem value="Helvetica">Helvetica</SelectItem>
