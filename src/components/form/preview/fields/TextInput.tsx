@@ -77,7 +77,13 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
   const borderWidth = fieldStyle.borderWidth || formStyle.fieldBorderWidth || '1px';
   const borderRadius = fieldStyle.borderRadius || formStyle.fieldBorderRadius || '8px';
   const focusBorderColor = formStyle.focusBorderColor || formStyle.primaryColor || '#9b87f5';
-  const paddingY = fieldStyle.paddingY?.replace('px', '') ? `${fieldStyle.paddingY.replace('px', '')}px` : '10px';
+  // حساب paddingY ديناميكياً بناءً على حجم الخط
+  const baseFontSize = 15; // الحجم الأساسي للخط
+  const currentFontSize = parseInt(fontSize.replace('px', '')) || baseFontSize;
+  const fontSizeRatio = currentFontSize / baseFontSize;
+  const basePaddingY = fieldStyle.paddingY?.replace('px', '') ? parseInt(fieldStyle.paddingY.replace('px', '')) : 10;
+  const dynamicPaddingY = Math.max(8, Math.round(basePaddingY * fontSizeRatio));
+  const paddingY = `${dynamicPaddingY}px`;
   
   // تحديد إذا كان هناك أيقونة وإذا كان يجب إظهارها
   const hasIcon = field.icon && field.icon !== 'none' && field.icon !== '';
@@ -301,8 +307,9 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
               ? `0 0 0 3px ${focusBorderColor}20` 
               : 'rgba(0, 0, 0, 0.05) 0px 1px 2px',
             width: '100%',
-            height: '44px',
-            lineHeight: 1,
+            minHeight: '44px',
+            height: 'auto',
+            lineHeight: Math.max(1.2, 1.5 - (fontSizeRatio - 1) * 0.2),
             boxSizing: 'border-box',
             direction: formDirection,
             textAlign: formDirection === 'rtl' ? 'right' : 'left',
