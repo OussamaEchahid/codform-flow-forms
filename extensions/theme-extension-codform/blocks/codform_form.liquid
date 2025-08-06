@@ -115,7 +115,7 @@
     
     {%- comment -%} Form Title Field {%- endcomment -%}
     if (field.type === 'form-title') {
-      html = window.CodformFieldRenderer.renderFormTitleField(field, formStyle);
+      html = window.renderFormTitleField(field, formStyle);
     }
     {%- comment -%} Text Input Fields (text, email, phone) {%- endcomment -%}
     else if (['text', 'email', 'phone'].includes(field.type)) {
