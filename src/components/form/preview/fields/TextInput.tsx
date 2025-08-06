@@ -41,7 +41,6 @@ interface TextInputProps {
   formStyle: {
     primaryColor?: string;
     borderRadius?: string;
-    fontSize?: string;
     formDirection?: 'ltr' | 'rtl';
     floatingLabels?: boolean;
     focusBorderColor?: string;
@@ -69,48 +68,9 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
   const fontFamily = language === 'ar' ? "'Cairo', sans-serif" : (fieldStyle.fontFamily || 'inherit');
   const textColor = fieldStyle.color || 'rgb(31, 41, 55)';
   
-  // إصلاح استخراج حجم الخط للتأكد من تطبيقه بشكل صحيح
-  console.log('🔍 Font size debug FULL CONTEXT:', { 
-    fieldStyleFontSize: fieldStyle.fontSize, 
-    fieldId: field.id,
-    fieldType: field.type,
-    fullFieldStyle: fieldStyle,
-    fullField: field
-  });
   
-  let fontSize = '15px'; // القيمة الافتراضية
-  
-  // إصلاح منطق استخراج حجم الخط
-  if (fieldStyle.fontSize) {
-    let extractedSize = '';
-    
-    if (typeof fieldStyle.fontSize === 'string') {
-      // إذا كان النص يحتوي على px أو rem، استخرج الرقم فقط
-      if (fieldStyle.fontSize.includes('px') || fieldStyle.fontSize.includes('rem') || fieldStyle.fontSize.includes('em')) {
-        extractedSize = fieldStyle.fontSize.replace(/[^0-9.]/g, '');
-      } else {
-        // إذا كان رقماً فقط كنص
-        extractedSize = fieldStyle.fontSize;
-      }
-    } else if (typeof fieldStyle.fontSize === 'number') {
-      extractedSize = String(fieldStyle.fontSize);
-    }
-    
-    // التحقق من صحة الرقم المستخرج
-    const numericSize = parseFloat(extractedSize);
-    if (!isNaN(numericSize) && numericSize > 0) {
-      fontSize = `${numericSize}px`;
-    }
-    
-    console.log('📏 Font size extraction:', {
-      original: fieldStyle.fontSize,
-      extracted: extractedSize,
-      numeric: numericSize,
-      final: fontSize
-    });
-  }
-  
-  console.log('✅ Final fontSize applied:', fontSize);
+  // إزالة كامل لمنطق fontSize - استخدام حجم ثابت
+  const fontSize = '16px'; // حجم ثابت مبدئي
   
   const fontWeight = fieldStyle.fontWeight || '400';
   

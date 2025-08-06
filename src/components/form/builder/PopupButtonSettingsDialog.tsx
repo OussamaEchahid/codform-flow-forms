@@ -146,19 +146,8 @@ const PopupButtonSettingsDialog: React.FC<PopupButtonSettingsDialogProps> = ({
                     </div>
                   </div>
 
-                  {/* Font Size and Border Radius */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="popup-font-size">
-                        {language === 'ar' ? 'حجم الخط' : 'Font Size'}
-                      </Label>
-                      <Input
-                        id="popup-font-size"
-                        value={(popupButton as any).fontSize || '16px'}
-                        onChange={(e) => updatePopupButton({ fontSize: e.target.value })}
-                        placeholder="16px"
-                      />
-                    </div>
+                  {/* Border Radius */}
+                  <div className="grid grid-cols-1 gap-4">
                     <div>
                       <Label htmlFor="popup-border-radius">
                         {language === 'ar' ? 'انحناء الحواف' : 'Border Radius'}

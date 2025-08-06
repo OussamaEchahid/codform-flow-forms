@@ -71,7 +71,7 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({ field, formStyle }) => 
 
   const titleStyle = {
     color: fieldStyle.titleColor || fieldStyle.color || defaultTitleColor,
-    fontSize: fieldStyle.titleSize || fieldStyle.fontSize || '18px',
+    fontSize: '18px', // حجم ثابت
     fontWeight: fieldStyle.titleWeight || fieldStyle.fontWeight || '700',
     textAlign: fieldStyle.textAlign || 'center',
     marginBottom: '12px'

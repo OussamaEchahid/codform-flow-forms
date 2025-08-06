@@ -537,21 +537,6 @@ const SortableField: React.FC<SortableFieldProps> = ({
                        </div>
                      </div>
                      
-                     {/* Font size */}
-                     <div className="space-y-1">
-                       <div className="flex items-center justify-between">
-                         <Label>{language === 'ar' ? 'حجم الخط' : 'Font size'}</Label>
-                         <span className="text-sm">{parseFloat(editedField.style?.fontSize?.replace('rem', '') || '1.5') || 1.5}</span>
-                       </div>
-                       <Slider
-                         value={[parseFloat(editedField.style?.fontSize?.replace('rem', '') || '1.5') || 1.5]}
-                         onValueChange={(value) => handleStyleChange('fontSize', `${value[0]}rem`)}
-                         max={4}
-                         min={0.75}
-                         step={0.25}
-                         className="w-full"
-                       />
-                     </div>
                      
                      {/* Font family */}
                      <div className="space-y-1">
@@ -706,21 +691,6 @@ const SortableField: React.FC<SortableFieldProps> = ({
                          </div>
                        </div>
                        
-                       {/* Font Size */}
-                       <div className="space-y-1">
-                         <div className="flex items-center justify-between">
-                           <Label>{language === 'ar' ? 'حجم الخط' : 'Font Size'}</Label>
-                           <span className="text-sm">{parseInt(editedField.style?.fontSize?.replace('px', '') || '16')}px</span>
-                         </div>
-                          <Slider
-                            value={[parseInt(editedField.style?.fontSize?.replace('px', '') || '16')]}
-                            onValueChange={(value) => handleStyleChange('fontSize', `${value[0]}px`)}
-                            max={24}
-                           min={12}
-                           step={1}
-                           className="w-full"
-                         />
-                       </div>
                      </div>
                    </div>
                    ) : field.type === 'countdown' ? (
@@ -1267,20 +1237,6 @@ const SortableField: React.FC<SortableFieldProps> = ({
                               </Select>
                             </div>
                             
-                            <div className="space-y-1">
-                              <div className="flex items-center justify-between">
-                                <Label>{language === 'ar' ? 'حجم خط التسميات' : 'Labels Font Size'}</Label>
-                                <span className="text-sm">{editedField.style?.labelFontSize || '14px'}</span>
-                              </div>
-                              <Slider
-                                value={[parseInt(editedField.style?.labelFontSize?.replace('px', '') || '14')]}
-                                onValueChange={(value) => handleStyleChange('labelFontSize', `${value[0]}px`)}
-                                max={20}
-                                min={10}
-                                step={1}
-                                className="w-full"
-                              />
-                            </div>
                           </div>
                        </div>
                      </div>
@@ -1524,21 +1480,6 @@ const SortableField: React.FC<SortableFieldProps> = ({
                       
                       {/* Right column - Style settings */}
                       <div className="space-y-4">
-                        {/* Font size */}
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between">
-                            <Label>{language === 'ar' ? 'حجم الخط' : 'Font size'}</Label>
-                            <span className="text-sm">{parseInt(editedField.style?.fontSize?.replace('px', '') || '16')}px</span>
-                          </div>
-                          <Slider
-                            value={[parseInt(editedField.style?.fontSize?.replace('px', '') || '16')]}
-                            onValueChange={(value) => handleStyleChange('fontSize', `${value[0]}px`)}
-                            max={24}
-                            min={10}
-                            step={1}
-                            className="w-full"
-                          />
-                        </div>
                         
                         {/* Padding Y */}
                         <div className="space-y-1">

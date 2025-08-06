@@ -183,36 +183,6 @@ const FormStylingEditor: React.FC<FormStylingEditorProps> = ({ formStyle, onStyl
           </Select>
         </div>
         
-        <div className="space-y-2">
-          <Label className={language === 'ar' ? 'text-right block' : 'block'}>
-            {language === 'ar' ? 'حجم الخط' : 'Font Size'}
-          </Label>
-          <Select 
-            value={formStyle.fontSize} 
-            onValueChange={(value) => handleChange('fontSize', value)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder={language === 'ar' ? 'اختر حجم الخط' : 'Select font size'} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="0.75rem">
-                {language === 'ar' ? 'صغير جداً' : 'Extra Small'}
-              </SelectItem>
-              <SelectItem value="0.875rem">
-                {language === 'ar' ? 'صغير' : 'Small'}
-              </SelectItem>
-              <SelectItem value="1rem">
-                {language === 'ar' ? 'متوسط' : 'Medium'}
-              </SelectItem>
-              <SelectItem value="1.125rem">
-                {language === 'ar' ? 'كبير' : 'Large'}
-              </SelectItem>
-              <SelectItem value="1.25rem">
-                {language === 'ar' ? 'كبير جداً' : 'Extra Large'}
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

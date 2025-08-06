@@ -38,7 +38,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, onClick, 
   const {
     backgroundColor = field.style?.backgroundColor || formStyle.primaryColor || '#9b87f5',
     color = field.style?.color || '#ffffff',
-    fontSize = field.style?.fontSize || formStyle.fontSize || '16px',
+    fontSize = '16px', // حجم ثابت
     fontWeight = field.style?.fontWeight || '700',
     animation = field.style?.animation || false,
     animationType = field.style?.animationType || 'pulse',
