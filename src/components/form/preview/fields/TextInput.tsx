@@ -59,21 +59,21 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
   // استخدام اتجاه النموذج من formStyle
   const formDirection = formStyle.formDirection || 'ltr';
   
-  // Debug: نفس منطق TextArea بالضبط
-  console.log('🔥 TextInput Rebuild - Using exact TextArea logic:', {
+  // 🔥 تطبيق fontSize مباشر بنفس منطق TextArea المُجرب 
+  console.log('🔧 TextInput FIXED VERSION:', {
     fieldId: field.id,
     fontSize: fieldStyle.fontSize,
-    labelFontSize: fieldStyle.labelFontSize
+    labelFontSize: fieldStyle.labelFontSize,
+    hasIcon: field.icon
   });
   
-  // Default label font sizes based on language/direction - نفس TextArea
-  const defaultLabelSize = formDirection === 'rtl' ? '15px' : '16px';
-  const defaultFieldSize = formDirection === 'rtl' ? '13px' : '16px';
+  // تحديد القيم الافتراضية للحجم
+  const actualFontSize = fieldStyle.fontSize || '16px';
+  const actualLabelFontSize = fieldStyle.labelFontSize || '16px';
   
-  // Set default values for styling - نفس TextArea
+  // إعدادات التسمية
   const showLabel = fieldStyle.showLabel !== false;
   const labelColor = fieldStyle.labelColor || '#334155';
-  const labelFontSize = fieldStyle.labelFontSize || defaultLabelSize;
   const labelFontWeight = fieldStyle.labelFontWeight || '500';
   
   // Set default values for border styling - نفس TextArea
@@ -192,17 +192,17 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
         <label 
           htmlFor={inputId} 
           className="block mb-2"
-          style={{ 
-            color: labelColor,
-            fontSize: labelFontSize,
-            fontWeight: labelFontWeight,
-            fontFamily: fieldStyle.fontFamily || 'inherit',
-            marginBottom: '4px',
-            display: 'block',
-            backgroundColor: 'transparent',
-            background: 'transparent',
-            padding: '0'
-          }}
+            style={{ 
+              color: labelColor,
+              fontSize: actualLabelFontSize,
+              fontWeight: labelFontWeight,
+              fontFamily: fieldStyle.fontFamily || 'inherit',
+              marginBottom: '4px',
+              display: 'block',
+              backgroundColor: 'transparent',
+              background: 'transparent',
+              padding: '0'
+            }}
         >
           {labelText}
           {field.required && (
@@ -233,9 +233,10 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              zIndex: 2,
-              color: 'rgb(156, 163, 175)',
-              background: 'transparent'
+              zIndex: 1, // تقليل zIndex ليكون خلف الـ input
+              color: fieldStyle.iconColor || '#9ca3af',
+              background: 'transparent',
+              pointerEvents: 'none' // منع التدخل مع الـ input
             }}
           >
             {renderIcon()}
@@ -253,7 +254,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
               right: formDirection === 'rtl' ? ((showIcon && hasIcon) ? '40px' : '12px') : 'auto',
               top: (hasValue || isFocused) ? '-8px' : '50%',
               transform: (hasValue || isFocused) ? 'translateY(0)' : 'translateY(-50%)',
-              fontSize: (hasValue || isFocused) ? '12px' : labelFontSize,
+              fontSize: (hasValue || isFocused) ? '12px' : actualLabelFontSize,
               color: isFocused ? (formStyle.primaryColor || '#9b87f5') : labelColor,
               fontWeight: labelFontWeight,
               fontFamily: fieldStyle.fontFamily || 'inherit',
@@ -285,10 +286,10 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
           name={field.id}
           placeholder={isFloatingLabels ? '' : placeholderText}
           aria-label={field.inputFor || labelText}
-          className="w-full py-2 px-3 bg-white border outline-none focus:ring-2 focus:ring-opacity-50 transition-all codform-input-rebuild"
+          className="w-full py-2 px-3 bg-white border outline-none focus:ring-2 focus:ring-opacity-50 transition-all codform-text-input-custom"
           style={{
             color: fieldStyle.color || '#1f2937',
-            fontSize: fieldStyle.fontSize || '15px',
+            fontSize: `${actualFontSize} !important`,
             fontWeight: fieldStyle.fontWeight || '400',
             fontFamily: fieldStyle.fontFamily || 'inherit',
             backgroundColor: '#FFFFFF',
@@ -309,7 +310,8 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
             lineHeight: 1.5,
             direction: formDirection,
             textAlign: formDirection === 'rtl' ? 'right' : 'left',
-            transition: 'all 0.2s ease'
+            transition: 'all 0.2s ease',
+            zIndex: 2 // أعطاء الـ input أولوية أعلى من الأيقونة
           }}
           required={field.required}
           onFocus={() => setIsFocused(true)}

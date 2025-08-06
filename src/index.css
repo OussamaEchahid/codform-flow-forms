@@ -97,9 +97,15 @@
     @apply bg-background text-foreground;
   }
   
-  /* Placeholder styling for form preview */
-  .codform-input::placeholder {
-    font-size: 15px !important;
+  /* TextInput CSS override with proper specificity */
+  .codform-text-input-custom {
+    position: relative !important;
+    z-index: 2 !important;
+  }
+
+  .codform-text-input-custom::placeholder {
+    opacity: 0.6 !important;
+    color: #9ca3af !important;
   }
 }
 
