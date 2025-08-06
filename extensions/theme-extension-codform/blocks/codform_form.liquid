@@ -250,7 +250,7 @@
         }
       }
       
-      let finalButtonText, finalBgColor, finalTextColor, finalFontSize, finalBorderRadius;
+      let finalButtonText, finalBgColor, finalTextColor, finalFontSize, finalBorderRadius, finalPaddingY;
       let finalAnimation = '';
       if (isPopupMode && !isInPopup && formStyle.popupButton) {
         finalButtonText = formStyle.popupButton.text || buttonText;
@@ -258,6 +258,7 @@
         finalTextColor = formStyle.popupButton.textColor || 'rgb(255, 255, 255)';
         finalFontSize = formStyle.popupButton.fontSize || '16px';
         finalBorderRadius = formStyle.popupButton.borderRadius || '8px';
+        finalPaddingY = formStyle.popupButton.paddingY || getStyleValue(buttonStyle, 'paddingY', '10px');
         
         if (formStyle.popupButton.animation && formStyle.popupButton.animation !== 'none') {
           switch (formStyle.popupButton.animation) {
@@ -276,6 +277,7 @@
         finalTextColor = getStyleValue(buttonStyle, 'color', 'rgb(255, 255, 255)');
         finalFontSize = getStyleValue(buttonStyle, 'fontSize', baseFontSize);
         finalBorderRadius = getStyleValue(buttonStyle, 'borderRadius', formStyle?.borderRadius || '8px');
+        finalPaddingY = getStyleValue(buttonStyle, 'paddingY', '10px');
         finalAnimation = animationClass;
       }
       
@@ -332,7 +334,7 @@
               color: ${finalTextColor} !important;
               font-size: ${finalFontSize} !important;
               font-weight: ${actualButtonFontWeight} !important;
-              padding: ${buttonPadding} !important;
+              padding: ${finalPaddingY || buttonPadding} 24px !important;
               border: ${buttonBorder};
               border-radius: ${finalBorderRadius};
               cursor: pointer;
