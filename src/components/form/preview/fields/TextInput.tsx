@@ -289,7 +289,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
           className="w-full py-2 px-3 bg-white border outline-none focus:ring-2 focus:ring-opacity-50 transition-all codform-text-input-custom"
           style={{
             color: fieldStyle.color || '#1f2937',
-            fontSize: `${actualFontSize} !important`,
+            fontSize: actualFontSize,
             fontWeight: fieldStyle.fontWeight || '400',
             fontFamily: fieldStyle.fontFamily || 'inherit',
             backgroundColor: '#FFFFFF',
@@ -311,7 +311,8 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
             direction: formDirection,
             textAlign: formDirection === 'rtl' ? 'right' : 'left',
             transition: 'all 0.2s ease',
-            zIndex: 2 // أعطاء الـ input أولوية أعلى من الأيقونة
+            zIndex: 2,
+            position: 'relative'
           }}
           required={field.required}
           onFocus={() => setIsFocused(true)}
