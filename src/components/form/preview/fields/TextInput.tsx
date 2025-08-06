@@ -70,18 +70,24 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
   const textColor = fieldStyle.color || 'rgb(31, 41, 55)';
   
   // إصلاح استخراج حجم الخط للتأكد من تطبيقه بشكل صحيح
-  console.log('🔍 Font size debug:', { 
+  console.log('🔍 Font size debug FULL CONTEXT:', { 
     fieldStyleFontSize: fieldStyle.fontSize, 
     fieldId: field.id,
-    fieldType: field.type 
+    fieldType: field.type,
+    fullFieldStyle: fieldStyle,
+    fullField: field
   });
   
   let fontSize = '15px'; // القيمة الافتراضية
   if (fieldStyle.fontSize) {
     // التعامل مع القيم بوحدة px أو rem أو أرقام فقط
-    const fontSizeValue = fieldStyle.fontSize.toString().replace(/[^0-9.]/g, '');
-    if (fontSizeValue && !isNaN(parseFloat(fontSizeValue))) {
-      fontSize = `${fontSizeValue}px`;
+    if (typeof fieldStyle.fontSize === 'string') {
+      const fontSizeValue = fieldStyle.fontSize.toString().replace(/[^0-9.]/g, '');
+      if (fontSizeValue && !isNaN(parseFloat(fontSizeValue))) {
+        fontSize = `${fontSizeValue}px`;
+      }
+    } else if (typeof fieldStyle.fontSize === 'number') {
+      fontSize = `${fieldStyle.fontSize}px`;
     }
   }
   
