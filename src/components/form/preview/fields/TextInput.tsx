@@ -69,20 +69,16 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
   const textColor = fieldStyle.color || 'rgb(31, 41, 55)';
   
   
-  // Debug: طباعة قيم fontSize للفهم
-  console.log('🔍 TextInput fontSize Debug:', { 
-    fieldId: field.id,
-    fieldStyleFontSize: fieldStyle.fontSize,
-    fieldStyle: fieldStyle,
-    field: field
-  });
-  
   // استخدام fontSize من الستايل مع قيمة افتراضية ثابتة
-  const fontSize = fieldStyle.fontSize || '16px';
-  
-  console.log('✅ Final fontSize in TextInput:', fontSize);
-  
+  const fontSize = fieldStyle.fontSize || '15px';
   const fontWeight = fieldStyle.fontWeight || '400';
+  
+  // تحويل fontSize إلى رقم للحسابات
+  const fontSizeNum = parseInt(fontSize) || 15;
+  
+  // حساب ديناميكي للـ padding Y حسب حجم النص - نفس منطق TextArea
+  const dynamicPaddingY = Math.max(10, Math.round(fontSizeNum * 0.7));
+  const dynamicMinHeight = Math.max(44, fontSizeNum + (dynamicPaddingY * 2));
   
   // خلفية بيضاء ثابتة للحقول
   const backgroundColor = 'rgb(255, 255, 255)';
@@ -90,8 +86,6 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
   const borderWidth = fieldStyle.borderWidth || formStyle.fieldBorderWidth || '1px';
   const borderRadius = fieldStyle.borderRadius || formStyle.fieldBorderRadius || '8px';
   const focusBorderColor = formStyle.focusBorderColor || formStyle.primaryColor || '#9b87f5';
-  // إيقاف paddingY المخصص لحل مشكلة fontSize
-  const paddingY = '12px';
   
   // تحديد إذا كان هناك أيقونة وإذا كان يجب إظهارها
   const hasIcon = field.icon && field.icon !== 'none' && field.icon !== '';
@@ -299,7 +293,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
           className="w-full outline-none transition-all codform-input codform-fixed-placeholder"
           style={{
             color: textColor,
-            fontSize: fieldStyle.fontSize || '15px',
+            fontSize: fontSize,
             fontWeight: fontWeight,
             fontFamily: fontFamily,
             backgroundColor: backgroundColor,
@@ -307,17 +301,17 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
             borderRadius: borderRadius,
             borderWidth: borderWidth,
             borderStyle: 'solid',
-            paddingTop: paddingY,
-            paddingBottom: paddingY,
+            paddingTop: `${dynamicPaddingY}px`,
+            paddingBottom: `${dynamicPaddingY}px`,
             paddingLeft: paddingLeft,
             paddingRight: paddingRight,
             boxShadow: isFocused 
               ? `0 0 0 3px ${focusBorderColor}20` 
               : 'rgba(0, 0, 0, 0.05) 0px 1px 2px',
             width: '100%',
-            minHeight: '44px',
+            minHeight: `${dynamicMinHeight}px`,
             height: 'auto',
-            lineHeight: 1.4,
+            lineHeight: 1.5,
             boxSizing: 'border-box',
             direction: formDirection,
             textAlign: formDirection === 'rtl' ? 'right' : 'left',
