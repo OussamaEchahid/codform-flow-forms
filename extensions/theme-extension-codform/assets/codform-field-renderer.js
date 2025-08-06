@@ -153,7 +153,10 @@
               background-color: #FFFFFF;
               border: ${styles.borderWidth} solid ${styles.borderColor};
               border-radius: ${styles.borderRadius};
-              padding: 10px ${paddingRight} 10px ${paddingLeft};
+              padding-top: 10px;
+              padding-bottom: 10px;
+              padding-left: ${paddingLeft};
+              padding-right: ${paddingRight};
               font-size: ${styles.fontSize};
               color: ${styles.textColor};
               font-family: ${styles.fontFamily};

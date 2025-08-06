@@ -293,7 +293,8 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
             borderRadius: borderRadius,
             borderWidth: borderWidth,
             borderStyle: 'solid',
-            padding: paddingY,
+            paddingTop: paddingY,
+            paddingBottom: paddingY,
             paddingLeft: paddingLeft,
             paddingRight: paddingRight,
             boxShadow: isFocused 

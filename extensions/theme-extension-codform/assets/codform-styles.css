@@ -112,7 +112,7 @@ button[id^="codform-popup-btn"] {
   text-rendering: optimizeLegibility;
 }
 
-/* Additional specific targeting for Arabic forms */
+/* Fixed input padding to prevent font size conflicts */
 .codform-field-wrapper[dir="rtl"] input[type="text"],
 .codform-field-wrapper[dir="rtl"] input[type="email"],
 .codform-field-wrapper[dir="rtl"] input[type="tel"],
@@ -121,6 +121,24 @@ button[id^="codform-popup-btn"] {
 .codform-field-wrapper[dir="rtl"] select,
 .codform-field-wrapper[dir="rtl"] label {
   font-size: 13px !important;
+}
+
+/* Ensure consistent padding regardless of font size */
+.codform-field-wrapper input,
+.codform-field-wrapper textarea {
+  padding-top: 10px !important;
+  padding-bottom: 10px !important;
+  line-height: 1.5 !important;
+  min-height: 44px !important;
+  box-sizing: border-box !important;
+}
+
+/* Placeholder specific styling to prevent interference */
+.codform-field-wrapper input::placeholder,
+.codform-field-wrapper textarea::placeholder {
+  font-size: inherit !important;
+  line-height: inherit !important;
+  color: #9CA3AF !important;
 }
 
 /* Animation Keyframes */
