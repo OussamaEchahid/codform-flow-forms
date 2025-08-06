@@ -123,14 +123,25 @@ button[id^="codform-popup-btn"] {
   font-size: 13px !important;
 }
 
-/* Ensure consistent padding regardless of font size */
+/* إصلاح padding ثابت لمنع تغيير العرض مع حجم الخط */
 .codform-field-wrapper input,
-.codform-field-wrapper textarea {
+.codform-field-wrapper textarea,
+.codform-input {
   padding-top: 10px !important;
   padding-bottom: 10px !important;
-  line-height: 1.5 !important;
+  line-height: 1.4 !important;
   min-height: 44px !important;
   box-sizing: border-box !important;
+}
+
+/* إضافة قاعدة أكثر تحديداً لضمان عدم تغيير padding */
+input.codform-input,
+input[class*="codform"],
+.codform-field-wrapper input[type="text"],
+.codform-field-wrapper input[type="email"],
+.codform-field-wrapper input[type="tel"] {
+  padding-top: 10px !important;
+  padding-bottom: 10px !important;
 }
 
 /* Placeholder specific styling to prevent interference */

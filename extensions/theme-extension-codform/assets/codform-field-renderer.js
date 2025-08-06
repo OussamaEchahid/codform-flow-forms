@@ -59,7 +59,7 @@
     const baseFontSize = formDirection === 'rtl' ? '13px' : getStyleValue(formStyle, 'baseFontSize', '16px');
     const defaultLabelSize = formDirection === 'rtl' ? '15px' : '16px';
     
-    // تجميع خصائص الستايل
+    // تجميع خصائص الستايل مع padding ثابت
     const styles = {
       labelColor: getStyleValue(fieldStyle, 'labelColor', '#333333'),
       labelFontSize: getStyleValue(fieldStyle, 'labelFontSize', defaultLabelSize),
@@ -72,7 +72,9 @@
       fontFamily: getStyleValue(fieldStyle, 'fontFamily', 'inherit'),
       borderRadius: getStyleValue(fieldStyle, 'borderRadius', getStyleValue(formStyle, 'fieldBorderRadius', '8px')),
       placeholder: getStyleValue(fieldStyle, 'placeholder', placeholder),
-      focusBorderColor: getStyleValue(formStyle, 'focusBorderColor', '#3b82f6')
+      focusBorderColor: getStyleValue(formStyle, 'focusBorderColor', '#3b82f6'),
+      // استخدام padding ثابت بدلاً من الحساب الديناميكي
+      paddingY: getStyleValue(fieldStyle, 'paddingY', '10px')
     };
 
     // أيقونة الحقل
@@ -153,8 +155,8 @@
               background-color: #FFFFFF;
               border: ${styles.borderWidth} solid ${styles.borderColor};
               border-radius: ${styles.borderRadius};
-              padding-top: 10px;
-              padding-bottom: 10px;
+              padding-top: ${styles.paddingY};
+              padding-bottom: ${styles.paddingY};
               padding-left: ${paddingLeft};
               padding-right: ${paddingRight};
               font-size: ${styles.fontSize};
