@@ -88,6 +88,7 @@ export interface FormField {
     shippingValue?: number;
     autoCalculate?: boolean;
     currency?: string; // العملة المخصصة لحقل Cart Summary
+    direction?: 'auto' | 'rtl' | 'ltr'; // إضافة إعداد الاتجاه
   };
 }
 

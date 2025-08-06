@@ -81,7 +81,17 @@ const SortableField: React.FC<SortableFieldProps> = ({
           discountValue: 0,
           shippingType: 'auto',
           shippingValue: 0,
-          autoCalculate: true
+          autoCalculate: true,
+          direction: 'auto' // إضافة إعداد الاتجاه
+        },
+        style: {
+          ...field.style,
+          backgroundColor: '#ffffff',
+          borderColor: '#e5e7eb',
+          labelsColor: '#374151',
+          totalColor: '#16a34a', // اللون الأخضر للمبلغ النهائي
+          labelsFontSize: '14px',
+          fontFamily: 'Cairo' // الخط الافتراضي Cairo
         }
       };
     }
@@ -97,6 +107,21 @@ const SortableField: React.FC<SortableFieldProps> = ({
     const updatedField = {
       ...editedField,
       [property]: value
+    };
+    setEditedField(updatedField);
+    
+    if (onFieldUpdate) {
+      onFieldUpdate(updatedField);
+    }
+  };
+
+  const handleCartSummaryConfigChange = (property: string, value: any) => {
+    const updatedField = {
+      ...editedField,
+      cartSummaryConfig: {
+        ...editedField.cartSummaryConfig || {},
+        [property]: value
+      }
     };
     setEditedField(updatedField);
     
@@ -1179,58 +1204,84 @@ const SortableField: React.FC<SortableFieldProps> = ({
                              </div>
                            </div>
                            
-                           <div className="space-y-1">
-                             <Label>{language === 'ar' ? 'لون الإجمالي' : 'Total Color'}</Label>
-                             <div className="flex gap-2 items-center">
-                               <Input
-                                 type="color"
-                                 value={editedField.style?.totalValueColor || '#9b87f5'}
-                                 onChange={(e) => handleStyleChange('totalValueColor', e.target.value)}
-                                 className="w-9 h-9 p-1"
-                               />
-                               <Input
-                                 value={editedField.style?.totalValueColor || '#9b87f5'}
-                                 onChange={(e) => handleStyleChange('totalValueColor', e.target.value)}
-                                 className="flex-1"
-                               />
-                             </div>
-                           </div>
+                            <div className="space-y-1">
+                              <Label>{language === 'ar' ? 'لون الإجمالي' : 'Total Color'}</Label>
+                              <div className="flex gap-2 items-center">
+                                <Input
+                                  type="color"
+                                  value={editedField.style?.totalValueColor || '#16a34a'}
+                                  onChange={(e) => handleStyleChange('totalValueColor', e.target.value)}
+                                  className="w-9 h-9 p-1"
+                                />
+                                <Input
+                                  value={editedField.style?.totalValueColor || '#16a34a'}
+                                  onChange={(e) => handleStyleChange('totalValueColor', e.target.value)}
+                                  className="flex-1"
+                                />
+                              </div>
+                            </div>
                          </div>
                          
-                         {/* Font Settings */}
-                         <div className="grid grid-cols-2 gap-3">
-                           <div className="space-y-1">
-                             <Label>{language === 'ar' ? 'عائلة الخط' : 'Font Family'}</Label>
-                             <Select
-                               value={editedField.style?.fontFamily || 'Tajawal'}
-                               onValueChange={(value) => handleStyleChange('fontFamily', value)}
-                             >
-                               <SelectTrigger>
-                                 <SelectValue />
-                               </SelectTrigger>
-                               <SelectContent>
-                                 {fontFamilies.map(font => (
-                                   <SelectItem key={font.value} value={font.value}>{font.label}</SelectItem>
-                                 ))}
-                               </SelectContent>
-                             </Select>
-                           </div>
-                           
-                           <div className="space-y-1">
-                             <div className="flex items-center justify-between">
-                               <Label>{language === 'ar' ? 'حجم خط التسميات' : 'Labels Font Size'}</Label>
-                               <span className="text-sm">{editedField.style?.labelFontSize || '1rem'}</span>
-                             </div>
-                             <Slider
-                               value={[parseFloat(editedField.style?.labelFontSize?.replace('rem', '') || '1')]}
-                               onValueChange={(value) => handleStyleChange('labelFontSize', `${value[0]}rem`)}
-                               max={2}
-                               min={0.8}
-                               step={0.1}
-                               className="w-full"
-                             />
-                           </div>
-                         </div>
+                          {/* Text Direction Settings */}
+                          <div className="space-y-3">
+                            <div className="space-y-1">
+                              <Label>{language === 'ar' ? 'اتجاه النص' : 'Text Direction'}</Label>
+                              <Select
+                                value={editedField.cartSummaryConfig?.direction || 'auto'}
+                                onValueChange={(value) => handleCartSummaryConfigChange('direction', value)}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="auto">
+                                    {language === 'ar' ? 'تلقائي' : 'Auto'}
+                                  </SelectItem>
+                                  <SelectItem value="rtl">
+                                    {language === 'ar' ? 'من اليمين لليسار (عربي)' : 'Right to Left (Arabic)'}
+                                  </SelectItem>
+                                  <SelectItem value="ltr">
+                                    {language === 'ar' ? 'من اليسار لليمين (إنجليزي)' : 'Left to Right (English)'}
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+
+                          {/* Font Settings */}
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                              <Label>{language === 'ar' ? 'عائلة الخط' : 'Font Family'}</Label>
+                              <Select
+                                value={editedField.style?.fontFamily || 'Cairo'}
+                                onValueChange={(value) => handleStyleChange('fontFamily', value)}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {fontFamilies.map(font => (
+                                    <SelectItem key={font.value} value={font.value}>{font.label}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            
+                            <div className="space-y-1">
+                              <div className="flex items-center justify-between">
+                                <Label>{language === 'ar' ? 'حجم خط التسميات' : 'Labels Font Size'}</Label>
+                                <span className="text-sm">{editedField.style?.labelFontSize || '14px'}</span>
+                              </div>
+                              <Slider
+                                value={[parseInt(editedField.style?.labelFontSize?.replace('px', '') || '14')]}
+                                onValueChange={(value) => handleStyleChange('labelFontSize', `${value[0]}px`)}
+                                max={20}
+                                min={10}
+                                step={1}
+                                className="w-full"
+                              />
+                            </div>
+                          </div>
                        </div>
                      </div>
                    ) : (

@@ -47,8 +47,29 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
     discountValue: 0,
     shippingType: 'manual',
     shippingValue: 0,
+    direction: 'auto', // Default direction
     ...field.cartSummaryConfig
   };
+  
+  // تحديد اتجاه النص
+  const getTextDirection = () => {
+    if (config.direction && config.direction !== 'auto') {
+      return config.direction;
+    }
+    
+    // تحديد الاتجاه التلقائي بناءً على النصوص
+    const texts = [
+      config.subtotalText,
+      config.discountText,
+      config.shippingText,
+      config.totalText
+    ].filter(Boolean).join(' ');
+    
+    const hasArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(texts);
+    return hasArabic ? 'rtl' : 'ltr';
+  };
+  
+  const textDirection = getTextDirection();
   
   // استخدام نصف قطر الحدود من نمط النموذج إذا كان متاحًا
   const borderRadius = formStyle.borderRadius || '0.5rem';
@@ -246,25 +267,26 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
         className="border rounded-md p-4"
         style={{ 
           borderRadius,
-          backgroundColor: fieldStyle.backgroundColor || '#f9fafb',
+          backgroundColor: fieldStyle.backgroundColor || '#ffffff',
           borderColor: fieldStyle.borderColor || '#e5e7eb',
-          direction: language === 'ar' ? 'rtl' : 'ltr',
+          direction: textDirection as 'ltr' | 'rtl',
+          fontFamily: fieldStyle.fontFamily || 'Cairo',
         }}
       >
         <div className="flex justify-between mb-3" data-product-price-display="subtotal">
           <span style={{ 
-            fontSize: fieldStyle.labelFontSize || '1rem',
-            color: fieldStyle.labelColor || '#6b7280',
-            fontFamily: fieldStyle.fontFamily || 'Tajawal',
-            fontWeight: fieldStyle.labelWeight || '400'
+            fontSize: fieldStyle.labelsFontSize || fieldStyle.labelFontSize || '14px',
+            color: fieldStyle.labelsColor || fieldStyle.labelColor || '#374151',
+            fontFamily: fieldStyle.fontFamily || 'Cairo',
+            fontWeight: fieldStyle.labelWeight || '500'
           }}>
             {config.subtotalText || (language === 'ar' ? 'المجموع الفرعي' : 'Subtotal')}
           </span>
           <span style={{
-            fontSize: fieldStyle.valueFontSize || '1rem',
-            color: fieldStyle.valueColor || '#1f2937',
-            fontFamily: fieldStyle.fontFamily || 'Tajawal',
-            fontWeight: fieldStyle.valueWeight || '500'
+            fontSize: fieldStyle.labelsFontSize || fieldStyle.valueFontSize || '14px',
+            color: fieldStyle.labelsColor || fieldStyle.valueColor || '#374151',
+            fontFamily: fieldStyle.fontFamily || 'Cairo',
+            fontWeight: fieldStyle.valueWeight || '400'
           }} className="product-price">
             {formatPrice(prices.subtotal)}
           </span>
@@ -273,18 +295,18 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
         {config.showDiscount && prices.discount > 0 && (
           <div className="flex justify-between mb-3">
             <span style={{ 
-              fontSize: fieldStyle.labelFontSize || '1rem',
-              color: fieldStyle.labelColor || '#6b7280',
-              fontFamily: fieldStyle.fontFamily || 'Tajawal',
-              fontWeight: fieldStyle.labelWeight || '400'
+              fontSize: fieldStyle.labelsFontSize || fieldStyle.labelFontSize || '14px',
+              color: fieldStyle.labelsColor || fieldStyle.labelColor || '#374151',
+              fontFamily: fieldStyle.fontFamily || 'Cairo',
+              fontWeight: fieldStyle.labelWeight || '500'
             }}>
               {config.discountText || (language === 'ar' ? 'الخصم' : 'Discount')}
             </span>
             <span style={{
-              fontSize: fieldStyle.valueFontSize || '1rem',
+              fontSize: fieldStyle.labelsFontSize || fieldStyle.valueFontSize || '14px',
               color: '#ef4444', // Red color for discount
-              fontFamily: fieldStyle.fontFamily || 'Tajawal',
-              fontWeight: fieldStyle.valueWeight || '500'
+              fontFamily: fieldStyle.fontFamily || 'Cairo',
+              fontWeight: fieldStyle.valueWeight || '400'
             }} className="discount-price">
               -{formatPrice(prices.discount)}
             </span>
@@ -293,18 +315,18 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
         
         <div className="flex justify-between mb-3">
           <span style={{ 
-            fontSize: fieldStyle.labelFontSize || '1rem',
-            color: fieldStyle.labelColor || '#6b7280',
-            fontFamily: fieldStyle.fontFamily || 'Tajawal',
-            fontWeight: fieldStyle.labelWeight || '400'
+            fontSize: fieldStyle.labelsFontSize || fieldStyle.labelFontSize || '14px',
+            color: fieldStyle.labelsColor || fieldStyle.labelColor || '#374151',
+            fontFamily: fieldStyle.fontFamily || 'Cairo',
+            fontWeight: fieldStyle.labelWeight || '500'
           }}>
             {config.shippingText || (language === 'ar' ? 'الشحن' : 'Shipping')}
           </span>
           <span style={{
-            fontSize: fieldStyle.valueFontSize || '1rem',
-            color: fieldStyle.valueColor || '#1f2937',
-            fontFamily: fieldStyle.fontFamily || 'Tajawal',
-            fontWeight: fieldStyle.valueWeight || '500'
+            fontSize: fieldStyle.labelsFontSize || fieldStyle.valueFontSize || '14px',
+            color: fieldStyle.labelsColor || fieldStyle.valueColor || '#374151',
+            fontFamily: fieldStyle.fontFamily || 'Cairo',
+            fontWeight: fieldStyle.valueWeight || '400'
           }} className="shipping-price">
             {prices.shipping === 0 ? (language === 'ar' ? 'مجاني' : 'Free') : formatPrice(prices.shipping)}
           </span>
@@ -312,18 +334,18 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
         
         <div className="border-t pt-3 mt-3 flex justify-between">
           <span style={{
-            fontSize: fieldStyle.totalLabelFontSize || '1.1rem',
-            color: fieldStyle.totalLabelColor || '#1f2937',
-            fontFamily: fieldStyle.fontFamily || 'Tajawal',
-            fontWeight: fieldStyle.totalLabelWeight || 'bold'
+            fontSize: fieldStyle.labelsFontSize || fieldStyle.totalLabelFontSize || '14px',
+            color: fieldStyle.labelsColor || fieldStyle.totalLabelColor || '#374151',
+            fontFamily: fieldStyle.fontFamily || 'Cairo',
+            fontWeight: fieldStyle.totalLabelWeight || '600'
           }}>
             {config.totalText || (language === 'ar' ? 'الإجمالي' : 'Total')}
           </span>
           <span style={{
-            fontSize: fieldStyle.totalValueFontSize || '1.1rem',
-            color: fieldStyle.totalValueColor || formStyle.primaryColor || '#9b87f5',
-            fontFamily: fieldStyle.fontFamily || 'Tajawal',
-            fontWeight: fieldStyle.totalValueWeight || 'bold'
+            fontSize: fieldStyle.labelsFontSize || fieldStyle.totalValueFontSize || '14px',
+            color: fieldStyle.totalColor || fieldStyle.totalValueColor || '#16a34a',
+            fontFamily: fieldStyle.fontFamily || 'Cairo',
+            fontWeight: fieldStyle.totalValueWeight || '600'
           }} className="total-price">
             {formatPrice(prices.total)}
           </span>

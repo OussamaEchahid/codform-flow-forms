@@ -325,10 +325,15 @@
           window.CodformStateManager.setProductData(price, finalCurrency, formCurrency);
         }
         
-        // Update display
-        updateCartSummary();
-        
-        return data.product;
+    // Update display
+    updateCartSummary();
+    
+    // إعادة تطبيق الإعدادات المخصصة بعد تحديث المحتوى
+    if (window.currentFieldData) {
+      setTimeout(() => applySummarySettings(window.currentFieldData, window.currentFormStyle), 100);
+    }
+    
+    return data.product;
       } else {
         console.error('❌ Cart Summary - No product data in API response');
         return null;
@@ -375,6 +380,97 @@
   }
 
   /**
+   * Apply all summary settings to cart summary elements
+   */
+  function applySummarySettings(field, formStyle) {
+    const cartSummaries = document.querySelectorAll('.cart-summary-field');
+    if (cartSummaries.length === 0) return;
+    
+    const config = field.cartSummaryConfig || field.config || {};
+    const style = field.style || {};
+    
+    console.log('🎨 Cart Summary - Applying custom settings:', { config, style });
+    
+    cartSummaries.forEach(summary => {
+      // تطبيق اتجاه النص
+      const direction = getTextDirection(config);
+      summary.style.direction = direction;
+      
+      // تطبيق الألوان والخلفية
+      summary.style.backgroundColor = style.backgroundColor || '#ffffff';
+      summary.style.borderColor = style.borderColor || '#e5e7eb';
+      summary.style.fontFamily = style.fontFamily || 'Cairo';
+      
+      // تطبيق النصوص المخصصة
+      const subtotalLabel = summary.querySelector('.subtotal-label');
+      const discountLabel = summary.querySelector('.discount-label');
+      const shippingLabel = summary.querySelector('.shipping-label');
+      const totalLabel = summary.querySelector('.total-label');
+      
+      if (subtotalLabel) {
+        subtotalLabel.textContent = config.subtotalText || 'المجموع الفرعي';
+        subtotalLabel.style.color = style.labelsColor || '#374151';
+        subtotalLabel.style.fontSize = style.labelsFontSize || '14px';
+      }
+      
+      if (discountLabel) {
+        discountLabel.textContent = config.discountText || 'الخصم';
+        discountLabel.style.color = style.labelsColor || '#374151';
+        discountLabel.style.fontSize = style.labelsFontSize || '14px';
+      }
+      
+      if (shippingLabel) {
+        shippingLabel.textContent = config.shippingText || 'الشحن';
+        shippingLabel.style.color = style.labelsColor || '#374151';
+        shippingLabel.style.fontSize = style.labelsFontSize || '14px';
+      }
+      
+      if (totalLabel) {
+        totalLabel.textContent = config.totalText || 'الإجمالي';
+        totalLabel.style.color = style.labelsColor || '#374151';
+        totalLabel.style.fontSize = style.labelsFontSize || '14px';
+        totalLabel.style.fontWeight = '600';
+      }
+      
+      // تطبيق لون المبلغ النهائي الأخضر
+      const totalValue = summary.querySelector('.total-value');
+      if (totalValue) {
+        totalValue.style.color = style.totalColor || style.totalValueColor || '#16a34a';
+        totalValue.style.fontSize = style.labelsFontSize || '14px';
+        totalValue.style.fontWeight = '600';
+      }
+      
+      // تطبيق أحجام الخطوط على جميع القيم
+      const valueElements = summary.querySelectorAll('.subtotal-value, .discount-value, .shipping-value');
+      valueElements.forEach(element => {
+        element.style.color = style.labelsColor || '#374151';
+        element.style.fontSize = style.labelsFontSize || '14px';
+        element.style.fontFamily = style.fontFamily || 'Cairo';
+      });
+    });
+  }
+  
+  /**
+   * Determine text direction based on configuration
+   */
+  function getTextDirection(config) {
+    if (config.direction && config.direction !== 'auto') {
+      return config.direction;
+    }
+    
+    // تحديد الاتجاه التلقائي بناءً على النصوص
+    const texts = [
+      config.subtotalText,
+      config.discountText,
+      config.shippingText,
+      config.totalText
+    ].filter(Boolean).join(' ');
+    
+    const hasArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(texts);
+    return hasArabic ? 'rtl' : 'ltr';
+  }
+
+  /**
    * Initialize cart summary from field configuration
    */
   function initializeCartSummary(field, formStyle) {
@@ -384,6 +480,9 @@
     
     const config = field.cartSummaryConfig || field.config || {};
     console.log('⚙️ Cart Summary - Configuration loaded:', config);
+    
+    // تطبيق الإعدادات المخصصة فوراً
+    applySummarySettings(field, formStyle);
 
     // الحصول على العملة الحقيقية فقط - بدون أي عملات افتراضية
     const formCurrency = getRealFormCurrency();
