@@ -1532,21 +1532,23 @@ const SortableField: React.FC<SortableFieldProps> = ({
                             />
                           </div>
                           
-                          {/* Label font size */}
-                          <div className="space-y-1">
-                            <div className="flex items-center justify-between">
-                              <Label>{language === 'ar' ? 'حجم خط التسمية' : 'Label Font Size'}</Label>
-                              <span className="text-sm">{parseInt(editedField.style?.labelFontSize?.replace('px', '') || '16')}px</span>
-                            </div>
-                            <Slider
-                              value={[parseInt(editedField.style?.labelFontSize?.replace('px', '') || '16')]}
-                              onValueChange={(value) => handleStyleChange('labelFontSize', `${value[0]}px`)}
-                              max={24}
-                              min={10}
-                              step={1}
-                              className="w-full"
-                            />
-                          </div>
+                           {/* Label font size - للحقول التي لها label فقط */}
+                           {!shouldShowSubmitSpecificSettings && (
+                           <div className="space-y-1">
+                             <div className="flex items-center justify-between">
+                               <Label>{language === 'ar' ? 'حجم خط التسمية' : 'Label Font Size'}</Label>
+                               <span className="text-sm">{parseInt(editedField.style?.labelFontSize?.replace('px', '') || '16')}px</span>
+                             </div>
+                             <Slider
+                               value={[parseInt(editedField.style?.labelFontSize?.replace('px', '') || '16')]}
+                               onValueChange={(value) => handleStyleChange('labelFontSize', `${value[0]}px`)}
+                               max={24}
+                               min={10}
+                               step={1}
+                               className="w-full"
+                             />
+                           </div>
+                           )}
                           
                          <div className="space-y-1">
                            <div className="flex items-center justify-between">

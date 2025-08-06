@@ -174,6 +174,30 @@ const SubmitButtonEditor: React.FC<SubmitButtonEditorProps> = ({ field, onSave, 
         </div>
       )}
 
+      {/* Icon Color */}
+      {currentField.style?.icon && currentField.style?.icon !== 'none' && (
+        <div className="space-y-2">
+          <Label htmlFor="icon-color">
+            {language === 'ar' ? 'لون الأيقونة' : 'Icon Color'}
+          </Label>
+          <div className="flex gap-2 items-center">
+            <Input
+              id="icon-color"
+              type="color"
+              value={currentField.style?.iconColor || '#ffffff'}
+              onChange={(e) => handleChange('style.iconColor', e.target.value)}
+              className="w-12 h-8 p-1"
+            />
+            <Input
+              type="text"
+              value={currentField.style?.iconColor || '#ffffff'}
+              onChange={(e) => handleChange('style.iconColor', e.target.value)}
+              className="flex-1"
+            />
+          </div>
+        </div>
+      )}
+
       {/* Font Size */}
       <div className="space-y-2">
         <Label htmlFor="font-size">
