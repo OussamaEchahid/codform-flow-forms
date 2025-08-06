@@ -710,12 +710,12 @@ const SortableField: React.FC<SortableFieldProps> = ({
                        <div className="space-y-1">
                          <div className="flex items-center justify-between">
                            <Label>{language === 'ar' ? 'حجم الخط' : 'Font Size'}</Label>
-                           <span className="text-sm">{editedField.style?.fontSize || '16'}px</span>
+                           <span className="text-sm">{parseInt(editedField.style?.fontSize?.replace('px', '') || '16')}px</span>
                          </div>
-                         <Slider
-                           value={[parseInt(editedField.style?.fontSize || '16')]}
-                           onValueChange={(value) => handleStyleChange('fontSize', `${value[0]}px`)}
-                           max={24}
+                          <Slider
+                            value={[parseInt(editedField.style?.fontSize?.replace('px', '') || '16')]}
+                            onValueChange={(value) => handleStyleChange('fontSize', `${value[0]}px`)}
+                            max={24}
                            min={12}
                            step={1}
                            className="w-full"
