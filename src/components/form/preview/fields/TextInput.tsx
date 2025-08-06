@@ -79,16 +79,35 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
   });
   
   let fontSize = '15px'; // القيمة الافتراضية
+  
+  // إصلاح منطق استخراج حجم الخط
   if (fieldStyle.fontSize) {
-    // التعامل مع القيم بوحدة px أو rem أو أرقام فقط
+    let extractedSize = '';
+    
     if (typeof fieldStyle.fontSize === 'string') {
-      const fontSizeValue = fieldStyle.fontSize.toString().replace(/[^0-9.]/g, '');
-      if (fontSizeValue && !isNaN(parseFloat(fontSizeValue))) {
-        fontSize = `${fontSizeValue}px`;
+      // إذا كان النص يحتوي على px أو rem، استخرج الرقم فقط
+      if (fieldStyle.fontSize.includes('px') || fieldStyle.fontSize.includes('rem') || fieldStyle.fontSize.includes('em')) {
+        extractedSize = fieldStyle.fontSize.replace(/[^0-9.]/g, '');
+      } else {
+        // إذا كان رقماً فقط كنص
+        extractedSize = fieldStyle.fontSize;
       }
     } else if (typeof fieldStyle.fontSize === 'number') {
-      fontSize = `${fieldStyle.fontSize}px`;
+      extractedSize = String(fieldStyle.fontSize);
     }
+    
+    // التحقق من صحة الرقم المستخرج
+    const numericSize = parseFloat(extractedSize);
+    if (!isNaN(numericSize) && numericSize > 0) {
+      fontSize = `${numericSize}px`;
+    }
+    
+    console.log('📏 Font size extraction:', {
+      original: fieldStyle.fontSize,
+      extracted: extractedSize,
+      numeric: numericSize,
+      final: fontSize
+    });
   }
   
   console.log('✅ Final fontSize applied:', fontSize);
