@@ -68,7 +68,25 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
   
   const fontFamily = language === 'ar' ? "'Cairo', sans-serif" : (fieldStyle.fontFamily || 'inherit');
   const textColor = fieldStyle.color || 'rgb(31, 41, 55)';
-  const fontSize = fieldStyle.fontSize?.replace('px', '') ? `${fieldStyle.fontSize.replace('px', '')}px` : '15px';
+  
+  // إصلاح استخراج حجم الخط للتأكد من تطبيقه بشكل صحيح
+  console.log('🔍 Font size debug:', { 
+    fieldStyleFontSize: fieldStyle.fontSize, 
+    fieldId: field.id,
+    fieldType: field.type 
+  });
+  
+  let fontSize = '15px'; // القيمة الافتراضية
+  if (fieldStyle.fontSize) {
+    // التعامل مع القيم بوحدة px أو rem أو أرقام فقط
+    const fontSizeValue = fieldStyle.fontSize.toString().replace(/[^0-9.]/g, '');
+    if (fontSizeValue && !isNaN(parseFloat(fontSizeValue))) {
+      fontSize = `${fontSizeValue}px`;
+    }
+  }
+  
+  console.log('✅ Final fontSize applied:', fontSize);
+  
   const fontWeight = fieldStyle.fontWeight || '400';
   
   // خلفية بيضاء ثابتة للحقول
