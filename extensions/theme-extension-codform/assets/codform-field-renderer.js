@@ -76,14 +76,15 @@
     };
 
     // أيقونة الحقل
-    const hasIcon = field.icon && field.icon !== 'none' && field.icon !== '';
+    const actualIcon = field.icon || field.style?.icon;
+    const hasIcon = actualIcon && actualIcon !== 'none' && actualIcon !== '';
     const showIcon = getStyleValue(fieldStyle, 'showIcon', hasIcon) && getStyleValue(fieldStyle, 'showIconInPreview', hasIcon);
     
     let iconHtml = '';
     if (showIcon && hasIcon) {
       const iconPosition = formDirection === 'rtl' ? 'right' : 'left';
       const iconColor = getStyleValue(fieldStyle, 'iconColor', '#6b7280');
-      const iconSvg = window.getIconSvg ? window.getIconSvg(field.icon, iconColor) : '';
+      const iconSvg = window.getIconSvg ? window.getIconSvg(actualIcon, iconColor) : '';
       iconHtml = `
         <div style="
           position: absolute;

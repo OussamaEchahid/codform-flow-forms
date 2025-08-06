@@ -302,7 +302,8 @@
       const fontWeight = getStyleValue(buttonStyle, 'fontWeight', null);
       const actualButtonFontWeight = labelWeight || fontWeight || '700';
       
-      const hasIcon = field.icon && field.icon !== 'none' && field.icon !== '';
+      const actualIcon = field.icon || field.style?.icon;
+      const hasIcon = actualIcon && actualIcon !== 'none' && actualIcon !== '';
       const showIcon = (isPopupMode && !isInPopup) ? 
         (formStyle.popupButton?.showIcon !== false) : 
         getStyleValue(buttonStyle, 'showIcon', hasIcon);
@@ -310,7 +311,7 @@
       
       let iconHtml = '';
       if (showIcon && hasIcon) {
-        const iconSvg = getIconSvg(field.icon, iconColor);
+        const iconSvg = getIconSvg(actualIcon, iconColor);
         iconHtml = `<span style="margin-right: 8px; display: inline-flex; align-items: center;">${iconSvg}</span>`;
       }
       
