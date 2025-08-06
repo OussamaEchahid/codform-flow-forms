@@ -119,7 +119,7 @@
     }
     {%- comment -%} Text Input Fields (text, email, phone) {%- endcomment -%}
     else if (['text', 'email', 'phone'].includes(field.type)) {
-      html = window.CodformFieldRenderer.renderTextInputField(field, formStyle, formDirection, isFloatingLabels);
+      html = window.renderField(field, formStyle);
     }
     {%- comment -%} Textarea Field {%- endcomment -%}
     else if (field.type === 'textarea') {
