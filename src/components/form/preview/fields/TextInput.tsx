@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { FormField } from '@/lib/form-utils';
 import { cn } from '@/lib/utils';
@@ -29,9 +28,19 @@ interface TextInputProps {
   value?: string;
   onChange?: (value: string) => void;
   disabled?: boolean;
+  formCountry?: string;
+  formPhonePrefix?: string;
 }
 
-const TextInput: React.FC<TextInputProps> = ({ field, formStyle, value, onChange, disabled = false }) => {
+const TextInput: React.FC<TextInputProps> = ({ 
+  field, 
+  formStyle, 
+  value, 
+  onChange, 
+  disabled = false,
+  formCountry,
+  formPhonePrefix 
+}) => {
   // Extract style values with enhanced Padding Y support
   const {
     color = field.style?.color || '#374151',
