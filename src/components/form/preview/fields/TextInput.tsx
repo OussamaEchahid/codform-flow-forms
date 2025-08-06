@@ -299,7 +299,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
           className="w-full outline-none transition-all codform-input codform-fixed-placeholder"
           style={{
             color: textColor,
-            fontSize: `${fontSize} !important`,
+            fontSize: fontSize,
             fontWeight: fontWeight,
             fontFamily: fontFamily,
             backgroundColor: backgroundColor,
