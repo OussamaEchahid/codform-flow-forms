@@ -218,7 +218,34 @@
     return html;
   }
 
-  // Make function globally available
+  // Specific function for form title field rendering
+  function renderFormTitleField(field, formStyle) {
+    if (!field) return '';
+    
+    const title = field.content || field.label || '';
+    const color = field.style?.color || '#374151';
+    const fontSize = field.style?.fontSize || '24px';
+    const fontWeight = field.style?.fontWeight || '700';
+    const textAlign = field.style?.textAlign || 'center';
+    const fontFamily = "'Cairo', 'Tajawal', Arial, sans-serif";
+    
+    return `
+      <div class="form-title-field" style="margin-bottom: 20px;">
+        <h2 style="
+          color: ${color};
+          font-size: ${fontSize};
+          font-weight: ${fontWeight};
+          text-align: ${textAlign};
+          font-family: ${fontFamily};
+          margin: 0;
+          padding: 12px 0;
+        ">${title}</h2>
+      </div>
+    `;
+  }
+
+  // Make functions globally available
   window.renderField = renderField;
+  window.renderFormTitleField = renderFormTitleField;
 
 })();
