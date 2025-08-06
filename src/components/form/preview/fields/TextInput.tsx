@@ -301,9 +301,8 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
               ? `0 0 0 3px ${focusBorderColor}20` 
               : 'rgba(0, 0, 0, 0.05) 0px 1px 2px',
             width: '100%',
-            height: 'auto',
-            lineHeight: 1.5,
-            minHeight: '44px',
+            height: '44px',
+            lineHeight: 1,
             boxSizing: 'border-box',
             direction: formDirection,
             textAlign: formDirection === 'rtl' ? 'right' : 'left',
