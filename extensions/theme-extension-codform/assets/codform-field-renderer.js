@@ -59,7 +59,7 @@
     const baseFontSize = formDirection === 'rtl' ? '13px' : getStyleValue(formStyle, 'baseFontSize', '16px');
     const defaultLabelSize = formDirection === 'rtl' ? '15px' : '16px';
     
-    // تجميع خصائص الستايل مع padding ثابت
+    // تجميع خصائص الستايل مع دعم fontSize ديناميكي
     const styles = {
       labelColor: getStyleValue(fieldStyle, 'labelColor', '#333333'),
       labelFontSize: getStyleValue(fieldStyle, 'labelFontSize', defaultLabelSize),
@@ -73,7 +73,7 @@
       borderRadius: getStyleValue(fieldStyle, 'borderRadius', getStyleValue(formStyle, 'fieldBorderRadius', '8px')),
       placeholder: getStyleValue(fieldStyle, 'placeholder', placeholder),
       focusBorderColor: getStyleValue(formStyle, 'focusBorderColor', '#3b82f6'),
-      // استخدام padding ثابت بدلاً من الحساب الديناميكي
+      // استخدام padding ثابت بدلاً من الحساب الديناميكي  
       paddingY: getStyleValue(fieldStyle, 'paddingY', '10px')
     };
 

@@ -30,7 +30,7 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
   const fieldStyle = field.style || {};
   // FIXED: استخدام لون الحقل أو الأسود كافتراضي (يمكن تغييره من المحرر)
   const textColor = fieldStyle.color || '#000000';
-  const fontSize = '1.5rem'; // حجم ثابت
+  const fontSize = fieldStyle.fontSize || '1.5rem';
   const fontWeight = fieldStyle.fontWeight || '700';
   const fontFamily = fieldStyle.fontFamily || 'Cairo, Tajawal, Arial, sans-serif';
   

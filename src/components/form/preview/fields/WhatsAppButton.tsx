@@ -78,7 +78,7 @@ const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({ field, formStyle }) => 
         style={{
           backgroundColor: fieldStyle.backgroundColor || '#25D366',
           color: fieldStyle.color || 'white',
-          fontSize: '16px', // حجم ثابت
+          fontSize: fieldStyle.fontSize || formStyle.fontSize || '16px',
           fontWeight: fieldStyle.fontWeight || '600',
           fontFamily: fieldStyle.fontFamily || 'Tajawal, sans-serif',
           borderRadius: buttonRadius,

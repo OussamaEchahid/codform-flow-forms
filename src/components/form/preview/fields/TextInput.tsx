@@ -69,8 +69,8 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
   const textColor = fieldStyle.color || 'rgb(31, 41, 55)';
   
   
-  // إزالة كامل لمنطق fontSize - استخدام حجم ثابت
-  const fontSize = '16px'; // حجم ثابت مبدئي
+  // استخدام fontSize من الستايل مع قيمة افتراضية ثابتة
+  const fontSize = fieldStyle.fontSize || '16px';
   
   const fontWeight = fieldStyle.fontWeight || '400';
   

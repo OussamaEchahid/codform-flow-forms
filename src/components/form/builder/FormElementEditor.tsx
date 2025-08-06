@@ -18,7 +18,7 @@ interface FormElementEditorProps {
   formStyle: {
     primaryColor: string;
     borderRadius: string;
-    
+    fontSize: string;
     buttonStyle: string;
     // Add new style properties
     borderColor?: string;

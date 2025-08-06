@@ -574,8 +574,24 @@ const SortableField: React.FC<SortableFieldProps> = ({
                          className="w-full"
                        />
                      </div>
-                     
-                     {/* Padding Top */}
+                      
+                      {/* Font size */}
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <Label>{language === 'ar' ? 'حجم الخط' : 'Font size'}</Label>
+                          <span className="text-sm">{parseFloat(editedField.style?.fontSize?.replace('rem', '') || '1.5') || 1.5}</span>
+                        </div>
+                        <Slider
+                          value={[parseFloat(editedField.style?.fontSize?.replace('rem', '') || '1.5') || 1.5]}
+                          onValueChange={(value) => handleStyleChange('fontSize', `${value[0]}rem`)}
+                          max={4}
+                          min={0.75}
+                          step={0.25}
+                          className="w-full"
+                        />
+                      </div>
+                      
+                      {/* Padding Top */}
                      <div className="space-y-2">
                        <div className="flex items-center justify-between">
                          <Label>{language === 'ar' ? 'مسافة علوية' : 'padding-top'}</Label>
@@ -690,9 +706,28 @@ const SortableField: React.FC<SortableFieldProps> = ({
                            />
                          </div>
                        </div>
-                       
-                     </div>
-                   </div>
+                        
+                      </div>
+                      
+                      {/* Right column */}
+                      <div className="space-y-4">
+                        {/* Font size */}
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <Label>{language === 'ar' ? 'حجم الخط' : 'Font size'}</Label>
+                            <span className="text-sm">{parseInt(editedField.style?.fontSize?.replace('px', '') || '16')}px</span>
+                          </div>
+                          <Slider
+                            value={[parseInt(editedField.style?.fontSize?.replace('px', '') || '16')]}
+                            onValueChange={(value) => handleStyleChange('fontSize', `${value[0]}px`)}
+                            max={24}
+                            min={12}
+                            step={1}
+                            className="w-full"
+                          />
+                        </div>
+                      </div>
+                    </div>
                    ) : field.type === 'countdown' ? (
                      /* إعدادات العداد التنازلي */
                      <div className="grid grid-cols-2 gap-4">
@@ -1480,8 +1515,23 @@ const SortableField: React.FC<SortableFieldProps> = ({
                       
                       {/* Right column - Style settings */}
                       <div className="space-y-4">
-                        
-                        {/* Padding Y */}
+                         
+                         {/* Font size */}
+                         <div className="space-y-1">
+                           <div className="flex items-center justify-between">
+                             <Label>{language === 'ar' ? 'حجم الخط' : 'Font size'}</Label>
+                             <span className="text-sm">{parseInt(editedField.style?.fontSize?.replace('px', '') || '16')}px</span>
+                           </div>
+                           <Slider
+                             value={[parseInt(editedField.style?.fontSize?.replace('px', '') || '16')]}
+                             onValueChange={(value) => handleStyleChange('fontSize', `${value[0]}px`)}
+                             max={24}
+                             min={10}
+                             step={1}
+                             className="w-full"
+                           />
+                         </div>
+                         
                         <div className="space-y-1">
                           <div className="flex items-center justify-between">
                             <Label>{language === 'ar' ? 'الحشو العمودي' : 'Padding Y'}</Label>
