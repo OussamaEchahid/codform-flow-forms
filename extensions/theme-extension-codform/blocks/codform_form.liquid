@@ -188,11 +188,18 @@
       const hasIcon = field.icon && field.icon !== 'none' && getStyleValue(fieldStyle, 'showIcon', true);
       const iconColor = getStyleValue(fieldStyle, 'iconColor', '#6b7280');
       
-      // Determine correct icon based on field type
+      // Determine correct icon based on field type and label
       let finalIcon = field.icon;
       if (!finalIcon || finalIcon === 'none') {
         switch(field.type) {
-          case 'text': finalIcon = 'user'; break;
+          case 'text': 
+            // Check if this is a city field based on label
+            if (field.label && (field.label.toLowerCase().includes('city') || field.label.toLowerCase().includes('مدينة'))) {
+              finalIcon = 'map-pin';
+            } else {
+              finalIcon = 'user';
+            }
+            break;
           case 'email': finalIcon = 'mail'; break;
           case 'phone': finalIcon = 'phone'; break;
           default: finalIcon = 'user';

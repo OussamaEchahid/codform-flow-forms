@@ -77,7 +77,7 @@ const TextInput: React.FC<TextInputProps> = ({
 
   const finalPaddingY = getPaddingYValue();
 
-  // Get the appropriate icon component with exact matching
+  // Get the appropriate icon component - Fixed mapping for city field
   const getIconComponent = (iconType: string) => {
     const iconProps = {
       size: 18,
@@ -94,6 +94,7 @@ const TextInput: React.FC<TextInputProps> = ({
       case 'phone':
         return <Phone {...iconProps} />;
       case 'map-pin':
+      case 'location':
         return <MapPin {...iconProps} />;
       case 'home':
         return <Home {...iconProps} />;
@@ -112,20 +113,28 @@ const TextInput: React.FC<TextInputProps> = ({
       case 'message-circle':
         return <MessageCircle {...iconProps} />;
       default:
+        // Return correct default icon based on field type and field name
+        if (field.type === 'phone') return <Phone {...iconProps} />;
+        if (field.type === 'email') return <Mail {...iconProps} />;
+        if (field.label?.toLowerCase().includes('city') || field.label?.toLowerCase().includes('مدينة')) {
+          return <MapPin {...iconProps} />;
+        }
         return <User {...iconProps} />;
     }
   };
 
-  // Enhanced input styling with proper Padding Y application - using px units consistently
+  // Enhanced input styling with global field border radius support
   const inputStyle: React.CSSProperties = {
     backgroundColor,
     color,
     fontSize: typeof fontSize === 'string' && fontSize.includes('rem') ? 
       `${parseFloat(fontSize) * 16}px` : fontSize, // Convert rem to px
     fontWeight,
-    borderRadius: typeof borderRadius === 'string' && borderRadius.includes('rem') ? 
-      `${parseFloat(borderRadius) * 16}px` : borderRadius, // Convert rem to px
-    border: `${borderWidth} solid ${borderColor}`,
+    borderRadius: formStyle.fieldBorderRadius ? 
+      `${parseInt(formStyle.fieldBorderRadius)}px` : 
+      (typeof borderRadius === 'string' && borderRadius.includes('rem') ? 
+        `${parseFloat(borderRadius) * 16}px` : borderRadius), // Apply global field border radius
+    border: `${formStyle.fieldBorderWidth || borderWidth} solid ${formStyle.fieldBorderColor || borderColor}`,
     paddingTop: `${finalPaddingY}px`,
     paddingBottom: `${finalPaddingY}px`,
     paddingLeft: showIcon ? 

@@ -89,7 +89,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, onClick, 
     }
   };
 
-  // Get the appropriate icon component - exact matching with Shopify
+  // Get the appropriate icon component - Fixed icon mapping
   const getIconComponent = (iconType: string) => {
     const iconProps = {
       size: 18,
