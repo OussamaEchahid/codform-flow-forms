@@ -43,14 +43,14 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
   const paddingLeft = fieldStyle.paddingLeft || '0px';
   const paddingRight = fieldStyle.paddingRight || '0px';
 
-  // Clean title style with proper centering
+  // Clean title style matching old version exactly
   const titleStyle: React.CSSProperties = {
     color: textColor,
     fontSize: fontSize,
     fontWeight: fontWeight,
     fontFamily: 'Cairo, Tajawal, Arial, sans-serif',
-    textAlign: 'center',
-    margin: '0px auto',
+    textAlign: textAlign,
+    margin: '0px',
     lineHeight: '1.4',
     direction: formStyle.formDirection || 'ltr',
     paddingTop: paddingTop,

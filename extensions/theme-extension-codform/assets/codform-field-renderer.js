@@ -1,251 +1,192 @@
-
 /**
- * CODFORM Field Renderer - Enhanced
- * Handles rendering of all form field types with proper styling and Padding Y support
+ * CODFORM FIELD RENDERER
+ * دوال رسم الحقول منفصلة عن الملف الرئيسي
  */
 
 (function() {
   'use strict';
 
-  // Global field renderer function
-  function renderField(field, formStyle, isPreview = false) {
-    if (!field || !field.type) {
-      console.error('Field is invalid:', field);
-      return '';
-    }
-
-    const fieldStyle = field.style || {};
-    const fieldId = field.id || `field_${Date.now()}`;
-    
-    // Enhanced Padding Y calculation - ensuring proper application
-    const getPaddingY = () => {
-      let paddingY = fieldStyle.paddingY || formStyle.paddingY || '12px';
-      
-      // Convert to numeric value for consistency
-      const numericValue = parseInt(paddingY.replace(/[^0-9]/g, ''), 10) || 12;
-      
-      // Ensure minimum and maximum values
-      const finalPadding = Math.max(6, Math.min(numericValue, 60));
-      
-      return `${finalPadding}px`;
-    };
-
-    // Enhanced input styling with proper Padding Y
-    const getInputStyles = () => {
-      const paddingY = getPaddingY();
-      const borderRadius = fieldStyle.borderRadius || formStyle.borderRadius || '8px';
-      const borderColor = fieldStyle.borderColor || formStyle.borderColor || '#d1d5db';
-      const backgroundColor = fieldStyle.backgroundColor || '#ffffff';
-      const fontSize = fieldStyle.fontSize || formStyle.fontSize || '16px';
-      
-      return `
-        width: 100%;
-        padding: ${paddingY} 16px;
-        border: 1px solid ${borderColor};
-        border-radius: ${borderRadius};
-        background-color: ${backgroundColor};
-        font-size: ${fontSize};
-        font-family: 'Cairo', 'Tajawal', Arial, sans-serif;
-        color: #374151;
-        outline: none;
-        transition: all 0.2s ease;
-      `.replace(/\s+/g, ' ').trim();
-    };
-
-    // Enhanced label styling
-    const getLabelStyles = () => {
-      const labelColor = fieldStyle.labelColor || '#374151';
-      const labelFontSize = fieldStyle.labelFontSize || '14px';
-      const labelFontWeight = fieldStyle.labelFontWeight || '500';
-      
-      return `
-        display: block;
-        margin-bottom: 8px;
-        color: ${labelColor};
-        font-size: ${labelFontSize};
-        font-weight: ${labelFontWeight};
-        font-family: 'Cairo', 'Tajawal', Arial, sans-serif;
-      `.replace(/\s+/g, ' ').trim();
-    };
-
-    // Icon rendering with proper matching to preview
-    const renderIcon = () => {
-      if (!field.icon || field.icon === 'none') return '';
-      if (fieldStyle.showIcon === false) return '';
-      
-      const iconColor = fieldStyle.iconColor || '#6b7280';
-      const iconSvg = window.getIconSvg ? window.getIconSvg(field.icon, iconColor) : '';
-      
-      if (!iconSvg) return '';
-      
-      return `
-        <div class="field-icon" style="
-          position: absolute;
-          left: 12px;
-          top: 50%;
-          transform: translateY(-50%);
-          pointer-events: none;
-          z-index: 2;
-        ">
-          ${iconSvg}
-        </div>
-      `;
-    };
-
-    let html = '';
-
-    switch (field.type) {
-      case 'text':
-      case 'email':
-      case 'phone':
-        const hasIcon = field.icon && field.icon !== 'none' && fieldStyle.showIcon !== false;
-        const paddingLeft = hasIcon ? '48px' : '16px';
-        
-        html = `
-          <div class="form-field" style="margin-bottom: 20px; position: relative;">
-            ${field.label && !fieldStyle.hideLabel ? `
-              <label style="${getLabelStyles()}">${field.label}${field.required ? ' <span style="color: #ef4444;">*</span>' : ''}</label>
-            ` : ''}
-            <div style="position: relative;">
-              ${hasIcon ? renderIcon() : ''}
-              <input
-                type="${field.type === 'phone' ? 'tel' : field.type}"
-                name="${fieldId}"
-                id="${fieldId}"
-                placeholder="${field.placeholder || field.label || ''}"
-                ${field.required ? 'required' : ''}
-                style="${getInputStyles().replace('padding: ' + getPaddingY() + ' 16px', `padding: ${getPaddingY()} ${paddingLeft} ${getPaddingY()} 16px`)}"
-              />
-            </div>
-            ${field.helpText ? `<div style="margin-top: 4px; font-size: 12px; color: #6b7280;">${field.helpText}</div>` : ''}
-          </div>
-        `;
-        break;
-
-      case 'textarea':
-        const textareaRows = field.rows || 4;
-        html = `
-          <div class="form-field" style="margin-bottom: 20px;">
-            ${field.label && !fieldStyle.hideLabel ? `
-              <label style="${getLabelStyles()}">${field.label}${field.required ? ' <span style="color: #ef4444;">*</span>' : ''}</label>
-            ` : ''}
-            <textarea
-              name="${fieldId}"
-              id="${fieldId}"
-              rows="${textareaRows}"
-              placeholder="${field.placeholder || field.label || ''}"
-              ${field.required ? 'required' : ''}
-              style="${getInputStyles()}"
-            ></textarea>
-            ${field.helpText ? `<div style="margin-top: 4px; font-size: 12px; color: #6b7280;">${field.helpText}</div>` : ''}
-          </div>
-        `;
-        break;
-
-      case 'submit':
-        const submitPaddingY = fieldStyle.paddingY || '12px';
-        const submitBgColor = fieldStyle.backgroundColor || formStyle.primaryColor || '#9b87f5';
-        const submitColor = fieldStyle.color || '#ffffff';
-        const submitFontSize = fieldStyle.fontSize || '16px';
-        const submitFontWeight = fieldStyle.fontWeight || '700';
-        const submitBorderRadius = fieldStyle.borderRadius || formStyle.borderRadius || '8px';
-        
-        // Enhanced submit button icon matching
-        const submitHasIcon = field.icon && field.icon !== 'none' && fieldStyle.showIcon !== false;
-        const submitIconPosition = fieldStyle.iconPosition || 'left';
-        
-        let submitIconHtml = '';
-        if (submitHasIcon) {
-          const submitIconColor = fieldStyle.iconColor || submitColor;
-          const submitIconSvg = window.getIconSvg ? window.getIconSvg(field.icon, submitIconColor) : '';
-          if (submitIconSvg) {
-            submitIconHtml = `
-              <span style="
-                display: inline-flex;
-                align-items: center;
-                ${submitIconPosition === 'right' ? 'margin-left: 8px;' : 'margin-right: 8px;'}
-              ">
-                ${submitIconSvg}
-              </span>
-            `;
-          }
-        }
-
-        html = `
-          <div class="form-field" style="margin-bottom: 20px;">
-            <button
-              type="submit"
-              style="
-                width: 100%;
-                padding: ${submitPaddingY} 24px;
-                background-color: ${submitBgColor};
-                color: ${submitColor};
-                font-size: ${submitFontSize};
-                font-weight: ${submitFontWeight};
-                font-family: 'Cairo', 'Tajawal', Arial, sans-serif;
-                border: none;
-                border-radius: ${submitBorderRadius};
-                cursor: pointer;
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                gap: 8px;
-                transition: all 0.2s ease;
-              "
-              onmouseover="this.style.opacity='0.9'"
-              onmouseout="this.style.opacity='1'"
-            >
-              ${submitIconPosition === 'left' ? submitIconHtml : ''}
-              ${field.label || 'إرسال الطلب'}
-              ${submitIconPosition === 'right' ? submitIconHtml : ''}
-            </button>
-          </div>
-        `;
-        break;
-
-      default:
-        // Handle other field types without modification
-        html = `
-          <div class="form-field" style="margin-bottom: 20px;">
-            <div style="padding: 12px; background-color: #f3f4f6; border-radius: 8px; font-family: 'Cairo', 'Tajawal', Arial, sans-serif;">
-              ${field.type}: ${field.label || 'Untitled Field'}
-            </div>
-          </div>
-        `;
-        break;
-    }
-
-    return html;
+  // دالة مساعدة للحصول على قيمة من الستايل
+  function getStyleValue(style, property, fallback) {
+    if (!style || typeof style !== 'object') return fallback;
+    return style[property] || fallback;
   }
 
-  // Specific function for form title field rendering
+  // دالة رسم حقل العنوان
   function renderFormTitleField(field, formStyle) {
-    if (!field) return '';
-    
-    const title = field.content || field.label || '';
-    const color = field.style?.color || '#374151';
-    const fontSize = field.style?.fontSize || '24px';
-    const fontWeight = field.style?.fontWeight || '700';
-    const textAlign = field.style?.textAlign || 'center';
-    const fontFamily = "'Cairo', 'Tajawal', Arial, sans-serif";
+    const title = field.label || 'Form Title';
+    const titleColor = getStyleValue(field.style, 'color', '#000000');
+    const titleFontSize = getStyleValue(field.style, 'fontSize', '24px');
+    const titleFontWeight = getStyleValue(field.style, 'fontWeight', 'bold');
+    const paddingTop = getStyleValue(field.style, 'paddingTop', '0px');
+    const paddingBottom = getStyleValue(field.style, 'paddingBottom', '0px');
+    const paddingLeft = getStyleValue(field.style, 'paddingLeft', '0px');
+    const paddingRight = getStyleValue(field.style, 'paddingRight', '0px');
     
     return `
-      <div class="form-title-field" style="margin-bottom: 20px;">
-        <h2 style="
-          color: ${color};
-          font-size: ${fontSize};
-          font-weight: ${fontWeight};
-          text-align: ${textAlign};
-          font-family: ${fontFamily};
-          margin: 0;
-          padding: 12px 0;
-        ">${title}</h2>
+      <div class="form-title-field w-full" style="
+        color: ${titleColor};
+        font-size: ${titleFontSize};
+        font-weight: ${titleFontWeight};
+        font-family: Cairo, Tajawal, Arial, sans-serif;
+        text-align: center;
+        margin: 0px;
+        line-height: 1.4;
+        direction: ${formStyle.formDirection || 'ltr'};
+        padding: ${paddingTop} ${paddingRight} ${paddingBottom} ${paddingLeft};
+        width: 100%;
+        display: block;
+        background: none;
+        border: none;
+      ">
+        ${title}
       </div>
     `;
   }
 
-  // Make functions globally available
-  window.renderField = renderField;
-  window.renderFormTitleField = renderFormTitleField;
+  // دالة رسم حقول النص
+  function renderTextInputField(field, formStyle, formDirection, isFloatingLabels) {
+    const label = field.label || 'Text Field';
+    const placeholder = field.placeholder || '';
+    const required = field.required || false;
+    const fieldId = field.id || 'field-' + Math.random().toString(36).substr(2, 9);
+    
+    let inputType = 'text';
+    if (field.type === 'email') inputType = 'email';
+    if (field.type === 'phone') inputType = 'tel';
+    
+    const fieldStyle = field.style || {};
+    const baseFontSize = formDirection === 'rtl' ? '13px' : getStyleValue(formStyle, 'baseFontSize', '16px');
+    const defaultLabelSize = formDirection === 'rtl' ? '15px' : '16px';
+    
+    // تجميع خصائص الستايل
+    const styles = {
+      labelColor: getStyleValue(fieldStyle, 'labelColor', '#333333'),
+      labelFontSize: getStyleValue(fieldStyle, 'labelFontSize', defaultLabelSize),
+      labelWeight: getStyleValue(fieldStyle, 'labelFontWeight', '500'),
+      showLabel: fieldStyle.showLabel !== undefined ? fieldStyle.showLabel : true,
+      textColor: getStyleValue(fieldStyle, 'color', 'rgb(31, 41, 55)'),
+      borderColor: getStyleValue(fieldStyle, 'borderColor', getStyleValue(formStyle, 'fieldBorderColor', 'rgb(209, 213, 219)')),
+      borderWidth: getStyleValue(fieldStyle, 'borderWidth', getStyleValue(formStyle, 'fieldBorderWidth', '1px')),
+      fontSize: getStyleValue(fieldStyle, 'fontSize', baseFontSize),
+      fontFamily: getStyleValue(fieldStyle, 'fontFamily', 'inherit'),
+      borderRadius: getStyleValue(fieldStyle, 'borderRadius', getStyleValue(formStyle, 'fieldBorderRadius', '8px')),
+      placeholder: getStyleValue(fieldStyle, 'placeholder', placeholder),
+      focusBorderColor: getStyleValue(formStyle, 'focusBorderColor', '#3b82f6')
+    };
+
+    // أيقونة الحقل
+    const hasIcon = field.icon && field.icon !== 'none' && field.icon !== '';
+    const showIcon = getStyleValue(fieldStyle, 'showIcon', hasIcon) && getStyleValue(fieldStyle, 'showIconInPreview', hasIcon);
+    
+    let iconHtml = '';
+    if (showIcon && hasIcon) {
+      const iconPosition = formDirection === 'rtl' ? 'right' : 'left';
+      const iconColor = getStyleValue(fieldStyle, 'iconColor', '#6b7280');
+      const iconSvg = window.getIconSvg ? window.getIconSvg(field.icon, iconColor) : '';
+      iconHtml = `
+        <div style="
+          position: absolute;
+          ${iconPosition}: 12px;
+          top: 50%;
+          transform: translateY(-50%);
+          color: ${iconColor};
+          pointer-events: none;
+          z-index: 2;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        ">
+          ${iconSvg}
+        </div>
+      `;
+    }
+
+    const paddingLeft = formDirection === 'rtl' ? '12px' : (showIcon && hasIcon ? '40px' : '12px');
+    const paddingRight = formDirection === 'rtl' ? (showIcon && hasIcon ? '40px' : '12px') : '12px';
+
+    return `
+      <div class="codform-field-wrapper" style="margin-bottom: 4px; direction: ${formDirection};">
+        ${styles.showLabel && !isFloatingLabels ? `
+          <label for="${fieldId}" style="
+            display: block;
+            color: ${styles.labelColor};
+            font-size: ${styles.labelFontSize};
+            font-weight: 500;
+            margin-bottom: 4px;
+            font-family: 'Cairo', sans-serif;
+          ">
+            ${label}${required ? '<span style="color: #EF4444; margin-left: 4px;">*</span>' : ''}
+          </label>
+        ` : ''}
+        
+        <div style="position: relative;">
+          ${iconHtml}
+          ${isFloatingLabels && styles.showLabel ? `
+            <label for="${fieldId}" style="
+              position: absolute;
+              left: ${formDirection === 'rtl' ? 'auto' : (showIcon && hasIcon ? '40px' : '12px')};
+              right: ${formDirection === 'rtl' ? (showIcon && hasIcon ? '40px' : '12px') : 'auto'};
+              top: 50%;
+              transform: translateY(-50%);
+              color: #9CA3AF;
+              font-size: ${styles.labelFontSize};
+              font-family: 'Cairo', sans-serif;
+              pointer-events: none;
+              transition: all 0.2s ease;
+              background: white;
+              padding: 0 4px;
+              z-index: 10;
+            " class="floating-label">
+              ${label}${required ? '<span style="color: #EF4444; margin-left: 4px;">*</span>' : ''}
+            </label>
+          ` : ''}
+          <input
+            type="${inputType}"
+            id="${fieldId}"
+            name="${fieldId}"
+            placeholder="${isFloatingLabels ? '' : styles.placeholder}"
+            ${required ? 'required' : ''}
+            style="
+              width: 100%;
+              background-color: #FFFFFF;
+              border: ${styles.borderWidth} solid ${styles.borderColor};
+              border-radius: ${styles.borderRadius};
+              padding: 10px ${paddingRight} 10px ${paddingLeft};
+              font-size: ${styles.fontSize};
+              color: ${styles.textColor};
+              font-family: ${styles.fontFamily};
+              outline: none;
+              transition: all 0.2s ease;
+              box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px;
+              min-height: 44px;
+              box-sizing: border-box;
+              direction: ${formDirection};
+              text-align: ${formDirection === 'rtl' ? 'right' : 'left'};
+            "
+            onfocus="this.style.borderColor='${styles.focusBorderColor}'; this.style.boxShadow='0 0 0 3px ${styles.focusBorderColor}20'"
+            onblur="this.style.borderColor='${styles.borderColor}'; this.style.boxShadow='rgba(0, 0, 0, 0.05) 0px 1px 2px'"
+          />
+        </div>
+        ${field.helpText ? `
+          <p style="
+            margin-top: 6px;
+            font-size: 14px;
+            color: #6B7280;
+            font-family: 'Cairo', inherit;
+          ">${field.helpText}</p>
+        ` : ''}
+      </div>
+    `;
+  }
+
+  // تصدير الدوال
+  window.CodformFieldRenderer = {
+    renderFormTitleField: renderFormTitleField,
+    renderTextInputField: renderTextInputField,
+    getStyleValue: getStyleValue
+  };
+
+  console.log('📋 Codform Field Renderer loaded');
 
 })();

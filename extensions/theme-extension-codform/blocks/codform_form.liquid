@@ -115,202 +115,11 @@
     
     {%- comment -%} Form Title Field {%- endcomment -%}
     if (field.type === 'form-title') {
-      const title = field.content || field.label || '';
-      const titleStyle = field.style || {};
-      const titleColor = getStyleValue(titleStyle, 'color', '#374151');
-      const titleFontSize = getStyleValue(titleStyle, 'fontSize', '24px');
-      const titleFontWeight = getStyleValue(titleStyle, 'fontWeight', '700');
-      const titleTextAlign = getStyleValue(titleStyle, 'textAlign', 'center');
-      const titleFontFamily = formDirection === 'rtl' ? "'Cairo', 'Noto Sans Arabic', 'Amiri', sans-serif" : "'Inter', 'system-ui', sans-serif";
-      
-      html = `
-        <div class="codform-form-title" style="
-          margin-bottom: ${getStyleValue(formStyle, 'formGap', '20px')};
-          text-align: ${titleTextAlign};
-          direction: ${formDirection};
-        ">
-          <h2 style="
-            color: ${titleColor};
-            font-size: ${titleFontSize};
-            font-weight: ${titleFontWeight};
-            font-family: ${titleFontFamily};
-            margin: 0;
-            padding: 0;
-            line-height: 1.2;
-          ">${title}</h2>
-        </div>
-      `;
+      html = window.CodformFieldRenderer.renderFormTitleField(field, formStyle);
     }
     {%- comment -%} Text Input Fields (text, email, phone) {%- endcomment -%}
     else if (['text', 'email', 'phone'].includes(field.type)) {
-      const label = field.label || '';
-      const placeholder = field.placeholder || '';
-      const required = field.required || false;
-      const fieldId = field.id || 'field-' + Math.random().toString(36).substr(2, 9);
-      
-      // Enhanced field style configuration with proper Global Form Styling support
-      const fieldStyle = field.style || {};
-      const baseFontSize = formDirection === 'rtl' ? '13px' : getStyleValue(formStyle, 'baseFontSize', '16px');
-      const defaultLabelSize = formDirection === 'rtl' ? '15px' : '16px';
-      
-      // Label styles - using px consistently
-      const actualLabelColor = getStyleValue(fieldStyle, 'labelColor', 'rgb(51, 65, 85)');
-      const actualLabelFontSize = getStyleValue(fieldStyle, 'labelFontSize', defaultLabelSize);  
-      const actualLabelWeight = getStyleValue(fieldStyle, 'labelFontWeight', '500');
-      const actualShowLabel = fieldStyle.showLabel !== undefined ? fieldStyle.showLabel : true;
-      
-      // Field styles with Global Form Styling support - using px consistently
-      const actualTextColor = getStyleValue(fieldStyle, 'color', 'rgb(31, 41, 55)');
-      const actualBorderColor = getStyleValue(fieldStyle, 'borderColor', getStyleValue(formStyle, 'fieldBorderColor', 'rgb(209, 213, 219)'));
-      const actualBorderWidth = getStyleValue(fieldStyle, 'borderWidth', getStyleValue(formStyle, 'fieldBorderWidth', '1px'));
-      const actualFontSize = getStyleValue(fieldStyle, 'fontSize', baseFontSize);
-      const actualFontFamily = getStyleValue(fieldStyle, 'fontFamily', 'inherit');
-      const actualBorderRadius = getStyleValue(fieldStyle, 'borderRadius', getStyleValue(formStyle, 'fieldBorderRadius', '8px'));
-      const actualPlaceholder = getStyleValue(fieldStyle, 'placeholder', placeholder);
-      const focusBorderColor = getStyleValue(formStyle, 'focusBorderColor', '#3b82f6');
-      
-      // Enhanced Padding Y calculation - using px consistently
-      let actualPaddingY = getStyleValue(fieldStyle, 'paddingY', '12px');
-      if (typeof actualPaddingY === 'string') {
-        const parsed = parseInt(actualPaddingY.replace(/[^0-9]/g, ''), 10);
-        if (!isNaN(parsed)) {
-          actualPaddingY = Math.max(6, Math.min(parsed, 60)) + 'px';
-        } else {
-          actualPaddingY = '12px';
-        }
-      } else if (typeof actualPaddingY === 'number') {
-        actualPaddingY = Math.max(6, Math.min(actualPaddingY, 60)) + 'px';
-      } else {
-        actualPaddingY = '12px';
-      }
-      
-      // Icon handling with proper matching to field type
-      const hasIcon = field.icon && field.icon !== 'none' && getStyleValue(fieldStyle, 'showIcon', true);
-      const iconColor = getStyleValue(fieldStyle, 'iconColor', '#6b7280');
-      
-      // Determine correct icon based on field type and label
-      let finalIcon = field.icon;
-      if (!finalIcon || finalIcon === 'none') {
-        switch(field.type) {
-          case 'text': 
-            // Check if this is a city field based on label
-            if (field.label && (field.label.toLowerCase().includes('city') || field.label.toLowerCase().includes('مدينة'))) {
-              finalIcon = 'map-pin';
-            } else {
-              finalIcon = 'user';
-            }
-            break;
-          case 'email': finalIcon = 'mail'; break;
-          case 'phone': finalIcon = 'phone'; break;
-          default: finalIcon = 'user';
-        }
-      }
-      
-      let iconHtml = '';
-      if (hasIcon && window.getIconSvg) {
-        const iconSvg = window.getIconSvg(finalIcon, iconColor);
-        if (iconSvg) {
-          iconHtml = `
-            <div style="
-              position: absolute;
-              ${formDirection === 'rtl' ? 'right: 12px;' : 'left: 12px;'}
-              top: 50%;
-              transform: translateY(-50%);
-              pointer-events: none;
-              z-index: 10;
-              color: ${iconColor};
-            ">
-              ${iconSvg}
-            </div>
-          `;
-        }
-      }
-      
-      const inputPaddingLeft = hasIcon ? 
-        (formDirection === 'rtl' ? '16px' : '48px') : '16px';
-      const inputPaddingRight = hasIcon ? 
-        (formDirection === 'rtl' ? '48px' : '16px') : '16px';
-      
-      html = `
-        <div class="codform-field-wrapper" style="
-          margin-bottom: ${getStyleValue(formStyle, 'formGap', '10px')};
-          direction: ${formDirection};
-        ">
-          ${actualShowLabel && !isFloatingLabels ? `
-            <label for="${fieldId}" style="
-              display: block;
-              color: ${actualLabelColor};
-              font-size: ${actualLabelFontSize};
-              font-weight: ${actualLabelWeight};
-              margin-bottom: 4px;
-              font-family: 'Cairo', sans-serif;
-              text-align: ${formDirection === 'rtl' ? 'right' : 'left'};
-            ">
-              ${label}${required ? '<span style="color: #EF4444; margin-left: 4px;">*</span>' : ''}
-            </label>
-          ` : ''}
-          
-          <div style="position: relative;">
-            ${isFloatingLabels && actualShowLabel ? `
-              <label for="${fieldId}" style="
-                position: absolute;
-                left: ${formDirection === 'rtl' ? 'auto' : hasIcon ? '48px' : '12px'};
-                right: ${formDirection === 'rtl' ? hasIcon ? '48px' : '12px' : 'auto'};
-                top: 50%;
-                transform: translateY(-50%);
-                color: #9CA3AF;
-                font-size: ${actualLabelFontSize};
-                font-family: 'Cairo', sans-serif;
-                pointer-events: none;
-                transition: all 0.2s ease;
-                background: white;
-                padding: 0 4px;
-                z-index: 5;
-              " class="floating-label">
-                ${label}${required ? '<span style="color: #EF4444; margin-left: 4px;">*</span>' : ''}
-              </label>
-            ` : ''}
-            
-            ${iconHtml}
-            
-            <input
-              type="${field.type === 'phone' ? 'tel' : field.type}"
-              id="${fieldId}"
-              name="${fieldId}"
-              placeholder="${isFloatingLabels ? '' : actualPlaceholder}"
-              ${required ? 'required' : ''}
-              style="
-                width: 100%;
-                background-color: #FFFFFF;
-                border: ${actualBorderWidth} solid ${actualBorderColor};
-                border-radius: ${actualBorderRadius};
-                padding: ${actualPaddingY} ${inputPaddingRight} ${actualPaddingY} ${inputPaddingLeft};
-                font-size: ${actualFontSize};
-                color: ${actualTextColor};
-                font-family: ${actualFontFamily};
-                outline: none;
-                transition: all 0.2s ease;
-                box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px;
-                box-sizing: border-box;
-                direction: ${formDirection};
-                text-align: ${formDirection === 'rtl' ? 'right' : 'left'};
-              "
-              onfocus="this.style.borderColor='${focusBorderColor}'; this.style.boxShadow='0 0 0 3px ${focusBorderColor}20'"
-              onblur="this.style.borderColor='${actualBorderColor}'; this.style.boxShadow='rgba(0, 0, 0, 0.05) 0px 1px 2px'"
-            />
-          </div>
-          
-          ${field.helpText ? `
-            <p style="
-              margin-top: 6px;
-              font-size: 14px;
-              color: #6B7280;
-              font-family: 'Cairo', inherit;
-              text-align: ${formDirection === 'rtl' ? 'right' : 'left'};
-            ">${field.helpText}</p>
-          ` : ''}
-        </div>
-      `;
+      html = window.CodformFieldRenderer.renderTextInputField(field, formStyle, formDirection, isFloatingLabels);
     }
     {%- comment -%} Textarea Field {%- endcomment -%}
     else if (field.type === 'textarea') {
@@ -482,8 +291,8 @@
         return strValue.endsWith('px') ? strValue : strValue + 'px';
       };
       
-      const buttonPaddingY = ensurePxFormat(buttonStyle.paddingY, '12px');
-      const buttonPaddingX = ensurePxFormat(buttonStyle.paddingX, '24px');
+      const buttonPaddingY = ensurePxFormat(field.style?.paddingY, '0px');
+      const buttonPaddingX = ensurePxFormat(field.style?.paddingX, '24px');
       
       const buttonBorder = buttonBorderWidth !== '0px' && buttonBorderColor !== 'transparent' 
         ? `${buttonBorderWidth} solid ${buttonBorderColor}` : 'none';
@@ -497,29 +306,15 @@
       const showIcon = (isPopupMode && !isInPopup) ? 
         (formStyle.popupButton?.showIcon !== false) : 
         getStyleValue(buttonStyle, 'showIcon', hasIcon);
-      const iconColor = getStyleValue(buttonStyle, 'iconColor', finalTextColor);
-      const iconPosition = getStyleValue(buttonStyle, 'iconPosition', 'left');
-      
-      // Default icon for submit button if none specified
-      let finalIconType = field.icon;
-      if (!finalIconType || finalIconType === 'none') {
-        finalIconType = 'send'; // Default submit icon
-      }
+      const iconColor = getStyleValue(buttonStyle, 'iconColor', '#6b7280');
       
       let iconHtml = '';
-      if (showIcon && hasIcon && window.getIconSvg) {
-        const iconSvg = window.getIconSvg(finalIconType, iconColor);
-        if (iconSvg) {
-          const marginDirection = formDirection === 'rtl' ? 
-            (iconPosition === 'left' ? 'margin-left: 8px;' : 'margin-right: 8px;') :
-            (iconPosition === 'left' ? 'margin-right: 8px;' : 'margin-left: 8px;');
-          iconHtml = `<span style="${marginDirection} display: inline-flex; align-items: center;">${iconSvg}</span>`;
-        }
+      if (showIcon && hasIcon) {
+        const iconSvg = getIconSvg(field.icon, iconColor);
+        iconHtml = `<span style="margin-right: 8px; display: inline-flex; align-items: center;">${iconSvg}</span>`;
       }
       
-      const buttonContent = iconPosition === 'left' ? 
-        `${iconHtml}${finalButtonText}` : 
-        `${finalButtonText}${iconHtml}`;
+      const buttonContent = `${iconHtml}${finalButtonText}`;
       const clickHandler = (isPopupMode && !isInPopup) ? 
         'onclick="openFormPopup(event)"' : 'type="submit"';
       
