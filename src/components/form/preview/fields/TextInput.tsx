@@ -77,7 +77,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
   const borderWidth = fieldStyle.borderWidth || formStyle.fieldBorderWidth || '1px';
   const borderRadius = fieldStyle.borderRadius || formStyle.fieldBorderRadius || '8px';
   const focusBorderColor = formStyle.focusBorderColor || formStyle.primaryColor || '#9b87f5';
-  const paddingY = fieldStyle.paddingY?.replace('px', '') ? `${fieldStyle.paddingY.replace('px', '')}px` : '10px';
+  const paddingY = fieldStyle.paddingY?.replace('px', '') ? `${fieldStyle.paddingY.replace('px', '')}px` : `${Math.max(10, parseInt(fontSize.replace('px', '')) * 0.6)}px`;
   
   // تحديد إذا كان هناك أيقونة وإذا كان يجب إظهارها
   const hasIcon = field.icon && field.icon !== 'none' && field.icon !== '';
