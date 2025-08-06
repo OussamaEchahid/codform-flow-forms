@@ -233,10 +233,12 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              zIndex: 1, // تقليل zIndex ليكون خلف الـ input
-              color: fieldStyle.iconColor || '#9ca3af',
+              zIndex: 10,
+              color: fieldStyle.iconColor || '#6b7280',
               background: 'transparent',
-              pointerEvents: 'none' // منع التدخل مع الـ input
+              pointerEvents: 'none',
+              width: '18px',
+              height: '18px'
             }}
           >
             {renderIcon()}
