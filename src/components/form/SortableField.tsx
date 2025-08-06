@@ -1544,10 +1544,10 @@ const SortableField: React.FC<SortableFieldProps> = ({
                         <div className="space-y-1">
                           <div className="flex items-center justify-between">
                             <Label>{language === 'ar' ? 'الحشو العمودي' : 'Padding Y'}</Label>
-                            <span className="text-sm">{editedField.style?.paddingY || '8'}px</span>
-                          </div>
-                          <Slider
-                            value={[parseInt(editedField.style?.paddingY || '8')]}
+                             <span className="text-sm">{parseInt(editedField.style?.paddingY?.replace('px', '') || '10')}px</span>
+                           </div>
+                           <Slider
+                             value={[parseInt(editedField.style?.paddingY?.replace('px', '') || '10')]}
                             onValueChange={(value) => handleStyleChange('paddingY', `${value[0]}px`)}
                             max={80}
                             min={0}

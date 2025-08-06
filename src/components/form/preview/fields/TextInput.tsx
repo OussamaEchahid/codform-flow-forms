@@ -68,7 +68,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
   
   const fontFamily = language === 'ar' ? "'Cairo', sans-serif" : (fieldStyle.fontFamily || 'inherit');
   const textColor = fieldStyle.color || 'rgb(31, 41, 55)';
-  const fontSize = fieldStyle.fontSize || '15px';
+  const fontSize = fieldStyle.fontSize?.replace('px', '') ? `${fieldStyle.fontSize.replace('px', '')}px` : '15px';
   const fontWeight = fieldStyle.fontWeight || '400';
   
   // خلفية بيضاء ثابتة للحقول
@@ -77,7 +77,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
   const borderWidth = fieldStyle.borderWidth || formStyle.fieldBorderWidth || '1px';
   const borderRadius = fieldStyle.borderRadius || formStyle.fieldBorderRadius || '8px';
   const focusBorderColor = formStyle.focusBorderColor || formStyle.primaryColor || '#9b87f5';
-  const paddingY = fieldStyle.paddingY || '10px';
+  const paddingY = fieldStyle.paddingY?.replace('px', '') ? `${fieldStyle.paddingY.replace('px', '')}px` : '10px';
   
   // تحديد إذا كان هناك أيقونة وإذا كان يجب إظهارها
   const hasIcon = field.icon && field.icon !== 'none' && field.icon !== '';
@@ -293,8 +293,8 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
             borderRadius: borderRadius,
             borderWidth: borderWidth,
             borderStyle: 'solid',
-            paddingTop: '12px',
-            paddingBottom: '12px',
+            paddingTop: paddingY,
+            paddingBottom: paddingY,
             paddingLeft: paddingLeft,
             paddingRight: paddingRight,
             boxShadow: isFocused 
