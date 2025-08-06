@@ -145,17 +145,17 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, onClick, 
       onClick={onClick}
       disabled={disabled}
     >
-      {showIcon && iconPosition === 'left' && field.icon && (
+      {showIcon && iconPosition === 'left' && (field.icon || field.style?.icon) && (
         <span className="submit-icon-left">
-          {getIconComponent(field.icon)}
+          {getIconComponent(field.icon || field.style?.icon)}
         </span>
       )}
       
       {field.label || 'Submit'}
       
-      {showIcon && iconPosition === 'right' && field.icon && (
+      {showIcon && iconPosition === 'right' && (field.icon || field.style?.icon) && (
         <span className="submit-icon-right">
-          {getIconComponent(field.icon)}
+          {getIconComponent(field.icon || field.style?.icon)}
         </span>
       )}
     </button>
