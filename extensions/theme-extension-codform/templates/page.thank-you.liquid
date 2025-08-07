@@ -1,0 +1,55 @@
+---
+layout: page
+---
+
+<div class="thank-you-page" style="text-align: center; padding: 40px 20px;">
+  <div class="thank-you-content" style="max-width: 600px; margin: 0 auto;">
+    <h1 style="color: #2e8b57; margin-bottom: 20px;">{{ 'codform.thank_you.title' | t | default: 'شكراً لك!' }}</h1>
+    
+    <div class="success-icon" style="font-size: 60px; margin-bottom: 20px;">✅</div>
+    
+    <p style="font-size: 18px; margin-bottom: 30px;">
+      {{ 'codform.thank_you.message' | t | default: 'تم استلام طلبك بنجاح. سنتواصل معك قريباً.' }}
+    </p>
+    
+    {% if request.query.order %}
+      <div class="order-info" style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+        <h3 style="margin-bottom: 10px;">{{ 'codform.thank_you.order_number' | t | default: 'رقم الطلب' }}</h3>
+        <p style="font-weight: bold; font-size: 20px; color: #333;">{{ request.query.order }}</p>
+      </div>
+    {% endif %}
+    
+    <div class="action-buttons" style="margin-top: 30px;">
+      <a href="{{ routes.root_url }}" 
+         style="display: inline-block; background: #007cba; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 10px;">
+        {{ 'codform.thank_you.continue_shopping' | t | default: 'متابعة التسوق' }}
+      </a>
+      
+      <a href="{{ routes.collections_url }}" 
+         style="display: inline-block; background: #28a745; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 10px;">
+        {{ 'codform.thank_you.view_products' | t | default: 'عرض المنتجات' }}
+      </a>
+    </div>
+    
+    <div class="contact-info" style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee;">
+      <p style="color: #666;">
+        {{ 'codform.thank_you.contact_message' | t | default: 'في حالة وجود أي استفسار، يرجى التواصل معنا' }}
+      </p>
+    </div>
+  </div>
+</div>
+
+<script>
+// Track successful order for analytics
+if (window.CodformAdvertisingTracking && window.CodformAdvertisingTracking.track) {
+  console.log('🎯 Tracking successful order completion');
+  window.CodformAdvertisingTracking.track();
+}
+
+// Auto redirect after 10 seconds if specified
+{% if request.query.auto_redirect %}
+setTimeout(function() {
+  window.location.href = '{{ routes.root_url }}';
+}, 10000);
+{% endif %}
+</script>

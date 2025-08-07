@@ -488,8 +488,8 @@ serve(async (req: Request) => {
         redirectUrl += `?order=${orderNumber}&success=true`;
       }
     } else {
-      // Use default Shopify thank you page
-      redirectUrl = `https://${shopDomain}/pages/thank-you?order=${orderNumber}&success=true`;
+      // Use default Shopify checkout success page
+      redirectUrl = `https://${shopDomain}/checkout/thank_you?order=${orderNumber}&success=true`;
     }
 
     console.log('🔄 Redirect URL determined:', redirectUrl);
