@@ -172,10 +172,10 @@ const AdvertisingTracking = () => {
           ? selectedProducts.join(',') 
           : null,
         shop_id: activeStore,
-        user_id: FIXED_USER_ID,
         access_token: newPixel.access_token || null,
         conversion_api_enabled: newPixel.conversion_api_enabled || false,
-        enabled: true
+        enabled: true,
+        user_id: FIXED_USER_ID
       };
 
       console.log('📤 Final pixel data to insert:', pixelData);
