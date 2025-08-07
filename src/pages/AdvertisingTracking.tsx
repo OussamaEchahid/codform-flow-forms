@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/components/layout/AuthProvider';
 import { supabase } from '@/integrations/supabase/client';
 import { useI18n } from '@/lib/i18n';
+import SettingsLayout from '@/components/layout/SettingsLayout';
 
 // Type definition for advertising pixels
 interface AdvertisingPixel {
@@ -53,7 +54,7 @@ const AdvertisingTracking = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newPixel, setNewPixel] = useState({
     name: '',
-    platform: 'facebook',
+        platform: 'Facebook',
     pixel_id: '',
     event_type: 'Lead',
     target_type: 'All',
@@ -165,7 +166,7 @@ const AdvertisingTracking = () => {
       
       const pixelData = {
         name: newPixel.name.trim(),
-        platform: 'facebook',
+        platform: newPixel.platform,
         pixel_id: newPixel.pixel_id.trim(),
         event_type: newPixel.event_type || 'Lead',
         target_type: newPixel.target_type || 'All',
@@ -198,7 +199,7 @@ const AdvertisingTracking = () => {
       setIsCreateDialogOpen(false);
       setNewPixel({
         name: '',
-        platform: 'facebook',
+        platform: 'Facebook',
         pixel_id: '',
         event_type: 'Lead',
         target_type: 'All',
@@ -246,8 +247,8 @@ const AdvertisingTracking = () => {
   }
 
   return (
-    <div className="flex min-h-screen bg-[#F8F9FB]" dir={language === 'ar' ? 'rtl' : 'ltr'}>      
-      <div className="flex-1 p-6">
+    <SettingsLayout>
+      <div className="p-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>
         <div className="max-w-7xl mx-auto">
           {/* العنوان الرئيسي */}
           <div className="mb-8">
@@ -321,8 +322,8 @@ const AdvertisingTracking = () => {
               {/* Header with Add Button */}
               <div className="flex justify-between items-center">
                 <div>
-                  <h2 className="text-2xl font-bold">Facebook Pixels</h2>
-                  <p className="text-muted-foreground">إدارة بيكسلات التتبع الخاصة بك</p>
+                  <h2 className="text-2xl font-bold">بيكسلات التتبع</h2>
+                  <p className="text-muted-foreground">إدارة بيكسلات Facebook و TikTok و Snapchat</p>
                 </div>
                 <Button 
                   onClick={() => setIsCreateDialogOpen(true)}
@@ -341,7 +342,7 @@ const AdvertisingTracking = () => {
                       <div className="h-8 w-8 bg-blue-600 rounded-lg flex items-center justify-center">
                         <Target className="h-4 w-4 text-white" />
                       </div>
-                      <span className="font-semibold">facebook pixel</span>
+                      <span className="font-semibold">جميع بيكسلات التتبع</span>
                     </div>
                   </div>
                 </CardHeader>
@@ -351,13 +352,13 @@ const AdvertisingTracking = () => {
                       <table className="w-full">
                         <thead>
                           <tr className="border-b text-sm text-muted-foreground">
-                            <th className="text-right pb-3 font-medium">Last Update</th>
-                            <th className="text-right pb-3 font-medium">Pixel Name</th>
-                            <th className="text-right pb-3 font-medium">Pixel ID</th>
-                            <th className="text-right pb-3 font-medium">Conversion API Status</th>
-                            <th className="text-right pb-3 font-medium">Event type</th>
-                            <th className="text-right pb-3 font-medium">Target</th>
-                            <th className="text-right pb-3 font-medium">Actions</th>
+                            <th className="text-right pb-3 font-medium">آخر تحديث</th>
+                            <th className="text-right pb-3 font-medium">اسم البيكسل</th>
+                            <th className="text-right pb-3 font-medium">المنصة</th>
+                            <th className="text-right pb-3 font-medium">معرف البيكسل</th>
+                            <th className="text-right pb-3 font-medium">نوع الحدث</th>
+                            <th className="text-right pb-3 font-medium">الهدف</th>
+                            <th className="text-right pb-3 font-medium">الإجراءات</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -367,12 +368,19 @@ const AdvertisingTracking = () => {
                                 {new Date(pixel.updated_at).toLocaleDateString('ar-SA')}
                               </td>
                               <td className="py-3 font-medium">{pixel.name}</td>
-                              <td className="py-3 text-sm text-blue-600">{pixel.pixel_id}</td>
                               <td className="py-3">
-                                <Badge variant={pixel.conversion_api_enabled ? "default" : "secondary"}>
-                                  {pixel.conversion_api_enabled ? "Active" : "Inactive"}
+                                <Badge 
+                                  variant="outline" 
+                                  className={`
+                                    ${pixel.platform === 'Facebook' ? 'border-blue-500 text-blue-600' : ''}
+                                    ${pixel.platform === 'TikTok' ? 'border-black text-black' : ''}
+                                    ${pixel.platform === 'Snapchat' ? 'border-yellow-500 text-yellow-600' : ''}
+                                  `}
+                                >
+                                  {pixel.platform}
                                 </Badge>
                               </td>
+                              <td className="py-3 text-sm text-blue-600">{pixel.pixel_id}</td>
                               <td className="py-3">{pixel.event_type}</td>
                               <td className="py-3">
                                 <Badge variant="outline">
@@ -417,26 +425,63 @@ const AdvertisingTracking = () => {
                   </DialogHeader>
                   
                   <div className="space-y-6">
+                    {/* Platform Selection */}
+                    <div className="space-y-3">
+                      <Label className="text-sm font-medium">المنصة</Label>
+                      <div className="grid grid-cols-3 gap-2">
+                        <Button
+                          type="button"
+                          variant={newPixel.platform === 'Facebook' ? 'default' : 'outline'}
+                          onClick={() => setNewPixel({...newPixel, platform: 'Facebook'})}
+                          className="h-10 text-xs"
+                        >
+                          Facebook
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={newPixel.platform === 'TikTok' ? 'default' : 'outline'}
+                          onClick={() => setNewPixel({...newPixel, platform: 'TikTok'})}
+                          className="h-10 text-xs"
+                        >
+                          TikTok
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={newPixel.platform === 'Snapchat' ? 'default' : 'outline'}
+                          onClick={() => setNewPixel({...newPixel, platform: 'Snapchat'})}
+                          className="h-10 text-xs"
+                        >
+                          Snapchat
+                        </Button>
+                      </div>
+                    </div>
+
                     {/* Name Field */}
                     <div className="space-y-2">
-                      <Label htmlFor="name" className="text-sm font-medium">Name</Label>
+                      <Label htmlFor="name" className="text-sm font-medium">اسم البيكسل</Label>
                       <Input
                         id="name"
                         value={newPixel.name}
                         onChange={(e) => setNewPixel({...newPixel, name: e.target.value})}
-                        placeholder="This name will help you recognize your pixel"
+                        placeholder="اسم يساعدك على تذكر هذا البيكسل"
                         className="h-10"
                       />
                     </div>
 
-                    {/* Facebook Pixel ID */}
+                    {/* Pixel ID */}
                     <div className="space-y-2">
-                      <Label htmlFor="pixel_id" className="text-sm font-medium">Facebook Pixel ID</Label>
+                      <Label htmlFor="pixel_id" className="text-sm font-medium">
+                        معرف البيكسل {newPixel.platform}
+                      </Label>
                       <Input
                         id="pixel_id"
                         value={newPixel.pixel_id}
                         onChange={(e) => setNewPixel({...newPixel, pixel_id: e.target.value})}
-                        placeholder="Enter your Facebook pixel ID here"
+                        placeholder={
+                          newPixel.platform === 'Facebook' ? 'أدخل معرف Facebook Pixel' :
+                          newPixel.platform === 'TikTok' ? 'أدخل معرف TikTok Pixel' :
+                          'أدخل معرف Snapchat Pixel'
+                        }
                         className="h-10"
                       />
                     </div>
@@ -589,7 +634,7 @@ const AdvertisingTracking = () => {
                           setIsCreateDialogOpen(false);
                           setNewPixel({
                             name: '',
-                            platform: 'facebook',
+                            platform: 'Facebook',
                             pixel_id: '',
                             event_type: 'Lead',
                             target_type: 'All',
@@ -611,7 +656,7 @@ const AdvertisingTracking = () => {
           )}
         </div>
       </div>
-    </div>
+    </SettingsLayout>
   );
 };
 
