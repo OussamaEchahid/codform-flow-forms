@@ -31,6 +31,7 @@
 <script src="{{ 'codform-countdown-field.js' | asset_url }}"></script>
 <script src="{{ 'codform-arabic-styling.js' | asset_url }}"></script>
 <script src="{{ 'codform-cart-summary.js' | asset_url }}"></script>
+<script src="{{ 'codform-advertising-tracking.js' | asset_url }}"></script>
 
 <div id="codform-popup-button-container" style="display: none;">
   
@@ -329,6 +330,7 @@
           <button
             ${clickHandler}
             class="codform-submit-btn ${finalAnimation}"
+            onclick="handleFormSubmit(event)"
             style="
               background-color: ${finalBgColor} !important;
               color: ${finalTextColor} !important;
