@@ -76,11 +76,14 @@ const AdvertisingTracking = () => {
     setIsLoading(true);
     try {
       // Load pixels from Supabase database using direct API call
+      const { data: { session } } = await supabase.auth.getSession();
+      
       const response = await fetch(
         `https://trlklwixfeaexhydzaue.supabase.co/rest/v1/advertising_pixels?shop_id=eq.${activeStore}`,
         {
           headers: {
             'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
+            'Authorization': `Bearer ${session?.access_token || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M'}`,
             'Content-Type': 'application/json',
           }
         }
@@ -182,12 +185,15 @@ const AdvertisingTracking = () => {
   };
 
   const addPixelToDatabase = async (pixelData: any) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    
     const response = await fetch(
       'https://trlklwixfeaexhydzaue.supabase.co/rest/v1/advertising_pixels',
       {
         method: 'POST',
         headers: {
           'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
+          'Authorization': `Bearer ${session?.access_token || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M'}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(pixelData)
@@ -251,12 +257,15 @@ const AdvertisingTracking = () => {
       };
 
       // Save to Supabase database
+      const { data: { session } } = await supabase.auth.getSession();
+      
       const response = await fetch(
         'https://trlklwixfeaexhydzaue.supabase.co/rest/v1/advertising_pixels',
         {
           method: 'POST',
           headers: {
             'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
+            'Authorization': `Bearer ${session?.access_token || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M'}`,
             'Content-Type': 'application/json',
             'Prefer': 'return=representation'
           },
@@ -265,7 +274,9 @@ const AdvertisingTracking = () => {
       );
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+        const errorData = await response.text();
+        console.error('Error creating pixel:', errorData);
+        throw new Error(`HTTP ${response.status}: ${errorData}`);
       }
 
       const [data] = await response.json();
@@ -469,19 +480,24 @@ document.addEventListener('formSubmitted', function(e) {
   const deletePixel = async (platform: string, pixelId: string) => {
     try {
       // Remove from Supabase database
+      const { data: { session } } = await supabase.auth.getSession();
+      
       const response = await fetch(
         `https://trlklwixfeaexhydzaue.supabase.co/rest/v1/advertising_pixels?id=eq.${pixelId}`,
         {
           method: 'DELETE',
           headers: {
             'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
+            'Authorization': `Bearer ${session?.access_token || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M'}`,
             'Content-Type': 'application/json',
           }
         }
       );
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+        const errorData = await response.text();
+        console.error('Error deleting pixel:', errorData);
+        throw new Error(`HTTP ${response.status}: ${errorData}`);
       }
 
       // Update local state
