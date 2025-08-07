@@ -184,10 +184,18 @@
    * Handle form submission with tracking
    */
   window.handleFormSubmit = function(event) {
-    console.log('📋 Form submission detected');
+    console.log('📋 Form submission detected, triggering advertising tracking');
     
-    // Track the event
+    // Track the event immediately
     trackFormSubmission();
+    
+    // Also dispatch custom event for other listeners
+    document.dispatchEvent(new CustomEvent('formSubmitted', { 
+      detail: { 
+        productId: window.codformProductId,
+        shopDomain: window.codformShopDomain 
+      } 
+    }));
     
     // Continue with normal form submission
     if (event.target.type === 'submit') {

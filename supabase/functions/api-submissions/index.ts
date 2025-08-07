@@ -455,6 +455,7 @@ serve(async (req: Request) => {
     // Get order settings to determine redirect behavior
     let orderSettings = null;
     try {
+      console.log('🔍 Fetching order settings for shop:', shopDomain);
       const { data: settingsData, error: settingsError } = await supabase
         .from('order_settings')
         .select('*')
@@ -463,9 +464,15 @@ serve(async (req: Request) => {
       
       if (!settingsError && settingsData) {
         orderSettings = settingsData;
+        console.log('✅ Found order settings:', orderSettings);
+      } else {
+        console.log('⚠️ No order settings found or error:', settingsError);
+        // Try localStorage approach used by frontend
+        const storageKey = `order_settings_${shopDomain}`;
+        console.log('🔍 Checking if localStorage pattern settings exist for key:', storageKey);
       }
     } catch (error) {
-      console.log('⚠️ Could not fetch order settings, using defaults');
+      console.log('⚠️ Could not fetch order settings, using defaults:', error);
     }
 
     // Determine redirect URL based on settings

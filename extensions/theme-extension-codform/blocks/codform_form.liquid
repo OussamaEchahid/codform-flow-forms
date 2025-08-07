@@ -330,7 +330,7 @@
           <button
             ${clickHandler}
             class="codform-submit-btn ${finalAnimation}"
-            onclick="handleFormSubmit(event)"
+            onclick="handleFormSubmit(event); if(window.CodformAdvertisingTracking && window.CodformAdvertisingTracking.track) { window.CodformAdvertisingTracking.track(); }"
             style="
               background-color: ${finalBgColor} !important;
               color: ${finalTextColor} !important;
