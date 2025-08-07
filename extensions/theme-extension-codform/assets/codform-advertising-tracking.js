@@ -75,16 +75,19 @@
 
     // Initialize Facebook pixels
     window.CodformAdvertisingTracking.pixels.facebook.forEach(pixel => {
+      console.log('📘 Initializing Facebook pixel:', pixel.pixel_id);
       initializeFacebookPixel(pixel.pixel_id);
     });
 
     // Initialize Snapchat pixels
     window.CodformAdvertisingTracking.pixels.snapchat.forEach(pixel => {
+      console.log('👻 Initializing Snapchat pixel:', pixel.pixel_id);
       initializeSnapchatPixel(pixel.pixel_id);
     });
 
     // Initialize TikTok pixels
     window.CodformAdvertisingTracking.pixels.tiktok.forEach(pixel => {
+      console.log('🎵 Initializing TikTok pixel:', pixel.pixel_id);
       initializeTikTokPixel(pixel.pixel_id);
     });
 

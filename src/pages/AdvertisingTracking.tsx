@@ -75,18 +75,56 @@ const AdvertisingTracking = () => {
     
     setIsLoading(true);
     try {
-      // Use a temporary method since the table structure is not yet updated
-      // For now, we'll use local storage to simulate the pixels
-      const savedPixels = localStorage.getItem(`advertising_pixels_${activeStore}`);
-      if (savedPixels) {
-        const pixels = JSON.parse(savedPixels);
-        const facebook = pixels.filter((p: PixelSettings) => p.platform === 'facebook');
-        const snapchat = pixels.filter((p: PixelSettings) => p.platform === 'snapchat');
-        const tiktok = pixels.filter((p: PixelSettings) => p.platform === 'tiktok');
+      // Load pixels from Supabase database using direct API call
+      const response = await fetch(
+        `https://trlklwixfeaexhydzaue.supabase.co/rest/v1/advertising_pixels?shop_id=eq.${activeStore}`,
+        {
+          headers: {
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
+            'Content-Type': 'application/json',
+          }
+        }
+      );
+
+      if (response.ok) {
+        const pixelsData = await response.json();
+        console.log('✅ Raw pixels data from database:', pixelsData);
+        
+        // Transform data to match component interface
+        const transformedPixels = pixelsData.map((p: any) => ({
+          id: p.id,
+          enabled: p.enabled,
+          pixelId: p.pixel_id,
+          name: p.name,
+          eventType: p.event_type,
+          target: p.target_type,
+          targetId: p.target_id,
+          conversionApiEnabled: p.conversion_api_enabled,
+          accessToken: p.access_token,
+          platform: p.platform,
+          shop_id: p.shop_id,
+          created_at: p.created_at,
+          updated_at: p.updated_at
+        }));
+
+        const facebook = transformedPixels.filter((p: any) => p.platform === 'facebook');
+        const snapchat = transformedPixels.filter((p: any) => p.platform === 'snapchat');
+        const tiktok = transformedPixels.filter((p: any) => p.platform === 'tiktok');
         
         setFacebookPixels(facebook);
         setSnapchatPixels(snapchat);
         setTiktokPixels(tiktok);
+        
+        console.log('✅ Loaded pixels from database:', { facebook: facebook.length, snapchat: snapchat.length, tiktok: tiktok.length });
+        
+        // Migrate data from localStorage if database is empty and localStorage has data
+        if (pixelsData.length === 0) {
+          await migrateFromLocalStorage();
+        }
+      } else {
+        console.error('Error loading pixels:', response.statusText);
+        // Fallback to localStorage
+        await migrateFromLocalStorage();
       }
 
       // Load forms for tracking
@@ -100,8 +138,66 @@ const AdvertisingTracking = () => {
       }
     } catch (error) {
       console.error('Error loading data:', error);
+      // Fallback to localStorage
+      await migrateFromLocalStorage();
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const migrateFromLocalStorage = async () => {
+    if (!activeStore) return;
+    
+    try {
+      const savedPixels = localStorage.getItem(`advertising_pixels_${activeStore}`);
+      if (savedPixels) {
+        const pixels = JSON.parse(savedPixels);
+        console.log('🔄 Migrating pixels from localStorage to database:', pixels.length);
+        
+        for (const pixel of pixels) {
+          await addPixelToDatabase({
+            platform: pixel.platform,
+            name: pixel.name,
+            pixel_id: pixel.pixelId,
+            event_type: pixel.eventType,
+            target_type: pixel.target,
+            target_id: pixel.targetId || null,
+            conversion_api_enabled: pixel.conversionApiEnabled || false,
+            access_token: pixel.accessToken || null,
+            enabled: pixel.enabled,
+            shop_id: activeStore
+          });
+        }
+        
+        // Clear localStorage after successful migration
+        localStorage.removeItem(`advertising_pixels_${activeStore}`);
+        console.log('✅ Migration completed successfully');
+        
+        // Reload data after migration
+        await loadPixelsAndForms();
+      }
+    } catch (error) {
+      console.error('❌ Error during migration:', error);
+    }
+  };
+
+  const addPixelToDatabase = async (pixelData: any) => {
+    const response = await fetch(
+      'https://trlklwixfeaexhydzaue.supabase.co/rest/v1/advertising_pixels',
+      {
+        method: 'POST',
+        headers: {
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(pixelData)
+      }
+    );
+    
+    if (!response.ok) {
+      const error = await response.text();
+      console.error('Error adding pixel to database:', error);
+      throw new Error(error);
     }
   };
 
@@ -141,30 +237,58 @@ const AdvertisingTracking = () => {
     }
 
     try {
-      const pixelToAdd = { 
-        ...newPixel, 
-        id: Date.now().toString(),
+      const pixelData = {
         platform: selectedPlatform,
-        shop_id: activeStore,
-        created_at: new Date().toISOString()
+        name: newPixel.name,
+        pixel_id: newPixel.pixelId,
+        event_type: newPixel.eventType,
+        target_type: newPixel.target,
+        target_id: newPixel.targetId || null,
+        conversion_api_enabled: newPixel.conversionApiEnabled,
+        access_token: newPixel.accessToken || null,
+        enabled: newPixel.enabled,
+        shop_id: activeStore
       };
 
-      // Save to localStorage for now
-      const savedPixels = localStorage.getItem(`advertising_pixels_${activeStore}`);
-      const pixels = savedPixels ? JSON.parse(savedPixels) : [];
-      pixels.push(pixelToAdd);
-      localStorage.setItem(`advertising_pixels_${activeStore}`, JSON.stringify(pixels));
-      
+      // Save to Supabase database
+      const response = await fetch(
+        'https://trlklwixfeaexhydzaue.supabase.co/rest/v1/advertising_pixels',
+        {
+          method: 'POST',
+          headers: {
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation'
+          },
+          body: JSON.stringify(pixelData)
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const [data] = await response.json();
+
       // Update local state
+      const createdPixel = { 
+        ...data, 
+        pixelId: data.pixel_id, 
+        eventType: data.event_type, 
+        target: data.target_type,
+        conversionApiEnabled: data.conversion_api_enabled,
+        targetId: data.target_id,
+        accessToken: data.access_token
+      };
       switch (selectedPlatform) {
         case 'facebook':
-          setFacebookPixels(prev => [...prev, pixelToAdd]);
+          setFacebookPixels(prev => [...prev, createdPixel]);
           break;
         case 'snapchat':
-          setSnapchatPixels(prev => [...prev, pixelToAdd]);
+          setSnapchatPixels(prev => [...prev, createdPixel]);
           break;
         case 'tiktok':
-          setTiktokPixels(prev => [...prev, pixelToAdd]);
+          setTiktokPixels(prev => [...prev, createdPixel]);
           break;
       }
 
@@ -344,12 +468,20 @@ document.addEventListener('formSubmitted', function(e) {
 
   const deletePixel = async (platform: string, pixelId: string) => {
     try {
-      // Remove from localStorage
-      const savedPixels = localStorage.getItem(`advertising_pixels_${activeStore}`);
-      if (savedPixels) {
-        const pixels = JSON.parse(savedPixels);
-        const updatedPixels = pixels.filter((p: PixelSettings) => p.id !== pixelId);
-        localStorage.setItem(`advertising_pixels_${activeStore}`, JSON.stringify(updatedPixels));
+      // Remove from Supabase database
+      const response = await fetch(
+        `https://trlklwixfeaexhydzaue.supabase.co/rest/v1/advertising_pixels?id=eq.${pixelId}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
+            'Content-Type': 'application/json',
+          }
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
       }
 
       // Update local state
