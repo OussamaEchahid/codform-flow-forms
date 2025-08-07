@@ -61,6 +61,9 @@ const AdvertisingTracking = () => {
     access_token: '',
     conversion_api_enabled: false
   });
+  const [shopifyProducts, setShopifyProducts] = useState<any[]>([]);
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false);
 
   // Check for active Shopify store (same as Forms page)
   const storeFromStorage = localStorage.getItem('current_shopify_store');
@@ -76,6 +79,7 @@ const AdvertisingTracking = () => {
   useEffect(() => {
     if (isValidStore) {
       loadPixels();
+      loadShopifyProducts();
     }
   }, [isValidStore]);
 
@@ -94,6 +98,23 @@ const AdvertisingTracking = () => {
     }
   };
 
+  const loadShopifyProducts = async () => {
+    if (!activeStore) return;
+    
+    setIsLoadingProducts(true);
+    try {
+      const response = await fetch(`/api/shopify-products?shop=${activeStore}`);
+      if (response.ok) {
+        const data = await response.json();
+        setShopifyProducts(data.products || []);
+      }
+    } catch (error) {
+      console.error('Error loading Shopify products:', error);
+    } finally {
+      setIsLoadingProducts(false);
+    }
+  };
+
   const createPixel = async () => {
     if (!newPixel.name || !newPixel.platform || !newPixel.pixel_id) {
       toast.error('يرجى ملء جميع الحقول المطلوبة');
@@ -101,12 +122,15 @@ const AdvertisingTracking = () => {
     }
 
     try {
+      const pixelData = {
+        ...newPixel,
+        shop_id: activeStore,
+        target_id: newPixel.target_type === 'Specific' ? selectedProducts.join(',') : null
+      };
+
       const { data, error } = await (supabase as any)
         .from('advertising_pixels')
-        .insert([{
-          ...newPixel,
-          shop_id: activeStore
-        }]);
+        .insert([pixelData]);
 
       if (error) throw error;
 
@@ -122,6 +146,7 @@ const AdvertisingTracking = () => {
         access_token: '',
         conversion_api_enabled: false
       });
+      setSelectedProducts([]);
       loadPixels();
     } catch (error) {
       console.error('Error creating pixel:', error);
@@ -303,18 +328,77 @@ const AdvertisingTracking = () => {
                               <SelectItem value="InitiateCheckout">InitiateCheckout</SelectItem>
                             </SelectContent>
                           </Select>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button onClick={createPixel} className="flex-1">
-                            إنشاء
-                          </Button>
-                          <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)} className="flex-1">
-                            إلغاء
-                          </Button>
-                        </div>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
+                         </div>
+                         <div>
+                           <Label htmlFor="target_type">نوع الاستهداف</Label>
+                           <Select value={newPixel.target_type} onValueChange={(value) => setNewPixel({...newPixel, target_type: value})}>
+                             <SelectTrigger>
+                               <SelectValue />
+                             </SelectTrigger>
+                             <SelectContent>
+                               <SelectItem value="All">جميع المنتجات</SelectItem>
+                               <SelectItem value="Specific">منتجات محددة</SelectItem>
+                             </SelectContent>
+                           </Select>
+                         </div>
+                         
+                         {/* اختيار المنتجات المحددة */}
+                         {newPixel.target_type === 'Specific' && (
+                           <div>
+                             <Label>اختيار المنتجات</Label>
+                             {isLoadingProducts ? (
+                               <div className="text-center py-4">
+                                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+                                 <p className="text-sm text-muted-foreground mt-2">جاري تحميل المنتجات...</p>
+                               </div>
+                             ) : (
+                               <div className="max-h-40 overflow-y-auto border rounded-md p-2 space-y-2">
+                                 {shopifyProducts.length > 0 ? (
+                                   shopifyProducts.map((product) => (
+                                     <div key={product.id} className="flex items-center space-x-2">
+                                       <input
+                                         type="checkbox"
+                                         id={`product-${product.id}`}
+                                         checked={selectedProducts.includes(product.id.toString())}
+                                         onChange={(e) => {
+                                           if (e.target.checked) {
+                                             setSelectedProducts([...selectedProducts, product.id.toString()]);
+                                           } else {
+                                             setSelectedProducts(selectedProducts.filter(id => id !== product.id.toString()));
+                                           }
+                                         }}
+                                         className="rounded"
+                                       />
+                                       <label htmlFor={`product-${product.id}`} className="text-sm flex-1 cursor-pointer">
+                                         <div className="flex items-center gap-2">
+                                           {product.image && (
+                                             <img src={product.image.src} alt="" className="w-8 h-8 rounded object-cover" />
+                                           )}
+                                           <span>{product.title}</span>
+                                         </div>
+                                       </label>
+                                     </div>
+                                   ))
+                                 ) : (
+                                   <p className="text-sm text-muted-foreground text-center py-4">
+                                     لا توجد منتجات متاحة
+                                   </p>
+                                 )}
+                               </div>
+                             )}
+                           </div>
+                          )}
+                         <div className="flex gap-2">
+                           <Button onClick={createPixel} className="flex-1">
+                             إنشاء
+                           </Button>
+                           <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)} className="flex-1">
+                             إلغاء
+                           </Button>
+                         </div>
+                       </div>
+                     </DialogContent>
+                   </Dialog>
                 </CardContent>
               </Card>
 
