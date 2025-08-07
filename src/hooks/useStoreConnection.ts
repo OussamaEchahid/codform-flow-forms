@@ -69,9 +69,16 @@ export const useStoreConnection = () => {
   }, []);
 
   const validateStoreConnection = useCallback(async (shopDomain: string): Promise<boolean> => {
-    const token = await getStoreAccessToken(shopDomain);
-    return !!token && token.length > 0;
-  }, [getStoreAccessToken]);
+    try {
+      const { data, error } = await supabase.functions.invoke('shopify-test-connection', {
+        body: { shop: shopDomain }
+      });
+      if (error) return false;
+      return !!data && (data.success === true || data.connected === true);
+    } catch (e) {
+      return false;
+    }
+  }, []);
 
   return {
     connecting,

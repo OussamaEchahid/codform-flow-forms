@@ -2,9 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Card, CardContent } from "@/components/ui/card";
 import ShopifyProductsList from '@/components/shopify/ShopifyProductsList';
-import { createShopifyAPI } from '@/lib/shopify/api';
+import { supabase } from '@/integrations/supabase/client';
 import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
-import { shopifyStores } from '@/lib/shopify/supabase-client';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
@@ -31,28 +30,19 @@ const ShopifyProductView = () => {
           throw new Error("لا يوجد متجر نشط متصل");
         }
         
-        // Fetch the access token for the active shop
-        const { data, error } = await shopifyStores()
-          .select('*')
-          .eq('shop', activeShop)
-          .order('updated_at', { ascending: false })
-          .limit(1);
-          
-        if (error || !data || data.length === 0) {
-          throw new Error("لم يتم العثور على معلومات المتجر");
+        // Fetch products via Edge Function without exposing tokens
+        const { data: efData, error: efError } = await supabase.functions.invoke('shopify-products-fixed', {
+          body: { shop: activeShop }
+        });
+
+        if (efError) {
+          throw efError;
         }
-        
-        const accessToken = data[0].access_token;
-        
-        if (!accessToken) {
-          throw new Error("رمز الوصول غير متوفر للمتجر");
+        if (!efData || efData.success === false) {
+          throw new Error(efData?.message || 'فشل في جلب المنتجات');
         }
-        
-        // Create ShopifyAPI instance and fetch products
-        const shopifyAPI = createShopifyAPI(accessToken, activeShop);
-        const productData = await shopifyAPI.getProducts();
-        
-        setProducts(productData);
+
+        setProducts(efData.products || []);
       } catch (err) {
         console.error("Error fetching products:", err);
         setError(err instanceof Error ? err.message : "حدث خطأ أثناء جلب المنتجات");
