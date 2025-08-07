@@ -16,7 +16,7 @@ type = "admin_link"
 # url = "https://yourappdomain.com/path"
 [[extensions.targeting]]
 target = "admin.product-details.action.link"
-url = "/"
+url = "https://codmagnet.com/settings/plans?shop={{shop.domain}}"
 
 # Valid Extension Targets
 #
