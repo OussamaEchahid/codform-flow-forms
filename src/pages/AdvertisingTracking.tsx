@@ -84,16 +84,27 @@ const AdvertisingTracking = () => {
   }, [isValidStore]);
 
   const loadPixels = async () => {
+    if (!activeStore) return;
+    
+    console.log('📥 Loading pixels for store:', activeStore);
+    
     try {
       const { data, error } = await (supabase as any)
         .from('advertising_pixels')
         .select('*')
-        .eq('shop_id', activeStore);
+        .eq('shop_id', activeStore)
+        .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setPixels((data || []) as AdvertisingPixel[]);
+      if (error) {
+        console.error('❌ Error loading pixels:', error);
+        toast.error('خطأ في تحميل البيكسلات');
+        return;
+      }
+
+      console.log('✅ Loaded pixels:', data);
+      setPixels(data || []);
     } catch (error) {
-      console.error('Error loading pixels:', error);
+      console.error('❌ Error in loadPixels:', error);
       toast.error('خطأ في تحميل البيكسلات');
     }
   };
@@ -148,18 +159,8 @@ const AdvertisingTracking = () => {
     try {
       console.log('📤 Preparing pixel data for insertion...');
       
-      // Get user_id from the active store
-      const { data: storeData, error: storeError } = await (supabase as any)
-        .from('shopify_stores')
-        .select('user_id')
-        .eq('shop', activeStore)
-        .single();
-
-      if (storeError || !storeData?.user_id) {
-        console.error('❌ Could not get user_id from store:', storeError);
-        toast.error('خطأ في الحصول على بيانات المتجر');
-        return;
-      }
+      // استخدم الـ user_id الثابت المستخدم في المشروع
+      const FIXED_USER_ID = '36d7eb85-0c45-4b4f-bea1-a9cb732ca893';
       
       const pixelData = {
         name: newPixel.name.trim(),
@@ -171,7 +172,7 @@ const AdvertisingTracking = () => {
           ? selectedProducts.join(',') 
           : null,
         shop_id: activeStore,
-        user_id: storeData.user_id,
+        user_id: FIXED_USER_ID,
         access_token: newPixel.access_token || null,
         conversion_api_enabled: newPixel.conversion_api_enabled || false,
         enabled: true
