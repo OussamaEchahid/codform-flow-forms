@@ -102,33 +102,21 @@ export const useSimpleShopify = () => {
     try {
       console.log(`📦 Loading products for: ${activeStore}`);
       
-      // الحصول على token من قاعدة البيانات
-      const { data: tokenData, error: tokenError } = await shopifyStores()
-        .select('*')
-        .eq('shop', activeStore)
-        .eq('is_active', true)
-        .limit(1);
-
-      if (tokenError || !tokenData || tokenData.length === 0) {
-        throw new Error(`No valid token found for store: ${activeStore}`);
-      }
-
-      const storeRecord = tokenData[0];
-      if (!storeRecord.access_token || storeRecord.access_token === 'null') {
-        throw new Error(`Invalid access token for store: ${activeStore}`);
-      }
-
-      // جلب المنتجات
-      const { data, error } = await shopifySupabase.functions.invoke('shopify-products', {
-        body: { 
-          shop: activeStore, 
-          accessToken: storeRecord.access_token,
-          limit: 25
-        }
-      });
-
-      if (error) {
-        throw error;
+      // جلب المنتجات عبر Edge Function (بدون قراءة التوكن)، مع مسار احتياطي
+      let data: any; let error: any;
+      try {
+        const res = await shopifySupabase.functions.invoke('shopify-products', {
+          body: { shop: activeStore, limit: 50 }
+        });
+        data = res.data; error = res.error;
+        if (error || !data?.success) throw error || new Error(data?.error || 'Primary failed');
+      } catch (primaryErr) {
+        console.warn('Primary shopify-products failed, trying fallback:', primaryErr);
+        const res2 = await shopifySupabase.functions.invoke('shopify-products-fixed', {
+          body: { shop: activeStore, limit: 50 }
+        });
+        data = res2.data; error = res2.error;
+        if (error || !data?.success) throw error || new Error(data?.error || 'Failed to load products');
       }
 
       // التأكد من أن كل معرفات المنتجات هي نصوص (لتسهيل المقارنة لاحقًا)

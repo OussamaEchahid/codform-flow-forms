@@ -295,12 +295,11 @@ export class FormManagementService {
 
       // Step 2: Delete form from database
       console.log('🔄 حذف النموذج من قاعدة البيانات...');
-      const { error: formError, data } = await this.fetchWithRetry(async () => {
+      const { error: formError } = await this.fetchWithRetry(async () => {
         return await supabase
           .from('forms')
           .delete()
-          .eq('id', formId)
-          .select('*');
+          .eq('id', formId);
       });
       
       if (formError) {
@@ -308,11 +307,7 @@ export class FormManagementService {
         throw new Error('خطأ في حذف النموذج من قاعدة البيانات');
       }
       
-      if (!data || data.length === 0) {
-        throw new Error('النموذج غير موجود أو تم حذفه مسبقاً');
-      }
-      
-      console.log('✅ تم حذف النموذج بنجاح من قاعدة البيانات');
+      console.log('✅ تم حذف النموذج بنجاح من قاعدة البيانات (بدون إرجاع صفوف بسبب RLS)');
       
       // تنظيف cache النماذج المحلي
       try {
