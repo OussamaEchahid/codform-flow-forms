@@ -27,46 +27,66 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [currentShop, setCurrentShop] = useState<string | null>(null);
 
-  // Fetch products when dialog opens with proper timing
+  // Get current shop from multiple sources
   useEffect(() => {
-    if (open) {
-      // أضافة تأخير بسيط للتأكد من أن المتجر محمل قبل جلب المنتجات
+    const getActiveShop = () => {
+      return shop || 
+        localStorage.getItem('current_shopify_store') || 
+        localStorage.getItem('simple_active_store') ||
+        localStorage.getItem('shopify_store') ||
+        localStorage.getItem('active_shop') ||
+        localStorage.getItem('active_shopify_store');
+    };
+
+    const activeShop = getActiveShop();
+    if (activeShop && activeShop !== 'null' && activeShop.trim()) {
+      setCurrentShop(activeShop.trim());
+      console.log('🏪 Current shop detected:', activeShop.trim());
+    } else {
+      console.warn('⚠️ No active shop found');
+      setCurrentShop(null);
+    }
+  }, [shop]);
+
+  // Fetch products when dialog opens and shop is available
+  useEffect(() => {
+    if (open && currentShop) {
+      console.log('🚀 Dialog opened, fetching products for:', currentShop);
+      fetchProductsForShop(currentShop);
+    } else if (open && !currentShop) {
+      // Retry finding shop after a delay
       const timer = setTimeout(() => {
-        if (shop) {
-          fetchProducts();
+        const activeShop = localStorage.getItem('current_shopify_store') || 
+                          localStorage.getItem('simple_active_store') ||
+                          localStorage.getItem('shopify_store') ||
+                          localStorage.getItem('active_shop');
+        
+        if (activeShop && activeShop !== 'null' && activeShop.trim()) {
+          console.log('🔄 Shop found on retry:', activeShop.trim());
+          setCurrentShop(activeShop.trim());
+          fetchProductsForShop(activeShop.trim());
         } else {
-          // إعادة محاولة جلب المتجر من localStorage
-          const activeShop = localStorage.getItem('current_shopify_store') || 
-                            localStorage.getItem('simple_active_store') ||
-                            localStorage.getItem('shopify_store') ||
-                            localStorage.getItem('active_shop');
-          
-          if (activeShop && activeShop.trim() && activeShop !== 'null') {
-            console.log('🔄 تم العثور على المتجر من localStorage:', activeShop);
-            // جلب المنتجات مباشرة باستخدام المتجر المحفوظ
-            fetchProductsForShop(activeShop.trim());
-          } else {
-            setError('لم يتم العثور على متجر نشط');
-          }
+          setError(language === 'ar' ? 'لم يتم العثور على متجر نشط' : 'No active store found');
         }
-      }, 100);
+      }, 500);
       
       return () => clearTimeout(timer);
     }
-  }, [open, shop]);
+  }, [open, currentShop, language]);
 
   const fetchProducts = async () => {
-    if (!shop) {
-      setError('لم يتم العثور على متجر نشط');
+    if (!currentShop) {
+      setError(language === 'ar' ? 'لم يتم العثور على متجر نشط' : 'No active store found');
       return;
     }
-    await fetchProductsForShop(shop);
+    await fetchProductsForShop(currentShop);
   };
 
   const fetchProductsForShop = async (shopDomain: string) => {
-    if (!shopDomain) {
-      setError('لم يتم العثور على متجر نشط');
+    if (!shopDomain || shopDomain === 'null') {
+      setError(language === 'ar' ? 'لم يتم العثور على متجر نشط' : 'No active store found');
       return;
     }
 
@@ -76,14 +96,28 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({
       
       console.log('🛍️ جلب المنتجات للمتجر:', shopDomain);
       
-      // استخدام supabase functions بدلاً من fetch مباشر
+      // Try multiple edge functions for better reliability
       const { supabase } = await import('@/integrations/supabase/client');
       
-      const response = await supabase.functions.invoke('shopify-products-fixed', {
-        body: {
-          shop: shopDomain
-        }
-      });
+      let response;
+      
+      // Try primary function first
+      try {
+        response = await supabase.functions.invoke('shopify-products', {
+          body: {
+            shop: shopDomain,
+            refresh: false
+          }
+        });
+      } catch (primaryError) {
+        console.log('Primary function failed, trying backup:', primaryError);
+        // Fallback to fixed function
+        response = await supabase.functions.invoke('shopify-products-fixed', {
+          body: {
+            shop: shopDomain
+          }
+        });
+      }
 
       if (response.error) {
         throw new Error(response.error.message || 'فشل في الاتصال بخدمة المنتجات');
@@ -96,7 +130,7 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({
         console.log(`✅ تم جلب ${result.products.length} منتج من ${shopDomain}`);
         
         if (result.products.length === 0) {
-          setError('لا توجد منتجات في هذا المتجر');
+          setError(language === 'ar' ? 'لا توجد منتجات في هذا المتجر' : 'No products found in this store');
         }
       } else {
         throw new Error(result?.error || result?.message || 'فشل في جلب المنتجات');
@@ -163,10 +197,17 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({
           )}
 
           {/* No Shop State */}
-          {!shop && !shopLoading && (
-            <div className="flex items-center justify-center py-8 text-amber-600">
-              <AlertCircle className="h-6 w-6 mr-2" />
-              <span>{language === 'ar' ? 'لا يوجد متجر متصل' : 'No connected store'}</span>
+          {!currentShop && !shopLoading && !isLoadingProducts && (
+            <div className="flex flex-col items-center justify-center py-8 text-amber-600">
+              <AlertCircle className="h-6 w-6 mb-2" />
+              <span className="text-center">
+                {language === 'ar' ? 'لا يوجد متجر متصل' : 'No connected store'}
+              </span>
+              <p className="text-sm text-muted-foreground mt-2 text-center">
+                {language === 'ar' 
+                  ? 'يرجى الاتصال بمتجر Shopify أولاً' 
+                  : 'Please connect a Shopify store first'}
+              </p>
             </div>
           )}
 
@@ -233,10 +274,17 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({
           )}
 
           {/* No Products State */}
-          {!isLoadingProducts && !error && products.length === 0 && shop && (
+          {!isLoadingProducts && !error && products.length === 0 && currentShop && (
             <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
               <Package className="h-12 w-12 mb-4" />
-              <p>{language === 'ar' ? 'لا توجد منتجات في هذا المتجر' : 'No products found in this store'}</p>
+              <p className="text-center">
+                {language === 'ar' ? 'لا توجد منتجات في هذا المتجر' : 'No products found in this store'}
+              </p>
+              <p className="text-sm text-center mt-1">
+                {language === 'ar' 
+                  ? 'يمكنك المتابعة لإنشاء نموذج عام' 
+                  : 'You can continue to create a general form'}
+              </p>
             </div>
           )}
         </div>
