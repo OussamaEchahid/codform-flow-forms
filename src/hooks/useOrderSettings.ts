@@ -29,51 +29,47 @@ export const useOrderSettings = (shopId: string) => {
 
     try {
       setLoading(true);
+      console.log('🔍 Loading order settings for shop:', shopId);
       
-      const response = await fetch(
-        `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/order-settings?shop_id=${encodeURIComponent(shopId)}`,
-        {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
+      // Try to get settings using raw SQL
+      const { data: settingsData, error: settingsError } = await supabase.rpc('get_order_settings', {
+        p_shop_id: shopId
+      });
 
-      if (!response.ok) {
-        console.error('Response not OK:', response.status, response.statusText);
-        throw new Error(`HTTP error! status: ${response.status}`);
+      console.log('📋 Settings query result:', { settingsData, settingsError, shopId });
+
+      if (settingsError) {
+        console.error('Database error:', settingsError);
+        // Still continue with defaults instead of throwing
       }
 
-      const result = await response.json();
-      console.log('📋 Order settings loaded:', result);
-
-
-      if (result?.success && result?.data) {
-        setSettings(result.data);
+      if (settingsData && settingsData.length > 0) {
+        console.log('✅ Found existing settings:', settingsData[0]);
+        setSettings(settingsData[0] as OrderSettings);
       } else {
-        // Use defaults if no data
-        setSettings({
+        console.log('📝 No settings found, using defaults');
+        const defaultSettings = {
           shop_id: shopId,
-          post_order_action: 'redirect',
+          post_order_action: 'redirect' as const,
           redirect_enabled: true,
           thank_you_page_url: '',
           popup_title: 'تم إنشاء طلبك بنجاح!',
           popup_message: 'شكراً لك على طلبك. سنتواصل معك قريباً...'
-        });
+        };
+        setSettings(defaultSettings);
       }
     } catch (error) {
       console.error('Error in loadSettings:', error);
       // Use defaults on error
-      setSettings({
+      const defaultSettings = {
         shop_id: shopId,
-        post_order_action: 'redirect',
+        post_order_action: 'redirect' as const,
         redirect_enabled: true,
         thank_you_page_url: '',
         popup_title: 'تم إنشاء طلبك بنجاح!',
         popup_message: 'شكراً لك على طلبك. سنتواصل معك قريباً...'
-      });
+      };
+      setSettings(defaultSettings);
     } finally {
       setLoading(false);
     }
@@ -98,46 +94,35 @@ export const useOrderSettings = (shopId: string) => {
         shop_id: shopId
       };
 
-      const response = await fetch(
-        'https://trlklwixfeaexhydzaue.supabase.co/functions/v1/order-settings',
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ 
-            shop_id: shopId,
-            settings: settingsToSave 
-          })
-        }
-      );
+      console.log('💾 Saving settings:', settingsToSave);
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Save error:', errorText);
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      // Save using RPC function
+      const { data: savedData, error: saveError } = await supabase.rpc('save_order_settings', {
+        p_shop_id: shopId,
+        p_post_order_action: settingsToSave.post_order_action,
+        p_redirect_enabled: settingsToSave.redirect_enabled,
+        p_thank_you_page_url: settingsToSave.thank_you_page_url,
+        p_popup_title: settingsToSave.popup_title,
+        p_popup_message: settingsToSave.popup_message
+      });
 
-      const result = await response.json();
-      console.log('💾 Order settings saved:', result);
-
-
-      if (result?.success && result?.data) {
-        setSettings(result.data);
-        toast({
-          title: "تم الحفظ",
-          description: "تم حفظ إعدادات الطلبات بنجاح"
-        });
-        return true;
-      } else {
+      if (saveError) {
+        console.error('Database save error:', saveError);
         toast({
           title: "خطأ في الحفظ",
-          description: "فشل في حفظ الإعدادات",
+          description: `فشل في حفظ الإعدادات: ${saveError.message}`,
           variant: "destructive"
         });
         return false;
       }
+
+      console.log('✅ Settings saved successfully:', savedData);
+      setSettings(settingsToSave);
+      toast({
+        title: "تم الحفظ",
+        description: "تم حفظ إعدادات الطلبات بنجاح"
+      });
+      return true;
     } catch (error) {
       console.error('Error in saveSettings:', error);
       toast({
