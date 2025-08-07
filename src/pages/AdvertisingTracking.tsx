@@ -3,6 +3,23 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/components/layout/AuthProvider';
 import { supabase } from '@/integrations/supabase/client';
 import { useI18n } from '@/lib/i18n';
+
+// Type definition for advertising pixels
+interface AdvertisingPixel {
+  id: string;
+  shop_id: string;
+  name: string;
+  platform: string;
+  pixel_id: string;
+  event_type: string;
+  target_type: string;
+  target_id: string | null;
+  access_token: string | null;
+  conversion_api_enabled: boolean;
+  enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
 import { 
   Card, CardContent, CardDescription, CardHeader, CardTitle 
 } from '@/components/ui/card';
@@ -32,7 +49,7 @@ const AdvertisingTracking = () => {
   const { shop, shopifyConnected, loading } = useAuth();
   
   // State for pixel management
-  const [pixels, setPixels] = useState([]);
+  const [pixels, setPixels] = useState<AdvertisingPixel[]>([]);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newPixel, setNewPixel] = useState({
     name: '',
@@ -64,13 +81,13 @@ const AdvertisingTracking = () => {
 
   const loadPixels = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('advertising_pixels')
         .select('*')
         .eq('shop_id', activeStore);
 
       if (error) throw error;
-      setPixels(data || []);
+      setPixels((data || []) as AdvertisingPixel[]);
     } catch (error) {
       console.error('Error loading pixels:', error);
       toast.error('خطأ في تحميل البيكسلات');
@@ -84,7 +101,7 @@ const AdvertisingTracking = () => {
     }
 
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('advertising_pixels')
         .insert([{
           ...newPixel,
@@ -112,9 +129,9 @@ const AdvertisingTracking = () => {
     }
   };
 
-  const deletePixel = async (id) => {
+  const deletePixel = async (id: string) => {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('advertising_pixels')
         .delete()
         .eq('id', id);
