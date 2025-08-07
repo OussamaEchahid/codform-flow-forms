@@ -40,14 +40,11 @@ const ShopifyAutoAccountCreator: React.FC<ShopifyAutoAccountCreatorProps> = ({ o
       let accessToken = null;
       try {
         // Try to get access token from database
-        const { data: storeData } = await supabase
-          .from('shopify_stores')
-          .select('access_token')
-          .eq('shop', shopDomain)
-          .single();
+          const { data: tokenData } = await (supabase as any)
+            .rpc('get_store_access_token', { p_shop: shopDomain });
         
-        if (storeData?.access_token) {
-          accessToken = storeData.access_token;
+        if (tokenData) {
+          accessToken = tokenData as string;
           console.log(`🔑 Found access token for store: ${shopDomain}`);
         } else {
           console.log(`⚠️ No access token found for store: ${shopDomain}`);

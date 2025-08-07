@@ -94,12 +94,9 @@ export const useShopify = () => {
         setFailSafeMode(false);
         localStorage.removeItem('shopify_failsafe');
         
-        // Try to get token from db with detailed logging
-        const { data, error } = await shopifyStores()
-          .select('*')
-          .eq('shop', shop)
-          .order('updated_at', { ascending: false })
-          .limit(1);
+        // Try to get token via secure RPC
+        const { data: token, error } = await (shopifySupabase as any)
+          .rpc('get_store_access_token', { p_shop: shop });
 
         if (error) {
           console.error(`❌ Error fetching token for ${shop}:`, error);
@@ -108,24 +105,16 @@ export const useShopify = () => {
           return;
         }
 
-        if (data && data.length > 0) {
-          const storeData = data[0];
+        if (token) {
           console.log(`✅ Store ${shop} found in database`);
-          
-          if (storeData.access_token && storeData.access_token !== 'null') {
-            setAccessToken(storeData.access_token);
-            setIsConnected(true);
-            setTokenError(false);
-            setFailSafeMode(false);
-            // إزالة أي fail-safe modes محفوظة
-            localStorage.removeItem('shopify_failsafe');
-            localStorage.removeItem('shopify_token_error');
-            console.log(`🔑 Valid token set for ${shop}, error states cleared`);
-          } else {
-            console.warn(`⚠️ Store ${shop} exists but token is invalid`);
-            setIsConnected(false);
-            setTokenError(true);
-          }
+          setAccessToken(token as string);
+          setIsConnected(true);
+          setTokenError(false);
+          setFailSafeMode(false);
+          // إزالة أي fail-safe modes محفوظة
+          localStorage.removeItem('shopify_failsafe');
+          localStorage.removeItem('shopify_token_error');
+          console.log(`🔑 Valid token set for ${shop}, error states cleared`);
           return;
         }
 
@@ -174,30 +163,20 @@ export const useShopify = () => {
       console.log(`🔄 Loading products for shop: ${shop}${forceRefresh ? ' (forced)' : ''}`);
       
       // Get token with enhanced error handling
-      const { data: tokenData, error: tokenError } = await shopifyStores()
-        .select('*')
-        .eq('shop', shop)
-        .eq('is_active', true)
-        .order('updated_at', { ascending: false })
-        .limit(1);
+      const { data: token, error: tokenError } = await (shopifySupabase as any)
+        .rpc('get_store_access_token', { p_shop: shop });
 
       if (tokenError) {
         console.error(`❌ Token fetch error for ${shop}:`, tokenError);
         throw new Error(`Database error: ${tokenError.message}`);
       }
 
-      if (!tokenData || tokenData.length === 0) {
-        console.error(`❌ No active store found in database for shop: ${shop}`);
-        throw new Error(`STORE_NOT_FOUND:${shop}`);
-      }
-
-      const storeRecord = tokenData[0];
-      if (!storeRecord.access_token || storeRecord.access_token === 'null' || storeRecord.access_token === '') {
+      if (!token || (typeof token === 'string' && token.length === 0)) {
         console.error(`❌ Access token missing or invalid for shop: ${shop}`);
         throw new Error(`TOKEN_MISSING:${shop}`);
       }
 
-      const token = storeRecord.access_token;
+      const tokenValue = token as string;
       console.log(`📡 Fetching products for ${shop} with valid token`);
       
       // Fetch products using edge function with timeout
@@ -301,19 +280,16 @@ export const useShopify = () => {
     
     try {
       // Get token
-      const { data: tokenData, error: tokenError } = await shopifyStores()
-        .select('*')
-        .eq('shop', shop)
-        .order('updated_at', { ascending: false })
-        .limit(1);
+      const { data: token, error: tokenError } = await (shopifySupabase as any)
+        .rpc('get_store_access_token', { p_shop: shop });
 
-      if (tokenError || !tokenData || tokenData.length === 0) {
+      if (tokenError || !token) {
         throw new Error('Token not found');
       }
 
       // Test token with a simple API call
       const { data, error } = await shopifySupabase.functions.invoke('shopify-test-connection', {
-        body: { shop, accessToken: tokenData[0].access_token || '' }
+        body: { shop, accessToken: token as string }
       });
 
       if (error) {

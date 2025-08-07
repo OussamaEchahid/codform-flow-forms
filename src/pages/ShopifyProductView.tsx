@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import ShopifyProductsList from '@/components/shopify/ShopifyProductsList';
 import { createShopifyAPI } from '@/lib/shopify/api';
 import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
-import { shopifyStores } from '@/lib/shopify/supabase-client';
+import { shopifySupabase } from '@/lib/shopify/supabase-client';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
@@ -32,21 +32,14 @@ const ShopifyProductView = () => {
         }
         
         // Fetch the access token for the active shop
-        const { data, error } = await shopifyStores()
-          .select('*')
-          .eq('shop', activeShop)
-          .order('updated_at', { ascending: false })
-          .limit(1);
+        const { data: token, error } = await (shopifySupabase as any)
+          .rpc('get_store_access_token', { p_shop: activeShop });
           
-        if (error || !data || data.length === 0) {
+        if (error || !token) {
           throw new Error("لم يتم العثور على معلومات المتجر");
         }
         
-        const accessToken = data[0].access_token;
-        
-        if (!accessToken) {
-          throw new Error("رمز الوصول غير متوفر للمتجر");
-        }
+        const accessToken = token as string;
         
         // Create ShopifyAPI instance and fetch products
         const shopifyAPI = createShopifyAPI(accessToken, activeShop);
