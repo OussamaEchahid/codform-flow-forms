@@ -101,3 +101,6 @@ verify_jwt = false
 
 [functions.get-shop-currency-settings]
 verify_jwt = false
+
+[functions.order-settings]
+verify_jwt = false

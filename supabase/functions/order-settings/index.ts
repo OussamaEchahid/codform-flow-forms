@@ -6,6 +6,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Add logging
+console.log('🚀 Order Settings Function Started');
+
 interface OrderSettings {
   id?: string;
   shop_id: string;
@@ -32,9 +35,21 @@ serve(async (req: Request) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const { method } = req;
-    const requestData = await req.json();
-    const shopId = requestData.shop_id;
-    const requestMethod = requestData.method || method;
+    
+    let shopId: string;
+    let requestMethod = method;
+    let requestData: any = null;
+    
+    if (method === 'GET') {
+      const url = new URL(req.url);
+      shopId = url.searchParams.get('shop_id') || '';
+    } else {
+      requestData = await req.json();
+      shopId = requestData.shop_id || '';
+      requestMethod = requestData.method || method;
+    }
+
+    console.log('📋 Order Settings Request:', { method, requestMethod, shopId, hasRequestData: !!requestData });
 
     if (!shopId) {
       return new Response(
@@ -59,6 +74,8 @@ serve(async (req: Request) => {
         );
       }
 
+      console.log('📋 Retrieved order settings for shop:', shopId, data);
+
       // If no settings found, return defaults
       const settings = data || {
         shop_id: shopId,
@@ -69,6 +86,8 @@ serve(async (req: Request) => {
         popup_message: 'شكراً لك على طلبك. سنتواصل معك قريباً...'
       };
 
+      console.log('📋 Returning settings:', settings);
+
       return new Response(
         JSON.stringify({ success: true, data: settings }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
@@ -77,7 +96,7 @@ serve(async (req: Request) => {
 
     if (requestMethod === 'POST' || requestMethod === 'PUT') {
       // Save or update order settings
-      const settings: Partial<OrderSettings> = requestData.settings;
+      const settings: Partial<OrderSettings> = requestData?.settings;
 
       if (!settings) {
         return new Response(

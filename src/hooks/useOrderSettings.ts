@@ -30,18 +30,24 @@ export const useOrderSettings = (shopId: string) => {
     try {
       setLoading(true);
       
-      const { data, error } = await supabase.functions.invoke('order-settings', {
-        body: { 
+      const response = await fetch(
+        `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/order-settings?shop_id=${encodeURIComponent(shopId)}`,
+        {
           method: 'GET',
-          shop_id: shopId 
+          headers: {
+            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M`,
+            'Content-Type': 'application/json'
+          }
         }
-      });
+      );
 
-      if (error) {
-        throw new Error(error.message);
+      if (!response.ok) {
+        console.error('Response not OK:', response.status, response.statusText);
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const result = data;
+      const result = await response.json();
+      console.log('📋 Order settings loaded:', result);
 
 
       if (result?.success && result?.data) {
@@ -92,19 +98,29 @@ export const useOrderSettings = (shopId: string) => {
         shop_id: shopId
       };
 
-      const { data, error } = await supabase.functions.invoke('order-settings', {
-        body: { 
+      const response = await fetch(
+        'https://trlklwixfeaexhydzaue.supabase.co/functions/v1/order-settings',
+        {
           method: 'POST',
-          shop_id: shopId,
-          settings: settingsToSave 
+          headers: {
+            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ 
+            shop_id: shopId,
+            settings: settingsToSave 
+          })
         }
-      });
+      );
 
-      if (error) {
-        throw new Error(error.message);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Save error:', errorText);
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const result = data;
+      const result = await response.json();
+      console.log('💾 Order settings saved:', result);
 
 
       if (result?.success && result?.data) {
