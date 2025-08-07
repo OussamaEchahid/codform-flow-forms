@@ -450,13 +450,17 @@ serve(async (req: Request) => {
       // Continue even if order creation fails
     }
 
-    // Return success with redirect URL
+    // Return success with correct redirect URL
+    const thankYouUrl = `https://${shopDomain}/pages/thank-you?order=${orderNumber || 'unknown'}&success=true`;
+    
     return new Response(
       JSON.stringify({ 
         success: true, 
         message: 'تم إرسال طلبكم بنجاح',
         submissionId: submissionData.id,
-        thankYouUrl: '/thank-you'
+        orderNumber: orderNumber || 'unknown',
+        thankYouUrl: thankYouUrl,
+        redirect: thankYouUrl
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );

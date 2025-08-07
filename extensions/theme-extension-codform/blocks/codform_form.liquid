@@ -1919,5 +1919,94 @@ document.addEventListener('DOMContentLoaded', function() {
     window.smartCurrencySystemActive = true;
   }, 1000);
 });
+
+// ✅ معالج إرسال النموذج المحدث مع تتبع الإعلانات والتوجيه الصحيح
+window.handleFormSubmit = async function(event) {
+  console.log('📋 Form submission detected');
+  
+  // منع الإرسال الافتراضي للنموذج
+  if (event) {
+    event.preventDefault();
+  }
+  
+  try {
+    // جمع بيانات النموذج
+    const form = event.target.closest('form') || document.querySelector('form') || event.target.closest('[data-form-preview-id]');
+    if (!form) {
+      console.error('❌ Form not found');
+      return false;
+    }
+    
+    const submissionData = {};
+    
+    // جمع بيانات الحقول
+    form.querySelectorAll('input, textarea, select').forEach(field => {
+      if (field.name && field.value) {
+        submissionData[field.name] = field.value;
+      }
+    });
+    
+    console.log('📝 Form data collected:', submissionData);
+    
+    // إرسال البيانات إلى API
+    const response = await fetch('https://trlklwixfeaexhydzaue.supabase.co/functions/v1/api-submissions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M'
+      },
+      body: JSON.stringify({
+        formId: window.codformProductId,
+        shopDomain: window.codformShopDomain,
+        data: submissionData
+      })
+    });
+    
+    if (response.ok) {
+      const result = await response.json();
+      console.log('✅ Submission successful:', result);
+      
+      // تشغيل تتبع الإعلانات بعد نجاح الإرسال
+      if (window.CodformAdvertisingTracking && window.CodformAdvertisingTracking.track) {
+        console.log('📊 Triggering advertising tracking');
+        window.CodformAdvertisingTracking.track();
+      }
+      
+      // إرسال حدث مخصص للتتبع
+      const customEvent = new CustomEvent('formSubmitted', {
+        detail: {
+          formId: window.codformProductId,
+          shopDomain: window.codformShopDomain,
+          orderNumber: result.orderNumber,
+          timestamp: new Date().toISOString()
+        }
+      });
+      document.dispatchEvent(customEvent);
+      
+      // التوجيه إلى صفحة الشكر أو صفحة المنتج مع رسالة نجاح
+      if (result.redirect || result.thankYouUrl) {
+        console.log('🔄 Redirecting to:', result.redirect || result.thankYouUrl);
+        window.location.href = result.redirect || result.thankYouUrl;
+      } else {
+        // التوجيه إلى صفحة المنتج مع رسالة نجاح
+        const currentUrl = new URL(window.location.href);
+        currentUrl.searchParams.set('submitted', 'true');
+        currentUrl.searchParams.set('order', result.orderNumber || '');
+        window.location.href = currentUrl.toString();
+      }
+      
+    } else {
+      console.error('❌ Submission failed:', response.statusText);
+      alert('حدث خطأ أثناء إرسال النموذج. يرجى المحاولة مرة أخرى.');
+    }
+    
+  } catch (error) {
+    console.error('❌ Submission error:', error);
+    alert('حدث خطأ أثناء إرسال النموذج. يرجى المحاولة مرة أخرى.');
+  }
+  
+  return false; // منع الإرسال الافتراضي
+};
+
 </script>
 </script>
