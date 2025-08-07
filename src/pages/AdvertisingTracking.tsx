@@ -53,7 +53,7 @@ const AdvertisingTracking = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newPixel, setNewPixel] = useState({
     name: '',
-    platform: '',
+    platform: 'facebook',
     pixel_id: '',
     event_type: 'Lead',
     target_type: 'All',
@@ -128,30 +128,61 @@ const AdvertisingTracking = () => {
   };
 
   const createPixel = async () => {
-    if (!newPixel.name || !newPixel.platform || !newPixel.pixel_id) {
-      toast.error('يرجى ملء جميع الحقول المطلوبة');
+    console.log('🚀 Starting createPixel function');
+    console.log('📋 New pixel data:', newPixel);
+    console.log('📋 Selected products:', selectedProducts);
+    console.log('📋 Active store:', activeStore);
+
+    if (!newPixel.name || !newPixel.pixel_id) {
+      console.error('❌ Missing required fields:', { name: newPixel.name, pixel_id: newPixel.pixel_id });
+      toast.error('يرجى ملء اسم البيكسل ومعرف البيكسل');
+      return;
+    }
+
+    if (!activeStore) {
+      console.error('❌ No active store found');
+      toast.error('لم يتم العثور على متجر نشط');
       return;
     }
 
     try {
+      console.log('📤 Preparing pixel data for insertion...');
+      
       const pixelData = {
-        ...newPixel,
-        platform: 'facebook', // Set default platform
+        name: newPixel.name.trim(),
+        platform: 'facebook',
+        pixel_id: newPixel.pixel_id.trim(),
+        event_type: newPixel.event_type || 'Lead',
+        target_type: newPixel.target_type || 'All',
+        target_id: newPixel.target_type === 'Product' && selectedProducts.length > 0 
+          ? selectedProducts.join(',') 
+          : null,
         shop_id: activeStore,
-        target_id: newPixel.target_type === 'Product' ? selectedProducts.join(',') : null
+        access_token: newPixel.access_token || null,
+        conversion_api_enabled: newPixel.conversion_api_enabled || false,
+        enabled: true
       };
 
-      const { data, error } = await (supabase as any)
+      console.log('📤 Final pixel data to insert:', pixelData);
+
+      const { data, error } = await supabase
         .from('advertising_pixels')
-        .insert([pixelData]);
+        .insert([pixelData])
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Supabase error:', error);
+        throw error;
+      }
 
+      console.log('✅ Pixel created successfully:', data);
       toast.success('تم إنشاء البيكسل بنجاح');
+      
+      // Reset form
       setIsCreateDialogOpen(false);
       setNewPixel({
         name: '',
-        platform: '',
+        platform: 'facebook',
         pixel_id: '',
         event_type: 'Lead',
         target_type: 'All',
@@ -160,10 +191,13 @@ const AdvertisingTracking = () => {
         conversion_api_enabled: false
       });
       setSelectedProducts([]);
-      loadPixels();
-    } catch (error) {
-      console.error('Error creating pixel:', error);
-      toast.error('خطأ في إنشاء البيكسل');
+      
+      // Reload pixels
+      await loadPixels();
+      
+    } catch (error: any) {
+      console.error('❌ Error creating pixel:', error);
+      toast.error(error.message || 'خطأ في إنشاء البيكسل');
     }
   };
 
