@@ -478,18 +478,29 @@ serve(async (req: Request) => {
     // Determine redirect URL based on settings
     let redirectUrl;
     
-    if (orderSettings?.post_order_action === 'redirect' && orderSettings?.redirect_enabled && orderSettings?.thank_you_page_url) {
-      // Use custom thank you page URL
-      redirectUrl = orderSettings.thank_you_page_url;
-      // Add order parameter if URL doesn't already have query params
-      if (redirectUrl.includes('?')) {
-        redirectUrl += `&order=${orderNumber}&success=true`;
+    console.log('🎯 Order settings for redirect:', {
+      post_order_action: orderSettings?.post_order_action,
+      redirect_enabled: orderSettings?.redirect_enabled,
+      thank_you_page_url: orderSettings?.thank_you_page_url
+    });
+    
+    if (orderSettings?.post_order_action === 'redirect' && orderSettings?.redirect_enabled) {
+      if (orderSettings?.thank_you_page_url && orderSettings.thank_you_page_url.trim() !== '') {
+        // Use custom thank you page URL from settings
+        redirectUrl = orderSettings.thank_you_page_url.trim();
+        // Add order parameter
+        const separator = redirectUrl.includes('?') ? '&' : '?';
+        redirectUrl += `${separator}order=${orderNumber}&success=true`;
+        console.log('✅ Using custom redirect URL from settings:', redirectUrl);
       } else {
-        redirectUrl += `?order=${orderNumber}&success=true`;
+        // Use default Shopify checkout page if no custom URL set
+        redirectUrl = `https://${shopDomain}/checkout/thank_you?order=${orderNumber}&success=true`;
+        console.log('📄 Using default checkout page (no custom URL in settings)');
       }
     } else {
-      // Use default Shopify checkout success page
-      redirectUrl = `https://${shopDomain}/checkout/thank_you?order=${orderNumber}&success=true`;
+      // Default fallback
+      redirectUrl = `https://${shopDomain}/?order=${orderNumber}&success=true`;
+      console.log('🏠 Using homepage redirect (redirect disabled or other action)');
     }
 
     console.log('🔄 Redirect URL determined:', redirectUrl);
