@@ -173,49 +173,47 @@ export const useShopify = () => {
     try {
       console.log(`🔄 Loading products for shop: ${shop}${forceRefresh ? ' (forced)' : ''}`);
       
-      // Get token with enhanced error handling
-      const { data: tokenData, error: tokenError } = await shopifyStores()
-        .select('*')
-        .eq('shop', shop)
-        .eq('is_active', true)
-        .order('updated_at', { ascending: false })
-        .limit(1);
+      // Fetch products using secure Edge Functions (no direct DB token access)
+      console.log(`📡 Fetching products for ${shop} via Edge Function`);
 
-      if (tokenError) {
-        console.error(`❌ Token fetch error for ${shop}:`, tokenError);
-        throw new Error(`Database error: ${tokenError.message}`);
-      }
-
-      if (!tokenData || tokenData.length === 0) {
-        console.error(`❌ No active store found in database for shop: ${shop}`);
-        throw new Error(`STORE_NOT_FOUND:${shop}`);
-      }
-
-      const storeRecord = tokenData[0];
-      if (!storeRecord.access_token || storeRecord.access_token === 'null' || storeRecord.access_token === '') {
-        console.error(`❌ Access token missing or invalid for shop: ${shop}`);
-        throw new Error(`TOKEN_MISSING:${shop}`);
-      }
-
-      const token = storeRecord.access_token;
-      console.log(`📡 Fetching products for ${shop} with valid token`);
-      
-      // Fetch products using edge function with timeout
+      // Timeout guard
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(() => reject(new Error('Request timeout')), 30000);
       });
 
-      const fetchPromise = shopifySupabase.functions.invoke('shopify-products', {
-        body: { 
-          shop, 
-          accessToken: token,
-          refresh: forceRefresh,
-          includeTestProducts: false,
-          limit: 50
-        }
-      });
+      let data: any;
+      let error: any;
 
-      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
+      try {
+        const fetchPromise = shopifySupabase.functions.invoke('shopify-products', {
+          body: {
+            shop,
+            refresh: forceRefresh,
+            includeTestProducts: false,
+            limit: 50,
+          },
+        });
+
+        const primary = (await Promise.race([fetchPromise, timeoutPromise])) as any;
+        data = primary.data;
+        error = primary.error;
+
+        // If primary failed or didn't return success, fall back
+        if (error || !data?.success) {
+          throw error || new Error(data?.error || 'Primary function failed');
+        }
+      } catch (primaryError) {
+        console.warn('Primary function failed, falling back to shopify-products-fixed:', primaryError);
+        const fallback = await shopifySupabase.functions.invoke('shopify-products-fixed', {
+          body: {
+            shop,
+            refresh: forceRefresh,
+            limit: 50,
+          },
+        });
+        data = fallback.data;
+        error = fallback.error;
+      }
 
       if (error) {
         console.error(`❌ Products fetch error for ${shop}:`, error);
