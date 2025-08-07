@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import AppSidebar from '@/components/layout/AppSidebar';
 import { supabase } from '@/integrations/supabase/client';
 import { useShopifyStores } from '@/hooks/useShopifyStores';
+import { useShopifyProducts } from '@/hooks/useShopifyProducts';
 
 interface PixelSettings {
   id: string;
@@ -39,6 +40,7 @@ interface TrackingEvent {
 const AdvertisingTracking = () => {
   const { toast } = useToast();
   const { stores, activeStore } = useShopifyStores();
+  const { products, loading: productsLoading, loadProducts } = useShopifyProducts();
   
   const [facebookPixels, setFacebookPixels] = useState<PixelSettings[]>([]);
   const [snapchatPixels, setSnapchatPixels] = useState<PixelSettings[]>([]);
@@ -64,6 +66,7 @@ const AdvertisingTracking = () => {
   useEffect(() => {
     if (activeStore) {
       loadPixelsAndForms();
+      loadProducts(activeStore);
     }
   }, [activeStore]);
 
@@ -102,17 +105,11 @@ const AdvertisingTracking = () => {
     }
   };
 
-  // Collections and products from Shopify store
+  // Collections (static for now, can be enhanced to load from Shopify)
   const collections = [
     { id: 'collection1', name: 'Summer Collection' },
     { id: 'collection2', name: 'Winter Collection' },
     { id: 'collection3', name: 'New Arrivals' },
-  ];
-
-  const products = [
-    { id: 'product1', name: 'Product 1 - T-Shirt' },
-    { id: 'product2', name: 'Product 2 - Jeans' },
-    { id: 'product3', name: 'Product 3 - Jacket' },
   ];
 
   const [trackingEvents, setTrackingEvents] = useState<TrackingEvent[]>([
@@ -624,15 +621,33 @@ document.addEventListener('formSubmitted', function(e) {
                           <SelectValue placeholder="Select / Search product" />
                         </SelectTrigger>
                         <SelectContent>
-                          {products.map((product) => (
-                            <SelectItem key={product.id} value={product.id}>
-                              {product.name}
+                          {productsLoading ? (
+                            <SelectItem value="loading" disabled>
+                              Loading products...
                             </SelectItem>
-                          ))}
+                          ) : products.length === 0 ? (
+                            <SelectItem value="no-products" disabled>
+                              No products found
+                            </SelectItem>
+                          ) : (
+                            products.map((product) => (
+                              <SelectItem key={product.id} value={product.id}>
+                                {product.title}
+                              </SelectItem>
+                            ))
+                          )}
                         </SelectContent>
                       </Select>
-                      <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                        <span>🔄 sync products</span>
+                      <div className="flex items-center justify-between text-sm text-muted-foreground">
+                        <span>🔄 {productsLoading ? 'Loading...' : `${products.length} products available`}</span>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => loadProducts(activeStore)}
+                          disabled={productsLoading}
+                        >
+                          Sync Products
+                        </Button>
                       </div>
                     </div>
                   )}
