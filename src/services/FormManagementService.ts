@@ -109,22 +109,29 @@ export class FormManagementService {
         timestamp: new Date().toISOString()
       });
 
+      // Ensure store is linked to current user to satisfy RLS
+      try {
+        await Promise.all([
+          (supabase as any).rpc('auto_link_store_to_current_user'),
+          (supabase as any).rpc('link_active_store_to_user')
+        ]);
+      } catch (e) {
+        console.warn('Link store RPCs failed (non-blocking):', e);
+      }
+
       let query = supabase
         .from('forms')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (session?.user?.id && activeShopId) {
-        // User has both traditional auth AND active shop - get forms for both
-        console.log(`🔄 Using hybrid auth - user_id: ${session.user.id} OR (default_user AND shop_id: ${activeShopId})`);
-        query = query.or(`user_id.eq.${session.user.id},and(user_id.eq.36d7eb85-0c45-4b4f-bea1-a9cb732ca893,shop_id.eq.${activeShopId})`);
-      } else if (session?.user?.id) {
-        // Traditional authentication only - filter by user_id
-        console.log(`🔑 Using traditional auth only - filtering by user_id: ${session.user.id}`);
+      if (session?.user?.id) {
+        // When authenticated, only show forms owned by the current user
+        console.log(`🔑 Using traditional auth - filtering by user_id: ${session.user.id}${activeShopId ? ` and shop_id: ${activeShopId}` : ''}`);
         query = query.eq('user_id', session.user.id);
+        if (activeShopId) query = query.eq('shop_id', activeShopId);
       } else if (activeShopId) {
         // Shopify authentication only - use default user with shop_id
-        console.log(`🏪 Using Shopify auth only - default user with shop_id: ${activeShopId}`);
+        console.log(`🏪 Using Shopify-only context - default user with shop_id: ${activeShopId}`);
         query = query.eq('user_id', '36d7eb85-0c45-4b4f-bea1-a9cb732ca893').eq('shop_id', activeShopId);
       } else {
         console.log('⚠️ No authentication found - returning empty forms list');

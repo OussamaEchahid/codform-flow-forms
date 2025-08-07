@@ -66,6 +66,16 @@ export function ProductAssociationModal({
     try {
       console.log('🔍 Fetching products for store:', currentStore, 'form:', formId);
       
+      // Ensure store is linked to current user to satisfy RLS (non-blocking)
+      try {
+        await Promise.all([
+          (supabase as any).rpc('auto_link_store_to_current_user'),
+          (supabase as any).rpc('link_active_store_to_user')
+        ]);
+      } catch (linkErr) {
+        console.warn('Store link RPCs failed (ignored):', linkErr);
+      }
+      
       // Fetch products from Shopify
       const { data: productsData, error: productsError } = await supabase.functions.invoke('shopify-products', {
         body: { shop: currentStore }

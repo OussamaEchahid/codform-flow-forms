@@ -68,11 +68,24 @@ const QuantityOffersManager: React.FC = () => {
     return fallbackStore;
   };
 
+  // Ensure store is linked to current user (to satisfy RLS in subsequent queries)
+  const ensureStoreLinked = async () => {
+    try {
+      await Promise.all([
+        (supabase as any).rpc('auto_link_store_to_current_user'),
+        (supabase as any).rpc('link_active_store_to_user')
+      ]);
+    } catch (e) {
+      console.warn('⚠️ ensureStoreLinked failed (non-blocking):', e);
+    }
+  };
+
   const loadStoreData = async () => {
     const currentStore = getConsistentActiveStore();
     if (!currentStore) return;
     
     try {
+      await ensureStoreLinked();
       const { data: shopData, error } = await supabase.functions.invoke('shopify-products', {
         body: { shop: currentStore, includeStoreInfo: true }
       });
