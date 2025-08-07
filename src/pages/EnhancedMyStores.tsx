@@ -188,7 +188,17 @@ const EnhancedMyStores = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => switchToStore(store.shop)}
+                            onClick={async () => {
+                              try {
+                                await switchToStore(store.shop);
+                                // إعادة تشغيل الصفحة بعد التبديل
+                                setTimeout(() => {
+                                  window.location.reload();
+                                }, 1000);
+                              } catch (error) {
+                                console.error('Error switching store:', error);
+                              }
+                            }}
                           >
                             <ArrowRight className="w-4 h-4 mr-1" />
                             {t('activate')}

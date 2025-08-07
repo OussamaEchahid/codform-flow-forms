@@ -88,13 +88,18 @@ const MyStores = () => {
     try {
       console.log(`🔄 Switching to store: ${shopDomain}`);
       
-      // استخدام UnifiedStoreManager للتبديل
+      // استخدام UnifiedStoreManager للتبديل مع إعادة التشغيل
       UnifiedStoreManager.switchStore(shopDomain, true);
       
       toast({
         title: "جاري التبديل...",
         description: `جاري التبديل إلى ${shopDomain}`,
       });
+      
+      // إعادة تشغيل الصفحة بعد تأخير قصير لضمان حفظ البيانات
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
       
     } catch (error) {
       console.error('❌ خطأ في التبديل:', error);

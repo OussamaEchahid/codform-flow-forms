@@ -226,25 +226,26 @@ export const useShopifyStoreSync = () => {
     }
   };
 
-  // Switch to a different store
-  const switchToStore = (shopDomain: string) => {
+  // Switch to a different store with automatic page reload
+  const switchToStore = async (shopDomain: string) => {
     try {
+      console.log(`🔄 Switching to store: ${shopDomain}`);
+      
       // Update localStorage keys
       localStorage.setItem('active_shopify_store', shopDomain);
       localStorage.setItem('shopify_store', shopDomain);
       localStorage.setItem('simple_active_store', shopDomain);
       localStorage.setItem('active_shop', shopDomain);
+      localStorage.setItem('current_shopify_store', shopDomain);
       localStorage.setItem('shopify_connected', 'true');
       
       // Update current store state immediately
       setCurrentStore(shopDomain);
       
-      // Force reload stores
-      loadStores();
+      console.log(`✅ Store switched to: ${shopDomain}`);
+      toast.success(`جاري التبديل إلى متجر: ${shopDomain}`);
       
-      console.log(`🔄 Switched to store: ${shopDomain}`);
-      toast.success(`تم التبديل إلى متجر: ${shopDomain}`);
-      
+      // Return success to allow caller to handle page reload
       return true;
     } catch (error) {
       console.error('❌ Error switching store:', error);
