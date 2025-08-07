@@ -50,14 +50,18 @@ export const useStoreConnection = () => {
 
   const getStoreAccessToken = useCallback(async (shopDomain: string): Promise<string | null> => {
     try {
-      const { data: token, error } = await (supabase as any)
-        .rpc('get_store_access_token', { p_shop: shopDomain });
+      const { data, error } = await supabase
+        .from('shopify_stores')
+        .select('access_token')
+        .eq('shop', shopDomain)
+        .not('access_token', 'is', null)
+        .single();
 
-      if (error || !token) {
+      if (error || !data) {
         return null;
       }
 
-      return token as string;
+      return data.access_token;
     } catch (error) {
       console.error('Error getting store access token:', error);
       return null;

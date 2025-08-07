@@ -102,21 +102,27 @@ export const useSimpleShopify = () => {
     try {
       console.log(`📦 Loading products for: ${activeStore}`);
       
-      // الحصول على token عبر دالة RPC آمنة
-      const { data: token, error: tokenError } = await (shopifySupabase as any)
-        .rpc('get_store_access_token', { p_shop: activeStore });
+      // الحصول على token من قاعدة البيانات
+      const { data: tokenData, error: tokenError } = await shopifyStores()
+        .select('*')
+        .eq('shop', activeStore)
+        .eq('is_active', true)
+        .limit(1);
 
-      if (tokenError || !token) {
+      if (tokenError || !tokenData || tokenData.length === 0) {
         throw new Error(`No valid token found for store: ${activeStore}`);
       }
 
-      const accessToken = token as string;
+      const storeRecord = tokenData[0];
+      if (!storeRecord.access_token || storeRecord.access_token === 'null') {
+        throw new Error(`Invalid access token for store: ${activeStore}`);
+      }
 
       // جلب المنتجات
       const { data, error } = await shopifySupabase.functions.invoke('shopify-products', {
         body: { 
           shop: activeStore, 
-          accessToken,
+          accessToken: storeRecord.access_token,
           limit: 25
         }
       });
@@ -165,16 +171,19 @@ export const useSimpleShopify = () => {
     try {
       console.log(`🔍 Verifying connection for: ${activeStore}`);
       
-      const { data: token, error } = await (shopifySupabase as any)
-        .rpc('get_store_access_token', { p_shop: activeStore });
+      const { data: tokenData, error } = await shopifyStores()
+        .select('access_token')
+        .eq('shop', activeStore)
+        .eq('is_active', true)
+        .limit(1);
 
-      if (error || !token) {
+      if (error || !tokenData || tokenData.length === 0) {
         setTokenError(true);
         setIsConnected(false);
         return false;
       }
 
-      const hasValidToken = typeof token === 'string' && token.length > 0;
+      const hasValidToken = tokenData[0].access_token && tokenData[0].access_token !== 'null';
       
       setTokenError(!hasValidToken);
       setIsConnected(hasValidToken);
