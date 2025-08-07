@@ -714,6 +714,21 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_order_settings: {
+        Args: { p_shop_id: string }
+        Returns: {
+          id: string
+          shop_id: string
+          user_id: string
+          post_order_action: string
+          redirect_enabled: boolean
+          thank_you_page_url: string
+          popup_title: string
+          popup_message: string
+          created_at: string
+          updated_at: string
+        }[]
+      }
       get_product_form_and_offers: {
         Args: { shop_id: string; product_id: string }
         Returns: Json
@@ -795,6 +810,17 @@ export type Database = {
       load_form_with_fallback: {
         Args: { form_id: string }
         Returns: Json
+      }
+      save_order_settings: {
+        Args: {
+          p_shop_id: string
+          p_post_order_action?: string
+          p_redirect_enabled?: boolean
+          p_thank_you_page_url?: string
+          p_popup_title?: string
+          p_popup_message?: string
+        }
+        Returns: string
       }
       update_default_store_connection: {
         Args: Record<PropertyKey, never>
