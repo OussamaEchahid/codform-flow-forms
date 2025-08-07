@@ -148,6 +148,14 @@ const AdvertisingTracking = () => {
     try {
       console.log('📤 Preparing pixel data for insertion...');
       
+      // Get current user ID
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.error('❌ No authenticated user found');
+        toast.error('يجب تسجيل الدخول أولاً');
+        return;
+      }
+      
       const pixelData = {
         name: newPixel.name.trim(),
         platform: 'facebook',
@@ -158,6 +166,7 @@ const AdvertisingTracking = () => {
           ? selectedProducts.join(',') 
           : null,
         shop_id: activeStore,
+        user_id: user.id,
         access_token: newPixel.access_token || null,
         conversion_api_enabled: newPixel.conversion_api_enabled || false,
         enabled: true
