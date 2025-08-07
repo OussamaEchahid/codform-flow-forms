@@ -156,28 +156,45 @@
    */
   function trackFormSubmission() {
     if (!window.CodformAdvertisingTracking.isInitialized || !window.CodformAdvertisingTracking.trackingEnabled) {
-      return;
+      console.log('⚠️ Advertising tracking not initialized or disabled');
+      return Promise.resolve();
     }
 
     console.log('📊 Tracking form submission...');
 
+    const trackingPromises = [];
+
     // Track Facebook Lead event
     if (window.fbq && window.CodformAdvertisingTracking.pixels.facebook.length > 0) {
       console.log('📘 Tracking Facebook Lead event');
-      window.fbq('track', 'Lead');
+      trackingPromises.push(new Promise(resolve => {
+        window.fbq('track', 'Lead');
+        setTimeout(resolve, 300); // Wait 300ms for FB tracking
+      }));
     }
 
     // Track Snapchat events
     if (window.snaptr && window.CodformAdvertisingTracking.pixels.snapchat.length > 0) {
       console.log('👻 Tracking Snapchat event');
-      window.snaptr('track', 'SIGN_UP');
+      trackingPromises.push(new Promise(resolve => {
+        window.snaptr('track', 'SIGN_UP');
+        setTimeout(resolve, 300); // Wait 300ms for Snapchat tracking
+      }));
     }
 
     // Track TikTok events
     if (window.ttq && window.CodformAdvertisingTracking.pixels.tiktok.length > 0) {
       console.log('🎵 Tracking TikTok event');
-      window.ttq.track('CompleteRegistration');
+      trackingPromises.push(new Promise(resolve => {
+        window.ttq.track('CompleteRegistration');
+        setTimeout(resolve, 300); // Wait 300ms for TikTok tracking
+      }));
     }
+
+    // Return a promise that resolves when all tracking is complete
+    return Promise.all(trackingPromises).then(() => {
+      console.log('✅ All advertising tracking completed');
+    });
   }
 
   /**

@@ -1966,10 +1966,15 @@ window.handleFormSubmit = async function(event) {
       const result = await response.json();
       console.log('✅ Submission successful:', result);
       
-      // تشغيل تتبع الإعلانات بعد نجاح الإرسال
+      // تشغيل تتبع الإعلانات بعد نجاح الإرسال وانتظار اكتماله
       if (window.CodformAdvertisingTracking && window.CodformAdvertisingTracking.track) {
-        console.log('📊 Triggering advertising tracking');
-        window.CodformAdvertisingTracking.track();
+        console.log('📊 Triggering advertising tracking before redirect...');
+        try {
+          await window.CodformAdvertisingTracking.track();
+          console.log('✅ Advertising tracking completed');
+        } catch (error) {
+          console.warn('⚠️ Advertising tracking failed:', error);
+        }
       }
       
       // إرسال حدث مخصص للتتبع
@@ -1982,6 +1987,9 @@ window.handleFormSubmit = async function(event) {
         }
       });
       document.dispatchEvent(customEvent);
+      
+      // تأخير قصير إضافي للتأكد من إرسال جميع tracking events
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       // التوجيه إلى صفحة الشكر أو صفحة المنتج مع رسالة نجاح
       if (result.redirect || result.thankYouUrl) {

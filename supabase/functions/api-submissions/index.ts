@@ -512,7 +512,8 @@ serve(async (req: Request) => {
         submissionId: submissionData.id,
         orderNumber: orderNumber || 'unknown',
         thankYouUrl: thankYouUrl,
-        redirect: thankYouUrl
+        redirect: thankYouUrl,
+        trackConversion: true // Flag to trigger advertising tracking
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
