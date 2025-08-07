@@ -155,44 +155,112 @@
   }
 
   /**
+   * Check if pixel should fire for current product
+   */
+  function shouldFirePixel(pixel, currentProductId) {
+    // If targeting all products, always fire
+    if (pixel.target_type === 'All') {
+      console.log(`✅ Pixel ${pixel.pixel_id} targets all products`);
+      return true;
+    }
+
+    // If targeting specific products, check if current product is included
+    if (pixel.target_type === 'Product' && pixel.target_id) {
+      const targetProductIds = pixel.target_id.split(',').map(id => id.trim());
+      const shouldFire = targetProductIds.includes(currentProductId?.toString());
+      console.log(`${shouldFire ? '✅' : '❌'} Pixel ${pixel.pixel_id} targeting products [${targetProductIds.join(', ')}], current product: ${currentProductId}`);
+      return shouldFire;
+    }
+
+    // Default to true for backward compatibility
+    return true;
+  }
+
+  /**
    * Track form submission event
    */
-  function trackFormSubmission() {
+  function trackFormSubmission(productId = null) {
     if (!window.CodformAdvertisingTracking.isInitialized || !window.CodformAdvertisingTracking.trackingEnabled) {
       console.log('⚠️ Advertising tracking not initialized or disabled');
       return Promise.resolve();
     }
 
-    console.log('📊 Tracking form submission...');
+    // Get current product ID from various sources
+    const currentProductId = productId || 
+                            window.codformProductId || 
+                            window.meta?.product?.id ||
+                            window.product?.id ||
+                            document.querySelector('[data-product-id]')?.getAttribute('data-product-id');
+
+    console.log('📊 Tracking form submission for product:', currentProductId);
 
     const trackingPromises = [];
 
     // Track Facebook Lead event
-    if (window.fbq && window.CodformAdvertisingTracking.pixels.facebook.length > 0) {
-      console.log('📘 Tracking Facebook Lead event');
-      trackingPromises.push(new Promise(resolve => {
-        window.fbq('track', 'Lead');
-        setTimeout(resolve, 300); // Wait 300ms for FB tracking
-      }));
-    }
+    window.CodformAdvertisingTracking.pixels.facebook.forEach(pixel => {
+      if (shouldFirePixel(pixel, currentProductId) && window.fbq) {
+        console.log('📘 Tracking Facebook Lead event for pixel:', pixel.pixel_id);
+        trackingPromises.push(new Promise(resolve => {
+          try {
+            if (pixel.event_type === 'Lead') {
+              window.fbq('track', 'Lead');
+            } else if (pixel.event_type === 'Purchase') {
+              window.fbq('track', 'Purchase');
+            } else {
+              window.fbq('track', pixel.event_type);
+            }
+            setTimeout(resolve, 300);
+          } catch (error) {
+            console.error('❌ Facebook tracking error:', error);
+            resolve();
+          }
+        }));
+      }
+    });
 
     // Track Snapchat events
-    if (window.snaptr && window.CodformAdvertisingTracking.pixels.snapchat.length > 0) {
-      console.log('👻 Tracking Snapchat event');
-      trackingPromises.push(new Promise(resolve => {
-        window.snaptr('track', 'SIGN_UP');
-        setTimeout(resolve, 300); // Wait 300ms for Snapchat tracking
-      }));
-    }
+    window.CodformAdvertisingTracking.pixels.snapchat.forEach(pixel => {
+      if (shouldFirePixel(pixel, currentProductId) && window.snaptr) {
+        console.log('👻 Tracking Snapchat event for pixel:', pixel.pixel_id);
+        trackingPromises.push(new Promise(resolve => {
+          try {
+            if (pixel.event_type === 'Lead') {
+              window.snaptr('track', 'SIGN_UP');
+            } else if (pixel.event_type === 'Purchase') {
+              window.snaptr('track', 'PURCHASE');
+            } else {
+              window.snaptr('track', 'SIGN_UP');
+            }
+            setTimeout(resolve, 300);
+          } catch (error) {
+            console.error('❌ Snapchat tracking error:', error);
+            resolve();
+          }
+        }));
+      }
+    });
 
     // Track TikTok events
-    if (window.ttq && window.CodformAdvertisingTracking.pixels.tiktok.length > 0) {
-      console.log('🎵 Tracking TikTok event');
-      trackingPromises.push(new Promise(resolve => {
-        window.ttq.track('CompleteRegistration');
-        setTimeout(resolve, 300); // Wait 300ms for TikTok tracking
-      }));
-    }
+    window.CodformAdvertisingTracking.pixels.tiktok.forEach(pixel => {
+      if (shouldFirePixel(pixel, currentProductId) && window.ttq) {
+        console.log('🎵 Tracking TikTok event for pixel:', pixel.pixel_id);
+        trackingPromises.push(new Promise(resolve => {
+          try {
+            if (pixel.event_type === 'Lead') {
+              window.ttq.track('CompleteRegistration');
+            } else if (pixel.event_type === 'Purchase') {
+              window.ttq.track('PlaceAnOrder');
+            } else {
+              window.ttq.track('CompleteRegistration');
+            }
+            setTimeout(resolve, 300);
+          } catch (error) {
+            console.error('❌ TikTok tracking error:', error);
+            resolve();
+          }
+        }));
+      }
+    });
 
     // Return a promise that resolves when all tracking is complete
     return Promise.all(trackingPromises).then(() => {
@@ -206,19 +274,25 @@
   window.handleFormSubmit = function(event) {
     console.log('📋 Form submission detected, triggering advertising tracking');
     
-    // Track the event immediately
-    trackFormSubmission();
+    // Get product ID from event data or global variables
+    const productId = event?.detail?.productId || 
+                     window.codformProductId || 
+                     window.meta?.product?.id ||
+                     window.product?.id;
+    
+    // Track the event immediately with product context
+    trackFormSubmission(productId);
     
     // Also dispatch custom event for other listeners
     document.dispatchEvent(new CustomEvent('formSubmitted', { 
       detail: { 
-        productId: window.codformProductId,
+        productId: productId,
         shopDomain: window.codformShopDomain 
       } 
     }));
     
     // Continue with normal form submission
-    if (event.target.type === 'submit') {
+    if (event.target && event.target.type === 'submit') {
       // For submit buttons, let the form handle naturally
       return true;
     } else if (typeof window.openFormPopup === 'function') {
@@ -232,7 +306,8 @@
    */
   document.addEventListener('formSubmitted', function(event) {
     console.log('📋 Custom form submission event detected');
-    trackFormSubmission();
+    const productId = event.detail?.productId;
+    trackFormSubmission(productId);
   });
 
   /**

@@ -103,13 +103,25 @@ const AdvertisingTracking = () => {
     
     setIsLoadingProducts(true);
     try {
-      const response = await fetch(`/api/shopify-products?shop=${activeStore}`);
-      if (response.ok) {
-        const data = await response.json();
-        setShopifyProducts(data.products || []);
+      const { data, error } = await supabase.functions.invoke('shopify-products-fixed', {
+        body: { 
+          shop: activeStore
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data?.success && data?.products) {
+        setShopifyProducts(data.products);
+        console.log('✅ Products loaded:', data.products.length);
+      } else {
+        throw new Error(data?.error || 'Failed to load products');
       }
     } catch (error) {
       console.error('Error loading Shopify products:', error);
+      toast.error('خطأ في تحميل المنتجات من Shopify');
     } finally {
       setIsLoadingProducts(false);
     }
@@ -124,8 +136,9 @@ const AdvertisingTracking = () => {
     try {
       const pixelData = {
         ...newPixel,
+        platform: 'facebook', // Set default platform
         shop_id: activeStore,
-        target_id: newPixel.target_type === 'Specific' ? selectedProducts.join(',') : null
+        target_id: newPixel.target_type === 'Product' ? selectedProducts.join(',') : null
       };
 
       const { data, error } = await (supabase as any)
@@ -254,263 +267,296 @@ const AdvertisingTracking = () => {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {/* بطاقة إنشاء بيكسل جديد */}
-              <Card className="border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 transition-colors">
-                <CardHeader className="text-center">
-                  <div className="mx-auto h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center mb-4">
-                    <Plus className="h-6 w-6 text-blue-600" />
+            <div className="space-y-6">
+              {/* Header with Add Button */}
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-2xl font-bold">Facebook Pixels</h2>
+                  <p className="text-muted-foreground">إدارة بيكسلات التتبع الخاصة بك</p>
+                </div>
+                <Button 
+                  onClick={() => setIsCreateDialogOpen(true)}
+                  className="bg-orange-600 hover:bg-orange-700 text-white px-6"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add New
+                </Button>
+              </div>
+
+              {/* Pixels Table */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="h-8 w-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                        <Target className="h-4 w-4 text-white" />
+                      </div>
+                      <span className="font-semibold">facebook pixel</span>
+                    </div>
                   </div>
-                  <CardTitle className="text-lg">إنشاء بيكسل جديد</CardTitle>
-                  <CardDescription>
-                    ابدأ بإنشاء بيكسل تتبع لمنصاتك الإعلانية
-                  </CardDescription>
                 </CardHeader>
-                <CardContent className="text-center">
-                  <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button className="w-full bg-blue-600 hover:bg-blue-700">
-                        إنشاء بيكسل
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-md">
-                      <DialogHeader>
-                        <DialogTitle>إنشاء بيكسل جديد</DialogTitle>
-                        <DialogDescription>
-                          أضف بيكسل تتبع جديد لمنصاتك الإعلانية
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <div>
-                          <Label htmlFor="name">اسم البيكسل</Label>
-                          <Input
-                            id="name"
-                            value={newPixel.name}
-                            onChange={(e) => setNewPixel({...newPixel, name: e.target.value})}
-                            placeholder="مثال: فيسبوك بيكسل الرئيسي"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="platform">المنصة</Label>
-                          <Select value={newPixel.platform} onValueChange={(value) => setNewPixel({...newPixel, platform: value})}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="اختر المنصة" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="facebook">Facebook</SelectItem>
-                              <SelectItem value="tiktok">TikTok</SelectItem>
-                              <SelectItem value="snapchat">Snapchat</SelectItem>
-                              <SelectItem value="twitter">Twitter</SelectItem>
-                              <SelectItem value="google">Google Ads</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <Label htmlFor="pixel_id">معرف البيكسل</Label>
-                          <Input
-                            id="pixel_id"
-                            value={newPixel.pixel_id}
-                            onChange={(e) => setNewPixel({...newPixel, pixel_id: e.target.value})}
-                            placeholder="مثال: 123456789"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="event_type">نوع الحدث</Label>
-                          <Select value={newPixel.event_type} onValueChange={(value) => setNewPixel({...newPixel, event_type: value})}>
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Lead">Lead</SelectItem>
-                              <SelectItem value="Purchase">Purchase</SelectItem>
-                              <SelectItem value="ViewContent">ViewContent</SelectItem>
-                              <SelectItem value="AddToCart">AddToCart</SelectItem>
-                              <SelectItem value="InitiateCheckout">InitiateCheckout</SelectItem>
-                            </SelectContent>
-                          </Select>
-                         </div>
-                         <div>
-                           <Label htmlFor="target_type">نوع الاستهداف</Label>
-                           <Select value={newPixel.target_type} onValueChange={(value) => setNewPixel({...newPixel, target_type: value})}>
-                             <SelectTrigger>
-                               <SelectValue />
-                             </SelectTrigger>
-                             <SelectContent>
-                               <SelectItem value="All">جميع المنتجات</SelectItem>
-                               <SelectItem value="Specific">منتجات محددة</SelectItem>
-                             </SelectContent>
-                           </Select>
-                         </div>
-                         
-                         {/* اختيار المنتجات المحددة */}
-                         {newPixel.target_type === 'Specific' && (
-                           <div>
-                             <Label>اختيار المنتجات</Label>
-                             {isLoadingProducts ? (
-                               <div className="text-center py-4">
-                                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
-                                 <p className="text-sm text-muted-foreground mt-2">جاري تحميل المنتجات...</p>
-                               </div>
-                             ) : (
-                               <div className="max-h-40 overflow-y-auto border rounded-md p-2 space-y-2">
-                                 {shopifyProducts.length > 0 ? (
-                                   shopifyProducts.map((product) => (
-                                     <div key={product.id} className="flex items-center space-x-2">
-                                       <input
-                                         type="checkbox"
-                                         id={`product-${product.id}`}
-                                         checked={selectedProducts.includes(product.id.toString())}
-                                         onChange={(e) => {
-                                           if (e.target.checked) {
-                                             setSelectedProducts([...selectedProducts, product.id.toString()]);
-                                           } else {
-                                             setSelectedProducts(selectedProducts.filter(id => id !== product.id.toString()));
-                                           }
-                                         }}
-                                         className="rounded"
-                                       />
-                                       <label htmlFor={`product-${product.id}`} className="text-sm flex-1 cursor-pointer">
-                                         <div className="flex items-center gap-2">
-                                           {product.image && (
-                                             <img src={product.image.src} alt="" className="w-8 h-8 rounded object-cover" />
-                                           )}
-                                           <span>{product.title}</span>
-                                         </div>
-                                       </label>
-                                     </div>
-                                   ))
-                                 ) : (
-                                   <p className="text-sm text-muted-foreground text-center py-4">
-                                     لا توجد منتجات متاحة
-                                   </p>
-                                 )}
-                               </div>
-                             )}
-                           </div>
-                          )}
-                         <div className="flex gap-2">
-                           <Button onClick={createPixel} className="flex-1">
-                             إنشاء
-                           </Button>
-                           <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)} className="flex-1">
-                             إلغاء
-                           </Button>
-                         </div>
-                       </div>
-                     </DialogContent>
-                   </Dialog>
+                <CardContent>
+                  {pixels.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b text-sm text-muted-foreground">
+                            <th className="text-right pb-3 font-medium">Last Update</th>
+                            <th className="text-right pb-3 font-medium">Pixel Name</th>
+                            <th className="text-right pb-3 font-medium">Pixel ID</th>
+                            <th className="text-right pb-3 font-medium">Conversion API Status</th>
+                            <th className="text-right pb-3 font-medium">Event type</th>
+                            <th className="text-right pb-3 font-medium">Target</th>
+                            <th className="text-right pb-3 font-medium">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {pixels.map((pixel) => (
+                            <tr key={pixel.id} className="border-b last:border-b-0">
+                              <td className="py-3 text-sm text-muted-foreground">
+                                {new Date(pixel.updated_at).toLocaleDateString('ar-SA')}
+                              </td>
+                              <td className="py-3 font-medium">{pixel.name}</td>
+                              <td className="py-3 text-sm text-blue-600">{pixel.pixel_id}</td>
+                              <td className="py-3">
+                                <Badge variant={pixel.conversion_api_enabled ? "default" : "secondary"}>
+                                  {pixel.conversion_api_enabled ? "Active" : "Inactive"}
+                                </Badge>
+                              </td>
+                              <td className="py-3">{pixel.event_type}</td>
+                              <td className="py-3">
+                                <Badge variant="outline">
+                                  {pixel.target_type === 'All' ? 'All Products' : 'Specific Products'}
+                                </Badge>
+                              </td>
+                              <td className="py-3">
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => deletePixel(pixel.id)}
+                                  className="h-8 w-8 p-0"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="text-center py-12 text-muted-foreground">
+                      <Target className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p className="text-lg font-medium mb-2">لا توجد بيكسلات</p>
+                      <p>ابدأ بإنشاء بيكسل تتبع أول</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
-              {/* عرض البيكسلات الموجودة */}
-              {pixels.map((pixel) => (
-                <Card key={pixel.id} className="border border-muted-foreground/20">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
-                          pixel.platform === 'facebook' ? 'bg-blue-100' :
-                          pixel.platform === 'tiktok' ? 'bg-black' :
-                          pixel.platform === 'snapchat' ? 'bg-yellow-100' :
-                          'bg-gray-100'
-                        }`}>
-                          <Target className={`h-5 w-5 ${
-                            pixel.platform === 'facebook' ? 'text-blue-600' :
-                            pixel.platform === 'tiktok' ? 'text-white' :
-                            pixel.platform === 'snapchat' ? 'text-yellow-600' :
-                            'text-gray-600'
-                          }`} />
-                        </div>
-                        <div>
-                          <CardTitle className="text-base">{pixel.name}</CardTitle>
-                          <CardDescription className="text-sm">
-                            {pixel.platform.toUpperCase()} • {pixel.event_type}
-                          </CardDescription>
-                        </div>
-                      </div>
-                      <Badge variant={pixel.enabled ? 'default' : 'secondary'}>
-                        {pixel.enabled ? 'نشط' : 'متوقف'}
-                      </Badge>
+              {/* Create Pixel Dialog - Professional Design */}
+              <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                <DialogContent className="max-w-md">
+                  <DialogHeader className="flex flex-row items-center gap-3 space-y-0 pb-4">
+                    <div className="h-10 w-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                      <Target className="h-5 w-5 text-white" />
                     </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">معرف البيكسل:</span>
-                        <span className="font-mono">{pixel.pixel_id}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">نوع الهدف:</span>
-                        <span>{pixel.target_type}</span>
+                    <div>
+                      <DialogTitle className="text-xl">Create pixel</DialogTitle>
+                    </div>
+                  </DialogHeader>
+                  
+                  <div className="space-y-6">
+                    {/* Name Field */}
+                    <div className="space-y-2">
+                      <Label htmlFor="name" className="text-sm font-medium">Name</Label>
+                      <Input
+                        id="name"
+                        value={newPixel.name}
+                        onChange={(e) => setNewPixel({...newPixel, name: e.target.value})}
+                        placeholder="This name will help you recognize your pixel"
+                        className="h-10"
+                      />
+                    </div>
+
+                    {/* Facebook Pixel ID */}
+                    <div className="space-y-2">
+                      <Label htmlFor="pixel_id" className="text-sm font-medium">Facebook Pixel ID</Label>
+                      <Input
+                        id="pixel_id"
+                        value={newPixel.pixel_id}
+                        onChange={(e) => setNewPixel({...newPixel, pixel_id: e.target.value})}
+                        placeholder="Enter your Facebook pixel ID here"
+                        className="h-10"
+                      />
+                    </div>
+
+                    {/* Type Event */}
+                    <div className="space-y-3">
+                      <Label className="text-sm font-medium">Type event</Label>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant={newPixel.event_type === 'Lead' ? 'default' : 'outline'}
+                          onClick={() => setNewPixel({...newPixel, event_type: 'Lead'})}
+                          className="flex-1 h-10"
+                        >
+                          Lead
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={newPixel.event_type === 'Purchase' ? 'default' : 'outline'}
+                          onClick={() => setNewPixel({...newPixel, event_type: 'Purchase'})}
+                          className="flex-1 h-10"
+                        >
+                          Purchase
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex gap-2 mt-4">
-                      <Button size="sm" variant="outline" className="flex-1">
-                        <Edit className="h-4 w-4 mr-1" />
-                        تعديل
+
+                    {/* Target */}
+                    <div className="space-y-3">
+                      <Label className="text-sm font-medium">Target</Label>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant={newPixel.target_type === 'All' ? 'default' : 'outline'}
+                          onClick={() => setNewPixel({...newPixel, target_type: 'All'})}
+                          className="flex-1 h-10"
+                        >
+                          All
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={newPixel.target_type === 'Collection' ? 'default' : 'outline'}
+                          onClick={() => setNewPixel({...newPixel, target_type: 'Collection'})}
+                          className="flex-1 h-10"
+                        >
+                          Collection
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={newPixel.target_type === 'Product' ? 'default' : 'outline'}
+                          onClick={() => setNewPixel({...newPixel, target_type: 'Product'})}
+                          className="flex-1 h-10"
+                        >
+                          Product
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Product Selection */}
+                    {newPixel.target_type === 'Product' && (
+                      <div className="space-y-3">
+                        <Label className="text-sm font-medium">اختيار المنتجات</Label>
+                        {isLoadingProducts ? (
+                          <div className="text-center py-6">
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+                            <p className="text-sm text-muted-foreground mt-2">جاري تحميل المنتجات...</p>
+                          </div>
+                        ) : (
+                          <div className="max-h-40 overflow-y-auto border rounded-lg p-3 space-y-3">
+                            {shopifyProducts.length > 0 ? (
+                              shopifyProducts.map((product) => (
+                                <div key={product.id} className="flex items-center space-x-3 space-x-reverse">
+                                  <input
+                                    type="checkbox"
+                                    id={`product-${product.id}`}
+                                    checked={selectedProducts.includes(product.id.toString())}
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        setSelectedProducts([...selectedProducts, product.id.toString()]);
+                                      } else {
+                                        setSelectedProducts(selectedProducts.filter(id => id !== product.id.toString()));
+                                      }
+                                    }}
+                                    className="h-4 w-4 rounded border-gray-300"
+                                  />
+                                  <label htmlFor={`product-${product.id}`} className="flex-1 cursor-pointer">
+                                    <div className="flex items-center gap-3">
+                                      {product.image && (
+                                        <img 
+                                          src={product.image.src || product.image} 
+                                          alt="" 
+                                          className="w-10 h-10 rounded-lg object-cover border"
+                                        />
+                                      )}
+                                      <div>
+                                        <p className="text-sm font-medium">{product.title}</p>
+                                        <p className="text-xs text-muted-foreground">{product.handle}</p>
+                                      </div>
+                                    </div>
+                                  </label>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="text-center py-6 text-muted-foreground">
+                                <p className="text-sm">لا توجد منتجات متاحة</p>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  onClick={loadShopifyProducts}
+                                  className="mt-2"
+                                >
+                                  إعادة التحميل
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Conversion API Status */}
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Conversion API status (optional)</Label>
+                      <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setNewPixel({...newPixel, conversion_api_enabled: !newPixel.conversion_api_enabled})}
+                          className="p-0 h-auto text-gray-500"
+                        >
+                          ✕
+                        </Button>
+                        <span className="text-sm text-gray-600">Conversion API status</span>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-3 pt-4">
+                      <Button 
+                        onClick={createPixel} 
+                        className="flex-1 bg-orange-600 hover:bg-orange-700 h-10"
+                        disabled={!newPixel.name || !newPixel.pixel_id}
+                      >
+                        Save
                       </Button>
                       <Button 
-                        size="sm" 
                         variant="outline" 
-                        onClick={() => deletePixel(pixel.id)}
-                        className="text-red-600 hover:text-red-700"
+                        onClick={() => {
+                          setIsCreateDialogOpen(false);
+                          setNewPixel({
+                            name: '',
+                            platform: 'facebook',
+                            pixel_id: '',
+                            event_type: 'Lead',
+                            target_type: 'All',
+                            target_id: '',
+                            access_token: '',
+                            conversion_api_enabled: false
+                          });
+                          setSelectedProducts([]);
+                        }}
+                        className="flex-1 h-10"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        Cancel
                       </Button>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-
-              {/* بطاقة Quick Add Facebook */}
-              <Card className="border-2 border-dashed border-muted-foreground/25 hover:border-blue-500/50 transition-colors">
-                <CardHeader className="text-center">
-                  <div className="mx-auto h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center mb-4">
-                    <Target className="h-6 w-6 text-blue-600" />
                   </div>
-                  <CardTitle className="text-lg">Facebook Pixel</CardTitle>
-                  <CardDescription>
-                    إضافة سريعة لبيكسل فيسبوك
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="text-center">
-                  <Button 
-                    variant="outline" 
-                    className="w-full"
-                    onClick={() => {
-                      setNewPixel({...newPixel, platform: 'facebook', event_type: 'Lead'});
-                      setIsCreateDialogOpen(true);
-                    }}
-                  >
-                    إضافة Facebook Pixel
-                  </Button>
-                </CardContent>
-              </Card>
-
-              {/* بطاقة Quick Add TikTok */}
-              <Card className="border-2 border-dashed border-muted-foreground/25 hover:border-black/50 transition-colors">
-                <CardHeader className="text-center">
-                  <div className="mx-auto h-12 w-12 rounded-full bg-black flex items-center justify-center mb-4">
-                    <Target className="h-6 w-6 text-white" />
-                  </div>
-                  <CardTitle className="text-lg">TikTok Pixel</CardTitle>
-                  <CardDescription>
-                    إضافة سريعة لبيكسل TikTok
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="text-center">
-                  <Button 
-                    variant="outline" 
-                    className="w-full"
-                    onClick={() => {
-                      setNewPixel({...newPixel, platform: 'tiktok', event_type: 'CompleteRegistration'});
-                      setIsCreateDialogOpen(true);
-                    }}
-                  >
-                    إضافة TikTok Pixel
-                  </Button>
-                </CardContent>
-              </Card>
+                </DialogContent>
+              </Dialog>
             </div>
           )}
         </div>
