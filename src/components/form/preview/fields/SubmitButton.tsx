@@ -137,12 +137,29 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, onClick, 
   // Add className for animation
   const animClass = getAnimationClass();
 
+  const handleSubmit = () => {
+    // إرسال event للـ tracking pixels
+    const event = new CustomEvent('formSubmitted', {
+      detail: {
+        formName: field.label || 'Submit Form',
+        formId: field.id,
+        timestamp: new Date().toISOString()
+      }
+    });
+    document.dispatchEvent(event);
+    
+    // استدعاء onClick المرسل من props
+    if (onClick) {
+      onClick();
+    }
+  };
+
   return (
     <button 
       type="submit" 
       className={cn("form-submit-btn w-full", animClass)}
       style={btnStyle}
-      onClick={onClick}
+      onClick={handleSubmit}
       disabled={disabled}
     >
       {showIcon && iconPosition === 'left' && (field.icon || field.style?.icon) && (

@@ -24,6 +24,10 @@ interface PixelSettings {
   targetId?: string;
   conversionApiEnabled: boolean;
   accessToken?: string;
+  platform?: string;
+  shop_id?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 interface TrackingEvent {
@@ -58,22 +62,24 @@ const AdvertisingTracking = () => {
 
   // Load data on component mount
   useEffect(() => {
-    loadPixelsAndForms();
-  }, []);
+    if (activeStore) {
+      loadPixelsAndForms();
+    }
+  }, [activeStore]);
 
   const loadPixelsAndForms = async () => {
+    if (!activeStore) return;
+    
     setIsLoading(true);
     try {
-      // Load saved pixels from Supabase
-      const { data: pixelsData } = await supabase
-        .from('advertising_pixels')
-        .select('*')
-        .eq('shop_id', activeStore?.shop || '');
-
-      if (pixelsData) {
-        const facebook = pixelsData.filter(p => p.platform === 'facebook');
-        const snapchat = pixelsData.filter(p => p.platform === 'snapchat');
-        const tiktok = pixelsData.filter(p => p.platform === 'tiktok');
+      // Use a temporary method since the table structure is not yet updated
+      // For now, we'll use local storage to simulate the pixels
+      const savedPixels = localStorage.getItem(`advertising_pixels_${activeStore}`);
+      if (savedPixels) {
+        const pixels = JSON.parse(savedPixels);
+        const facebook = pixels.filter((p: PixelSettings) => p.platform === 'facebook');
+        const snapchat = pixels.filter((p: PixelSettings) => p.platform === 'snapchat');
+        const tiktok = pixels.filter((p: PixelSettings) => p.platform === 'tiktok');
         
         setFacebookPixels(facebook);
         setSnapchatPixels(snapchat);
@@ -84,7 +90,7 @@ const AdvertisingTracking = () => {
       const { data: formsData } = await supabase
         .from('forms')
         .select('*')
-        .eq('shop_id', activeStore?.shop || '');
+        .eq('shop_id', activeStore);
 
       if (formsData) {
         setForms(formsData);
@@ -128,7 +134,7 @@ const AdvertisingTracking = () => {
       return;
     }
 
-    if (!activeStore?.shop) {
+    if (!activeStore) {
       toast({
         title: "Error",
         description: "No active store connected.",
@@ -142,16 +148,15 @@ const AdvertisingTracking = () => {
         ...newPixel, 
         id: Date.now().toString(),
         platform: selectedPlatform,
-        shop_id: activeStore.shop,
+        shop_id: activeStore,
         created_at: new Date().toISOString()
       };
 
-      // Save to Supabase
-      const { error } = await supabase
-        .from('advertising_pixels')
-        .insert([pixelToAdd]);
-
-      if (error) throw error;
+      // Save to localStorage for now
+      const savedPixels = localStorage.getItem(`advertising_pixels_${activeStore}`);
+      const pixels = savedPixels ? JSON.parse(savedPixels) : [];
+      pixels.push(pixelToAdd);
+      localStorage.setItem(`advertising_pixels_${activeStore}`, JSON.stringify(pixels));
       
       // Update local state
       switch (selectedPlatform) {
@@ -194,18 +199,8 @@ const AdvertisingTracking = () => {
 
   const handleSave = async () => {
     try {
-      // Save all pixels to Supabase
-      const allPixels = [...facebookPixels, ...snapchatPixels, ...tiktokPixels];
-      
-      for (const pixel of allPixels) {
-        await supabase
-          .from('advertising_pixels')
-          .upsert({
-            ...pixel,
-            shop_id: activeStore?.shop,
-            updated_at: new Date().toISOString()
-          });
-      }
+      // Save tracking events settings
+      localStorage.setItem(`tracking_events_${activeStore}`, JSON.stringify(trackingEvents));
 
       toast({
         title: "Settings Saved",
@@ -352,11 +347,13 @@ document.addEventListener('formSubmitted', function(e) {
 
   const deletePixel = async (platform: string, pixelId: string) => {
     try {
-      // Delete from Supabase
-      await supabase
-        .from('advertising_pixels')
-        .delete()
-        .eq('id', pixelId);
+      // Remove from localStorage
+      const savedPixels = localStorage.getItem(`advertising_pixels_${activeStore}`);
+      if (savedPixels) {
+        const pixels = JSON.parse(savedPixels);
+        const updatedPixels = pixels.filter((p: PixelSettings) => p.id !== pixelId);
+        localStorage.setItem(`advertising_pixels_${activeStore}`, JSON.stringify(updatedPixels));
+      }
 
       // Update local state
       switch (platform) {

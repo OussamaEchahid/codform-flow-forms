@@ -59,6 +59,54 @@ export type Database = {
         }
         Relationships: []
       }
+      advertising_pixels: {
+        Row: {
+          access_token: string | null
+          conversion_api_enabled: boolean | null
+          created_at: string
+          enabled: boolean | null
+          event_type: string
+          id: string
+          name: string
+          pixel_id: string
+          platform: string
+          shop_id: string
+          target_id: string | null
+          target_type: string
+          updated_at: string
+        }
+        Insert: {
+          access_token?: string | null
+          conversion_api_enabled?: boolean | null
+          created_at?: string
+          enabled?: boolean | null
+          event_type?: string
+          id?: string
+          name: string
+          pixel_id: string
+          platform: string
+          shop_id: string
+          target_id?: string | null
+          target_type?: string
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string | null
+          conversion_api_enabled?: boolean | null
+          created_at?: string
+          enabled?: boolean | null
+          event_type?: string
+          id?: string
+          name?: string
+          pixel_id?: string
+          platform?: string
+          shop_id?: string
+          target_id?: string | null
+          target_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       currency_display_settings: {
         Row: {
           created_at: string
