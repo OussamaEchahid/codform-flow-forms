@@ -50,11 +50,12 @@
 
       // Organize pixels by platform
       pixels.forEach(pixel => {
-        if (pixel.platform === 'facebook') {
+        const platform = pixel.platform.toLowerCase();
+        if (platform === 'facebook') {
           window.CodformAdvertisingTracking.pixels.facebook.push(pixel);
-        } else if (pixel.platform === 'snapchat') {
+        } else if (platform === 'snapchat') {
           window.CodformAdvertisingTracking.pixels.snapchat.push(pixel);
-        } else if (pixel.platform === 'tiktok') {
+        } else if (platform === 'tiktok') {
           window.CodformAdvertisingTracking.pixels.tiktok.push(pixel);
         }
       });
