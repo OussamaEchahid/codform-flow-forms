@@ -11,6 +11,8 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { 
   Target, 
@@ -28,6 +30,20 @@ const AdvertisingTracking = () => {
   const navigate = useNavigate();
   const { language } = useI18n();
   const { shop, shopifyConnected, loading } = useAuth();
+  
+  // State for pixel management
+  const [pixels, setPixels] = useState([]);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [newPixel, setNewPixel] = useState({
+    name: '',
+    platform: '',
+    pixel_id: '',
+    event_type: 'Lead',
+    target_type: 'All',
+    target_id: '',
+    access_token: '',
+    conversion_api_enabled: false
+  });
 
   // Check for active Shopify store (same as Forms page)
   const storeFromStorage = localStorage.getItem('current_shopify_store');
@@ -38,6 +54,80 @@ const AdvertisingTracking = () => {
                        activeStore !== 'en' && 
                        activeStore !== 'ar' && 
                        activeStore.includes('.myshopify.com');
+
+  // Load existing pixels
+  useEffect(() => {
+    if (isValidStore) {
+      loadPixels();
+    }
+  }, [isValidStore]);
+
+  const loadPixels = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('advertising_pixels')
+        .select('*')
+        .eq('shop_id', activeStore);
+
+      if (error) throw error;
+      setPixels(data || []);
+    } catch (error) {
+      console.error('Error loading pixels:', error);
+      toast.error('خطأ في تحميل البيكسلات');
+    }
+  };
+
+  const createPixel = async () => {
+    if (!newPixel.name || !newPixel.platform || !newPixel.pixel_id) {
+      toast.error('يرجى ملء جميع الحقول المطلوبة');
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('advertising_pixels')
+        .insert([{
+          ...newPixel,
+          shop_id: activeStore
+        }]);
+
+      if (error) throw error;
+
+      toast.success('تم إنشاء البيكسل بنجاح');
+      setIsCreateDialogOpen(false);
+      setNewPixel({
+        name: '',
+        platform: '',
+        pixel_id: '',
+        event_type: 'Lead',
+        target_type: 'All',
+        target_id: '',
+        access_token: '',
+        conversion_api_enabled: false
+      });
+      loadPixels();
+    } catch (error) {
+      console.error('Error creating pixel:', error);
+      toast.error('خطأ في إنشاء البيكسل');
+    }
+  };
+
+  const deletePixel = async (id) => {
+    try {
+      const { error } = await supabase
+        .from('advertising_pixels')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast.success('تم حذف البيكسل بنجاح');
+      loadPixels();
+    } catch (error) {
+      console.error('Error deleting pixel:', error);
+      toast.error('خطأ في حذف البيكسل');
+    }
+  };
 
   if (loading) {
     return (
@@ -135,44 +225,188 @@ const AdvertisingTracking = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="text-center">
-                  <Button className="w-full bg-blue-600 hover:bg-blue-700">
-                    إنشاء بيكسل
-                  </Button>
+                  <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button className="w-full bg-blue-600 hover:bg-blue-700">
+                        إنشاء بيكسل
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-md">
+                      <DialogHeader>
+                        <DialogTitle>إنشاء بيكسل جديد</DialogTitle>
+                        <DialogDescription>
+                          أضف بيكسل تتبع جديد لمنصاتك الإعلانية
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="name">اسم البيكسل</Label>
+                          <Input
+                            id="name"
+                            value={newPixel.name}
+                            onChange={(e) => setNewPixel({...newPixel, name: e.target.value})}
+                            placeholder="مثال: فيسبوك بيكسل الرئيسي"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="platform">المنصة</Label>
+                          <Select value={newPixel.platform} onValueChange={(value) => setNewPixel({...newPixel, platform: value})}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="اختر المنصة" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="facebook">Facebook</SelectItem>
+                              <SelectItem value="tiktok">TikTok</SelectItem>
+                              <SelectItem value="snapchat">Snapchat</SelectItem>
+                              <SelectItem value="twitter">Twitter</SelectItem>
+                              <SelectItem value="google">Google Ads</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="pixel_id">معرف البيكسل</Label>
+                          <Input
+                            id="pixel_id"
+                            value={newPixel.pixel_id}
+                            onChange={(e) => setNewPixel({...newPixel, pixel_id: e.target.value})}
+                            placeholder="مثال: 123456789"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="event_type">نوع الحدث</Label>
+                          <Select value={newPixel.event_type} onValueChange={(value) => setNewPixel({...newPixel, event_type: value})}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Lead">Lead</SelectItem>
+                              <SelectItem value="Purchase">Purchase</SelectItem>
+                              <SelectItem value="ViewContent">ViewContent</SelectItem>
+                              <SelectItem value="AddToCart">AddToCart</SelectItem>
+                              <SelectItem value="InitiateCheckout">InitiateCheckout</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button onClick={createPixel} className="flex-1">
+                            إنشاء
+                          </Button>
+                          <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)} className="flex-1">
+                            إلغاء
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                 </CardContent>
               </Card>
 
-              {/* بطاقة Facebook */}
-              <Card className="border-2 border-dashed border-muted-foreground/25">
+              {/* عرض البيكسلات الموجودة */}
+              {pixels.map((pixel) => (
+                <Card key={pixel.id} className="border border-muted-foreground/20">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
+                          pixel.platform === 'facebook' ? 'bg-blue-100' :
+                          pixel.platform === 'tiktok' ? 'bg-black' :
+                          pixel.platform === 'snapchat' ? 'bg-yellow-100' :
+                          'bg-gray-100'
+                        }`}>
+                          <Target className={`h-5 w-5 ${
+                            pixel.platform === 'facebook' ? 'text-blue-600' :
+                            pixel.platform === 'tiktok' ? 'text-white' :
+                            pixel.platform === 'snapchat' ? 'text-yellow-600' :
+                            'text-gray-600'
+                          }`} />
+                        </div>
+                        <div>
+                          <CardTitle className="text-base">{pixel.name}</CardTitle>
+                          <CardDescription className="text-sm">
+                            {pixel.platform.toUpperCase()} • {pixel.event_type}
+                          </CardDescription>
+                        </div>
+                      </div>
+                      <Badge variant={pixel.enabled ? 'default' : 'secondary'}>
+                        {pixel.enabled ? 'نشط' : 'متوقف'}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">معرف البيكسل:</span>
+                        <span className="font-mono">{pixel.pixel_id}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">نوع الهدف:</span>
+                        <span>{pixel.target_type}</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 mt-4">
+                      <Button size="sm" variant="outline" className="flex-1">
+                        <Edit className="h-4 w-4 mr-1" />
+                        تعديل
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        onClick={() => deletePixel(pixel.id)}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+
+              {/* بطاقة Quick Add Facebook */}
+              <Card className="border-2 border-dashed border-muted-foreground/25 hover:border-blue-500/50 transition-colors">
                 <CardHeader className="text-center">
                   <div className="mx-auto h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center mb-4">
                     <Target className="h-6 w-6 text-blue-600" />
                   </div>
                   <CardTitle className="text-lg">Facebook Pixel</CardTitle>
                   <CardDescription>
-                    إدارة بيكسلات فيسبوك للتتبع
+                    إضافة سريعة لبيكسل فيسبوك
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="text-center">
-                  <Button variant="outline" className="w-full">
-                    إدارة Facebook
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={() => {
+                      setNewPixel({...newPixel, platform: 'facebook', event_type: 'Lead'});
+                      setIsCreateDialogOpen(true);
+                    }}
+                  >
+                    إضافة Facebook Pixel
                   </Button>
                 </CardContent>
               </Card>
 
-              {/* بطاقة TikTok */}
-              <Card className="border-2 border-dashed border-muted-foreground/25">
+              {/* بطاقة Quick Add TikTok */}
+              <Card className="border-2 border-dashed border-muted-foreground/25 hover:border-black/50 transition-colors">
                 <CardHeader className="text-center">
                   <div className="mx-auto h-12 w-12 rounded-full bg-black flex items-center justify-center mb-4">
                     <Target className="h-6 w-6 text-white" />
                   </div>
                   <CardTitle className="text-lg">TikTok Pixel</CardTitle>
                   <CardDescription>
-                    إدارة بيكسلات TikTok للتتبع
+                    إضافة سريعة لبيكسل TikTok
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="text-center">
-                  <Button variant="outline" className="w-full">
-                    إدارة TikTok
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={() => {
+                      setNewPixel({...newPixel, platform: 'tiktok', event_type: 'CompleteRegistration'});
+                      setIsCreateDialogOpen(true);
+                    }}
+                  >
+                    إضافة TikTok Pixel
                   </Button>
                 </CardContent>
               </Card>
