@@ -73,7 +73,7 @@ serve(async (req) => {
 
     const mutation = `#graphql
       mutation appSubscriptionCreate($name: String!, $returnUrl: URL!, $lineItems: [AppSubscriptionLineItemInput!]!, $test: Boolean) {
-        appSubscriptionCreate(name: $name, returnUrl: $returnUrl, lineItems: $lineItems, test: true) {
+        appSubscriptionCreate(name: $name, returnUrl: $returnUrl, lineItems: $lineItems, test: $test) {
           userErrors { field message }
           confirmationUrl
           appSubscription { id }
@@ -94,7 +94,7 @@ serve(async (req) => {
           },
         },
       ],
-      test: true,
+      test: false,
     };
 
     const resp = await fetch(`https://${shop}/admin/api/${GRAPHQL_API_VERSION}/graphql.json`, {
