@@ -1,0 +1,137 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+interface OrderSettings {
+  id?: string;
+  shop_id: string;
+  user_id?: string;
+  post_order_action: 'redirect' | 'popup' | 'stay';
+  redirect_enabled: boolean;
+  thank_you_page_url?: string;
+  popup_title?: string;
+  popup_message?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+serve(async (req: Request) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    // Create Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const { method } = req;
+    const requestData = await req.json();
+    const shopId = requestData.shop_id;
+    const requestMethod = requestData.method || method;
+
+    if (!shopId) {
+      return new Response(
+        JSON.stringify({ error: 'shop_id parameter is required' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+
+    if (requestMethod === 'GET') {
+      // Get order settings for shop
+      const { data, error } = await supabase
+        .from('order_settings')
+        .select('*')
+        .eq('shop_id', shopId)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching order settings:', error);
+        return new Response(
+          JSON.stringify({ error: 'Failed to fetch order settings' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        );
+      }
+
+      // If no settings found, return defaults
+      const settings = data || {
+        shop_id: shopId,
+        post_order_action: 'redirect',
+        redirect_enabled: true,
+        thank_you_page_url: '',
+        popup_title: 'تم إنشاء طلبك بنجاح!',
+        popup_message: 'شكراً لك على طلبك. سنتواصل معك قريباً...'
+      };
+
+      return new Response(
+        JSON.stringify({ success: true, data: settings }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
+    }
+
+    if (requestMethod === 'POST' || requestMethod === 'PUT') {
+      // Save or update order settings
+      const settings: Partial<OrderSettings> = requestData.settings;
+
+      if (!settings) {
+        return new Response(
+          JSON.stringify({ error: 'settings data is required' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        );
+      }
+
+      // Prepare settings for upsert
+      const settingsToSave = {
+        ...settings,
+        shop_id: shopId,
+        updated_at: new Date().toISOString()
+      };
+
+      // Remove undefined values
+      Object.keys(settingsToSave).forEach(key => {
+        if (settingsToSave[key as keyof OrderSettings] === undefined) {
+          delete settingsToSave[key as keyof OrderSettings];
+        }
+      });
+
+      const { data, error } = await supabase
+        .from('order_settings')
+        .upsert(settingsToSave, {
+          onConflict: 'shop_id'
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error saving order settings:', error);
+        return new Response(
+          JSON.stringify({ error: 'Failed to save order settings', details: error.message }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, data }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
+    }
+
+    return new Response(
+      JSON.stringify({ error: 'Method not allowed' }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 405 }
+    );
+
+  } catch (error) {
+    console.error('Error in order-settings function:', error);
+    return new Response(
+      JSON.stringify({ error: 'Internal server error', details: error.message }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+    );
+  }
+});

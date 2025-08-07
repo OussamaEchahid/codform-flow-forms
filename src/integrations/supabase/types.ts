@@ -344,6 +344,45 @@ export type Database = {
         }
         Relationships: []
       }
+      order_settings: {
+        Row: {
+          created_at: string
+          id: string
+          popup_message: string | null
+          popup_title: string | null
+          post_order_action: string
+          redirect_enabled: boolean
+          shop_id: string
+          thank_you_page_url: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          popup_message?: string | null
+          popup_title?: string | null
+          post_order_action?: string
+          redirect_enabled?: boolean
+          shop_id: string
+          thank_you_page_url?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          popup_message?: string | null
+          popup_title?: string | null
+          post_order_action?: string
+          redirect_enabled?: boolean
+          shop_id?: string
+          thank_you_page_url?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           billing_address: Json | null

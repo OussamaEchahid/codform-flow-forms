@@ -452,8 +452,41 @@ serve(async (req: Request) => {
       // Continue even if order creation fails, using default order number
     }
 
-    // Return success with correct redirect URL
-    const thankYouUrl = `https://${shopDomain}/pages/thank-you?order=${orderNumber}&success=true`;
+    // Get order settings to determine redirect behavior
+    let orderSettings = null;
+    try {
+      const { data: settingsData, error: settingsError } = await supabase
+        .from('order_settings')
+        .select('*')
+        .eq('shop_id', shopDomain)
+        .maybeSingle();
+      
+      if (!settingsError && settingsData) {
+        orderSettings = settingsData;
+      }
+    } catch (error) {
+      console.log('⚠️ Could not fetch order settings, using defaults');
+    }
+
+    // Determine redirect URL based on settings
+    let redirectUrl;
+    
+    if (orderSettings?.post_order_action === 'redirect' && orderSettings?.redirect_enabled && orderSettings?.thank_you_page_url) {
+      // Use custom thank you page URL
+      redirectUrl = orderSettings.thank_you_page_url;
+      // Add order parameter if URL doesn't already have query params
+      if (redirectUrl.includes('?')) {
+        redirectUrl += `&order=${orderNumber}&success=true`;
+      } else {
+        redirectUrl += `?order=${orderNumber}&success=true`;
+      }
+    } else {
+      // Use default Shopify thank you page
+      redirectUrl = `https://${shopDomain}/pages/thank-you?order=${orderNumber}&success=true`;
+    }
+
+    console.log('🔄 Redirect URL determined:', redirectUrl);
+    const thankYouUrl = redirectUrl;
     
     return new Response(
       JSON.stringify({ 
