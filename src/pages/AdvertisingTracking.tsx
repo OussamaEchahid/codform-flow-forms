@@ -159,8 +159,14 @@ const AdvertisingTracking = () => {
     try {
       console.log('📤 Preparing pixel data for insertion...');
       
-      // استخدم الـ user_id الثابت المستخدم في المشروع
-      const FIXED_USER_ID = '36d7eb85-0c45-4b4f-bea1-a9cb732ca893';
+      // استخدم المستخدم المصادق الحقيقي
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        console.error('❌ No authenticated user found');
+        toast.error('يجب تسجيل الدخول أولاً');
+        return;
+      }
       
       const pixelData = {
         name: newPixel.name.trim(),
@@ -172,10 +178,10 @@ const AdvertisingTracking = () => {
           ? selectedProducts.join(',') 
           : null,
         shop_id: activeStore,
+        user_id: user.id,
         access_token: newPixel.access_token || null,
         conversion_api_enabled: newPixel.conversion_api_enabled || false,
-        enabled: true,
-        user_id: FIXED_USER_ID
+        enabled: true
       };
 
       console.log('📤 Final pixel data to insert:', pixelData);
