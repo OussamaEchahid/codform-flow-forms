@@ -148,11 +148,16 @@ const AdvertisingTracking = () => {
     try {
       console.log('📤 Preparing pixel data for insertion...');
       
-      // Get current user ID
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        console.error('❌ No authenticated user found');
-        toast.error('يجب تسجيل الدخول أولاً');
+      // Get user_id from the active store
+      const { data: storeData, error: storeError } = await (supabase as any)
+        .from('shopify_stores')
+        .select('user_id')
+        .eq('shop', activeStore)
+        .single();
+
+      if (storeError || !storeData?.user_id) {
+        console.error('❌ Could not get user_id from store:', storeError);
+        toast.error('خطأ في الحصول على بيانات المتجر');
         return;
       }
       
@@ -166,7 +171,7 @@ const AdvertisingTracking = () => {
           ? selectedProducts.join(',') 
           : null,
         shop_id: activeStore,
-        user_id: user.id,
+        user_id: storeData.user_id,
         access_token: newPixel.access_token || null,
         conversion_api_enabled: newPixel.conversion_api_enabled || false,
         enabled: true
