@@ -484,19 +484,18 @@ serve(async (req: Request) => {
       thank_you_page_url: orderSettings?.thank_you_page_url
     });
     
-    if (orderSettings?.post_order_action === 'redirect' && orderSettings?.redirect_enabled) {
-      if (orderSettings?.thank_you_page_url && orderSettings.thank_you_page_url.trim() !== '') {
-        // Use custom thank you page URL from settings
-        redirectUrl = orderSettings.thank_you_page_url.trim();
-        // Add order parameter
-        const separator = redirectUrl.includes('?') ? '&' : '?';
-        redirectUrl += `${separator}order=${orderNumber}&success=true`;
-        console.log('✅ Using custom redirect URL from settings:', redirectUrl);
-      } else {
-        // Use default Shopify checkout page if no custom URL set
-        redirectUrl = `https://${shopDomain}/checkout/thank_you?order=${orderNumber}&success=true`;
-        console.log('📄 Using default checkout page (no custom URL in settings)');
-      }
+    // Check if redirect is enabled and has a custom URL
+    if (orderSettings?.redirect_enabled && orderSettings?.thank_you_page_url && orderSettings.thank_you_page_url.trim() !== '') {
+      // Use custom thank you page URL from settings
+      redirectUrl = orderSettings.thank_you_page_url.trim();
+      // Add order parameter
+      const separator = redirectUrl.includes('?') ? '&' : '?';
+      redirectUrl += `${separator}order=${orderNumber}&success=true`;
+      console.log('✅ Using custom redirect URL from settings:', redirectUrl);
+    } else if (orderSettings?.post_order_action === 'redirect' && orderSettings?.redirect_enabled) {
+      // Use default Shopify checkout page if no custom URL set
+      redirectUrl = `https://${shopDomain}/checkout/thank_you?order=${orderNumber}&success=true`;
+      console.log('📄 Using default checkout page (redirect enabled but no custom URL)');
     } else {
       // Default fallback
       redirectUrl = `https://${shopDomain}/?order=${orderNumber}&success=true`;
