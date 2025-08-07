@@ -165,7 +165,7 @@ const AdvertisingTracking = () => {
 
       console.log('📤 Final pixel data to insert:', pixelData);
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('advertising_pixels')
         .insert([pixelData])
         .select();
