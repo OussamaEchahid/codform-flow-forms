@@ -203,47 +203,28 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
     setIsCreating(true);
     
     try {
-      // Generate new form ID
-      const newFormId = uuidv4();
-      
-      // الحصول على المتجر النشط بطريقة محسنة
+      // Resolve active shop id
       const getActiveShopId = (): string | null => {
-        // البحث في جميع مفاتيح localStorage المحتملة
-        const shopSources = [
+        const keys = [
           'current_shopify_store',
-          'simple_active_store', 
+          'simple_active_store',
           'shopify_store',
           'active_shop',
           'shopify_shop_domain',
           'selected_store'
         ];
-        
-        for (const key of shopSources) {
-          const shopValue = localStorage.getItem(key);
-          if (shopValue && shopValue.trim() && shopValue !== 'null' && shopValue !== 'undefined') {
-            console.log(`✅ تم العثور على المتجر من ${key}:`, shopValue.trim());
-            return shopValue.trim();
-          }
+        for (const key of keys) {
+          const val = localStorage.getItem(key);
+          if (val && val.trim() && val !== 'null' && val !== 'undefined') return val.trim();
         }
-        
-        // البحث في جميع مفاتيح localStorage للعثور على أي متجر Shopify
         for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key) {
-            const value = localStorage.getItem(key);
-            if (value && value.includes('.myshopify.com')) {
-              console.log(`✅ تم العثور على متجر Shopify من ${key}:`, value);
-              return value.trim();
-            }
-          }
+          const k = localStorage.key(i);
+          const v = k ? localStorage.getItem(k) : null;
+          if (v && v.includes('.myshopify.com')) return v.trim();
         }
-        
-        console.warn('⚠️ لم يتم العثور على متجر نشط');
         return null;
       };
-      
       const shopId = shop || getActiveShopId();
-      
       if (!shopId) {
         toast.error(language === 'ar' ? 'لم يتم العثور على متجر نشط. يرجى التأكد من اتصال المتجر أولاً.' : 'No active shop found. Please ensure your store is connected first.');
         setIsCreating(false);
@@ -253,16 +234,25 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
       // Generate default form fields based on selected language
       const defaultFields = createDefaultFormFields(selectedLanguage);
       
-      // Get current user ID or use default for Shopify stores
-      const { data: { session } } = await supabase.auth.getSession();
-      let userId = session?.user?.id;
+      // Prepare default style
+      const defaultStyle = {
+        primaryColor: '#9b87f5',
+        borderRadius: '1.2rem',
+        fontSize: '1rem',
+        buttonStyle: 'rounded',
+        borderColor: '#9b87f5',
+        borderWidth: '2px',
+        backgroundColor: '#F9FAFB',
+        paddingTop: '20px',
+        paddingBottom: '20px',
+        paddingLeft: '20px',
+        paddingRight: '20px',
+        formGap: '16px',
+        formDirection: selectedLanguage === 'ar' ? 'rtl' : 'ltr',
+        floatingLabels: false
+      };
       
-      // If no traditional auth, use default user ID for Shopify stores
-      if (!userId) {
-        userId = '36d7eb85-0c45-4b4f-bea1-a9cb732ca893';
-      }
-      
-      // Create default form in database with language-specific title
+      // Localized form titles
       const formTitles = {
         ar: 'نموذج جديد',
         en: 'New Form',
@@ -270,104 +260,40 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
         es: 'Nuevo Formulario'
       };
       
-      const { error: formError } = await supabase.from('forms').insert({
-        id: newFormId,
-        title: formTitles[selectedLanguage],
-        description: formTitles[selectedLanguage],
-        shop_id: shopId,
-        is_published: false,
-        user_id: userId,
-        data: [{
-          id: '1',
-          title: 'Main Step',
-          fields: defaultFields
-        }] as any,
-        style: {
-          primaryColor: '#9b87f5',
-          borderRadius: '1.2rem', // Large border radius
-          fontSize: '1rem',
-          buttonStyle: 'rounded',
-          borderColor: '#9b87f5', // Default border color
-          borderWidth: '2px',     // Default border width
-          backgroundColor: '#F9FAFB', // Default background color
-          paddingTop: '20px',
-          paddingBottom: '20px',
-          paddingLeft: '20px',
-          paddingRight: '20px',
-          formGap: '16px',
-          formDirection: selectedLanguage === 'ar' ? 'rtl' : 'ltr',
-          floatingLabels: false
-        }
+      // Create the form via SECURITY DEFINER RPC to satisfy RLS
+      const { data: createdFormId, error: createFormError } = await (supabase as any).rpc('create_form_for_shop', {
+        p_shop_id: shopId,
+        p_title: formTitles[selectedLanguage],
+        p_description: formTitles[selectedLanguage],
+        p_data: [{ id: '1', title: 'Main Step', fields: defaultFields }] as any,
+        p_style: defaultStyle as any,
+        p_is_published: true
       });
       
-      if (formError) {
-        console.error("Error creating form:", formError);
+      if (createFormError || !createdFormId) {
+        console.error('Error creating form via RPC:', createFormError);
         toast.error(language === 'ar' ? 'خطأ في إنشاء النموذج' : 'Error creating form');
         setIsCreating(false);
         return;
       }
       
-      // Publish the form first so that product associations can work
-      const { error: publishError } = await supabase
-        .from('forms')
-        .update({ is_published: true })
-        .eq('id', newFormId);
-      
-      if (publishError) {
-        console.error("Error publishing form:", publishError);
-        toast.error(language === 'ar' ? 'خطأ في نشر النموذج' : 'Error publishing form');
-        setIsCreating(false);
-        return;
-      }
+      const newFormId = createdFormId as string;
 
       // Create product associations only if products are selected
       if (selectedProducts.length > 0) {
-        const productSettings = [];
-        
-        // Check for existing product associations to prevent duplicate key errors
         for (const productId of selectedProducts) {
-          // Check if this association already exists
-          const { data: existingAssoc, error: checkError } = await supabase
-            .from('shopify_product_settings')
-            .select('*')
-            .eq('shop_id', shopId)
-            .eq('product_id', productId)
-            .maybeSingle();
-          
-          if (checkError && checkError.code !== 'PGRST116') { // PGRST116 means no rows returned
-            console.warn(`Error checking association for product ${productId}:`, checkError);
-          }
-          
-          // Only add if no existing association
-          if (!existingAssoc) {
-            productSettings.push({
-              form_id: newFormId,
-              product_id: productId,
-              shop_id: shopId,
-              user_id: userId,
-              enabled: true
-            });
+          const { error: assocErr } = await supabase.rpc('associate_product_with_form', {
+            p_shop_id: shopId,
+            p_product_id: productId,
+            p_form_id: newFormId,
+            p_block_id: null,
+            p_enabled: true
+          });
+          if (assocErr) {
+            console.warn(`⚠️ Failed to associate product ${productId}:`, assocErr);
           }
         }
-        
-        // Only insert if we have new associations to create
-        if (productSettings.length > 0) {
-          // Use upsert instead of insert to avoid conflicts
-          const { error: associationError } = await supabase
-            .from('shopify_product_settings')
-            .upsert(productSettings, {
-              onConflict: 'shop_id,product_id',
-              ignoreDuplicates: false
-            });
-          
-          if (associationError) {
-            console.error("Error creating product associations:", associationError);
-            toast.error(language === 'ar' ? 'خطأ في ربط المنتجات' : 'Error associating products');
-            // Continue anyway - we'll navigate to the form editor
-          } else {
-            console.log(`✅ تم ربط ${productSettings.length} منتج بنجاح بالنموذج ${newFormId}`);
-          }
-        }
+        console.log(`✅ Associated ${selectedProducts.length} products with form ${newFormId}`);
       }
       
       // Navigate to the form editor and refresh forms list

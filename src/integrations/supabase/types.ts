@@ -705,6 +705,17 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      create_form_for_shop: {
+        Args: {
+          p_shop_id: string
+          p_title: string
+          p_description?: string
+          p_data?: Json
+          p_style?: Json
+          p_is_published?: boolean
+        }
+        Returns: string
+      }
       fix_form_store_links: {
         Args: Record<PropertyKey, never>
         Returns: undefined
