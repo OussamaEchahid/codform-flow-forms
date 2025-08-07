@@ -44,14 +44,31 @@ const ShopifyProductSelection: React.FC<ShopifyProductSelectionProps> = ({
   const [formConflicts, setFormConflicts] = useState<ProductFormConflict[]>([]);
   const [associatedProductDetails, setAssociatedProductDetails] = useState<Array<{id: string, title: string}>>([]);
   
-  // Load initial products
+  // Load initial products with retry mechanism
   useEffect(() => {
-    const fetchProducts = async () => {
+    let isMounted = true;
+    let retryCount = 0;
+    const maxRetries = 3;
+    
+    const fetchProducts = async (forceRefresh = false) => {
       try {
         // التحقق من وجود متجر نشط قبل تحميل المنتجات
-        const activeShop = shop || localStorage.getItem('current_shopify_store');
+        const activeShop = shop || 
+          localStorage.getItem('current_shopify_store') ||
+          localStorage.getItem('shopify_store');
+          
         if (!activeShop) {
           console.log('⚠️ لا يوجد متجر نشط، تخطي تحميل المنتجات');
+          if (retryCount < maxRetries) {
+            retryCount++;
+            setTimeout(() => {
+              if (isMounted) {
+                fetchProducts(false);
+              }
+            }, 2000);
+            return;
+          }
+          
           toast.error(language === 'ar' 
             ? 'لا يوجد متجر Shopify نشط. يرجى الاتصال بمتجرك أولاً'
             : 'No active Shopify store. Please connect your store first');
@@ -59,17 +76,47 @@ const ShopifyProductSelection: React.FC<ShopifyProductSelectionProps> = ({
         }
 
         console.log('🚀 بدء تحميل المنتجات للمتجر:', activeShop);
-        await loadProducts(false);
+        await loadProducts(forceRefresh);
         console.log("✅ تم تحميل المنتجات بنجاح");
+        retryCount = 0; // Reset retry count on success
       } catch (error) {
         console.error("❌ خطأ في تحميل المنتجات:", error);
-        toast.error(language === 'ar' 
-          ? 'فشل في تحميل المنتجات. يرجى المحاولة مرة أخرى'
-          : 'Failed to load products. Please try again');
+        
+        if (retryCount < maxRetries && isMounted) {
+          retryCount++;
+          console.log(`🔄 إعادة المحاولة ${retryCount}/${maxRetries}`);
+          setTimeout(() => {
+            if (isMounted) {
+              fetchProducts(true);
+            }
+          }, 3000);
+        } else {
+          toast.error(language === 'ar' 
+            ? 'فشل في تحميل المنتجات. يرجى المحاولة مرة أخرى'
+            : 'Failed to load products. Please try again');
+        }
       }
     };
     
     fetchProducts();
+    
+    // Listen for storage changes
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'current_shopify_store' || e.key === 'shopify_store') {
+        setTimeout(() => {
+          if (isMounted) {
+            fetchProducts(true);
+          }
+        }, 1000);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      isMounted = false;
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, [loadProducts, shop]);
   
   // Update local products when selectedProducts prop changes
@@ -276,7 +323,7 @@ const ShopifyProductSelection: React.FC<ShopifyProductSelectionProps> = ({
       : 'Reloading products from store...');
     
     try {
-      // Force reload products
+      // Force reload products with refresh flag
       await loadProducts(true);
       toast.success(language === 'ar' 
         ? 'تم تحديث المنتجات بنجاح' 

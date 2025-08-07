@@ -52,21 +52,29 @@ const OrdersList = () => {
   const actualHasAccess = hasAccess || localStorageConnected;
   const actualShop = shop || localStorage.getItem('shopify_store');
 
-  // Fetch orders from database
+  // Fetch orders from database with auto-refresh
   useEffect(() => {
-    const fetchOrders = async () => {
+    let isMounted = true;
+    
+    const fetchOrders = async (forceRefresh = false) => {
       try {
         // Only fetch orders if we have a shop
         if (!actualShop) {
           console.log('No shop available, skipping orders fetch');
-          setOrders([]);
-          setLoading(false);
+          if (isMounted) {
+            setOrders([]);
+            setLoading(false);
+          }
           return;
+        }
+
+        if (forceRefresh) {
+          console.log('🔄 Force refreshing orders for shop:', actualShop);
         }
 
         // Use orders-management function with GET method and shop_id filter
         const response = await fetch(
-          `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/orders-management?action=list-orders&shop_id=${encodeURIComponent(actualShop)}`,
+          `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/orders-management?action=list-orders&shop_id=${encodeURIComponent(actualShop)}&refresh=${forceRefresh}`,
           {
             method: 'GET',
             headers: {
@@ -78,24 +86,73 @@ const OrdersList = () => {
 
         if (response.ok) {
           const data = await response.json();
-          setOrders(data?.orders || []);
+          if (isMounted) {
+            setOrders(data?.orders || []);
+            console.log('✅ Orders loaded:', data?.orders?.length || 0);
+          }
         } else {
           console.error('Error fetching orders: HTTP', response.status);
+          // Try to refresh connection after a delay
+          setTimeout(() => {
+            if (isMounted) {
+              fetchOrders(true);
+            }
+          }, 2000);
         }
       } catch (error) {
         console.error('Error fetching orders:', error);
+        // Retry with refresh after error
+        setTimeout(() => {
+          if (isMounted && actualShop) {
+            fetchOrders(true);
+          }
+        }, 3000);
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     if (actualHasAccess && actualShop) {
+      setLoading(true);
       fetchOrders();
+      
+      // Auto-refresh every 30 seconds
+      const refreshInterval = setInterval(() => {
+        if (isMounted && actualShop) {
+          fetchOrders(false);
+        }
+      }, 30000);
+
+      return () => {
+        isMounted = false;
+        clearInterval(refreshInterval);
+      };
     } else if (actualHasAccess && !actualShop) {
       setOrders([]);
       setLoading(false);
     }
+
+    return () => {
+      isMounted = false;
+    };
   }, [actualHasAccess, actualShop]);
+
+  // Listen for storage changes to refresh data
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'current_shopify_store' || e.key === 'shopify_store' || e.key === 'shopify_connected') {
+        // Delay to allow state to update
+        setTimeout(() => {
+          window.location.reload();
+        }, 500);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   if (!actualHasAccess) {
     return (
