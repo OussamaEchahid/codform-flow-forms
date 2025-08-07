@@ -44,28 +44,32 @@ const ShopifyProductSelection: React.FC<ShopifyProductSelectionProps> = ({
   const [formConflicts, setFormConflicts] = useState<ProductFormConflict[]>([]);
   const [associatedProductDetails, setAssociatedProductDetails] = useState<Array<{id: string, title: string}>>([]);
   
-  // Load initial products with retry mechanism
+  // Load initial products with immediate execution and better retry logic
   useEffect(() => {
     let isMounted = true;
     let retryCount = 0;
     const maxRetries = 3;
+    let timeoutId: NodeJS.Timeout;
     
     const fetchProducts = async (forceRefresh = false) => {
       try {
         // التحقق من وجود متجر نشط قبل تحميل المنتجات
         const activeShop = shop || 
           localStorage.getItem('current_shopify_store') ||
-          localStorage.getItem('shopify_store');
+          localStorage.getItem('shopify_store') ||
+          localStorage.getItem('active_shopify_store');
           
         if (!activeShop) {
-          console.log('⚠️ لا يوجد متجر نشط، تخطي تحميل المنتجات');
-          if (retryCount < maxRetries) {
+          console.log('⚠️ لا يوجد متجر نشط، محاولة إعادة التحقق...');
+          
+          if (retryCount < maxRetries && isMounted) {
             retryCount++;
-            setTimeout(() => {
+            console.log(`🔄 إعادة المحاولة ${retryCount}/${maxRetries} للعثور على متجر نشط`);
+            timeoutId = setTimeout(() => {
               if (isMounted) {
                 fetchProducts(false);
               }
-            }, 2000);
+            }, 2000 * retryCount);
             return;
           }
           
@@ -76,21 +80,40 @@ const ShopifyProductSelection: React.FC<ShopifyProductSelectionProps> = ({
         }
 
         console.log('🚀 بدء تحميل المنتجات للمتجر:', activeShop);
-        await loadProducts(forceRefresh);
-        console.log("✅ تم تحميل المنتجات بنجاح");
-        retryCount = 0; // Reset retry count on success
+        
+        // Clear any existing timeout
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+        
+        const loadedProducts = await loadProducts(forceRefresh);
+        
+        if (isMounted) {
+          console.log("✅ تم تحميل المنتجات بنجاح:", loadedProducts?.length || 0);
+          retryCount = 0; // Reset retry count on success
+          
+          // If no products loaded and this wasn't a retry, try force refresh
+          if ((!loadedProducts || loadedProducts.length === 0) && !forceRefresh && retryCount === 0) {
+            console.log('🔄 لم يتم تحميل منتجات، محاولة التحديث الإجباري...');
+            timeoutId = setTimeout(() => {
+              if (isMounted) {
+                fetchProducts(true);
+              }
+            }, 1000);
+          }
+        }
       } catch (error) {
         console.error("❌ خطأ في تحميل المنتجات:", error);
         
         if (retryCount < maxRetries && isMounted) {
           retryCount++;
-          console.log(`🔄 إعادة المحاولة ${retryCount}/${maxRetries}`);
-          setTimeout(() => {
+          console.log(`🔄 إعادة المحاولة ${retryCount}/${maxRetries} بعد خطأ`);
+          timeoutId = setTimeout(() => {
             if (isMounted) {
               fetchProducts(true);
             }
-          }, 3000);
-        } else {
+          }, 3000 * retryCount);
+        } else if (isMounted) {
           toast.error(language === 'ar' 
             ? 'فشل في تحميل المنتجات. يرجى المحاولة مرة أخرى'
             : 'Failed to load products. Please try again');
@@ -98,13 +121,16 @@ const ShopifyProductSelection: React.FC<ShopifyProductSelectionProps> = ({
       }
     };
     
+    // Start loading immediately
     fetchProducts();
     
     // Listen for storage changes
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'current_shopify_store' || e.key === 'shopify_store') {
-        setTimeout(() => {
+      if (e.key === 'current_shopify_store' || e.key === 'shopify_store' || e.key === 'active_shopify_store') {
+        if (timeoutId) clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
           if (isMounted) {
+            retryCount = 0; // Reset retry count for storage changes
             fetchProducts(true);
           }
         }, 1000);
@@ -115,9 +141,10 @@ const ShopifyProductSelection: React.FC<ShopifyProductSelectionProps> = ({
     
     return () => {
       isMounted = false;
+      if (timeoutId) clearTimeout(timeoutId);
       window.removeEventListener('storage', handleStorageChange);
     };
-  }, [loadProducts, shop]);
+  }, [loadProducts, shop, language]);
   
   // Update local products when selectedProducts prop changes
   useEffect(() => {

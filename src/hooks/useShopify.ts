@@ -146,33 +146,38 @@ export const useShopify = () => {
   const [lastLoadTime, setLastLoadTime] = useState(0);
   const CACHE_DURATION = 5 * 60 * 1000; // 5 دقائق
 
-  // Enhanced loadProducts with better error handling
+  // Enhanced loadProducts with better error handling and immediate loading
   const loadProducts = useCallback(async (forceRefresh = false) => {
     if (!shop) {
       console.warn('No shop provided to loadProducts');
       return [];
     }
 
-    // Check cache first
-    const now = Date.now();
-    if (!forceRefresh && products.length > 0 && (now - lastLoadTime) < CACHE_DURATION) {
-      console.log(`📦 Using cached products for ${shop}`);
-      return products;
+    // Always load if we don't have products or force refresh
+    if (!forceRefresh && products.length > 0) {
+      const now = Date.now();
+      if ((now - lastLoadTime) < CACHE_DURATION) {
+        console.log(`📦 Using cached products for ${shop}`);
+        return products;
+      }
     }
 
-    if (isLoading) {
-      console.log(`⏳ Already loading products for ${shop}, skipping request`);
+    if (isLoading && !forceRefresh) {
+      console.log(`⏳ Already loading products for ${shop}, returning current products`);
       return products;
     }
 
     setIsLoading(true);
+    setTokenError(false); // Reset error state
+    
     try {
-      console.log(`🔄 Loading products for shop: ${shop}`);
+      console.log(`🔄 Loading products for shop: ${shop}${forceRefresh ? ' (forced)' : ''}`);
       
       // Get token with enhanced error handling
       const { data: tokenData, error: tokenError } = await shopifyStores()
         .select('*')
         .eq('shop', shop)
+        .eq('is_active', true)
         .order('updated_at', { ascending: false })
         .limit(1);
 
@@ -182,76 +187,73 @@ export const useShopify = () => {
       }
 
       if (!tokenData || tokenData.length === 0) {
-        console.error(`❌ No store found in database for shop: ${shop}`);
+        console.error(`❌ No active store found in database for shop: ${shop}`);
         throw new Error(`STORE_NOT_FOUND:${shop}`);
       }
 
       const storeRecord = tokenData[0];
-      if (!storeRecord.access_token || storeRecord.access_token === 'null') {
-        console.error(`❌ Access token missing for shop: ${shop}`);
-        
-        // Try to restore from localStorage
-        const storedToken = localStorage.getItem(`shopify_token_${shop}`);
-        if (storedToken && storedToken !== 'null') {
-          console.log(`🔄 Attempting to restore token for ${shop}`);
-          try {
-            const { error: updateError } = await shopifyStores()
-              .update({ access_token: storedToken, is_active: true })
-              .eq('shop', shop);
-            
-            if (!updateError) {
-              console.log(`✅ Token restored for ${shop}`);
-              storeRecord.access_token = storedToken;
-              toast.success(`تم استعادة اتصال المتجر ${shop} بنجاح`);
-            }
-          } catch (e) {
-            console.warn(`⚠️ Failed to restore token for ${shop}:`, e);
-          }
-        }
-        
-        if (!storeRecord.access_token || storeRecord.access_token === 'null') {
-          throw new Error(`TOKEN_MISSING:${shop}`);
-        }
+      if (!storeRecord.access_token || storeRecord.access_token === 'null' || storeRecord.access_token === '') {
+        console.error(`❌ Access token missing or invalid for shop: ${shop}`);
+        throw new Error(`TOKEN_MISSING:${shop}`);
       }
 
       const token = storeRecord.access_token;
       console.log(`📡 Fetching products for ${shop} with valid token`);
       
-      // Fetch products using edge function
-      const { data, error } = await shopifySupabase.functions.invoke('shopify-products', {
+      // Fetch products using edge function with timeout
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Request timeout')), 30000);
+      });
+
+      const fetchPromise = shopifySupabase.functions.invoke('shopify-products', {
         body: { 
           shop, 
           accessToken: token,
-          forceRefresh: forceRefresh,
+          refresh: forceRefresh,
           includeTestProducts: false,
-          limit: 25
+          limit: 50
         }
       });
+
+      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
 
       if (error) {
         console.error(`❌ Products fetch error for ${shop}:`, error);
         throw error;
       }
 
+      if (!data) {
+        throw new Error('No response data received');
+      }
+
+      if (!data.success) {
+        console.error(`❌ API error for ${shop}:`, data.error || data.message);
+        throw new Error(data.error || data.message || 'API request failed');
+      }
+
       const fetchedProducts = data?.products || [];
       
       if (Array.isArray(fetchedProducts)) {
+        const now = Date.now();
         setAllProducts(fetchedProducts);
         setProducts(fetchedProducts);
         setLastLoadTime(now);
+        setIsConnected(true);
+        setTokenError(false);
         
-        console.log(`✅ Loaded ${fetchedProducts.length} products for ${shop}`);
+        console.log(`✅ Successfully loaded ${fetchedProducts.length} products for ${shop}`);
         
         if (fetchedProducts.length === 0) {
-          console.warn(`⚠️ No products returned for ${shop}`);
+          console.warn(`⚠️ No products returned for ${shop} - store might be empty`);
         }
+        
+        setIsLoading(false);
+        return fetchedProducts;
       } else {
-        console.error(`❌ Invalid product data for ${shop}:`, fetchedProducts);
+        console.error(`❌ Invalid product data structure for ${shop}:`, fetchedProducts);
         throw new Error('Invalid product data structure returned');
       }
       
-      setIsLoading(false);
-      return fetchedProducts;
     } catch (error) {
       console.error(`❌ Error loading products for ${shop}:`, error);
       setIsLoading(false);
@@ -259,42 +261,33 @@ export const useShopify = () => {
       
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       
-      if (errorMessage.startsWith('STORE_NOT_FOUND:')) {
-        const shopName = errorMessage.split(':')[1];
-        toast.error(`المتجر ${shopName} غير موجود في قاعدة البيانات`, {
-          duration: 8000,
-          action: {
-            label: 'إعادة ربط المتجر',
-            onClick: () => {
-              localStorage.removeItem('shopify_store');
-              localStorage.removeItem('shopify_connected');
-              localStorage.removeItem('shopify_active_store');
-              shopifyConnectionManager.clearAllStores();
-              window.location.href = '/shopify-connect';
-            }
-          }
+      if (errorMessage.includes('timeout')) {
+        toast.error(`انتهت مهلة الاتصال بمتجر ${shop}. يرجى المحاولة مرة أخرى`, {
+          duration: 5000
         });
-        throw new Error(`STORE_NOT_FOUND:${shopName}`);
+      } else if (errorMessage.startsWith('STORE_NOT_FOUND:')) {
+        const shopName = errorMessage.split(':')[1];
+        toast.error(`المتجر ${shopName} غير موجود أو غير نشط في قاعدة البيانات`, {
+          duration: 8000
+        });
       } else if (errorMessage.startsWith('TOKEN_MISSING:')) {
         const shopName = errorMessage.split(':')[1];
         toast.error(`رمز الوصول مفقود للمتجر ${shopName}`, {
-          duration: 8000,
-          action: {
-            label: 'إعادة ربط المتجر',
-            onClick: () => {
-              localStorage.removeItem('shopify_store');
-              localStorage.removeItem('shopify_connected');
-              localStorage.removeItem('shopify_active_store');
-              shopifyConnectionManager.clearAllStores();
-              window.location.href = '/shopify-connect';
-            }
-          }
+          duration: 8000
         });
-        throw new Error(`TOKEN_MISSING:${shopName}`);
       } else {
-        toast.error(`فشل في تحميل المنتجات للمتجر ${shop}. يرجى التحقق من حالة الاتصال`);
-        throw error;
+        toast.error(`فشل في تحميل المنتجات: ${errorMessage}`, {
+          duration: 6000
+        });
       }
+      
+      // Keep existing products if available and this wasn't a forced refresh
+      if (!forceRefresh && products.length > 0) {
+        console.log('🔄 Keeping existing products after error');
+        return products;
+      }
+      
+      return [];
     }
   }, [shop, products, lastLoadTime, isLoading]);
 
