@@ -375,6 +375,8 @@ serve(async (req: Request) => {
     }
 
     // Create order from form submission and sync with Shopify
+    let orderNumber = `ORD-${Date.now()}`; // Default order number
+    
     try {
       console.log('📝 Processing form data:', JSON.stringify(formData, null, 2));
       
@@ -400,7 +402,7 @@ serve(async (req: Request) => {
       const shopifyOrderId = await createShopifyOrder(shopDomain, shopData.access_token, customer, actualFormId, formSettings);
 
       // Generate order number
-      const orderNumber = shopifyOrderId ? `SHOP-${shopifyOrderId}` : `ORD-${Date.now()}`;
+      orderNumber = shopifyOrderId ? `SHOP-${shopifyOrderId}` : `ORD-${Date.now()}`;
       
       console.log('📋 Creating order with data:', {
         orderNumber,
@@ -409,7 +411,7 @@ serve(async (req: Request) => {
         customerPhone: customer.phone,
         shopifyOrderId,
         submissionId: submissionData.id,
-        currency: formSettings.currency || 'USD' // سيتم استخدام العملة من النموذج
+        currency: formSettings.currency || 'USD'
       });
       
       // Create order in our database with correct currency and settings
@@ -419,7 +421,7 @@ serve(async (req: Request) => {
         customer_email: customer.email,
         customer_phone: customer.phone,
         total_amount: 0.00,
-        currency: formSettings.currency || 'USD', // سيتم استخدام العملة من النموذج
+        currency: formSettings.currency || 'USD',
         status: 'pending',
         items: [{ title: 'طلب من النموذج - Form Order', quantity: 1, price: '0.00' }],
         shipping_address: { address: customer.address, city: customer.city },
@@ -447,11 +449,11 @@ serve(async (req: Request) => {
 
     } catch (orderCreationError) {
       console.error('❌ Error in order creation process:', orderCreationError);
-      // Continue even if order creation fails
+      // Continue even if order creation fails, using default order number
     }
 
     // Return success with correct redirect URL
-    const thankYouUrl = `https://${shopDomain}/pages/thank-you?order=${orderNumber || 'unknown'}&success=true`;
+    const thankYouUrl = `https://${shopDomain}/pages/thank-you?order=${orderNumber}&success=true`;
     
     return new Response(
       JSON.stringify({ 
