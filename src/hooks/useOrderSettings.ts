@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { useShopifyStores } from '@/hooks/useShopifyStores';
 
 export interface OrderSettings {
   id?: string;
@@ -14,7 +15,8 @@ export interface OrderSettings {
   updated_at?: string;
 }
 
-export const useOrderSettings = (shopId: string) => {
+export const useOrderSettings = () => {
+  const { activeStore } = useShopifyStores();
   const [settings, setSettings] = useState<OrderSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -23,27 +25,30 @@ export const useOrderSettings = (shopId: string) => {
   const getStorageKey = (shopId: string) => `order_settings_${shopId}`;
 
   const loadSettings = async () => {
-    if (!shopId) {
+    const storeFromStorage = localStorage.getItem('current_shopify_store');
+    const currentShop = activeStore || storeFromStorage;
+    
+    if (!currentShop) {
       setLoading(false);
       return;
     }
 
     try {
       setLoading(true);
-      console.log('🔍 Loading order settings for shop:', shopId);
+      console.log('🔍 Loading order settings for shop:', currentShop);
       
-      // Try to get settings from localStorage first
-      const storageKey = getStorageKey(shopId);
+      // Get settings from localStorage - same pattern as other working sections
+      const storageKey = getStorageKey(currentShop);
       const storedSettings = localStorage.getItem(storageKey);
       
       if (storedSettings) {
-        console.log('✅ Found existing settings in localStorage:', storedSettings);
+        console.log('✅ Found existing settings in localStorage');
         const parsedSettings = JSON.parse(storedSettings) as OrderSettings;
         setSettings(parsedSettings);
       } else {
         console.log('📝 No settings found, using defaults');
         const defaultSettings: OrderSettings = {
-          shop_id: shopId,
+          shop_id: currentShop,
           post_order_action: 'redirect',
           redirect_enabled: true,
           thank_you_page_url: '',
@@ -53,10 +58,10 @@ export const useOrderSettings = (shopId: string) => {
         setSettings(defaultSettings);
       }
     } catch (error) {
-      console.error('Error in loadSettings:', error);
-      // Use defaults on error
+      console.error('❌ Error loading settings:', error);
+      // Use defaults on error - same as other working sections
       const defaultSettings: OrderSettings = {
-        shop_id: shopId,
+        shop_id: currentShop,
         post_order_action: 'redirect',
         redirect_enabled: true,
         thank_you_page_url: '',
@@ -70,7 +75,10 @@ export const useOrderSettings = (shopId: string) => {
   };
 
   const saveSettings = async (newSettings: Partial<OrderSettings>) => {
-    if (!shopId) {
+    const storeFromStorage = localStorage.getItem('current_shopify_store');
+    const currentShop = activeStore || storeFromStorage;
+    
+    if (!currentShop) {
       toast({
         title: "خطأ",
         description: "معرف المتجر مطلوب",
@@ -85,17 +93,17 @@ export const useOrderSettings = (shopId: string) => {
       const settingsToSave = {
         ...settings,
         ...newSettings,
-        shop_id: shopId,
+        shop_id: currentShop,
         updated_at: new Date().toISOString()
       };
 
       console.log('💾 Saving settings:', settingsToSave);
 
-      // Save to localStorage
-      const storageKey = getStorageKey(shopId);
+      // Save to localStorage - same pattern as other working sections
+      const storageKey = getStorageKey(currentShop);
       localStorage.setItem(storageKey, JSON.stringify(settingsToSave));
 
-      console.log('✅ Settings saved successfully to localStorage');
+      console.log('✅ Settings saved successfully');
       setSettings(settingsToSave);
       toast({
         title: "تم الحفظ",
@@ -103,7 +111,7 @@ export const useOrderSettings = (shopId: string) => {
       });
       return true;
     } catch (error) {
-      console.error('Error in saveSettings:', error);
+      console.error('❌ Error saving settings:', error);
       toast({
         title: "خطأ",
         description: "حدث خطأ أثناء حفظ الإعدادات",
@@ -123,7 +131,7 @@ export const useOrderSettings = (shopId: string) => {
 
   useEffect(() => {
     loadSettings();
-  }, [shopId]);
+  }, [activeStore]);
 
   return {
     settings,

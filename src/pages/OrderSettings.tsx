@@ -10,12 +10,10 @@ import { Save, Loader2 } from "lucide-react";
 import SettingsLayout from "@/components/layout/SettingsLayout";
 import { useI18n } from "@/lib/i18n";
 import { useOrderSettings } from "@/hooks/useOrderSettings";
-import { useSimpleShopifyAuth } from "@/hooks/useSimpleShopifyAuth";
 
 const OrderSettings = () => {
   const { t } = useI18n();
-  const { currentStore } = useSimpleShopifyAuth();
-  const { settings, loading, saving, saveSettings, updateSettings } = useOrderSettings(currentStore || '');
+  const { settings, loading, saving, saveSettings, updateSettings } = useOrderSettings();
 
   const handleSave = async () => {
     if (settings) {
