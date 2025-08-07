@@ -389,6 +389,49 @@ const Dashboard = () => {
             return null;
           })()}
 
+          {/* إحصائيات الاستخدام الحالي */}
+          <div className="mb-8">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="h-5 w-5" />
+                  إحصائيات الاستخدام الحالي
+                </CardTitle>
+                <CardDescription>استخدامك للخطة الحالية</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                  <div className="space-y-2">
+                    <div className="text-sm text-muted-foreground">النماذج المستخدمة</div>
+                    <div className="text-2xl font-bold">{stats.totalForms}/∞</div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="text-sm text-muted-foreground">الطلبات هذا الشهر</div>
+                    <div className="text-2xl font-bold">{stats.totalOrders}/70</div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="text-sm text-muted-foreground">الخطة الحالية</div>
+                    <div className="text-2xl font-bold">
+                      {subscription?.plan_type ? 
+                        subscription.plan_type.charAt(0).toUpperCase() + subscription.plan_type.slice(1) : 
+                        'Free'
+                      }
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="text-sm text-muted-foreground">تاريخ التجديد</div>
+                    <div className="text-2xl font-bold">
+                      {subscription?.next_billing_date ? 
+                        new Date(subscription.next_billing_date).toLocaleDateString('ar-SA') : 
+                        '--'
+                      }
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
           {/* إحصائيات سريعة - تحديث فوري */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <Card>

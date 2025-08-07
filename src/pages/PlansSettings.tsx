@@ -6,6 +6,7 @@ import SettingsLayout from "@/components/layout/SettingsLayout";
 import { useI18n } from "@/lib/i18n";
 import { useEffect, useState } from "react";
 import { getUserStores, getShopSubscription } from "@/lib/supabase-with-email";
+import { cn } from "@/lib/utils";
 
 const PlansSettings = () => {
   const { t } = useI18n();
@@ -16,71 +17,76 @@ const PlansSettings = () => {
   const plans = [
     {
       id: 'free',
-      name: 'Free / مجاني',
+      name: 'Free',
       nameKey: 'freePlan',
       price: '$0',
       icon: Star,
-      description: 'للمشاريع الصغيرة والبداية',
+      description: 'Perfect for getting started',
       features: [
-        'حتى 5 نماذج',
-        '100 طلب شهرياً',
-        'دعم أساسي',
-        'تخزين 1GB'
+        '70 Orders/mo',
+        'Custom form design for each product',
+        'Landing page builder',
+        '30 Abandoned checkouts',
+        'Currency Management',
+        'Google Sheets',
+        'Spam Protection',
+        'Multi Social media Pixels',
+        'Quantity offers + Customized design',
+        'Upsell + Customized design',
+        'Shipping Rates',
+        '24x7 Support'
       ],
-      limits: { forms: 5, orders: 100, storage: '1GB' },
-      current: true
+      buttonText: 'الخطة الحالية',
+      popular: false
     },
     {
       id: 'basic',
-      name: 'Basic / أساسي',
+      name: 'Basic',
       nameKey: 'basicPlan',
-      price: '$9.99',
+      price: '$11.85',
       icon: Zap,
-      description: 'للشركات الصغيرة المتنامية',
-      popular: true,
+      description: 'Great for small businesses',
+      popular: false,
       features: [
-        'حتى 20 نموذج',
-        '1,000 طلب شهرياً',
-        'دعم متقدم',
-        'تخزين 10GB',
-        'تحليلات أساسية'
+        '1000 Orders/mo',
+        'Custom form design for each product',
+        'Landing page builder',
+        '30 Abandoned checkouts',
+        'Currency Management',
+        'Google Sheets',
+        'Spam Protection',
+        'Multi Social media Pixels',
+        'Quantity offers + Customized design',
+        'Upsell + Customized design',
+        'Shipping Rates',
+        '24x7 Support'
       ],
-      limits: { forms: 20, orders: 1000, storage: '10GB' }
+      buttonText: 'ترقية للأساسية'
     },
     {
       id: 'premium',
-      name: 'Premium / متقدم',
+      name: 'Premium',
       nameKey: 'premiumPlan', 
-      price: '$29.99',
+      price: '$22.85',
       icon: Crown,
-      description: 'للشركات المتوسطة والمتنامية',
+      description: 'Best for growing teams',
+      popular: true,
       features: [
-        'نماذج غير محدودة',
-        '10,000 طلب شهرياً',
-        'دعم أولوية',
-        'تخزين 50GB',
-        'تحليلات متقدمة',
-        'تخصيص المظهر'
+        'Unlimited Orders/mo',
+        'Custom form design for each product',
+        'Landing page builder',
+        'Unlimited Abandoned orders',
+        'Currency Management',
+        'Google Sheets',
+        'Spam Protection',
+        'Multi Social media Pixels',
+        'Quantity offers + Customized design',
+        'Upsell + Customized design',
+        'Shipping Rates',
+        '24x7 Support',
+        'All new features included'
       ],
-      limits: { forms: 'unlimited', orders: 10000, storage: '50GB' }
-    },
-    {
-      id: 'unlimited',
-      name: 'Unlimited / غير محدود',
-      nameKey: 'unlimitedPlan',
-      price: '$99.99',
-      icon: Crown,
-      description: 'للشركات الكبيرة والمؤسسات',
-      features: [
-        'نماذج غير محدودة',
-        'طلبات غير محدودة',
-        'دعم 24/7',
-        'تخزين 500GB',
-        'تحليلات احترافية',
-        'API مخصص',
-        'Shopify Partners Integration'
-      ],
-      limits: { forms: 'unlimited', orders: 'unlimited', storage: '500GB' }
+      buttonText: 'ترقية للمتقدمة'
     }
   ];
 
@@ -123,7 +129,7 @@ const PlansSettings = () => {
     const currentPlan = getCurrentPlan();
     if (currentPlan === planId) return 'current';
     
-    const planOrder = ['free', 'basic', 'premium', 'unlimited'];
+    const planOrder = ['free', 'basic', 'premium'];
     const currentIndex = planOrder.indexOf(currentPlan);
     const planIndex = planOrder.indexOf(planId);
     
@@ -180,52 +186,70 @@ const PlansSettings = () => {
         )}
 
         {/* الخطط */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
           {plans.map((plan) => {
             const status = getPlanStatus(plan.id);
             const IconComponent = plan.icon;
             
             return (
-              <Card key={plan.id} className={`relative ${plan.popular ? 'border-primary' : ''} ${status === 'current' ? 'ring-2 ring-green-500' : ''}`}>
+              <Card 
+                key={plan.id} 
+                className={cn(
+                  "relative transition-all duration-300 hover:shadow-xl",
+                  plan.popular && "border-primary shadow-xl scale-105 bg-gradient-to-br from-background to-muted/30",
+                  status === 'current' && "ring-2 ring-primary"
+                )}
+              >
                 {plan.popular && (
-                  <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                    <Badge className="bg-primary text-primary-foreground">الأكثر شعبية</Badge>
+                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
+                    <Badge className="bg-gradient-to-r from-primary to-purple-600 text-white px-4 py-1 text-sm font-semibold shadow-lg">
+                      الأكثر شعبية
+                    </Badge>
                   </div>
                 )}
                 
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                      <IconComponent className="h-5 w-5" />
-                      {plan.name}
-                    </CardTitle>
-                    {status === 'current' && (
-                      <Badge variant="secondary">الخطة الحالية</Badge>
+                <CardHeader className="text-center pb-4">
+                  <div className="flex items-center justify-center mb-2">
+                    <IconComponent className="h-8 w-8 text-primary" />
+                  </div>
+                  <CardTitle className="text-2xl font-bold text-foreground">{plan.name}</CardTitle>
+                  <div className="text-4xl font-bold text-primary">
+                    {plan.price}
+                    {plan.id !== 'free' && (
+                      <span className="text-lg font-normal text-muted-foreground">
+                        /شهرياً
+                      </span>
                     )}
                   </div>
-                  <CardDescription>{plan.description}</CardDescription>
+                  <p className="text-muted-foreground text-sm">
+                    {plan.description}
+                  </p>
+                  {status === 'current' && (
+                    <Badge variant="secondary" className="mt-2">الخطة الحالية</Badge>
+                  )}
                 </CardHeader>
                 
-                <CardContent className="space-y-4">
-                  <div className="text-2xl font-bold">{plan.price}/شهر</div>
-                  
-                  <ul className="space-y-2 text-sm">
+                <CardContent className="space-y-6">
+                  <ul className="space-y-3">
                     {plan.features.map((feature, index) => (
-                      <li key={index} className="flex items-center gap-2">
-                        <Check className="h-4 w-4 text-green-500" />
-                        {feature}
+                      <li key={index} className="flex items-start gap-3">
+                        <Check className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+                        <span className="text-sm text-foreground leading-relaxed">{feature}</span>
                       </li>
                     ))}
                   </ul>
                   
                   <Button 
-                    className="w-full" 
-                    disabled={status === 'current'}
+                    className={cn(
+                      "w-full py-3 font-semibold transition-all duration-300",
+                      plan.popular ? "bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 shadow-lg" : "",
+                      status === 'current' ? "bg-muted text-muted-foreground" : ""
+                    )}
                     variant={status === 'current' ? 'secondary' : 'default'}
+                    disabled={status === 'current'}
                     onClick={() => handleUpgrade(plan.id)}
                   >
-                    {status === 'current' ? 'الخطة الحالية' : 
-                     status === 'upgrade' ? 'ترقية' : 'تنزيل'}
+                    {status === 'current' ? 'الخطة الحالية' : plan.buttonText}
                   </Button>
                 </CardContent>
               </Card>
@@ -233,38 +257,6 @@ const PlansSettings = () => {
           })}
         </div>
 
-        {/* إحصائيات الاستخدام */}
-        <Card>
-          <CardHeader>
-            <CardTitle>إحصائيات الاستخدام الحالي</CardTitle>
-            <CardDescription>استخدامك للخطة الحالية</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <div className="space-y-2">
-                <div className="text-sm text-muted-foreground">النماذج المستخدمة</div>
-                <div className="text-2xl font-bold">3/5</div>
-              </div>
-              <div className="space-y-2">
-                <div className="text-sm text-muted-foreground">الطلبات هذا الشهر</div>
-                <div className="text-2xl font-bold">47/100</div>
-              </div>
-              <div className="space-y-2">
-                <div className="text-sm text-muted-foreground">المساحة المستخدمة</div>
-                <div className="text-2xl font-bold">0.3/1 GB</div>
-              </div>
-              <div className="space-y-2">
-                <div className="text-sm text-muted-foreground">تاريخ التجديد</div>
-                <div className="text-2xl font-bold">
-                  {currentSubscription?.next_billing_date ? 
-                    new Date(currentSubscription.next_billing_date).toLocaleDateString('ar-SA') : 
-                    '--'
-                  }
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </SettingsLayout>
   );
