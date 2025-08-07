@@ -116,9 +116,41 @@ const PlansSettings = () => {
     }
   };
 
-  const handleUpgrade = (planId: string) => {
-    console.log(`🔄 Upgrading to plan: ${planId}`);
-    // TODO: إضافة منطق الترقية مع Shopify Partners
+  const handleUpgrade = async (planId: string) => {
+    try {
+      const activeStore =
+        localStorage.getItem('active_store') ||
+        localStorage.getItem('active_shop') ||
+        localStorage.getItem('active_shopify_store') ||
+        localStorage.getItem('shopify_store') ||
+        stores[0]?.shop;
+
+      if (!activeStore) {
+        console.error('لا يوجد متجر نشط');
+        return;
+      }
+
+      if (planId === 'free') {
+        // تغيير الخطة إلى مجاني مباشرة
+        const { supabase } = await import('@/integrations/supabase/client');
+        const { data, error } = await (supabase as any)
+          .rpc('upgrade_shop_plan', { p_shop_domain: activeStore, p_new_plan: 'free' });
+        if (error) throw error;
+        console.log('✅ تم تحديث الخطة إلى مجاني');
+      } else {
+        // إنشاء اشتراك عبر Shopify وإرجاع رابط التأكيد
+        const { supabase } = await import('@/integrations/supabase/client');
+        const { data, error } = await supabase.functions.invoke('change-plan', {
+          body: { shop: activeStore, planId }
+        });
+        if (error) throw error;
+        if (data?.url) {
+          window.open(data.url, '_blank');
+        }
+      }
+    } catch (e) {
+      console.error('❌ خطأ في ترقية الخطة:', e);
+    }
   };
 
   const getCurrentPlan = () => {

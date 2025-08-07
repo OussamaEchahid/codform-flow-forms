@@ -740,6 +740,13 @@ export type Database = {
         Args: { p_shop_id: string }
         Returns: Json
       }
+      get_shop_limits: {
+        Args: { p_shop: string }
+        Returns: {
+          orders_limit: number
+          abandoned_limit: number
+        }[]
+      }
       get_shop_subscription: {
         Args: { p_shop_domain: string }
         Returns: {
