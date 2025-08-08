@@ -14,7 +14,7 @@ import FormPreviewPanel from '@/components/form/builder/FormPreviewPanel';
 import FormTemplatesDialog from '@/components/form/FormTemplatesDialog';
 import FormSettingsTab from '@/components/form/builder/FormSettingsTab';
 import GlobalFormStyling from '@/components/form/builder/GlobalFormStyling';
-import ShopifyIntegration from '@/components/form/builder/ShopifyIntegration';
+
 import { useShopify } from '@/hooks/useShopify';
 import { COUNTRIES, getCountryByCode } from '@/lib/constants/countries-currencies';
 import { 
@@ -1046,20 +1046,17 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
             </TabsContent>
             
             <TabsContent value="settings" className="flex-1 p-6 mt-0 overflow-y-auto">
-              <div className="space-y-6">
-                <FormSettingsTab
-                  formTitle={formTitle}
-                  formDescription={formDescription}
-                  country={formCountry}
-                  currency={formCurrency}
-                  phonePrefix={formPhonePrefix}
-                  onTitleChange={setFormTitle}
-                  onDescriptionChange={setFormDescription}
-                  onCountryChange={handleCountryChange}
-                  onCurrencyChange={handleCurrencyChange}
-                />
-                <ShopifyIntegration formId={actualFormId || 'new'} />
-              </div>
+              <FormSettingsTab
+                formTitle={formTitle}
+                formDescription={formDescription}
+                country={formCountry}
+                currency={formCurrency}
+                phonePrefix={formPhonePrefix}
+                onTitleChange={setFormTitle}
+                onDescriptionChange={setFormDescription}
+                onCountryChange={handleCountryChange}
+                onCurrencyChange={handleCurrencyChange}
+              />
             </TabsContent>
           </Tabs>
         </div>

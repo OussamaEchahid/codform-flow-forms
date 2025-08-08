@@ -18,6 +18,12 @@
       "address": "Delivery Address",
       "city": "City",
       "notes": "Additional Notes"
+    },
+    "editor": {
+      "help_title": "How to show the form",
+      "help_line_1": "Add this block to the product template and save.",
+      "help_line_2": "The form will appear on products associated from the app."
     }
   }
 }
+
