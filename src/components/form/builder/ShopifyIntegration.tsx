@@ -178,13 +178,13 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId, onSave,
           <InfoIcon className="h-4 w-4" />
           <AlertDescription className={language === 'ar' ? 'text-right' : ''}>
             {language === 'ar'
-              ? 'لتفعيل عرض النموذج في المتجر: افتح مُحرّر الثيم، فعِّل امتداد التطبيق (App Embed) الخاص بـ CODForm، ثم أضف بلوك "CODForm" إلى صفحة المنتج.'
-              : 'To show the form on your storefront: open the Theme editor, enable the CODForm App Embed, then add the "CODForm" block to the product page.'}
+              ? 'لعرض النموذج في المتجر: افتح محرر الثيم، ثم أضف بلوك "CODFORM - نموذج الدفع عند الاستلام" إلى قالب صفحة المنتج واحفظ.'
+              : 'To show the form on your storefront: open the Theme editor, add the "CODFORM - Cash on Delivery Form" block to the product template, then save.'}
             {shop && (
               <div className="mt-3">
                 <Button asChild size="sm">
                   <a href={`https://${shop}/admin/themes/current/editor?context=apps`} target="_blank" rel="noopener noreferrer">
-                    {language === 'ar' ? 'فتح محرر الثيم لتفعيل الامتداد' : 'Open Theme Editor to enable extension'}
+                    {language === 'ar' ? 'فتح محرر الثيم' : 'Open Theme Editor'}
                   </a>
                 </Button>
               </div>
