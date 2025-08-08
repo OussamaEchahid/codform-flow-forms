@@ -1,0 +1,6 @@
+name = "codform-web-pixel"
+handle = "codform-web-pixel"
+type = "web_pixel_extension"
+
+# Optional metadata
+version = "1.0.0"
