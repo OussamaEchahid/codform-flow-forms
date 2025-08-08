@@ -4,3 +4,5 @@ type = "web_pixel_extension"
 
 # Optional metadata
 version = "1.0.0"
+# Required for web pixel extensions: where the pixel runs
+runtime_context = "storefront"
