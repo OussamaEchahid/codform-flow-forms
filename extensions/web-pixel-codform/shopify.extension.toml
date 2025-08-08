@@ -1,10 +1,4 @@
-name = "codform-web-pixel"
-handle = "codform-web-pixel"
+name = "CODFORM Web Pixel"
 type = "web_pixel_extension"
-
-# Optional metadata
-version = "1.0.0"
-# Required for web pixel extensions: where the pixel runs
 runtime_context = "storefront"
-# Entry point for your pixel script
 entry = "src/index.js"
