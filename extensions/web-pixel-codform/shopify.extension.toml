@@ -1,4 +1,0 @@
-name = "CODFORM Web Pixel"
-type = "web_pixel_extension"
-runtime_context = "storefront"
-entry = "src/index.js"
