@@ -82,15 +82,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // مراقبة تغييرات localStorage التقليدية
     window.addEventListener('storage', updateFromStorage);
     
-    // تحديث دوري للتأكد من التزامن
-    const interval = setInterval(updateFromStorage, 2000);
+    // تحديث دوري للتأكد من التزامن (يتوقف عند خمول التبويب)
+    const interval = setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      updateFromStorage();
+    }, 3000);
     
     return () => {
       unsubscribe();
       window.removeEventListener('storage', updateFromStorage);
       clearInterval(interval);
     };
-  }, [activeStore, shopifyUserEmail]);
 
   // إعداد المصادقة التقليدية (اختيارية)
   useEffect(() => {

@@ -80,6 +80,8 @@ const ShopifyProductsList: React.FC<ShopifyProductsListProps> = memo(({
                 <img 
                   src={getProductImage(product)}
                   alt={getProductImageAlt(product)}
+                  loading="lazy"
+                  decoding="async"
                   className="w-20 h-20 object-contain mr-4"
                 />
               ) : (

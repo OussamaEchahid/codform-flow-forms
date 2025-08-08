@@ -682,6 +682,8 @@ const QuantityOffers = () => {
                             <img 
                               src={product.images[0].url} 
                               alt={product.title}
+                              loading="lazy"
+                              decoding="async"
                               className="w-12 h-12 object-cover rounded-lg"
                             />
                           )}
@@ -807,7 +809,7 @@ const QuantityOffers = () => {
                           {associatedProducts.map(ap => (
                             <div key={ap.productId} className="flex items-center gap-2 text-sm text-yellow-700">
                               {ap.productImage && (
-                                <img src={ap.productImage} alt={ap.productTitle} className="w-6 h-6 object-cover rounded" />
+                                <img src={ap.productImage} alt={ap.productTitle} loading="lazy" decoding="async" className="w-6 h-6 object-cover rounded" />
                               )}
                               <span>{ap.productTitle}</span>
                             </div>

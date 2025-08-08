@@ -235,6 +235,8 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
                           <img 
                             src={item.image} 
                             alt={item.title || item.name} 
+                            loading="lazy"
+                            decoding="async"
                             className="w-full h-full object-cover rounded-lg"
                           />
                         ) : (

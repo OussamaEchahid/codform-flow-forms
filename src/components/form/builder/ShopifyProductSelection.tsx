@@ -658,6 +658,8 @@ const ShopifyProductSelection: React.FC<ShopifyProductSelectionProps> = ({
                     <img 
                       src={typeof product.image === 'string' ? product.image : product.image.src} 
                       alt={typeof product.image === 'string' ? product.title : product.image.alt || product.title}
+                      loading="lazy"
+                      decoding="async"
                       className="h-14 w-14 rounded-md object-contain border p-1"
                       onError={(e) => {
                         (e.target as HTMLImageElement).src = 'https://placehold.co/60x60/eee/ccc?text=No+Image';
@@ -667,6 +669,8 @@ const ShopifyProductSelection: React.FC<ShopifyProductSelectionProps> = ({
                     <img 
                       src={product.images[0]} 
                       alt={product.title}
+                      loading="lazy"
+                      decoding="async"
                       className="h-14 w-14 rounded-md object-contain border p-1"
                       onError={(e) => {
                         (e.target as HTMLImageElement).src = 'https://placehold.co/60x60/eee/ccc?text=No+Image';

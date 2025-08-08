@@ -35,9 +35,14 @@ export const useSimpleShopifyAuth = () => {
 
     // استمع لتغييرات localStorage من نوافذ أخرى
     window.addEventListener('storage', handleStorageChange);
+    // تحديث عند العودة للنشاط
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') handleStorageChange();
+    });
     
-    // تحقق دوري كل ثانية للتأكد من التزامن
+    // تحقق دوري بوتيرة منخفضة ويتوقف عند خمول التبويب
     const interval = setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
       const store = getCurrentStore();
       if (store !== currentStore) {
         console.log('🔄 Store changed via polling:', store);
@@ -46,10 +51,11 @@ export const useSimpleShopifyAuth = () => {
           setUserStores([{ shop: store, is_active: true, updated_at: new Date().toISOString() }]);
         }
       }
-    }, 1000);
+    }, 2000);
 
     return () => {
       window.removeEventListener('storage', handleStorageChange);
+      document.removeEventListener('visibilitychange', handleStorageChange as any);
       clearInterval(interval);
     };
   }, [currentStore]);

@@ -1,9 +1,13 @@
-
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 import './styles/form-builder.css'
+import './lib/perf/disableConsoleInProd'
+import { initWebVitals } from './lib/perf/webVitals'
 import { CurrencyService } from './lib/services/CurrencyService'
+
+// Start measuring Web Vitals early
+initWebVitals();
 
 // تهيئة CurrencyService عند بدء التطبيق
 CurrencyService.initialize().then(() => {

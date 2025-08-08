@@ -47,6 +47,8 @@ const ImageField: React.FC<ImageFieldProps> = ({ field, formStyle }) => {
         <img 
           src={imageSrc} 
           alt={imageAlt}
+          loading="lazy"
+          decoding="async"
           className="w-full h-auto"
           style={{
             objectFit: 'cover',

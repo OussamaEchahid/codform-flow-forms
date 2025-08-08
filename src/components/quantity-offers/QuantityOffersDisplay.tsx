@@ -132,6 +132,8 @@ const QuantityOffersDisplay: React.FC<QuantityOffersDisplayProps> = ({
                   <img 
                     src={productImage} 
                     alt={productTitle}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover rounded-lg"
                     onError={(e) => {
                       console.log('❌ Image failed to load:', productImage);

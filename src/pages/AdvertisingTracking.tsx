@@ -573,6 +573,8 @@ const AdvertisingTracking = () => {
                                         <img 
                                           src={product.image.src || product.image} 
                                           alt="" 
+                                          loading="lazy"
+                                          decoding="async"
                                           className="w-10 h-10 rounded-lg object-cover border"
                                         />
                                       )}

@@ -155,6 +155,8 @@ const CartItems: React.FC<CartItemsProps> = ({ field, formStyle, productId, form
                 <img 
                   src={productData.image} 
                   alt={productData.title}
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-full object-cover"
                 />
               ) : (

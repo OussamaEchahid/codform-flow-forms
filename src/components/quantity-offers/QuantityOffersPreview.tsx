@@ -140,6 +140,8 @@ const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
                     <img 
                       src={productImage} 
                       alt={productTitle}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover rounded-lg"
                     />
                   ) : (

@@ -260,6 +260,8 @@ const ProductManagementModal: React.FC<ProductManagementModalProps> = ({
                         <img
                           src={typeof product.image === 'string' ? product.image : product.image?.src || '/placeholder.svg'}
                           alt={product.title}
+                          loading="lazy"
+                          decoding="async"
                           className="w-16 h-16 rounded object-cover border"
                           onError={(e) => {
                             (e.target as HTMLImageElement).src = '/placeholder.svg';

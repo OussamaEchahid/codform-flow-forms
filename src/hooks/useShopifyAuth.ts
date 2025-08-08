@@ -46,8 +46,11 @@ export const useShopifyAuth = () => {
     
     window.addEventListener('storage', handleStorageChange);
     
-    // تحديث دوري كل ثانية
-    const interval = setInterval(updateAuthState, 1000);
+    // تحديث دوري كل ثانيتين مع إيقاف التحديث عند خمول التبويب
+    const interval = setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      updateAuthState();
+    }, 2000);
     
     return () => {
       window.removeEventListener('storage', handleStorageChange);

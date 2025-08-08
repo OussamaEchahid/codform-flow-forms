@@ -519,6 +519,8 @@ const FormList: React.FC<FormListProps> = ({
                                   <img 
                                     src={product.image} 
                                     alt={product.title}
+                                    loading="lazy"
+                                    decoding="async"
                                     className="w-10 h-10 rounded object-cover border"
                                     onError={(e) => {
                                       (e.target as HTMLImageElement).src = '/placeholder.svg';

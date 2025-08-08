@@ -231,6 +231,8 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({
                         <img
                           src={typeof product.image === 'string' ? product.image : product.image.src}
                           alt={product.title}
+                          loading="lazy"
+                          decoding="async"
                           className="w-full h-full object-cover"
                           onError={(e) => {
                             e.currentTarget.src = '/placeholder.svg';

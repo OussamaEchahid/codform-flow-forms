@@ -328,6 +328,8 @@ export function ProductAssociationModal({
                               <img
                                 src={product.image.src}
                                 alt={product.image.alt || product.title}
+                                loading="lazy"
+                                decoding="async"
                                 className="w-12 h-12 object-cover rounded"
                               />
                             )}
