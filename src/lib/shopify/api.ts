@@ -232,58 +232,9 @@ class ShopifyAPI {
   }
 
   async syncFormData(formData: ShopifyFormData): Promise<void> {
-    console.log('Syncing form data with Shopify');
-    
-    // Improve GraphQL mutation for better error handling
-    const mutation = `
-      mutation createScriptTag($input: ScriptTagInput!) {
-        scriptTagCreate(input: $input) {
-          scriptTag {
-            id
-            src
-          }
-          userErrors {
-            field
-            message
-          }
-        }
-      }
-    `;
-
-    // Generate a cache-busting script URL with timestamp
-    const timestamp = Date.now();
-    const uniqueId = Math.random().toString(36).substring(2, 9);
-    const scriptSrc = `https://codform-flow-forms.lovable.app/api/shopify-form?formId=${formData.formId}&blockId=${formData.settings.blockId || ''}&shop=${this.shopDomain}&v=${timestamp}&uid=${uniqueId}`;
-    
-    const variables = {
-      input: {
-        src: scriptSrc,
-        displayScope: "ALL",
-      },
-    };
-
-    try {
-      console.log('Creating script tag with variables:', variables);
-      console.log('Script source URL:', scriptSrc);
-      
-      const result = await this.fetchAPI(mutation, variables);
-      console.log('Script tag creation result:', result);
-      
-      if (result?.scriptTagCreate?.userErrors && result.scriptTagCreate.userErrors.length > 0) {
-        const errors = result.scriptTagCreate.userErrors.map((err: any) => `${err.field}: ${err.message}`).join(', ');
-        throw new Error(`Errors creating script tag: ${errors}`);
-      }
-      
-      // Check for script tag in result
-      if (!result?.scriptTagCreate?.scriptTag?.id) {
-        throw new Error('Failed to create script tag: No script tag ID returned');
-      }
-      
-      console.log('Form script tag created successfully with ID:', result.scriptTagCreate.scriptTag.id);
-    } catch (error) {
-      console.error('Error syncing form with Shopify:', error);
-      throw new Error(`Failed to sync form with Shopify: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
+    console.warn('[ShopifyAPI] ScriptTag creation is disabled. Please use the Theme App Extension (codform) to load your form on the storefront.');
+    // No-op by design to comply with Shopify review guidelines (no ScriptTag API)
+    return;
   }
 
   async getShopInfo(): Promise<{name: string, currency: string, moneyFormat: string, moneyWithCurrencyFormat: string}> {
@@ -432,9 +383,8 @@ class ShopifyAPI {
         throw verificationError; // Rethrow to be caught by outer try/catch
       }
       
-      // Step 2: Create script tag for the form
-      console.log('Creating script tag for form...');
-      await this.syncFormData(formData);
+      // Step 2: Skipped - rely on Theme App Extension activation
+      console.log('Skipping ScriptTag creation; ensure Theme App Extension (codform) is enabled in the theme.');
       
       console.log('Auto-sync setup completed successfully');
     } catch (error) {

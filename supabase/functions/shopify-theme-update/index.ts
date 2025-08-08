@@ -27,24 +27,15 @@ serve(async (req: Request) => {
   }
 
   try {
-    // Create Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
-    // Parse request body
-    const { shop, accessToken, formId, insertionMethod = 'auto', blockId, themeId } = await req.json() as UpdateThemeRequest;
-
-    if (!shop || !accessToken) {
-      return new Response(JSON.stringify({
-        success: false,
-        message: 'Missing required parameters: shop and accessToken are required'
-      }), { 
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
+    // Deprecated endpoint: Theme modifications via Assets API are no longer supported.
+    return new Response(JSON.stringify({
+      success: false,
+      code: 'DEPRECATED',
+      message: 'This endpoint is deprecated. Please enable the Theme App Extension (codform) from Online Store > App embeds or blocks to render the form. No direct theme edits will be performed.'
+    }), {
+      status: 410,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
     console.log(`Updating theme for shop ${shop}`);
 
     try {
