@@ -11,6 +11,7 @@ import { useShopify } from '@/hooks/useShopify';
 import ShopifyProductSelection from './ShopifyProductSelection';
 import { supabase } from '@/integrations/supabase/client';
 import { ensureUUID } from '@/lib/shopify/types';
+import { Button } from '@/components/ui/button';
 
 interface ShopifyIntegrationProps {
   formId: string;
@@ -171,6 +172,25 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId, onSave,
             </AlertDescription>
           </Alert>
         )}
+
+        {/* Theme App Extension activation guidance */}
+        <Alert className="mb-4">
+          <InfoIcon className="h-4 w-4" />
+          <AlertDescription className={language === 'ar' ? 'text-right' : ''}>
+            {language === 'ar'
+              ? 'لتفعيل عرض النموذج في المتجر: افتح مُحرّر الثيم، فعِّل امتداد التطبيق (App Embed) الخاص بـ CODForm، ثم أضف بلوك "CODForm" إلى صفحة المنتج.'
+              : 'To show the form on your storefront: open the Theme editor, enable the CODForm App Embed, then add the "CODForm" block to the product page.'}
+            {shop && (
+              <div className="mt-3">
+                <Button asChild size="sm">
+                  <a href={`https://${shop}/admin/themes/current/editor?context=apps`} target="_blank" rel="noopener noreferrer">
+                    {language === 'ar' ? 'فتح محرر الثيم لتفعيل الامتداد' : 'Open Theme Editor to enable extension'}
+                  </a>
+                </Button>
+              </div>
+            )}
+          </AlertDescription>
+        </Alert>
 
         <Tabs defaultValue="products" className="w-full">
           <TabsList className="mb-4 w-full grid grid-cols-1">
