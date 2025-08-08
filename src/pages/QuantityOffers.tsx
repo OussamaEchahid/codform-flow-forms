@@ -261,12 +261,9 @@ const QuantityOffers = () => {
       await ensureOwnership();
       
       const { data, error } = await (supabase as any)
-        .from('quantity_offers')
-        .select(`
-          *,
-          forms(title)
-        `)
-        .eq('shop_id', effectiveStore);
+        .rpc('get_form_quantity_offers', {
+          p_shop_id: effectiveStore
+        });
 
       if (error) {
         console.error('❌ Error loading existing offers:', error);
@@ -330,10 +327,10 @@ const QuantityOffers = () => {
       await ensureOwnership();
       
       const { data, error } = await (supabase as any)
-        .from('quantity_offers')
-        .select('*')
-        .eq('form_id', formId)
-        .eq('shop_id', effectiveStore || '');
+        .rpc('get_form_quantity_offers', {
+          p_shop_id: effectiveStore || '',
+          p_form_id: formId
+        });
 
       if (error) {
         console.warn('Error loading existing quantity offers:', error);
@@ -691,7 +688,7 @@ const QuantityOffers = () => {
                           <div>
                             <h4 className="font-medium">{product?.title || `Product ${offer.product_id}`}</h4>
                             <p className="text-sm text-muted-foreground">
-                              النموذج: {offer.forms?.title || 'Unknown Form'}
+                              النموذج: {forms.find(f => f.id === offer.form_id)?.title || 'Unknown Form'}
                             </p>
                           </div>
                           <div className={`px-2 py-1 rounded-full text-xs font-medium ${
