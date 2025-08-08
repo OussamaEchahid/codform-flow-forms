@@ -181,6 +181,40 @@ const QuantityOffers = () => {
     }
   };
 
+  // Ensure the active store is linked to the current user to satisfy RLS
+  const ensureOwnership = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const shop = effectiveStore;
+      if (!shop || !user?.id) return;
+
+      // Prefer edge function for reliable linking
+      try {
+        await supabase.functions.invoke('store-link-manager', {
+          body: { action: 'link_store', shop, userId: user.id }
+        });
+        await supabase.functions.invoke('store-link-manager', {
+          body: { action: 'link_orphan_stores', userId: user.id }
+        });
+      } catch (e) {
+        console.warn('store-link-manager linking failed, falling back to RPCs:', e);
+      }
+
+      // Fallback RPCs (best-effort)
+      try {
+        await Promise.all([
+          (supabase as any).rpc('auto_link_store_to_current_user'),
+          (supabase as any).rpc('link_active_store_to_user')
+        ]);
+        await (supabase as any).rpc('fix_form_store_links');
+      } catch (e) {
+        console.warn('Link RPCs failed (non-blocking):', e);
+      }
+    } catch (err) {
+      console.warn('ensureOwnership skipped:', err);
+    }
+  };
+
   const loadForms = async () => {
     try {
       if (!effectiveStore) {
@@ -190,6 +224,8 @@ const QuantityOffers = () => {
       }
 
       console.log(`📋 Loading forms for active store: ${effectiveStore}`);
+      
+      await ensureOwnership();
       
       const { data, error } = await supabase
         .from('forms')
@@ -221,6 +257,8 @@ const QuantityOffers = () => {
       if (!effectiveStore) return;
 
       console.log('🔍 Loading existing offers for store:', effectiveStore);
+      
+      await ensureOwnership();
       
       const { data, error } = await (supabase as any)
         .from('quantity_offers')
@@ -262,6 +300,8 @@ const QuantityOffers = () => {
     try {
       console.log(`🔍 Loading products associated with form: ${formId}`);
       
+      await ensureOwnership();
+      
       const { data, error } = await supabase
         .from('shopify_product_settings')
         .select('product_id')
@@ -286,6 +326,8 @@ const QuantityOffers = () => {
   const loadAssociatedProducts = async (formId: string) => {
     try {
       console.log(`🔍 Loading existing quantity offers for form: ${formId}`);
+      
+      await ensureOwnership();
       
       const { data, error } = await (supabase as any)
         .from('quantity_offers')
@@ -477,6 +519,8 @@ const QuantityOffers = () => {
 
       console.log('💾 Saving quantity offer data:', offerData);
 
+      await ensureOwnership();
+
       let result;
       if (quantityOffer.id) {
         // Update existing offer
@@ -501,9 +545,12 @@ const QuantityOffers = () => {
       console.log('✅ Quantity offer saved successfully:', result.data);
       toast.success(quantityOffer.id ? t('offerUpdatedSuccessfully') : t('offerSavedSuccessfully'));
       
-      // Reset form and reload data
-      resetToFormSelection();
+      // Reset or refresh views
       await loadExistingOffers();
+      if (selectedForm) {
+        await loadAssociatedProducts(selectedForm.id);
+        setCurrentStep('product');
+      }
       
     } catch (error) {
       console.error('❌ Error saving quantity offer:', error);

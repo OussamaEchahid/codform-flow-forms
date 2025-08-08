@@ -146,6 +146,8 @@ const QuantityOffersManager: React.FC = () => {
     try {
       console.log('🔗 Loading products for form:', formId, 'store:', currentStore);
       
+      await ensureStoreLinked();
+      
       const { data: settings, error: settingsError } = await supabase
         .from('shopify_product_settings')
         .select('product_id')
@@ -265,7 +267,7 @@ const QuantityOffersManager: React.FC = () => {
         .from('quantity_offers')
         .select('*')
         .eq('shop_id', currentStore)
-        .eq('enabled', true);
+        .eq('form_id', formId);
 
       if (error) {
         console.error('❌ Error loading quantity offers:', error);
