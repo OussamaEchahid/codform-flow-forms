@@ -876,6 +876,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      update_form_secure: {
+        Args: { p_form_id: string; p_shop_id: string; p_changes: Json }
+        Returns: Json
+      }
       upgrade_shop_plan: {
         Args: {
           p_shop_domain: string
