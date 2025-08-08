@@ -248,15 +248,23 @@ export class FormManagementService {
         console.warn('Ownership alignment RPCs failed (non-blocking):', e);
       }
 
-      // Update form in database first
-      const { data, error } = await this.fetchWithRetry(async () => {
-        return await supabase
-          .from('forms')
-          .update({ is_published: publish })
-          .eq('id', formId)
-          .select('*')
-          .single();
+      // Update form publication via RPC (bypasses RLS)
+      const activeShopId = this.getActiveShopId();
+      const { data: rpcResult, error: rpcError } = await (supabase as any).rpc('set_form_publication', {
+        p_form_id: formId,
+        p_shop_id: activeShopId,
+        p_publish: publish
       });
+      if (rpcError) {
+        console.error('RPC set_form_publication error:', rpcError);
+        throw new Error(publish ? 'خطأ في نشر النموذج' : 'خطأ في إلغاء نشر النموذج');
+      }
+      // Fetch updated form row
+      const { data, error } = await supabase
+        .from('forms')
+        .select('*')
+        .eq('id', formId)
+        .maybeSingle();
       
       if (error) {
         console.error('Error updating form publication status:', error);
@@ -303,42 +311,19 @@ export class FormManagementService {
         console.warn('Ownership alignment before delete failed (ignored):', e);
       }
 
-      // Step 1: Delete product associations first
-      console.log('🔄 حذف ارتباطات المنتجات...');
-      try {
-        const { error: assocError } = await this.fetchWithRetry(async () => {
-          return await supabase
-            .from('shopify_product_settings')
-            .delete()
-            .eq('form_id', formId);
-        });
-        
-        if (assocError) {
-          console.warn('Warning removing product associations:', assocError);
-          // Continue with form deletion even if this fails
-        } else {
-          console.log('✅ تم حذف ارتباطات المنتجات');
-        }
-      } catch (error) {
-        console.warn('Failed to remove product associations:', error);
-        // Continue with form deletion
-      }
-
-      // Step 2: Delete form from database
-      console.log('🔄 حذف النموذج من قاعدة البيانات...');
-      const { error: formError } = await this.fetchWithRetry(async () => {
-        return await supabase
-          .from('forms')
-          .delete()
-          .eq('id', formId);
+      // Delete form and related rows atomically via RPC
+      const activeShopId = this.getActiveShopId();
+      const { data: deleted, error: rpcError } = await (supabase as any).rpc('delete_form_full', {
+        p_form_id: formId,
+        p_shop_id: activeShopId
       });
       
-      if (formError) {
-        console.error('❌ خطأ في حذف النموذج:', formError);
+      if (rpcError || deleted !== true) {
+        console.error('❌ RPC delete_form_full error:', rpcError);
         throw new Error('خطأ في حذف النموذج من قاعدة البيانات');
       }
       
-      console.log('✅ تم حذف النموذج بنجاح من قاعدة البيانات (بدون إرجاع صفوف بسبب RLS)');
+      console.log('✅ تم حذف النموذج بنجاح من خلال الدالة delete_form_full');
       
       // تنظيف cache النماذج المحلي
       try {

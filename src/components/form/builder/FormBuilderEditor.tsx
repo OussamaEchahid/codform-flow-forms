@@ -600,25 +600,23 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
             : (language === 'ar' ? 'تم إلغاء نشر النموذج' : 'Form unpublished')
         );
       } else {
-        // Try direct database update if the publishForm method fails
-        const { error } = await supabase
-          .from('forms')
-          .update({
-            is_published: newPublishState,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', currentFormId);
-        
-        if (error) {
-          console.error("Direct database update for publishing failed:", error);
-          toast.error(language === 'ar' ? 'فشل تغيير حالة النشر' : 'Failed to change publish status');
-        } else {
+        // Try RPC if the publishForm method fails
+        try {
+          const { error } = await (supabase as any).rpc('set_form_publication', {
+            p_form_id: currentFormId,
+            p_shop_id: null,
+            p_publish: newPublishState
+          });
+          if (error) throw error;
           setIsPublished(newPublishState);
           toast.success(
             newPublishState 
               ? (language === 'ar' ? 'تم نشر النموذج بنجاح' : 'Form published successfully')
               : (language === 'ar' ? 'تم إلغاء نشر النموذج' : 'Form unpublished')
           );
+        } catch (err) {
+          console.error("Direct publish RPC failed:", err);
+          toast.error(language === 'ar' ? 'فشل تغيير حالة النشر' : 'Failed to change publish status');
         }
       }
     } catch (error) {

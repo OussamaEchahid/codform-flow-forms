@@ -521,28 +521,24 @@ const QuantityOffers = () => {
 
       await ensureOwnership();
 
-      let result;
-      if (quantityOffer.id) {
-        // Update existing offer
-        result = await (supabase as any)
-          .from('quantity_offers')
-          .update(offerData)
-          .eq('id', quantityOffer.id)
-          .select();
-      } else {
-        // Create new offer
-        result = await (supabase as any)
-          .from('quantity_offers')
-          .insert([offerData])
-          .select();
-      }
+      const { data: upsertId, error: upsertError } = await (supabase as any).rpc('upsert_quantity_offer', {
+        p_shop_id: effectiveStore,
+        p_form_id: selectedForm.id,
+        p_product_id: selectedProduct.id,
+        p_offers: quantityOffer.offers as any,
+        p_styling: quantityOffer.styling as any,
+        p_enabled: quantityOffer.enabled,
+        p_position: quantityOffer.position,
+        p_custom_selector: quantityOffer.custom_selector || null,
+        p_id: quantityOffer.id || null
+      });
 
-      if (result.error) {
-        console.error('❌ Database error:', result.error);
-        throw result.error;
+      if (upsertError) {
+        console.error('❌ RPC upsert_quantity_offer error:', upsertError);
+        throw upsertError;
       }
       
-      console.log('✅ Quantity offer saved successfully:', result.data);
+      console.log('✅ Quantity offer saved successfully:', upsertId);
       toast.success(quantityOffer.id ? t('offerUpdatedSuccessfully') : t('offerSavedSuccessfully'));
       
       // Reset or refresh views
@@ -614,9 +610,8 @@ const QuantityOffers = () => {
 
     try {
       const { error } = await (supabase as any)
-        .from('quantity_offers')
-        .delete()
-        .eq('id', offerId);
+        .rpc('delete_quantity_offer', { p_offer_id: offerId, p_shop_id: effectiveStore });
+
 
       if (error) throw error;
       

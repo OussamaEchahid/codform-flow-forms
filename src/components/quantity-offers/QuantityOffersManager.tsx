@@ -371,43 +371,40 @@ const QuantityOffersManager: React.FC = () => {
       console.log('💾 Saving quantity offer:', offerData);
       
       if (isCreating) {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { error: upsertError } = await (supabase as any).rpc('upsert_quantity_offer', {
+          p_shop_id: currentStore,
+          p_form_id: offerData.form_id,
+          p_product_id: offerData.product_id,
+          p_offers: offerData.offers,
+          p_styling: offerData.styling,
+          p_enabled: offerData.enabled,
+          p_position: offerData.position,
+          p_custom_selector: offerData.custom_selector || null,
+          p_id: null
+        });
         
-        const { error } = await supabase
-          .from('quantity_offers')
-          .insert({
-            shop_id: currentStore,
-            product_id: offerData.product_id,
-            form_id: offerData.form_id,
-            offers: offerData.offers,
-            styling: offerData.styling,
-            position: offerData.position,
-            enabled: offerData.enabled,
-            custom_selector: offerData.custom_selector,
-            user_id: user?.id  // Add user_id to satisfy RLS policy
-          });
-          
-        if (error) {
-          console.error('❌ Error creating quantity offer:', error);
-          throw error;
+        if (upsertError) {
+          console.error('❌ Error creating quantity offer via RPC:', upsertError);
+          throw upsertError;
         }
         
         toast.success('تم إنشاء عرض الكمية بنجاح');
       } else {
-        const { error } = await supabase
-          .from('quantity_offers')
-          .update({
-            offers: offerData.offers,
-            styling: offerData.styling,
-            position: offerData.position,
-            enabled: offerData.enabled,
-            custom_selector: offerData.custom_selector
-          })
-          .eq('id', offerData.id);
-          
-        if (error) {
-          console.error('❌ Error updating quantity offer:', error);
-          throw error;
+        const { error: upsertError } = await (supabase as any).rpc('upsert_quantity_offer', {
+          p_shop_id: currentStore,
+          p_form_id: offerData.form_id,
+          p_product_id: offerData.product_id,
+          p_offers: offerData.offers,
+          p_styling: offerData.styling,
+          p_enabled: offerData.enabled,
+          p_position: offerData.position,
+          p_custom_selector: offerData.custom_selector || null,
+          p_id: offerData.id
+        });
+        
+        if (upsertError) {
+          console.error('❌ Error updating quantity offer via RPC:', upsertError);
+          throw upsertError;
         }
         
         toast.success('تم تحديث عرض الكمية بنجاح');
@@ -427,10 +424,8 @@ const QuantityOffersManager: React.FC = () => {
 
   const handleDeleteOffer = async (offerId: string) => {
     try {
-      const { error } = await supabase
-        .from('quantity_offers')
-        .delete()
-        .eq('id', offerId);
+      const { error } = await (supabase as any)
+        .rpc('delete_quantity_offer', { p_offer_id: offerId, p_shop_id: currentStore });
         
       if (error) {
         console.error('❌ Error deleting quantity offer:', error);

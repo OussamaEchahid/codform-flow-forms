@@ -716,6 +716,14 @@ export type Database = {
         }
         Returns: string
       }
+      delete_form_full: {
+        Args: { p_form_id: string; p_shop_id: string }
+        Returns: boolean
+      }
+      delete_quantity_offer: {
+        Args: { p_offer_id: string; p_shop_id: string }
+        Returns: boolean
+      }
       fix_form_store_links: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -843,6 +851,10 @@ export type Database = {
         }
         Returns: string
       }
+      set_form_publication: {
+        Args: { p_form_id: string; p_shop_id: string; p_publish: boolean }
+        Returns: boolean
+      }
       update_default_store_connection: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -854,6 +866,20 @@ export type Database = {
           p_shopify_charge_id?: string
         }
         Returns: boolean
+      }
+      upsert_quantity_offer: {
+        Args: {
+          p_shop_id: string
+          p_form_id: string
+          p_product_id: string
+          p_offers: Json
+          p_styling: Json
+          p_enabled?: boolean
+          p_position?: string
+          p_custom_selector?: string
+          p_id?: string
+        }
+        Returns: string
       }
       user_owns_store: {
         Args: { p_shop_id: string }
