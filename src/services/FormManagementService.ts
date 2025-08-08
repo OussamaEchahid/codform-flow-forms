@@ -100,58 +100,52 @@ export class FormManagementService {
     return this.fetchWithRetry(async () => {
       const { data: { session } } = await supabase.auth.getSession();
       const activeShopId = this.getActiveShopId();
-      
-      console.log('🔍 Fetching forms with context:', {
-        hasSession: !!session,
-        traditionalUserId: session?.user?.id,
-        activeShopId,
-        isAuthenticated: isUserAuthenticated(),
-        timestamp: new Date().toISOString()
-      });
 
-      // Ensure store is linked to current user to satisfy RLS
-      try {
-        await Promise.all([
-          (supabase as any).rpc('auto_link_store_to_current_user'),
-          (supabase as any).rpc('link_active_store_to_user')
-        ]);
-        // Align forms ownership with the linked store (fixes publish/delete visibility)
-        await (supabase as any).rpc('fix_form_store_links');
-      } catch (e) {
-        console.warn('Link store RPCs failed (non-blocking):', e);
-      }
+      console.log('🔍 Fetching forms (simplified):', { hasSession: !!session, activeShopId });
 
-      let query = supabase
-        .from('forms')
-        .select('*')
-        .order('created_at', { ascending: false });
+      let rows: any[] = [];
 
-      if (session?.user?.id) {
-        // When authenticated, only show forms owned by the current user
-        console.log(`🔑 Using traditional auth - filtering by user_id: ${session.user.id}${activeShopId ? ` and shop_id: ${activeShopId}` : ''}`);
-        query = query.eq('user_id', session.user.id);
-        if (activeShopId) query = query.eq('shop_id', activeShopId);
-      } else if (activeShopId) {
-        // Shopify authentication only - use default user with shop_id
-        console.log(`🏪 Using Shopify-only context - default user with shop_id: ${activeShopId}`);
-        query = query.eq('user_id', '36d7eb85-0c45-4b4f-bea1-a9cb732ca893').eq('shop_id', activeShopId);
+      if (activeShopId) {
+        // When we have an active shop, fetch by shop. If no session, we'll only see published rows due to RLS.
+        let query = supabase
+          .from('forms')
+          .select('*')
+          .eq('shop_id', activeShopId)
+          .order('created_at', { ascending: false });
+
+        if (!session?.user?.id) {
+          // Anonymous context => restrict to published to satisfy RLS
+          query = query.eq('is_published', true);
+        }
+
+        const { data, error } = await query;
+        if (error) {
+          console.error('❌ Error fetching shop forms:', error);
+          throw error;
+        }
+        rows = data || [];
+      } else if (session?.user?.id) {
+        // No active shop but authenticated user => fetch user's forms
+        const { data, error } = await supabase
+          .from('forms')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .order('created_at', { ascending: false });
+        if (error) {
+          console.error('❌ Error fetching user forms:', error);
+          throw error;
+        }
+        rows = data || [];
       } else {
-        console.log('⚠️ No authentication found - returning empty forms list');
+        console.log('⚠️ No authentication or active shop found - returning empty forms list');
         return [];
       }
 
-      const { data, error } = await query;
-
-      if (error) {
-        console.error('❌ Error fetching forms:', error);
-        throw error;
-      }
-
-      const forms = (data || []).map(form => ({
+      const forms = rows.map((form: any) => ({
         id: form.id,
         title: form.title,
         description: form.description,
-        data: Array.isArray(form.data) ? form.data as unknown as FormStep[] : [],
+        data: Array.isArray(form.data) ? (form.data as unknown as FormStep[]) : [],
         isPublished: form.is_published,
         is_published: form.is_published,
         shop_id: form.shop_id,
@@ -162,16 +156,12 @@ export class FormManagementService {
         phone_prefix: (form as any).phone_prefix
       }));
 
-      const userIdentifierForLog = session?.user?.id || activeShopId || 'unknown';
-      console.log(`✅ Successfully fetched ${forms.length} forms for user: ${userIdentifierForLog}`);
-      
       // Cache forms for offline usage
       try {
         localStorage.setItem('cached_forms', JSON.stringify(forms));
-      } catch (e) {
-        console.warn('Failed to cache forms:', e);
-      }
+      } catch {}
 
+      console.log(`✅ Loaded ${forms.length} forms`);
       return forms;
     });
   }
@@ -186,46 +176,30 @@ export class FormManagementService {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const activeShopId = this.getActiveShopId();
-      
-      // Determine user identifier based on auth type
-      let userIdForForm: string;
-      let shopIdForForm: string | null = null;
-      
-      if (session?.user?.id && activeShopId) {
-        // User has traditional auth AND active shop - use both
-        userIdForForm = session.user.id;
-        shopIdForForm = activeShopId;
-        console.log('🔄 Creating form with traditional auth + shop:', { userId: userIdForForm, shopId: shopIdForForm });
-      } else if (session?.user?.id) {
-        // Traditional authentication only
-        userIdForForm = session.user.id;
-        shopIdForForm = null;
-        console.log('🔑 Creating form with traditional auth only:', { userId: userIdForForm });
-      } else if (activeShopId) {
-        // Shopify authentication only - use default user ID but set shop_id
-        userIdForForm = '36d7eb85-0c45-4b4f-bea1-a9cb732ca893';
-        shopIdForForm = activeShopId;
-        console.log('🏪 Creating form with Shopify auth only:', { shopId: shopIdForForm });
-      } else {
-        throw new Error('No user authentication found');
+
+      const targetShopId = activeShopId || formData.shop_id || null;
+
+      if (!session?.user?.id && !targetShopId) {
+        throw new Error('لا توجد مصادقة أو متجر نشط لإنشاء النموذج');
       }
 
-      const { data, error } = await supabase.from('forms').insert({
-        title: formData.title,
-        description: formData.description,
-        data: (formData.data || []) as any,
-        shop_id: shopIdForForm || formData.shop_id,
-        user_id: userIdForForm,
-        is_published: false
-      }).select('id').single();
+      // Use secure RPC to create the form (works with/without session)
+      const { data: newId, error } = await (supabase as any).rpc('create_form_for_shop', {
+        p_shop_id: targetShopId,
+        p_title: formData.title,
+        p_description: formData.description ?? null,
+        p_data: (formData.data || []) as any,
+        p_style: null,
+        p_is_published: false
+      });
 
       if (error) {
-        console.error('Error creating form:', error);
+        console.error('Error creating form via RPC:', error);
         throw error;
       }
 
-      console.log('✅ Form created successfully with ID:', data.id);
-      return data.id;
+      console.log('✅ Form created successfully with ID:', newId);
+      return newId as string;
     } catch (error) {
       console.error('Error in createForm:', error);
       throw error;
@@ -345,40 +319,41 @@ export class FormManagementService {
   // Save form changes
   async saveForm(formId: string, formData: Partial<FormData>): Promise<FormData | null> {
     try {
+      const activeShopId = this.getActiveShopId();
+
       // Convert isPublished to is_published for database
       const dbData: any = { ...formData };
       if (dbData.isPublished !== undefined) {
         dbData.is_published = dbData.isPublished;
         delete dbData.isPublished;
       }
-      
-      // Update form in Supabase
-      const { data, error } = await this.fetchWithRetry(async () => {
-        return await supabase
-          .from('forms')
-          .update(dbData)
-          .eq('id', formId)
-          .select('*')
-          .single();
+
+      // Use secure RPC to update form (bypasses RLS safely)
+      const { data, error } = await (supabase as any).rpc('update_form_secure', {
+        p_form_id: formId,
+        p_shop_id: activeShopId,
+        p_changes: dbData as any
       });
-      
+
       if (error) {
-        console.error('Error updating form:', error);
+        console.error('Error updating form via RPC:', error);
         throw new Error('خطأ في تحديث النموذج');
       }
-      
+
       if (!data) {
         throw new Error('لم يتم العثور على النموذج');
       }
-      
+
+      const row: any = data;
+
       // Transform data
       const updatedForm: FormData = {
-        ...data,
-        data: Array.isArray(data.data) ? data.data as unknown as FormStep[] : [],
-        style: (data.style as unknown as FormStyle) || undefined,
-        isPublished: data.is_published
+        ...row,
+        data: Array.isArray(row.data) ? (row.data as unknown as FormStep[]) : [],
+        style: (row.style as unknown as FormStyle) || undefined,
+        isPublished: row.is_published
       };
-      
+
       return updatedForm;
     } catch (error) {
       console.error('Error saving form:', error);
@@ -401,56 +376,29 @@ export class FormManagementService {
     }
     
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const activeShopId = this.getActiveShopId();
-
-      // Align ownership so the current user can access the form if it belongs to their store
-      try {
-        await Promise.all([
-          (supabase as any).rpc('auto_link_store_to_current_user'),
-          (supabase as any).rpc('link_active_store_to_user')
-        ]);
-        await (supabase as any).rpc('fix_form_store_links');
-      } catch (e) {
-        console.warn('Ownership alignment before load failed (ignored):', e);
-      }
-      
-      let query = supabase
-        .from('forms')
-        .select('*')
-        .eq('id', formId);
-      
-      // Add proper filters based on auth type
-      if (session?.user?.id) {
-        // Traditional authentication - filter by actual user
-        query = query.eq('user_id', session.user.id);
-      } else if (activeShopId) {
-        // Shopify authentication - filter by default user AND shop_id
-        query = query.eq('user_id', '36d7eb85-0c45-4b4f-bea1-a9cb732ca893').eq('shop_id', activeShopId);
-      } else {
-        // No authentication found
-        throw new Error('لم يتم العثور على مصادقة صالحة');
-      }
-      
-      const { data, error } = await this.fetchWithRetry(async () => {
-        return await query.maybeSingle(); // Use maybeSingle instead of single
+      // Load via secure RPC which handles ownership/published fallback
+      const { data, error } = await (supabase as any).rpc('load_form_with_fallback', {
+        form_id: formId
       });
-      
+
       if (error) {
-        console.error('Error loading form:', error);
+        console.error('Error loading form via RPC:', error);
         return null; // Return null instead of throwing
       }
-      
-      if (!data) {
-        throw new Error('النموذج غير موجود');
+
+      if (!data || (data as any).error) {
+        const message = (data as any)?.message || 'النموذج غير موجود';
+        throw new Error(message);
       }
+
+      const row: any = data;
       
       // Format data for form state
       const formData: FormData = {
-        ...data,
-        data: Array.isArray(data.data) ? data.data as unknown as FormStep[] : [],
-        style: (data.style as unknown as FormStyle) || undefined,
-        isPublished: data.is_published
+        ...row,
+        data: Array.isArray(row.data) ? (row.data as unknown as FormStep[]) : [],
+        style: (row.style as unknown as FormStyle) || undefined,
+        isPublished: row.is_published
       };
       
       return formData;
