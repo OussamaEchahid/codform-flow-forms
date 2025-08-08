@@ -115,6 +115,8 @@ export class FormManagementService {
           (supabase as any).rpc('auto_link_store_to_current_user'),
           (supabase as any).rpc('link_active_store_to_user')
         ]);
+        // Align forms ownership with the linked store (fixes publish/delete visibility)
+        await (supabase as any).rpc('fix_form_store_links');
       } catch (e) {
         console.warn('Link store RPCs failed (non-blocking):', e);
       }
@@ -235,6 +237,17 @@ export class FormManagementService {
     console.log(`🔄 ${publish ? 'نشر' : 'إلغاء نشر'} النموذج:`, formId);
     
     try {
+      // Ensure ownership is aligned before updating (fixes 406/RLS)
+      try {
+        await Promise.all([
+          (supabase as any).rpc('auto_link_store_to_current_user'),
+          (supabase as any).rpc('link_active_store_to_user')
+        ]);
+        await (supabase as any).rpc('fix_form_store_links');
+      } catch (e) {
+        console.warn('Ownership alignment RPCs failed (non-blocking):', e);
+      }
+
       // Update form in database first
       const { data, error } = await this.fetchWithRetry(async () => {
         return await supabase
@@ -279,6 +292,17 @@ export class FormManagementService {
     console.log('🗑️ بدء عملية حذف النموذج:', formId);
     
     try {
+      // Align ownership before any destructive action
+      try {
+        await Promise.all([
+          (supabase as any).rpc('auto_link_store_to_current_user'),
+          (supabase as any).rpc('link_active_store_to_user')
+        ]);
+        await (supabase as any).rpc('fix_form_store_links');
+      } catch (e) {
+        console.warn('Ownership alignment before delete failed (ignored):', e);
+      }
+
       // Step 1: Delete product associations first
       console.log('🔄 حذف ارتباطات المنتجات...');
       try {
@@ -394,6 +418,17 @@ export class FormManagementService {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const activeShopId = this.getActiveShopId();
+
+      // Align ownership so the current user can access the form if it belongs to their store
+      try {
+        await Promise.all([
+          (supabase as any).rpc('auto_link_store_to_current_user'),
+          (supabase as any).rpc('link_active_store_to_user')
+        ]);
+        await (supabase as any).rpc('fix_form_store_links');
+      } catch (e) {
+        console.warn('Ownership alignment before load failed (ignored):', e);
+      }
       
       let query = supabase
         .from('forms')

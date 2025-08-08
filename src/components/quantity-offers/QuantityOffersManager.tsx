@@ -112,6 +112,8 @@ const QuantityOffersManager: React.FC = () => {
     try {
       console.log('📋 Loading forms for shop:', currentStore);
       
+      await ensureStoreLinked();
+      
       const { data, error } = await supabase
         .from('forms')
         .select('id, title')
