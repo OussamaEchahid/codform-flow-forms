@@ -736,6 +736,23 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_form_quantity_offers: {
+        Args: { p_shop_id: string; p_form_id?: string }
+        Returns: {
+          created_at: string
+          custom_selector: string | null
+          enabled: boolean
+          form_id: string
+          id: string
+          offers: Json
+          position: string
+          product_id: string
+          shop_id: string
+          styling: Json
+          updated_at: string
+          user_id: string | null
+        }[]
+      }
       get_order_settings: {
         Args: { p_shop_id: string }
         Returns: {

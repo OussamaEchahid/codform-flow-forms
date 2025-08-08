@@ -263,11 +263,11 @@ const QuantityOffersManager: React.FC = () => {
       
       console.log('🔍 Debug: currentStore =', currentStore, 'formId =', formId);
       
-      const { data, error } = await supabase
-        .from('quantity_offers')
-        .select('*')
-        .eq('shop_id', currentStore)
-        .eq('form_id', formId);
+      const { data, error } = await (supabase as any)
+        .rpc('get_form_quantity_offers', {
+          p_shop_id: currentStore,
+          p_form_id: formId
+        });
 
       if (error) {
         console.error('❌ Error loading quantity offers:', error);
