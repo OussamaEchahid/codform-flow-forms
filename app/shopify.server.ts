@@ -20,7 +20,7 @@ const shopify = shopifyApp({
   apiSecretKey: process.env.SHOPIFY_API_SECRET || "18221d830a86da52082e0d06c0d32ba3",
   apiVersion: ApiVersion.January25,
   // قمنا بتحديث نطاقات الصلاحيات بناءً على قائمة المشكلات المحتملة
-  scopes: process.env.SCOPES?.split(",") || ["write_products", "read_products", "read_orders", "write_orders", "write_script_tags", "read_themes", "write_themes", "read_content", "write_content"],
+  scopes: process.env.SCOPES?.split(",") || ["write_products", "read_products", "read_orders", "write_orders", "read_themes", "read_content", "write_content"],
   appUrl: process.env.SHOPIFY_APP_URL || "https://codform-flow-forms.lovable.app",
   authPathPrefix: "/auth",
   sessionStorage: new PrismaSessionStorage(prisma),

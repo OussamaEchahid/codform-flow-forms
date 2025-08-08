@@ -53,7 +53,7 @@ const ShopifyStores: React.FC = () => {
                   <li>أدخل اسمًا للتطبيق مثل "API Access" واختر حساب المطور</li>
                   <li>بعد إنشاء التطبيق، انتقل إلى "API credentials"</li>
                   <li>انقر على "Create Admin API access token"</li>
-                  <li>اختر جميع الصلاحيات المطلوبة: write_products, read_products, write_orders, read_orders, write_script_tags, read_themes, write_themes, read_content, write_content</li>
+                  <li>اختر جميع الصلاحيات المطلوبة: write_products, read_products, write_orders, read_orders, read_themes, read_content, write_content</li>
                   <li>انسخ رمز الوصول (سيبدأ بـ "shpat_") والصقه في النموذج أعلاه</li>
                 </ol>
               </div>
