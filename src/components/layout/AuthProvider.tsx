@@ -93,6 +93,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       window.removeEventListener('storage', updateFromStorage);
       clearInterval(interval);
     };
+  }, [activeStore, shopifyUserEmail]);
 
   // إعداد المصادقة التقليدية (اختيارية)
   useEffect(() => {
