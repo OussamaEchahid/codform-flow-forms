@@ -235,34 +235,58 @@ export class FormManagementService {
   // Publish or unpublish a form
   async toggleFormPublication(formId: string, publish: boolean): Promise<FormData | null> {
     console.log(`🔄 ${publish ? 'نشر' : 'إلغاء نشر'} النموذج:`, formId);
+    
     try {
-      // Use secure RPC to avoid RLS and avoid follow-up SELECTs (which can fail after unpublish)
-      const activeShopId = this.getActiveShopId();
+      // Ensure ownership is aligned before updating (fixes 406/RLS)
+      try {
+        await Promise.all([
+          (supabase as any).rpc('auto_link_store_to_current_user'),
+          (supabase as any).rpc('link_active_store_to_user')
+        ]);
+        await (supabase as any).rpc('fix_form_store_links');
+      } catch (e) {
+        console.warn('Ownership alignment RPCs failed (non-blocking):', e);
+      }
 
-      const { data: updated, error: rpcError } = await (supabase as any).rpc('update_form_secure', {
+      // Update form publication via RPC (bypasses RLS)
+      const activeShopId = this.getActiveShopId();
+      const { data: rpcResult, error: rpcError } = await (supabase as any).rpc('set_form_publication', {
         p_form_id: formId,
         p_shop_id: activeShopId,
-        p_changes: { is_published: publish }
+        p_publish: publish
       });
-
       if (rpcError) {
-        console.error('RPC update_form_secure error (publication):', rpcError);
+        console.error('RPC set_form_publication error:', rpcError);
         throw new Error(publish ? 'خطأ في نشر النموذج' : 'خطأ في إلغاء نشر النموذج');
       }
-
-      if (!updated) {
+      // Fetch updated form row
+      const { data, error } = await supabase
+        .from('forms')
+        .select('*')
+        .eq('id', formId)
+        .maybeSingle();
+      
+      if (error) {
+        console.error('Error updating form publication status:', error);
+        throw new Error(publish ? 'خطأ في نشر النموذج' : 'خطأ في إلغاء نشر النموذج');
+      }
+      
+      if (!data) {
         throw new Error('لم يتم العثور على النموذج');
       }
-
-      const row = updated as any;
+      
+      console.log(`✅ تم ${publish ? 'نشر' : 'إلغاء نشر'} النموذج بنجاح في قاعدة البيانات`);
+      
+      // Transform data
       const updatedForm: FormData = {
-        ...row,
-        data: Array.isArray(row.data) ? (row.data as unknown as FormStep[]) : [],
-        style: (row.style as unknown as FormStyle) || undefined,
-        isPublished: row.is_published,
+        ...data,
+        data: Array.isArray(data.data) ? data.data as unknown as FormStep[] : [],
+        style: (data.style as unknown as FormStyle) || undefined,
+        isPublished: data.is_published
       };
-
+      
       toast.success(publish ? 'تم نشر النموذج بنجاح' : 'تم إلغاء نشر النموذج بنجاح');
+      
       return updatedForm;
     } catch (error) {
       console.error('Error toggling form publication:', error);
@@ -321,40 +345,41 @@ export class FormManagementService {
   // Save form changes
   async saveForm(formId: string, formData: Partial<FormData>): Promise<FormData | null> {
     try {
-      // Prepare DB changes
-      const changes: any = { ...formData };
-      if (changes.isPublished !== undefined) {
-        changes.is_published = changes.isPublished;
-        delete changes.isPublished;
+      // Convert isPublished to is_published for database
+      const dbData: any = { ...formData };
+      if (dbData.isPublished !== undefined) {
+        dbData.is_published = dbData.isPublished;
+        delete dbData.isPublished;
       }
-
-      const activeShopId = this.getActiveShopId();
-
-      // Use secure RPC to update and get the full updated row in one call (avoids 401/406)
-      const { data: updated, error } = await (supabase as any).rpc('update_form_secure', {
-        p_form_id: formId,
-        p_shop_id: activeShopId,
-        p_changes: changes
+      
+      // Update form in Supabase
+      const { data, error } = await this.fetchWithRetry(async () => {
+        return await supabase
+          .from('forms')
+          .update(dbData)
+          .eq('id', formId)
+          .select('*')
+          .single();
       });
-
+      
       if (error) {
-        console.error('Error updating form via RPC:', error);
+        console.error('Error updating form:', error);
         throw new Error('خطأ في تحديث النموذج');
       }
-
-      if (!updated) {
+      
+      if (!data) {
         throw new Error('لم يتم العثور على النموذج');
       }
-
-      const row = updated as any;
-      const result: FormData = {
-        ...row,
-        data: Array.isArray(row.data) ? (row.data as unknown as FormStep[]) : [],
-        style: (row.style as unknown as FormStyle) || undefined,
-        isPublished: row.is_published,
+      
+      // Transform data
+      const updatedForm: FormData = {
+        ...data,
+        data: Array.isArray(data.data) ? data.data as unknown as FormStep[] : [],
+        style: (data.style as unknown as FormStyle) || undefined,
+        isPublished: data.is_published
       };
-
-      return result;
+      
+      return updatedForm;
     } catch (error) {
       console.error('Error saving form:', error);
       toast.error(error instanceof Error ? error.message : 'خطأ في حفظ النموذج');
