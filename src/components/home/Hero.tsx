@@ -384,16 +384,16 @@ const Hero = () => {
   return (
     <section className="bg-gradient-to-br from-codform-light-purple to-white py-8 md:py-12">
       <div className="container mx-auto px-4">
-        <div className="flex flex-col md:flex-row-reverse items-start">
+        <div className="flex flex-col md:flex-row-reverse items-center">
           <div className="md:w-1/2 mb-4 md:mb-0">
             <div className="text-right">
-              <h1 className="text-4xl md:text-5xl font-bold mb-4 text-gray-900">
+              <h1 className="text-4xl md:text-5xl font-bold mb-3 text-gray-900">
                 أنشئ نماذج الدفع عند الاستلام بسهولة
               </h1>
-              <p className="text-xl text-gray-700 mb-8">
+              <p className="text-xl text-gray-700 mb-5">
                 منصة متكاملة لإنشاء نماذج مخصصة للدفع عند الاستلام تتكامل مع متاجر Shopify بكل سهولة
               </p>
-              <div className="flex justify-end space-x-4 rtl:space-x-reverse">
+              <div className="flex justify-end space-x-3 rtl:space-x-reverse">
                 <Button variant="outline">معرفة المزيد</Button>
                 <Button>ابدأ الآن مجانًا</Button>
               </div>
