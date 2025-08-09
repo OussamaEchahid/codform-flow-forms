@@ -88,24 +88,23 @@ const AdvertisingTracking = () => {
 
   const loadPixels = async () => {
     if (!activeStore) return;
-    
-    console.log('📥 Loading pixels for store:', activeStore);
-    
+
+    console.log('📥 Loading pixels for store (via edge func):', activeStore);
+
     try {
-      const { data, error } = await (supabase as any)
-        .from('advertising_pixels')
-        .select('*')
-        .eq('shop_id', activeStore)
-        .order('created_at', { ascending: false });
+      const { data, error } = await supabase.functions.invoke('advertising-pixels', {
+        body: { action: 'list', shop_id: activeStore },
+      });
 
       if (error) {
-        console.error('❌ Error loading pixels:', error);
+        console.error('❌ Error loading pixels (edge):', error);
         toast.error('خطأ في تحميل البيكسلات');
         return;
       }
 
-      console.log('✅ Loaded pixels:', data);
-      setPixels(data || []);
+      const rows = (data as any)?.records ?? [];
+      console.log('✅ Loaded pixels:', rows);
+      setPixels(rows);
     } catch (error) {
       console.error('❌ Error in loadPixels:', error);
       toast.error('خطأ في تحميل البيكسلات');

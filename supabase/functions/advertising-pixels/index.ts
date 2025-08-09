@@ -1,6 +1,6 @@
 // Supabase Edge Function: advertising-pixels
-// Secure create/delete for advertising_pixels with layered checks
-// Current mode: public callable (verify_jwt = false) but validates shop ownership via DB
+// Secure create/delete/list for advertising_pixels with layered checks
+// Current mode: public callable (verify_jwt = false) but validates store state in DB
 // Uses service role (server-side) and CORS
 
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
@@ -30,26 +30,11 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json().catch(() => ({}))
-    const action = body?.action as 'create' | 'delete'
+    const action = body?.action as 'create' | 'delete' | 'list'
     const shop_id = (body?.shop_id || body?.payload?.shop_id) as string | undefined
 
     if (!action) return json({ success: false, error: 'MISSING_ACTION' }, { status: 400 })
     if (!shop_id) return json({ success: false, error: 'MISSING_SHOP_ID' }, { status: 400 })
-
-    // Optional: check origin to reduce abuse (best effort)
-    const origin = req.headers.get('origin') || ''
-    const allowedOrigins = ['https://codmagnet.com', 'https://*.lovableproject.com', 'http://localhost:3000']
-    const allowed = allowedOrigins.some((o) => {
-      if (o.startsWith('https://*.') && origin.startsWith('https://')) {
-        const domain = o.replace('https://*.', '')
-        return origin.endsWith(domain)
-      }
-      return origin === o
-    })
-    if (!allowed && origin) {
-      // Log but do not block; uncomment next line to enforce
-      // return json({ success: false, error: 'ORIGIN_NOT_ALLOWED', origin }, { status: 403 })
-    }
 
     // Resolve store and owner
     const { data: store, error: storeErr } = await supabase
@@ -61,6 +46,17 @@ Deno.serve(async (req) => {
     if (storeErr) return json({ success: false, error: 'STORE_CHECK_FAILED', details: storeErr.message }, { status: 500 })
     if (!store || !store.is_active || !store.access_token || store.access_token === 'placeholder_token') {
       return json({ success: false, error: 'SHOP_NOT_ELIGIBLE', message: 'Store not active or missing token' }, { status: 403 })
+    }
+
+    if (action === 'list') {
+      const { data, error } = await supabase
+        .from('advertising_pixels')
+        .select('id, shop_id, name, platform, pixel_id, event_type, target_type, target_id, conversion_api_enabled, enabled, created_at, updated_at')
+        .eq('shop_id', shop_id)
+        .order('created_at', { ascending: false })
+
+      if (error) return json({ success: false, error: 'DB_LIST_FAILED', details: error.message }, { status: 400 })
+      return json({ success: true, records: data ?? [] })
     }
 
     if (action === 'create') {
