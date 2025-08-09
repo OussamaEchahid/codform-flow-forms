@@ -22,11 +22,22 @@
   /**
    * Load advertising pixels from API
    */
-  async function loadAdvertisingPixels() {
+  async function loadAdvertisingPixels(attempt = 0) {
     try {
-      const shopDomain = window.codformShopDomain || '{{ shop.domain }}';
-      if (!shopDomain || shopDomain === 'auto-detect') {
-        console.log('⚠️ No shop domain found, skipping pixel loading');
+      const liquidPlaceholder = '{{ shop.domain }}';
+      const fallbackHost = (typeof window !== 'undefined' && window.location && window.location.hostname) || null;
+      const shopDomain = (window.codformShopDomain && String(window.codformShopDomain).trim())
+        || (typeof window.Shopify !== 'undefined' && (window.Shopify.shop || window.Shopify?.config?.domain))
+        || (liquidPlaceholder && !liquidPlaceholder.includes('{{') ? liquidPlaceholder : null)
+        || fallbackHost;
+
+      if (!shopDomain || shopDomain === 'auto-detect' || (typeof shopDomain === 'string' && shopDomain.includes('{{'))) {
+        if (attempt < 10) {
+          console.log('⏳ Waiting for shop domain (attempt ' + (attempt + 1) + ')...');
+          setTimeout(() => loadAdvertisingPixels(attempt + 1), 300);
+          return;
+        }
+        console.log('⚠️ No valid shop domain found after retries, skipping pixel loading');
         return;
       }
 
