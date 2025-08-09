@@ -1,7 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { createHmac } from "https://deno.land/std@0.177.0/node/crypto.ts";
+
 
 // إعدادات Supabase
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || 'https://trlklwixfeaexhydzaue.supabase.co';
@@ -49,13 +49,13 @@ function cleanShopDomain(shop: string): string {
   return cleanedShop;
 }
 
-// دالة التحقق من HMAC
-function verifyHmac(data: any, hmac: string): boolean {
+// دالة التحقق من HMAC (باستخدام Web Crypto API)
+async function verifyHmac(data: any, hmac: string): Promise<boolean> {
   if (!SHOPIFY_API_SECRET || !hmac) {
     console.warn("⚠️ HMAC verification skipped - missing secret or hmac");
     return true; // Skip verification if missing
   }
-  
+
   try {
     // إنشاء query string للتحقق من HMAC
     const queryString = Object.keys(data)
@@ -63,12 +63,21 @@ function verifyHmac(data: any, hmac: string): boolean {
       .sort()
       .map(key => `${key}=${data[key]}`)
       .join('&');
-    
-    const computedHmac = createHmac('sha256', SHOPIFY_API_SECRET)
-      .update(queryString)
-      .digest('hex');
-    
-    const isValid = computedHmac === hmac;
+
+    const enc = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+      'raw',
+      enc.encode(SHOPIFY_API_SECRET),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    );
+    const signature = await crypto.subtle.sign('HMAC', key, enc.encode(queryString));
+    const hex = Array.from(new Uint8Array(signature))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+
+    const isValid = hex === hmac;
     console.log(`🔐 HMAC verification: ${isValid ? 'VALID' : 'INVALID'}`);
     return isValid;
   } catch (error) {
@@ -336,9 +345,8 @@ serve(async (req) => {
       throw new Error('Required parameters (code or shop) missing');
     }
     
-    // التحقق من HMAC
     if (hmac) {
-      const isValidHmac = verifyHmac({
+      const isValidHmac = await verifyHmac({
         shop,
         code,
         state,
