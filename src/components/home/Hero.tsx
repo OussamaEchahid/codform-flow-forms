@@ -401,8 +401,8 @@ const Hero = () => {
           </div>
           
           <div className="md:w-1/2">
-            <div className="rounded-lg p-0 bg-transparent mx-0">
-              <div className="inline-block transform origin-top scale-[0.90] md:scale-[0.94]">
+            <div className="rounded-lg p-0 bg-transparent mx-0 w-full md:flex md:justify-start">
+              <div className="inline-block transform origin-top-left scale-[0.92] md:scale-[0.95]">
                 <div dangerouslySetInnerHTML={{ __html: FORM_PREVIEW_HTML }} />
               </div>
             </div>
