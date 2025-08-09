@@ -7,47 +7,67 @@ import { Check } from 'lucide-react';
 const Pricing = () => {
   const plans = [
     {
-      name: "مجاني",
+      name: "Free",
       price: "0",
-      description: "ابدأ بالتجربة للمتاجر الناشئة",
+      description: "Perfect for getting started",
       features: [
-        "نموذج واحد",
-        "حتى 100 استجابة شهريًا",
-        "عروض كمية أساسية",
-        "إدارة عملة واحدة",
-        "حماية سبام أساسية"
+        "70 Orders/mo",
+        "Custom form design for each product",
+        "Landing page builder",
+        "30 Abandoned checkouts",
+        "Currency Management",
+        "Google Sheets",
+        "Spam Protection",
+        "Multi Social media Pixels",
+        "Quantity offers + Customized design",
+        "Upsell + Customized design",
+        "Shipping Rates",
+        "24x7 Support"
       ],
-      button: "ابدأ مجانًا",
+      button: "الخطة الحالية",
       popular: false
     },
     {
-      name: "أساسي",
-      price: "19",
-      description: "للمتاجر النامية",
+      name: "Basic",
+      price: "11.85",
+      description: "Great for small businesses",
       features: [
-        "حتى 10 نماذج",
-        "حتى 3,000 استجابة شهريًا",
-        "عروض كمية متقدمة",
-        "إدارة عملات لكل نموذج",
-        "تكامل Shopify + تتبع الطلبات المتروكة",
-        "تتبع إعلاني أساسي"
+        "1000 Orders/mo",
+        "Custom form design for each product",
+        "Landing page builder",
+        "30 Abandoned checkouts",
+        "Currency Management",
+        "Google Sheets",
+        "Spam Protection",
+        "Multi Social media Pixels",
+        "Quantity offers + Customized design",
+        "Upsell + Customized design",
+        "Shipping Rates",
+        "24x7 Support"
       ],
-      button: "اشترك الآن",
+      button: "ترقية للأساسية",
       popular: false
     },
     {
-      name: "احترافي",
-      price: "39",
-      description: "للمتاجر المتقدمة",
+      name: "Premium",
+      price: "22.85",
+      description: "Best for growing teams",
       features: [
-        "نماذج واستجابات غير محدودة",
-        "صفحات هبوط",
-        "تتبع إعلاني متقدم",
-        "إنشاء نماذج بنقرة واحدة",
-        "تحليلات وتقارير متقدمة",
-        "أولوية الدعم الفني"
+        "Unlimited Orders/mo",
+        "Custom form design for each product",
+        "Landing page builder",
+        "Unlimited Abandoned orders",
+        "Currency Management",
+        "Google Sheets",
+        "Spam Protection",
+        "Multi Social media Pixels",
+        "Quantity offers + Customized design",
+        "Upsell + Customized design",
+        "Shipping Rates",
+        "24x7 Support",
+        "All new features included"
       ],
-      button: "اشترك الآن",
+      button: "ترقية للمتقدمة",
       popular: true
     }
   ];
