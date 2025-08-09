@@ -119,3 +119,6 @@ verify_jwt = false
 
 [functions.shopify-webhooks-inspect]
 verify_jwt = false
+
+[functions.check-secrets]
+verify_jwt = false
