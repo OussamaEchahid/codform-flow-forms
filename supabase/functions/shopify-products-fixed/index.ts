@@ -97,8 +97,8 @@ Deno.serve(async (req) => {
       .single();
 
     if (storeErr || !store?.access_token) {
-      return new Response(JSON.stringify({ success: false, message: 'Store not found or missing token' }), {
-        status: 404,
+      return new Response(JSON.stringify({ success: false, error: `STORE_NOT_FOUND:${shop}`, message: 'Store not found or missing token' }), {
+        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
@@ -202,8 +202,8 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('[shopify-products-fixed] Error:', error);
-    return new Response(JSON.stringify({ error: 'Internal server error', message: error instanceof Error ? error.message : 'Unknown error' }), {
-      status: 500,
+    return new Response(JSON.stringify({ success: false, error: 'Internal server error', message: error instanceof Error ? error.message : 'Unknown error' }), {
+      status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }

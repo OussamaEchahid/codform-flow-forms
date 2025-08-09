@@ -76,14 +76,25 @@ export function ProductAssociationModal({
         console.warn('Store link RPCs failed (ignored):', linkErr);
       }
       
-      // Fetch products from Shopify
-      const { data: productsData, error: productsError } = await supabase.functions.invoke('shopify-products', {
-        body: { shop: currentStore }
-      });
+      // Fetch products via Edge Function with fallback
+      let productsData: any; let productsError: any;
+      try {
+        const res = await supabase.functions.invoke('shopify-products', {
+          body: { shop: currentStore, limit: 50 }
+        });
+        productsData = res.data; productsError = res.error;
+        if (productsError || !productsData?.success) throw productsError || new Error(productsData?.message || 'Primary failed');
+      } catch (primaryErr) {
+        console.warn('Primary shopify-products failed, trying fallback:', primaryErr);
+        const res2 = await supabase.functions.invoke('shopify-products-fixed', {
+          body: { shop: currentStore, limit: 50 }
+        });
+        productsData = res2.data; productsError = res2.error;
+      }
 
-      if (productsError) {
-        console.error('❌ Error fetching products:', productsError);
-        throw productsError;
+      if (productsError || !productsData?.success) {
+        console.error('❌ Error fetching products:', productsError || productsData?.message);
+        throw new Error(productsData?.message || 'Failed to fetch products');
       }
 
       const fetchedProducts = productsData?.products || [];
