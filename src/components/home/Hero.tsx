@@ -401,7 +401,7 @@ const Hero = () => {
           </div>
           
           <div className="md:w-1/2">
-            <div className="rounded-lg p-0 bg-transparent mx-auto">
+            <div className="rounded-lg p-0 bg-transparent mx-0">
               <div className="inline-block transform origin-top scale-[0.90] md:scale-[0.94]">
                 <div dangerouslySetInnerHTML={{ __html: FORM_PREVIEW_HTML }} />
               </div>

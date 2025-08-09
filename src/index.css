@@ -211,6 +211,8 @@
 .codform-arabic-form {
   margin-top: 8px !important;
   margin-bottom: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
   padding: 16px !important;
 }
 
