@@ -56,13 +56,13 @@ const Dashboard = () => {
   const [subscription, setSubscription] = useState<any>(null);
 
   useEffect(() => {
-    // تحميل البيانات إذا كان المستخدم مصادق عليه (تقليدي أو Shopify)
-    if (user || isShopifyAuthenticated) {
+    // لا نحمّل بيانات لوحة التحكم إلا عند وجود اتصال Shopify فعّال
+    if (isShopifyAuthenticated) {
       loadDashboardData();
     } else {
       setIsLoading(false);
     }
-  }, [user?.id, isShopifyAuthenticated]); // Depend on both auth types
+  }, [isShopifyAuthenticated]);
 
   const loadDashboardData = async () => {
     try {
@@ -247,7 +247,7 @@ const Dashboard = () => {
                 console.log('👤 Dashboard - Profile info:', { activeStore, isValidStore, userEmail, userName, user: !!user });
                 
                 // إظهار البروفايل إذا كان هناك متجر نشط صحيح أو مستخدم مصادق تقليدياً
-                if (isValidStore || user) {
+                if (isShopifyAuthenticated && isValidStore) {
                   return (
                     <div className="flex items-center gap-3">
                       <div className="text-right">
@@ -255,7 +255,7 @@ const Dashboard = () => {
                           <>
                             <p className="font-medium text-sm">{userName}</p>
                             <p className="text-xs text-muted-foreground">
-                              {userEmail || `owner@${activeStore}`}
+                              {userEmail || 'غير متوفر'}
                             </p>
                             <p className="text-xs text-muted-foreground/60">{activeStore}</p>
                           </>
@@ -264,24 +264,18 @@ const Dashboard = () => {
                             <p className="font-medium text-sm">{userEmail}</p>
                             <p className="text-xs text-muted-foreground">{activeStore || 'متجر غير محدد'}</p>
                           </>
-                        ) : user ? (
-                          <>
-                            <p className="font-medium text-sm">{user.email}</p>
-                            <p className="text-xs text-muted-foreground">Traditional Auth</p>
-                          </>
-                        ) : isValidStore ? (
+                        ) : (
                           <>
                             <p className="font-medium text-sm">{activeStore}</p>
                             <p className="text-xs text-muted-foreground">لا يوجد بريد إلكتروني</p>
                           </>
-                        ) : null}
+                        )}
                       </div>
                       <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center">
                         <span className="text-white font-medium">
                           {userName ? userName.charAt(0).toUpperCase() : 
                            userEmail ? userEmail.charAt(0).toUpperCase() : 
-                           user?.email ? user.email.charAt(0).toUpperCase() : 
-                           isValidStore ? activeStore.charAt(0).toUpperCase() : 'U'}
+                           activeStore ? activeStore.charAt(0).toUpperCase() : 'U'}
                         </span>
                       </div>
                     </div>
@@ -311,7 +305,7 @@ const Dashboard = () => {
             });
             
             // إظهار التحذير فقط إذا كان هناك مستخدم مصادق عليه أو اتصال Shopify صحيح
-            if ((user || isShopifyAuthenticated) && isValidStore) {
+            if (isShopifyAuthenticated && isValidStore) {
               return (
                 <div className="mb-6">
                   <Alert className="border-green-200 bg-green-50">
@@ -326,7 +320,7 @@ const Dashboard = () => {
                           <small className="text-green-600/70">
                             {language === 'ar' ? 'البريد الإلكتروني: ' : 'Email: '}{(() => {
                               const email = localStorage.getItem('shopify_user_email');
-                              return email && email !== 'مغربي• VIP' ? email : `owner@${connectedStore}`;
+                              return email && email !== 'مغربي• VIP' ? email : 'غير متوفر';
                             })()}
                           </small>
                           <br />
@@ -360,8 +354,8 @@ const Dashboard = () => {
                   </Alert>
                 </div>
               );
-            } else if (user || isShopifyAuthenticated) {
-              // إظهار رسالة عدم الاتصال فقط إذا كان هناك مستخدم مصادق عليه
+            } else {
+              // إظهار رسالة عدم الاتصال عندما لا يوجد اتصال Shopify
               return (
                 <div className="mb-6">
                   <Alert className="border-orange-200 bg-orange-50">

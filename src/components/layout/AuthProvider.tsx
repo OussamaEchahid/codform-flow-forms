@@ -102,6 +102,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const store = UnifiedStoreManager.getActiveStore();
       if (!store) {
         setShopifyConnected(false);
+        // تنظيف شامل عند عدم وجود متجر
+        UnifiedStoreManager.clearActiveStore();
+        setActiveStore(null);
+        setShops(null);
+        localStorage.removeItem('shopify_user_email');
+        localStorage.removeItem('shopify_user_name');
+        localStorage.removeItem('shopify_connected');
         return;
       }
       try {
@@ -117,7 +124,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       } catch (e) {
         console.error('❌ validate store connection failed:', e);
+        // اعتبر الاتصال غير فعّال ونظّف الحالة محلياً لتجنب اتصال وهمي
         setShopifyConnected(false);
+        UnifiedStoreManager.clearActiveStore();
+        setActiveStore(null);
+        setShops(null);
+        localStorage.removeItem('shopify_user_email');
+        localStorage.removeItem('shopify_user_name');
+        localStorage.removeItem('shopify_connected');
       }
     };
 
