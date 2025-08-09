@@ -67,6 +67,54 @@ async function getAccessToken(shop: string, code: string): Promise<any> {
   return data;
 }
 
+// دالة للتأكد من إنشاء Webhook لموضوع APP_UNINSTALLED
+async function ensureAppUninstalledWebhook(shop: string, accessToken: string): Promise<void> {
+  const graphqlEndpoint = `https://${shop}/admin/api/2025-04/graphql.json`;
+  const callbackUrl = 'https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-webhooks';
+
+  const headers = {
+    'Content-Type': 'application/json',
+    'X-Shopify-Access-Token': accessToken,
+  } as const;
+
+  // 1) فحص وجود اشتراك سابق
+  const checkQuery = {
+    query: `{
+      webhookSubscriptions(first: 10, topics: [APP_UNINSTALLED]) {
+        edges { node { id endpoint { __typename ... on WebhookHttpEndpoint { callbackUrl } } } }
+      }
+    }`,
+  };
+
+  const checkRes = await fetch(graphqlEndpoint, { method: 'POST', headers, body: JSON.stringify(checkQuery) });
+  const checkJson = await checkRes.json().catch(() => ({}));
+  const existing = checkJson?.data?.webhookSubscriptions?.edges?.find((e: any) => e?.node?.endpoint?.callbackUrl === callbackUrl);
+  if (existing) {
+    console.log('🔁 APP_UNINSTALLED webhook already exists:', existing.node?.id);
+    return;
+  }
+
+  // 2) إنشاء الاشتراك إذا لم يوجد
+  const createMutation = {
+    query: `mutation CreateUninstall($callbackUrl: URL!) {
+      webhookSubscriptionCreate(topic: APP_UNINSTALLED, webhookSubscription: { callbackUrl: $callbackUrl, format: JSON }) {
+        webhookSubscription { id }
+        userErrors { field message }
+      }
+    }`,
+    variables: { callbackUrl },
+  };
+
+  const createRes = await fetch(graphqlEndpoint, { method: 'POST', headers, body: JSON.stringify(createMutation) });
+  const createJson = await createRes.json().catch(() => ({}));
+  const err = createJson?.data?.webhookSubscriptionCreate?.userErrors?.[0];
+  if (err) {
+    console.warn('⚠️ webhookSubscriptionCreate userError:', err);
+  } else {
+    console.log('✅ APP_UNINSTALLED webhook created:', createJson?.data?.webhookSubscriptionCreate?.webhookSubscription?.id);
+  }
+}
+
 // دالة لحفظ بيانات المتجر
 async function saveShopData(shop: string, tokenData: any, userId?: string): Promise<void> {
   console.log(`💾 Saving shop data for: ${shop}, user: ${userId}`);
@@ -233,6 +281,13 @@ serve(async (req) => {
       // حفظ بيانات المتجر في قاعدة البيانات
       console.log("💾 Saving shop data to database...");
       await saveShopData(cleanedShop, tokenData, userId);
+
+      // إنشاء/تأكيد Webhook لإلغاء تثبيت التطبيق
+      try {
+        await ensureAppUninstalledWebhook(cleanedShop, tokenData.access_token);
+      } catch (e) {
+        console.warn('⚠️ Failed to ensure APP_UNINSTALLED webhook:', e);
+      }
       
       // إعادة توجيه للـ Dashboard مباشرة بدلاً من الصفحة الرئيسية
       const appUrl = req.headers.get('origin') || 'https://codmagnet.com';
