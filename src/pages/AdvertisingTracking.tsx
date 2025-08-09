@@ -166,43 +166,37 @@ const AdvertisingTracking = () => {
     }
 
     try {
-      console.log('📤 Preparing pixel data for insertion...');
-      
-      // استخدم نفس النهج المتبع في باقي المشروع
-      // النظام يستخدم user_id ثابت للتطبيقات المتكاملة مع Shopify
-      const SYSTEM_USER_ID = '36d7eb85-0c45-4b4f-bea1-a9cb732ca893';
-      
-      const pixelData = {
+      console.log('📤 Preparing payload for edge function...');
+
+      const payload = {
         name: newPixel.name.trim(),
         platform: newPixel.platform,
         pixel_id: newPixel.pixel_id.trim(),
         event_type: newPixel.event_type || 'Lead',
         target_type: newPixel.target_type || 'All',
-        target_id: newPixel.target_type === 'Product' && selectedProducts.length > 0 
-          ? selectedProducts.join(',') 
+        target_id: newPixel.target_type === 'Product' && selectedProducts.length > 0
+          ? selectedProducts.join(',')
           : null,
-        shop_id: activeStore,
-        user_id: SYSTEM_USER_ID,
         access_token: newPixel.access_token || null,
         conversion_api_enabled: newPixel.conversion_api_enabled || false,
-        enabled: true
       };
 
-      console.log('📤 Final pixel data to insert:', pixelData);
+      const { data, error } = await supabase.functions.invoke('advertising-pixels', {
+        body: {
+          action: 'create',
+          shop_id: activeStore,
+          payload,
+        },
+      });
 
-      const { data, error } = await (supabase as any)
-        .from('advertising_pixels')
-        .insert([pixelData])
-        .select();
-
-      if (error) {
-        console.error('❌ Supabase error:', error);
-        throw error;
+      if (error || !data?.success) {
+        console.error('❌ Edge function error:', error || data);
+        throw new Error((data as any)?.details || (data as any)?.error || (error as any)?.message || 'Failed');
       }
 
       console.log('✅ Pixel created successfully:', data);
       toast.success('تم إنشاء البيكسل بنجاح');
-      
+
       // Reset form
       setIsCreateDialogOpen(false);
       setNewPixel({
@@ -213,32 +207,30 @@ const AdvertisingTracking = () => {
         target_type: 'All',
         target_id: '',
         access_token: '',
-        conversion_api_enabled: false
+        conversion_api_enabled: false,
       });
       setSelectedProducts([]);
-      
+
       // Reload pixels
       await loadPixels();
-      
     } catch (error: any) {
       console.error('❌ Error creating pixel:', error);
       const msg = error?.message || error?.details || '';
-      if (error?.code === '42501' || /row-level security/i.test(msg)) {
-        toast.error('صلاحيات غير كافية لحفظ البيكسل. تم ضبط السياسات، حدّث الصفحة وحاول مجددًا.');
-      } else {
-        toast.error(msg || 'خطأ في إنشاء البيكسل');
-      }
+      toast.error(msg || 'خطأ في إنشاء البيكسل');
     }
   };
 
   const deletePixel = async (id: string) => {
     try {
-      const { error } = await (supabase as any)
-        .from('advertising_pixels')
-        .delete()
-        .eq('id', id);
+      if (!activeStore) throw new Error('لا يوجد متجر نشط');
 
-      if (error) throw error;
+      const { data, error } = await supabase.functions.invoke('advertising-pixels', {
+        body: { action: 'delete', id, shop_id: activeStore },
+      });
+
+      if (error || !data?.success) {
+        throw new Error((data as any)?.details || (data as any)?.error || (error as any)?.message || 'Failed');
+      }
 
       toast.success('تم حذف البيكسل بنجاح');
       loadPixels();
