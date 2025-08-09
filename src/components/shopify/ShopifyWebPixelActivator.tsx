@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,11 +29,24 @@ const ShopifyWebPixelActivator: React.FC<Props> = ({ shop, defaultAccountId, aut
     console.log('🟣 Activating web pixel...', { shop: activeStore, accountId });
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('activate-web-pixel', {
-        body: { shop: activeStore, accountID: accountId?.trim() || 'codmagnet.com' }
+      // Call Edge Function directly to avoid JWT issues
+      const SUPABASE_URL = 'https://trlklwixfeaexhydzaue.supabase.co';
+      const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M';
+
+      const resp = await fetch(`${SUPABASE_URL}/functions/v1/activate-web-pixel`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({ shop: activeStore, accountID: accountId?.trim() || 'codmagnet.com' })
       });
 
-      if (error) throw error;
+      const data = await resp.json().catch(() => null);
+      if (!resp.ok) {
+        const msg = data?.message || data?.error || `HTTP ${resp.status}`;
+        throw new Error(msg);
+      }
 
       if (data?.success) {
         console.log('✅ Web pixel activated', data);
