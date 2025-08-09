@@ -872,6 +872,10 @@ export type Database = {
         Args: { p_form_id: string; p_shop_id: string; p_publish: boolean }
         Returns: boolean
       }
+      store_is_active: {
+        Args: { p_shop: string }
+        Returns: boolean
+      }
       update_default_store_connection: {
         Args: Record<PropertyKey, never>
         Returns: string

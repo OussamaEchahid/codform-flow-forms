@@ -222,7 +222,12 @@ const AdvertisingTracking = () => {
       
     } catch (error: any) {
       console.error('❌ Error creating pixel:', error);
-      toast.error(error.message || 'خطأ في إنشاء البيكسل');
+      const msg = error?.message || error?.details || '';
+      if (error?.code === '42501' || /row-level security/i.test(msg)) {
+        toast.error('صلاحيات غير كافية لحفظ البيكسل. تم ضبط السياسات، حدّث الصفحة وحاول مجددًا.');
+      } else {
+        toast.error(msg || 'خطأ في إنشاء البيكسل');
+      }
     }
   };
 
