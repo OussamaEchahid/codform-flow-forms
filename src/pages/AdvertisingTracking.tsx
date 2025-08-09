@@ -44,6 +44,7 @@ import {
   Store
 } from 'lucide-react';
 import ShopifyWebPixelActivator from '@/components/shopify/ShopifyWebPixelActivator';
+import ShopifyReconnectButton from '@/components/shopify/ShopifyReconnectButton';
 
 const AdvertisingTracking = () => {
   const navigate = useNavigate();
@@ -322,6 +323,11 @@ const AdvertisingTracking = () => {
             <div className="space-y-6">
               {/* Shopify Web Pixel Activation */}
               <ShopifyWebPixelActivator shop={activeStore} defaultAccountId={"codmagnet.com"} />
+
+              {/* Reauthorize app to accept new scopes if needed */}
+              <div>
+                <ShopifyReconnectButton shopDomain={activeStore || undefined} />
+              </div>
 
               {/* Header with Add Button */}
               <div className="flex justify-between items-center">
