@@ -178,8 +178,8 @@ const ShopifyIntegration: React.FC<ShopifyIntegrationProps> = ({ formId, onSave,
           <InfoIcon className="h-4 w-4" />
           <AlertDescription className={language === 'ar' ? 'text-right' : ''}>
             {language === 'ar'
-              ? 'لعرض النموذج في المتجر: افتح محرر الثيم، ثم أضف بلوك "CODFORM - نموذج الدفع عند الاستلام" إلى قالب صفحة المنتج واحفظ.'
-              : 'To show the form on your storefront: open the Theme editor, add the "CODFORM - Cash on Delivery Form" block to the product template, then save.'}
+              ? 'لعرض النموذج في المتجر: افتح محرر الثيم، ثم أضف بلوك "CODMAGNET - نموذج الدفع عند الاستلام" إلى قالب صفحة المنتج واحفظ.'
+              : 'To show the form on your storefront: open the Theme editor, add the "CODMAGNET - Cash on Delivery Form" block to the product template, then save.'}
             {shop && (
               <div className="mt-3">
                 <Button asChild size="sm">

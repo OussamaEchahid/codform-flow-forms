@@ -43,7 +43,7 @@ const Footer = () => {
         </div>
         
         <div className="border-t border-gray-200 mt-12 pt-6">
-          <p className="text-gray-500 text-center">© {new Date().getFullYear()} CODFORM. جميع الحقوق محفوظة.</p>
+          <p className="text-gray-500 text-center">© {new Date().getFullYear()} CODMAGNET. جميع الحقوق محفوظة.</p>
         </div>
       </div>
     </footer>;
