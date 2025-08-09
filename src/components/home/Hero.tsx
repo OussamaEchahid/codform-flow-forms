@@ -382,10 +382,10 @@ const FORM_PREVIEW_HTML = `<div data-form-preview-id="form-preview-stable" class
 
 const Hero = () => {
   return (
-    <section className="bg-gradient-to-br from-codform-light-purple to-white py-16 md:py-24">
+    <section className="bg-gradient-to-br from-codform-light-purple to-white py-8 md:py-12">
       <div className="container mx-auto px-4">
-        <div className="flex flex-col md:flex-row-reverse items-center">
-          <div className="md:w-1/2 mb-10 md:mb-0">
+        <div className="flex flex-col md:flex-row-reverse items-start">
+          <div className="md:w-1/2 mb-4 md:mb-0">
             <div className="text-right">
               <h1 className="text-4xl md:text-5xl font-bold mb-4 text-gray-900">
                 أنشئ نماذج الدفع عند الاستلام بسهولة
@@ -402,7 +402,7 @@ const Hero = () => {
           
           <div className="md:w-1/2">
             <div className="rounded-lg p-0 bg-transparent mx-auto">
-              <div className="inline-block transform origin-top scale-[0.92] md:scale-[0.96]">
+              <div className="inline-block transform origin-top scale-[0.90] md:scale-[0.94]">
                 <div dangerouslySetInnerHTML={{ __html: FORM_PREVIEW_HTML }} />
               </div>
             </div>
