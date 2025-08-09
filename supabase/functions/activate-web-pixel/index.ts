@@ -69,12 +69,14 @@ serve(async (req) => {
     const variables = {
       settings: { accountID },
     };
+    const requestHeaders = {
+      'X-Shopify-Access-Token': store.access_token,
+      'Content-Type': 'application/json',
+    };
+
     const shopifyResp = await fetch(graphqlUrl, {
       method: 'POST',
-      headers: {
-        'X-Shopify-Access-Token': store.access_token,
-        'Content-Type': 'application/json',
-      },
+      headers: requestHeaders,
       body: JSON.stringify({ query, variables }),
     });
 
@@ -108,6 +110,44 @@ serve(async (req) => {
     if (userErrors.length > 0) {
       const msg = userErrors.map((e: any) => e.message).join('; ');
       console.warn(`[${requestId}] webPixelCreate userErrors`, userErrors);
+
+      // If a pixel already exists, fetch it and update settings instead
+      if (/already been set|already exists/i.test(msg)) {
+        // Query existing web pixels
+        const listQuery = `query { webPixels(first: 1) { nodes { id settings } } }`;
+        const listResp = await fetch(graphqlUrl, {
+          method: 'POST',
+          headers: requestHeaders,
+          body: JSON.stringify({ query: listQuery }),
+        });
+        const listJson = await listResp.json().catch(() => null);
+        const existingId = listJson?.data?.webPixels?.nodes?.[0]?.id;
+
+        if (existingId) {
+          const updateQuery = `mutation webPixelUpdate($id: ID!, $settings: JSON!) {\n  webPixelUpdate(id: $id, webPixel: { settings: $settings }) {\n    userErrors { field message }\n    webPixel { id settings }\n  }\n}`;
+          const updateVars = { id: existingId, settings: { accountID } };
+          const updateResp = await fetch(graphqlUrl, {
+            method: 'POST',
+            headers: requestHeaders,
+            body: JSON.stringify({ query: updateQuery, variables: updateVars }),
+          });
+          const updateJson = await updateResp.json().catch(() => null);
+          const upd = updateJson?.data?.webPixelUpdate;
+          const updErrors = upd?.userErrors || [];
+          if (updErrors.length > 0) {
+            const updMsg = updErrors.map((e: any) => e.message).join('; ');
+            return new Response(JSON.stringify({ success: false, error: 'USER_ERRORS', message: updMsg, userErrors: updErrors, raw: updateJson }), {
+              status: 400,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+          }
+          console.log(`[${requestId}] Web pixel updated`, upd?.webPixel);
+          return new Response(JSON.stringify({ success: true, webPixel: upd?.webPixel, updated: true }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+      }
+
       return new Response(JSON.stringify({ success: false, error: 'USER_ERRORS', message: msg, userErrors, raw: json }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
