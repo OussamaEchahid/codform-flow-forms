@@ -43,13 +43,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
   
-  // الحالة الأساسية - تعتمد على UnifiedStoreManager
+  // الحالة الأساسية - تعتمد على UnifiedStoreManager + تحقق من قاعدة البيانات
   const [activeStore, setActiveStore] = useState<string | null>(() => UnifiedStoreManager.getActiveStore());
   const [shopifyUserEmail, setShopifyUserEmail] = useState<string | null>(() => getEmailFromLocalStorage());
   const [shops, setShops] = useState<string[] | null>(() => {
     const store = UnifiedStoreManager.getActiveStore();
     return store ? [store] : null;
   });
+  const [shopifyConnected, setShopifyConnected] = useState<boolean>(false);
   
   // مراقبة تغييرات المتجر باستخدام UnifiedStoreManager
   useEffect(() => {
@@ -94,6 +95,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       clearInterval(interval);
     };
   }, [activeStore, shopifyUserEmail]);
+
+  // تحقق من فعالية الاتصال من قاعدة البيانات (store_is_active)
+  useEffect(() => {
+    const validate = async () => {
+      const store = UnifiedStoreManager.getActiveStore();
+      if (!store) {
+        setShopifyConnected(false);
+        return;
+      }
+      try {
+        const { data } = await (supabase as any).rpc('store_is_active', { p_shop: store });
+        const ok = data === true;
+        setShopifyConnected(ok);
+        if (!ok) {
+          // تنظيف محلي إذا لم يعد المتجر نشطًا
+          UnifiedStoreManager.clearActiveStore();
+          setActiveStore(null);
+          setShops(null);
+          localStorage.removeItem('shopify_connected');
+        }
+      } catch (e) {
+        console.error('❌ validate store connection failed:', e);
+        setShopifyConnected(false);
+      }
+    };
+
+    validate();
+    const onFocus = () => validate();
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [activeStore]);
 
   // إعداد المصادقة التقليدية (اختيارية)
   useEffect(() => {
@@ -173,9 +205,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('🏪 Shop set to:', shop, 'Success:', success);
   };
 
-  // تحديد حالة المصادقة عبر Shopify - إذا كان هناك متجر نشط فالمستخدم مصادق عليه
-  const isShopifyAuthenticated = !!activeStore;
-  const shopifyConnected = !!activeStore;
+  // تحديد حالة المصادقة عبر Shopify بعد التحقق من قاعدة البيانات
+  const isShopifyAuthenticated = shopifyConnected;
 
   console.log('🔍 AuthProvider state:', {
     activeStore,

@@ -3,9 +3,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from "react-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { I18nProvider } from "@/lib/i18n";
-import { AuthProvider } from "@/components/layout/AuthProvider";
+import { AuthProvider, useAuth } from "@/components/layout/AuthProvider";
 import AppWrapper from "@/components/layout/AppWrapper";
-import { useAuth } from "@/lib/auth";
 
 // Pages 
 import Dashboard from "@/pages/Dashboard";
