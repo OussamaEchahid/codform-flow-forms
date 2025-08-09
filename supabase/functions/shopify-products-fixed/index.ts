@@ -202,7 +202,8 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('[shopify-products-fixed] Error:', error);
-    return new Response(JSON.stringify({ success: false, error: 'Internal server error', message: error instanceof Error ? error.message : 'Unknown error' }), {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return new Response(JSON.stringify({ success: false, error: message, message }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });

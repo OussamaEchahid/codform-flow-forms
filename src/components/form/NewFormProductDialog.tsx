@@ -7,6 +7,7 @@ import { ShopifyProduct } from '@/lib/shopify/types';
 import { Loader2, Package, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
+import ShopifyReconnectButton from '@/components/shopify/ShopifyReconnectButton';
 
 interface NewFormProductDialogProps {
   open: boolean;
@@ -188,11 +189,17 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({
             </div>
           )}
 
-          {/* Error State */}
           {error && !isLoadingProducts && (
-            <div className="flex items-center justify-center py-8 text-red-600">
-              <AlertCircle className="h-6 w-6 mr-2" />
-              <span>{error}</span>
+            <div className="flex flex-col items-center justify-center py-8 text-red-600 space-y-3">
+              <div className="flex items-center">
+                <AlertCircle className="h-6 w-6 mr-2" />
+                <span>{error}</span>
+              </div>
+              {(error.includes('STORE_NOT_FOUND') || error.includes('401') || error.toLowerCase().includes('token')) && (
+                <div className="mt-2">
+                  <ShopifyReconnectButton shopDomain={currentShop || undefined} />
+                </div>
+              )}
             </div>
           )}
 

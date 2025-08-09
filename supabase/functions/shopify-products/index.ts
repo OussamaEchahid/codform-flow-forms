@@ -198,7 +198,8 @@ Deno.serve(async (req) => {
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (error) {
     console.error(`[shopify-products] Error:`, error);
-    return new Response(JSON.stringify({ success: false, message: error instanceof Error ? error.message : 'Unknown error' }), {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return new Response(JSON.stringify({ success: false, error: message, message }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
