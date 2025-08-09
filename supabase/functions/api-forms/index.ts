@@ -77,11 +77,26 @@ serve(async (req) => {
       });
     }
 
-    // Get URL parameters
+    // Get parameters from URL and/or JSON body (support POST invoke)
     const url = new URL(req.url);
     const pathParts = url.pathname.split('/');
-    const formId = pathParts[pathParts.length - 1];
-    const productId = url.searchParams.get('productId');
+
+    // Try to extract from path, then fallback to JSON body
+    let formId = pathParts[pathParts.length - 1];
+    let productId = url.searchParams.get('productId');
+
+    // If path didn't carry an ID (typical when invoked as /api-forms), read JSON body
+    if (!formId || formId === 'api-forms') {
+      try {
+        const body = await req.json();
+        if (body) {
+          formId = body.id || formId;
+          productId = body.productId || productId;
+        }
+      } catch (_) {
+        // no-op: body may be empty
+      }
+    }
 
     if (!formId) {
       throw new Error('No form ID provided')
