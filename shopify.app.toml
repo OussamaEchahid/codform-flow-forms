@@ -30,10 +30,6 @@ redirect_urls = [
   "https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-auth-callback"
 ]
 
-[privacy_compliance]
-customer_data_request_url = "https://codmagnet.com/webhooks/customers/data_request"
-customer_deletion_url = "https://codmagnet.com/webhooks/customers/redact"
-shop_deletion_url = "https://codmagnet.com/webhooks/shop/redact"
 
 [pos]
 embedded = false
