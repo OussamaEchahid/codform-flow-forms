@@ -62,9 +62,9 @@ const Templates = () => {
     <section id="templates" className="py-16">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold mb-4">قوالب جاهزة</h2>
+          <h2 className="text-3xl font-bold mb-4">{language === 'ar' ? 'قوالب جاهزة' : 'Ready-made templates'}</h2>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            ثلاثة قوالب احترافية تعرض المعاينة مباشرة — بدون ملخص سلة أو عروض كمية
+            {language === 'ar' ? 'ثلاثة قوالب احترافية تعرض المعاينة مباشرة — بدون ملخص سلة أو عروض كمية' : 'Three professional templates with direct live previews — no cart summary or quantity offers'}
           </p>
         </div>
         

@@ -37,35 +37,42 @@ const getPreviewHtml = (lang: 'en' | 'ar') => {
   </div>`;
 };
 const Hero = () => {
-  return <section className="bg-gradient-to-br from-codform-light-purple to-white py-8 mx-0 my-0 px-0 md:py-0">
+  const { language, isRTL } = useI18n();
+  const t = {
+    title: language === 'ar' ? 'أنشئ نماذج الدفع عند الاستلام بسهولة' : 'Build cash-on-delivery forms easily',
+    subtitle:
+      language === 'ar'
+        ? 'منصة متكاملة لإنشاء نماذج مخصصة للدفع عند الاستلام تتكامل مع متاجر Shopify بكل سهولة'
+        : 'An all‑in‑one platform to build custom COD forms that integrate seamlessly with Shopify.',
+    learnMore: language === 'ar' ? 'معرفة المزيد' : 'Learn more',
+    startFree: language === 'ar' ? 'ابدأ الآن مجانًا' : 'Start free',
+  };
+
+  return (
+    <section className="bg-gradient-to-br from-codform-light-purple to-white py-8 mx-0 my-0 px-0 md:py-0">
       <div className="container mx-auto px-4">
-        <div className="flex flex-col md:flex-row-reverse items-center">
+        <div className={`flex flex-col ${isRTL ? 'md:flex-row-reverse' : 'md:flex-row'} items-center`}>
           <div className="md:w-1/2 mb-4 md:mb-0">
-            <div className="text-right">
-              <h1 className="text-4xl md:text-5xl font-bold mb-3 text-gray-900">
-                أنشئ نماذج الدفع عند الاستلام بسهولة
-              </h1>
-              <p className="text-xl text-gray-700 mb-5">
-                منصة متكاملة لإنشاء نماذج مخصصة للدفع عند الاستلام تتكامل مع متاجر Shopify بكل سهولة
-              </p>
-              <div className="flex justify-end space-x-3 rtl:space-x-reverse">
-                <Button variant="outline">معرفة المزيد</Button>
-                <Button>ابدأ الآن مجانًا</Button>
+            <div className={isRTL ? 'text-right' : 'text-left'}>
+              <h1 className="text-4xl md:text-5xl font-bold mb-3 text-gray-900">{t.title}</h1>
+              <p className="text-xl text-gray-700 mb-5">{t.subtitle}</p>
+              <div className={`flex ${isRTL ? 'justify-end rtl:space-x-reverse' : 'justify-start'} space-x-3`}>
+                <Button variant="outline">{t.learnMore}</Button>
+                <Button>{t.startFree}</Button>
               </div>
             </div>
           </div>
-          
+
           <div className="md:w-1/2">
             <div className="rounded-lg p-0 bg-transparent w-full md:flex md:justify-start mx-[180px]">
               <div className="inline-block transform origin-top-left scale-[0.92] md:scale-[0.95]">
-                <div dangerouslySetInnerHTML={{
-                __html: FORM_PREVIEW_HTML
-              }} />
+                <div dangerouslySetInnerHTML={{ __html: getPreviewHtml(language) }} />
               </div>
             </div>
           </div>
         </div>
       </div>
-    </section>;
+    </section>
+  );
 };
 export default Hero;
