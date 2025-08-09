@@ -95,7 +95,7 @@ serve(async (req) => {
         }
 
         // اختبار الـ token مع Shopify API
-        const shopifyResponse = await fetch(`https://${shop}/admin/api/2024-07/shop.json`, {
+        const shopifyResponse = await fetch(`https://${shop}/admin/api/2025-04/shop.json`, {
           headers: {
             'X-Shopify-Access-Token': storeData.access_token,
             'Content-Type': 'application/json'

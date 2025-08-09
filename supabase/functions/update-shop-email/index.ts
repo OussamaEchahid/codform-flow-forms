@@ -77,7 +77,7 @@ serve(async (req) => {
     
     try {
       // First try: shop.json endpoint
-      const shopInfoResponse = await fetch(`https://${shop}/admin/api/2025-01/shop.json`, {
+      const shopInfoResponse = await fetch(`https://${shop}/admin/api/2025-04/shop.json`, {
         headers: {
           'X-Shopify-Access-Token': shopData.access_token,
           'Content-Type': 'application/json'
@@ -105,7 +105,7 @@ serve(async (req) => {
       // Second try: If no email from shop endpoint, try users endpoint
       if (!shopOwnerEmail) {
         console.log('🔄 Trying users endpoint for email...')
-        const usersResponse = await fetch(`https://${shop}/admin/api/2025-01/users.json`, {
+        const usersResponse = await fetch(`https://${shop}/admin/api/2025-04/users.json`, {
           headers: {
             'X-Shopify-Access-Token': shopData.access_token,
             'Content-Type': 'application/json'

@@ -87,7 +87,7 @@ serve(async (req) => {
     try {
       console.log(`[${requestId}] 📡 جلب معلومات المتجر من Shopify API`);
       
-      const shopInfoUrl = `https://${shop}/admin/api/2024-04/shop.json`;
+      const shopInfoUrl = `https://${shop}/admin/api/2025-04/shop.json`;
       
       const shopInfoResponse = await fetch(shopInfoUrl, {
         headers: {

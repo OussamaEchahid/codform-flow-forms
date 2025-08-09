@@ -220,7 +220,7 @@ async function createShopifyOrder(shopDomain: string, accessToken: string, custo
   console.log('🎯 Creating Shopify order:', JSON.stringify(orderData, null, 2));
   
   try {
-    const response = await fetch(`https://${shopDomain}/admin/api/2025-01/orders.json`, {
+    const response = await fetch(`https://${shopDomain}/admin/api/2025-04/orders.json`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

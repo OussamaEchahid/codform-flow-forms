@@ -69,7 +69,7 @@ serve(async (req) => {
         
         // جلب المنتجات من Shopify
         const productsResponse = await fetch(
-          `https://${shop}/admin/api/2024-01/products.json?limit=250`,
+          `https://${shop}/admin/api/2025-04/products.json?limit=250`,
           {
             headers: {
               'X-Shopify-Access-Token': accessToken,

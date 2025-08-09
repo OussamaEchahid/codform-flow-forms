@@ -34,7 +34,7 @@ serve(async (req) => {
     // Get shop owner email from Shopify API
     let shopOwnerEmail = null
     try {
-      const shopInfoResponse = await fetch(`https://${shop}/admin/api/2025-01/shop.json`, {
+      const shopInfoResponse = await fetch(`https://${shop}/admin/api/2025-04/shop.json`, {
         headers: {
           'X-Shopify-Access-Token': access_token,
           'Content-Type': 'application/json'

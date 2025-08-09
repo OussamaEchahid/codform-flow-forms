@@ -40,7 +40,7 @@ const ShopifyStoresManager = () => {
           if (hasValidToken) {
             try {
               // Quick connection test
-              const testResponse = await fetch(`https://${store.shop}/admin/api/2023-07/shop.json`, {
+              const testResponse = await fetch(`https://${store.shop}/admin/api/2025-04/shop.json`, {
                 headers: {
                   'X-Shopify-Access-Token': store.access_token,
                   'Content-Type': 'application/json'

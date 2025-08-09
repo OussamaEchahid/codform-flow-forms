@@ -84,7 +84,7 @@ serve(async (req) => {
     const finalFileName = fileName.includes('.') ? fileName : `${fileName}.${fileExtension}`
 
     // Upload to Shopify Files using GraphQL
-    const shopifyGraphQLUrl = `https://${shop}/admin/api/2024-07/graphql.json`
+    const shopifyGraphQLUrl = `https://${shop}/admin/api/2025-04/graphql.json`
     
     const mutation = `
       mutation fileCreate($files: [FileCreateInput!]!) {

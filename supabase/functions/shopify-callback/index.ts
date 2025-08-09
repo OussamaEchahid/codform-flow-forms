@@ -268,7 +268,7 @@ async function testTokenValidity(shop: string, accessToken: string): Promise<voi
   console.log(`🧪 Testing token validity for ${shop}`);
   
   try {
-    const testUrl = `https://${shop}/admin/api/2023-07/shop.json`;
+    const testUrl = `https://${shop}/admin/api/2025-04/shop.json`;
     const response = await fetch(testUrl, {
       headers: {
         'X-Shopify-Access-Token': accessToken,

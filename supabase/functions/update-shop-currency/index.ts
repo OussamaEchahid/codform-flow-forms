@@ -27,7 +27,7 @@ serve(async (req: Request) => {
     }
 
     // Fetch shop info from Shopify
-    const shopifyResponse = await fetch(`https://${shop}/admin/api/2024-04/shop.json`, {
+    const shopifyResponse = await fetch(`https://${shop}/admin/api/2025-04/shop.json`, {
       headers: {
         'X-Shopify-Access-Token': accessToken,
         'Content-Type': 'application/json'

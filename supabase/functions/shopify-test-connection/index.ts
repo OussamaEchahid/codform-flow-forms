@@ -59,7 +59,7 @@ serve(async (req) => {
     }
     
     // إجراء طلب اختبار إلى API متجر Shopify
-    const shopUrl = `https://${shop}/admin/api/2023-07/shop.json`;
+    const shopUrl = `https://${shop}/admin/api/2025-04/shop.json`;
     
     const response = await fetch(shopUrl, {
       method: 'GET',

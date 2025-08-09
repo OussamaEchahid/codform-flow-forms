@@ -41,7 +41,7 @@ async function testToken(shop: string, token: string): Promise<boolean> {
     console.log(`Testing token for shop: ${shop}`);
     
     // بناء عنوان URL لاختبار الرمز
-    const testUrl = `https://${shop}/admin/api/2023-07/shop.json`;
+    const testUrl = `https://${shop}/admin/api/2025-04/shop.json`;
     
     // إجراء طلب باستخدام الرمز
     const response = await fetch(testUrl, {

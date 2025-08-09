@@ -38,8 +38,8 @@ export async function POST(request: Request) {
     // Determine token type and set up appropriate API path
     const isAdminToken = accessToken.startsWith('shpat_');
     const apiPath = isAdminToken 
-      ? '/admin/api/2024-01/graphql.json' 
-      : '/admin/api/2024-01/graphql.json'; // Same path, different token type
+      ? '/admin/api/2025-04/graphql.json' 
+      : '/admin/api/2025-04/graphql.json'; // Same path, different token type
     
     // Log request information with additional debug info
     console.log('Request details:', {
