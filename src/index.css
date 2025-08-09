@@ -206,3 +206,35 @@
   text-align: left !important;
   direction: ltr !important;
 }
+
+/* Home hero form preview spacing fixes */
+.codform-arabic-form {
+  margin-top: 8px !important;
+  margin-bottom: 0 !important;
+  padding: 16px !important;
+}
+
+.codform-arabic-form .quantity-offers-container {
+  margin: 8px 0 !important;
+}
+
+.codform-arabic-form .form-title-field {
+  padding-bottom: 12px !important;
+}
+
+.codform-arabic-form .cart-summary-field {
+  margin: 8px 0 !important;
+}
+
+.codform-arabic-form .codform-submit-wrapper {
+  margin-top: 12px !important;
+}
+
+#quantity-offers-after-form {
+  display: none !important;
+  border: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  height: 0 !important;
+}
+
