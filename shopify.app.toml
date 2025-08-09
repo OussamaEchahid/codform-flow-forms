@@ -20,10 +20,6 @@ api_version = "2025-04"
   topics = [ "app/uninstalled" ]
   uri = "/webhooks/app/uninstalled"
 
-  [[webhooks.subscriptions]]
-  compliance_topics = [ "customers/redact", "customers/data_request", "shop/redact" ]
-  uri = "/webhooks"
-
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
@@ -33,6 +29,11 @@ scopes = "write_products,read_products,read_orders,write_orders,read_themes,read
 redirect_urls = [
   "https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-auth-callback"
 ]
+
+[privacy_compliance]
+customer_data_request_url = "https://codmagnet.com/webhooks/customers/data_request"
+customer_deletion_url = "https://codmagnet.com/webhooks/customers/redact"
+shop_deletion_url = "https://codmagnet.com/webhooks/shop/redact"
 
 [pos]
 embedded = false
