@@ -37,11 +37,10 @@ function Extension() {
     }
   }, [form_id, api_url]);
 
-  useBuyerJourneyIntercept(({ canRender, apply покупательJourneyChange }) => {
+  useBuyerJourneyIntercept(({ canRender }) => {
     if (!formConfig) {
       return;
     }
-
     if (showForm) {
       canRender(false);
     }
