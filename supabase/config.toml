@@ -107,3 +107,6 @@ verify_jwt = false
 
 [functions.activate-web-pixel]
 verify_jwt = false
+
+[functions.shopify-products-fixed]
+verify_jwt = false
