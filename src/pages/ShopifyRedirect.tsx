@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, AlertTriangle, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { shopifySupabase } from '@/lib/shopify/supabase-client';
+import { cleanupAuthState } from '@/utils/clean-auth-state';
 
 const ShopifyRedirect = () => {
   const [isProcessing, setIsProcessing] = useState(true);
@@ -17,6 +18,9 @@ const ShopifyRedirect = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  useEffect(() => {
+    document.title = 'CodMagnet COD Form – Shopify Redirect';
+  }, []);
   useEffect(() => {
     const handleRedirect = async () => {
       try {
@@ -30,13 +34,20 @@ const ShopifyRedirect = () => {
         const timestamp = params.get('timestamp');
         const state = params.get('state');
         const sessionToken = params.get('session_token');
+        const host = params.get('host');
 
-        // Store short-lived session token if present (for future API calls)
+        // تنظيف أي حالة مصادقة قديمة قبل بدء جلسة جديدة
+        try { cleanupAuthState(); } catch {}
+
+        // تخزين التوكن قصير العمر والـ host (إن وُجدا)
         if (sessionToken) {
           try { sessionStorage.setItem('shopify_session_token', sessionToken); } catch {}
         }
+        if (host) {
+          try { sessionStorage.setItem('shopify_host', host); } catch {}
+        }
         
-        console.log('معلمات إعادة التوجيه:', { shop: shopParam, code, hmac, timestamp, state });
+        console.log('معلمات إعادة التوجيه:', { shop: shopParam, code, hmac, timestamp, state, host, hasSessionToken: !!sessionToken });
         
         if (!shopParam) {
           throw new Error('معلمة المتجر غير موجودة في URL');
@@ -45,6 +56,17 @@ const ShopifyRedirect = () => {
         // حفظ معلمة المتجر للاسترداد إذا لزم الأمر
         shopifyConnectionService.saveLastUrlShop(shopParam);
         setShop(shopParam);
+
+        // في حالة قدِمنا من App Bridge ومعنا session_token يكفي للوثوق بالجلسة
+        if (sessionToken && shopParam && !code && !hmac) {
+          try {
+            localStorage.setItem('current_shopify_store', shopParam);
+            localStorage.setItem('shopify_store', shopParam);
+            localStorage.setItem('shopify_connected', 'true');
+          } catch {}
+          setSuccess(true);
+          return navigate('/dashboard?shopify_connected=true&shop=' + encodeURIComponent(shopParam), { replace: true });
+        }
         
         // إذا كان لدينا رمز، فنحن في استدعاء OAuth
         if (code && hmac) {
