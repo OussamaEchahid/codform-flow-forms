@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,9 +9,10 @@ import { toast } from 'sonner';
 interface Props {
   shop?: string | null;
   defaultAccountId?: string | null;
+  auto?: boolean; // التفعيل التلقائي عند الفتح
 }
 
-const ShopifyWebPixelActivator: React.FC<Props> = ({ shop, defaultAccountId }) => {
+const ShopifyWebPixelActivator: React.FC<Props> = ({ shop, defaultAccountId, auto = true }) => {
   const activeStore = useMemo(() => {
     return shop || localStorage.getItem('current_shopify_store') || localStorage.getItem('shopify_store') || '';
   }, [shop]);
@@ -25,26 +26,42 @@ const ShopifyWebPixelActivator: React.FC<Props> = ({ shop, defaultAccountId }) =
       return;
     }
 
+    const activationKey = `codmagnet_pixel_activation_${activeStore}`;
+    console.log('🟣 Activating web pixel...', { shop: activeStore, accountId });
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('activate-web-pixel', {
-        body: { shop: activeStore, accountID: accountId?.trim() || activeStore }
+        body: { shop: activeStore, accountID: accountId?.trim() || 'codmagnet.com' }
       });
 
       if (error) throw error;
 
       if (data?.success) {
+        console.log('✅ Web pixel activated', data);
+        localStorage.setItem(activationKey, '1');
         toast.success('تم تفعيل Web Pixel بنجاح');
       } else {
         const msg = data?.userErrors?.[0]?.message || data?.message || 'تعذر التفعيل';
+        console.warn('⚠️ Activation returned non-success', data);
         toast.error(msg);
       }
     } catch (err: any) {
+      console.error('❌ Activation error', err);
       toast.error(err?.message || 'تعذر الاتصال بمتجر Shopify');
     } finally {
       setLoading(false);
     }
   };
+
+  // تفعيل تلقائي مرة واحدة لكل متجر
+  useEffect(() => {
+    if (!auto || !activeStore) return;
+    const activationKey = `codmagnet_pixel_activation_${activeStore}`;
+    const already = localStorage.getItem(activationKey) === '1';
+    if (already) return;
+    handleActivate();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auto, activeStore]);
 
   return (
     <Card>
@@ -61,7 +78,7 @@ const ShopifyWebPixelActivator: React.FC<Props> = ({ shop, defaultAccountId }) =
         <div className="space-y-2">
           <label className="text-sm">Account ID (اختياري)</label>
           <Input value={accountId} onChange={(e) => setAccountId(e.target.value)} placeholder={activeStore || 'account id'} />
-          <p className="text-xs text-muted-foreground">إذا تركته فارغًا سنستخدم دومين المتجر كقيمة افتراضية (آمن ومناسب).</p>
+          <p className="text-xs text-muted-foreground">إذا تركته فارغًا سنستخدم codmagnet.com كقيمة افتراضية (آمن ومناسب).</p>
         </div>
         <div className="flex gap-3">
           <Button onClick={handleActivate} disabled={loading || !activeStore}>
