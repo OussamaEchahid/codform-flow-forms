@@ -1,8 +1,8 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
-client_id = "753bee2864a0b12f2d87c79b56c86641"
-name = "CODFORM - COD Forms"
-handle = "codform-flow-forms"
+client_id = "753bee28b4a0b12f2d87c79b56c86641"
+name = "CodMagnet - COD Form"
+handle = "codform-cod-forms"
 application_url = "https://codmagnet.com"
 embedded = false
 
@@ -13,14 +13,15 @@ include_config_on_deploy = true
 api_version = "2025-04"
 
   [[webhooks.subscriptions]]
-  topics = [ "app/uninstalled" ]
-  uri = "/webhooks/app/uninstalled"
-
-  [[webhooks.subscriptions]]
   topics = [ "app/scopes_update" ]
   uri = "/webhooks/app/scopes_update"
 
+  [[webhooks.subscriptions]]
+  topics = [ "app/uninstalled" ]
+  uri = "/webhooks/app/uninstalled"
+
 [access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
 scopes = "write_products,read_products,read_orders,write_orders,read_themes,read_content,write_content,write_pixels,read_customer_events"
 
 [auth]
@@ -31,6 +32,4 @@ redirect_urls = [
 [pos]
 embedded = false
 
-# Extensions are configured in their individual files:
-# - extensions/theme-extension-codform/shopify.extension.toml
-# - extensions/admin-action-extension/shopify.extension.toml
+
