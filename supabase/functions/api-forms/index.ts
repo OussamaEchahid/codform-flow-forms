@@ -8,7 +8,7 @@ const corsHeaders = {
 }
 
 // Define the expected API key - make it consistent across functions
-const VALID_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M';
+const VALID_API_KEY = Deno.env.get('PUBLIC_API_KEY') || '';
 
 serve(async (req) => {
   // Handle CORS

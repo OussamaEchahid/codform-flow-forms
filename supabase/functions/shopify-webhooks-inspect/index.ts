@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
     if (!store.access_token) return json({ success: false, error: 'MISSING_TOKEN' }, 400)
 
     const graphqlEndpoint = `https://${store.shop}/admin/api/2025-04/graphql.json`
-    const callbackUrl = 'https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-webhooks'
+    const callbackUrl = `${SUPABASE_URL}/functions/v1/shopify-webhooks`
 
     // 1) Check existing subscriptions
     const checkQuery = {

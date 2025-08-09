@@ -4,19 +4,19 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { v4 as uuidv4 } from "https://esm.sh/uuid@9";
 
 // إعدادات Supabase
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || 'https://trlklwixfeaexhydzaue.supabase.co';
-const SUPABASE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SUPABASE_ANON_KEY") || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M';
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 console.log("🚀 Shopify Auth Edge Function initialized");
 
 // إعدادات تطبيق Shopify
-const SHOPIFY_API_KEY = "753bee28b4a0b12f2d87c79b56c86641";
+const SHOPIFY_API_KEY = Deno.env.get("SHOPIFY_API_KEY")!;
 
 // صلاحيات التطبيق
 const scopes = "write_products,read_products,read_orders,write_orders,read_themes,read_content,write_content";
 
 // عنوان URL لرد المصادقة - يشير مباشرة إلى Edge Function
-const CALLBACK_URL = `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-auth-callback`;
+const CALLBACK_URL = `${SUPABASE_URL}/functions/v1/shopify-auth-callback`;
 
 // إعداد عناوين CORS
 const corsHeaders = {

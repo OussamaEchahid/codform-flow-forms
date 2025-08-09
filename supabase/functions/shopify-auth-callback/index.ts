@@ -3,12 +3,12 @@ import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // إعدادات Supabase
-const SUPABASE_URL = 'https://trlklwixfeaexhydzaue.supabase.co';
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MjcxMTQxOCwiZXhwIjoyMDY4Mjg3NDE4fQ.cXZGpHiwobAzYhKPa1yWL1I1jRjEz-3WDFFvTMNRglU';
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 // إعدادات تطبيق Shopify
-const SHOPIFY_API_KEY = "753bee28b4a0b12f2d87c79b56c86641";
-const SHOPIFY_API_SECRET = "981e7ad45a4951c809f766322d88c800";
+const SHOPIFY_API_KEY = Deno.env.get("SHOPIFY_API_KEY")!;
+const SHOPIFY_API_SECRET = Deno.env.get("SHOPIFY_API_SECRET")!;
 
 console.log("🚀 Shopify Auth Callback Handler Started");
 
@@ -70,7 +70,7 @@ async function getAccessToken(shop: string, code: string): Promise<any> {
 // دالة للتأكد من إنشاء Webhook لموضوع APP_UNINSTALLED
 async function ensureAppUninstalledWebhook(shop: string, accessToken: string): Promise<void> {
   const graphqlEndpoint = `https://${shop}/admin/api/2025-04/graphql.json`;
-  const callbackUrl = 'https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-webhooks';
+  const callbackUrl = `${SUPABASE_URL}/functions/v1/shopify-webhooks`;
 
   const headers = {
     'Content-Type': 'application/json',
