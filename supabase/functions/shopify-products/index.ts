@@ -34,15 +34,15 @@ function mapProduct(node: any, shopInfo: { currencyCode: string; moneyFormat?: s
   const featuredImage = node.featuredImage?.url || images[0] || '/placeholder.svg';
   const variants = (node.variants?.edges || []).map((e: any) => {
     const v = e.node;
+    const price = typeof v.price === 'object' ? (v.price?.amount ?? '0') : String(v.price ?? '0');
+    const compareAt = typeof v.compareAtPrice === 'object' ? (v.compareAtPrice?.amount ?? null) : (v.compareAtPrice != null ? String(v.compareAtPrice) : null);
     return {
       id: extractId(v.id),
       title: v.title,
-      price: v.price?.amount ?? '0',
-      compare_at_price: v.compareAtPrice?.amount ?? null,
+      price,
+      compare_at_price: compareAt,
       sku: v.sku ?? '',
       inventory_quantity: typeof v.inventoryQuantity === 'number' ? v.inventoryQuantity : 0,
-      weight: v.weight ?? null,
-      weight_unit: v.weightUnit ?? null,
     };
   });
 
@@ -143,12 +143,10 @@ Deno.serve(async (req) => {
                 edges { node {
                   id
                   title
-                  price { amount currencyCode }
-                  compareAtPrice { amount currencyCode }
+                  price
+                  compareAtPrice
                   sku
                   inventoryQuantity
-                  weight
-                  weightUnit
                 }}
               }
             }

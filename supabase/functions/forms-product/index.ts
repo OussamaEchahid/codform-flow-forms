@@ -122,7 +122,7 @@ Deno.serve(async (req) => {
             featuredImage { url }
             variants(first: 1) { edges { node {
               id
-              price { amount currencyCode }
+              price
             }}}
           }
         }
@@ -132,9 +132,10 @@ Deno.serve(async (req) => {
       const firstVariant = node?.variants?.edges?.[0]?.node
 
       if (node && firstVariant) {
+        const price = typeof firstVariant.price === 'object' ? (firstVariant.price?.amount ?? '0') : String(firstVariant.price ?? '0');
         productData = {
           id: productId,
-          price: firstVariant.price?.amount ?? '0',
+          price,
           currency: data.shop?.currencyCode || 'USD',
           title: node.title,
           image: node.featuredImage?.url || null,
