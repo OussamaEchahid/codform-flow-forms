@@ -29,6 +29,12 @@ const ShopifyRedirect = () => {
         const hmac = params.get('hmac');
         const timestamp = params.get('timestamp');
         const state = params.get('state');
+        const sessionToken = params.get('session_token');
+
+        // Store short-lived session token if present (for future API calls)
+        if (sessionToken) {
+          try { sessionStorage.setItem('shopify_session_token', sessionToken); } catch {}
+        }
         
         console.log('معلمات إعادة التوجيه:', { shop: shopParam, code, hmac, timestamp, state });
         

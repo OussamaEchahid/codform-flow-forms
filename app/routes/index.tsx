@@ -19,6 +19,12 @@ export async function loader({ request }) {
     headers: Object.fromEntries(request.headers.entries())
   });
   
+  // إذا كنا داخل Admin ويوجد host بدون code/hmac، حوّل إلى اللانشر المضمّن
+  if (host && !code && !hmac) {
+    console.log("Admin iframe detected, redirecting to embedded launcher with params");
+    return redirect(`/launcher?${url.searchParams.toString()}`);
+  }
+  
   // تنظيف عنوان URL للمتجر باستخدام الوظيفة المساعدة
   if (shopifyReferrer) {
     try {

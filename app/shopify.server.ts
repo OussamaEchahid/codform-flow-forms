@@ -26,7 +26,7 @@ const shopify = shopifyApp({
   sessionStorage: new PrismaSessionStorage(prisma),
   distribution: AppDistribution.AppStore,
   // هذا الإعداد مهم جداً - التطبيق غير مضمن
-  isEmbeddedApp: false,
+  isEmbeddedApp: true,
   // إضافة المزيد من النطاقات المسموح بها
   hooks: {
     afterAuth: async ({ session, admin }) => {
@@ -101,7 +101,7 @@ console.log("Shopify app initialized with options:", {
   authPathPrefix: "/auth",
   apiVersion: ApiVersion.January25,
   distribution: "app_store",
-  isEmbeddedApp: false,
+  isEmbeddedApp: true,
   validRedirectUrls: [
     "https://codform-flow-forms.lovable.app/shopify-callback",
     "https://codform-flow-forms.lovable.app/api/shopify-callback",
