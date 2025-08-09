@@ -39,7 +39,7 @@ const getPreviewHtml = (lang: 'en' | 'ar') => {
   };
 
   return `
-  <div data-form-preview-id="form-preview-stable" style="background:transparent;padding:0;margin:0;direction:${dir};box-sizing:border-box;">
+  <div data-form-preview-id="form-preview-stable" style="background-color:#F9FAFB;border:2px solid #9b87f5;border-radius:1.2rem;padding:20px;box-shadow:rgba(0,0,0,0.05) 0 4px 6px;max-width:520px;margin:0;font-family:inherit;direction:${dir};box-sizing:border-box;gap:16px;position:relative;overflow:hidden;">
     <div class="codform-dynamic-form">
       <div id="quantity-offers-before-form" class="quantity-offers-container" style="margin: 16px 0; display:block;">
         <div data-offer="0" style="background:#FFFFFF;border:2px solid #E5E7EB;border-radius:8px;padding:12px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;font-family:Cairo, Arial, sans-serif;cursor:pointer;direction:${dir};text-align:${dir==='rtl'?'right':'left'};box-shadow:rgba(0,0,0,0.1) 0 2px 4px;transition:0.3s;">
