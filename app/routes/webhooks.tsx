@@ -14,7 +14,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       break;
     case "APP_SUBSCRIPTIONS_UPDATE":
       break;
+    // GDPR compliance topics (sent to /webhooks via compliance_topics)
+    case "CUSTOMERS_DATA_REQUEST":
+    case "CUSTOMERS_REDACT":
+    case "SHOP_REDACT":
+      // Verified by authenticate.webhook; just acknowledge
+      break;
     default:
+      // Unknown topic
       throw new Response("Unhandled webhook topic", { status: 404 });
   }
 
