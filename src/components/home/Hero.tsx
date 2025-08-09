@@ -1,7 +1,5 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
-
 const FORM_PREVIEW_HTML = `<div data-form-preview-id="form-preview-stable" class="codform-arabic-form" data-form-loaded="true" style="background-color: rgb(249, 250, 251); border: 2px solid rgb(155, 135, 245); border-radius: 1.2rem; padding: 20px; box-shadow: rgba(0, 0, 0, 0.05) 0px 4px 6px; max-width: 500px; margin: 20px auto; font-family: inherit; direction: rtl; box-sizing: border-box; gap: 16px; position: relative; overflow: hidden;">
             <div class="codform-dynamic-form">
               <div id="quantity-offers-before-ASFhDTFBYRlN3VDNFK__codform_cod_forms_codform_form_8071462355131" style="display: none;"></div>
@@ -379,10 +377,8 @@ const FORM_PREVIEW_HTML = `<div data-form-preview-id="form-preview-stable" class
         
             </div>
           </div>`;
-
 const Hero = () => {
-  return (
-    <section className="bg-gradient-to-br from-codform-light-purple to-white py-8 md:py-12">
+  return <section className="bg-gradient-to-br from-codform-light-purple to-white py-8 md:py-12">
       <div className="container mx-auto px-4">
         <div className="flex flex-col md:flex-row-reverse items-center">
           <div className="md:w-1/2 mb-4 md:mb-0">
@@ -401,16 +397,16 @@ const Hero = () => {
           </div>
           
           <div className="md:w-1/2">
-            <div className="rounded-lg p-0 bg-transparent mx-0 w-full md:flex md:justify-start">
+            <div className="rounded-lg p-0 bg-transparent w-full md:flex md:justify-start mx-[180px]">
               <div className="inline-block transform origin-top-left scale-[0.92] md:scale-[0.95]">
-                <div dangerouslySetInnerHTML={{ __html: FORM_PREVIEW_HTML }} />
+                <div dangerouslySetInnerHTML={{
+                __html: FORM_PREVIEW_HTML
+              }} />
               </div>
             </div>
           </div>
         </div>
       </div>
-    </section>
-  );
+    </section>;
 };
-
 export default Hero;
