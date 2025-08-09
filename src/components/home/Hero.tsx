@@ -378,7 +378,7 @@ const FORM_PREVIEW_HTML = `<div data-form-preview-id="form-preview-stable" class
             </div>
           </div>`;
 const Hero = () => {
-  return <section className="bg-gradient-to-br from-codform-light-purple to-white py-8 md:py-12">
+  return <section className="bg-gradient-to-br from-codform-light-purple to-white py-8 mx-0 my-0 px-0 md:py-0">
       <div className="container mx-auto px-4">
         <div className="flex flex-col md:flex-row-reverse items-center">
           <div className="md:w-1/2 mb-4 md:mb-0">
