@@ -40,6 +40,7 @@ import { fixShopifyConnectionState } from "@/utils/fix-shopify-state";
 import ShopifyAutoConnector from "@/components/shopify/ShopifyAutoConnector";
 import UnifiedStoreManager from "@/utils/unified-store-manager";
 import StoreMaintenance from "@/utils/store-maintenance";
+import TawkToWidget from "@/components/integrations/TawkToWidget";
 
 // إعداد عميل الاستعلام مع معالجة أفضل للأخطاء
 const queryClient = new QueryClient({
@@ -296,6 +297,7 @@ function App() {
                 <AppRoutes />
               </AppWrapper>
               <Toaster />
+              <TawkToWidget />
             </AuthProvider>
           </Router>
         </TooltipProvider>
