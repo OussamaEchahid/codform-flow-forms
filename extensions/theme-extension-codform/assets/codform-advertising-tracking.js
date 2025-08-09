@@ -31,22 +31,26 @@
       }
 
       const response = await fetch(
-        `https://trlklwixfeaexhydzaue.supabase.co/rest/v1/advertising_pixels?shop_id=eq.${shopDomain}&enabled=eq.true&select=*`,
+        'https://trlklwixfeaexhydzaue.supabase.co/functions/v1/advertising-pixels',
         {
-          method: 'GET',
+          method: 'POST',
           headers: {
-            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
             'Content-Type': 'application/json',
-          }
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
+          },
+          body: JSON.stringify({ action: 'list', shop_id: shopDomain })
         }
       );
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || !payload?.success) {
+        console.error('❌ Error loading advertising pixels (edge):', payload);
+        throw new Error(`EDGE_HTTP ${response.status}`);
       }
 
-      const pixels = await response.json();
-      console.log('✅ Loaded advertising pixels:', pixels);
+      const all = payload.records || [];
+      const pixels = all.filter(p => p && (p.enabled === true || p.enabled === undefined));
+      console.log('✅ Loaded advertising pixels (edge):', pixels);
 
       // Organize pixels by platform
       pixels.forEach(pixel => {
