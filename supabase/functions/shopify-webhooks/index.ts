@@ -47,6 +47,7 @@ Deno.serve(async (req) => {
 
   const topic = (req.headers.get('x-shopify-topic') || '').toLowerCase()
   const shopDomain = (req.headers.get('x-shopify-shop-domain') || '').toLowerCase()
+  console.log('📬 Webhook received', { topic, shopDomain, method: req.method })
 
   // Read raw text for HMAC verification
   const rawBody = await req.text()
@@ -54,6 +55,7 @@ Deno.serve(async (req) => {
   // Always acknowledge quickly if secret missing to avoid retries
   const valid = await verifyShopifyHmac(req, rawBody).catch(() => false)
   if (!valid) {
+    console.warn('❌ Invalid HMAC for webhook', { topic, shopDomain })
     return new Response(JSON.stringify({ success: false, error: 'INVALID_HMAC' }, null, 2), {
       status: 401,
       headers: { 'Content-Type': 'application/json', ...corsHeaders },
