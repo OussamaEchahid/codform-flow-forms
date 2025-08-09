@@ -5,9 +5,11 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { User, LogOut, Settings, Store } from 'lucide-react';
 import { useAuth } from '@/components/layout/AuthProvider';
+import { useI18n } from '@/lib/i18n';
 
 const Navbar = () => {
   const { isShopifyAuthenticated, shopifyUserEmail, shop: currentStore, signOut } = useAuth();
+  const { language, setLanguage } = useI18n();
 
   // Use localStorage fallback for store detection
   const storeFromStorage = localStorage.getItem('current_shopify_store');
@@ -48,8 +50,12 @@ const Navbar = () => {
         <div className="flex justify-between items-center h-16">
           <Link to="/" className="text-xl font-bold text-primary">CODMagnet</Link>
           <div className="flex items-center space-x-4 rtl:space-x-reverse gap-4">
+            <div className="flex items-center gap-2">
+              <Button variant={language === 'en' ? 'default' : 'outline'} size="sm" onClick={() => setLanguage('en')}>EN</Button>
+              <Button variant={language === 'ar' ? 'default' : 'outline'} size="sm" onClick={() => setLanguage('ar')}>AR</Button>
+            </div>
             <Button asChild>
-              <Link to="/dashboard">لوحة التحكم</Link>
+              <Link to="/dashboard">{language === 'ar' ? 'لوحة التحكم' : 'Dashboard'}</Link>
             </Button>
             
             {/* عرض معلومات المستخدم والمتجر - تحسين جديد */}
@@ -109,7 +115,7 @@ const Navbar = () => {
               </DropdownMenu>
             ) : (
               <Button asChild>
-                <Link to="/shopify">ربط متجر</Link>
+                <Link to="/shopify">{language === 'ar' ? 'ربط متجر' : 'Connect Store'}</Link>
               </Button>
             )}
           </div>
