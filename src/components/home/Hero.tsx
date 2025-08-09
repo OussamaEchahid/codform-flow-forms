@@ -401,7 +401,7 @@ const Hero = () => {
           </div>
           
           <div className="md:w-1/2">
-            <div className="bg-white rounded-lg shadow-xl p-6">
+            <div className="rounded-lg p-0 bg-transparent max-h-[560px] md:max-h-[640px] overflow-y-auto max-w-[520px] md:max-w-[560px] mx-auto">
               <div dangerouslySetInnerHTML={{ __html: FORM_PREVIEW_HTML }} />
             </div>
           </div>
