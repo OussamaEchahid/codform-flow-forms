@@ -33,9 +33,9 @@ serve(async (req) => {
       shop = `${shop}.myshopify.com`;
     }
 
-    // Default accountID to shop domain if not provided (valid and unique)
+    // Default accountID to codmagnet.com if not provided
     if (!accountID || String(accountID).trim().length === 0) {
-      accountID = shop;
+      accountID = 'codmagnet.com';
     }
 
     console.log(`[${requestId}] Activating web pixel for shop=${shop}, accountID=${accountID}`);

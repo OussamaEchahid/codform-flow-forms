@@ -321,7 +321,7 @@ const AdvertisingTracking = () => {
           ) : (
             <div className="space-y-6">
               {/* Shopify Web Pixel Activation */}
-              <ShopifyWebPixelActivator shop={activeStore} defaultAccountId={activeStore} />
+              <ShopifyWebPixelActivator shop={activeStore} defaultAccountId={"codmagnet.com"} />
 
               {/* Header with Add Button */}
               <div className="flex justify-between items-center">

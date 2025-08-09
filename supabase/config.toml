@@ -104,3 +104,6 @@ verify_jwt = false
 
 [functions.order-settings]
 verify_jwt = false
+
+[functions.activate-web-pixel]
+verify_jwt = false
