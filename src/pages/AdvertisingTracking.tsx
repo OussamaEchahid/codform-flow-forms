@@ -43,6 +43,7 @@ import {
   AlertCircle,
   Store
 } from 'lucide-react';
+import ShopifyWebPixelActivator from '@/components/shopify/ShopifyWebPixelActivator';
 
 const AdvertisingTracking = () => {
   const navigate = useNavigate();
@@ -319,6 +320,9 @@ const AdvertisingTracking = () => {
             </Card>
           ) : (
             <div className="space-y-6">
+              {/* Shopify Web Pixel Activation */}
+              <ShopifyWebPixelActivator shop={activeStore} defaultAccountId={activeStore} />
+
               {/* Header with Add Button */}
               <div className="flex justify-between items-center">
                 <div>
