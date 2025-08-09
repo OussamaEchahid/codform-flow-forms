@@ -64,12 +64,11 @@ serve(async (req) => {
 
     // Build GraphQL request
     const graphqlUrl = `https://${shop}/admin/api/2025-04/graphql.json`;
-    const query = `mutation webPixelCreate($settings: String!) {\n  webPixelCreate(webPixel: { settings: $settings }) {\n    userErrors { field message }\n    webPixel { id settings }\n  }\n}`;
+    const query = `mutation webPixelCreate($settings: JSON!) {\n  webPixelCreate(webPixel: { settings: $settings }) {\n    userErrors { field message }\n    webPixel { id settings }\n  }\n}`;
 
     const variables = {
-      settings: JSON.stringify({ accountID }),
+      settings: { accountID },
     };
-
     const shopifyResp = await fetch(graphqlUrl, {
       method: 'POST',
       headers: {
