@@ -68,8 +68,14 @@ Deno.serve(async (req) => {
 
     const url = new URL(req.url);
     let shop = url.searchParams.get('shop') || undefined;
-    const productIdParam = url.searchParams.get('product') || url.searchParams.get('productId') || undefined;
+    let productIdParam = url.searchParams.get('product') || url.searchParams.get('productId') || undefined;
 
+    // Also support POST body payloads
+    if ((!shop || !productIdParam) && (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH')) {
+      const body = await req.json().catch(() => ({}));
+      shop = shop || body?.shop;
+      productIdParam = productIdParam || body?.productId || body?.product;
+    }
     if (!shop) {
       return new Response(JSON.stringify({ success: false, message: 'Shop required' }), {
         status: 400,
@@ -99,10 +105,13 @@ Deno.serve(async (req) => {
 
     // Fetch shop info
     const shopInfoData = await shopifyGQL(shop, store.access_token, `
-      query ShopInfo { shop { currencyCode moneyFormat moneyWithCurrencyFormat } }
+      query ShopInfo { shop { currencyCode } }
     `);
-    const shopInfo = shopInfoData.shop as { currencyCode: string; moneyFormat?: string; moneyWithCurrencyFormat?: string };
-
+    const shopInfo = {
+      currencyCode: shopInfoData.shop?.currencyCode ?? 'USD',
+      moneyFormat: store.money_format ?? null,
+      moneyWithCurrencyFormat: store.money_with_currency_format ?? null,
+    } as { currencyCode: string; moneyFormat?: string | null; moneyWithCurrencyFormat?: string | null };
     // If specific product requested
     if (productIdParam && productIdParam !== 'auto-detect') {
       const gid = /^gid:/.test(productIdParam) ? productIdParam : toGid('Product', productIdParam);

@@ -109,10 +109,14 @@ Deno.serve(async (req) => {
 
     // Load shop info via GraphQL
     const shopInfoData = await shopifyGQL(shop, store.access_token, `
-      query ShopInfo { shop { currencyCode moneyFormat moneyWithCurrencyFormat } }
+      query ShopInfo { shop { currencyCode } }
     `);
 
-    const shopInfo = shopInfoData.shop as { currencyCode: string; moneyFormat?: string; moneyWithCurrencyFormat?: string };
+    const shopInfo = {
+      currencyCode: shopInfoData.shop?.currencyCode ?? (store.currency ?? 'USD'),
+      moneyFormat: store.money_format ?? null,
+      moneyWithCurrencyFormat: store.money_with_currency_format ?? null,
+    } as { currencyCode: string; moneyFormat?: string | null; moneyWithCurrencyFormat?: string | null };
 
     // Paginated fetch of products via GraphQL
     const products: any[] = [];
