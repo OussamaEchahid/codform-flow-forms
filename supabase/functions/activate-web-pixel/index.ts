@@ -81,6 +81,17 @@ serve(async (req) => {
 
     const json = await shopifyResp.json().catch(() => null);
 
+    // Shopify GraphQL قد يعيد status 200 مع أخطاء في الحقل errors
+    if (json?.errors && Array.isArray(json.errors) && json.errors.length > 0) {
+      console.error(`[${requestId}] Shopify GraphQL errors`, json.errors);
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'GRAPHQL_ERRORS',
+        message: json.errors[0]?.message || 'GraphQL returned errors',
+        errors: json.errors,
+      }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
     if (!shopifyResp.ok) {
       console.error(`[${requestId}] Shopify error status`, shopifyResp.status, json);
       return new Response(JSON.stringify({
