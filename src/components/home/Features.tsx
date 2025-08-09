@@ -6,36 +6,45 @@ import { Check } from 'lucide-react';
 const Features = () => {
   const features = [
     {
-      title: 'نماذج قابلة للتخصيص',
-      description: 'إنشاء نماذج مخصصة مع حقول متنوعة حسب احتياجاتك'
+      title: "إدارة الطلبات المتروكة",
+      description: "استرجاع المبيعات عبر تتبع العملاء وإشعارات ذكية"
     },
     {
-      title: 'قوالب جاهزة',
-      description: 'مجموعة من القوالب الجاهزة للاستخدام الفوري'
+      title: "نموذج لكل منتج",
+      description: "إنشاء نماذج مخصصة لكل منتج بسهولة"
     },
     {
-      title: 'الحفظ التلقائي',
-      description: 'حفظ بيانات النموذج تلقائيًا أثناء التعبئة'
+      title: "عروض الكمية الذكية",
+      description: "رفع متوسط قيمة الطلب بخصومات كمية مرنة"
     },
     {
-      title: 'نماذج متعددة الخطوات',
-      description: 'إنشاء نماذج متعددة الخطوات لتجربة أفضل للمستخدم'
+      title: "إدارة العملات",
+      description: "تعيين عملة لكل نموذج أو منتج وتحديث أسعار تلقائي"
     },
     {
-      title: 'تكامل مع Shopify',
-      description: 'تكامل سلس مع متاجر Shopify من خلال امتداد خاص'
+      title: "مكافحة السبام",
+      description: "حماية مدمجة مع فلاتر ذكية وقيود تلقائية"
     },
     {
-      title: 'تتبع الطلبات',
-      description: 'لوحة تحكم لتتبع الطلبات وإدارتها بكفاءة'
+      title: "تتبع إعلاني",
+      description: "قياس الأداء وربط الأحداث مع منصات الإعلانات"
     },
     {
-      title: 'دعم اللغات المتعددة',
-      description: 'دعم اللغة العربية والإنجليزية والفرنسية'
+      title: "إنشاء بنقرة واحدة",
+      description: "توليد نماذج جاهزة باللغة التي تريد"
     },
     {
-      title: 'تحليلات متقدمة',
-      description: 'تقارير وإحصائيات مفصلة حول أداء النماذج والمبيعات'
+      title: "صفحات الهبوط",
+      description: "قوالب هبوط محسّنة للتحويل",
+      soon: true as const
+    },
+    {
+      title: "تكامل Shopify",
+      description: "تكامل سلس مع المتجر وإدارة المنتجات"
+    },
+    {
+      title: "تحليلات وتقارير",
+      description: "لوحة مؤشرات لتتبع الأداء والمبيعات"
     }
   ];
 
@@ -53,10 +62,13 @@ const Features = () => {
           {features.map((feature, index) => (
             <Card key={index} className="bg-white border border-gray-100 hover:shadow-md transition-shadow">
               <CardHeader className="pb-2">
-                <div className="flex justify-end">
+                <div className="flex justify-end items-center gap-2">
                   <div className="bg-codform-light-purple p-2 rounded-full">
                     <Check className="h-5 w-5 text-codform-purple" />
                   </div>
+                  {('soon' in feature) && (feature as any).soon && (
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-foreground/70 rtl:ml-0 rtl:mr-2">قريباً</span>
+                  )}
                 </div>
                 <CardTitle className="text-xl font-semibold text-right">{feature.title}</CardTitle>
               </CardHeader>
