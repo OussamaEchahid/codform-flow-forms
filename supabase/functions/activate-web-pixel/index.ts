@@ -106,8 +106,9 @@ serve(async (req) => {
     const userErrors = result?.userErrors || [];
 
     if (userErrors.length > 0) {
+      const msg = userErrors.map((e: any) => e.message).join('; ');
       console.warn(`[${requestId}] webPixelCreate userErrors`, userErrors);
-      return new Response(JSON.stringify({ success: false, error: 'USER_ERRORS', userErrors, raw: json }), {
+      return new Response(JSON.stringify({ success: false, error: 'USER_ERRORS', message: msg, userErrors, raw: json }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });

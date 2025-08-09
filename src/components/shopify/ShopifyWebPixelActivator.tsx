@@ -44,7 +44,10 @@ const ShopifyWebPixelActivator: React.FC<Props> = ({ shop, defaultAccountId, aut
 
       const data = await resp.json().catch(() => null);
       if (!resp.ok) {
-        const msg = data?.message || data?.error || `HTTP ${resp.status}`;
+        const detail = Array.isArray(data?.userErrors) && data.userErrors.length
+          ? data.userErrors.map((e: any) => e.message).join('; ')
+          : undefined;
+        const msg = detail || data?.message || data?.error || `HTTP ${resp.status}`;
         throw new Error(msg);
       }
 
