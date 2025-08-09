@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.51.0';
 
 const corsHeaders = {
@@ -6,241 +5,196 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-serve(async (req) => {
-  const requestId = Math.random().toString(36).substr(2, 6);
-  
+// Helper to call Shopify GraphQL Admin API
+async function shopifyGQL(shop: string, token: string, query: string, variables?: Record<string, unknown>) {
+  const res = await fetch(`https://${shop}/admin/api/2025-04/graphql.json`, {
+    method: 'POST',
+    headers: {
+      'X-Shopify-Access-Token': token,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ query, variables })
+  });
+
+  const json = await res.json();
+  if (!res.ok || json.errors) {
+    throw new Error(`GraphQL error: ${res.status} ${res.statusText} ${JSON.stringify(json.errors || {})}`);
+  }
+  return json.data;
+}
+
+function extractId(gid: string | null | undefined) {
+  if (!gid) return null;
+  const parts = gid.split('/');
+  return parts[parts.length - 1];
+}
+
+function mapProduct(node: any, shopInfo: { currencyCode: string; moneyFormat?: string | null; moneyWithCurrencyFormat?: string | null; }) {
+  const images = (node.images?.edges || []).map((e: any) => e.node?.url).filter(Boolean);
+  const featuredImage = node.featuredImage?.url || images[0] || '/placeholder.svg';
+  const variants = (node.variants?.edges || []).map((e: any) => {
+    const v = e.node;
+    return {
+      id: extractId(v.id),
+      title: v.title,
+      price: v.price?.amount ?? '0',
+      compare_at_price: v.compareAtPrice?.amount ?? null,
+      sku: v.sku ?? '',
+      inventory_quantity: typeof v.inventoryQuantity === 'number' ? v.inventoryQuantity : 0,
+      weight: v.weight ?? null,
+      weight_unit: v.weightUnit ?? null,
+    };
+  });
+
+  const basePrice = variants[0]?.price ?? '0';
+
+  return {
+    id: extractId(node.id),
+    title: node.title,
+    handle: node.handle,
+    created_at: node.createdAt,
+    updated_at: node.updatedAt,
+    published_at: node.publishedAt,
+    status: node.status,
+    tags: (node.tags || []).join(', '),
+    price: basePrice,
+    images,
+    featuredImage,
+    variants,
+    currency: shopInfo.currencyCode,
+    money_format: shopInfo.moneyFormat ?? null,
+    money_with_currency_format: shopInfo.moneyWithCurrencyFormat ?? null,
+  };
+}
+
+Deno.serve(async (req) => {
+  const requestId = Math.random().toString(36).slice(2, 8);
+
   try {
-    console.log(`[${requestId}] 🚀 تم استلام الطلب`);
-    
     // Handle CORS preflight requests
     if (req.method === 'OPTIONS') {
       return new Response(null, { headers: corsHeaders });
     }
 
-    // Initialize Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    );
 
-    // Parse request body
-    const body = await req.json();
-    let { shop, productIds, refresh = false, includeTestProducts = false } = body;
-
-    console.log(`[${requestId}] 🏪 معالجة الطلب للمتجر: ${shop} (الأصلي: ${shop}), إعادة تحديث: ${refresh}, تضمين منتجات تجريبية: ${includeTestProducts}, معرفات المنتجات: ${productIds}`);
+    const body = await req.json().catch(() => ({}));
+    let { shop, productIds, refresh = false } = body as { shop?: string; productIds?: (string|number)[]; refresh?: boolean };
 
     if (!shop) {
-      return new Response(JSON.stringify({
-        success: false,
-        message: 'Shop parameter is required',
-      }), {
+      return new Response(JSON.stringify({ success: false, message: 'Shop parameter is required' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    // Normalize shop domain
-    if (!shop.includes('.myshopify.com')) {
-      shop = `${shop}.myshopify.com`;
-    }
+    if (!shop.includes('.myshopify.com')) shop = `${shop}.myshopify.com`;
 
-    // Get shop access token and store info from database
-    const { data: shopData, error: shopError } = await supabase
+    // Get store token and formats
+    const { data: store, error: storeErr } = await supabase
       .from('shopify_stores')
       .select('access_token, currency, money_format, money_with_currency_format')
       .eq('shop', shop)
       .single();
-    
-    if (shopError) {
-      console.error(`[${requestId}] ❌ خطأ في قاعدة البيانات:`, shopError);
-      return new Response(JSON.stringify({
-        success: false,
-        message: `Database error: ${shopError.message}`,
-      }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
 
-    if (!shopData) {
-      console.error(`[${requestId}] ❌ لم يتم العثور على المتجر: ${shop}`);
-      return new Response(JSON.stringify({
-        success: false,
-        message: `Store ${shop} not found. Please ensure the store is properly connected.`,
-      }), {
+    if (storeErr || !store?.access_token) {
+      return new Response(JSON.stringify({ success: false, message: 'Store not found or missing token' }), {
         status: 404,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    if (!shopData.access_token) {
-      console.error(`[${requestId}] ❌ رمز الوصول مفقود للمتجر: ${shop}`);
-      return new Response(JSON.stringify({
-        success: false,
-        message: 'Access token missing for store',
-      }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
+    // Load shop info via GraphQL
+    const shopInfoData = await shopifyGQL(shop, store.access_token, `
+      query ShopInfo { shop { currencyCode moneyFormat moneyWithCurrencyFormat } }
+    `);
 
-    // Fetch shop info and products from Shopify API
-    try {
-      console.log(`[${requestId}] 📡 جلب معلومات المتجر والمنتجات من Shopify API للمتجر: ${shop}`);
-      
-      // First, get shop information to get current currency
-      const shopInfoUrl = `https://${shop}/admin/api/2024-04/shop.json`;
-      
-      const shopInfoResponse = await fetch(shopInfoUrl, {
-        headers: {
-          'X-Shopify-Access-Token': shopData.access_token,
-          'Content-Type': 'application/json'
+    const shopInfo = shopInfoData.shop as { currencyCode: string; moneyFormat?: string; moneyWithCurrencyFormat?: string };
+
+    // Paginated fetch of products via GraphQL
+    const products: any[] = [];
+    let cursor: string | null = null;
+    let page = 0;
+
+    const PRODUCTS_QUERY = `
+      query Products($cursor: String) {
+        products(first: 100, query: "status:active", after: $cursor) {
+          edges {
+            cursor
+            node {
+              id
+              title
+              handle
+              createdAt
+              updatedAt
+              publishedAt
+              status
+              tags
+              featuredImage { url }
+              images(first: 10) { edges { node { url } } }
+              variants(first: 50) {
+                edges { node {
+                  id
+                  title
+                  price { amount currencyCode }
+                  compareAtPrice { amount currencyCode }
+                  sku
+                  inventoryQuantity
+                  weight
+                  weightUnit
+                }}
+              }
+            }
+          }
+          pageInfo { hasNextPage endCursor }
         }
-      });
-      
-      if (!shopInfoResponse.ok) {
-        console.error(`[${requestId}] ❌ خطأ في جلب معلومات المتجر: ${shopInfoResponse.status} ${shopInfoResponse.statusText}`);
-        return new Response(JSON.stringify({
-          success: false,
-          message: `Shop info API error: ${shopInfoResponse.status} ${shopInfoResponse.statusText}`,
-        }), {
-          status: shopInfoResponse.status,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
       }
-      
-      const shopInfoData = await shopInfoResponse.json();
-      const shopInfo = shopInfoData.shop;
-      
-      console.log(`[${requestId}] ✅ تم جلب معلومات المتجر - العملة: ${shopInfo.currency}`);
-      
-      // Now get products
-      const apiUrl = `https://${shop}/admin/api/2024-04/products.json?limit=250&status=active`;
-      
-      const shopifyResponse = await fetch(apiUrl, {
-        headers: {
-          'X-Shopify-Access-Token': shopData.access_token,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (!shopifyResponse.ok) {
-        console.error(`[${requestId}] ❌ خطأ في Shopify API: ${shopifyResponse.status} ${shopifyResponse.statusText}`);
-        return new Response(JSON.stringify({
-          success: false,
-          message: `Shopify API error: ${shopifyResponse.status} ${shopifyResponse.statusText}`,
-        }), {
-          status: shopifyResponse.status,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
+    `;
+
+    do {
+      const data = await shopifyGQL(shop, store.access_token, PRODUCTS_QUERY, { cursor });
+      const edges = data.products?.edges || [];
+      for (const edge of edges) {
+        const node = edge.node;
+        products.push(mapProduct(node, shopInfo));
       }
-      
-      const shopifyData = await shopifyResponse.json();
-      let products = shopifyData.products;
-      
-      if (!products || !Array.isArray(products)) {
-        console.error(`[${requestId}] ❌ بيانات منتج غير صالحة:`, products);
-        return new Response(JSON.stringify({
-          success: false,
-          message: 'Invalid product data returned from Shopify API',
-        }), {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
+      const pageInfo = data.products?.pageInfo;
+      cursor = pageInfo?.hasNextPage ? pageInfo?.endCursor ?? null : null;
+      page++;
+      // Safety to avoid excessive pages
+      if (page >= 10) break;
+    } while (cursor);
 
-      console.log(`[${requestId}] ✅ تم جلب ${products.length} منتج من Shopify`);
-      
-      // Transform the products to match our expected format
-      products = products.map((product: any) => {
-        // Process images
-        let featuredImage = '/placeholder.svg';
-        
-        if (product.image?.src) {
-          featuredImage = product.image.src;
-        } else if (product.images && product.images.length > 0) {
-          featuredImage = product.images[0].src;
-        }
-        
-        const images = product.images && product.images.length > 0 ? 
-          product.images.map((img: any) => img.src) : [featuredImage];
-        
-        // Process variants
-        const variants = product.variants && product.variants.length > 0 ?
-          product.variants.map((variant: any) => ({
-            id: variant.id,
-            title: variant.title,
-            price: variant.price,
-            compare_at_price: variant.compare_at_price,
-            sku: variant.sku,
-            inventory_quantity: variant.inventory_quantity,
-            weight: variant.weight,
-            weight_unit: variant.weight_unit,
-          })) : [];
-        
-        // Get base price from first variant or default to '0'
-        const basePrice = product.variants && product.variants.length > 0 ? 
-          product.variants[0].price : '0';
-
-        return {
-          id: product.id.toString(),
-          title: product.title,
-          handle: product.handle,
-          created_at: product.created_at,
-          updated_at: product.updated_at,
-          published_at: product.published_at,
-          status: product.status,
-          tags: product.tags,
-          price: basePrice,
-          images: images,
-          featuredImage: featuredImage,
-          variants: variants,
-          // Add currency information from Shopify shop info (real-time data)
-          currency: shopInfo.currency,
-          money_format: shopInfo.money_format,
-          money_with_currency_format: shopInfo.money_with_currency_format
-        };
-      });
-
-      // Filter products if specific productIds are requested
-      if (productIds && Array.isArray(productIds) && productIds.length > 0) {
-        products = products.filter((product: any) => 
-          productIds.includes(product.id) || productIds.includes(product.id.toString())
-        );
-        console.log(`[${requestId}] 🔍 تم تصفية المنتجات بناءً على المعرفات المطلوبة: ${productIds.join(', ')}, النتيجة: ${products.length} منتج`);
-      }
-
-      console.log(`[${requestId}] ✅ تم إرجاع ${products.length} منتج بنجاح`);
-      
+    // Optional filter by productIds (numeric or string)
+    if (Array.isArray(productIds) && productIds.length > 0) {
+      const idSet = new Set(productIds.map((p) => String(p)));
+      const filtered = products.filter(p => idSet.has(String(p.id)));
       return new Response(JSON.stringify({
         success: true,
-        products,
-        count: products.length,
-        shop: shop,
-        currency: shopInfo.currency,
-        money_format: shopInfo.money_format,
-        money_with_currency_format: shopInfo.money_with_currency_format
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-      
-    } catch (error) {
-      console.error(`[${requestId}] ❌ خطأ في جلب المنتجات من Shopify:`, error);
-      
-      return new Response(JSON.stringify({
-        success: false,
-        message: `Error fetching products: ${error.message}`,
-      }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+        products: filtered,
+        count: filtered.length,
+        shop,
+        currency: shopInfo.currencyCode,
+        money_format: shopInfo.moneyFormat ?? null,
+        money_with_currency_format: shopInfo.moneyWithCurrencyFormat ?? null,
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
-    
-  } catch (error) {
-    console.error('❌ خطأ غير متوقع:', error);
+
     return new Response(JSON.stringify({
-      success: false,
-      message: `Unhandled error: ${error.message}`
-    }), {
+      success: true,
+      products,
+      count: products.length,
+      shop,
+      currency: shopInfo.currencyCode,
+      money_format: shopInfo.moneyFormat ?? null,
+      money_with_currency_format: shopInfo.moneyWithCurrencyFormat ?? null,
+    }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  } catch (error) {
+    console.error(`[shopify-products] Error:`, error);
+    return new Response(JSON.stringify({ success: false, message: error instanceof Error ? error.message : 'Unknown error' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });

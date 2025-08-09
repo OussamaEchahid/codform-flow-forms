@@ -1,288 +1,201 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.51.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface ShopifyProduct {
-  id: string;
-  title: string;
-  handle: string;
-  vendor: string;
-  product_type: string;
-  created_at: string;
-  updated_at: string;
-  published_at: string;
-  template_suffix: string;
-  status: string;
-  published_scope: string;
-  tags: string;
-  admin_graphql_api_id: string;
-  variants: any[];
-  options: any[];
-  images: any[];
-  image: any;
+async function shopifyGQL(shop: string, token: string, query: string, variables?: Record<string, unknown>) {
+  const res = await fetch(`https://${shop}/admin/api/2025-04/graphql.json`, {
+    method: 'POST',
+    headers: {
+      'X-Shopify-Access-Token': token,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ query, variables })
+  });
+  const json = await res.json();
+  if (!res.ok || json.errors) {
+    throw new Error(`GraphQL error: ${res.status} ${res.statusText} ${JSON.stringify(json.errors || {})}`);
+  }
+  return json.data;
+}
+
+function extractId(gid?: string | null) {
+  if (!gid) return null;
+  const parts = gid.split('/');
+  return parts[parts.length - 1];
+}
+
+function toGid(type: 'Product' | 'ProductVariant', id: string | number) {
+  return `gid://shopify/${type}/${id}`;
+}
+
+function mapProduct(node: any, shopInfo: { currencyCode: string; moneyFormat?: string | null; moneyWithCurrencyFormat?: string | null; }) {
+  const images = (node.images?.edges || []).map((e: any) => e.node?.url).filter(Boolean);
+  const featuredImage = node.featuredImage?.url || images[0] || '/placeholder.svg';
+  const variants = (node.variants?.edges || []).map((e: any) => {
+    const v = e.node;
+    return {
+      id: extractId(v.id),
+      title: v.title,
+      price: v.price?.amount ?? '0',
+      compare_at_price: v.compareAtPrice?.amount ?? null,
+      sku: v.sku ?? '',
+      inventory_quantity: typeof v.inventoryQuantity === 'number' ? v.inventoryQuantity : 0,
+    };
+  });
+
+  return {
+    id: extractId(node.id),
+    title: node.title,
+    handle: node.handle,
+    status: node.status,
+    tags: (node.tags || []).join(', '),
+    image: featuredImage,
+    currency: shopInfo.currencyCode,
+    variants,
+    created_at: node.createdAt,
+    updated_at: node.updatedAt,
+  };
 }
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-
   try {
-    console.log('🛍️ Shopify Products API - Request received');
+    if (req.method === 'OPTIONS') {
+      return new Response(null, { headers: corsHeaders });
+    }
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-
-    const { shop, productId } = await req.json();
+    const url = new URL(req.url);
+    let shop = url.searchParams.get('shop') || undefined;
+    const productIdParam = url.searchParams.get('product') || url.searchParams.get('productId') || undefined;
 
     if (!shop) {
-      console.error('❌ No shop provided');
-      return new Response(
-        JSON.stringify({ error: 'Shop parameter is required' }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
+      return new Response(JSON.stringify({ success: false, message: 'Shop required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
-    if (productId) {
-      console.log(`🔍 Fetching specific product: ${productId} for shop: ${shop}`);
-    } else {
-      console.log(`🏪 Fetching all products for shop: ${shop}`);
-    }
+    if (!shop.includes('.myshopify.com')) shop = `${shop}.myshopify.com`;
 
-    // Get store info directly from database using service role
-    const { data: storeData, error: storeError } = await supabase
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    );
+
+    const { data: store, error: storeErr } = await supabase
       .from('shopify_stores')
-      .select('shop, access_token, is_active')
+      .select('access_token')
       .eq('shop', shop)
-      .eq('is_active', true)
-      .not('access_token', 'is', null)
-      .neq('access_token', '')
-      .neq('access_token', 'placeholder_token')
       .single();
 
-    if (storeError) {
-      console.error('❌ Database error:', storeError);
-      return new Response(
-        JSON.stringify({ 
-          error: 'Failed to fetch store information',
-          details: storeError.message 
-        }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
+    if (storeErr || !store?.access_token) {
+      return new Response(JSON.stringify({ success: false, message: 'Store not found or missing token' }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
-    if (!storeData) {
-      console.error('❌ Store not found');
-      return new Response(
-        JSON.stringify({ 
-          error: 'STORE_NOT_FOUND',
-          message: 'المتجر غير موجود أو غير نشط'
-        }),
-        { 
-          status: 404, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
+    // Fetch shop info
+    const shopInfoData = await shopifyGQL(shop, store.access_token, `
+      query ShopInfo { shop { currencyCode moneyFormat moneyWithCurrencyFormat } }
+    `);
+    const shopInfo = shopInfoData.shop as { currencyCode: string; moneyFormat?: string; moneyWithCurrencyFormat?: string };
 
-    const accessToken = storeData.access_token;
-    console.log(`✅ Store found with valid token: ${shop}`);
-
-    // جلب معلومات المتجر للحصول على العملة
-    const shopInfoUrl = `https://${shop}/admin/api/2024-07/shop.json`;
-    console.log(`💰 Fetching shop currency from: ${shopInfoUrl}`);
-
-    const shopInfoResponse = await fetch(shopInfoUrl, {
-      method: 'GET',
-      headers: {
-        'X-Shopify-Access-Token': accessToken,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    let shopCurrency = 'USD'; // العملة الافتراضية
-    if (shopInfoResponse.ok) {
-      const shopInfoData = await shopInfoResponse.json();
-      shopCurrency = shopInfoData.shop?.currency || 'USD';
-      console.log(`💰 Shop currency detected: ${shopCurrency}`);
-    } else {
-      console.warn('⚠️ Could not fetch shop currency, using USD as default');
-    }
-
-    // جلب المنتجات من Shopify API
-    let shopifyUrl;
-    if (productId) {
-      // Get specific product
-      shopifyUrl = `https://${shop}/admin/api/2024-07/products/${productId}.json`;
-    } else {
-      // Get all products
-      shopifyUrl = `https://${shop}/admin/api/2024-07/products.json?limit=50`;
-    }
-    
-    console.log(`📡 Calling Shopify API: ${shopifyUrl}`);
-
-    const shopifyResponse = await fetch(shopifyUrl, {
-      method: 'GET',
-      headers: {
-        'X-Shopify-Access-Token': accessToken,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    if (!shopifyResponse.ok) {
-      const errorText = await shopifyResponse.text();
-      console.error(`❌ Shopify API error (${shopifyResponse.status}):`, errorText);
-      
-      if (productId && shopifyResponse.status === 404) {
-        return new Response(
-          JSON.stringify({ 
-            error: 'Product not found',
-            message: `المنتج بمعرف ${productId} غير موجود`
-          }),
-          { 
-            status: 404, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    // If specific product requested
+    if (productIdParam && productIdParam !== 'auto-detect') {
+      const gid = /^gid:/.test(productIdParam) ? productIdParam : toGid('Product', productIdParam);
+      const data = await shopifyGQL(shop, store.access_token, `
+        query Product($id: ID!) {
+          product(id: $id) {
+            id
+            title
+            handle
+            createdAt
+            updatedAt
+            publishedAt
+            status
+            tags
+            featuredImage { url }
+            images(first: 10) { edges { node { url } } }
+            variants(first: 50) {
+              edges { node {
+                id
+                title
+                price { amount currencyCode }
+                compareAtPrice { amount currencyCode }
+                sku
+                inventoryQuantity
+              }}
+            }
           }
-        );
-      }
-      
-      return new Response(
-        JSON.stringify({ 
-          error: 'Failed to fetch products from Shopify',
-          status: shopifyResponse.status,
-          message: errorText
-        }),
-        { 
-          status: shopifyResponse.status, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
-      );
-    }
+      `, { id: gid });
 
-    const data = await shopifyResponse.json();
-
-    if (productId) {
-      // Handle single product response
-      const product = data.product;
-      if (!product) {
-        console.error('❌ Product not found in response');
-        return new Response(
-          JSON.stringify({ 
-            error: 'Product not found',
-            message: `المنتج بمعرف ${productId} غير موجود`
-          }),
-          { 
-            status: 404, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-          }
-        );
+      const node = data.product;
+      if (!node) {
+        return new Response(JSON.stringify({ error: 'Product not found', message: `المنتج بمعرف ${productIdParam} غير موجود` }), {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
       }
 
-      console.log(`✅ Successfully fetched product ${productId} from ${shop}`);
-
-      const formattedProduct = {
-        id: product.id,
-        title: product.title,
-        handle: product.handle,
-        vendor: product.vendor || '',
-        product_type: product.product_type || '',
-        status: product.status,
-        tags: product.tags || '',
-        image: product.image?.src || null,
-        currency: shopCurrency, // إضافة العملة
-        variants: product.variants?.map((variant: any) => ({
-          id: variant.id,
-          title: variant.title,
-          price: variant.price,
-          sku: variant.sku || '',
-          inventory_quantity: variant.inventory_quantity || 0,
-          currency_code: shopCurrency // إضافة العملة للمتغير
-        })) || [],
-        created_at: product.created_at,
-        updated_at: product.updated_at
-      };
-
-      return new Response(
-        JSON.stringify({
-          success: true,
-          shop,
-          product: formattedProduct,
-          currency: shopCurrency, // إضافة العملة للاستجابة
-          message: `تم جلب المنتج ${product.title} بنجاح`
-        }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    } else {
-      // Handle multiple products response
-      const products: ShopifyProduct[] = data.products || [];
-      console.log(`✅ Successfully fetched ${products.length} products from ${shop}`);
-
-      // تحويل المنتجات إلى تنسيق مبسط
-      const formattedProducts = products.map(product => ({
-        id: product.id,
-        title: product.title,
-        handle: product.handle,
-        vendor: product.vendor || '',
-        product_type: product.product_type || '',
-        status: product.status,
-        tags: product.tags || '',
-        image: product.image?.src || null,
-        currency: shopCurrency, // إضافة العملة
-        variants: product.variants?.map(variant => ({
-          id: variant.id,
-          title: variant.title,
-          price: variant.price,
-          sku: variant.sku || '',
-          inventory_quantity: variant.inventory_quantity || 0,
-          currency_code: shopCurrency // إضافة العملة للمتغير
-        })) || [],
-        created_at: product.created_at,
-        updated_at: product.updated_at
-      }));
-
-      return new Response(
-        JSON.stringify({
-          success: true,
-          shop,
-          products: formattedProducts,
-          currency: shopCurrency, // إضافة العملة للاستجابة
-          total: formattedProducts.length,
-          message: `تم جلب ${formattedProducts.length} منتج بنجاح`
-        }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
+      const product = mapProduct(node, shopInfo);
+      return new Response(JSON.stringify({
+        success: true,
+        shop,
+        product,
+        currency: shopInfo.currencyCode,
+        message: `تم جلب المنتج ${product.title} بنجاح`
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
+
+    // Otherwise: list products (first 100)
+    const list = await shopifyGQL(shop, store.access_token, `
+      query Products($cursor: String) {
+        products(first: 100, after: $cursor) {
+          edges { cursor node {
+            id
+            title
+            handle
+            createdAt
+            updatedAt
+            publishedAt
+            status
+            tags
+            featuredImage { url }
+            images(first: 10) { edges { node { url } } }
+            variants(first: 10) { edges { node {
+              id
+              title
+              price { amount currencyCode }
+              compareAtPrice { amount currencyCode }
+              sku
+              inventoryQuantity
+            }}}
+          }}
+          pageInfo { hasNextPage endCursor }
+        }
+      }
+    `, { cursor: null });
+
+    const products = (list.products?.edges || []).map((e: any) => mapProduct(e.node, shopInfo));
+
+    return new Response(JSON.stringify({
+      success: true,
+      shop,
+      products,
+      currency: shopInfo.currencyCode,
+      total: products.length,
+      message: `تم جلب ${products.length} منتج بنجاح`
+    }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   } catch (error) {
-    console.error('❌ Unexpected error:', error);
-    
-    return new Response(
-      JSON.stringify({
-        error: 'Internal server error',
-        message: error instanceof Error ? error.message : 'Unknown error occurred'
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
-    );
+    console.error('[shopify-products-fixed] Error:', error);
+    return new Response(JSON.stringify({ error: 'Internal server error', message: error instanceof Error ? error.message : 'Unknown error' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
   }
 });

@@ -1,65 +1,79 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.51.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+// Shopify GraphQL helper
+async function shopifyGQL(shop: string, token: string, query: string, variables?: Record<string, unknown>) {
+  const res = await fetch(`https://${shop}/admin/api/2025-04/graphql.json`, {
+    method: 'POST',
+    headers: {
+      'X-Shopify-Access-Token': token,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ query, variables })
+  })
+  const json = await res.json()
+  if (!res.ok || json.errors) {
+    throw new Error(`GraphQL error: ${res.status} ${res.statusText} ${JSON.stringify(json.errors || {})}`)
   }
+  return json.data
+}
 
+function toGid(type: 'Product' | 'ProductVariant', id: string | number) {
+  return `gid://shopify/${type}/${id}`
+}
+
+Deno.serve(async (req) => {
   try {
-    const url = new URL(req.url);
-    const shop = url.searchParams.get('shop');
-    const productId = url.searchParams.get('product') || url.searchParams.get('productId');
-    
-    console.log('🔥 API Called:', { shop, productId });
+    if (req.method === 'OPTIONS') {
+      return new Response(null, { headers: corsHeaders })
+    }
+
+    const url = new URL(req.url)
+    let shop = url.searchParams.get('shop') || undefined
+    const productId = url.searchParams.get('product') || url.searchParams.get('productId') || undefined
 
     if (!shop) {
-      return new Response(
-        JSON.stringify({ success: false, message: 'Shop required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ success: false, message: 'Shop required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
     }
+
+    if (!shop.includes('.myshopify.com')) shop = `${shop}.myshopify.com`
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
+    )
 
-    // الحصول على النموذج والإعدادات
+    // Load form/product settings and quantity offers (unchanged)
     const { data: settings, error: settingsError } = await supabase
       .from('shopify_product_settings')
-      .select(`
-        *,
-        forms (*)
-      `)
+      .select(`*, forms (*)`)
       .eq('shop_id', shop)
       .eq('product_id', productId || 'auto-detect')
       .eq('enabled', true)
-      .single();
+      .single()
 
     if (settingsError || !settings) {
-      console.log('❌ No settings found:', settingsError);
-      return new Response(
-        JSON.stringify({ success: false, message: 'No form found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ success: false, message: 'No form found' }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
     }
 
-    // الحصول على عروض الكمية - البحث بالمنتج المحدد أو auto-detect
     let { data: offers } = await supabase
       .from('quantity_offers')
       .select('*')
       .eq('shop_id', shop)
       .eq('product_id', productId)
       .eq('enabled', true)
-      .maybeSingle();
+      .maybeSingle()
 
-    // إذا لم نجد عروض للمنتج المحدد، جرب auto-detect
     if (!offers && productId !== 'auto-detect') {
       const { data: autoOffers } = await supabase
         .from('quantity_offers')
@@ -67,126 +81,96 @@ serve(async (req) => {
         .eq('shop_id', shop)
         .eq('product_id', 'auto-detect')
         .eq('enabled', true)
-        .maybeSingle();
-      
-      offers = autoOffers;
+        .maybeSingle()
+      offers = autoOffers
     }
 
-    console.log('✅ Data found:', { form: settings.forms?.title, offers: !!offers });
+    const formCurrency = settings.forms?.currency
+    const formCountry = settings.forms?.country
+    const formPhonePrefix = settings.forms?.phone_prefix
 
-    const formCurrency = settings.forms?.currency;
-    const formCountry = settings.forms?.country;
-    const formPhonePrefix = settings.forms?.phone_prefix;
-    
-    console.log('💰 Form currency from database:', formCurrency);
-    
-    // ✅ CRITICAL: Don't return any default currencies - only what's in the database
     if (!formCurrency) {
-      console.error('❌ No currency in form settings!');
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: 'NO_CURRENCY_CONFIGURED',
-          message: 'Form currency not configured' 
-        }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: 'NO_CURRENCY_CONFIGURED',
+        message: 'Form currency not configured' 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
     }
 
-    // ✅ CRITICAL: Fetch REAL product data from Shopify
-    let productData = null;
-    
-    try {
-      // Get shop access token for Shopify API call
-      const { data: storeData } = await supabase
-        .from('shopify_stores')
-        .select('access_token')
-        .eq('shop', shop)
-        .single();
-      
-      if (storeData?.access_token && productId && productId !== 'auto-detect') {
-        // First, get shop currency from Shopify Shop API
-        let shopCurrency = 'USD';
-        try {
-          const shopResponse = await fetch(`https://${shop}/admin/api/2023-10/shop.json`, {
-            headers: {
-              'X-Shopify-Access-Token': storeData.access_token,
-              'Content-Type': 'application/json'
-            }
-          });
-          
-          if (shopResponse.ok) {
-            const shopData = await shopResponse.json();
-            shopCurrency = shopData.shop?.currency || 'USD';
-            console.log('🏪 SHOP CURRENCY DETECTED:', shopCurrency);
+    // Fetch store token
+    const { data: store } = await supabase
+      .from('shopify_stores')
+      .select('access_token')
+      .eq('shop', shop)
+      .single()
+
+    let productData: any = null
+
+    if (store?.access_token && productId && productId !== 'auto-detect') {
+      // Fetch shop info (currency) and product via GraphQL
+      const gid = /^gid:/.test(productId) ? productId : toGid('Product', productId)
+
+      const data = await shopifyGQL(shop!, store.access_token, `
+        query ProductWithShop($id: ID!) {
+          shop { currencyCode }
+          product(id: $id) {
+            id
+            title
+            featuredImage { url }
+            variants(first: 1) { edges { node {
+              id
+              price { amount currencyCode }
+            }}}
           }
-        } catch (error) {
-          console.error('⚠️ Failed to get shop currency, using USD:', error);
         }
-        
-        // Fetch real product data from Shopify
-        const shopifyResponse = await fetch(`https://${shop}/admin/api/2023-10/products/${productId}.json`, {
-          headers: {
-            'X-Shopify-Access-Token': storeData.access_token,
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        if (shopifyResponse.ok) {
-          const shopifyData = await shopifyResponse.json();
-          const product = shopifyData.product;
-          const variant = product.variants?.[0];
-          
-          if (variant) {
-            productData = {
-              id: productId,
-              price: parseFloat(variant.price),
-              currency: shopCurrency, // ✅ FIXED: Use actual shop currency
-              title: product.title,
-              image: product.images?.[0]?.src || null
-            };
-            console.log('🛍️ REAL PRODUCT DATA WITH CORRECT CURRENCY:', productData);
-          }
+      `, { id: gid })
+
+      const node = data.product
+      const firstVariant = node?.variants?.edges?.[0]?.node
+
+      if (node && firstVariant) {
+        productData = {
+          id: productId,
+          price: firstVariant.price?.amount ?? '0',
+          currency: data.shop?.currencyCode || 'USD',
+          title: node.title,
+          image: node.featuredImage?.url || null,
         }
       }
-    } catch (error) {
-      console.error('❌ Error fetching real product data:', error);
     }
-    
-    // Fallback if real product fetch failed
+
     if (!productData) {
       productData = {
         id: productId,
-        price: 1.00, // Real test product price: $1.00 USD
-        currency: 'USD', // Real test product currency
+        price: 1.00,
+        currency: 'USD',
         title: 'Test Product',
-        image: null
-      };
-      console.log('🛍️ FALLBACK PRODUCT DATA:', productData);
+        image: null,
+      }
     }
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        form: settings.forms?.title || 'New Form',
-        data: settings.forms?.data || [],
-        style: settings.forms?.style || {},
-        currency: formCurrency, // Form target currency (USD)
-        country: formCountry,
-        phone_prefix: formPhonePrefix,
-        quantity_offers: offers,
-        product: productData, // ✅ CRITICAL: Include product data with correct currency
-        shop,
-        productId
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({
+      success: true,
+      form: settings.forms?.title || 'New Form',
+      data: settings.forms?.data || [],
+      style: settings.forms?.style || {},
+      currency: formCurrency,
+      country: formCountry,
+      phone_prefix: formPhonePrefix,
+      quantity_offers: offers,
+      product: productData,
+      shop,
+      productId
+    }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
   } catch (error) {
-    console.error('❌ Error:', error);
-    return new Response(
-      JSON.stringify({ success: false, message: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    console.error('[forms-product] Error:', error)
+    return new Response(JSON.stringify({ success: false, message: (error as Error).message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    })
   }
 })
