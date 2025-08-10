@@ -30,7 +30,20 @@ const FormTitleField: React.FC<FormTitleFieldProps> = ({ field, formStyle }) => 
   const fieldStyle = field.style || {};
   // FIXED: استخدام لون الحقل أو الأسود كافتراضي (يمكن تغييره من المحرر)
   const textColor = fieldStyle.color || '#000000';
-  const fontSize = fieldStyle.fontSize || '1.5rem';
+  // Force px units (convert rem -> px) with 24px default
+  const toPx = (val: any) => {
+    if (!val) return '24px';
+    const str = String(val);
+    if (str.endsWith('rem')) {
+      const n = parseFloat(str);
+      const px = Math.round((isNaN(n) ? 1.5 : n) * 16);
+      return `${px}px`;
+    }
+    if (str.endsWith('px')) return str;
+    const n = parseFloat(str);
+    return isNaN(n) ? '24px' : `${n}px`;
+  };
+  const fontSize = toPx(fieldStyle.fontSize || '24px');
   const fontWeight = fieldStyle.fontWeight || '700';
   const fontFamily = fieldStyle.fontFamily || 'Cairo, Tajawal, Arial, sans-serif';
   

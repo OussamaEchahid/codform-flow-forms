@@ -28,6 +28,7 @@ interface SubmitButtonProps {
     borderRadius?: string;
     fontSize?: string;
     buttonStyle?: string;
+    formDirection?: 'ltr' | 'rtl';
   };
   onClick?: () => void;
   disabled?: boolean;
@@ -49,6 +50,11 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, onClick, 
     borderColor = field.style?.borderColor,
     borderWidth = field.style?.borderWidth || '0px',
   } = field.style || {};
+
+  // Derived icon settings for consistent preview/store behavior
+  const iconSize = parseInt(String(field.style?.iconSize || '18px').replace('px','')) || 18;
+  const formDirection = formStyle.formDirection === 'rtl' ? 'rtl' : 'ltr';
+  const effectiveIconPosition = field.style?.iconPosition || (formDirection === 'rtl' ? 'right' : 'left');
 
   // Generate animation class based on animation type
   const getAnimationClass = () => {
@@ -73,7 +79,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, onClick, 
   // Get the appropriate icon component
   const getIconComponent = (iconType: string) => {
     const iconProps = {
-      size: 16,
+      size: iconSize,
       className: "submit-button-icon",
       style: { color: field.style?.iconColor || color || '#ffffff' }
     };
@@ -162,7 +168,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, onClick, 
       onClick={handleSubmit}
       disabled={disabled}
     >
-      {showIcon && iconPosition === 'left' && (field.icon || field.style?.icon) && (
+      {showIcon && effectiveIconPosition === 'left' && (field.icon || field.style?.icon) && (
         <span className="submit-icon-left">
           {getIconComponent(field.icon || field.style?.icon)}
         </span>
@@ -170,7 +176,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, onClick, 
       
       {field.label || 'Submit'}
       
-      {showIcon && iconPosition === 'right' && (field.icon || field.style?.icon) && (
+      {showIcon && effectiveIconPosition === 'right' && (field.icon || field.style?.icon) && (
         <span className="submit-icon-right">
           {getIconComponent(field.icon || field.style?.icon)}
         </span>

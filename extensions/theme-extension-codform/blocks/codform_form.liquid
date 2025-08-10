@@ -106,15 +106,15 @@
       formDirection = 'rtl';
     }
     
-    // Base styling configuration - Arabic forms use smaller font
-    const baseFontSize = formDirection === 'rtl' ? '13px' : getStyleValue(formStyle, 'baseFontSize', '16px');
+    // Base styling configuration - Arabic forms use same base size for consistency
+    const baseFontSize = getStyleValue(formStyle, 'baseFontSize', '16px');
     const labelStyle = field.style || {};
     const showLabel = getStyleValue(labelStyle, 'showLabel', true);
     const isFloatingLabels = getStyleValue(formStyle, 'floatingLabels', false);
     
     // Label styling
     const labelColor = getStyleValue(labelStyle, 'labelColor', '#333333');
-    const labelFontSize = getStyleValue(labelStyle, 'labelFontSize', baseFontSize);
+    const labelFontSize = getStyleValue(labelStyle, 'labelFontSize', '16px');
     const labelFontWeight = getStyleValue(labelStyle, 'labelFontWeight', '500');
     
     // Field styling
@@ -144,8 +144,8 @@
       
       // Field style configuration
       const fieldStyle = field.style || {};
-      const baseFontSize = formDirection === 'rtl' ? '13px' : getStyleValue(formStyle, 'baseFontSize', '16px');
-      const defaultLabelSize = formDirection === 'rtl' ? '15px' : '16px';
+      const baseFontSize = getStyleValue(formStyle, 'baseFontSize', '16px');
+      const defaultLabelSize = '16px';
       const actualLabelColor = getStyleValue(fieldStyle, 'labelColor', 'rgb(51, 65, 85)');
       const actualLabelFontSize = getStyleValue(fieldStyle, 'labelFontSize', defaultLabelSize);  
       const actualLabelWeight = getStyleValue(fieldStyle, 'labelFontWeight', '500');
@@ -323,15 +323,22 @@
       const showIcon = (isPopupMode && !isInPopup) ? 
         (formStyle.popupButton?.showIcon !== false) : 
         getStyleValue(buttonStyle, 'showIcon', hasIcon);
-      const iconColor = getStyleValue(buttonStyle, 'iconColor', '#6b7280');
+      const iconColor = getStyleValue(buttonStyle, 'iconColor', finalTextColor);
+      // icon size (strip px if provided)
+      const rawIconSize = getStyleValue(buttonStyle, 'iconSize', '18');
+      const iconSize = String(rawIconSize).endsWith('px') ? String(rawIconSize).replace('px','') : String(rawIconSize);
+      const iconPosition = getStyleValue(buttonStyle, 'iconPosition', formDirection === 'rtl' ? 'right' : 'left');
       
       let iconHtml = '';
       if (showIcon && hasIcon) {
-        const iconSvg = getIconSvg(actualIcon, '#ffffff');
-        iconHtml = `<span style="margin-right: 8px; display: inline-flex; align-items: center;">${iconSvg}</span>`;
+        const iconSvg = getIconSvg(actualIcon, iconColor, iconSize);
+        const marginStyle = iconPosition === 'left' 
+          ? 'margin-right: 8px; margin-left: 0;'
+          : 'margin-left: 8px; margin-right: 0;';
+        iconHtml = `<span style="${marginStyle} display: inline-flex; align-items: center;">${iconSvg}</span>`;
       }
       
-      const buttonContent = `${iconHtml}${finalButtonText}`;
+      const buttonContent = iconPosition === 'left' ? `${iconHtml}${finalButtonText}` : `${finalButtonText}${iconHtml}`;
       const clickHandler = (isPopupMode && !isInPopup) ? 
         'onclick="openFormPopup(event)"' : 'type="submit"';
       

@@ -198,6 +198,28 @@ const SubmitButtonEditor: React.FC<SubmitButtonEditorProps> = ({ field, onSave, 
         </div>
       )}
 
+      {/* Icon Size */}
+      {currentField.style?.icon && currentField.style?.icon !== 'none' && (
+        <div className="space-y-2">
+          <Label htmlFor="icon-size">
+            {language === 'ar' ? 'حجم الأيقونة' : 'Icon Size'}
+          </Label>
+          <div className="flex items-center gap-2">
+            <Slider
+              value={[parseInt(String(currentField.style?.iconSize || '18').replace('px',''))]}
+              onValueChange={(value) => handleChange('style.iconSize', `${value[0]}px`)}
+              max={48}
+              min={12}
+              step={1}
+              className="flex-1"
+            />
+            <span className="text-sm text-muted-foreground min-w-[50px]">
+              {parseInt(String(currentField.style?.iconSize || '18').replace('px',''))}px
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Font Size */}
       <div className="space-y-2">
         <Label htmlFor="font-size">

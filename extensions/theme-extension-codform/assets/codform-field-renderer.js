@@ -56,8 +56,8 @@
     if (field.type === 'phone') inputType = 'tel';
     
     const fieldStyle = field.style || {};
-    const baseFontSize = formDirection === 'rtl' ? '13px' : getStyleValue(formStyle, 'baseFontSize', '16px');
-    const defaultLabelSize = formDirection === 'rtl' ? '15px' : '16px';
+    const baseFontSize = getStyleValue(formStyle, 'baseFontSize', '16px');
+    const defaultLabelSize = '16px';
     
     // تجميع خصائص الستايل مع دعم fontSize ديناميكي
     const styles = {
