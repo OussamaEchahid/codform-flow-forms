@@ -149,9 +149,9 @@ export class UnifiedStoreManager {
    * التحقق من حالة الاتصال
    */
   static isConnected(): boolean {
+    // Consider connected if an active store exists; avoids transient flag issues
     const store = this.getActiveStore();
-    const connected = localStorage.getItem('shopify_connected') === 'true';
-    return !!(store && connected);
+    return !!store;
   }
 
   /**
@@ -193,7 +193,7 @@ export class UnifiedStoreManager {
 
       // مسح جميع بيانات Shopify المرتبطة
       const shopifyKeys = [
-        'shopify_connected',
+        // 'shopify_connected', // لا نحذف هذا المفتاح لتجنب فقدان الاتصال المؤقت
         'shopify_connection_status', 
         'shopify_connection_timestamp',
         'shopify_connecting',

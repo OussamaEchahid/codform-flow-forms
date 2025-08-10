@@ -103,7 +103,4 @@ export class StoreMaintenance {
   }
 }
 
-// تشغيل الصيانة تلقائياً عند استيراد الملف
-StoreMaintenance.performStartupMaintenance();
-
 export default StoreMaintenance;
