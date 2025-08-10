@@ -10,6 +10,23 @@ const corsHeaders = {
 // Define the expected API key - make it consistent across functions
 const VALID_API_KEY = Deno.env.get('PUBLIC_API_KEY') || '';
 
+// Redact sensitive data from logs (emails, phones, tokens)
+function mask(value: unknown): unknown {
+  try {
+    const s = typeof value === 'string' ? value : JSON.stringify(value);
+    return s
+      .replace(/\b[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}\b/g, '[redacted-email]')
+      .replace(/\+?\d[\d\s\-()]{6,}/g, '[redacted-phone]')
+      .replace(/(authorization|x-shopify-access-token|access_token)(["'\s:]*)([A-Za-z0-9._-]+)/gi, '$1$2[redacted-token]');
+  } catch {
+    return '[redacted]';
+  }
+}
+const _log = console.log.bind(console);
+const _error = console.error.bind(console);
+console.log = (...args: any[]) => _log(...args.map(mask));
+console.error = (...args: any[]) => _error(...args.map(mask));
+
 serve(async (req) => {
   // Handle CORS
   if (req.method === 'OPTIONS') {
@@ -186,10 +203,17 @@ serve(async (req) => {
       status: 200,
     })
   } catch (error) {
-    console.error('Error getting form:', error.message)
+    const message = (error as any)?.message || 'Unknown error';
+    console.error('Error getting form:', message);
+
+    const status = message.includes('not found')
+      ? 404
+      : message.includes('No form ID')
+      ? 400
+      : 500;
     
     return new Response(JSON.stringify({ 
-      error: error.message,
+      error: message,
       timestamp: new Date().toISOString(),
       path: new URL(req.url).pathname
     }), {
@@ -197,7 +221,7 @@ serve(async (req) => {
         ...corsHeaders,
         'Content-Type': 'application/json',
       },
-      status: error.message.includes('not found') ? 404 : 400,
+      status,
     })
   }
 })

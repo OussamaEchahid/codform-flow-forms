@@ -6,6 +6,23 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// إخفاء البيانات الحساسة في السجلات (PII/tokens)
+function mask(value: unknown): unknown {
+  try {
+    const s = typeof value === 'string' ? value : JSON.stringify(value);
+    return s
+      .replace(/\b[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}\b/g, '[redacted-email]')
+      .replace(/\+?\d[\d\s\-()]{6,}/g, '[redacted-phone]')
+      .replace(/(authorization|x-shopify-access-token|access_token)(["'\s:]*)([A-Za-z0-9._-]+)/gi, '$1$2[redacted-token]');
+  } catch {
+    return '[redacted]';
+  }
+}
+const _log = console.log.bind(console);
+const _error = console.error.bind(console);
+console.log = (...args: any[]) => _log(...args.map(mask));
+console.error = (...args: any[]) => _error(...args.map(mask));
+
 // تحسين دالة تنسيق رقم الهاتف لدعم دول مختلفة
 function validateAndFormatPhone(phone: string, formPhonePrefix: string = '+212'): string {
   console.log(`📞 تنسيق رقم الهاتف: ${phone} مع المفتاح: ${formPhonePrefix}`);

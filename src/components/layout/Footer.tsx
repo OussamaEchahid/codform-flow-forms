@@ -26,9 +26,9 @@ const Footer = () => {
           <div className="col-span-1">
             <h3 className="text-lg font-semibold mb-4 text-right">الدعم</h3>
             <ul className="space-y-2 text-right">
-              <li><a href="#" className="text-gray-600 hover:text-codform-purple">المساعدة</a></li>
-              <li><a href="#" className="text-gray-600 hover:text-codform-purple">الأسئلة الشائعة</a></li>
-              <li><a href="#" className="text-gray-600 hover:text-codform-purple">اتصل بنا</a></li>
+              <li><a href="/support" className="text-gray-600 hover:text-codform-purple">الدعم</a></li>
+              <li><a href="/privacy" className="text-gray-600 hover:text-codform-purple">سياسة الخصوصية</a></li>
+              <li><a href="/terms" className="text-gray-600 hover:text-codform-purple">الشروط والأحكام</a></li>
             </ul>
           </div>
           

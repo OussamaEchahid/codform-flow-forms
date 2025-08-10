@@ -21,6 +21,9 @@ import OrdersChannels from '@/pages/OrdersChannels';
 import FormBuilderPage from '@/pages/FormBuilderPage';
 import ThankYou from '@/pages/ThankYou';
 import EnhancedMyStores from '@/pages/EnhancedMyStores';
+import Privacy from '@/pages/Privacy';
+import Terms from '@/pages/Terms';
+import Support from '@/pages/Support';
 
 export const routes: RouteObject[] = [
   {
@@ -111,6 +114,18 @@ export const routes: RouteObject[] = [
   {
     path: '/thank-you',
     Component: ThankYou,
+  },
+  {
+    path: '/privacy',
+    Component: Privacy,
+  },
+  {
+    path: '/terms',
+    Component: Terms,
+  },
+  {
+    path: '/support',
+    Component: Support,
   },
   {
     path: '*',
