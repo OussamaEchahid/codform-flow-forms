@@ -705,8 +705,24 @@ const SortableField: React.FC<SortableFieldProps> = ({
                              className="flex-1"
                            />
                          </div>
-                       </div>
+                        </div>
                         
+                        {/* Icon Size */}
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <Label>{language === 'ar' ? 'حجم الأيقونة' : 'Icon Size'}</Label>
+                            <span className="text-sm">{parseInt(String(editedField.style?.iconSize || '18').replace('px',''))}px</span>
+                          </div>
+                          <Slider
+                            value={[parseInt(String(editedField.style?.iconSize || '18').replace('px',''))]}
+                            onValueChange={(value) => handleStyleChange('iconSize', `${value[0]}px`)}
+                            max={48}
+                            min={12}
+                            step={1}
+                            className="w-full"
+                          />
+                        </div>
+                         
                       </div>
                       
                       {/* Right column */}
@@ -1449,7 +1465,89 @@ const SortableField: React.FC<SortableFieldProps> = ({
                            </>
                           )}
                          
-                         {/* Icon Selection - للحقول العادية فقط */}
+                          {/* Submit button icon settings */}
+                          {shouldShowSubmitSpecificSettings && (
+                            <>
+                              <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                                <Switch
+                                  id={`submit-show-icon-${field.id}`}
+                                  checked={editedField.style?.showIcon !== false}
+                                  onCheckedChange={(checked) => handleStyleChange('showIcon', !!checked)}
+                                />
+                                <Label htmlFor={`submit-show-icon-${field.id}`}>
+                                  {language === 'ar' ? 'إظهار الأيقونة' : 'Show Icon'}
+                                </Label>
+                              </div>
+                              <div className="space-y-1">
+                                <Label>{language === 'ar' ? 'أيقونة الزر' : 'Button Icon'}</Label>
+                                <Select
+                                  value={editedField.style?.icon || 'shopping-cart'}
+                                  onValueChange={(value) => handleStyleChange('icon', value)}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="shopping-cart">{language === 'ar' ? 'سلة' : 'Cart'}</SelectItem>
+                                    <SelectItem value="shopping-bag">{language === 'ar' ? 'حقيبة' : 'Bag'}</SelectItem>
+                                    <SelectItem value="credit-card">{language === 'ar' ? 'بطاقة' : 'Card'}</SelectItem>
+                                    <SelectItem value="handshake">{language === 'ar' ? 'دفع عند الاستلام' : 'COD'}</SelectItem>
+                                    <SelectItem value="truck">{language === 'ar' ? 'توصيل' : 'Truck'}</SelectItem>
+                                    <SelectItem value="check">{language === 'ar' ? 'تأكيد' : 'Check'}</SelectItem>
+                                    <SelectItem value="send">{language === 'ar' ? 'إرسال' : 'Send'}</SelectItem>
+                                    <SelectItem value="zap">{language === 'ar' ? 'فوري' : 'Zap'}</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="space-y-1">
+                                <Label>{language === 'ar' ? 'لون الأيقونة' : 'Icon Color'}</Label>
+                                <div className="flex gap-2 items-center">
+                                  <Input
+                                    type="color"
+                                    value={editedField.style?.iconColor || editedField.style?.color || '#ffffff'}
+                                    onChange={(e) => handleStyleChange('iconColor', e.target.value)}
+                                    className="w-9 h-9 p-1"
+                                  />
+                                  <Input
+                                    value={editedField.style?.iconColor || editedField.style?.color || '#ffffff'}
+                                    onChange={(e) => handleStyleChange('iconColor', e.target.value)}
+                                    className="flex-1"
+                                  />
+                                </div>
+                              </div>
+                              <div className="space-y-1">
+                                <Label>{language === 'ar' ? 'موضع الأيقونة' : 'Icon Position'}</Label>
+                                <Select
+                                  value={editedField.style?.iconPosition || (language === 'ar' ? 'right' : 'left')}
+                                  onValueChange={(value) => handleStyleChange('iconPosition', value)}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="left">{language === 'ar' ? 'يسار' : 'Left'}</SelectItem>
+                                    <SelectItem value="right">{language === 'ar' ? 'يمين' : 'Right'}</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="space-y-1">
+                                <div className="flex items-center justify-between">
+                                  <Label>{language === 'ar' ? 'حجم الأيقونة' : 'Icon Size'}</Label>
+                                  <span className="text-sm">{parseInt(String(editedField.style?.iconSize || '18').replace('px',''))}px</span>
+                                </div>
+                                <Slider
+                                  value={[parseInt(String(editedField.style?.iconSize || '18').replace('px',''))]}
+                                  onValueChange={(value) => handleStyleChange('iconSize', `${value[0]}px`)}
+                                  max={48}
+                                  min={12}
+                                  step={1}
+                                  className="w-full"
+                                />
+                              </div>
+                            </>
+                          )}
+                          
+                          {/* Icon Selection - للحقول العادية فقط */}
                          {!shouldShowSubmitSpecificSettings && ['text', 'email', 'phone', 'textarea'].includes(field.type) && (
                            <div className="space-y-1">
                              <Label>{language === 'ar' ? 'أيقونة الحقل' : 'Field Icon'}</Label>
@@ -1474,27 +1572,64 @@ const SortableField: React.FC<SortableFieldProps> = ({
                            </div>
                          )}
                          
-                         {/* Icon Color - للحقول العادية فقط */}
-                         {!shouldShowSubmitSpecificSettings && ['text', 'email', 'phone', 'textarea'].includes(field.type) && (
-                           <div className="space-y-1">
-                             <Label>{language === 'ar' ? 'لون الأيقونة' : 'Icon Color'}</Label>
-                             <div className="flex gap-2 items-center">
-                               <Input
-                                 type="color"
-                                 value={editedField.style?.iconColor || '#9b87f5'}
-                                 onChange={(e) => handleStyleChange('iconColor', e.target.value)}
-                                 className="w-9 h-9 p-1"
-                               />
-                               <Input
-                                 value={editedField.style?.iconColor || '#9b87f5'}
-                                 onChange={(e) => handleStyleChange('iconColor', e.target.value)}
-                                 className="flex-1"
-                               />
-                             </div>
-                           </div>
-                         )}
-                         
-                         {/* Text color */}
+                          {/* Icon Color - للحقول العادية فقط */}
+                          {!shouldShowSubmitSpecificSettings && ['text', 'email', 'phone', 'textarea'].includes(field.type) && (
+                            <div className="space-y-1">
+                              <Label>{language === 'ar' ? 'لون الأيقونة' : 'Icon Color'}</Label>
+                              <div className="flex gap-2 items-center">
+                                <Input
+                                  type="color"
+                                  value={editedField.style?.iconColor || '#9b87f5'}
+                                  onChange={(e) => handleStyleChange('iconColor', e.target.value)}
+                                  className="w-9 h-9 p-1"
+                                />
+                                <Input
+                                  value={editedField.style?.iconColor || '#9b87f5'}
+                                  onChange={(e) => handleStyleChange('iconColor', e.target.value)}
+                                  className="flex-1"
+                                />
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Icon Position */}
+                          {!shouldShowSubmitSpecificSettings && ['text', 'email', 'phone', 'textarea'].includes(field.type) && (
+                            <div className="space-y-1">
+                              <Label>{language === 'ar' ? 'موضع الأيقونة' : 'Icon Position'}</Label>
+                              <Select
+                                value={editedField.style?.iconPosition || (language === 'ar' ? 'right' : 'left')}
+                                onValueChange={(value) => handleStyleChange('iconPosition', value)}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="left">{language === 'ar' ? 'يسار' : 'Left'}</SelectItem>
+                                  <SelectItem value="right">{language === 'ar' ? 'يمين' : 'Right'}</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          )}
+
+                          {/* Icon Size */}
+                          {(['text', 'email', 'phone', 'textarea'].includes(field.type)) && (
+                            <div className="space-y-1">
+                              <div className="flex items-center justify-between">
+                                <Label>{language === 'ar' ? 'حجم الأيقونة' : 'Icon Size'}</Label>
+                                <span className="text-sm">{parseInt(String(editedField.style?.iconSize || '18').replace('px',''))}px</span>
+                              </div>
+                              <Slider
+                                value={[parseInt(String(editedField.style?.iconSize || '18').replace('px',''))]}
+                                onValueChange={(value) => handleStyleChange('iconSize', `${value[0]}px`)}
+                                max={48}
+                                min={12}
+                                step={1}
+                                className="w-full"
+                              />
+                            </div>
+                          )}
+                          
+                          {/* Text color */}
                          <div className="space-y-1">
                            <Label>{language === 'ar' ? 'لون النص' : 'Text color'}</Label>
                            <div className="flex gap-2 items-center">
