@@ -47,7 +47,7 @@ export default function() {
       // Add click handler
       button.addEventListener('click', () => {
         // Handle button click to configure the form for this product
-        const adminAppUrl = "https://codform-flow-forms.lovable.app/dashboard";
+        const adminAppUrl = "https://codmagnet.com/dashboard";
         const cleanShop = shop ? encodeURIComponent(shop) : '';
         const cleanProductId = productId ? encodeURIComponent(productId) : '';
         window.open(`${adminAppUrl}?shop=${cleanShop}&productId=${cleanProductId}`, '_blank');
