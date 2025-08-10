@@ -104,8 +104,10 @@ export class UnifiedStoreManager {
       // تنظيف شامل أولاً
       this.performFullCleanup();
 
-      // تعيين المتجر الجديد
-      localStorage.setItem(this.STORE_KEY, cleanStore);
+      // تعيين المتجر الجديد (حفاظاً على التوافق مع الأجزاء القديمة من الكود)
+      localStorage.setItem(this.STORE_KEY, cleanStore); // المفتاح الموحد
+      localStorage.setItem('current_shopify_store', cleanStore); // توافق خلفي
+      localStorage.setItem('shopify_store', cleanStore); // توافق خلفي
       localStorage.setItem('shopify_connected', 'true');
       localStorage.setItem('shopify_connection_status', 'connected');
       localStorage.setItem('shopify_connection_timestamp', Date.now().toString());

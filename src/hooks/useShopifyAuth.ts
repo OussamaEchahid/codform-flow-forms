@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import UnifiedStoreManager from '@/utils/unified-store-manager';
 
 interface ShopifyAuthState {
   isAuthenticated: boolean;
@@ -16,8 +17,7 @@ export const useShopifyAuth = () => {
   });
 
   const updateAuthState = () => {
-    const activeStore = localStorage.getItem('current_shopify_store') || 
-                      localStorage.getItem('shopify_store');
+    const activeStore = UnifiedStoreManager.getActiveStore();
     const userEmail = localStorage.getItem('shopify_user_email');
     
     const isAuthenticated = !!activeStore;
@@ -29,7 +29,7 @@ export const useShopifyAuth = () => {
       loading: false
     });
     
-    console.log('🔐 Shopify Auth State Updated:', {
+    console.log('🔐 Shopify Auth State Updated (unified):', {
       isAuthenticated,
       activeStore,
       userEmail
@@ -39,22 +39,23 @@ export const useShopifyAuth = () => {
   useEffect(() => {
     updateAuthState();
     
-    // مراقبة تغييرات localStorage
-    const handleStorageChange = () => {
-      updateAuthState();
-    };
+    // الاستماع لتغييرات النظام الموحد
+    const unsubscribe = UnifiedStoreManager.onStoreChange(() => updateAuthState());
     
+    // مراقبة تغييرات localStorage عبر التبويبات
+    const handleStorageChange = () => updateAuthState();
     window.addEventListener('storage', handleStorageChange);
     
-    // تحديث دوري كل ثانيتين مع إيقاف التحديث عند خمول التبويب
+    // تحديث دوري كاحتياط مع احترام خمول التبويب
     const interval = setInterval(() => {
       if (document.visibilityState !== 'visible') return;
       updateAuthState();
-    }, 2000);
+    }, 5000);
     
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       clearInterval(interval);
+      unsubscribe?.();
     };
   }, []);
 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/layout/AuthProvider';
+import UnifiedStoreManager from '@/utils/unified-store-manager';
 
 export const useShopifyConnection = () => {
   const { user } = useAuth();
@@ -10,19 +11,24 @@ export const useShopifyConnection = () => {
 
   useEffect(() => {
     const loadStore = () => {
-      const store = localStorage.getItem('current_shopify_store');
-      const connected = localStorage.getItem('shopify_connected') === 'true';
+      const store = UnifiedStoreManager.getActiveStore();
+      const connected = UnifiedStoreManager.isConnected();
       
       setCurrentStore(store);
-      setIsConnected(connected && !!store);
+      setIsConnected(connected);
       setLoading(false);
       
-      console.log('🔗 Shopify connection loaded:', { store, connected });
+      console.log('🔗 Shopify connection loaded (unified):', { store, connected });
     };
 
     loadStore();
 
-    // استمع لتغييرات localStorage
+    // استمع لتغييرات النظام الموحد + localStorage (عبر التبويبات)
+    const unsubscribe = UnifiedStoreManager.onStoreChange((store) => {
+      setCurrentStore(store);
+      setIsConnected(!!store);
+    });
+
     const handleStorageChange = () => {
       loadStore();
     };
@@ -30,6 +36,7 @@ export const useShopifyConnection = () => {
     window.addEventListener('storage', handleStorageChange);
     
     return () => {
+      unsubscribe?.();
       window.removeEventListener('storage', handleStorageChange);
     };
   }, []);
@@ -49,15 +56,13 @@ export const useShopifyConnection = () => {
           updated_at: new Date().toISOString()
         });
 
-      // تحديث localStorage
-      localStorage.setItem('current_shopify_store', shopDomain);
-      localStorage.setItem('shopify_connected', 'true');
-      
+      // استخدم النظام الموحد لضبط المتجر
+      const ok = UnifiedStoreManager.setActiveStore(shopDomain);
       setCurrentStore(shopDomain);
-      setIsConnected(true);
+      setIsConnected(ok);
       
-      console.log('✅ Store switched successfully:', shopDomain);
-      return true;
+      console.log('✅ Store switched successfully (unified):', shopDomain);
+      return ok;
     } catch (error) {
       console.error('❌ Error switching store:', error);
       return false;
@@ -65,13 +70,12 @@ export const useShopifyConnection = () => {
   };
 
   const disconnect = () => {
-    localStorage.removeItem('current_shopify_store');
-    localStorage.removeItem('shopify_connected');
+    UnifiedStoreManager.clearActiveStore();
     
     setCurrentStore(null);
     setIsConnected(false);
     
-    console.log('🚪 Disconnected from Shopify store');
+    console.log('🚪 Disconnected from Shopify store (unified)');
   };
 
   return {

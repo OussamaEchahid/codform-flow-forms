@@ -41,8 +41,8 @@ export const useAuth = () => {
     };
   }
   
-  // تحقق من localStorage كمصدر احتياطي
-  const localStorage_shop = localStorage.getItem('shopify_store');
+  // تحقق من localStorage كمصدر احتياطي (المفتاح الموحد)
+  const localStorage_shop = localStorage.getItem('active_shopify_store');
   const localStorage_connected = localStorage.getItem('shopify_connected') === 'true';
   
   if (localStorage_shop && localStorage_connected) {
@@ -54,7 +54,7 @@ export const useAuth = () => {
       loading: false
     };
   }
-  
+
   // إذا لم يكن هناك اتصال، استخدم السياق كما هو
   return {
     ...context,
