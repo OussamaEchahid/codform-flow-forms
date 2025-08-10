@@ -164,7 +164,7 @@ const Hero = () => {
               <p className="text-xl text-gray-700 mb-5">{t.subtitle}</p>
               <div className={`flex ${isRTL ? 'justify-end rtl:space-x-reverse' : 'justify-start'} space-x-3`}>
                 <Button variant="outline">{t.learnMore}</Button>
-                <Button>{t.startFree}</Button>
+                <Button className="mx-[50px] my-0 px-[30px] py-0">{t.startFree}</Button>
               </div>
             </div>
           </div>
