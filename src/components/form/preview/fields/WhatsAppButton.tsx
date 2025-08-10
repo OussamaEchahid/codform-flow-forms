@@ -57,10 +57,11 @@ const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({ field, formStyle }) => 
     ? `animate-${fieldStyle.animation}` 
     : '';
   
-  // Icon style to ensure consistent display
+  // Icon size and style to ensure consistent display
+  const iconSize = parseInt(String(fieldStyle.iconSize || '18').replace('px','')) || 18;
   const iconStyle = {
-    width: '18px',
-    height: '18px',
+    width: `${iconSize}px`,
+    height: `${iconSize}px`,
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',

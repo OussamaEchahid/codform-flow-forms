@@ -85,20 +85,21 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
   // تحديد إذا كان هناك أيقونة وإذا كان يجب إظهارها
   const hasIcon = field.icon && field.icon !== 'none' && field.icon !== '';
   const showIcon = fieldStyle.showIcon !== undefined ? fieldStyle.showIcon : hasIcon;
+  const iconSize = parseInt(String(field.style?.iconSize || '18').replace('px','')) || 18;
   
-  // تحديد موضع الأيقونة بناءً على اتجاه النموذج
-  const iconPosition = formDirection === 'rtl' ? 'right' : 'left';
+  // تحديد موضع الأيقونة مع إمكانية تخصيصها من الإعدادات
+  const iconPosition = field.style?.iconPosition || (formDirection === 'rtl' ? 'right' : 'left');
   
   // تحسين وظيفة عرض الأيقونات
   const renderIcon = () => {
     if (!hasIcon || !showIcon) return null;
     
     const iconProps = { 
-      size: 18,
+      size: iconSize,
       className: "codform-icon",
       style: {
-        width: '18px',
-        height: '18px',
+        width: `${iconSize}px`,
+        height: `${iconSize}px`,
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -171,12 +172,12 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
   
   // FIXED: حساب المسافات الداخلية للنص بناءً على وجود الأيقونة واتجاه النموذج
   const paddingLeft = formDirection === 'rtl' 
-    ? '12px'  // في العربي، النص على اليمين فلا نحتاج padding إضافي على اليسار
-    : ((showIcon && hasIcon) ? '40px' : '12px'); // في الإنجليزي، الأيقونة على اليسار
+    ? '12px'
+    : ((showIcon && hasIcon) ? `${12 + iconSize + 10}px` : '12px');
     
   const paddingRight = formDirection === 'rtl' 
-    ? ((showIcon && hasIcon) ? '40px' : '12px') // في العربي، الأيقونة على اليمين
-    : '12px'; // في الإنجليزي، لا نحتاج padding إضافي على اليمين
+    ? ((showIcon && hasIcon) ? `${12 + iconSize + 10}px` : '12px')
+    : '12px';
   
   const isFloatingLabels = formStyle.floatingLabels;
   const [hasValue, setHasValue] = React.useState(false);
@@ -237,8 +238,8 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
               color: fieldStyle.iconColor || '#6b7280',
               background: 'transparent',
               pointerEvents: 'none',
-              width: '18px',
-              height: '18px'
+              width: `${iconSize}px`,
+              height: `${iconSize}px`
             }}
           >
             {renderIcon()}

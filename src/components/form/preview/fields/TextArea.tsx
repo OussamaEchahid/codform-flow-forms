@@ -71,8 +71,9 @@ const TextArea: React.FC<TextAreaProps> = ({ field, formStyle }) => {
   const renderIcon = () => {
     if (!field.icon || field.icon === 'none' || !field.style?.showIcon) return null;
     
+    const iconSize = parseInt(String(field.style?.iconSize || '16').replace('px','')) || 16;
     const iconProps = {
-      size: 16,
+      size: iconSize,
       style: { 
         color: field.style?.iconColor || fieldStyle.color || '#6b7280',
         marginRight: language === 'ar' ? '0' : '8px',
