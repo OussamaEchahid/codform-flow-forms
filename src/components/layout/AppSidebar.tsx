@@ -18,16 +18,21 @@ const AppSidebar = () => {
   } = useI18n();
   const navigate = useNavigate();
   const location = useLocation();
-  const { shop } = useAuth();
+  const {
+    shop
+  } = useAuth();
   const [user, setUser] = useState<any>(null);
 
   // State for collapsible menus
   const [isOrdersOpen, setIsOrdersOpen] = useState(location.pathname.startsWith('/orders'));
   const [isSettingsOpen, setIsSettingsOpen] = useState(location.pathname.startsWith('/settings'));
-
   useEffect(() => {
     const getUser = async () => {
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      const {
+        data: {
+          user: currentUser
+        }
+      } = await supabase.auth.getUser();
       setUser(currentUser);
     };
     getUser();
@@ -120,8 +125,7 @@ const AppSidebar = () => {
             </DropdownMenu>
 
             {/* User Dropdown */}
-            {user && (
-              <DropdownMenu>
+            {user && <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="text-white hover:bg-[#2A2E36] p-2 rounded-lg transition-colors">
                     <div className="w-8 h-8 bg-gradient-to-r from-[#9b87f5] to-[#7c65d4] rounded-full flex items-center justify-center shadow-lg">
@@ -132,9 +136,7 @@ const AppSidebar = () => {
                 <DropdownMenuContent align="start" side="bottom" className="w-72 shadow-xl border-[#2A2E36] bg-[#1E2127] text-white">
                   <div className="px-4 py-3 bg-gradient-to-r from-[#9b87f5]/10 to-[#7c65d4]/10 border-b border-[#2A2E36]">
                     <p className="text-sm font-medium text-white truncate">{user.email}</p>
-                    {shop && (
-                      <p className="text-xs text-gray-400 truncate mt-1">{shop}</p>
-                    )}
+                    {shop && <p className="text-xs text-gray-400 truncate mt-1">{shop}</p>}
                   </div>
                   <div className="py-2">
                     <DropdownMenuItem onClick={() => navigate('/my-stores')} className="hover:bg-[#2A2E36] text-white cursor-pointer">
@@ -158,8 +160,7 @@ const AppSidebar = () => {
                     </DropdownMenuItem>
                   </div>
                 </DropdownMenuContent>
-              </DropdownMenu>
-            )}
+              </DropdownMenu>}
           </div>
         </div>
         <nav>
@@ -275,10 +276,7 @@ const AppSidebar = () => {
             </li>
             
             <li>
-              <button onClick={handleLogout} className="flex w-full items-center gap-3 px-4 py-2 rounded-lg transition-colors text-gray-400 hover:bg-[#2A2E36] hover:text-[#9b87f5]">
-                <LogOut size={20} />
-                <span>{t('logout')}</span>
-              </button>
+              
             </li>
           </ul>
         </nav>
