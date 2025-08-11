@@ -62,6 +62,11 @@ const SortableField: React.FC<SortableFieldProps> = ({
   const isFormTitle = field.type === 'form-title';
   const isWhatsAppButton = field.type === 'whatsapp';
   const shouldShowSubmitSpecificSettings = field.type === 'submit';
+  // Detect Address-like textarea to disable icon customization
+  const isAddressLikeTextArea = field.type === 'textarea' && (
+    /address|adresse|dirección|indirizzo/i.test(editedField.label || '') ||
+    (editedField.label || '').includes('عنوان')
+  );
 
   // When component mounts or field changes, sync the edited field state
   useEffect(() => {
@@ -1548,7 +1553,8 @@ const SortableField: React.FC<SortableFieldProps> = ({
                           )}
                           
                           {/* Icon Selection - للحقول العادية فقط */}
-                         {!shouldShowSubmitSpecificSettings && ['text', 'email', 'phone', 'textarea'].includes(field.type) && (
+                          {!shouldShowSubmitSpecificSettings && ['text', 'email', 'phone', 'textarea'].includes(field.type) && !(field.type === 'textarea' && ((/(address|adresse|dirección|indirizzo)/i).test((editedField.label || '')) || ((editedField.label || '').includes('عنوان'))) && (
+
                            <div className="space-y-1">
                              <Label>{language === 'ar' ? 'أيقونة الحقل' : 'Field Icon'}</Label>
                              <Select
@@ -1573,7 +1579,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
                          )}
                          
                           {/* Icon Color - للحقول العادية فقط */}
-                          {!shouldShowSubmitSpecificSettings && ['text', 'email', 'phone', 'textarea'].includes(field.type) && (
+                           {!shouldShowSubmitSpecificSettings && ['text', 'email', 'phone', 'textarea'].includes(field.type) && !(field.type === 'textarea' && ((/(address|adresse|dirección|indirizzo)/i).test((editedField.label || '')) || ((editedField.label || '').includes('عنوان'))) && (
                             <div className="space-y-1">
                               <Label>{language === 'ar' ? 'لون الأيقونة' : 'Icon Color'}</Label>
                               <div className="flex gap-2 items-center">
@@ -1592,27 +1598,8 @@ const SortableField: React.FC<SortableFieldProps> = ({
                             </div>
                           )}
                           
-                          {/* Icon Position */}
-                          {!shouldShowSubmitSpecificSettings && ['text', 'email', 'phone', 'textarea'].includes(field.type) && (
-                            <div className="space-y-1">
-                              <Label>{language === 'ar' ? 'موضع الأيقونة' : 'Icon Position'}</Label>
-                              <Select
-                                value={editedField.style?.iconPosition || (language === 'ar' ? 'right' : 'left')}
-                                onValueChange={(value) => handleStyleChange('iconPosition', value)}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="left">{language === 'ar' ? 'يسار' : 'Left'}</SelectItem>
-                                  <SelectItem value="right">{language === 'ar' ? 'يمين' : 'Right'}</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          )}
-
                           {/* Icon Size */}
-                          {(['text', 'email', 'phone', 'textarea'].includes(field.type)) && (
+                          {(['text', 'email', 'phone', 'textarea'].includes(field.type)) && !(field.type === 'textarea' && (((field.label || '').toLowerCase().includes('address')) || ((field.label || '').toLowerCase().includes('adresse')) || ((field.label || '').toLowerCase().includes('dirección')) || ((field.label || '').toLowerCase().includes('indirizzo')) || ((field.label || '').includes('عنوان'))) && (
                             <div className="space-y-1">
                               <div className="flex items-center justify-between">
                                 <Label>{language === 'ar' ? 'حجم الأيقونة' : 'Icon Size'}</Label>
