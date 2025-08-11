@@ -21,6 +21,22 @@ const SubmitButtonEditor: React.FC<SubmitButtonEditorProps> = ({ field, onSave, 
   const defaultPaddingY = language === 'ar' ? '12' : '10';
   const defaultIconPosition = language === 'ar' ? 'right' : 'left';
 
+  React.useEffect(() => {
+    if (language === 'ar') {
+      setCurrentField((prev) => ({
+        ...prev,
+        style: {
+          ...prev.style,
+          fontSize: prev.style?.fontSize || '17px',
+          paddingY: prev.style?.paddingY || '12px',
+          iconPosition: prev.style?.iconPosition || 'right',
+          iconSize: prev.style?.iconSize || '18px',
+          showIcon: typeof prev.style?.showIcon === 'boolean' ? prev.style?.showIcon : Boolean(prev.style?.icon),
+        },
+      }));
+    }
+  }, [language]);
+
   const handleChange = (property: string, value: any) => {
     if (property.includes('.')) {
       const [parent, child] = property.split('.');
@@ -163,7 +179,7 @@ const SubmitButtonEditor: React.FC<SubmitButtonEditorProps> = ({ field, onSave, 
             {language === 'ar' ? 'موضع الأيقونة' : 'Icon Position'}
           </Label>
           <Select
-            value={currentField.style?.iconPosition || 'left'}
+            value={currentField.style?.iconPosition || defaultIconPosition}
             onValueChange={(value) => handleChange('style.iconPosition', value)}
           >
             <SelectTrigger>
@@ -230,7 +246,7 @@ const SubmitButtonEditor: React.FC<SubmitButtonEditorProps> = ({ field, onSave, 
         </Label>
         <div className="flex items-center gap-2">
           <Slider
-            value={[parseInt(currentField.style?.fontSize?.replace('px', '') || '16')]}
+            value={[parseInt(currentField.style?.fontSize?.replace('px', '') || defaultFontSize)]}
             onValueChange={(value) => handleChange('style.fontSize', `${value[0]}px`)}
             max={60}
             min={10}
@@ -238,7 +254,7 @@ const SubmitButtonEditor: React.FC<SubmitButtonEditorProps> = ({ field, onSave, 
             className="flex-1"
           />
           <span className="text-sm text-muted-foreground min-w-[50px]">
-            {parseInt(currentField.style?.fontSize?.replace('px', '') || '16')}px
+            {parseInt(currentField.style?.fontSize?.replace('px', '') || defaultFontSize)}px
           </span>
         </div>
       </div>
@@ -250,7 +266,7 @@ const SubmitButtonEditor: React.FC<SubmitButtonEditorProps> = ({ field, onSave, 
         </Label>
         <div className="flex items-center gap-2">
           <Slider
-            value={[parseInt(currentField.style?.paddingY?.replace('px', '') || '10')]}
+            value={[parseInt(currentField.style?.paddingY?.replace('px', '') || defaultPaddingY)]}
             onValueChange={(value) => handleChange('style.paddingY', `${value[0]}px`)}
             max={80}
             min={0}
@@ -258,7 +274,7 @@ const SubmitButtonEditor: React.FC<SubmitButtonEditorProps> = ({ field, onSave, 
             className="flex-1"
           />
           <span className="text-sm text-muted-foreground min-w-[50px]">
-            {parseInt(currentField.style?.paddingY?.replace('px', '') || '10')}px
+            {parseInt(currentField.style?.paddingY?.replace('px', '') || defaultPaddingY)}px
           </span>
         </div>
       </div>

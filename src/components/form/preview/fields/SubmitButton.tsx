@@ -55,8 +55,10 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, onClick, 
   const formDirection = formStyle.formDirection === 'rtl' ? 'rtl' : 'ltr';
   const defaultFontSize = formDirection === 'rtl' ? '17px' : '16px';
   const defaultPaddingY = formDirection === 'rtl' ? '12px' : '10px';
-  const iconSize = parseInt(String(field.style?.iconSize || '18px').replace('px','')) || 18;
+  const iconSize = parseInt(String(field.style?.iconSize ?? '18px').toString().replace('px','')) || 18;
   const effectiveIconPosition = field.style?.iconPosition || (formDirection === 'rtl' ? 'right' : 'left');
+  const hasIcon = Boolean(field.icon || field.style?.icon);
+  const showIconEffective = typeof field.style?.showIcon === 'boolean' ? Boolean(field.style?.showIcon) : hasIcon;
 
   // Generate animation class based on animation type
   const getAnimationClass = () => {
@@ -173,7 +175,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, onClick, 
       onClick={handleSubmit}
       disabled={disabled}
     >
-      {showIcon && effectiveIconPosition === 'left' && (field.icon || field.style?.icon) && (
+      {showIconEffective && effectiveIconPosition === 'left' && (field.icon || field.style?.icon) && (
         <span className="submit-icon-left">
           {getIconComponent(field.icon || field.style?.icon)}
         </span>
@@ -181,7 +183,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, onClick, 
       
       {field.label || 'Submit'}
       
-      {showIcon && effectiveIconPosition === 'right' && (field.icon || field.style?.icon) && (
+      {showIconEffective && effectiveIconPosition === 'right' && (field.icon || field.style?.icon) && (
         <span className="submit-icon-right">
           {getIconComponent(field.icon || field.style?.icon)}
         </span>
