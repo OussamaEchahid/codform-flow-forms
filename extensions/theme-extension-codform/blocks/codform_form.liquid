@@ -285,13 +285,13 @@
           }
         }
       } else {
-        const baseFontSize = formDirection === 'rtl' ? '13px' : getStyleValue(formStyle, 'baseFontSize', '16px');
+        const baseFontSize = formDirection === 'rtl' ? '17px' : getStyleValue(formStyle, 'baseFontSize', '16px');
         finalButtonText = buttonText;
         finalBgColor = getStyleValue(buttonStyle, 'backgroundColor', formStyle?.primaryColor || 'rgb(155, 135, 245)');
         finalTextColor = getStyleValue(buttonStyle, 'color', 'rgb(255, 255, 255)');
         finalFontSize = getStyleValue(buttonStyle, 'fontSize', baseFontSize);
         finalBorderRadius = getStyleValue(buttonStyle, 'borderRadius', formStyle?.borderRadius || '8px');
-        finalPaddingY = getStyleValue(buttonStyle, 'paddingY', '10px');
+        finalPaddingY = getStyleValue(buttonStyle, 'paddingY', formDirection === 'rtl' ? '12px' : '10px');
         finalAnimation = animationClass;
       }
       
