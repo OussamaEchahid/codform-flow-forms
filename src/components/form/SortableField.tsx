@@ -67,6 +67,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
     /address|adresse|dirección|indirizzo/i.test(editedField.label || '') ||
     (editedField.label || '').includes('عنوان')
   );
+  const canCustomizeIconForThisField = !shouldShowSubmitSpecificSettings && ['text','email','phone','textarea'].includes(field.type) && !isAddressLikeTextArea;
 
   // When component mounts or field changes, sync the edited field state
   useEffect(() => {
@@ -1553,7 +1554,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
                           )}
                           
                           {/* Icon Selection - للحقول العادية فقط */}
-                          {!shouldShowSubmitSpecificSettings && ['text', 'email', 'phone', 'textarea'].includes(field.type) && !(field.type === 'textarea' && ((/(address|adresse|dirección|indirizzo)/i).test((editedField.label || '')) || ((editedField.label || '').includes('عنوان'))) && (
+                         {canCustomizeIconForThisField && (
 
                            <div className="space-y-1">
                              <Label>{language === 'ar' ? 'أيقونة الحقل' : 'Field Icon'}</Label>
@@ -1579,7 +1580,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
                          )}
                          
                           {/* Icon Color - للحقول العادية فقط */}
-                           {!shouldShowSubmitSpecificSettings && ['text', 'email', 'phone', 'textarea'].includes(field.type) && !(field.type === 'textarea' && ((/(address|adresse|dirección|indirizzo)/i).test((editedField.label || '')) || ((editedField.label || '').includes('عنوان'))) && (
+                           {canCustomizeIconForThisField && (
                             <div className="space-y-1">
                               <Label>{language === 'ar' ? 'لون الأيقونة' : 'Icon Color'}</Label>
                               <div className="flex gap-2 items-center">
@@ -1599,7 +1600,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
                           )}
                           
                           {/* Icon Size */}
-                          {(['text', 'email', 'phone', 'textarea'].includes(field.type)) && !(field.type === 'textarea' && (((field.label || '').toLowerCase().includes('address')) || ((field.label || '').toLowerCase().includes('adresse')) || ((field.label || '').toLowerCase().includes('dirección')) || ((field.label || '').toLowerCase().includes('indirizzo')) || ((field.label || '').includes('عنوان'))) && (
+                          {canCustomizeIconForThisField && (
                             <div className="space-y-1">
                               <div className="flex items-center justify-between">
                                 <Label>{language === 'ar' ? 'حجم الأيقونة' : 'Icon Size'}</Label>
