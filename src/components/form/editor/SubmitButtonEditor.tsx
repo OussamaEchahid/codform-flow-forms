@@ -17,6 +17,9 @@ interface SubmitButtonEditorProps {
 const SubmitButtonEditor: React.FC<SubmitButtonEditorProps> = ({ field, onSave, onClose }) => {
   const { language } = useI18n();
   const [currentField, setCurrentField] = React.useState<FormField>(field);
+  const defaultFontSize = language === 'ar' ? '17' : '16';
+  const defaultPaddingY = language === 'ar' ? '12' : '10';
+  const defaultIconPosition = language === 'ar' ? 'right' : 'left';
 
   const handleChange = (property: string, value: any) => {
     if (property.includes('.')) {

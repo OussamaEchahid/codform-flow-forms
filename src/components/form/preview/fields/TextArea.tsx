@@ -44,9 +44,9 @@ const TextArea: React.FC<TextAreaProps> = ({ field, formStyle }) => {
   // استخدام اتجاه النموذج من formStyle
   const formDirection = formStyle.formDirection || 'ltr';
   
-  // Default label font sizes based on language/direction
-  const defaultLabelSize = formDirection === 'rtl' ? '15px' : '16px';
-  const defaultFieldSize = formDirection === 'rtl' ? '13px' : '16px';
+  // Default label font sizes unified to 16px
+  const defaultLabelSize = '16px';
+  const defaultFieldSize = '16px';
   
   // Set default values for styling
   const showLabel = fieldStyle.showLabel !== false;
@@ -184,7 +184,7 @@ const TextArea: React.FC<TextAreaProps> = ({ field, formStyle }) => {
           className="w-full py-2 px-3 bg-white border outline-none focus:ring-2 focus:ring-opacity-50 transition-all"
           style={{
             color: fieldStyle.color || '#1f2937',
-            fontSize: fieldStyle.fontSize || '15px',
+            fontSize: fieldStyle.fontSize || '16px',
             fontWeight: fieldStyle.fontWeight || '400',
             fontFamily: fieldStyle.fontFamily || 'inherit',
             backgroundColor: '#FFFFFF',

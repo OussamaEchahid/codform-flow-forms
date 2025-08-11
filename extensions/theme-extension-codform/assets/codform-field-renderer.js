@@ -11,12 +11,25 @@
     if (!style || typeof style !== 'object') return fallback;
     return style[property] || fallback;
   }
+  
+  // تحويل أي قيمة حجم إلى px (rem -> px)
+  function toPx(val, defaultPx) {
+    if (!val) return defaultPx;
+    const str = String(val);
+    if (str.endsWith('rem')) {
+      const n = parseFloat(str);
+      return `${Math.round((isNaN(n) ? 1.5 : n) * 16)}px`;
+    }
+    if (str.endsWith('px')) return str;
+    const n = parseFloat(str);
+    return isNaN(n) ? defaultPx : `${n}px`;
+  }
 
   // دالة رسم حقل العنوان
   function renderFormTitleField(field, formStyle) {
     const title = field.label || 'Form Title';
     const titleColor = getStyleValue(field.style, 'color', '#000000');
-    const titleFontSize = getStyleValue(field.style, 'fontSize', '24px');
+    const titleFontSize = toPx(getStyleValue(field.style, 'fontSize', '24px'), '24px');
     const titleFontWeight = getStyleValue(field.style, 'fontWeight', 'bold');
     const paddingTop = getStyleValue(field.style, 'paddingTop', '0px');
     const paddingBottom = getStyleValue(field.style, 'paddingBottom', '0px');
@@ -72,8 +85,7 @@
       fontFamily: getStyleValue(fieldStyle, 'fontFamily', 'inherit'),
       borderRadius: getStyleValue(fieldStyle, 'borderRadius', getStyleValue(formStyle, 'fieldBorderRadius', '8px')),
       placeholder: getStyleValue(fieldStyle, 'placeholder', placeholder),
-      focusBorderColor: getStyleValue(formStyle, 'focusBorderColor', '#3b82f6'),
-      // استخدام padding ثابت بدلاً من الحساب الديناميكي  
+      focusBorderColor: getStyleValue(formStyle, 'focusBorderColor', '#9b87f5'),
       paddingY: getStyleValue(fieldStyle, 'paddingY', '10px')
     };
 
@@ -84,9 +96,10 @@
     
     let iconHtml = '';
     if (showIcon && hasIcon) {
-      const iconPosition = formDirection === 'rtl' ? 'right' : 'left';
+      const iconPosition = getStyleValue(fieldStyle, 'iconPosition', formDirection === 'rtl' ? 'right' : 'left');
       const iconColor = getStyleValue(fieldStyle, 'iconColor', '#6b7280');
-      const iconSvg = window.getIconSvg ? window.getIconSvg(actualIcon, iconColor) : '';
+      const iconSize = parseInt(String(getStyleValue(fieldStyle, 'iconSize', '18')).replace('px','')) || 18;
+      const iconSvg = window.getIconSvg ? window.getIconSvg(actualIcon, iconColor, String(iconSize)) : '';
       iconHtml = `
         <div style="
           position: absolute;
@@ -105,8 +118,9 @@
       `;
     }
 
-    const paddingLeft = formDirection === 'rtl' ? '12px' : (showIcon && hasIcon ? '40px' : '12px');
-    const paddingRight = formDirection === 'rtl' ? (showIcon && hasIcon ? '40px' : '12px') : '12px';
+    const iconSizeForPadding = parseInt(String(getStyleValue(fieldStyle, 'iconSize', '18')).replace('px','')) || 18;
+    const paddingLeft = formDirection === 'rtl' ? '12px' : (showIcon && hasIcon ? `${12 + iconSizeForPadding + 10}px` : '12px');
+    const paddingRight = formDirection === 'rtl' ? (showIcon && hasIcon ? `${12 + iconSizeForPadding + 10}px` : '12px') : '12px';
 
     return `
       <div class="codform-field-wrapper" style="margin-bottom: 4px; direction: ${formDirection};">

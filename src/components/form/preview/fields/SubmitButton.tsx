@@ -52,8 +52,10 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, onClick, 
   } = field.style || {};
 
   // Derived icon settings for consistent preview/store behavior
-  const iconSize = parseInt(String(field.style?.iconSize || '18px').replace('px','')) || 18;
   const formDirection = formStyle.formDirection === 'rtl' ? 'rtl' : 'ltr';
+  const defaultFontSize = formDirection === 'rtl' ? '17px' : '16px';
+  const defaultPaddingY = formDirection === 'rtl' ? '12px' : '10px';
+  const iconSize = parseInt(String(field.style?.iconSize || '18px').replace('px','')) || 18;
   const effectiveIconPosition = field.style?.iconPosition || (formDirection === 'rtl' ? 'right' : 'left');
 
   // Generate animation class based on animation type
@@ -123,14 +125,16 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, onClick, 
   };
 
   // Define button style
+  const resolvedFontSize = field.style?.fontSize || formStyle.fontSize || defaultFontSize;
+  const resolvedPaddingY = field.style?.paddingY || defaultPaddingY;
   const btnStyle: React.CSSProperties = {
     backgroundColor,
     color,
-    fontSize,
+    fontSize: resolvedFontSize,
     fontWeight,
     fontFamily: field.style?.fontFamily || 'inherit',
     borderRadius,
-    padding: `${paddingY} 24px`,
+    padding: `${resolvedPaddingY} 24px`,
     border: borderColor ? `${borderWidth} solid ${borderColor}` : 'none',
     display: 'inline-flex',
     alignItems: 'center',

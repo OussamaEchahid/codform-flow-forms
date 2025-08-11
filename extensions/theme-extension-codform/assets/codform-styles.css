@@ -96,18 +96,7 @@ button[id^="codform-popup-btn"],
 #codform-popup-modal [dir="rtl"],
 #codform-popup-modal [dir="rtl"] * {
   font-family: 'Cairo', 'Noto Sans Arabic', 'Amiri', sans-serif !important;
-  font-size: 13px !important;
-}
-
-[dir="rtl"] input,
-[dir="rtl"] textarea,
-[dir="rtl"] label,
-[dir="rtl"] button,
-.codform-popup-button,
-.codform-popup-trigger,
-button[id^="codform-popup-btn"] {
-  font-family: 'Cairo', 'Noto Sans Arabic', 'Amiri', sans-serif !important;
-  font-size: 13px !important;
+  font-size: 16px !important;
   font-feature-settings: "liga" 1, "kern" 1;
   text-rendering: optimizeLegibility;
 }
@@ -120,7 +109,7 @@ button[id^="codform-popup-btn"] {
 .codform-field-wrapper[dir="rtl"] textarea,
 .codform-field-wrapper[dir="rtl"] select,
 .codform-field-wrapper[dir="rtl"] label {
-  font-size: 13px !important;
+  font-size: 16px !important;
 }
 
 /* إصلاح padding ثابت لمنع تغيير العرض مع حجم الخط */

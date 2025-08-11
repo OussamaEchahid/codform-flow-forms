@@ -83,7 +83,8 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
   const focusBorderColor = formStyle.focusBorderColor || formStyle.primaryColor || '#9b87f5';
   
   // تحديد إذا كان هناك أيقونة وإذا كان يجب إظهارها
-  const hasIcon = field.icon && field.icon !== 'none' && field.icon !== '';
+  const actualIcon = field.style?.icon || field.icon;
+  const hasIcon = !!(actualIcon && actualIcon !== 'none' && actualIcon !== '');
   const showIcon = fieldStyle.showIcon !== undefined ? fieldStyle.showIcon : hasIcon;
   const iconSize = parseInt(String(field.style?.iconSize || '18').replace('px','')) || 18;
   
@@ -108,7 +109,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
       "aria-hidden": true as boolean,
     };
     
-    switch(field.icon) {
+    switch(actualIcon) {
       // أيقونات الاسم
       case 'user': return <User {...iconProps} />;
       case 'users': return <Users {...iconProps} />;

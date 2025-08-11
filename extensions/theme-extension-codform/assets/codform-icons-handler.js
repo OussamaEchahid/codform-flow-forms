@@ -12,10 +12,10 @@
    * @param {string} iconColor - Color for the icon (default: #6b7280)
    * @returns {string} SVG HTML string
    */
-  function getIconSvg(iconName, iconColor = '#6b7280') {
+  function getIconSvg(iconName, iconColor = '#6b7280', size = 18) {
     // Base styles for different icon types
-    const strokeStyle = `width: 18px; height: 18px; stroke: ${iconColor}; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;`;
-    const filledStyle = `width: 18px; height: 18px; fill: ${iconColor}; stroke: none;`;
+    const strokeStyle = `width: ${size}px; height: ${size}px; stroke: ${iconColor}; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;`;
+    const filledStyle = `width: ${size}px; height: ${size}px; fill: ${iconColor}; stroke: none;`;
     
     let svgResult = '';
     
