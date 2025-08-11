@@ -101,6 +101,54 @@ const SortableField: React.FC<SortableFieldProps> = ({
         }
       };
     }
+
+    // Arabic defaults for Submit button (preview + store)
+    if (field.type === 'submit' && language === 'ar') {
+      fieldToSet = {
+        ...fieldToSet,
+        style: {
+          ...fieldToSet.style,
+          fontSize: fieldToSet.style?.fontSize || '17px',
+          paddingY: fieldToSet.style?.paddingY || '12px',
+          iconPosition: fieldToSet.style?.iconPosition || 'right',
+          iconSize: fieldToSet.style?.iconSize || '18px',
+        }
+      };
+    }
+
+    // Unify Arabic text sizes for inputs (Label + Placeholder)
+    if (['text','email','phone','textarea'].includes(field.type) && language === 'ar') {
+      fieldToSet = {
+        ...fieldToSet,
+        style: {
+          ...fieldToSet.style,
+          fontSize: fieldToSet.style?.fontSize || '16px',
+          labelFontSize: fieldToSet.style?.labelFontSize || '16px',
+        }
+      };
+    }
+
+    // Ensure icons show in both preview and store when selected
+    if ((fieldToSet.icon || fieldToSet.style?.icon) && !isAddressLikeTextArea) {
+      fieldToSet = {
+        ...fieldToSet,
+        style: {
+          ...fieldToSet.style,
+          showIcon: fieldToSet.style?.showIcon !== false ? true : fieldToSet.style?.showIcon,
+          showIconInPreview: fieldToSet.style?.showIconInPreview !== false ? true : fieldToSet.style?.showIconInPreview,
+        }
+      };
+    }
+
+    // Convert rem to px for form title font size
+    if (fieldToSet.type === 'form-title' && typeof fieldToSet.style?.fontSize === 'string' && fieldToSet.style.fontSize.includes('rem')) {
+      const n = parseFloat(fieldToSet.style.fontSize);
+      const px = `${Math.round((isNaN(n) ? 1.5 : n) * 16)}px`;
+      fieldToSet = {
+        ...fieldToSet,
+        style: { ...fieldToSet.style, fontSize: px }
+      };
+    }
     
     setEditedField(fieldToSet);
   }, [field, language]);
@@ -585,14 +633,14 @@ const SortableField: React.FC<SortableFieldProps> = ({
                       <div className="space-y-1">
                         <div className="flex items-center justify-between">
                           <Label>{language === 'ar' ? 'حجم الخط' : 'Font size'}</Label>
-                          <span className="text-sm">{parseFloat(editedField.style?.fontSize?.replace('rem', '') || '1.5') || 1.5}</span>
+                          <span className="text-sm">{parseInt(editedField.style?.fontSize?.replace('px', '') || '24')}px</span>
                         </div>
                         <Slider
-                          value={[parseFloat(editedField.style?.fontSize?.replace('rem', '') || '1.5') || 1.5]}
-                          onValueChange={(value) => handleStyleChange('fontSize', `${value[0]}rem`)}
-                          max={4}
-                          min={0.75}
-                          step={0.25}
+                          value={[parseInt(editedField.style?.fontSize?.replace('px', '') || '24')]}
+                          onValueChange={(value) => handleStyleChange('fontSize', `${value[0]}px`)}
+                          max={60}
+                          min={12}
+                          step={1}
                           className="w-full"
                         />
                       </div>
@@ -1560,7 +1608,11 @@ const SortableField: React.FC<SortableFieldProps> = ({
                              <Label>{language === 'ar' ? 'أيقونة الحقل' : 'Field Icon'}</Label>
                              <Select
                                value={editedField.icon || 'user'}
-                               onValueChange={(value) => handleFieldChange('icon', value)}
+                               onValueChange={(value) => {
+                                 handleFieldChange('icon', value === 'none' ? undefined : value);
+                                 handleStyleChange('showIcon', value !== 'none');
+                                 handleStyleChange('showIconInPreview', value !== 'none');
+                               }}
                              >
                                <SelectTrigger>
                                  <SelectValue placeholder={language === 'ar' ? 'اختر أيقونة' : 'Select icon'} />
