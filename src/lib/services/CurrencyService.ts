@@ -390,32 +390,92 @@ class CurrencyServiceClass {
    */
   private notifyStoreOfCurrencyChanges(): void {
     try {
+      // ✅ إعداد localStorage للتوافق مع الأنظمة القديمة
+      this.updateLocalStorageForCompatibility();
+      
       // إرسال custom event للـ unified system
+      const eventData = {
+        displaySettings: this.displaySettings,
+        customRates: Object.fromEntries(this.customRates.entries()),
+        allRates: this.getAllRates() // جميع المعدلات (مخصصة + افتراضية)
+      };
+      
       const event = new CustomEvent('currencySettingsUpdated', {
-        detail: {
-          displaySettings: this.displaySettings,
-          customRates: Object.fromEntries(this.customRates.entries())
-        }
+        detail: eventData
       });
       
       window.dispatchEvent(event);
-      console.log('📡 Currency change notification sent to store');
+      console.log('📡 Currency change notification sent to store:', eventData);
       
-      // تطبيق فوري للتغييرات في النظام الموحد
+      // تطبيق فوري للتغييرات في جميع الأنظمة
       if (typeof window !== 'undefined' && (window as any).CodformUnifiedSystem) {
-        (window as any).CodformUnifiedSystem.updateAllElements();
-        console.log('🎯 Direct unified system update triggered');
+        (window as any).CodformUnifiedSystem.refreshAll();
+        console.log('🎯 Direct unified system refresh triggered');
       }
       
-      // محاولة إعادة تحميل البيانات في المتجر
-      if (typeof window !== 'undefined' && (window as any).CodformUltimateCurrency) {
-        (window as any).CodformUltimateCurrency.reloadSettings();
-        console.log('🔄 Ultimate currency system reload triggered');
+      // تحديث cart-items مباشرة إذا كان متوفر
+      if (typeof window !== 'undefined' && (window as any).CodformCartItems) {
+        (window as any).CodformCartItems.updateAllPriceDisplays();
+        console.log('🛒 Cart items direct update triggered');
       }
       
     } catch (error) {
       console.error('❌ Error notifying store of currency changes:', error);
     }
+  }
+
+  /**
+   * تحديث localStorage للتوافق مع الأنظمة القديمة
+   */
+  private updateLocalStorageForCompatibility(): void {
+    try {
+      const allRates = this.getAllRates();
+      const preferredCurrency = this.getPreferredCurrency();
+      
+      const compatibilitySettings = {
+        currency: preferredCurrency,
+        exchangeRates: allRates,
+        displaySettings: {
+          showSymbol: this.displaySettings.showSymbol,
+          symbolPosition: this.displaySettings.symbolPosition,
+          decimalPlaces: this.displaySettings.decimalPlaces,
+          customSymbols: this.displaySettings.customSymbols
+        }
+      };
+      
+      localStorage.setItem('codform_currency_settings', JSON.stringify(compatibilitySettings));
+      console.log('💾 Updated localStorage for compatibility:', compatibilitySettings);
+      
+    } catch (error) {
+      console.error('❌ Error updating localStorage for compatibility:', error);
+    }
+  }
+
+  /**
+   * الحصول على جميع المعدلات (مخصصة + افتراضية)
+   */
+  private getAllRates(): Record<string, number> {
+    const defaultRates: Record<string, number> = {};
+    
+    // إضافة المعدلات الافتراضية
+    CURRENCIES.forEach(currency => {
+      defaultRates[currency.code] = currency.exchangeRate;
+    });
+    
+    // إضافة المعدلات المخصصة (تعود على الافتراضية)
+    this.customRates.forEach((customRate, currencyCode) => {
+      defaultRates[currencyCode] = customRate.rate;
+    });
+    
+    return defaultRates;
+  }
+
+  /**
+   * تحديد العملة المفضلة للنظام
+   */
+  private getPreferredCurrency(): string {
+    // يمكن تطوير هذا لاحقاً لتحديد العملة المفضلة من الإعدادات
+    return 'AED'; // افتراضي: درهم إماراتي
   }
 
   /**
