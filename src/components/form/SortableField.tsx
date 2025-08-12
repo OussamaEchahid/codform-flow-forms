@@ -102,16 +102,22 @@ const SortableField: React.FC<SortableFieldProps> = ({
       };
     }
 
-    // Arabic defaults for Submit button (preview + store)
+    // Arabic defaults for Submit button (preview + store) with migration of old defaults
     if (field.type === 'submit' && language === 'ar') {
+      const current = fieldToSet.style || {};
+      const shouldForceFont = !current.fontSize || current.fontSize === '16px' || current.fontSize === '1rem';
+      const shouldForcePadding = !current.paddingY || current.paddingY === '10px' || current.paddingY === '0.625rem';
+      const shouldForceIconPos = !current.iconPosition || current.iconPosition === 'left';
+      const shouldForceIconSize = !current.iconSize || current.iconSize === '16px' || current.iconSize === '16';
+
       fieldToSet = {
         ...fieldToSet,
         style: {
-          ...fieldToSet.style,
-          fontSize: fieldToSet.style?.fontSize || '17px',
-          paddingY: fieldToSet.style?.paddingY || '12px',
-          iconPosition: fieldToSet.style?.iconPosition || 'right',
-          iconSize: fieldToSet.style?.iconSize || '18px',
+          ...current,
+          fontSize: shouldForceFont ? '17px' : current.fontSize,
+          paddingY: shouldForcePadding ? '12px' : current.paddingY,
+          iconPosition: shouldForceIconPos ? 'right' : current.iconPosition,
+          iconSize: shouldForceIconSize ? '18px' : current.iconSize,
         }
       };
     }

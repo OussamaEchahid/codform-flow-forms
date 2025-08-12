@@ -23,17 +23,24 @@ const SubmitButtonEditor: React.FC<SubmitButtonEditorProps> = ({ field, onSave, 
 
   React.useEffect(() => {
     if (language === 'ar') {
-      setCurrentField((prev) => ({
-        ...prev,
-        style: {
-          ...prev.style,
-          fontSize: prev.style?.fontSize || '17px',
-          paddingY: prev.style?.paddingY || '12px',
-          iconPosition: prev.style?.iconPosition || 'right',
-          iconSize: prev.style?.iconSize || '18px',
-          showIcon: typeof prev.style?.showIcon === 'boolean' ? prev.style?.showIcon : Boolean(prev.style?.icon),
-        },
-      }));
+      setCurrentField((prev) => {
+        const cur = prev.style || {};
+        const forceFont = !cur.fontSize || cur.fontSize === '16px' || cur.fontSize === '1rem';
+        const forcePad = !cur.paddingY || cur.paddingY === '10px' || cur.paddingY === '0.625rem';
+        const forcePos = !cur.iconPosition || cur.iconPosition === 'left';
+        const forceIconSize = !cur.iconSize || cur.iconSize === '16px' || cur.iconSize === '16';
+        return {
+          ...prev,
+          style: {
+            ...cur,
+            fontSize: forceFont ? '17px' : cur.fontSize,
+            paddingY: forcePad ? '12px' : cur.paddingY,
+            iconPosition: forcePos ? 'right' : cur.iconPosition,
+            iconSize: forceIconSize ? '18px' : cur.iconSize,
+            showIcon: typeof cur.showIcon === 'boolean' ? cur.showIcon : Boolean(cur.icon),
+          },
+        };
+      });
     }
   }, [language]);
 
