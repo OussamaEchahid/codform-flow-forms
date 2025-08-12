@@ -23,8 +23,8 @@
       
       console.log(`🛒 Cart Items: Fetching product price for Form: ${formId}, Shop: ${shopDomain}`);
 
-      // Use the same API endpoint as cart-summary
-      const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/currency-settings?shopId=${encodeURIComponent(shopDomain)}`, {
+      // Use the Ultimate Currency API endpoint
+      const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/ultimate-currency-api?action=getSettings&shopId=${encodeURIComponent(shopDomain)}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
