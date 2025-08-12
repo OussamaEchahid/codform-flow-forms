@@ -13,62 +13,76 @@
   let isInitialized = false;
 
   /**
-   * Fetch product price from Shopify API
+   * Fetch product price from Shopify theme global variables and local storage
    */
   async function fetchProductPrice() {
     try {
-      // Get form and shop info
-      const formId = window.codformProductId || 'auto-detect';
-      const shopDomain = window.codformShopDomain || 'auto-detect';
+      console.log('🛒 Cart Items: Getting product data from Shopify theme globals...');
+
+      // Get product price directly from Shopify theme global variables
+      let productPrice = 29.99; // fallback
+      let currency = 'SAR'; // fallback
       
-      console.log(`🛒 Cart Items: Fetching product price for Form: ${formId}, Shop: ${shopDomain}`);
-
-      // Use the same API endpoint as cart-summary
-      const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/currency-settings?shopId=${encodeURIComponent(shopDomain)}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M'
+      // Try to get price from various Shopify global variables
+      if (window.product && window.product.price) {
+        productPrice = window.product.price / 100; // Shopify stores price in cents
+        console.log(`🛒 Cart Items: Got price from window.product: ${productPrice}`);
+      } else if (window.CodformProductPrice) {
+        productPrice = window.CodformProductPrice;
+        console.log(`🛒 Cart Items: Got price from CodformProductPrice: ${productPrice}`);
+      } else if (window.theme && window.theme.moneyFormat) {
+        // Try to extract from theme money format
+        const matches = window.theme.moneyFormat.match(/\d+(\.\d+)?/);
+        if (matches) {
+          productPrice = parseFloat(matches[0]);
+          console.log(`🛒 Cart Items: Extracted price from theme moneyFormat: ${productPrice}`);
         }
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const data = await response.json();
-      console.log('🛒 Cart Items: Currency settings received:', data);
+      // Try to get currency from Shopify global variables
+      if (window.Shopify && window.Shopify.currency && window.Shopify.currency.active) {
+        currency = window.Shopify.currency.active;
+        console.log(`🛒 Cart Items: Got currency from Shopify.currency: ${currency}`);
+      } else if (window.shop && window.shop.currency) {
+        currency = window.shop.currency;
+        console.log(`🛒 Cart Items: Got currency from shop.currency: ${currency}`);
+      } else if (window.theme && window.theme.shopCurrency) {
+        currency = window.theme.shopCurrency;
+        console.log(`🛒 Cart Items: Got currency from theme.shopCurrency: ${currency}`);
+      }
 
-      // Extract currency and exchange rates
-      const currency = data.display_settings?.currency || data.currency || 'SAR';
-      const exchangeRates = data.exchange_rates || {};
-      
-      // Get product price from Shopify global variable
-      const productPriceUSD = window.CodformProductPrice || 
-                             (window.product && window.product.price ? window.product.price / 100 : null) ||
-                             29.99; // fallback
-
-      console.log(`🛒 Cart Items: Product price in USD: ${productPriceUSD}`);
-
-      // Convert currency if needed
-      let convertedPrice = productPriceUSD;
-      if (currency !== 'USD' && exchangeRates[currency]) {
-        convertedPrice = productPriceUSD * exchangeRates[currency];
-        console.log(`🛒 Cart Items: Converted ${productPriceUSD} USD to ${convertedPrice} ${currency}`);
+      // Apply any currency conversion if needed from localStorage settings
+      try {
+        const savedCurrencySettings = localStorage.getItem('codform_currency_settings');
+        if (savedCurrencySettings) {
+          const settings = JSON.parse(savedCurrencySettings);
+          if (settings.currency && settings.currency !== currency && settings.exchangeRates) {
+            const rate = settings.exchangeRates[settings.currency];
+            if (rate) {
+              productPrice = productPrice * rate;
+              currency = settings.currency;
+              console.log(`🛒 Cart Items: Applied currency conversion: ${productPrice} ${currency}`);
+            }
+          }
+        }
+      } catch (storageError) {
+        console.log('🛒 Cart Items: No currency settings in localStorage:', storageError.message);
       }
 
       // Cache the results
-      cachedProductPrice = convertedPrice;
+      cachedProductPrice = productPrice;
       cachedCurrency = currency;
 
+      console.log(`🛒 Cart Items: Final product data - Price: ${productPrice}, Currency: ${currency}`);
+
       return {
-        price: convertedPrice,
+        price: productPrice,
         currency: currency,
-        displaySettings: data.display_settings || {}
+        displaySettings: {}
       };
 
     } catch (error) {
-      console.error('🚨 Cart Items - Error fetching product data:', error);
+      console.error('🚨 Cart Items - Error getting product data:', error);
       
       // Use fallback values
       cachedProductPrice = 29.99;
