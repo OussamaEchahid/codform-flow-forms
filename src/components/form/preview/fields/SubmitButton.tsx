@@ -53,10 +53,10 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, onClick, 
 
   // Derived icon settings for consistent preview/store behavior
   const formDirection = formStyle.formDirection === 'rtl' ? 'rtl' : 'ltr';
-  const defaultFontSize = formDirection === 'rtl' ? '17px' : '16px';
-  const defaultPaddingY = formDirection === 'rtl' ? '12px' : '10px';
+  const defaultFontSize = formDirection === 'rtl' ? '17px' : '18px';
+  const defaultPaddingY = formDirection === 'rtl' ? '12px' : '15px';
   const iconSize = parseInt(String(field.style?.iconSize ?? '18px').toString().replace('px','')) || 18;
-  const effectiveIconPosition = field.style?.iconPosition || (formDirection === 'rtl' ? 'right' : 'left');
+  const effectiveIconPosition = field.style?.iconPosition || 'right';
   const hasIcon = Boolean(field.style?.icon || field.icon);
   const showIconEffective = typeof field.style?.showIcon === 'boolean' ? Boolean(field.style?.showIcon) : hasIcon;
 

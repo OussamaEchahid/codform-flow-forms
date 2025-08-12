@@ -186,7 +186,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
 
   return (
     <div 
-      className="mb-2" 
+      className="mb-0" 
       style={{ background: 'transparent' }}
       dir={formDirection}
     >

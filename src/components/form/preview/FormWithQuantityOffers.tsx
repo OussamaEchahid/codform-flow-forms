@@ -176,7 +176,9 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
 
   if (loading) {
     return (
-      <div className="space-y-4">
+      <div
+        style={{ display: 'flex', flexDirection: 'column', rowGap: (formStyle?.formGap || '12px') }}
+      >
         {fields.map(field => (
           <FormField 
             key={field.id} 
@@ -314,7 +316,9 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
   };
 
   return (
-    <div className="space-y-4">
+    <div
+      style={{ display: 'flex', flexDirection: 'column', rowGap: (formStyle?.formGap || '12px') }}
+    >
       {/* Form fields with inside form offers only */}
       {fields.map((field, index) => {
         // Show ALL quantity offers (regardless of position) before submit button

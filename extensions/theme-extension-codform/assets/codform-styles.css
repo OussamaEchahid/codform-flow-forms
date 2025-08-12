@@ -69,8 +69,9 @@
 }
 
 /* Submit button spacing */
-.codform-submit-button {
-  margin-top: 20px !important;
+.codform-submit-button,
+.codform-submit-btn {
+  margin-top: 12px !important;
 }
 
 /* Remove borders from popup button area only */

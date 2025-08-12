@@ -105,7 +105,7 @@ const TextArea: React.FC<TextAreaProps> = ({ field, formStyle }) => {
   };
   
   return (
-    <div className="mb-2" dir={formDirection}>
+    <div className="mb-0" dir={formDirection}>
       {showLabel && !isFloatingLabels && (
         <label 
           htmlFor={field.id} 
