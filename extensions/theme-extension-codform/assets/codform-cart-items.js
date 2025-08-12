@@ -516,6 +516,7 @@
   // ✅ تصدير النظام للاستخدام العالمي
   window.CodformCartItems = {
     initialize: initialize,
+    render: renderCartItems, // الاسم المطلوب من النظام الخارجي
     renderCartItems: renderCartItems,
     increaseQuantity: increaseQuantity,
     decreaseQuantity: decreaseQuantity,
