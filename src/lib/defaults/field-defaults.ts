@@ -166,13 +166,21 @@ export const FIELD_DEFAULTS: FieldDefaults = {
 export const getFieldDefaults = (fieldType: string, language: string = 'en') => {
   const defaults = { ...FIELD_DEFAULTS };
   
-  // تطبيق تعديلات خاصة باللغة العربية فقط
-  // Apply Arabic-specific modifications only
+  // تطبيق إعدادات خاصة حسب اللغة
+  // Apply language-specific settings
   if (language === 'ar') {
+    // إعدادات خاصة بالعربية (الإعدادات الحالية)
+    // Arabic-specific settings (current settings)
     defaults.submit.style.fontSize = '17px';
     defaults.submit.style.paddingY = '12px';
-    // iconSize remains 18px for all languages
+  } else {
+    // إعدادات خاصة بالإنجليزية واللغات الأخرى
+    // English and other languages settings
+    defaults.submit.style.fontSize = '18px';
+    defaults.submit.style.paddingY = '15px';
   }
+  
+  // iconSize remains 18px for all languages
   
   return defaults;
 };
