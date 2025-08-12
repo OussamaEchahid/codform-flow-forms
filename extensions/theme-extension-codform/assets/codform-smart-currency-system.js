@@ -189,9 +189,9 @@
             }
             
             return {
-              showSymbol: data.display_settings.show_symbol ?? true,
+              showSymbol: data.display_settings.show_symbol ?? false,
               symbolPosition: data.display_settings.symbol_position || 'before',
-              decimalPlaces: data.display_settings.decimal_places ?? 0
+              decimalPlaces: data.display_settings.decimal_places ?? 2
             };
           }
         }

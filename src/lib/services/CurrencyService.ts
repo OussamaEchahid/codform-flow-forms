@@ -17,7 +17,7 @@ export interface CurrencyDisplaySettings {
 class CurrencyServiceClass {
   private customRates: Map<string, CustomCurrencyRate> = new Map();
   private displaySettings: CurrencyDisplaySettings = {
-    showSymbol: true,
+    showSymbol: false,
     symbolPosition: 'before',
     decimalPlaces: 2,
     customSymbols: {}
@@ -41,7 +41,7 @@ class CurrencyServiceClass {
       console.log(`🔄 Shop context changed: ${previousShopId} → ${shopId}, clearing cache`);
       this.customRates.clear();
       this.displaySettings = {
-        showSymbol: true,
+        showSymbol: false,
         symbolPosition: 'before',
         decimalPlaces: 2,
         customSymbols: {}
@@ -280,6 +280,9 @@ class CurrencyServiceClass {
       // إعادة تحميل البيانات فوراً بعد الحفظ لضمان التحديث
       await this.reloadDataFromDatabase();
       
+      // إرسال إشعار للمتجر لإعادة تطبيق التنسيق
+      this.notifyStoreOfCurrencyChanges();
+      
     } catch (error) {
       console.error('❌ Error saving currency settings via edge function:', error);
       throw error; // أزالة الـ fallback لتجنب الحفظ المزدوج
@@ -380,7 +383,7 @@ class CurrencyServiceClass {
             body: JSON.stringify({
               shop_id: this.currentShopId,
               display_settings: {
-                show_symbol: true,
+                show_symbol: false,
                 symbol_position: 'before',
                 decimal_places: 2
               },
@@ -399,7 +402,7 @@ class CurrencyServiceClass {
 
       this.customRates.clear();
       this.displaySettings = {
-        showSymbol: true,
+        showSymbol: false,
         symbolPosition: 'before',
         decimalPlaces: 2,
         customSymbols: {}
@@ -642,6 +645,43 @@ class CurrencyServiceClass {
       console.log('✅ Data reloaded successfully');
     } catch (error) {
       console.error('❌ Error reloading data:', error);
+    }
+  }
+
+  /**
+   * إشعار المتجر بتغيير إعدادات العملة
+   */
+  private notifyStoreOfCurrencyChanges() {
+    try {
+      // إرسال رسالة للمتجر (إذا كان في iframe)
+      if (window.parent !== window) {
+        window.parent.postMessage({
+          type: 'CODFORM_CURRENCY_UPDATED',
+          settings: this.displaySettings,
+          timestamp: Date.now()
+        }, '*');
+      }
+
+      // إرسال event محلي
+      window.dispatchEvent(new CustomEvent('codform:currency-updated', {
+        detail: {
+          settings: this.displaySettings,
+          customRates: Array.from(this.customRates.entries())
+        }
+      }));
+
+      // محاولة استدعاء الدوال المعرضة من المتجر
+      if ((window as any).CodformCurrencyManager && typeof (window as any).CodformCurrencyManager.reloadSettings === 'function') {
+        (window as any).CodformCurrencyManager.reloadSettings();
+      }
+
+      if ((window as any).CodformSmartCurrency && typeof (window as any).CodformSmartCurrency.reapplyFormatting === 'function') {
+        (window as any).CodformSmartCurrency.reapplyFormatting();
+      }
+
+      console.log('📢 Notified store of currency changes');
+    } catch (error) {
+      console.error('❌ Error notifying store of currency changes:', error);
     }
   }
 }

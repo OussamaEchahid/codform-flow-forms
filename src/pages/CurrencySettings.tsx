@@ -20,7 +20,7 @@ const CurrencySettings = () => {
   
   // إعدادات العرض
   const [displaySettings, setDisplaySettings] = useState<CurrencyDisplaySettings>({
-    showSymbol: true,
+    showSymbol: false,
     symbolPosition: 'before',
     decimalPlaces: 2,
     customSymbols: {}
