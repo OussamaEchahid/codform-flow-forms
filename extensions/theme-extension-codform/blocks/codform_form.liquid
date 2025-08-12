@@ -430,8 +430,191 @@
         </div>
       `;
     }
-    {%- comment -%} Cart Items Field {%- endcomment -%}
+    {%- comment -%} Cart Items Field - New Implementation {%- endcomment -%}
     else if (field.type === 'cart-items') {
+      const fieldStyle = field.style || {};
+      
+      html = `
+        <div class="cart-items-field" data-currency="${currency}" style="
+          background: #ffffff;
+          border: 1px solid #e5e7eb;
+          border-radius: 12px;
+          box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+          padding: 16px;
+          margin: 16px 0;
+          direction: ${formDirection};
+          font-family: Cairo, Arial, sans-serif;
+        ">
+          <div class="cart-item" style="
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            direction: ${formDirection};
+          ">
+            <div class="product-image" style="
+              width: 80px;
+              height: 80px;
+              border-radius: 8px;
+              background: #f3f4f6;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              overflow: hidden;
+            ">
+              <img src="" alt="" style="
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                display: none;
+              " />
+              <span style="color: #9ca3af; font-size: 14px;">📦</span>
+            </div>
+            
+            <div class="product-details" style="
+              flex: 1;
+              ${formDirection === 'rtl' ? 'text-align: right;' : 'text-align: left;'}
+            ">
+              <h3 class="product-title" style="
+                margin: 0 0 4px 0;
+                font-size: 16px;
+                font-weight: 600;
+                color: #1f2937;
+              ">...</h3>
+              
+              <p class="product-variant" style="
+                margin: 0;
+                font-size: 14px;
+                color: #6b7280;
+              ">...</p>
+            </div>
+            
+            <div class="quantity-selector" style="
+              display: flex;
+              align-items: center;
+              border: 1px solid #e5e7eb;
+              border-radius: 6px;
+              background: #f9fafb;
+            ">
+              <button type="button" onclick="decreaseCartQuantity(this)" style="
+                background: none;
+                border: none;
+                padding: 8px 12px;
+                cursor: pointer;
+                color: #374151;
+                font-size: 16px;
+                font-weight: bold;
+              ">-</button>
+              
+              <span class="quantity-value" style="
+                padding: 8px 12px;
+                font-weight: 500;
+                color: #1f2937;
+                min-width: 40px;
+                text-align: center;
+              ">1</span>
+              
+              <button type="button" onclick="increaseCartQuantity(this)" style="
+                background: none;
+                border: none;
+                padding: 8px 12px;
+                cursor: pointer;
+                color: #374151;
+                font-size: 16px;
+                font-weight: bold;
+              ">+</button>
+            </div>
+            
+            <div class="product-price" style="
+              ${formDirection === 'rtl' ? 'text-align: left;' : 'text-align: right;'}
+            ">
+              <span class="price-value" style="
+                font-size: 16px;
+                font-weight: 700;
+                color: #059669;
+              ">...</span>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      // Initialize cart items with REAL API data (same as cart-summary)
+      setTimeout(async () => {
+        console.log('🛒 Initializing cart items for field:', field);
+        
+        // Use API to get REAL form currency (same method as cart-summary)
+        const productId = '{{ product.id }}' || 'auto-detect';
+        const shopDomain = '{{ shop.permanent_domain }}' || 'auto-detect';
+        
+        console.log('🌐 Cart Items - Loading real data from API:', { productId, shopDomain });
+        
+        try {
+          // Call the SAME API that cart-summary uses for REAL currency
+          const apiUrl = `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/forms-product?shop=${encodeURIComponent(shopDomain)}&product=${encodeURIComponent(productId)}`;
+          
+          const response = await fetch(apiUrl);
+          if (response.ok) {
+            const data = await response.json();
+            console.log('💰✅ Cart Items - REAL API Response:', data);
+            
+            if (data.success) {
+              // Update product image
+              const productImage = '{{ product.featured_image | img_url: "300x300" }}';
+              const img = document.querySelector('.cart-items-field img');
+              const placeholder = document.querySelector('.cart-items-field .product-image span');
+              
+              if (productImage && img) {
+                img.src = productImage;
+                img.alt = '{{ product.title }}';
+                img.style.display = 'block';
+                if (placeholder) placeholder.style.display = 'none';
+              }
+              
+              // Update product title
+              const titleElement = document.querySelector('.cart-items-field .product-title');
+              if (titleElement) {
+                titleElement.textContent = '{{ product.title }}' || (formDirection === 'rtl' ? 'عنوان المنتج' : 'Product Title');
+              }
+              
+              // Update product variant
+              const variantElement = document.querySelector('.cart-items-field .product-variant');
+              if (variantElement) {
+                variantElement.textContent = '{{ product.variants.first.title }}' || '';
+              }
+              
+              // Update price with REAL currency from API
+              const priceElement = document.querySelector('.cart-items-field .price-value');
+              if (priceElement && data.currency) {
+                const productPrice = parseFloat('{{ product.price | divided_by: 100.0 }}') || 0;
+                
+                // Use Smart Currency System for formatting
+                if (window.CodformSmartCurrency && window.CodformSmartCurrency.formatCurrency) {
+                  priceElement.textContent = window.CodformSmartCurrency.formatCurrency(productPrice, data.currency);
+                } else {
+                  // Fallback formatting
+                  const symbol = data.currency === 'MAD' ? 'د.م' : 
+                               data.currency === 'SAR' ? 'ر.س' : 
+                               data.currency === 'AED' ? 'د.إ' : data.currency;
+                  priceElement.textContent = `${productPrice.toFixed(2)} ${symbol}`;
+                }
+                
+                // Save currency for cart summary integration
+                window.CodformFormData = window.CodformFormData || {};
+                window.CodformFormData.currency = data.currency;
+                
+                console.log('💰✅ Cart Items - Currency set to:', data.currency);
+              }
+              
+            } else {
+              console.error('❌ Cart Items - API missing data:', data);
+            }
+          } else {
+            console.error('❌ Cart Items - API call failed:', response.status);
+          }
+        } catch (error) {
+          console.error('❌ Cart Items - API error:', error);
+        }
+      }, 100);
+    }
       const fieldStyle = field.style || {};
       const borderRadius = formStyle.borderRadius || '0.5rem';
       
@@ -1925,14 +2108,20 @@ function increaseCartQuantity(button) {
   const newQuantity = currentQuantity + 1;
   quantitySpan.textContent = newQuantity;
   
+function increaseCartQuantity(button) {
+  const quantitySpan = button.previousElementSibling;
+  let currentQuantity = parseInt(quantitySpan.textContent);
+  const newQuantity = currentQuantity + 1;
+  quantitySpan.textContent = newQuantity;
+  
   console.log('Cart quantity increased to:', newQuantity);
   
-  // تحديث الحالة المشتركة
+  // Update shared state
   if (window.CodformStateManager) {
     window.CodformStateManager.updateQuantity(newQuantity);
   }
   
-  // إرسال حدث لإعلام المكونات الأخرى
+  // Trigger cart summary update
   window.dispatchEvent(new CustomEvent('codform:quantity-changed', {
     detail: { quantity: newQuantity, source: 'cart-items' }
   }));
@@ -1947,12 +2136,12 @@ function decreaseCartQuantity(button) {
     
     console.log('Cart quantity decreased to:', newQuantity);
     
-    // تحديث الحالة المشتركة
+    // Update shared state
     if (window.CodformStateManager) {
       window.CodformStateManager.updateQuantity(newQuantity);
     }
     
-    // إرسال حدث لإعلام المكونات الأخرى
+    // Trigger cart summary update
     window.dispatchEvent(new CustomEvent('codform:quantity-changed', {
       detail: { quantity: newQuantity, source: 'cart-items' }
     }));
