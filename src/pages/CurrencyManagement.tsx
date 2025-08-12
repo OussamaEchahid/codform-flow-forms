@@ -36,17 +36,33 @@ const CurrencyManagement = () => {
   useEffect(() => {
     console.log('🔄 CurrencyManagement useEffect triggered:', { currentStore, userStoresLength: userStores.length });
     
-    // استخدام setTimeout للتأكد من أن currentStore محدث
-    const timer = setTimeout(() => {
-      const actualCurrentStore = localStorage.getItem('current_shopify_store');
-      console.log('⏰ Delayed check - actual store:', actualCurrentStore);
+    const actualCurrentStore = localStorage.getItem('current_shopify_store');
+    console.log('⏰ Immediate check - actual store:', actualCurrentStore);
+    
+    if (actualCurrentStore) {
+      // تعيين السياق الجديد وإعادة التحميل فوراً
+      CurrencyService.setShopContext(actualCurrentStore, '36d7eb85-0c45-4b4f-bea1-a9cb732ca893');
       
-      if (actualCurrentStore) {
+      // تحميل الإعدادات فوراً
+      loadSettings();
+      
+      // إعادة تحميل البيانات كل 3 ثوانٍ للتأكد من التحديث
+      const intervalId = setInterval(() => {
+        console.log('🔄 Interval reload triggered');
         loadSettings();
-      }
-    }, 500);
-
-    return () => clearTimeout(timer);
+      }, 3000);
+      
+      // تنظيف العداد بعد 15 ثانية
+      const cleanupId = setTimeout(() => {
+        clearInterval(intervalId);
+        console.log('🧹 Cleanup interval stopped');
+      }, 15000);
+      
+      return () => {
+        clearInterval(intervalId);
+        clearTimeout(cleanupId);
+      };
+    }
   }, [currentStore, userStores]);
 
   const loadSettings = async () => {
@@ -106,7 +122,18 @@ const CurrencyManagement = () => {
       });
       
       await CurrencyService.saveDisplaySettings(displaySettings);
-      toast.success('تم حفظ إعدادات العرض بنجاح');
+      
+      // إعادة تحميل البيانات فوراً للتأكد من التطبيق
+      await new Promise(resolve => setTimeout(resolve, 1000)); // انتظار ثانية واحدة
+      await loadSettings();
+      
+      // إعادة تحميل مرة أخرى بعد 3 ثوانٍ للتأكد التام
+      setTimeout(async () => {
+        await loadSettings();
+        console.log('🔄 Secondary reload completed');
+      }, 3000);
+      
+      toast.success('✅ تم حفظ وتطبيق إعدادات العرض بنجاح');
     } catch (error) {
       console.error('❌ Error saving display settings:', error);
       toast.error('فشل في حفظ إعدادات العرض');
