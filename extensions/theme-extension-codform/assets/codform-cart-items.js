@@ -249,33 +249,17 @@
     
     console.log(`🛒 Cart Items: Starting with - Price: ${cachedProductPrice}, Currency: ${cachedCurrency}`);
     
-    // ✅ استخدام النظام الموحد للحصول على السعر المحدث
-    try {
-      if (window.CodformUnifiedSystem && window.CodformUnifiedSystem.formatCurrency) {
-        const unifiedPrice = window.CodformUnifiedSystem.formatCurrency(cachedProductPrice, cachedCurrency);
-        console.log(`🛒 Cart Items: Using unified system: ${cachedProductPrice} ${cachedCurrency} → ${unifiedPrice}`);
-        
-        // Extract numeric value and currency from unified format
-        const priceMatch = unifiedPrice.match(/([\d.,]+)\s*(.+)/);
-        if (priceMatch) {
-          displayPrice = parseFloat(priceMatch[1].replace(',', ''));
-          displayCurrency = window.CodformUnifiedSystem.getPreferredCurrency();
-        }
-      } else {
-        console.log(`🛒 Cart Items: Unified system not ready, using defaults`);
-      }
-    } catch (error) {
-      console.error('🚨 Cart Items: Error with unified system:', error);
-    }
+    // ✅ استخدام النظام الموحد مباشرة مع تطبيق المعدلات المخصصة
+    let formattedPrice = formatCurrency(cachedProductPrice, cachedCurrency);
     
-  // ✅ استخدام النظام الموحد للتنسيق
-  let formattedPrice = formatCurrency(displayPrice, displayCurrency);
-  
-  // استخدام النظام الموحد إذا كان متاحاً
-  if (window.CodformUnifiedSystem && window.CodformUnifiedSystem.formatCurrency) {
-    formattedPrice = window.CodformUnifiedSystem.formatCurrency(cachedProductPrice, cachedCurrency);
-    console.log(`🛒 Cart Items: Final formatted price: ${formattedPrice}`);
-  }
+    // تطبيق النظام الموحد مع المعدلات المخصصة
+    if (window.CodformUnifiedSystem && window.CodformUnifiedSystem.formatCurrency) {
+      // Force apply custom rates by passing true as third parameter
+      formattedPrice = window.CodformUnifiedSystem.formatCurrency(cachedProductPrice, cachedCurrency, true);
+      console.log(`🛒 Cart Items: Applied unified system with custom rates: ${cachedProductPrice} ${cachedCurrency} → ${formattedPrice}`);
+    } else {
+      console.log(`🛒 Cart Items: Unified system not available, using fallback formatting`);
+    }
     
     // Get product data from cache
     const productData = window.CodformProductData || {};
@@ -345,7 +329,7 @@
                 color: #6b7280;
                 margin: 0;
                 font-size: 14px;
-              ">${priceLabel} <span class="cart-items-price" data-currency="${displayCurrency}">${formattedPrice}</span></p>
+              ">${priceLabel} <span class="cart-items-price" data-currency="${cachedCurrency}">${formattedPrice}</span></p>
             </div>
             
             <!-- Quantity Controls -->
