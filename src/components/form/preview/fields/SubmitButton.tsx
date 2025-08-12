@@ -36,10 +36,10 @@ interface SubmitButtonProps {
 
 const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, onClick, disabled = false }) => {
   // Debug logging for submit button
-  if (field.type === 'submit') {
-    console.log('🎯 SubmitButton render - field.style:', field.style);
-    console.log('🎯 SubmitButton render - formStyle:', formStyle);
-  }
+  console.log('🔍 SubmitButton Debug - field:', field);
+  console.log('🔍 SubmitButton Debug - field.style:', field.style);
+  console.log('🔍 SubmitButton Debug - field.icon:', field.icon);
+  console.log('🔍 SubmitButton Debug - field.style?.icon:', field.style?.icon);
   
   // Extract style values with fallbacks
   const {
@@ -51,11 +51,15 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, onClick, 
     animationType = field.style?.animationType || 'pulse',
     borderRadius = formStyle.borderRadius || '8px',
     paddingY = field.style?.paddingY || '10px',
-    showIcon = field.style?.showIcon || false,
-    iconPosition = field.style?.iconPosition || 'left',
+    showIcon = field.style?.showIcon !== false, // تفعيل الأيقونة افتراضياً
+    iconPosition = field.style?.iconPosition || 'right',
     borderColor = field.style?.borderColor,
     borderWidth = field.style?.borderWidth || '0px',
   } = field.style || {};
+
+  // Get the current icon - prioritize style.icon over field.icon
+  const currentIcon = field.style?.icon || field.icon || 'shopping-cart';
+  console.log('🎯 Current Icon:', currentIcon);
 
   // Derived icon settings for consistent preview/store behavior
   const formDirection = formStyle.formDirection === 'rtl' ? 'rtl' : 'ltr';
@@ -63,8 +67,10 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, onClick, 
   const defaultPaddingY = formDirection === 'rtl' ? '12px' : '15px';
   const iconSize = parseInt(String(field.style?.iconSize ?? '18px').toString().replace('px','')) || 18;
   const effectiveIconPosition = field.style?.iconPosition ?? 'right';
-  const hasIcon = Boolean(field.style?.icon || field.icon);
-  const showIconEffective = typeof field.style?.showIcon === 'boolean' ? Boolean(field.style?.showIcon) : hasIcon;
+  
+  // Show icon if showIcon is true and we have an icon (and it's not 'none')
+  const shouldShowIcon = showIcon && currentIcon && currentIcon !== 'none';
+  console.log('🎯 Should Show Icon:', shouldShowIcon, 'showIcon:', showIcon, 'currentIcon:', currentIcon);
 
   // Generate animation class based on animation type
   const getAnimationClass = () => {
@@ -187,17 +193,17 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, onClick, 
       onClick={handleSubmit}
       disabled={disabled}
     >
-      {showIconEffective && effectiveIconPosition === 'left' && (field.style?.icon || field.icon) && (
+      {shouldShowIcon && effectiveIconPosition === 'left' && (
         <span className="submit-icon-left">
-          {getIconComponent(field.style?.icon || field.icon)}
+          {getIconComponent(currentIcon)}
         </span>
       )}
       
       {field.label || 'Submit'}
       
-      {showIconEffective && effectiveIconPosition === 'right' && (field.style?.icon || field.icon) && (
+      {shouldShowIcon && effectiveIconPosition === 'right' && (
         <span className="submit-icon-right">
-          {getIconComponent(field.style?.icon || field.icon)}
+          {getIconComponent(currentIcon)}
         </span>
       )}
     </button>
