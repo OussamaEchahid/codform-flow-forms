@@ -437,19 +437,17 @@
       
       // Get current product from Shopify Liquid
       const productPrice = parseFloat('{{ product.price | divided_by: 100.0 }}') || 29.99;
-      // ✅ FIXED: Use form currency instead of shop currency
-      const formCurrency = (window.CodformFormData && window.CodformFormData.currency) || 
-                          (window.currentFormData && window.currentFormData.savedFormCurrency) || 
-                          (formStyle && formStyle.formCurrency) || 
-                          '{{ shop.currency }}' || 'USD';
+      const productCurrency = (window.CodformFormData && window.CodformFormData.currency) || 
+                              (window.currentFormData && window.currentFormData.savedFormCurrency) || 
+                              (formStyle && formStyle.formCurrency) || 
+                              '{{ shop.currency }}' || 'USD';
       const productImage = '{{ product.featured_image | img_url: "300x300" }}' || '';
       const productTitle = '{{ product.title }}' || (formLanguage === 'ar' ? 'عنوان المنتج' : 'Product Title');
       const productVariant = '{{ product.variants.first.title }}' || '';
-      console.log('💰 [CART-ITEMS] Using form currency:', formCurrency, 'from sources:', {
-        CodformFormData: window.CodformFormData?.currency,
-        currentFormData: window.currentFormData?.savedFormCurrency,
-        formStyle: formStyle?.formCurrency
-      });
+      const currencySymbol = productCurrency === 'USD' ? '$' : 
+                            productCurrency === 'SAR' ? 'ر.س' : 
+                            productCurrency === 'MAD' ? 'د.م' : 
+                            productCurrency === 'AED' ? 'د.إ' : productCurrency;
       
       // Apply all cart items styling properties
       const hideImage = fieldStyle.hideImage === true;
@@ -490,13 +488,10 @@
       const discountPrice = fieldStyle.discountPrice || '';
       const hideDiscountPrice = fieldStyle.hideDiscountPrice === true;
       
-              // ✅ FIXED: Format price with form currency using Smart Currency System
-              let formattedPrice = `${productPrice.toFixed(2)} ${formCurrency}`;
+              // Format price with Smart Currency System
+              let formattedPrice = `${productPrice.toFixed(2)} ${currencySymbol}`;
               if (window.CodformSmartCurrency && window.CodformSmartCurrency.system.isInitialized) {
-                formattedPrice = window.CodformSmartCurrency.formatCurrency(productPrice, formCurrency);
-                console.log('💰 [CART-ITEMS] Formatted price with Smart Currency:', formattedPrice);
-              } else {
-                console.log('💰 [CART-ITEMS] Using fallback price format:', formattedPrice);
+                formattedPrice = window.CodformSmartCurrency.formatCurrency(productPrice, productCurrency);
               }
       
       html = `
