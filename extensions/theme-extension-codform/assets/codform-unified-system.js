@@ -102,12 +102,14 @@
     async _loadSettingsFromAPI(shopId) {
       try {
         const response = await fetch(
-          `https://tftklwisfteasdvdzsue.supabase.co/functions/v1/currency-settings?shop_id=${encodeURIComponent(shopId)}.myshopify.com`,
+          `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/get-shop-currency-settings`,
           {
-            method: 'GET',
+            method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-            }
+              'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M'
+            },
+            body: JSON.stringify({ shop_id: shopId + '.myshopify.com' })
           }
         );
 
@@ -121,12 +123,15 @@
           this.currentSettings = {
             showSymbol: data.display_settings.show_symbol ?? true,
             symbolPosition: data.display_settings.symbol_position || 'before',
-            decimalPlaces: data.display_settings.decimal_places ?? 0,
+            decimalPlaces: data.display_settings.decimal_places ?? 1,
             customSymbols: data.custom_symbols || {},
             customRates: data.custom_rates || {}
           };
           
           debugLog('✅ Settings loaded from API:', this.currentSettings);
+          
+          // ✅ حفظ الإعدادات في localStorage للاستخدام الفوري
+          this._saveToLocalStorage();
         } else {
           throw new Error('Invalid response format');
         }
@@ -141,7 +146,7 @@
       this.currentSettings = {
         showSymbol: true,
         symbolPosition: 'before',
-        decimalPlaces: 0,
+        decimalPlaces: 1,
         customSymbols: {
           'SAR': 'ر.س',
           'USD': '$',
@@ -156,6 +161,30 @@
         }
       };
       this.isInitialized = true;
+      this._saveToLocalStorage();
+    }
+
+    /**
+     * حفظ الإعدادات في localStorage
+     */
+    _saveToLocalStorage() {
+      try {
+        const settings = {
+          currency: this.getPreferredCurrency(),
+          exchangeRates: this.currentSettings.customRates,
+          displaySettings: {
+            showSymbol: this.currentSettings.showSymbol,
+            symbolPosition: this.currentSettings.symbolPosition,
+            decimalPlaces: this.currentSettings.decimalPlaces
+          },
+          customSymbols: this.currentSettings.customSymbols
+        };
+        
+        localStorage.setItem('codform_currency_settings', JSON.stringify(settings));
+        debugLog('💾 Settings saved to localStorage:', settings);
+      } catch (error) {
+        debugLog('❌ Error saving to localStorage:', error);
+      }
     }
 
   /**
@@ -240,13 +269,24 @@
   convertCurrency(amount, fromCurrency, toCurrency) {
     if (fromCurrency === toCurrency) return amount;
     
-    const exchangeRates = {
-      'USD': 1.0,
-      'SAR': 3.75,
-      'MAD': 10.0,
-      'AED': 3.67,
-      'EGP': 30.85
+    // استخدام معدلات التحويل المخصصة أولاً، ثم الافتراضية
+    let exchangeRates = this.currentSettings?.customRates || {};
+    
+    // إضافة المعدلات الافتراضية للعملات غير المتوفرة
+    const defaultRates = {
+      'USD': 1.0, 'EUR': 0.92, 'GBP': 0.79, 'SAR': 3.75, 'MAD': 10, 'AED': 3.67, 'EGP': 30.85,
+      'CAD': 1.43, 'AUD': 1.57, 'JPY': 149, 'CHF': 0.89, 'CNY': 7.24, 'INR': 83.12, 'BRL': 6.05,
+      'RUB': 92.5, 'TRY': 34.15, 'KRW': 1345, 'SGD': 1.35, 'HKD': 7.8, 'NOK': 10.85, 'SEK': 10.62,
+      'DKK': 6.89, 'PLN': 4.12, 'CZK': 22.85, 'HUF': 365, 'ILS': 3.67, 'ZAR': 18.45, 'MXN': 20.15,
+      'THB': 35.2, 'MYR': 4.68, 'IDR': 15850, 'PHP': 56.2, 'VND': 24350, 'QAR': 3.64, 'KWD': 0.31,
+      'BHD': 0.38, 'OMR': 0.38, 'JOD': 0.71, 'LBP': 89500, 'TND': 3.15, 'DZD': 134.25, 'IQD': 1310,
+      'IRR': 42100, 'SYP': 13000, 'YER': 250, 'NGN': 1675, 'KES': 130.5, 'GHS': 15.85, 'ETB': 125.5,
+      'TZS': 2515, 'UGX': 3785, 'ZWL': 322, 'ZMW': 27.85, 'RWF': 1385, 'XOF': 655.96, 'XAF': 655.96,
+      'ARS': 1005.5, 'CLP': 975.2, 'COP': 4285.5, 'PEN': 3.75, 'VES': 36500000, 'UYU': 40.25
     };
+    
+    // دمج المعدلات المخصصة مع الافتراضية
+    exchangeRates = { ...defaultRates, ...exchangeRates };
     
     // التحويل عبر الدولار كعملة أساسية
     const fromRate = exchangeRates[fromCurrency] || 1;
@@ -265,6 +305,7 @@
     setTimeout(() => {
       updateQuantityOffersWithUnifiedSystem();
       updateCartSummaryWithUnifiedSystem();
+      updateCartItemsWithUnifiedSystem();
       updateGeneralElementsWithUnifiedSystem();
     }, 100);
   }
@@ -368,13 +409,51 @@
       debugLog('🔄 Currency settings updated, refreshing components...');
       updateQuantityOffersWithUnifiedSystem();
       updateCartSummaryWithUnifiedSystem();
+      updateCartItemsWithUnifiedSystem();
     });
     
     // تحديث المكونات فوراً
     updateQuantityOffersWithUnifiedSystem();
     updateCartSummaryWithUnifiedSystem();
+    updateCartItemsWithUnifiedSystem();
     
     debugLog('✅ Unified system fully initialized and connected');
+  }
+
+  /**
+   * تحديث Cart Items لاستخدام النظام الموحد
+   */
+  function updateCartItemsWithUnifiedSystem() {
+    debugLog('🔄 Updating Cart Items with unified system...');
+    
+    // البحث عن عناصر الأسعار في Cart Items
+    document.querySelectorAll('.codform-cart-items .cart-items-price').forEach(priceElement => {
+      const cartContainer = priceElement.closest('.codform-cart-items');
+      const quantityElement = cartContainer?.querySelector('.cart-items-quantity');
+      const quantity = quantityElement ? parseInt(quantityElement.textContent || '1') : 1;
+      
+      // الحصول على السعر الأصلي من عدة مصادر
+      const originalPrice = window.CodformProductData?.price || 
+                           window.cachedProductPrice || 
+                           parseFloat(priceElement.getAttribute('data-base-price')) || 
+                           29.99;
+      const originalCurrency = window.CodformProductData?.currency || 
+                              window.cachedCurrency || 
+                              priceElement.getAttribute('data-base-currency') || 
+                              'SAR';
+      
+      if (!isNaN(originalPrice)) {
+        const totalPrice = originalPrice * quantity;
+        const formattedPrice = unifiedSystem.formatCurrency(totalPrice, originalCurrency);
+        
+        priceElement.textContent = formattedPrice;
+        priceElement.setAttribute('data-currency', unifiedSystem.getPreferredCurrency());
+        priceElement.setAttribute('data-base-price', originalPrice.toString());
+        priceElement.setAttribute('data-base-currency', originalCurrency);
+        
+        debugLog(`💰 Updated cart items price: ${originalPrice} x ${quantity} = ${totalPrice} ${originalCurrency} → ${formattedPrice}`);
+      }
+    });
   }
 
   /**
@@ -410,8 +489,15 @@
     },
     updateQuantityOffers: updateQuantityOffersWithUnifiedSystem,
     updateCartSummary: updateCartSummaryWithUnifiedSystem,
+    updateCartItems: updateCartItemsWithUnifiedSystem,
     updateGeneralElements: updateGeneralElementsWithUnifiedSystem,
-    refreshAll: () => unifiedSystem.refreshAllComponents()
+    refreshAll: () => unifiedSystem.refreshAllComponents(),
+    updateAllElements: () => {
+      updateQuantityOffersWithUnifiedSystem();
+      updateCartSummaryWithUnifiedSystem();
+      updateCartItemsWithUnifiedSystem();
+      updateGeneralElementsWithUnifiedSystem();
+    }
   };
 
   // تهيئة تلقائية

@@ -401,17 +401,36 @@ class CurrencyServiceClass {
       window.dispatchEvent(event);
       console.log('📡 Currency change notification sent to store');
       
-      // تطبيق فوري للتغييرات في النظام الموحد
+      // ✅ إجبار النظام الموحد على إعادة التحميل من قاعدة البيانات
       if (typeof window !== 'undefined' && (window as any).CodformUnifiedSystem) {
-        (window as any).CodformUnifiedSystem.updateAllElements();
-        console.log('🎯 Direct unified system update triggered');
+        // إعادة تهيئة النظام الموحد لجلب البيانات الجديدة
+        (window as any).CodformUnifiedSystem.initialize().then(() => {
+          (window as any).CodformUnifiedSystem.updateAllElements();
+          console.log('🎯 Unified system reinitialized and updated');
+        });
       }
       
-      // محاولة إعادة تحميل البيانات في المتجر
-      if (typeof window !== 'undefined' && (window as any).CodformUltimateCurrency) {
-        (window as any).CodformUltimateCurrency.reloadSettings();
-        console.log('🔄 Ultimate currency system reload triggered');
+      // ✅ حفظ الإعدادات الجديدة في localStorage فوراً
+      try {
+        const settings = {
+          currency: 'MAD', // أو أي عملة أخرى حسب الإعدادات
+          exchangeRates: Object.fromEntries(this.customRates.entries()),
+          displaySettings: this.displaySettings,
+          customSymbols: this.displaySettings.customSymbols
+        };
+        localStorage.setItem('codform_currency_settings', JSON.stringify(settings));
+        console.log('💾 Updated settings saved to localStorage');
+      } catch (error) {
+        console.error('❌ Error saving to localStorage:', error);
       }
+      
+      // ✅ تطبيق تحديث شامل على جميع العناصر
+      setTimeout(() => {
+        if (typeof window !== 'undefined' && (window as any).CodformUnifiedSystem) {
+          (window as any).CodformUnifiedSystem.refreshAll();
+          console.log('🔄 All elements refreshed with new settings');
+        }
+      }, 500);
       
     } catch (error) {
       console.error('❌ Error notifying store of currency changes:', error);

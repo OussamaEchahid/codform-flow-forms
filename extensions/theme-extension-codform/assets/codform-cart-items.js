@@ -132,23 +132,9 @@
         }
       }
 
-      // Apply currency conversion if needed
-      try {
-        const savedCurrencySettings = localStorage.getItem('codform_currency_settings');
-        if (savedCurrencySettings) {
-          const settings = JSON.parse(savedCurrencySettings);
-          if (settings.currency && settings.currency !== productData.currency && settings.exchangeRates) {
-            const rate = settings.exchangeRates[settings.currency];
-            if (rate) {
-              productData.price = productData.price * rate;
-              productData.currency = settings.currency;
-              console.log(`🛒 Cart Items: Applied currency conversion: ${productData.price} ${productData.currency}`);
-            }
-          }
-        }
-      } catch (storageError) {
-        console.log('🛒 Cart Items: No currency settings in localStorage:', storageError.message);
-      }
+      // **سيتم التطبيق من خلال النظام الموحد لاحقاً**
+      // Apply currency conversion تم إلغاؤه هنا لتجنب التضارب
+      console.log('🛒 Cart Items: Currency conversion will be handled by unified system');
 
       // Cache the results
       cachedProductPrice = productData.price;
@@ -263,34 +249,33 @@
     
     console.log(`🛒 Cart Items: Starting with - Price: ${cachedProductPrice}, Currency: ${cachedCurrency}`);
     
-    // CRITICAL FIX: Get currency settings and apply them properly
+    // ✅ استخدام النظام الموحد للحصول على السعر المحدث
     try {
-      const savedCurrencySettings = localStorage.getItem('codform_currency_settings');
-      console.log(`🛒 Cart Items: Raw settings:`, savedCurrencySettings);
-      
-      if (savedCurrencySettings) {
-        const settings = JSON.parse(savedCurrencySettings);
-        console.log(`🛒 Cart Items: Parsed settings:`, settings);
+      if (window.CodformUnifiedSystem && window.CodformUnifiedSystem.formatCurrency) {
+        const unifiedPrice = window.CodformUnifiedSystem.formatCurrency(cachedProductPrice, cachedCurrency);
+        console.log(`🛒 Cart Items: Using unified system: ${cachedProductPrice} ${cachedCurrency} → ${unifiedPrice}`);
         
-        if (settings.currency && settings.exchangeRates) {
-          displayCurrency = settings.currency;
-          
-          // Simple conversion logic: multiply base price by target currency rate
-          const targetRate = settings.exchangeRates[settings.currency];
-          if (targetRate && targetRate > 0) {
-            displayPrice = cachedProductPrice * targetRate;
-            console.log(`🛒 Cart Items: FINAL CONVERSION: ${cachedProductPrice} * ${targetRate} = ${displayPrice} ${displayCurrency}`);
-          }
+        // Extract numeric value and currency from unified format
+        const priceMatch = unifiedPrice.match(/([\d.,]+)\s*(.+)/);
+        if (priceMatch) {
+          displayPrice = parseFloat(priceMatch[1].replace(',', ''));
+          displayCurrency = window.CodformUnifiedSystem.getPreferredCurrency();
         }
       } else {
-        console.log(`🛒 Cart Items: No currency settings found, using defaults`);
+        console.log(`🛒 Cart Items: Unified system not ready, using defaults`);
       }
     } catch (error) {
-      console.error('🚨 Cart Items: Currency conversion error:', error);
+      console.error('🚨 Cart Items: Error with unified system:', error);
     }
     
-    // Format the price with currency settings applied
-    const formattedPrice = formatCurrency(displayPrice, displayCurrency);
+  // ✅ استخدام النظام الموحد للتنسيق
+  let formattedPrice = formatCurrency(displayPrice, displayCurrency);
+  
+  // استخدام النظام الموحد إذا كان متاحاً
+  if (window.CodformUnifiedSystem && window.CodformUnifiedSystem.formatCurrency) {
+    formattedPrice = window.CodformUnifiedSystem.formatCurrency(cachedProductPrice, cachedCurrency);
+    console.log(`🛒 Cart Items: Final formatted price: ${formattedPrice}`);
+  }
     
     // Get product data from cache
     const productData = window.CodformProductData || {};
@@ -711,6 +696,24 @@
 
   // Listen for currency changes
   window.addEventListener('codform:currency-changed', updateCurrency);
+
+  // ✅ استمع للتحديثات من النظام الموحد
+  window.addEventListener('currencySettingsUpdated', function(event) {
+    console.log('🛒 Cart Items: Currency settings updated, refreshing display');
+    setTimeout(() => {
+      if (window.CodformUnifiedSystem && window.CodformUnifiedSystem.updateCartItems) {
+        window.CodformUnifiedSystem.updateCartItems();
+      } else {
+        // Fallback للتحديث اليدوي
+        const existingCartItems = document.querySelector('.codform-cart-items');
+        if (existingCartItems) {
+          const quantityElement = existingCartItems.querySelector('.cart-items-quantity');
+          const quantity = quantityElement ? parseInt(quantityElement.textContent) : 1;
+          updatePriceDisplay(quantity);
+        }
+      }
+    }, 100);
+  });
 
   // Export global API
   window.CodformCartItems = {
