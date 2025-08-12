@@ -208,6 +208,12 @@ const SortableField: React.FC<SortableFieldProps> = ({
     };
     setEditedField(updatedField);
     
+    // Debug للتتبع
+    if (editedField.type === 'submit') {
+      console.log(`🔧 Submit button style change - ${property}:`, value);
+      console.log('🔧 Updated field style:', updatedField.style);
+    }
+    
     if (onFieldUpdate) {
       onFieldUpdate(updatedField);
     }
@@ -1409,19 +1415,19 @@ const SortableField: React.FC<SortableFieldProps> = ({
                         
                         {/* Label color */}
                         <div className="space-y-1">
-                          <Label>{language === 'ar' ? 'لون التسمية' : 'Label color'}</Label>
+                          <Label>{shouldShowSubmitSpecificSettings ? (language === 'ar' ? 'لون النص' : 'Text color') : (language === 'ar' ? 'لون التسمية' : 'Label color')}</Label>
                           <div className="flex gap-2 items-center">
-                            <Input
-                              type="color"
-                              value={editedField.style?.labelColor || '#9b87f5'}
-                              onChange={(e) => handleStyleChange('labelColor', e.target.value)}
-                              className="w-9 h-9 p-1"
-                            />
-                            <Input
-                              value={editedField.style?.labelColor || '#9b87f5'}
-                              onChange={(e) => handleStyleChange('labelColor', e.target.value)}
-                              className="flex-1"
-                            />
+                             <Input
+                               type="color"
+                               value={shouldShowSubmitSpecificSettings ? (editedField.style?.color || '#ffffff') : (editedField.style?.labelColor || '#9b87f5')}
+                               onChange={(e) => handleStyleChange(shouldShowSubmitSpecificSettings ? 'color' : 'labelColor', e.target.value)}
+                               className="w-9 h-9 p-1"
+                             />
+                             <Input
+                               value={shouldShowSubmitSpecificSettings ? (editedField.style?.color || '#ffffff') : (editedField.style?.labelColor || '#9b87f5')}
+                               onChange={(e) => handleStyleChange(shouldShowSubmitSpecificSettings ? 'color' : 'labelColor', e.target.value)}
+                               className="flex-1"
+                             />
                           </div>
                         </div>
                         
@@ -1590,7 +1596,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
                               <div className="space-y-1">
                                 <Label>{language === 'ar' ? 'موضع الأيقونة' : 'Icon Position'}</Label>
                                 <Select
-                                  value={editedField.style?.iconPosition || (language === 'ar' ? 'right' : 'left')}
+                                  value={editedField.style?.iconPosition || 'right'}
                                   onValueChange={(value) => handleStyleChange('iconPosition', value)}
                                 >
                                   <SelectTrigger>
@@ -1687,23 +1693,25 @@ const SortableField: React.FC<SortableFieldProps> = ({
                             </div>
                           )}
                           
-                          {/* Text color */}
-                         <div className="space-y-1">
-                           <Label>{language === 'ar' ? 'لون النص' : 'Text color'}</Label>
-                           <div className="flex gap-2 items-center">
-                             <Input
-                               type="color"
-                               value={editedField.style?.color || '#000000'}
-                               onChange={(e) => handleStyleChange('color', e.target.value)}
-                               className="w-9 h-9 p-1"
-                             />
-                             <Input
-                               value={editedField.style?.color || '#000000'}
-                               onChange={(e) => handleStyleChange('color', e.target.value)}
-                               className="flex-1"
-                             />
-                           </div>
-                         </div>
+                           {/* Text color - hide for submit (handled above) */}
+                          {!shouldShowSubmitSpecificSettings && (
+                            <div className="space-y-1">
+                              <Label>{language === 'ar' ? 'لون النص' : 'Text color'}</Label>
+                              <div className="flex gap-2 items-center">
+                                <Input
+                                  type="color"
+                                  value={editedField.style?.color || '#000000'}
+                                  onChange={(e) => handleStyleChange('color', e.target.value)}
+                                  className="w-9 h-9 p-1"
+                                />
+                                <Input
+                                  value={editedField.style?.color || '#000000'}
+                                  onChange={(e) => handleStyleChange('color', e.target.value)}
+                                  className="flex-1"
+                                />
+                              </div>
+                            </div>
+                          )}
                       </div>
                       
                       {/* Right column - Style settings */}

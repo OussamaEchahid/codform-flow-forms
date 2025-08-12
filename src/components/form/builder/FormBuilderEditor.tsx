@@ -897,6 +897,11 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
         id: formElements[index].id
       };
       
+      // Debug للتتبع
+      if (updatedElement.type === 'submit') {
+        console.log('📝 FormBuilderEditor - Submit button update:', updatedElement.style);
+      }
+      
       setFormElements(updatedElements);
       setRefreshKey(prev => prev + 1);
       setHasUnsavedChanges(true);

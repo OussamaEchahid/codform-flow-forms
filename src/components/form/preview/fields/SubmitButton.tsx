@@ -35,6 +35,12 @@ interface SubmitButtonProps {
 }
 
 const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, onClick, disabled = false }) => {
+  // Debug logging for submit button
+  if (field.type === 'submit') {
+    console.log('🎯 SubmitButton render - field.style:', field.style);
+    console.log('🎯 SubmitButton render - formStyle:', formStyle);
+  }
+  
   // Extract style values with fallbacks
   const {
     backgroundColor = field.style?.backgroundColor || formStyle.primaryColor || '#9b87f5',
