@@ -593,19 +593,65 @@
         const priceElement = cartItem.querySelector('.cart-items-price');
         if (priceElement && cachedProductPrice && cachedCurrency) {
           const quantity = parseInt(cartItem.querySelector('.cart-items-quantity')?.textContent || '1');
-          const totalPrice = cachedProductPrice * quantity;
-          priceElement.textContent = formatCurrency(totalPrice, cachedCurrency);
-          priceElement.setAttribute('data-currency', cachedCurrency);
+          updatePriceDisplay(quantity);
         }
       });
     });
   }
 
+  /**
+   * Price Protection System - prevents external systems from overriding our prices
+   */
+  function protectPriceDisplay() {
+    // Monitor for price changes and restore correct values
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'childList' || mutation.type === 'characterData') {
+          const priceElements = document.querySelectorAll('.codform-cart-items .cart-items-price');
+          priceElements.forEach((priceElement) => {
+            const currentText = priceElement.textContent;
+            const expectedCurrency = priceElement.getAttribute('data-currency');
+            
+            // Check if price was changed to wrong currency (like $1.0)
+            if (currentText && expectedCurrency && !currentText.includes(expectedCurrency)) {
+              console.log(`🛒 Cart Items: Price protection triggered - restoring correct price`);
+              const quantity = parseInt(document.querySelector('.cart-items-quantity')?.textContent || '1');
+              updatePriceDisplay(quantity);
+            }
+          });
+        }
+      });
+    });
+
+    // Start observing
+    const cartItems = document.querySelector('.codform-cart-items');
+    if (cartItems) {
+      observer.observe(cartItems, {
+        childList: true,
+        subtree: true,
+        characterData: true
+      });
+      console.log(`🛒 Cart Items: Price protection system activated`);
+    }
+
+    return observer;
+  }
+
   // Auto-initialize when the document is ready
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initialize);
+    document.addEventListener('DOMContentLoaded', () => {
+      initialize().then(() => {
+        // Activate price protection after initialization
+        setTimeout(protectPriceDisplay, 500);
+      });
+    });
   } else {
-    setTimeout(initialize, 100);
+    setTimeout(() => {
+      initialize().then(() => {
+        // Activate price protection after initialization
+        setTimeout(protectPriceDisplay, 500);
+      });
+    }, 100);
   }
 
   // Listen for currency changes
