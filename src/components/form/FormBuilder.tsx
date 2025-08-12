@@ -25,6 +25,7 @@ import FormTemplatesDialog from './FormTemplatesDialog';
 import FieldEditor from './FieldEditor';
 import { cn } from '@/lib/utils';
 import { FormField, FormStep, deepCloneField, deepCloneStep, formTemplates } from '@/lib/form-utils';
+import { getFieldDefaults } from '@/lib/defaults/field-defaults';
 import { Dialog, DialogTrigger, DialogTitle, DialogContent, DialogFooter } from '@/components/ui/dialog';
 import { useFormTemplates, FormData } from '@/lib/hooks/useFormTemplates';
 import { toast } from 'sonner';
@@ -307,15 +308,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
       label: language === 'ar' ? 'إرسال الطلب' : 'Submit Order',
       icon: 'shopping-cart',
       style: {
-        backgroundColor: '#9b87f5',
-        showIcon: true,
-        iconPosition: 'right',
-        color: '#ffffff',
-        fontSize: language === 'ar' ? '17px' : '18px',
-        paddingY: language === 'ar' ? '12px' : '15px',
-        iconSize: '18px',
-        animation: true,
-        animationType: 'pulse',
+        ...getFieldDefaults('submit', language).submit.style,
       },
     });
     

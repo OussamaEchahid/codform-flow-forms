@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { useI18n } from '@/lib/i18n';
 import { useFormStore, FormStyle } from '@/hooks/useFormStore';
 import { FormField, FormStep, FormFieldType } from '@/lib/form-utils';
+import { getFieldDefaults } from '@/lib/defaults/field-defaults';
 import FieldEditor from '@/components/form/FieldEditor';
 import FormHeader from '@/components/form/builder/FormHeader';
 import FormElementEditor from '@/components/form/builder/FormElementEditor';
@@ -389,16 +390,8 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
         icon: 'shopping-cart',
         style: {
           backgroundColor: '#000000',
-          showIcon: true,
-          iconPosition: 'right',
-          color: '#ffffff',
-          fontSize: language === 'ar' ? '17px' : '18px',
+          ...getFieldDefaults('submit', language).submit.style,
           animationType: 'shake',
-          borderColor: '#eaeaff',
-          borderRadius: '6px',
-          borderWidth: '0px',
-          paddingY: language === 'ar' ? '12px' : '15px',
-          iconSize: '18px',
         },
       };
               loadedElements.push(submitButton);

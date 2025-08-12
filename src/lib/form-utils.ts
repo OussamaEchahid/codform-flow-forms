@@ -200,90 +200,11 @@ export const deepCloneStep = (step: FormStep): FormStep => {
   }
 };
 
+import { createFieldWithDefaults } from './defaults/field-defaults';
+
 // Add helper functions for form creation
-export const createEmptyField = (type: string): FormField => {
-  const field: FormField = {
-    id: `field-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-    type,
-    label: '',
-    required: false
-  };
-  
-  // Add default properties based on field type
-  switch (type) {
-    case 'form-title':
-      field.label = 'عنوان النموذج';
-      field.content = 'عنوان النموذج'; // إضافة content أيضاً
-      field.style = {
-        color: '#000000', // FIXED: أسود مضمون للنماذج الجديدة
-        backgroundColor: 'transparent',
-        textAlign: 'center' as 'center',
-        fontSize: '24px',
-        fontWeight: 'bold',
-        fontFamily: 'Cairo, Tajawal, Arial, sans-serif'
-      };
-      console.log('Creating form-title field with BLACK color:', field.style.color);
-      break;
-    case 'submit':
-      field.label = 'Submit Form';
-      field.style = {
-        backgroundColor: '#9b87f5',
-        color: '#ffffff',
-        fontSize: '18px',
-        paddingY: '15px',
-        iconPosition: 'right',
-        iconSize: '18px',
-        showIcon: true,
-        animation: true,
-        animationType: 'pulse' as 'pulse'
-      };
-      break;
-    case 'text/html':
-      field.content = '<p>HTML Content</p>';
-      break;
-    case 'image':
-      field.label = 'صورة';
-      field.src = 'https://codform.com/assets/image_place_holder.avif';
-      field.alt = 'صورة';
-      field.width = '100';
-      field.style = {
-        textAlign: 'center' as 'center'
-      };
-      break;
-    case 'cart-items':
-      field.label = 'عناصر السلة';
-      field.productId = '';
-      field.style = {
-        showBorders: true,
-        hideImage: false,
-        hideTitle: false,
-        hideQuantitySelector: false,
-        hidePrice: false,
-        color: '#1f2937',
-        fontSize: '1.1rem',
-        fontFamily: 'Inter, Cairo, system-ui, sans-serif',
-        fontWeight: '600',
-        descriptionColor: '#6b7280',
-        descriptionFontSize: '0.875rem',
-        descriptionFontFamily: 'Inter, Cairo, system-ui, sans-serif',
-        descriptionFontWeight: '400',
-        quantityBgColor: '#f9fafb',
-        quantityBorderColor: '#e5e7eb',
-        quantityBorderWidth: '1',
-        quantityBorderRadius: '8',
-        quantityFontFamily: 'Inter, Cairo, system-ui, sans-serif',
-        quantityColor: '#1f2937',
-        quantityBtnColor: '#374151',
-        productFontWeight: '600',
-        priceColor: '#059669',
-        priceFontSize: '1.125rem',
-        priceFontFamily: 'Inter, Cairo, system-ui, sans-serif',
-        priceFontWeight: '700'
-      };
-      break;
-  }
-  
-  return field;
+export const createEmptyField = (type: string, language: string = 'en'): FormField => {
+  return createFieldWithDefaults(type, language) as FormField;
 };
 
 // Helper function to ensure new forms always have black titles

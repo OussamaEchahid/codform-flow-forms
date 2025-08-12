@@ -14,6 +14,7 @@ import ShopifyProductSelection from './ShopifyProductSelection';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Globe } from 'lucide-react';
 import { FormField } from '@/lib/form-utils';
+import { getFieldDefaults } from '@/lib/defaults/field-defaults';
 
 interface NewFormProductDialogProps {
   open: boolean;
@@ -171,19 +172,9 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
       label: currentTexts.submit,
       icon: 'shopping-cart',
       style: {
-        backgroundColor: '#9b87f5', // Use our default purple color
-        color: '#ffffff',
-        fontSize: selectedLanguage === 'ar' ? '17px' : '16px',
-        fontWeight: '500',
-        animation: true,
+        backgroundColor: '#9b87f5',
+        ...getFieldDefaults('submit', selectedLanguage).submit.style,
         animationType: 'shake',
-        borderColor: '#eaeaff',
-        borderRadius: '6px',
-        borderWidth: '0px',
-        paddingY: selectedLanguage === 'ar' ? '12px' : '15px',
-        showIcon: true,
-        iconPosition: 'right',
-        iconSize: '18px',
       }
     };
     
