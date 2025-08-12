@@ -17,7 +17,6 @@
 <link rel="stylesheet" href="{{ 'codform-styles.css' | asset_url }}">
 
 <!-- تحميل الملفات الأساسية -->
-<script src="{{ 'codform-ultimate-currency.js' | asset_url }}"></script>
 <script src="{{ 'codform-smart-currency-system.js' | asset_url }}"></script>
 <script src="{{ 'codform-currency-manager.js' | asset_url }}"></script>
 <script src="{{ 'codform-logger-control.js' | asset_url }}"></script>
@@ -438,14 +437,14 @@
       
       // Get current product from Shopify Liquid
       const productPrice = parseFloat('{{ product.price | divided_by: 100.0 }}') || 29.99;
-      const shopCurrency = '{{ shop.currency }}' || 'USD';
+      const productCurrency = '{{ shop.currency }}' || 'USD';
       const productImage = '{{ product.featured_image | img_url: "300x300" }}' || '';
       const productTitle = '{{ product.title }}' || (formLanguage === 'ar' ? 'عنوان المنتج' : 'Product Title');
       const productVariant = '{{ product.variants.first.title }}' || '';
-      
-      // استخدام عملة النموذج أو العملة الافتراضية من الإعدادات
-      let targetCurrency = shopCurrency;
-      let convertedPrice = productPrice;
+      const currencySymbol = productCurrency === 'USD' ? '$' : 
+                            productCurrency === 'SAR' ? 'ر.س' : 
+                            productCurrency === 'MAD' ? 'د.م' : 
+                            productCurrency === 'AED' ? 'د.إ' : productCurrency;
       
       // Apply all cart items styling properties
       const hideImage = fieldStyle.hideImage === true;
@@ -486,35 +485,11 @@
       const discountPrice = fieldStyle.discountPrice || '';
       const hideDiscountPrice = fieldStyle.hideDiscountPrice === true;
       
-              // تحويل السعر وتنسيقه باستخدام Ultimate Currency System
-              let formattedPrice = productPrice.toFixed(2);
-              
-              // تأجيل التحويل والتنسيق حتى يتم تحميل النظام
-              setTimeout(() => {
-                if (window.CodformUltimateCurrency && window.CodformUltimateCurrency.isInitialized()) {
-                  // الحصول على العملة المطلوبة من إعدادات النموذج
-                  const formCurrency = window.CodformUltimateCurrency.getFormCurrency();
-                  if (formCurrency && formCurrency !== shopCurrency) {
-                    convertedPrice = window.CodformUltimateCurrency.convertCurrency(productPrice, shopCurrency, formCurrency);
-                    targetCurrency = formCurrency;
-                  }
-                  
-                  // تنسيق السعر
-                  formattedPrice = window.CodformUltimateCurrency.formatCurrency(convertedPrice, targetCurrency);
-                  
-                  // تحديث السعر في DOM
-                  const priceElement = document.querySelector('.codform-cart-item .product-price');
-                  if (priceElement) {
-                    priceElement.textContent = formattedPrice;
-                  }
-                } else if (window.CodformSmartCurrency && window.CodformSmartCurrency.system.isInitialized) {
-                  formattedPrice = window.CodformSmartCurrency.formatCurrency(productPrice, shopCurrency);
-                  const priceElement = document.querySelector('.codform-cart-item .product-price');
-                  if (priceElement) {
-                    priceElement.textContent = formattedPrice;
-                  }
-                }
-              }, 1500);
+              // Format price with Smart Currency System
+              let formattedPrice = `${productPrice.toFixed(2)} ${currencySymbol}`;
+              if (window.CodformSmartCurrency && window.CodformSmartCurrency.system.isInitialized) {
+                formattedPrice = window.CodformSmartCurrency.formatCurrency(productPrice, productCurrency);
+              }
       
       html = `
         <div class="codform-cart-items" style="
@@ -2108,56 +2083,6 @@ window.handleFormSubmit = async function(event) {
   
   return false; // منع الإرسال الافتراضي
 };
-
-// إضافة مراقب للعملة في cart-items
-document.addEventListener('DOMContentLoaded', function() {
-  let cartItemsPriceUpdateTimeoutId = null;
-  
-  // تحديث أسعار cart-items عند تغيير العملة
-  function updateCartItemsPrices() {
-    if (cartItemsPriceUpdateTimeoutId) {
-      clearTimeout(cartItemsPriceUpdateTimeoutId);
-    }
-    
-    cartItemsPriceUpdateTimeoutId = setTimeout(() => {
-      if (window.CodformUltimateCurrency && window.CodformUltimateCurrency.isInitialized()) {
-        const priceElements = document.querySelectorAll('.codform-cart-item .product-price');
-        
-        priceElements.forEach(priceElement => {
-          const originalPrice = parseFloat('{{ product.price | divided_by: 100.0 }}') || 29.99;
-          const shopCurrency = '{{ shop.currency }}' || 'USD';
-          const formCurrency = window.CodformUltimateCurrency.getFormCurrency();
-          
-          if (formCurrency && formCurrency !== shopCurrency) {
-            const convertedPrice = window.CodformUltimateCurrency.convertCurrency(originalPrice, shopCurrency, formCurrency);
-            const formattedPrice = window.CodformUltimateCurrency.formatCurrency(convertedPrice, formCurrency);
-            priceElement.textContent = formattedPrice;
-          } else {
-            const formattedPrice = window.CodformUltimateCurrency.formatCurrency(originalPrice, shopCurrency);
-            priceElement.textContent = formattedPrice;
-          }
-        });
-        
-        console.log('✅ Cart Items: تم تحديث الأسعار بنجاح');
-      }
-    }, 300);
-  }
-  
-  // الاستماع لأحداث تغيير العملة
-  window.addEventListener('currencyChanged', updateCartItemsPrices);
-  window.addEventListener('ultimateCurrencyUpdated', updateCartItemsPrices);
-  
-  // تحديث دوري للتأكد من تطبيق الإعدادات
-  const updateInterval = setInterval(() => {
-    if (window.CodformUltimateCurrency && window.CodformUltimateCurrency.isInitialized()) {
-      updateCartItemsPrices();
-      clearInterval(updateInterval);
-    }
-  }, 1000);
-  
-  // تنظيف الفاصل الزمني بعد 10 ثوان
-  setTimeout(() => clearInterval(updateInterval), 10000);
-});
 
 </script>
 </script>
