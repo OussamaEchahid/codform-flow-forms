@@ -182,7 +182,7 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
         borderWidth: '0px',
         paddingY: selectedLanguage === 'ar' ? '12px' : '10px',
         showIcon: true,
-        iconPosition: selectedLanguage === 'ar' ? 'right' : 'left',
+        iconPosition: 'right',
         iconSize: selectedLanguage === 'ar' ? '18px' : '16px',
       }
     };

@@ -194,7 +194,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
       style: {
         backgroundColor: '#000000', // لون الخلفية الأسود
         showIcon: true,
-        iconPosition: 'left',
+        iconPosition: 'right',
         color: '#ffffff', // لون النص الأبيض
         fontSize: '1.15rem', // حجم الخط
         fontWeight: '500', // وزن النص
@@ -390,7 +390,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
         style: {
           backgroundColor: '#000000',
           showIcon: true,
-          iconPosition: language === 'ar' ? 'right' : 'left',
+          iconPosition: 'right',
           color: '#ffffff',
           fontSize: language === 'ar' ? '17px' : '16px',
           animationType: 'shake',

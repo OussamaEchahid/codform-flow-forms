@@ -56,7 +56,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, onClick, 
   const defaultFontSize = formDirection === 'rtl' ? '17px' : '18px';
   const defaultPaddingY = formDirection === 'rtl' ? '12px' : '15px';
   const iconSize = parseInt(String(field.style?.iconSize ?? '18px').toString().replace('px','')) || 18;
-  const effectiveIconPosition = field.style?.iconPosition || 'right';
+  const effectiveIconPosition = field.style?.iconPosition ?? 'right';
   const hasIcon = Boolean(field.style?.icon || field.icon);
   const showIconEffective = typeof field.style?.showIcon === 'boolean' ? Boolean(field.style?.showIcon) : hasIcon;
 
@@ -129,13 +129,19 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, onClick, 
   // Define button style
   const resolvedFontSize = field.style?.fontSize || defaultFontSize;
   const resolvedPaddingY = field.style?.paddingY || defaultPaddingY;
+  const computedRadius = (() => {
+    const base = field.style?.borderRadius || borderRadius;
+    if (formStyle.buttonStyle === 'pill') return '9999px';
+    if (formStyle.buttonStyle === 'square') return '0';
+    return base;
+  })();
   const btnStyle: React.CSSProperties = {
     backgroundColor,
     color,
     fontSize: resolvedFontSize,
     fontWeight,
     fontFamily: field.style?.fontFamily || 'inherit',
-    borderRadius,
+    borderRadius: computedRadius,
     padding: `${resolvedPaddingY} 24px`,
     border: borderColor ? `${borderWidth} solid ${borderColor}` : 'none',
     display: 'inline-flex',

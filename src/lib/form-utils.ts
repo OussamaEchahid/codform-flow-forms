@@ -379,7 +379,7 @@ export const formTemplates = [
               backgroundColor: '#9b87f5',
               color: '#ffffff',
               showIcon: true,
-              iconPosition: 'left',
+              iconPosition: 'right',
               animation: true,
               animationType: 'pulse' as 'pulse'
             }
@@ -456,7 +456,7 @@ export const formTemplates = [
               backgroundColor: '#9b87f5',
               color: '#ffffff',
               showIcon: true,
-              iconPosition: 'left',
+              iconPosition: 'right',
               animation: true,
               animationType: 'pulse' as 'pulse'
             }

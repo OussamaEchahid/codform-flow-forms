@@ -273,7 +273,7 @@ export const useFormTemplates = () => {
       style: {
         backgroundColor: '#9b87f5',
         showIcon: true,
-        iconPosition: 'left',
+        iconPosition: 'right',
         color: '#ffffff',
         fontSize: '18px',
         animation: true,

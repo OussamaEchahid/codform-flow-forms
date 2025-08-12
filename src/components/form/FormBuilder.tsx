@@ -309,7 +309,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
       style: {
         backgroundColor: '#9b87f5',
         showIcon: true,
-        iconPosition: language === 'ar' ? 'right' : 'left',
+        iconPosition: 'right',
         color: '#ffffff',
         fontSize: language === 'ar' ? '17px' : '16px',
         paddingY: language === 'ar' ? '12px' : '10px',
