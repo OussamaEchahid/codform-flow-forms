@@ -101,9 +101,8 @@
 
     async _loadSettingsFromAPI(shopId) {
       try {
-        // ✅ استخدام نفس الـ API المستخدم في CurrencyService
         const response = await fetch(
-          `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/currency-settings?shop_id=${encodeURIComponent(shopId)}.myshopify.com`,
+          `https://tftklwisfteasdvdzsue.supabase.co/functions/v1/currency-settings?shop_id=${encodeURIComponent(shopId)}.myshopify.com`,
           {
             method: 'GET',
             headers: {
@@ -124,16 +123,10 @@
             symbolPosition: data.display_settings.symbol_position || 'before',
             decimalPlaces: data.display_settings.decimal_places ?? 0,
             customSymbols: data.custom_symbols || {},
-            customRates: data.custom_rates || {},
-            // ✅ إضافة جميع المعدلات (مخصصة + افتراضية)
-            allRates: data.all_rates || {}
+            customRates: data.custom_rates || {}
           };
           
           debugLog('✅ Settings loaded from API:', this.currentSettings);
-          
-          // ✅ مزامنة البيانات مع localStorage للتوافق
-          this._syncWithLocalStorage();
-          
         } else {
           throw new Error('Invalid response format');
         }
@@ -141,31 +134,6 @@
       } catch (error) {
         debugLog('❌ Failed to load settings from API:', error);
         this._useDefaultSettings();
-      }
-    }
-
-    /**
-     * مزامنة البيانات مع localStorage للتوافق مع الأنظمة القديمة
-     */
-    _syncWithLocalStorage() {
-      try {
-        if (this.currentSettings && this.currentSettings.allRates) {
-          // تحديث localStorage بالإعدادات الجديدة
-          const currencySettings = {
-            currency: this.getPreferredCurrency(),
-            exchangeRates: this.currentSettings.allRates,
-            displaySettings: {
-              showSymbol: this.currentSettings.showSymbol,
-              symbolPosition: this.currentSettings.symbolPosition,
-              decimalPlaces: this.currentSettings.decimalPlaces
-            }
-          };
-          
-          localStorage.setItem('codform_currency_settings', JSON.stringify(currencySettings));
-          debugLog('✅ Synced settings to localStorage:', currencySettings);
-        }
-      } catch (error) {
-        debugLog('❌ Error syncing to localStorage:', error);
       }
     }
 

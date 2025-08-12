@@ -1,80 +1,171 @@
 /**
- * CODFORM Cart Items Handler - النسخة الموحدة
- * نظام موحد مع إدارة العملات لضمان المزامنة الكاملة
+ * CODFORM Cart Items Handler
+ * بناء على نفس طريقة cart-summary لضمان التوافق مع النظام
  */
 
 (function() {
   'use strict';
 
-  console.log('🛒 CODFORM Cart Items UNIFIED System: Starting...');
+  console.log('🛒 CODFORM Cart Items System: Starting initialization...');
 
   let cachedProductPrice = null;
   let cachedCurrency = null;
   let isInitialized = false;
-  let currencySettings = null;
 
   /**
-   * الحصول على بيانات المنتج من الصفحة الحالية
+   * Fetch product data from current Shopify page or API
    */
   async function fetchProductPrice() {
     try {
-      console.log('🛒 Cart Items: Getting product data...');
+      console.log('🛒 Cart Items: Getting product data from current page...');
 
       let productData = {
         price: 29.99,
-        currency: 'USD',
+        currency: 'SAR',
         title: 'Product',
         image: null
       };
 
-      // محاولة الحصول على البيانات من Shopify API
+      // Try to get product data from current page URL
       const currentUrl = window.location.href;
       const isProductPage = currentUrl.includes('/products/');
       
       if (isProductPage) {
+        // Extract product handle from URL
         const urlParts = currentUrl.split('/products/');
         if (urlParts.length > 1) {
           const productHandle = urlParts[1].split('?')[0].split('#')[0];
+          console.log('🛒 Cart Items: Found product handle:', productHandle);
           
           try {
+            // Use Shopify Product API
             const productApiUrl = `/products/${productHandle}.js`;
             const response = await fetch(productApiUrl);
             
             if (response.ok) {
               const product = await response.json();
+              console.log('🛒 Cart Items: Got product from API:', product);
               
               if (product && product.variants && product.variants.length > 0) {
                 const variant = product.variants[0];
-                productData.price = variant.price / 100;
+                productData.price = variant.price / 100; // Convert from cents
                 productData.title = product.title;
                 productData.image = product.featured_image;
                 
+                // Get currency from Shopify theme
                 if (window.Shopify && window.Shopify.currency && window.Shopify.currency.active) {
                   productData.currency = window.Shopify.currency.active;
+                } else if (window.theme && window.theme.moneyWithCurrencyFormat) {
+                  // Extract currency from money format
+                  const currencyMatch = window.theme.moneyWithCurrencyFormat.match(/\b[A-Z]{3}\b/);
+                  if (currencyMatch) {
+                    productData.currency = currencyMatch[0];
+                  }
                 }
+                
+                console.log('🛒 Cart Items: Product data loaded:', productData);
               }
             }
           } catch (apiError) {
-            console.log('🛒 Cart Items: API call failed, using fallbacks');
+            console.log('🛒 Cart Items: API call failed, using fallbacks:', apiError);
           }
         }
       }
 
-      // حفظ النتائج في الكاش
+      // Try to get data from DOM elements if API failed
+      if (productData.price === 29.99) {
+        // Try to find price in DOM
+        const priceSelectors = [
+          '.price .money',
+          '.product-price .money',
+          '.current-price',
+          '[data-price]',
+          '.price-current'
+        ];
+        
+        for (const selector of priceSelectors) {
+          const priceElement = document.querySelector(selector);
+          if (priceElement) {
+            const priceText = priceElement.textContent || priceElement.getAttribute('data-price');
+            const priceMatch = priceText.match(/[\d,]+\.?\d*/);
+            if (priceMatch) {
+              productData.price = parseFloat(priceMatch[0].replace(',', ''));
+              console.log('🛒 Cart Items: Found price in DOM:', productData.price);
+              break;
+            }
+          }
+        }
+        
+        // Try to find title in DOM
+        const titleSelectors = [
+          'h1.product-title',
+          '.product-title h1',
+          'h1[data-product-title]',
+          '.product-single__title',
+          'h1'
+        ];
+        
+        for (const selector of titleSelectors) {
+          const titleElement = document.querySelector(selector);
+          if (titleElement && titleElement.textContent.trim()) {
+            productData.title = titleElement.textContent.trim();
+            console.log('🛒 Cart Items: Found title in DOM:', productData.title);
+            break;
+          }
+        }
+        
+        // Try to find image in DOM
+        const imageSelectors = [
+          '.product-single__photos img',
+          '.product-image img',
+          '[data-product-image]',
+          '.featured-image img'
+        ];
+        
+        for (const selector of imageSelectors) {
+          const imageElement = document.querySelector(selector);
+          if (imageElement && imageElement.src) {
+            productData.image = imageElement.src;
+            console.log('🛒 Cart Items: Found image in DOM:', productData.image);
+            break;
+          }
+        }
+      }
+
+      // Apply currency conversion if needed
+      try {
+        const savedCurrencySettings = localStorage.getItem('codform_currency_settings');
+        if (savedCurrencySettings) {
+          const settings = JSON.parse(savedCurrencySettings);
+          if (settings.currency && settings.currency !== productData.currency && settings.exchangeRates) {
+            const rate = settings.exchangeRates[settings.currency];
+            if (rate) {
+              productData.price = productData.price * rate;
+              productData.currency = settings.currency;
+              console.log(`🛒 Cart Items: Applied currency conversion: ${productData.price} ${productData.currency}`);
+            }
+          }
+        }
+      } catch (storageError) {
+        console.log('🛒 Cart Items: No currency settings in localStorage:', storageError.message);
+      }
+
+      // Cache the results
       cachedProductPrice = productData.price;
       cachedCurrency = productData.currency;
-      window.CodformProductData = productData;
+      window.CodformProductData = productData; // Store globally for access
 
-      console.log(`🛒 Cart Items: Product data cached - ${productData.price} ${productData.currency}`);
+      console.log(`🛒 Cart Items: Final product data - Price: ${productData.price}, Currency: ${productData.currency}, Title: ${productData.title}`);
+
       return productData;
 
     } catch (error) {
       console.error('🚨 Cart Items - Error getting product data:', error);
       
-      // استخدام القيم الافتراضية
+      // Use fallback values
       const fallbackData = {
         price: 29.99,
-        currency: 'USD',
+        currency: 'SAR',
         title: 'Product',
         image: null
       };
@@ -88,110 +179,60 @@
   }
 
   /**
-   * تنسيق العملة باستخدام النظام الموحد
+   * Format currency using the same logic as cart-summary
    */
-  function formatCurrency(amount, currency) {
+  function formatCurrency(amount, currency, displaySettings = {}) {
     try {
-      console.log(`🛒 Cart Items: Formatting ${amount} ${currency}`);
+      console.log(`🛒 Cart Items: Formatting currency - Amount: ${amount}, Currency: ${currency}`);
       
-      // ✅ استخدام النظام الموحد إذا كان متوفر
-      if (window.CodformUnifiedSystem && window.CodformUnifiedSystem.formatCurrency) {
-        const formatted = window.CodformUnifiedSystem.formatCurrency(amount, currency);
-        console.log(`🛒 Cart Items: Unified formatting result: ${formatted}`);
-        return formatted;
-      }
+      // DO NOT use Smart Currency System as it's causing issues
+      // Force use our own formatting to ensure consistency
       
-      // ✅ استخدام CurrencyService إذا كان متوفر
-      if (window.CurrencyService && window.CurrencyService.formatCurrency) {
-        const formatted = window.CurrencyService.formatCurrency(amount, currency);
-        console.log(`🛒 Cart Items: CurrencyService formatting result: ${formatted}`);
-        return formatted;
-      }
-      
-      // التنسيق المحلي كبديل
+      // Enhanced currency symbols with Arabic support
       const symbols = {
         'SAR': 'ر.س',
         'MAD': 'د.م',
-        'AED': 'د.إ',
+        'AED': 'د.إ', // Dirhams
         'USD': '$',
-        'EUR': '€'
+        'EUR': '€',
+        'GBP': '£',
+        'EGP': 'ج.م',
+        'JOD': 'د.ا',
+        'KWD': 'د.ك',
+        'QAR': 'ر.ق',
+        'BHD': 'د.ب',
+        'OMR': 'ر.ع'
       };
 
       const symbol = symbols[currency] || currency;
-      const formattedAmount = parseFloat(amount).toFixed(1);
+      const formattedAmount = parseFloat(amount).toFixed(2);
       
-      if (['SAR', 'MAD', 'AED'].includes(currency)) {
-        return `${formattedAmount} ${symbol}`;
+      // Format based on currency
+      let formatted;
+      if (['SAR', 'MAD', 'AED', 'EGP', 'JOD', 'KWD', 'QAR', 'BHD', 'OMR'].includes(currency)) {
+        // Arabic currencies - symbol after amount
+        formatted = `${formattedAmount} ${symbol}`;
       } else {
-        return `${symbol}${formattedAmount}`;
+        // Western currencies - symbol before amount
+        formatted = `${symbol}${formattedAmount}`;
       }
       
+      console.log(`🛒 Cart Items: Formatted currency: ${formatted}`);
+      return formatted;
     } catch (error) {
-      console.error('🚨 Cart Items: Error formatting currency:', error);
+      console.error('🚨 Cart Items - Error formatting currency:', error);
       return `${amount} ${currency}`;
     }
   }
 
   /**
-   * الحصول على العملة المفضلة الحالية
-   */
-  function getPreferredCurrency() {
-    // ✅ استخدام النظام الموحد
-    if (window.CodformUnifiedSystem && window.CodformUnifiedSystem.getPreferredCurrency) {
-      return window.CodformUnifiedSystem.getPreferredCurrency();
-    }
-    
-    // البحث في localStorage
-    try {
-      const settings = localStorage.getItem('codform_currency_settings');
-      if (settings) {
-        const parsed = JSON.parse(settings);
-        return parsed.currency || 'AED';
-      }
-    } catch (error) {
-      console.log('🛒 Cart Items: No currency settings found');
-    }
-    
-    return 'AED'; // افتراضي
-  }
-
-  /**
-   * تحويل العملة باستخدام النظام الموحد
-   */
-  function convertCurrency(amount, fromCurrency, toCurrency) {
-    if (fromCurrency === toCurrency) return amount;
-    
-    // ✅ استخدام النظام الموحد
-    if (window.CodformUnifiedSystem && window.CodformUnifiedSystem.convertCurrency) {
-      return window.CodformUnifiedSystem.convertCurrency(amount, fromCurrency, toCurrency);
-    }
-    
-    // ✅ استخدام CurrencyService
-    if (window.CurrencyService && window.CurrencyService.convertCurrency) {
-      return window.CurrencyService.convertCurrency(amount, fromCurrency, toCurrency);
-    }
-    
-    // معدلات افتراضية
-    const rates = {
-      'USD': 1.0,
-      'SAR': 3.75,
-      'MAD': 10.0,
-      'AED': 3.67
-    };
-    
-    const fromRate = rates[fromCurrency] || 1;
-    const toRate = rates[toCurrency] || 1;
-    
-    return (amount / fromRate) * toRate;
-  }
-
-  /**
-   * عرض عناصر العربة
+   * Render cart items field
    */
   function renderCartItems(field, formStyle, formDirection) {
     console.log('🛒 Cart Items: Rendering field...');
 
     if (!cachedProductPrice || !cachedCurrency) {
+      console.warn('🛒 Cart Items: No cached data available, showing placeholder');
       return `
         <div class="codform-cart-items" style="
           margin: 10px 0;
@@ -207,22 +248,51 @@
       `;
     }
 
+    const fieldStyle = field.style || {};
     const direction = formDirection || 'ltr';
     const isRTL = direction === 'rtl';
     
-    // ✅ التطبيق الفوري للنظام الموحد
-    const preferredCurrency = getPreferredCurrency();
-    const convertedPrice = convertCurrency(cachedProductPrice, cachedCurrency, preferredCurrency);
-    const formattedPrice = formatCurrency(convertedPrice, preferredCurrency);
-    
-    console.log(`🛒 Cart Items: Final display - ${cachedProductPrice} ${cachedCurrency} → ${convertedPrice} ${preferredCurrency} → ${formattedPrice}`);
-    
-    // التسميات
+    // Dynamic labels based on direction
     const priceLabel = isRTL ? 'السعر:' : 'Price:';
     const quantityLabel = isRTL ? 'الكمية:' : 'Quantity:';
     const fontFamily = isRTL ? "'Cairo', sans-serif" : "inherit";
     
-    // بيانات المنتج
+    // Apply currency settings for initial display - COMPLETE FIX
+    let displayPrice = cachedProductPrice;
+    let displayCurrency = cachedCurrency;
+    
+    console.log(`🛒 Cart Items: Starting with - Price: ${cachedProductPrice}, Currency: ${cachedCurrency}`);
+    
+    // CRITICAL FIX: Get currency settings and apply them properly
+    try {
+      const savedCurrencySettings = localStorage.getItem('codform_currency_settings');
+      console.log(`🛒 Cart Items: Raw settings:`, savedCurrencySettings);
+      
+      if (savedCurrencySettings) {
+        const settings = JSON.parse(savedCurrencySettings);
+        console.log(`🛒 Cart Items: Parsed settings:`, settings);
+        
+        if (settings.currency && settings.exchangeRates) {
+          displayCurrency = settings.currency;
+          
+          // Simple conversion logic: multiply base price by target currency rate
+          const targetRate = settings.exchangeRates[settings.currency];
+          if (targetRate && targetRate > 0) {
+            displayPrice = cachedProductPrice * targetRate;
+            console.log(`🛒 Cart Items: FINAL CONVERSION: ${cachedProductPrice} * ${targetRate} = ${displayPrice} ${displayCurrency}`);
+          }
+        }
+      } else {
+        console.log(`🛒 Cart Items: No currency settings found, using defaults`);
+      }
+    } catch (error) {
+      console.error('🚨 Cart Items: Currency conversion error:', error);
+    }
+    
+    // Format the price with currency settings applied
+    const formattedPrice = formatCurrency(displayPrice, displayCurrency);
+    
+    // Get product data from cache
     const productData = window.CodformProductData || {};
     const productTitle = productData.title || 'Product';
     const productImage = productData.image;
@@ -241,13 +311,14 @@
           padding: 16px;
           margin-bottom: 12px;
         ">
+          <!-- Product Information -->
           <div style="
             display: flex;
             align-items: center;
             gap: 12px;
             font-family: ${fontFamily};
           ">
-            <!-- صورة المنتج -->
+            <!-- Product Image -->
             <div style="
               width: 60px;
               height: 60px;
@@ -277,7 +348,7 @@
               `}
             </div>
             
-            <!-- تفاصيل المنتج -->
+            <!-- Product Details -->
             <div style="flex: 1;">
               <h3 style="
                 font-weight: 600;
@@ -289,10 +360,10 @@
                 color: #6b7280;
                 margin: 0;
                 font-size: 14px;
-              ">${priceLabel} <span class="cart-items-price" data-currency="${preferredCurrency}" data-original-price="${cachedProductPrice}" data-original-currency="${cachedCurrency}">${formattedPrice}</span></p>
+              ">${priceLabel} <span class="cart-items-price" data-currency="${displayCurrency}">${formattedPrice}</span></p>
             </div>
             
-            <!-- تحكم الكمية -->
+            <!-- Quantity Controls -->
             <div style="
               display: flex;
               align-items: center;
@@ -370,7 +441,7 @@
   }
 
   /**
-   * زيادة الكمية
+   * Increase quantity
    */
   function increaseQuantity(button) {
     const quantitySpan = button.previousElementSibling;
@@ -379,20 +450,23 @@
     quantitySpan.textContent = newQuantity;
     
     console.log('🛒 Cart Items: Quantity increased to:', newQuantity);
-    updateAllPriceDisplays();
     
-    // إشعار المكونات الأخرى
+    // Update price display based on new quantity
+    updatePriceDisplay(newQuantity);
+    
+    // Update shared state
     if (window.CodformStateManager) {
       window.CodformStateManager.updateQuantity(newQuantity);
     }
     
+    // Dispatch event to notify other components
     window.dispatchEvent(new CustomEvent('codform:quantity-changed', {
       detail: { quantity: newQuantity, source: 'cart-items' }
     }));
   }
 
   /**
-   * تقليل الكمية
+   * Decrease quantity
    */
   function decreaseQuantity(button) {
     const quantitySpan = button.nextElementSibling;
@@ -402,13 +476,16 @@
       quantitySpan.textContent = newQuantity;
       
       console.log('🛒 Cart Items: Quantity decreased to:', newQuantity);
-      updateAllPriceDisplays();
       
-      // إشعار المكونات الأخرى
+      // Update price display based on new quantity
+      updatePriceDisplay(newQuantity);
+      
+      // Update shared state
       if (window.CodformStateManager) {
         window.CodformStateManager.updateQuantity(newQuantity);
       }
       
+      // Dispatch event to notify other components
       window.dispatchEvent(new CustomEvent('codform:quantity-changed', {
         detail: { quantity: newQuantity, source: 'cart-items' }
       }));
@@ -416,45 +493,7 @@
   }
 
   /**
-   * تحديث جميع أسعار العرض - النسخة الموحدة
-   */
-  function updateAllPriceDisplays() {
-    try {
-      const priceElements = document.querySelectorAll('.cart-items-price');
-      if (priceElements.length === 0 || !cachedProductPrice) {
-        return;
-      }
-
-      console.log('🛒 Cart Items: Updating all price displays with UNIFIED system...');
-      
-      // الحصول على الكمية الحالية
-      const quantityElement = document.querySelector('.cart-items-quantity');
-      const currentQuantity = quantityElement ? parseInt(quantityElement.textContent) : 1;
-      
-      // السعر الأساسي مع الكمية
-      const totalPrice = cachedProductPrice * currentQuantity;
-      
-      // ✅ التطبيق الموحد للعملة المفضلة
-      const preferredCurrency = getPreferredCurrency();
-      const convertedPrice = convertCurrency(totalPrice, cachedCurrency, preferredCurrency);
-      const formattedPrice = formatCurrency(convertedPrice, preferredCurrency);
-      
-      console.log(`🛒 Cart Items: UNIFIED Update - ${totalPrice} ${cachedCurrency} → ${convertedPrice} ${preferredCurrency} → ${formattedPrice}`);
-      
-      // تحديث جميع عناصر الأسعار
-      priceElements.forEach(priceElement => {
-        priceElement.textContent = formattedPrice;
-        priceElement.setAttribute('data-currency', preferredCurrency);
-        console.log(`🛒 Cart Items: Updated price element: ${formattedPrice}`);
-      });
-      
-    } catch (error) {
-      console.error('🚨 Cart Items: Error updating price displays:', error);
-    }
-  }
-
-  /**
-   * تهيئة النظام الموحد
+   * Initialize cart items system
    */
   async function initialize() {
     if (isInitialized) {
@@ -463,77 +502,226 @@
     }
 
     try {
-      console.log('🛒 Cart Items: Starting UNIFIED initialization...');
+      console.log('🛒 Cart Items: Initializing...');
       
-      // انتظار تحميل الصفحة
-      if (document.readyState !== 'complete') {
-        await new Promise(resolve => {
-          if (document.readyState === 'complete') {
-            resolve();
-          } else {
-            window.addEventListener('load', resolve, { once: true });
-          }
-        });
-      }
-
-      // تحميل بيانات المنتج
+      // Fetch product data from API
       await fetchProductPrice();
       
-      // ✅ الاشتراك في أحداث النظام الموحد
-      window.addEventListener('currencySettingsUpdated', (event) => {
-        console.log('🛒 Cart Items: Currency settings updated:', event.detail);
-        updateAllPriceDisplays();
-      });
-      
-      // ✅ الاشتراك في CurrencyService إذا كان متوفر
-      if (window.CurrencyService && window.CurrencyService.subscribe) {
-        window.CurrencyService.subscribe((settings) => {
-          console.log('🛒 Cart Items: CurrencyService updated:', settings);
-          updateAllPriceDisplays();
-        });
-      }
-      
-      // ✅ الاشتراك في CodformUnifiedSystem إذا كان متوفر
-      if (window.CodformUnifiedSystem && window.CodformUnifiedSystem.subscribe) {
-        window.CodformUnifiedSystem.subscribe((settings) => {
-          console.log('🛒 Cart Items: UnifiedSystem updated:', settings);
-          updateAllPriceDisplays();
-        });
-      }
-      
       isInitialized = true;
-      console.log('🛒 Cart Items: UNIFIED initialization complete');
+      console.log('🛒 Cart Items: Initialization complete');
       
-      // تحديث فوري للأسعار
-      setTimeout(updateAllPriceDisplays, 100);
-      
+      return true;
     } catch (error) {
-      console.error('🚨 Cart Items - Initialization error:', error);
-      isInitialized = true;
+      console.error('🚨 Cart Items: Initialization failed:', error);
+      return false;
     }
   }
 
-  // ✅ تصدير النظام للاستخدام العالمي
-  window.CodformCartItems = {
-    initialize: initialize,
-    render: renderCartItems, // الاسم المطلوب من النظام الخارجي
-    renderCartItems: renderCartItems,
-    increaseQuantity: increaseQuantity,
-    decreaseQuantity: decreaseQuantity,
-    updateAllPriceDisplays: updateAllPriceDisplays,
-    formatCurrency: formatCurrency,
-    getPreferredCurrency: getPreferredCurrency,
-    convertCurrency: convertCurrency
-  };
-
-  // ✅ تهيئة تلقائية
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initialize);
-  } else {
-    // تأخير قصير للسماح بتحميل الأنظمة الأخرى
-    setTimeout(initialize, 200);
+  /**
+   * Update price display based on quantity
+   */
+  function updatePriceDisplay(quantity) {
+    if (!cachedProductPrice || !cachedCurrency) {
+      console.warn('🛒 Cart Items: Missing cached data for price update');
+      return;
+    }
+    
+    console.log(`🛒 Cart Items: Updating price for quantity ${quantity} - Base price: ${cachedProductPrice}, Currency: ${cachedCurrency}`);
+    
+    // Apply currency settings for the total price
+    let unitPrice = cachedProductPrice;
+    let displayCurrency = cachedCurrency;
+    
+    // Check for form currency settings
+    try {
+      const savedCurrencySettings = localStorage.getItem('codform_currency_settings');
+      console.log(`🛒 Cart Items: Currency settings for update:`, savedCurrencySettings);
+      
+      if (savedCurrencySettings) {
+        const settings = JSON.parse(savedCurrencySettings);
+        console.log(`🛒 Cart Items: Parsed settings for update:`, settings);
+        
+        if (settings.currency && settings.exchangeRates) {
+          // Always use the form's configured currency
+          displayCurrency = settings.currency;
+          
+          // If we need to convert from original currency
+          if (settings.currency !== cachedCurrency) {
+            const rate = settings.exchangeRates[settings.currency];
+            console.log(`🛒 Cart Items: Exchange rate for update ${settings.currency}:`, rate);
+            
+            if (rate && rate > 0) {
+              unitPrice = cachedProductPrice * rate;
+              console.log(`🛒 Cart Items: Converted unit price: ${cachedProductPrice} x ${rate} = ${unitPrice}`);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('🚨 Cart Items: Error applying currency settings during update:', error);
+    }
+    
+    // Calculate total price based on quantity
+    const totalPrice = unitPrice * quantity;
+    console.log(`🛒 Cart Items: Total price calculation: ${unitPrice} x ${quantity} = ${totalPrice} ${displayCurrency}`);
+    
+    const formattedPrice = formatCurrency(totalPrice, displayCurrency);
+    console.log(`🛒 Cart Items: Formatted price: ${formattedPrice}`);
+    
+    // Update all price elements in cart items
+    document.querySelectorAll('.codform-cart-items .cart-items-price').forEach(priceElement => {
+      priceElement.textContent = formattedPrice;
+      priceElement.setAttribute('data-currency', displayCurrency);
+      console.log(`🛒 Cart Items: Updated price element to: ${formattedPrice}`);
+    });
+    
+    console.log(`🛒 Cart Items: Price updated - Quantity: ${quantity}, Total: ${formattedPrice}`);
   }
 
-  console.log('✅ CODFORM Cart Items UNIFIED System loaded and ready');
+  /**
+   * Update currency when form settings change
+   */
+  function updateCurrency() {
+    // Clear cache to force refresh
+    cachedProductPrice = null;
+    cachedCurrency = null;
+    
+    // Re-initialize with new data
+    initialize().then(() => {
+      // Update any existing cart items displays
+      document.querySelectorAll('.codform-cart-items').forEach(cartItem => {
+        const priceElement = cartItem.querySelector('.cart-items-price');
+        if (priceElement && cachedProductPrice && cachedCurrency) {
+          const quantity = parseInt(cartItem.querySelector('.cart-items-quantity')?.textContent || '1');
+          updatePriceDisplay(quantity);
+        }
+      });
+    });
+  }
+
+  /**
+   * ULTIMATE FIX: Prevent ANY external system from changing our prices
+   */
+  function lockPriceDisplay() {
+    console.log('🔒 Cart Items: Activating ULTIMATE price lock system');
+    
+    // Get the correct values
+    const savedCurrencySettings = localStorage.getItem('codform_currency_settings');
+    let targetCurrency = cachedCurrency;
+    let conversionRate = 1;
+    
+    if (savedCurrencySettings) {
+      try {
+        const settings = JSON.parse(savedCurrencySettings);
+        if (settings.currency && settings.exchangeRates) {
+          targetCurrency = settings.currency;
+          conversionRate = settings.exchangeRates[settings.currency] || 1;
+        }
+      } catch (e) {
+        console.error('Error parsing currency settings:', e);
+      }
+    }
+
+    // Calculate correct price
+    function getCorrectPrice(quantity = 1) {
+      const convertedPrice = cachedProductPrice * conversionRate * quantity;
+      return formatCurrency(convertedPrice, targetCurrency);
+    }
+
+    // Override any attempts to change price
+    function forcePriceCorrection() {
+      const priceElements = document.querySelectorAll('.codform-cart-items .cart-items-price');
+      priceElements.forEach((priceElement) => {
+        const quantityElement = document.querySelector('.cart-items-quantity');
+        const quantity = quantityElement ? parseInt(quantityElement.textContent || '1') : 1;
+        const correctPrice = getCorrectPrice(quantity);
+        
+        // Force the correct price
+        if (priceElement.textContent !== correctPrice) {
+          priceElement.textContent = correctPrice;
+          priceElement.setAttribute('data-currency', targetCurrency);
+          priceElement.setAttribute('data-locked', 'true');
+          console.log(`🔒 Cart Items: Price LOCKED to ${correctPrice}`);
+        }
+      });
+    }
+
+    // Immediate correction
+    forcePriceCorrection();
+
+    // Monitor and correct every 100ms for the first 3 seconds
+    let corrections = 0;
+    const intensiveMonitor = setInterval(() => {
+      forcePriceCorrection();
+      corrections++;
+      if (corrections >= 30) { // 3 seconds
+        clearInterval(intensiveMonitor);
+        console.log('🔒 Cart Items: Intensive monitoring complete');
+      }
+    }, 100);
+
+    // Continuous monitoring with MutationObserver
+    const observer = new MutationObserver(() => {
+      forcePriceCorrection();
+    });
+
+    const cartItems = document.querySelector('.codform-cart-items');
+    if (cartItems) {
+      observer.observe(cartItems, {
+        childList: true,
+        subtree: true,
+        characterData: true,
+        attributes: true
+      });
+    }
+
+    // Override Shopify's money formatting functions if they exist
+    if (window.Shopify && window.Shopify.formatMoney) {
+      const originalFormatMoney = window.Shopify.formatMoney;
+      window.Shopify.formatMoney = function(cents, format) {
+        // If this is being called on our cart items, use our format
+        const cartContext = document.querySelector('.codform-cart-items');
+        if (cartContext && document.activeElement && cartContext.contains(document.activeElement)) {
+          const quantity = parseInt(document.querySelector('.cart-items-quantity')?.textContent || '1');
+          return getCorrectPrice(quantity);
+        }
+        return originalFormatMoney.call(this, cents, format);
+      };
+    }
+
+    return observer;
+  }
+
+  // Auto-initialize when the document is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      initialize().then(() => {
+        // Activate ULTIMATE price lock after initialization
+        setTimeout(lockPriceDisplay, 200);
+      });
+    });
+  } else {
+    setTimeout(() => {
+      initialize().then(() => {
+        // Activate ULTIMATE price lock after initialization
+        setTimeout(lockPriceDisplay, 200);
+      });
+    }, 100);
+  }
+
+  // Listen for currency changes
+  window.addEventListener('codform:currency-changed', updateCurrency);
+
+  // Export global API
+  window.CodformCartItems = {
+    render: renderCartItems,
+    increaseQuantity: increaseQuantity,
+    decreaseQuantity: decreaseQuantity,
+    initialize: initialize,
+    updateCurrency: updateCurrency,
+    updatePriceDisplay: updatePriceDisplay
+  };
+
+  console.log('🛒 CODFORM Cart Items System: Setup complete');
 
 })();
