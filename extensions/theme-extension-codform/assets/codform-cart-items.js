@@ -239,8 +239,33 @@
     const quantityLabel = isRTL ? 'الكمية:' : 'Quantity:';
     const fontFamily = isRTL ? "'Cairo', sans-serif" : "inherit";
     
-    // Format the cached price
-    const formattedPrice = formatCurrency(cachedProductPrice, cachedCurrency);
+    // Apply currency settings for initial display
+    let displayPrice = cachedProductPrice;
+    let displayCurrency = cachedCurrency;
+    
+    // Check for form currency settings
+    try {
+      const savedCurrencySettings = localStorage.getItem('codform_currency_settings');
+      if (savedCurrencySettings) {
+        const settings = JSON.parse(savedCurrencySettings);
+        if (settings.currency && settings.exchangeRates) {
+          // If we need to convert to form currency
+          if (settings.currency !== cachedCurrency) {
+            const rate = settings.exchangeRates[settings.currency];
+            if (rate) {
+              displayPrice = cachedProductPrice * rate;
+              displayCurrency = settings.currency;
+              console.log(`🛒 Cart Items: Applied currency conversion for initial display: ${displayPrice} ${displayCurrency}`);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.log('🛒 Cart Items: Error applying currency settings:', error);
+    }
+    
+    // Format the price with currency settings applied
+    const formattedPrice = formatCurrency(displayPrice, displayCurrency);
     
     // Get product data from cache
     const productData = window.CodformProductData || {};
@@ -310,7 +335,7 @@
                 color: #6b7280;
                 margin: 0;
                 font-size: 14px;
-              ">${priceLabel} <span class="cart-items-price" data-currency="${cachedCurrency}">${formattedPrice}</span></p>
+              ">${priceLabel} <span class="cart-items-price" data-currency="${displayCurrency}">${formattedPrice}</span></p>
             </div>
             
             <!-- Quantity Controls -->
@@ -473,12 +498,37 @@
   function updatePriceDisplay(quantity) {
     if (!cachedProductPrice || !cachedCurrency) return;
     
-    const totalPrice = cachedProductPrice * quantity;
-    const formattedPrice = formatCurrency(totalPrice, cachedCurrency);
+    // Apply currency settings for the total price
+    let totalPrice = cachedProductPrice * quantity;
+    let displayCurrency = cachedCurrency;
+    
+    // Check for form currency settings
+    try {
+      const savedCurrencySettings = localStorage.getItem('codform_currency_settings');
+      if (savedCurrencySettings) {
+        const settings = JSON.parse(savedCurrencySettings);
+        if (settings.currency && settings.exchangeRates) {
+          // If we need to convert to form currency
+          if (settings.currency !== cachedCurrency) {
+            const rate = settings.exchangeRates[settings.currency];
+            if (rate) {
+              totalPrice = (cachedProductPrice * rate) * quantity;
+              displayCurrency = settings.currency;
+              console.log(`🛒 Cart Items: Applied currency conversion for quantity ${quantity}: ${totalPrice} ${displayCurrency}`);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.log('🛒 Cart Items: Error applying currency settings:', error);
+    }
+    
+    const formattedPrice = formatCurrency(totalPrice, displayCurrency);
     
     // Update all price elements in cart items
     document.querySelectorAll('.codform-cart-items .cart-items-price').forEach(priceElement => {
       priceElement.textContent = formattedPrice;
+      priceElement.setAttribute('data-currency', displayCurrency);
     });
     
     console.log(`🛒 Cart Items: Price updated - Quantity: ${quantity}, Total: ${formattedPrice}`);
