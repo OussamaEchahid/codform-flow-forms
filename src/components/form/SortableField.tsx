@@ -102,23 +102,27 @@ const SortableField: React.FC<SortableFieldProps> = ({
       };
     }
 
-    // Arabic defaults for Submit button (preview + store) with migration of old defaults
-    if (field.type === 'submit' && language === 'ar') {
+    // Submit button safe defaults per language - only when missing (do not override user choices)
+    if (field.type === 'submit') {
       const current = fieldToSet.style || {};
-      const shouldForceFont = !current.fontSize || current.fontSize === '16px' || current.fontSize === '1rem';
-      const shouldForcePadding = !current.paddingY || current.paddingY === '10px' || current.paddingY === '0.625rem';
-      const shouldForceIconPos = !current.iconPosition || current.iconPosition === 'left';
-      const shouldForceIconSize = !current.iconSize || current.iconSize === '16px' || current.iconSize === '16';
+      const nextStyle: any = { ...current };
+
+      if (current.fontSize == null) {
+        nextStyle.fontSize = language === 'ar' ? '17px' : '18px';
+      }
+      if (current.paddingY == null) {
+        nextStyle.paddingY = language === 'ar' ? '12px' : '15px';
+      }
+      if (current.iconPosition == null) {
+        nextStyle.iconPosition = language === 'ar' ? 'right' : 'right';
+      }
+      if (current.iconSize == null) {
+        nextStyle.iconSize = '18px';
+      }
 
       fieldToSet = {
         ...fieldToSet,
-        style: {
-          ...current,
-          fontSize: shouldForceFont ? '17px' : current.fontSize,
-          paddingY: shouldForcePadding ? '12px' : current.paddingY,
-          iconPosition: shouldForceIconPos ? 'right' : current.iconPosition,
-          iconSize: shouldForceIconSize ? '18px' : current.iconSize,
-        }
+        style: nextStyle
       };
     }
 
