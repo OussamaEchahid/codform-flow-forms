@@ -127,7 +127,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, onClick, 
   };
 
   // Define button style
-  const resolvedFontSize = field.style?.fontSize || formStyle.fontSize || defaultFontSize;
+  const resolvedFontSize = field.style?.fontSize || defaultFontSize;
   const resolvedPaddingY = field.style?.paddingY || defaultPaddingY;
   const btnStyle: React.CSSProperties = {
     backgroundColor,

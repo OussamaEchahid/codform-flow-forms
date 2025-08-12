@@ -207,6 +207,8 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
               borderRadius: formStyle.borderRadius || '8px',
               border: `${formStyle.borderWidth || '1px'} solid ${formStyle.borderColor || '#e5e7eb'}`,
               direction: formStyle.formDirection || 'ltr',
+              display: 'flex',
+              flexDirection: 'column',
               gap: formStyle.formGap || '16px',
               paddingTop: formStyle.paddingTop || '20px',
               paddingBottom: formStyle.paddingBottom || '20px',
@@ -215,7 +217,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
             }}
           >
             {fields.map((field, index) => (
-              <div key={`${field.id}-${refreshKey}`} className="mb-4">
+              <div key={`${field.id}-${refreshKey}`}>
                  <FormFieldComponent
                    field={field}
                    formStyle={formStyle}
