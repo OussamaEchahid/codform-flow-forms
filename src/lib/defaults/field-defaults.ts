@@ -12,6 +12,7 @@ export interface FieldDefaults {
       paddingY: string;
       iconPosition: string;
       iconSize: string;
+      icon: string;
       showIcon: boolean;
       animation: boolean;
       animationType: 'pulse' | 'bounce' | 'shake' | 'wiggle' | 'flash';
@@ -92,6 +93,7 @@ export const FIELD_DEFAULTS: FieldDefaults = {
       paddingY: '15px', // UNIFIED: 15px for all languages except Arabic  
       iconPosition: 'right',
       iconSize: '18px', // UNIFIED: 18px for all languages
+      icon: 'shopping-cart', // القيمة الافتراضية للأيقونة
       showIcon: true,
       animation: true,
       animationType: 'pulse',
@@ -211,7 +213,12 @@ export const createFieldWithDefaults = (type: string, language: string = 'en') =
       return {
         ...baseField,
         label: 'Submit Form',
-        style: defaults.submit.style
+        icon: 'shopping-cart', // إعداد icon في الحقل المباشر
+        style: {
+          ...defaults.submit.style,
+          icon: 'shopping-cart', // إعداد icon في style أيضاً
+          showIcon: true
+        }
       };
     
     case 'text':
