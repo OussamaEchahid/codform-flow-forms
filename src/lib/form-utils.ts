@@ -229,6 +229,11 @@ export const createEmptyField = (type: string): FormField => {
       field.style = {
         backgroundColor: '#9b87f5',
         color: '#ffffff',
+        fontSize: '18px',
+        paddingY: '15px',
+        iconPosition: 'right',
+        iconSize: '18px',
+        showIcon: true,
         animation: true,
         animationType: 'pulse' as 'pulse'
       };
