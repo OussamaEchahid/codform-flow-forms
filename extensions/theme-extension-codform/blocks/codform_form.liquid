@@ -494,14 +494,14 @@
       const discountPrice = fieldStyle.discountPrice || '';
       const hideDiscountPrice = fieldStyle.hideDiscountPrice === true;
       
-              // Format price with target currency
-              let formattedPrice;
-              if (window.CodformSmartCurrency && window.CodformSmartCurrency.formatCurrency) {
-                formattedPrice = window.CodformSmartCurrency.formatCurrency(productPrice, targetCurrency);
-              } else {
-                const symbol = targetCurrency === 'MAD' ? 'د.م' : targetCurrency === 'SAR' ? 'ر.س' : targetCurrency;
-                formattedPrice = `${productPrice.toFixed(2)} ${symbol}`;
-              }
+      // Format price with target currency
+      let formattedPrice;
+      if (window.CodformSmartCurrency && window.CodformSmartCurrency.formatCurrency) {
+        formattedPrice = window.CodformSmartCurrency.formatCurrency(productPrice, targetCurrency);
+      } else {
+        const symbol = targetCurrency === 'MAD' ? 'د.م' : targetCurrency === 'SAR' ? 'ر.س' : targetCurrency;
+        formattedPrice = `${productPrice.toFixed(2)} ${symbol}`;
+      }
       
       html = `
         <div class="codform-cart-items" style="
