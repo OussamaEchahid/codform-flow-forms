@@ -67,9 +67,10 @@ const TextArea: React.FC<TextAreaProps> = ({ field, formStyle }) => {
   const [hasValue, setHasValue] = React.useState(false);
   const [isFocused, setIsFocused] = React.useState(false);
   
-  // دالة لعرض الأيقونة
+  // دالة لعرض الأيقونة - فحص كلا المصدرين
   const renderIcon = () => {
-    if (!field.style?.icon || field.style?.icon === 'none' || !field.style?.showIcon) return null;
+    const iconToUse = field.style?.icon || field.icon;
+    if (!iconToUse || iconToUse === 'none' || !field.style?.showIcon) return null;
     
     const iconSize = parseInt(String(field.style?.iconSize || '16').replace('px','')) || 16;
     const iconProps = {
@@ -81,7 +82,7 @@ const TextArea: React.FC<TextAreaProps> = ({ field, formStyle }) => {
       }
     };
 
-    switch(field.style?.icon) {
+    switch(iconToUse) {
       // أيقونات العنوان
       case 'map-pin': return <MapPin {...iconProps} />;
       case 'home': return <Home {...iconProps} />;

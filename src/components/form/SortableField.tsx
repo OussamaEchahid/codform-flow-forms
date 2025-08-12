@@ -1555,8 +1555,9 @@ const SortableField: React.FC<SortableFieldProps> = ({
                               <div className="space-y-1">
                                 <Label>{language === 'ar' ? 'أيقونة الزر' : 'Button Icon'}</Label>
                                 <Select
-                                  value={editedField.style?.icon || 'shopping-cart'}
+                                  value={editedField.style?.icon || editedField.icon || 'shopping-cart'}
                                   onValueChange={(value) => {
+                                    console.log('🔧 Submit Button Icon Change:', { value, oldIcon: editedField.style?.icon, oldFieldIcon: editedField.icon });
                                     handleStyleChange('icon', value === 'none' ? undefined : value);
                                     handleStyleChange('showIcon', value !== 'none');
                                   }}
@@ -1631,8 +1632,9 @@ const SortableField: React.FC<SortableFieldProps> = ({
                            <div className="space-y-1">
                              <Label>{language === 'ar' ? 'أيقونة الحقل' : 'Field Icon'}</Label>
                               <Select
-                                value={editedField.style?.icon || 'user'}
+                                value={editedField.style?.icon || editedField.icon || 'user'}
                                 onValueChange={(value) => {
+                                  console.log('🔧 SortableField Icon Change:', { value, oldIcon: editedField.style?.icon, oldFieldIcon: editedField.icon });
                                   handleStyleChange('icon', value === 'none' ? undefined : value);
                                   handleStyleChange('showIcon', value !== 'none');
                                 }}

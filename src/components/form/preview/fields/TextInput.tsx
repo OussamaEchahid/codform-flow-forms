@@ -82,8 +82,14 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
   const inputBorderColor = fieldStyle.borderColor || formStyle.fieldBorderColor || '#d1d5db';
   const focusBorderColor = formStyle.focusBorderColor || formStyle.primaryColor || '#9b87f5';
   
-  // تحديد إذا كان هناك أيقونة وإذا كان يجب إظهارها - استخدام field.style.icon فقط
-  const actualIcon = field.style?.icon;
+  // تحديد إذا كان هناك أيقونة وإذا كان يجب إظهارها - فحص كلا المصدرين
+  console.log('🔍 TextInput Icon Debug:', {
+    fieldId: field.id,
+    fieldIcon: field.icon,
+    fieldStyleIcon: field.style?.icon,
+    showIcon: field.style?.showIcon
+  });
+  const actualIcon = field.style?.icon || field.icon; // استخدام كلا المصدرين
   const hasIcon = !!(actualIcon && actualIcon !== 'none' && actualIcon !== '');
   const showIcon = fieldStyle.showIcon !== undefined ? fieldStyle.showIcon : hasIcon;
   const iconSize = parseInt(String(field.style?.iconSize || '18').replace('px','')) || 18;

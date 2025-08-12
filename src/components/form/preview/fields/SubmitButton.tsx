@@ -57,8 +57,13 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, onClick, 
     borderWidth = field.style?.borderWidth || '0px',
   } = field.style || {};
 
-  // Get the current icon - use only field.style.icon
-  const currentIcon = field.style?.icon || 'shopping-cart';
+  // Get the current icon - فحص كلا المصدرين للتأكد
+  console.log('🔍 SubmitButton Icon Debug:', {
+    fieldIcon: field.icon,
+    fieldStyleIcon: field.style?.icon,
+    showIcon: field.style?.showIcon
+  });
+  const currentIcon = field.style?.icon || field.icon || 'shopping-cart';
   console.log('🎯 Current Icon:', currentIcon);
 
   // Derived icon settings for consistent preview/store behavior
