@@ -35,7 +35,8 @@ const SubmitButtonEditor: React.FC<SubmitButtonEditorProps> = ({ field, onSave, 
             paddingY: cur.paddingY || '12px',
             iconPosition: cur.iconPosition || 'right',
             iconSize: cur.iconSize || '18px',
-            showIcon: typeof cur.showIcon === 'boolean' ? cur.showIcon : Boolean(cur.icon),
+            icon: cur.icon || 'shopping-cart',
+            showIcon: typeof cur.showIcon === 'boolean' ? cur.showIcon : true,
           },
         };
       }
@@ -47,7 +48,8 @@ const SubmitButtonEditor: React.FC<SubmitButtonEditorProps> = ({ field, onSave, 
           paddingY: cur.paddingY || '15px',
           iconPosition: cur.iconPosition || 'right',
           iconSize: cur.iconSize || '18px',
-          showIcon: typeof cur.showIcon === 'boolean' ? cur.showIcon : Boolean(cur.icon),
+          icon: cur.icon || 'shopping-cart',
+          showIcon: typeof cur.showIcon === 'boolean' ? cur.showIcon : true,
         },
       };
     });
@@ -196,7 +198,7 @@ const SubmitButtonEditor: React.FC<SubmitButtonEditorProps> = ({ field, onSave, 
       </div>
 
       {/* Icon Position */}
-      {(currentField.style?.icon || currentField.icon) && (currentField.style?.icon !== 'none' && currentField.icon !== 'none') && (
+      {currentField.style?.showIcon && (
         <div className="space-y-2">
           <Label htmlFor="icon-position">
             {language === 'ar' ? 'موضع الأيقونة' : 'Icon Position'}
@@ -217,7 +219,7 @@ const SubmitButtonEditor: React.FC<SubmitButtonEditorProps> = ({ field, onSave, 
       )}
 
       {/* Icon Color */}
-      {(currentField.style?.icon || currentField.icon) && (currentField.style?.icon !== 'none' && currentField.icon !== 'none') && (
+      {currentField.style?.showIcon && (
         <div className="space-y-2">
           <Label htmlFor="icon-color">
             {language === 'ar' ? 'لون الأيقونة' : 'Icon Color'}
@@ -241,7 +243,7 @@ const SubmitButtonEditor: React.FC<SubmitButtonEditorProps> = ({ field, onSave, 
       )}
 
       {/* Icon Size */}
-      {(currentField.style?.icon || currentField.icon) && (currentField.style?.icon !== 'none' && currentField.icon !== 'none') && (
+      {currentField.style?.showIcon && (
         <div className="space-y-2">
           <Label htmlFor="icon-size">
             {language === 'ar' ? 'حجم الأيقونة' : 'Icon Size'}
