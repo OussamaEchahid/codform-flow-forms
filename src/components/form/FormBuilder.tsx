@@ -309,9 +309,11 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
       style: {
         backgroundColor: '#9b87f5',
         showIcon: true,
-        iconPosition: 'left',
+        iconPosition: language === 'ar' ? 'right' : 'left',
         color: '#ffffff',
-        fontSize: '18px',
+        fontSize: language === 'ar' ? '17px' : '16px',
+        paddingY: language === 'ar' ? '12px' : '10px',
+        iconSize: language === 'ar' ? '18px' : '16px',
         animation: true,
         animationType: 'pulse',
       },

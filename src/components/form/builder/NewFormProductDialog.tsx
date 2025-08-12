@@ -173,16 +173,17 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
       style: {
         backgroundColor: '#9b87f5', // Use our default purple color
         color: '#ffffff',
-        fontSize: '19px', // Updated to 19px
+        fontSize: selectedLanguage === 'ar' ? '17px' : '16px',
         fontWeight: '500',
         animation: true,
         animationType: 'shake',
         borderColor: '#eaeaff',
         borderRadius: '6px',
         borderWidth: '0px',
-        paddingY: '15px', // Updated to 15px
+        paddingY: selectedLanguage === 'ar' ? '12px' : '10px',
         showIcon: true,
-        iconPosition: 'left',
+        iconPosition: selectedLanguage === 'ar' ? 'right' : 'left',
+        iconSize: selectedLanguage === 'ar' ? '18px' : '16px',
       }
     };
     

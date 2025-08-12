@@ -382,24 +382,25 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
             const needsSubmitButton = !loadedElements.some(f => f.type === 'submit');
             
             if (needsSubmitButton) {
-              const submitButton: FormField = {
-                type: 'submit',
-                id: `submit-${Date.now()}`,
-                label: language === 'ar' ? 'الدفع عند الاستلام' : 'Buy with Cash on Delivery',
-                icon: 'shopping-cart',
-                style: {
-                  backgroundColor: '#000000',
-                  showIcon: true,
-                  iconPosition: 'left',
-                  color: '#ffffff',
-                  fontSize: '1.15rem',
-                  animationType: 'shake',
-                  borderColor: '#eaeaff',
-                  borderRadius: '6px',
-                  borderWidth: '0px',
-                  paddingY: '12px',
-                },
-              };
+      const submitButton: FormField = {
+        type: 'submit',
+        id: `submit-${Date.now()}`,
+        label: language === 'ar' ? 'الدفع عند الاستلام' : 'Buy with Cash on Delivery',
+        icon: 'shopping-cart',
+        style: {
+          backgroundColor: '#000000',
+          showIcon: true,
+          iconPosition: language === 'ar' ? 'right' : 'left',
+          color: '#ffffff',
+          fontSize: language === 'ar' ? '17px' : '16px',
+          animationType: 'shake',
+          borderColor: '#eaeaff',
+          borderRadius: '6px',
+          borderWidth: '0px',
+          paddingY: language === 'ar' ? '12px' : '10px',
+          iconSize: language === 'ar' ? '18px' : '16px',
+        },
+      };
               loadedElements.push(submitButton);
             }
             
