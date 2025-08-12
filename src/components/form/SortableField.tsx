@@ -151,6 +151,10 @@ const SortableField: React.FC<SortableFieldProps> = ({
     }
     
     setEditedField(fieldToSet);
+    // Propagate defaults to parent so preview updates immediately
+    if (onFieldUpdate && JSON.stringify(fieldToSet) !== JSON.stringify(field)) {
+      onFieldUpdate(fieldToSet);
+    }
   }, [field, language]);
 
   const toggleExpand = () => {
@@ -1536,7 +1540,11 @@ const SortableField: React.FC<SortableFieldProps> = ({
                                 <Label>{language === 'ar' ? 'أيقونة الزر' : 'Button Icon'}</Label>
                                 <Select
                                   value={editedField.style?.icon || 'shopping-cart'}
-                                  onValueChange={(value) => handleStyleChange('icon', value)}
+                                  onValueChange={(value) => {
+                                    handleStyleChange('icon', value);
+                                    handleStyleChange('showIcon', value !== 'none');
+                                    handleStyleChange('showIconInPreview', value !== 'none');
+                                  }}
                                 >
                                   <SelectTrigger>
                                     <SelectValue />

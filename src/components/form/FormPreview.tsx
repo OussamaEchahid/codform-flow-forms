@@ -125,6 +125,8 @@ const FormPreview: React.FC<FormPreviewProps> = ({
   
   // Determine the form direction, prioritizing formStyle.formDirection, then language
   const formDirection = formStyle.formDirection || (language === 'ar' ? 'rtl' : 'ltr');
+  // Ensure downstream components receive the effective direction
+  const effectiveFormStyle = useMemo(() => ({ ...formStyle, formDirection }), [formStyle, formDirection]);
   
   return (
     <div 
@@ -204,7 +206,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         {sanitizedFields.length > 0 ? (
           <FormWithQuantityOffers
             fields={sanitizedFields}
-            formStyle={formStyle}
+            formStyle={effectiveFormStyle}
             formCountry={formCountry}
             formPhonePrefix={formPhonePrefix}
             productId={productId}
