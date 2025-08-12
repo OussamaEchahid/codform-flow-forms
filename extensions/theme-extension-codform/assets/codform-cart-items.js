@@ -247,18 +247,14 @@
     let displayPrice = cachedProductPrice;
     let displayCurrency = cachedCurrency;
     
-    console.log(`🛒 Cart Items: Starting with - Price: ${cachedProductPrice}, Currency: ${cachedCurrency}`);
-    
-    // ✅ استخدام النظام الموحد مباشرة مع تطبيق المعدلات المخصصة
+    // ✅ Use currency manager for proper custom rates application
     let formattedPrice = formatCurrency(cachedProductPrice, cachedCurrency);
     
-    // تطبيق النظام الموحد مع المعدلات المخصصة
-    if (window.CodformUnifiedSystem && window.CodformUnifiedSystem.formatCurrency) {
-      // Force apply custom rates by passing true as third parameter
-      formattedPrice = window.CodformUnifiedSystem.formatCurrency(cachedProductPrice, cachedCurrency, true);
-      console.log(`🛒 Cart Items: Applied unified system with custom rates: ${cachedProductPrice} ${cachedCurrency} → ${formattedPrice}`);
-    } else {
-      console.log(`🛒 Cart Items: Unified system not available, using fallback formatting`);
+    // Apply custom rates from currency manager if available
+    if (window.CodformCurrencyManager && window.CodformCurrencyManager.formatCurrency) {
+      formattedPrice = window.CodformCurrencyManager.formatCurrency(cachedProductPrice, cachedCurrency);
+    } else if (window.CodformUnifiedSystem && window.CodformUnifiedSystem.formatCurrency) {
+      formattedPrice = window.CodformUnifiedSystem.formatCurrency(cachedProductPrice, cachedCurrency);
     }
     
     // Get product data from cache

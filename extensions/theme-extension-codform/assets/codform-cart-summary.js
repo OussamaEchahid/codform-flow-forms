@@ -21,7 +21,7 @@
     
     // عملات شمال أفريقيا والمغرب العربي
     'EGP': 30.85,
-    'MAD': 10.0, // ✅ UNIFIED: 1 USD = 10 MAD (consistent with currency rates file)
+    'MAD': 15.0, // ✅ UPDATED: 1 USD = 15 MAD (matching currency management settings)
     'TND': 3.15,
     'DZD': 134.25,
     
@@ -76,29 +76,32 @@
   };
 
   /**
-   * Convert currency amount using Currency Manager
+   * Convert currency amount using Currency Manager with custom rates
    */
   function convertCurrency(amount, fromCurrency, toCurrency) {
-    // استخدام Currency Manager إذا كان متاحاً
+    // ✅ استخدام Currency Manager مع المعدلات المخصصة أولاً
     if (window.CodformCurrencyManager && typeof window.CodformCurrencyManager.convertCurrency === 'function') {
       return window.CodformCurrencyManager.convertCurrency(amount, fromCurrency, toCurrency);
     }
     
-    // استخدام CurrencyService إذا كان متاحاً
-    if (window.CurrencyService && typeof window.CurrencyService.convertCurrency === 'function') {
-      return window.CurrencyService.convertCurrency(amount, fromCurrency, toCurrency);
-    }
-    
-    // التحويل الاحتياطي
+    // التحويل الاحتياطي باستخدام معدلات محدثة
     if (fromCurrency === toCurrency) {
       return amount;
     }
     
-    const fromRate = EXCHANGE_RATES[fromCurrency];
-    const toRate = EXCHANGE_RATES[toCurrency];
+    // ✅ Get rates from currency manager if available
+    let exchangeRates = EXCHANGE_RATES;
+    if (window.CodformCurrencyManager && window.CodformCurrencyManager.getRates) {
+      const customRates = window.CodformCurrencyManager.getRates();
+      if (customRates && Object.keys(customRates).length > 0) {
+        exchangeRates = { ...EXCHANGE_RATES, ...customRates };
+      }
+    }
+    
+    const fromRate = exchangeRates[fromCurrency];
+    const toRate = exchangeRates[toCurrency];
     
     if (!fromRate || !toRate) {
-      console.warn(`Currency rate missing: ${fromCurrency}=${fromRate}, ${toCurrency}=${toRate}`);
       return amount;
     }
     
@@ -110,31 +113,32 @@
   }
 
   /**
-   * Format currency amount using Currency Manager
+   * Format currency amount using Currency Manager with custom settings
    */
   function formatCurrency(amount, currency, language = 'ar') {
-    // استخدام Currency Manager إذا كان متاحاً
+    // ✅ استخدام Currency Manager مع الإعدادات المخصصة أولاً
     if (window.CodformCurrencyManager && typeof window.CodformCurrencyManager.formatCurrency === 'function') {
       return window.CodformCurrencyManager.formatCurrency(amount, currency, language);
     }
     
-    // استخدام CurrencyService إذا كان متاحاً للتنسيق المخصص
-    if (window.CurrencyService && typeof window.CurrencyService.formatCurrency === 'function') {
-      return window.CurrencyService.formatCurrency(amount, currency, language);
-    }
+    // التنسيق الاحتياطي مع رموز محسنة
+    const symbols = {
+      'SAR': 'ر.س',
+      'MAD': 'د.م', 
+      'AED': 'د.إ',
+      'USD': '$',
+      'EUR': '€',
+      'EGP': 'ج.م',
+      'JOD': 'د.أ',
+      'KWD': 'د.ك',
+      'QAR': 'ر.ق',
+      'BHD': 'د.ب',
+      'OMR': 'ر.ع'
+    };
     
-    // التنسيق الاحتياطي
-    try {
-      const locale = language === 'ar' ? 'ar-SA' : 'en-US';
-      return new Intl.NumberFormat(locale, {
-        style: 'currency',
-        currency: currency,
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      }).format(amount);
-    } catch (error) {
-      return `${currency} ${amount.toFixed(2)}`;
-    }
+    const symbol = symbols[currency] || currency;
+    const roundedAmount = Math.round(amount * 100) / 100;
+    return `${roundedAmount.toFixed(1)} ${symbol}`;
   }
 
   /**

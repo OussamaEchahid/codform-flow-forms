@@ -269,12 +269,26 @@
   convertCurrency(amount, fromCurrency, toCurrency) {
     if (fromCurrency === toCurrency) return amount;
     
-    // استخدام معدلات التحويل المخصصة أولاً، ثم الافتراضية
-    let exchangeRates = this.currentSettings?.customRates || {};
+    // ✅ استخدام معدلات التحويل الحقيقية من CurrencyManager أولاً
+    let exchangeRates = {};
+    
+    // محاولة الحصول على المعدلات من CurrencyManager
+    if (window.CodformCurrencyManager && window.CodformCurrencyManager.getRates) {
+      const currencyManagerRates = window.CodformCurrencyManager.getRates();
+      if (currencyManagerRates && Object.keys(currencyManagerRates).length > 0) {
+        exchangeRates = currencyManagerRates;
+        debugLog('🔄 Using CurrencyManager rates:', exchangeRates);
+      }
+    }
+    
+    // إذا لم نحصل على معدلات من CurrencyManager، استخدم المعدلات المحفوظة
+    if (Object.keys(exchangeRates).length === 0) {
+      exchangeRates = this.currentSettings?.customRates || {};
+    }
     
     // إضافة المعدلات الافتراضية للعملات غير المتوفرة
     const defaultRates = {
-      'USD': 1.0, 'EUR': 0.92, 'GBP': 0.79, 'SAR': 3.75, 'MAD': 10, 'AED': 3.67, 'EGP': 30.85,
+      'USD': 1.0, 'EUR': 0.92, 'GBP': 0.79, 'SAR': 3.75, 'MAD': 15, 'AED': 3.67, 'EGP': 30.85,
       'CAD': 1.43, 'AUD': 1.57, 'JPY': 149, 'CHF': 0.89, 'CNY': 7.24, 'INR': 83.12, 'BRL': 6.05,
       'RUB': 92.5, 'TRY': 34.15, 'KRW': 1345, 'SGD': 1.35, 'HKD': 7.8, 'NOK': 10.85, 'SEK': 10.62,
       'DKK': 6.89, 'PLN': 4.12, 'CZK': 22.85, 'HUF': 365, 'ILS': 3.67, 'ZAR': 18.45, 'MXN': 20.15,
@@ -285,7 +299,7 @@
       'ARS': 1005.5, 'CLP': 975.2, 'COP': 4285.5, 'PEN': 3.75, 'VES': 36500000, 'UYU': 40.25
     };
     
-    // دمج المعدلات المخصصة مع الافتراضية
+    // دمج المعدلات المخصصة مع الافتراضية (المخصصة لها الأولوية)
     exchangeRates = { ...defaultRates, ...exchangeRates };
     
     // التحويل عبر الدولار كعملة أساسية
