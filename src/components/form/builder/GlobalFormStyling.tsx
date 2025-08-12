@@ -215,11 +215,11 @@ const GlobalFormStyling: React.FC<GlobalFormStylingProps> = ({ formStyle, onStyl
           {/* Fields spacing */}
           <div className="space-y-2">
             <Label className="flex items-center justify-between text-sm font-medium">
-              <span>Fields spacing ({getNumericValue(formStyle.formGap, 15)})</span>
+              <span>Fields spacing ({getNumericValue(formStyle.formGap, 16)})</span>
               <span className="text-xs text-muted-foreground">20</span>
             </Label>
             <Slider
-              value={[getNumericValue(formStyle.formGap, 15)]}
+              value={[getNumericValue(formStyle.formGap, 16)]}
               onValueChange={(value) => onStyleChange('formGap', formatWithPx(value[0]))}
               max={20}
               step={1}

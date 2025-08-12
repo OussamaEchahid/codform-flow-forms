@@ -164,7 +164,7 @@
       
       html = `
         <div class="codform-field-wrapper" style="
-          margin-bottom: 10px;
+          margin-bottom: ${getStyleValue(formStyle,'formGap','16px')};
           direction: ${formDirection};
         ">
           ${actualShowLabel && !isFloatingLabels ? `
@@ -195,7 +195,7 @@
                 background: white;
                 padding: 0 4px;
                 z-index: 10;
-              " class="floating-label">
+              " class="floating-label-${fieldId}">
                 ${label}${required ? '<span style="color: #EF4444; margin-left: 4px;">*</span>' : ''}
               </label>
             ` : ''}
@@ -224,8 +224,54 @@
               direction: ${formDirection};
               text-align: ${formDirection === 'rtl' ? 'right' : 'left'};
             "
-            onfocus="this.style.borderColor='${focusBorderColor}'; this.style.boxShadow='0 0 0 3px ${focusBorderColor}20'"
-            onblur="this.style.borderColor='${actualBorderColor}'; this.style.boxShadow='rgba(0, 0, 0, 0.05) 0px 1px 2px'"
+            onfocus="
+              this.style.borderColor='${focusBorderColor}'; 
+              this.style.boxShadow='0 0 0 3px ${focusBorderColor}20';
+              ${isFloatingLabels ? `
+                const label = document.querySelector('.floating-label-${fieldId}');
+                if (label) {
+                  label.style.top = '-8px';
+                  label.style.transform = 'translateY(0)';
+                  label.style.fontSize = '12px';
+                  label.style.color = '${focusBorderColor}';
+                  label.style.backgroundColor = '#FFFFFF';
+                }
+              ` : ''}
+            "
+            onblur="
+              this.style.borderColor='${actualBorderColor}'; 
+              this.style.boxShadow='rgba(0, 0, 0, 0.05) 0px 1px 2px';
+              ${isFloatingLabels ? `
+                const label = document.querySelector('.floating-label-${fieldId}');
+                if (label && this.value === '') {
+                  label.style.top = '20px';
+                  label.style.transform = 'translateY(0)';
+                  label.style.fontSize = '${actualLabelFontSize}';
+                  label.style.color = '#9CA3AF';
+                  label.style.backgroundColor = 'transparent';
+                }
+              ` : ''}
+            "
+            oninput="
+              ${isFloatingLabels ? `
+                const label = document.querySelector('.floating-label-${fieldId}');
+                if (label) {
+                  if (this.value !== '') {
+                    label.style.top = '-8px';
+                    label.style.transform = 'translateY(0)';
+                    label.style.fontSize = '12px';
+                    label.style.color = '${actualLabelColor}';
+                    label.style.backgroundColor = '#FFFFFF';
+                  } else {
+                    label.style.top = '20px';
+                    label.style.transform = 'translateY(0)';
+                    label.style.fontSize = '${actualLabelFontSize}';
+                    label.style.color = '#9CA3AF';
+                    label.style.backgroundColor = 'transparent';
+                  }
+                }
+              ` : ''}
+            "
           ></textarea>
           </div>
           

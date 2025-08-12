@@ -123,7 +123,7 @@
     const paddingRight = formDirection === 'rtl' ? (showIcon && hasIcon ? `${12 + iconSizeForPadding + 10}px` : '12px') : '12px';
 
     return `
-      <div class="codform-field-wrapper" style="margin-bottom: ${getStyleValue(formStyle,'formGap','12px')}; direction: ${formDirection};">
+      <div class="codform-field-wrapper" style="margin-bottom: ${getStyleValue(formStyle,'formGap','16px')}; direction: ${formDirection};">
         ${styles.showLabel && !isFloatingLabels ? `
           <label for="${fieldId}" style="
             display: block;
@@ -154,7 +154,7 @@
               background: white;
               padding: 0 4px;
               z-index: 10;
-            " class="floating-label">
+            " class="floating-label-${fieldId}">
               ${label}${required ? '<span style="color: #EF4444; margin-left: 4px;">*</span>' : ''}
             </label>
           ` : ''}
@@ -184,8 +184,54 @@
               direction: ${formDirection};
               text-align: ${formDirection === 'rtl' ? 'right' : 'left'};
             "
-            onfocus="this.style.borderColor='${styles.focusBorderColor}'; this.style.boxShadow='0 0 0 3px ${styles.focusBorderColor}20'"
-            onblur="this.style.borderColor='${styles.borderColor}'; this.style.boxShadow='rgba(0, 0, 0, 0.05) 0px 1px 2px'"
+            onfocus="
+              this.style.borderColor='${styles.focusBorderColor}'; 
+              this.style.boxShadow='0 0 0 3px ${styles.focusBorderColor}20';
+              ${isFloatingLabels ? `
+                const label = document.querySelector('.floating-label-${fieldId}');
+                if (label) {
+                  label.style.top = '-8px';
+                  label.style.transform = 'translateY(0)';
+                  label.style.fontSize = '12px';
+                  label.style.color = '${styles.focusBorderColor}';
+                  label.style.backgroundColor = '#FFFFFF';
+                }
+              ` : ''}
+            "
+            onblur="
+              this.style.borderColor='${styles.borderColor}'; 
+              this.style.boxShadow='rgba(0, 0, 0, 0.05) 0px 1px 2px';
+              ${isFloatingLabels ? `
+                const label = document.querySelector('.floating-label-${fieldId}');
+                if (label && this.value === '') {
+                  label.style.top = '50%';
+                  label.style.transform = 'translateY(-50%)';
+                  label.style.fontSize = '${styles.labelFontSize}';
+                  label.style.color = '#9CA3AF';
+                  label.style.backgroundColor = 'transparent';
+                }
+              ` : ''}
+            "
+            oninput="
+              ${isFloatingLabels ? `
+                const label = document.querySelector('.floating-label-${fieldId}');
+                if (label) {
+                  if (this.value !== '') {
+                    label.style.top = '-8px';
+                    label.style.transform = 'translateY(0)';
+                    label.style.fontSize = '12px';
+                    label.style.color = '${styles.labelColor}';
+                    label.style.backgroundColor = '#FFFFFF';
+                  } else {
+                    label.style.top = '50%';
+                    label.style.transform = 'translateY(-50%)';
+                    label.style.fontSize = '${styles.labelFontSize}';
+                    label.style.color = '#9CA3AF';
+                    label.style.backgroundColor = 'transparent';
+                  }
+                }
+              ` : ''}
+            "
           />
         </div>
         ${field.helpText ? `
