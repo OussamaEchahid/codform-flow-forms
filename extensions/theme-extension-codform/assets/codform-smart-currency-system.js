@@ -189,7 +189,7 @@
             }
             
             return {
-              showSymbol: data.display_settings.show_symbol ?? false,
+              showSymbol: data.display_settings.show_symbol ?? true,
               symbolPosition: data.display_settings.symbol_position || 'before',
               decimalPlaces: data.display_settings.decimal_places ?? 2
             };

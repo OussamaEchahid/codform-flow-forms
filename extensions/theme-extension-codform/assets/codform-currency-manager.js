@@ -9,7 +9,7 @@
   
   // إعدادات العملة الافتراضية (احتياطية)
   const DEFAULT_SETTINGS = {
-    showSymbol: false,
+    showSymbol: true,
     symbolPosition: 'before', // 'before' | 'after'
     decimalPlaces: 2,
     customSymbols: {

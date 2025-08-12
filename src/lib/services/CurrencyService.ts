@@ -17,7 +17,7 @@ export interface CurrencyDisplaySettings {
 class CurrencyServiceClass {
   private customRates: Map<string, CustomCurrencyRate> = new Map();
   private displaySettings: CurrencyDisplaySettings = {
-    showSymbol: false,
+    showSymbol: true,
     symbolPosition: 'before',
     decimalPlaces: 2,
     customSymbols: {}
@@ -41,7 +41,7 @@ class CurrencyServiceClass {
       console.log(`🔄 Shop context changed: ${previousShopId} → ${shopId}, clearing cache`);
       this.customRates.clear();
       this.displaySettings = {
-        showSymbol: false,
+        showSymbol: true,
         symbolPosition: 'before',
         decimalPlaces: 2,
         customSymbols: {}
@@ -383,7 +383,7 @@ class CurrencyServiceClass {
             body: JSON.stringify({
               shop_id: this.currentShopId,
               display_settings: {
-                show_symbol: false,
+                show_symbol: false, // فقط للمتاجر الجديدة
                 symbol_position: 'before',
                 decimal_places: 2
               },
@@ -402,7 +402,7 @@ class CurrencyServiceClass {
 
       this.customRates.clear();
       this.displaySettings = {
-        showSymbol: false,
+        showSymbol: true,
         symbolPosition: 'before',
         decimalPlaces: 2,
         customSymbols: {}
