@@ -237,18 +237,18 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
             <div className={formDirection === 'rtl' ? 'text-left' : 'text-right'}>
               {isDiscounted && (
                 <div className="text-sm line-through text-gray-400">
-                  {CurrencyService.formatCurrency(originalPrice, displayCurrency, formDirection === 'rtl' ? 'ar' : 'en')}
+                  {CurrencyService.formatCurrency(originalPrice, currency, formDirection === 'rtl' ? 'ar' : 'en')}
                 </div>
               )}
               <div 
                 className="font-bold text-lg"
                 style={{ color: styling.priceColor }}
               >
-                {CurrencyService.formatCurrency(totalPrice, displayCurrency, formDirection === 'rtl' ? 'ar' : 'en')}
+                {CurrencyService.formatCurrency(totalPrice, currency, formDirection === 'rtl' ? 'ar' : 'en')}
               </div>
               {offer.quantity > 1 && (
                 <div className="text-xs text-gray-500 mt-1">
-                  {CurrencyService.formatCurrency(realPrice, displayCurrency, formDirection === 'rtl' ? 'ar' : 'en')} × {offer.quantity}
+                  {CurrencyService.formatCurrency(realPrice, currency, formDirection === 'rtl' ? 'ar' : 'en')} × {offer.quantity}
                 </div>
               )}
             </div>

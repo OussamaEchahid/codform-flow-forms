@@ -6,8 +6,13 @@
 window.CodformQuantityOffers = (function() {
   'use strict';
 
-  // دالة تحويل العملة مع Currency Manager
+  // دالة تحويل العملة مع Ultimate Currency System
   function convertCurrency(amount, fromCurrency, toCurrency) {
+    // استخدام Ultimate Currency System الجديد
+    if (window.CodformUltimateCurrency && typeof window.CodformUltimateCurrency.convertCurrency === 'function') {
+      return window.CodformUltimateCurrency.convertCurrency(amount, fromCurrency, toCurrency);
+    }
+    
     // استخدام Currency Manager إذا كان متاحاً
     if (window.CodformCurrencyManager && typeof window.CodformCurrencyManager.convertCurrency === 'function') {
       return window.CodformCurrencyManager.convertCurrency(amount, fromCurrency, toCurrency);
@@ -34,8 +39,13 @@ window.CodformQuantityOffers = (function() {
     return usdAmount * toRate;
   }
   
-  // دالة تنسيق العملة مع Currency Manager
+  // دالة تنسيق العملة مع Ultimate Currency System
   function formatCurrency(amount, currency, language = 'en') {
+    // استخدام Ultimate Currency System الجديد
+    if (window.CodformUltimateCurrency && typeof window.CodformUltimateCurrency.formatCurrency === 'function') {
+      return window.CodformUltimateCurrency.formatCurrency(amount, currency);
+    }
+    
     // استخدام Currency Manager إذا كان متاحاً
     if (window.CodformCurrencyManager && typeof window.CodformCurrencyManager.formatCurrency === 'function') {
       return window.CodformCurrencyManager.formatCurrency(amount, currency, language);
