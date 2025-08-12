@@ -600,38 +600,93 @@
   }
 
   /**
-   * Price Protection System - prevents external systems from overriding our prices
+   * ULTIMATE FIX: Prevent ANY external system from changing our prices
    */
-  function protectPriceDisplay() {
-    // Monitor for price changes and restore correct values
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.type === 'childList' || mutation.type === 'characterData') {
-          const priceElements = document.querySelectorAll('.codform-cart-items .cart-items-price');
-          priceElements.forEach((priceElement) => {
-            const currentText = priceElement.textContent;
-            const expectedCurrency = priceElement.getAttribute('data-currency');
-            
-            // Check if price was changed to wrong currency (like $1.0)
-            if (currentText && expectedCurrency && !currentText.includes(expectedCurrency)) {
-              console.log(`🛒 Cart Items: Price protection triggered - restoring correct price`);
-              const quantity = parseInt(document.querySelector('.cart-items-quantity')?.textContent || '1');
-              updatePriceDisplay(quantity);
-            }
-          });
+  function lockPriceDisplay() {
+    console.log('🔒 Cart Items: Activating ULTIMATE price lock system');
+    
+    // Get the correct values
+    const savedCurrencySettings = localStorage.getItem('codform_currency_settings');
+    let targetCurrency = cachedCurrency;
+    let conversionRate = 1;
+    
+    if (savedCurrencySettings) {
+      try {
+        const settings = JSON.parse(savedCurrencySettings);
+        if (settings.currency && settings.exchangeRates) {
+          targetCurrency = settings.currency;
+          conversionRate = settings.exchangeRates[settings.currency] || 1;
+        }
+      } catch (e) {
+        console.error('Error parsing currency settings:', e);
+      }
+    }
+
+    // Calculate correct price
+    function getCorrectPrice(quantity = 1) {
+      const convertedPrice = cachedProductPrice * conversionRate * quantity;
+      return formatCurrency(convertedPrice, targetCurrency);
+    }
+
+    // Override any attempts to change price
+    function forcePriceCorrection() {
+      const priceElements = document.querySelectorAll('.codform-cart-items .cart-items-price');
+      priceElements.forEach((priceElement) => {
+        const quantityElement = document.querySelector('.cart-items-quantity');
+        const quantity = quantityElement ? parseInt(quantityElement.textContent || '1') : 1;
+        const correctPrice = getCorrectPrice(quantity);
+        
+        // Force the correct price
+        if (priceElement.textContent !== correctPrice) {
+          priceElement.textContent = correctPrice;
+          priceElement.setAttribute('data-currency', targetCurrency);
+          priceElement.setAttribute('data-locked', 'true');
+          console.log(`🔒 Cart Items: Price LOCKED to ${correctPrice}`);
         }
       });
+    }
+
+    // Immediate correction
+    forcePriceCorrection();
+
+    // Monitor and correct every 100ms for the first 3 seconds
+    let corrections = 0;
+    const intensiveMonitor = setInterval(() => {
+      forcePriceCorrection();
+      corrections++;
+      if (corrections >= 30) { // 3 seconds
+        clearInterval(intensiveMonitor);
+        console.log('🔒 Cart Items: Intensive monitoring complete');
+      }
+    }, 100);
+
+    // Continuous monitoring with MutationObserver
+    const observer = new MutationObserver(() => {
+      forcePriceCorrection();
     });
 
-    // Start observing
     const cartItems = document.querySelector('.codform-cart-items');
     if (cartItems) {
       observer.observe(cartItems, {
         childList: true,
         subtree: true,
-        characterData: true
+        characterData: true,
+        attributes: true
       });
-      console.log(`🛒 Cart Items: Price protection system activated`);
+    }
+
+    // Override Shopify's money formatting functions if they exist
+    if (window.Shopify && window.Shopify.formatMoney) {
+      const originalFormatMoney = window.Shopify.formatMoney;
+      window.Shopify.formatMoney = function(cents, format) {
+        // If this is being called on our cart items, use our format
+        const cartContext = document.querySelector('.codform-cart-items');
+        if (cartContext && document.activeElement && cartContext.contains(document.activeElement)) {
+          const quantity = parseInt(document.querySelector('.cart-items-quantity')?.textContent || '1');
+          return getCorrectPrice(quantity);
+        }
+        return originalFormatMoney.call(this, cents, format);
+      };
     }
 
     return observer;
@@ -641,15 +696,15 @@
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
       initialize().then(() => {
-        // Activate price protection after initialization
-        setTimeout(protectPriceDisplay, 500);
+        // Activate ULTIMATE price lock after initialization
+        setTimeout(lockPriceDisplay, 200);
       });
     });
   } else {
     setTimeout(() => {
       initialize().then(() => {
-        // Activate price protection after initialization
-        setTimeout(protectPriceDisplay, 500);
+        // Activate ULTIMATE price lock after initialization
+        setTimeout(lockPriceDisplay, 200);
       });
     }, 100);
   }
