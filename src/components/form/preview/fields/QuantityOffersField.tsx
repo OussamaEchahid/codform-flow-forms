@@ -155,7 +155,7 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
   }
 
   return (
-    <div className="space-y-2 mb-2" style={{ direction: formDirection }}>
+    <div className="space-y-2 mb-0" style={{ direction: formDirection }}>
       {offers.map((offer, index) => {
         const totalPrice = calculatePrice(offer);
         const originalPrice = realPrice * offer.quantity;

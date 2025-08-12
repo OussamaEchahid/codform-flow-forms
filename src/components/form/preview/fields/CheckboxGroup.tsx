@@ -25,7 +25,7 @@ const CheckboxGroup: React.FC<CheckboxGroupProps> = ({ field, formStyle }) => {
       ];
 
   return (
-    <div className="mb-6">
+    <div className="mb-0">
       {field.label && (
         <label className="block font-medium mb-2" style={{ 
           color: fieldStyle.labelColor || '#374151',

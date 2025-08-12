@@ -262,7 +262,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
   };
   
   return (
-    <div className="mb-6 codform-cart-summary">
+    <div className="mb-0 codform-cart-summary">
       <div
         className="border rounded-md p-4"
         style={{ 

@@ -137,7 +137,7 @@ const CartItems: React.FC<CartItemsProps> = ({ field, formStyle, productId, form
   const borderRadius = formStyle.borderRadius || '0.5rem';
   
   return (
-    <div className="mb-2 codform-cart-items w-full max-w-sm mx-auto" style={{ direction: fieldStyle.direction || (language === 'ar' ? 'rtl' : 'ltr') }}>
+    <div className="mb-0 codform-cart-items w-full max-w-sm mx-auto" style={{ direction: fieldStyle.direction || (language === 'ar' ? 'rtl' : 'ltr') }}>
       <div 
         className={`${fieldStyle.showBorders !== false ? 'border' : ''} rounded-lg overflow-hidden bg-white shadow-sm`} 
         style={{ 

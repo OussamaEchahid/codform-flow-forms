@@ -17,27 +17,40 @@ interface SubmitButtonEditorProps {
 const SubmitButtonEditor: React.FC<SubmitButtonEditorProps> = ({ field, onSave, onClose }) => {
   const { language } = useI18n();
   const [currentField, setCurrentField] = React.useState<FormField>(field);
-  const defaultFontSize = language === 'ar' ? '17' : '16';
-  const defaultPaddingY = language === 'ar' ? '12' : '10';
-  const defaultIconPosition = language === 'ar' ? 'right' : 'left';
+  const defaultFontSize = language === 'ar' ? '17' : '18';
+  const defaultPaddingY = language === 'ar' ? '12' : '15';
+  const defaultIconPosition = 'right';
 
   React.useEffect(() => {
-    if (language === 'ar') {
-      setCurrentField((prev) => {
-        const cur = prev.style || {};
+    setCurrentField((prev) => {
+      const cur = prev.style || {};
+      const isArabic = language === 'ar';
+      // لا نلمس العربية، نضبط الافتراضيات للغات الأخرى فقط إن لم تكن مُحددة
+      if (isArabic) {
         return {
           ...prev,
           style: {
             ...cur,
-            fontSize: '17px',
-            paddingY: '12px',
-            iconPosition: 'right',
-            iconSize: '18px',
+            fontSize: cur.fontSize || '17px',
+            paddingY: cur.paddingY || '12px',
+            iconPosition: cur.iconPosition || 'right',
+            iconSize: cur.iconSize || '18px',
             showIcon: typeof cur.showIcon === 'boolean' ? cur.showIcon : Boolean(cur.icon),
           },
         };
-      });
-    }
+      }
+      return {
+        ...prev,
+        style: {
+          ...cur,
+          fontSize: cur.fontSize || '18px',
+          paddingY: cur.paddingY || '15px',
+          iconPosition: cur.iconPosition || 'right',
+          iconSize: cur.iconSize || '18px',
+          showIcon: typeof cur.showIcon === 'boolean' ? cur.showIcon : Boolean(cur.icon),
+        },
+      };
+    });
   }, [language]);
 
   const handleChange = (property: string, value: any) => {
