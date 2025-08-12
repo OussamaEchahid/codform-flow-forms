@@ -122,8 +122,8 @@ const TextFieldEditor: React.FC<TextFieldEditorProps> = ({ field, onSave, onClos
               {language === 'ar' ? 'الأيقونة' : 'Icon'}
             </Label>
             <Select 
-              value={currentField.icon || 'none'} 
-              onValueChange={(value) => handleChange('icon', value === 'none' ? undefined : value)}
+              value={currentField.style?.icon || 'none'} 
+              onValueChange={(value) => handleChange('style.icon', value === 'none' ? undefined : value)}
             >
               <SelectTrigger>
                 <SelectValue placeholder={language === 'ar' ? 'اختر أيقونة' : 'Select icon'} />

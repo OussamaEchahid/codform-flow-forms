@@ -64,7 +64,7 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
     fieldId: field.id,
     fontSize: fieldStyle.fontSize,
     labelFontSize: fieldStyle.labelFontSize,
-    hasIcon: field.icon
+    hasIcon: field.style?.icon
   });
   
   // تحديد القيم الافتراضية للحجم
@@ -82,8 +82,8 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
   const inputBorderColor = fieldStyle.borderColor || formStyle.fieldBorderColor || '#d1d5db';
   const focusBorderColor = formStyle.focusBorderColor || formStyle.primaryColor || '#9b87f5';
   
-  // تحديد إذا كان هناك أيقونة وإذا كان يجب إظهارها
-  const actualIcon = field.style?.icon || field.icon;
+  // تحديد إذا كان هناك أيقونة وإذا كان يجب إظهارها - استخدام field.style.icon فقط
+  const actualIcon = field.style?.icon;
   const hasIcon = !!(actualIcon && actualIcon !== 'none' && actualIcon !== '');
   const showIcon = fieldStyle.showIcon !== undefined ? fieldStyle.showIcon : hasIcon;
   const iconSize = parseInt(String(field.style?.iconSize || '18').replace('px','')) || 18;

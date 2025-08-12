@@ -213,10 +213,9 @@ export const createFieldWithDefaults = (type: string, language: string = 'en') =
       return {
         ...baseField,
         label: 'Submit Form',
-        icon: 'shopping-cart', // إعداد icon في الحقل المباشر
         style: {
           ...defaults.submit.style,
-          icon: 'shopping-cart', // إعداد icon في style أيضاً
+          icon: 'shopping-cart', // إعداد icon في style فقط
           showIcon: true
         }
       };

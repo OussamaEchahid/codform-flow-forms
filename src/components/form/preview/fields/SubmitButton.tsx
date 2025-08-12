@@ -38,7 +38,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, onClick, 
   // Debug logging for submit button
   console.log('🔍 SubmitButton Debug - field:', field);
   console.log('🔍 SubmitButton Debug - field.style:', field.style);
-  console.log('🔍 SubmitButton Debug - field.icon:', field.icon);
+  console.log('🔍 SubmitButton Debug - field.style.icon only:', field.style?.icon);
   console.log('🔍 SubmitButton Debug - field.style?.icon:', field.style?.icon);
   
   // Extract style values with fallbacks
@@ -57,8 +57,8 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, onClick, 
     borderWidth = field.style?.borderWidth || '0px',
   } = field.style || {};
 
-  // Get the current icon - prioritize style.icon over field.icon
-  const currentIcon = field.style?.icon || field.icon || 'shopping-cart';
+  // Get the current icon - use only field.style.icon
+  const currentIcon = field.style?.icon || 'shopping-cart';
   console.log('🎯 Current Icon:', currentIcon);
 
   // Derived icon settings for consistent preview/store behavior

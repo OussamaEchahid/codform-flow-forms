@@ -168,15 +168,13 @@ const SubmitButtonEditor: React.FC<SubmitButtonEditorProps> = ({ field, onSave, 
           {language === 'ar' ? 'الأيقونة' : 'Icon'}
         </Label>
         <Select 
-          value={currentField.style?.icon || currentField.icon || 'none'} 
+          value={currentField.style?.icon || 'none'} 
           onValueChange={(value) => {
             if (value === 'none') {
               handleChange('style.icon', undefined);
-              handleChange('icon', undefined);
               handleChange('style.showIcon', false);
             } else {
               handleChange('style.icon', value);
-              handleChange('icon', value);
               handleChange('style.showIcon', true);
             }
           }}

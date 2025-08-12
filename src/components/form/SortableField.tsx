@@ -1555,13 +1555,9 @@ const SortableField: React.FC<SortableFieldProps> = ({
                               <div className="space-y-1">
                                 <Label>{language === 'ar' ? 'أيقونة الزر' : 'Button Icon'}</Label>
                                 <Select
-                                  value={editedField.style?.icon || editedField.icon || 'shopping-cart'}
+                                  value={editedField.style?.icon || 'shopping-cart'}
                                   onValueChange={(value) => {
                                     handleStyleChange('icon', value === 'none' ? undefined : value);
-                                    setEditedField(prev => ({
-                                      ...prev,
-                                      icon: value === 'none' ? undefined : value
-                                    }));
                                     handleStyleChange('showIcon', value !== 'none');
                                   }}
                                 >
@@ -1634,13 +1630,12 @@ const SortableField: React.FC<SortableFieldProps> = ({
 
                            <div className="space-y-1">
                              <Label>{language === 'ar' ? 'أيقونة الحقل' : 'Field Icon'}</Label>
-                             <Select
-                               value={editedField.icon || 'user'}
-                               onValueChange={(value) => {
-                                 handleFieldChange('icon', value === 'none' ? undefined : value);
-                                 handleStyleChange('showIcon', value !== 'none');
-                                 handleStyleChange('showIconInPreview', value !== 'none');
-                               }}
+                              <Select
+                                value={editedField.style?.icon || 'user'}
+                                onValueChange={(value) => {
+                                  handleStyleChange('icon', value === 'none' ? undefined : value);
+                                  handleStyleChange('showIcon', value !== 'none');
+                                }}
                              >
                                <SelectTrigger>
                                  <SelectValue placeholder={language === 'ar' ? 'اختر أيقونة' : 'Select icon'} />
