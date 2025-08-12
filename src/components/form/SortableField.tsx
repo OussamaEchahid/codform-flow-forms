@@ -1557,11 +1557,18 @@ const SortableField: React.FC<SortableFieldProps> = ({
                                 <Select
                                   value={editedField.style?.icon || editedField.icon || 'shopping-cart'}
                                   onValueChange={(value) => {
-                                    console.log('🔧 Submit Button Icon Change:', { value, oldIcon: editedField.style?.icon, oldFieldIcon: editedField.icon });
+                                    console.log('🔧 Submit Button Icon Change:', { 
+                                      value, 
+                                      oldIcon: editedField.style?.icon, 
+                                      oldFieldIcon: editedField.icon,
+                                      fieldType: editedField.type 
+                                    });
                                     handleStyleChange('icon', value === 'none' ? undefined : value);
                                     handleStyleChange('showIcon', value !== 'none');
+                                    // حفظ في field.icon أيضاً للتوافق مع البيانات الموجودة
+                                    handleFieldChange('icon', value === 'none' ? undefined : value);
                                   }}
-                                >
+                                 >
                                   <SelectTrigger>
                                     <SelectValue />
                                   </SelectTrigger>
@@ -1634,11 +1641,18 @@ const SortableField: React.FC<SortableFieldProps> = ({
                               <Select
                                 value={editedField.style?.icon || editedField.icon || 'user'}
                                 onValueChange={(value) => {
-                                  console.log('🔧 SortableField Icon Change:', { value, oldIcon: editedField.style?.icon, oldFieldIcon: editedField.icon });
+                                  console.log('🔧 SortableField Icon Change:', { 
+                                    value, 
+                                    oldIcon: editedField.style?.icon, 
+                                    oldFieldIcon: editedField.icon,
+                                    fieldType: editedField.type 
+                                  });
                                   handleStyleChange('icon', value === 'none' ? undefined : value);
                                   handleStyleChange('showIcon', value !== 'none');
+                                  // حفظ في field.icon أيضاً للتوافق مع البيانات الموجودة
+                                  handleFieldChange('icon', value === 'none' ? undefined : value);
                                 }}
-                             >
+                               >
                                <SelectTrigger>
                                  <SelectValue placeholder={language === 'ar' ? 'اختر أيقونة' : 'Select icon'} />
                                </SelectTrigger>

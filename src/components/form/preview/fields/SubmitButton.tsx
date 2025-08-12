@@ -58,13 +58,15 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ field, formStyle, onClick, 
   } = field.style || {};
 
   // Get the current icon - فحص كلا المصدرين للتأكد
-  console.log('🔍 SubmitButton Icon Debug:', {
+  console.log('🔍 SubmitButton Icon Debug START:', {
+    fieldId: field.id,
     fieldIcon: field.icon,
     fieldStyleIcon: field.style?.icon,
-    showIcon: field.style?.showIcon
+    showIcon: field.style?.showIcon,
+    fieldStyle: field.style
   });
   const currentIcon = field.style?.icon || field.icon || 'shopping-cart';
-  console.log('🎯 Current Icon:', currentIcon);
+  console.log('🎯 SubmitButton Current Icon:', currentIcon);
 
   // Derived icon settings for consistent preview/store behavior
   const formDirection = formStyle.formDirection === 'rtl' ? 'rtl' : 'ltr';

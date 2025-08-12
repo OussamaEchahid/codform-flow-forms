@@ -83,15 +83,18 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
   const focusBorderColor = formStyle.focusBorderColor || formStyle.primaryColor || '#9b87f5';
   
   // تحديد إذا كان هناك أيقونة وإذا كان يجب إظهارها - فحص كلا المصدرين
-  console.log('🔍 TextInput Icon Debug:', {
+  console.log('🔍 TextInput Icon Debug START:', {
     fieldId: field.id,
+    fieldType: field.type,
     fieldIcon: field.icon,
     fieldStyleIcon: field.style?.icon,
-    showIcon: field.style?.showIcon
+    showIcon: field.style?.showIcon,
+    fieldStyle: fieldStyle
   });
   const actualIcon = field.style?.icon || field.icon; // استخدام كلا المصدرين
   const hasIcon = !!(actualIcon && actualIcon !== 'none' && actualIcon !== '');
   const showIcon = fieldStyle.showIcon !== undefined ? fieldStyle.showIcon : hasIcon;
+  console.log('🔍 TextInput Final Values:', { actualIcon, hasIcon, showIcon });
   const iconSize = parseInt(String(field.style?.iconSize || '18').replace('px','')) || 18;
   
   // تحديد موضع الأيقونة مع إمكانية تخصيصها من الإعدادات
@@ -99,7 +102,11 @@ const TextInput: React.FC<TextInputProps> = ({ field, formStyle, formCountry = '
   
   // تحسين وظيفة عرض الأيقونات
   const renderIcon = () => {
-    if (!hasIcon || !showIcon) return null;
+    console.log('🔍 TextInput renderIcon called:', { hasIcon, showIcon, actualIcon });
+    if (!hasIcon || !showIcon) {
+      console.log('🔍 TextInput renderIcon: No icon to show');
+      return null;
+    }
     
     const iconProps = { 
       size: iconSize,
