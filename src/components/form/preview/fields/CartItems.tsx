@@ -67,74 +67,30 @@ const CartItems: React.FC<CartItemsProps> = ({ field, formStyle, productId, form
     fetchLinkedProduct();
   }, []);
 
-  // تحميل بيانات المنتج من Shopify أو استخدام بيانات افتراضية
+  // تحميل بيانات المنتج من Shopify
   useEffect(() => {
     const finalProductId = linkedProductId || productId;
-    
-    // إذا لم يتم العثور على معرف المنتج، استخدم بيانات افتراضية
-    if (!finalProductId || finalProductId === 'auto-detect') {
-      console.log('📦 No product ID found, using default product data');
-      setProductData({
-        title: language === 'ar' ? 'عنوان المنتج' : 'Product Title',
-        image: null, // سيعرض الأيقونة الافتراضية
-        variants: [{
-          price: '29.99',
-          currency_code: 'SAR',
-          title: 'Default Title'
-        }]
-      });
-      return;
-    }
-
-    if (!loading && !productData) {
+    if (finalProductId && finalProductId !== 'auto-detect' && !loading && !productData) {
       setLoading(true);
       console.log('📦 Starting to load product for cart items:', finalProductId);
       
       getProductById(finalProductId)
         .then(product => {
           console.log('✅ Product loaded successfully for cart items:', product);
-          if (product) {
-            // تأكد من وجود variants حتى لو كانت فارغة
-            if (!product.variants || product.variants.length === 0) {
-              product.variants = [{
-                price: '29.99',
-                currency_code: 'SAR',
-                title: 'Default Title'
-              }];
-            }
+          if (product && product.variants && product.variants.length > 0) {
             setProductData(product);
           } else {
-            console.warn('⚠️ Product not found, using fallback data');
-            // استخدام بيانات احتياطية
-            setProductData({
-              title: language === 'ar' ? 'عنوان المنتج' : 'Product Title',
-              image: null,
-              variants: [{
-                price: '29.99',
-                currency_code: 'SAR',
-                title: 'Default Title'
-              }]
-            });
+            console.warn('⚠️ Product has no variants:', product);
           }
         })
         .catch(error => {
           console.error('❌ Error loading product data:', error);
-          // في حالة الخطأ، استخدم بيانات افتراضية
-          setProductData({
-            title: language === 'ar' ? 'عنوان المنتج' : 'Product Title',
-            image: null,
-            variants: [{
-              price: '29.99',
-              currency_code: 'SAR',
-              title: 'Default Title'
-            }]
-          });
         })
         .finally(() => {
           setLoading(false);
         });
     }
-  }, [linkedProductId, productId, language]);
+  }, [linkedProductId, productId]);
 
   // حساب السعر مع تحويل العملة
   const convertedPrice = useMemo(() => {
