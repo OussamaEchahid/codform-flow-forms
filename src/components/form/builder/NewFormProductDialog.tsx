@@ -180,10 +180,10 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
         borderColor: '#eaeaff',
         borderRadius: '6px',
         borderWidth: '0px',
-        paddingY: selectedLanguage === 'ar' ? '12px' : '10px',
+        paddingY: selectedLanguage === 'ar' ? '12px' : '15px',
         showIcon: true,
         iconPosition: 'right',
-        iconSize: selectedLanguage === 'ar' ? '18px' : '16px',
+        iconSize: '18px',
       }
     };
     

@@ -392,13 +392,13 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
           showIcon: true,
           iconPosition: 'right',
           color: '#ffffff',
-          fontSize: language === 'ar' ? '17px' : '16px',
+          fontSize: language === 'ar' ? '17px' : '18px',
           animationType: 'shake',
           borderColor: '#eaeaff',
           borderRadius: '6px',
           borderWidth: '0px',
-          paddingY: language === 'ar' ? '12px' : '10px',
-          iconSize: language === 'ar' ? '18px' : '16px',
+          paddingY: language === 'ar' ? '12px' : '15px',
+          iconSize: '18px',
         },
       };
               loadedElements.push(submitButton);
