@@ -185,13 +185,9 @@
     try {
       console.log(`🛒 Cart Items: Formatting currency - Amount: ${amount}, Currency: ${currency}`);
       
-      // Use Smart Currency System if available
-      if (window.CodformSmartCurrency && window.CodformSmartCurrency.formatCurrency) {
-        const formatted = window.CodformSmartCurrency.formatCurrency(amount, currency);
-        console.log(`🛒 Cart Items: Smart Currency formatted: ${formatted}`);
-        return formatted;
-      }
-
+      // DO NOT use Smart Currency System as it's causing issues
+      // Force use our own formatting to ensure consistency
+      
       // Enhanced currency symbols with Arabic support
       const symbols = {
         'SAR': 'ر.س',
