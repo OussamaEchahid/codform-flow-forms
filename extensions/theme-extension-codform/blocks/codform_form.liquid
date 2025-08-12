@@ -285,14 +285,15 @@
           }
         }
       } else {
-        const baseFontSize = formDirection === 'rtl' ? '17px' : getStyleValue(formStyle, 'baseFontSize', '16px');
+        const baseFontSize = formDirection === 'rtl' ? '17px' : getStyleValue(formStyle, 'baseFontSize', '18px');
         finalButtonText = buttonText;
         finalBgColor = getStyleValue(buttonStyle, 'backgroundColor', formStyle?.primaryColor || 'rgb(155, 135, 245)');
         finalTextColor = getStyleValue(buttonStyle, 'color', 'rgb(255, 255, 255)');
         finalFontSize = getStyleValue(buttonStyle, 'fontSize', baseFontSize);
         finalBorderRadius = getStyleValue(buttonStyle, 'borderRadius', formStyle?.borderRadius || '8px');
-        finalPaddingY = getStyleValue(buttonStyle, 'paddingY', formDirection === 'rtl' ? '12px' : '10px');
+        finalPaddingY = getStyleValue(buttonStyle, 'paddingY', formDirection === 'rtl' ? '12px' : '15px');
         finalAnimation = animationClass;
+        try { console.log('🧪 CODFORM Submit defaults', { direction: formDirection, fontSize: finalFontSize, paddingY: finalPaddingY, iconPositionDefault: 'right', formGap: getStyleValue(formStyle,'formGap','12px') }); } catch(e) {}
       }
       
       const buttonWidth = getStyleValue(buttonStyle, 'width', '100%');
@@ -327,7 +328,7 @@
       // icon size (strip px if provided)
       const rawIconSize = getStyleValue(buttonStyle, 'iconSize', '18');
       const iconSize = String(rawIconSize).endsWith('px') ? String(rawIconSize).replace('px','') : String(rawIconSize);
-      const iconPosition = getStyleValue(buttonStyle, 'iconPosition', formDirection === 'rtl' ? 'right' : 'left');
+      const iconPosition = getStyleValue(buttonStyle, 'iconPosition', 'right');
       
       let iconHtml = '';
       if (showIcon && hasIcon) {
@@ -344,7 +345,7 @@
       
       html = `
         <div class="codform-submit-wrapper" style="
-          margin-top: 20px;
+          margin-top: 0px;
           text-align: center;
         ">
           <button
@@ -373,6 +374,7 @@
               position: relative;
               overflow: hidden;
               text-align: center;
+              margin-top: 0px !important;
             "
             onmouseover="this.style.opacity='0.9';"
             onmouseout="this.style.opacity='1';"

@@ -123,7 +123,7 @@
     const paddingRight = formDirection === 'rtl' ? (showIcon && hasIcon ? `${12 + iconSizeForPadding + 10}px` : '12px') : '12px';
 
     return `
-      <div class="codform-field-wrapper" style="margin-bottom: 4px; direction: ${formDirection};">
+      <div class="codform-field-wrapper" style="margin-bottom: ${getStyleValue(formStyle,'formGap','12px')}; direction: ${formDirection};">
         ${styles.showLabel && !isFloatingLabels ? `
           <label for="${fieldId}" style="
             display: block;
