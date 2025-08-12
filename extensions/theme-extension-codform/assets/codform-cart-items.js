@@ -13,55 +13,136 @@
   let isInitialized = false;
 
   /**
-   * Fetch product price from Shopify theme global variables and local storage
+   * Fetch product data from current Shopify page or API
    */
   async function fetchProductPrice() {
     try {
-      console.log('🛒 Cart Items: Getting product data from Shopify theme globals...');
+      console.log('🛒 Cart Items: Getting product data from current page...');
 
-      // Get product price directly from Shopify theme global variables
-      let productPrice = 29.99; // fallback
-      let currency = 'SAR'; // fallback
+      let productData = {
+        price: 29.99,
+        currency: 'SAR',
+        title: 'Product',
+        image: null
+      };
+
+      // Try to get product data from current page URL
+      const currentUrl = window.location.href;
+      const isProductPage = currentUrl.includes('/products/');
       
-      // Try to get price from various Shopify global variables
-      if (window.product && window.product.price) {
-        productPrice = window.product.price / 100; // Shopify stores price in cents
-        console.log(`🛒 Cart Items: Got price from window.product: ${productPrice}`);
-      } else if (window.CodformProductPrice) {
-        productPrice = window.CodformProductPrice;
-        console.log(`🛒 Cart Items: Got price from CodformProductPrice: ${productPrice}`);
-      } else if (window.theme && window.theme.moneyFormat) {
-        // Try to extract from theme money format
-        const matches = window.theme.moneyFormat.match(/\d+(\.\d+)?/);
-        if (matches) {
-          productPrice = parseFloat(matches[0]);
-          console.log(`🛒 Cart Items: Extracted price from theme moneyFormat: ${productPrice}`);
+      if (isProductPage) {
+        // Extract product handle from URL
+        const urlParts = currentUrl.split('/products/');
+        if (urlParts.length > 1) {
+          const productHandle = urlParts[1].split('?')[0].split('#')[0];
+          console.log('🛒 Cart Items: Found product handle:', productHandle);
+          
+          try {
+            // Use Shopify Product API
+            const productApiUrl = `/products/${productHandle}.js`;
+            const response = await fetch(productApiUrl);
+            
+            if (response.ok) {
+              const product = await response.json();
+              console.log('🛒 Cart Items: Got product from API:', product);
+              
+              if (product && product.variants && product.variants.length > 0) {
+                const variant = product.variants[0];
+                productData.price = variant.price / 100; // Convert from cents
+                productData.title = product.title;
+                productData.image = product.featured_image;
+                
+                // Get currency from Shopify theme
+                if (window.Shopify && window.Shopify.currency && window.Shopify.currency.active) {
+                  productData.currency = window.Shopify.currency.active;
+                } else if (window.theme && window.theme.moneyWithCurrencyFormat) {
+                  // Extract currency from money format
+                  const currencyMatch = window.theme.moneyWithCurrencyFormat.match(/\b[A-Z]{3}\b/);
+                  if (currencyMatch) {
+                    productData.currency = currencyMatch[0];
+                  }
+                }
+                
+                console.log('🛒 Cart Items: Product data loaded:', productData);
+              }
+            }
+          } catch (apiError) {
+            console.log('🛒 Cart Items: API call failed, using fallbacks:', apiError);
+          }
         }
       }
 
-      // Try to get currency from Shopify global variables
-      if (window.Shopify && window.Shopify.currency && window.Shopify.currency.active) {
-        currency = window.Shopify.currency.active;
-        console.log(`🛒 Cart Items: Got currency from Shopify.currency: ${currency}`);
-      } else if (window.shop && window.shop.currency) {
-        currency = window.shop.currency;
-        console.log(`🛒 Cart Items: Got currency from shop.currency: ${currency}`);
-      } else if (window.theme && window.theme.shopCurrency) {
-        currency = window.theme.shopCurrency;
-        console.log(`🛒 Cart Items: Got currency from theme.shopCurrency: ${currency}`);
+      // Try to get data from DOM elements if API failed
+      if (productData.price === 29.99) {
+        // Try to find price in DOM
+        const priceSelectors = [
+          '.price .money',
+          '.product-price .money',
+          '.current-price',
+          '[data-price]',
+          '.price-current'
+        ];
+        
+        for (const selector of priceSelectors) {
+          const priceElement = document.querySelector(selector);
+          if (priceElement) {
+            const priceText = priceElement.textContent || priceElement.getAttribute('data-price');
+            const priceMatch = priceText.match(/[\d,]+\.?\d*/);
+            if (priceMatch) {
+              productData.price = parseFloat(priceMatch[0].replace(',', ''));
+              console.log('🛒 Cart Items: Found price in DOM:', productData.price);
+              break;
+            }
+          }
+        }
+        
+        // Try to find title in DOM
+        const titleSelectors = [
+          'h1.product-title',
+          '.product-title h1',
+          'h1[data-product-title]',
+          '.product-single__title',
+          'h1'
+        ];
+        
+        for (const selector of titleSelectors) {
+          const titleElement = document.querySelector(selector);
+          if (titleElement && titleElement.textContent.trim()) {
+            productData.title = titleElement.textContent.trim();
+            console.log('🛒 Cart Items: Found title in DOM:', productData.title);
+            break;
+          }
+        }
+        
+        // Try to find image in DOM
+        const imageSelectors = [
+          '.product-single__photos img',
+          '.product-image img',
+          '[data-product-image]',
+          '.featured-image img'
+        ];
+        
+        for (const selector of imageSelectors) {
+          const imageElement = document.querySelector(selector);
+          if (imageElement && imageElement.src) {
+            productData.image = imageElement.src;
+            console.log('🛒 Cart Items: Found image in DOM:', productData.image);
+            break;
+          }
+        }
       }
 
-      // Apply any currency conversion if needed from localStorage settings
+      // Apply currency conversion if needed
       try {
         const savedCurrencySettings = localStorage.getItem('codform_currency_settings');
         if (savedCurrencySettings) {
           const settings = JSON.parse(savedCurrencySettings);
-          if (settings.currency && settings.currency !== currency && settings.exchangeRates) {
+          if (settings.currency && settings.currency !== productData.currency && settings.exchangeRates) {
             const rate = settings.exchangeRates[settings.currency];
             if (rate) {
-              productPrice = productPrice * rate;
-              currency = settings.currency;
-              console.log(`🛒 Cart Items: Applied currency conversion: ${productPrice} ${currency}`);
+              productData.price = productData.price * rate;
+              productData.currency = settings.currency;
+              console.log(`🛒 Cart Items: Applied currency conversion: ${productData.price} ${productData.currency}`);
             }
           }
         }
@@ -70,29 +151,30 @@
       }
 
       // Cache the results
-      cachedProductPrice = productPrice;
-      cachedCurrency = currency;
+      cachedProductPrice = productData.price;
+      cachedCurrency = productData.currency;
+      window.CodformProductData = productData; // Store globally for access
 
-      console.log(`🛒 Cart Items: Final product data - Price: ${productPrice}, Currency: ${currency}`);
+      console.log(`🛒 Cart Items: Final product data - Price: ${productData.price}, Currency: ${productData.currency}, Title: ${productData.title}`);
 
-      return {
-        price: productPrice,
-        currency: currency,
-        displaySettings: {}
-      };
+      return productData;
 
     } catch (error) {
       console.error('🚨 Cart Items - Error getting product data:', error);
       
       // Use fallback values
-      cachedProductPrice = 29.99;
-      cachedCurrency = 'SAR';
-      
-      return {
+      const fallbackData = {
         price: 29.99,
         currency: 'SAR',
-        displaySettings: {}
+        title: 'Product',
+        image: null
       };
+      
+      cachedProductPrice = fallbackData.price;
+      cachedCurrency = fallbackData.currency;
+      window.CodformProductData = fallbackData;
+      
+      return fallbackData;
     }
   }
 
@@ -160,10 +242,10 @@
     // Format the cached price
     const formattedPrice = formatCurrency(cachedProductPrice, cachedCurrency);
     
-    // Get product title from Shopify global or fallback
-    const productTitle = (window.product && window.product.title) || 
-                        (window.CodformProductTitle) || 
-                        'Product';
+    // Get product data from cache
+    const productData = window.CodformProductData || {};
+    const productTitle = productData.title || 'Product';
+    const productImage = productData.image;
 
     return `
       <div class="codform-cart-items" style="
@@ -186,20 +268,34 @@
             gap: 12px;
             font-family: ${fontFamily};
           ">
-            <!-- Product Image Placeholder -->
+            <!-- Product Image -->
             <div style="
               width: 60px;
               height: 60px;
-              background-color: #f3f4f6;
               border-radius: 8px;
-              display: flex;
-              align-items: center;
-              justify-content: center;
+              overflow: hidden;
               border: 1px solid #e5e7eb;
             ">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2">
-                <path d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5M17 17a2 2 0 11-4 0 2 2 0 014 0zM9 17a2 2 0 11-4 0 2 2 0 014 0z"/>
-              </svg>
+              ${productImage ? `
+                <img src="${productImage}" alt="${productTitle}" style="
+                  width: 100%;
+                  height: 100%;
+                  object-fit: cover;
+                " />
+              ` : `
+                <div style="
+                  width: 100%;
+                  height: 100%;
+                  background-color: #f3f4f6;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                ">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2">
+                    <path d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5M17 17a2 2 0 11-4 0 2 2 0 014 0zM9 17a2 2 0 11-4 0 2 2 0 014 0z"/>
+                  </svg>
+                </div>
+              `}
             </div>
             
             <!-- Product Details -->
