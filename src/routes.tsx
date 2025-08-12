@@ -6,6 +6,7 @@ import GeneralSettings from '@/pages/GeneralSettings';
 import SpamSettings from '@/pages/SpamSettings';
 import PlansSettings from '@/pages/PlansSettings';
 import CurrencySettings from '@/pages/CurrencySettings';
+import CurrencyManagement from '@/pages/CurrencyManagement';
 import QuantityOffers from '@/pages/QuantityOffers';
 import AdvertisingTracking from '@/pages/AdvertisingTracking';
 import Shopify from '@/pages/Shopify';
@@ -94,6 +95,10 @@ export const routes: RouteObject[] = [
   {
     path: '/settings/currency',
     Component: CurrencySettings
+  },
+  {
+    path: '/currency-management',
+    Component: CurrencyManagement
   },
   {
     path: '/quantity-offers',
