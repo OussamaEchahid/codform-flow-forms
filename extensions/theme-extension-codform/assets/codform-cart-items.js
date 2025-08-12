@@ -401,6 +401,9 @@
     
     console.log('🛒 Cart Items: Quantity increased to:', newQuantity);
     
+    // Update price display based on new quantity
+    updatePriceDisplay(newQuantity);
+    
     // Update shared state
     if (window.CodformStateManager) {
       window.CodformStateManager.updateQuantity(newQuantity);
@@ -423,6 +426,9 @@
       quantitySpan.textContent = newQuantity;
       
       console.log('🛒 Cart Items: Quantity decreased to:', newQuantity);
+      
+      // Update price display based on new quantity
+      updatePriceDisplay(newQuantity);
       
       // Update shared state
       if (window.CodformStateManager) {
@@ -462,6 +468,23 @@
   }
 
   /**
+   * Update price display based on quantity
+   */
+  function updatePriceDisplay(quantity) {
+    if (!cachedProductPrice || !cachedCurrency) return;
+    
+    const totalPrice = cachedProductPrice * quantity;
+    const formattedPrice = formatCurrency(totalPrice, cachedCurrency);
+    
+    // Update all price elements in cart items
+    document.querySelectorAll('.codform-cart-items .cart-items-price').forEach(priceElement => {
+      priceElement.textContent = formattedPrice;
+    });
+    
+    console.log(`🛒 Cart Items: Price updated - Quantity: ${quantity}, Total: ${formattedPrice}`);
+  }
+
+  /**
    * Update currency when form settings change
    */
   function updateCurrency() {
@@ -475,7 +498,9 @@
       document.querySelectorAll('.codform-cart-items').forEach(cartItem => {
         const priceElement = cartItem.querySelector('.cart-items-price');
         if (priceElement && cachedProductPrice && cachedCurrency) {
-          priceElement.textContent = formatCurrency(cachedProductPrice, cachedCurrency);
+          const quantity = parseInt(cartItem.querySelector('.cart-items-quantity')?.textContent || '1');
+          const totalPrice = cachedProductPrice * quantity;
+          priceElement.textContent = formatCurrency(totalPrice, cachedCurrency);
           priceElement.setAttribute('data-currency', cachedCurrency);
         }
       });
@@ -498,7 +523,8 @@
     increaseQuantity: increaseQuantity,
     decreaseQuantity: decreaseQuantity,
     initialize: initialize,
-    updateCurrency: updateCurrency
+    updateCurrency: updateCurrency,
+    updatePriceDisplay: updatePriceDisplay
   };
 
   console.log('🛒 CODFORM Cart Items System: Setup complete');

@@ -139,136 +139,151 @@ const CartItems: React.FC<CartItemsProps> = ({ field, formStyle, productId, form
   const borderRadius = formStyle.borderRadius || '0.5rem';
   
   return (
-    <div className="mb-0 codform-cart-items w-full max-w-sm mx-auto" style={{ direction: fieldStyle.direction || (language === 'ar' ? 'rtl' : 'ltr') }}>
-      <div 
-        className={`${fieldStyle.showBorders !== false ? 'border' : ''} rounded-lg overflow-hidden bg-white shadow-sm`} 
-        style={{ 
-          borderRadius: `${fieldStyle.borderRadius || '12'}px`,
-          borderColor: fieldStyle.borderColor || '#e5e7eb',
-          borderWidth: `${fieldStyle.borderWidth || '1'}px`,
-        }}
-      >
-        {/* عنصر العربة النموذجي للمعاينة */}
-        <div className={`flex items-center p-3 space-x-3 codform-cart-item ${fieldStyle.direction === 'rtl' || language === 'ar' ? 'space-x-reverse' : ''}`} data-product-item>
-          {/* صورة المنتج */}
-          {fieldStyle.hideImage !== true && (
-            <div className="w-10 h-10 rounded-md flex-shrink-0 overflow-hidden">
-              {productData?.image ? (
-                <img 
-                  src={productData.image} 
-                  alt={productData.title}
-                  loading="lazy"
-                  decoding="async"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center border border-blue-200">
-                  <ShoppingCart 
-                    size={16} 
-                    className="text-blue-600" 
-                    strokeWidth={1.5}
-                  />
-                </div>
-              )}
-            </div>
-          )}
-          
-          {/* معلومات المنتج */}
-          <div className="flex-1 space-y-1">
-            {/* عنوان المنتج */}
-            {fieldStyle.hideTitle !== true && (
-              <h4 className="font-semibold product-title leading-tight" style={{
-                fontSize: fieldStyle.fontSize || '0.95rem',
-                color: fieldStyle.color || '#1f2937',
-                fontFamily: fieldStyle.fontFamily || 'Inter, Cairo, system-ui, sans-serif',
-                fontWeight: fieldStyle.fontWeight || '600',
+    <div className="mb-0 codform-cart-items w-full" style={{ direction: fieldStyle.direction || (language === 'ar' ? 'rtl' : 'ltr') }}>
+      <div style={{ 
+        backgroundColor: '#ffffff',
+        border: '1px solid #e5e7eb',
+        borderRadius: '12px',
+        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+        padding: '16px',
+        marginBottom: '12px',
+      }}>
+        {/* Product Information */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          fontFamily: language === 'ar' ? "'Cairo', sans-serif" : 'inherit',
+        }}>
+          {/* Product Image */}
+          <div style={{
+            width: '60px',
+            height: '60px',
+            borderRadius: '8px',
+            overflow: 'hidden',
+            border: '1px solid #e5e7eb',
+          }}>
+            {productData?.image ? (
+              <img 
+                src={productData.image} 
+                alt={productData?.title || (language === 'ar' ? 'عنوان المنتج' : 'Product Title')}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                }}
+              />
+            ) : (
+              <div style={{
+                width: '100%',
+                height: '100%',
+                backgroundColor: '#f3f4f6',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
               }}>
-                {productData?.title || (language === 'ar' ? 'عنوان المنتج' : 'Product Title')}
-              </h4>
-            )}
-            
-            {/* معلومات المتغير - عرض فقط إذا كان هناك متغيرات حقيقية */}
-            {productData?.variants && productData.variants.length > 0 && 
-             productData.variants[0]?.title !== 'Default Title' && 
-             productData.variants[0]?.title && (
-              <div className="product-variant" style={{
-                fontSize: fieldStyle.descriptionFontSize || '0.875rem',
-                color: fieldStyle.descriptionColor || '#6b7280',
-                fontFamily: fieldStyle.descriptionFontFamily || 'Inter, Cairo, system-ui, sans-serif',
-                fontWeight: fieldStyle.descriptionFontWeight || '400',
-              }}>
-                {productData.variants[0].title}
-              </div>
-            )}
-            
-            {/* محدد الكمية */}
-            {fieldStyle.hideQuantitySelector !== true && (
-              <div className={`flex items-center space-x-2 mt-2 ${fieldStyle.direction === 'rtl' || language === 'ar' ? 'space-x-reverse' : ''}`}>
-                <span className="text-xs font-medium text-gray-600" style={{
-                  fontFamily: fieldStyle.quantityFontFamily || 'Inter, Cairo, system-ui, sans-serif',
-                }}>
-                  {language === 'ar' ? 'الكمية:' : 'Qty:'}
-                </span>
-                <div className={`flex items-center space-x-1 ${fieldStyle.direction === 'rtl' || language === 'ar' ? 'space-x-reverse' : ''}`}>
-                  <button 
-                    className="flex items-center justify-center w-5 h-5 rounded transition-all hover:bg-gray-100" 
-                    style={{
-                      backgroundColor: fieldStyle.quantityBgColor || '#f9fafb',
-                      border: `${fieldStyle.quantityBorderWidth || '1'}px solid ${fieldStyle.quantityBorderColor || '#e5e7eb'}`,
-                      borderRadius: `${fieldStyle.quantityBorderRadius || '4'}px`,
-                      color: fieldStyle.quantityBtnColor || '#374151',
-                      fontSize: '11px',
-                    }}
-                  >
-                    −
-                  </button>
-                  <span 
-                    className="w-6 text-center font-semibold text-xs" 
-                    style={{
-                      fontFamily: fieldStyle.quantityFontFamily || 'Inter, Cairo, system-ui, sans-serif',
-                      color: fieldStyle.quantityColor || '#1f2937',
-                      fontWeight: fieldStyle.productFontWeight || '600',
-                    }}
-                  >
-                    1
-                  </span>
-                  <button 
-                    className="flex items-center justify-center w-5 h-5 rounded transition-all hover:bg-gray-100" 
-                    style={{
-                      backgroundColor: fieldStyle.quantityBgColor || '#f9fafb',
-                      border: `${fieldStyle.quantityBorderWidth || '1'}px solid ${fieldStyle.quantityBorderColor || '#e5e7eb'}`,
-                      borderRadius: `${fieldStyle.quantityBorderRadius || '4'}px`,
-                      color: fieldStyle.quantityBtnColor || '#374151',
-                      fontSize: '11px',
-                    }}
-                  >
-                    +
-                  </button>
-                </div>
+                <ShoppingCart size={24} color="#9CA3AF" strokeWidth={2} />
               </div>
             )}
           </div>
           
-          {/* سعر المنتج */}
-          {fieldStyle.hidePrice !== true && (
-            <div className={`${fieldStyle.direction === 'rtl' || language === 'ar' ? 'text-left' : 'text-right'} flex-shrink-0`}>
-              <div className="font-bold product-price" style={{
-                fontSize: fieldStyle.priceFontSize || '0.9rem',
-                color: fieldStyle.priceColor || '#059669',
-                fontFamily: fieldStyle.priceFontFamily || 'Inter, Cairo, system-ui, sans-serif',
-                fontWeight: fieldStyle.priceFontWeight || '700',
-              }}>
+          {/* Product Details */}
+          <div style={{ flex: 1 }}>
+            <h3 style={{
+              fontWeight: '600',
+              color: '#1f2937',
+              margin: '0 0 4px 0',
+              fontSize: '16px',
+            }}>
+              {productData?.title || (language === 'ar' ? 'عنوان المنتج' : 'Product Title')}
+            </h3>
+            <p style={{
+              color: '#6b7280',
+              margin: '0',
+              fontSize: '14px',
+            }}>
+              {language === 'ar' ? 'السعر:' : 'Price:'} 
+              <span className="cart-items-price" data-currency={convertedPrice.currency}>
                 {formatPrice(convertedPrice.price)}
-              </div>
-              {!fieldStyle.hideDiscountPrice && fieldStyle.discountPrice && (
-                <div className="text-xs text-gray-500 line-through" style={{
-                  fontFamily: fieldStyle.priceFontFamily || 'Inter, Cairo, system-ui, sans-serif',
-                }}>
-                  {fieldStyle.discountPrice}
-                </div>
-              )}
+              </span>
+            </p>
+          </div>
+          
+          {/* Quantity Controls */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            marginLeft: language === 'ar' ? '0' : 'auto',
+            marginRight: language === 'ar' ? 'auto' : '0',
+          }}>
+            <label style={{
+              fontSize: '14px',
+              color: '#374151',
+              marginRight: language === 'ar' ? '0' : '8px',
+              marginLeft: language === 'ar' ? '8px' : '0',
+            }}>
+              {language === 'ar' ? 'الكمية:' : 'Quantity:'}
+            </label>
+            
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              border: '1px solid #d1d5db',
+              borderRadius: '6px',
+              overflow: 'hidden',
+            }}>
+              <button 
+                type="button"
+                style={{
+                  backgroundColor: '#f9fafb',
+                  border: 'none',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  color: '#374151',
+                  transition: 'background-color 0.2s',
+                }}
+              >
+                -
+              </button>
+              
+              <span className="cart-items-quantity" style={{
+                padding: '0 12px',
+                fontWeight: '500',
+                color: '#1f2937',
+                backgroundColor: 'white',
+                minWidth: '40px',
+                textAlign: 'center',
+                lineHeight: '32px',
+              }}>
+                1
+              </span>
+              
+              <button 
+                type="button"
+                style={{
+                  backgroundColor: '#f9fafb',
+                  border: 'none',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  color: '#374151',
+                  transition: 'background-color 0.2s',
+                }}
+              >
+                +
+              </button>
             </div>
-          )}
+          </div>
         </div>
       </div>
     </div>
