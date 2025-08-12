@@ -257,39 +257,36 @@
     const quantityLabel = isRTL ? 'الكمية:' : 'Quantity:';
     const fontFamily = isRTL ? "'Cairo', sans-serif" : "inherit";
     
-    // Apply currency settings for initial display - FIXED VERSION
+    // Apply currency settings for initial display - COMPLETE FIX
     let displayPrice = cachedProductPrice;
     let displayCurrency = cachedCurrency;
     
-    console.log(`🛒 Cart Items: Initial values - Price: ${cachedProductPrice}, Currency: ${cachedCurrency}`);
+    console.log(`🛒 Cart Items: Starting with - Price: ${cachedProductPrice}, Currency: ${cachedCurrency}`);
     
-    // CRITICAL: Apply currency settings immediately for correct initial display
+    // CRITICAL FIX: Get currency settings and apply them properly
     try {
       const savedCurrencySettings = localStorage.getItem('codform_currency_settings');
-      console.log(`🛒 Cart Items: Currency settings from localStorage:`, savedCurrencySettings);
+      console.log(`🛒 Cart Items: Raw settings:`, savedCurrencySettings);
       
       if (savedCurrencySettings) {
         const settings = JSON.parse(savedCurrencySettings);
-        console.log(`🛒 Cart Items: Parsed currency settings:`, settings);
+        console.log(`🛒 Cart Items: Parsed settings:`, settings);
         
         if (settings.currency && settings.exchangeRates) {
-          // ALWAYS use the form's configured currency
           displayCurrency = settings.currency;
           
-          // Apply conversion from base price to display currency
-          const baseRate = settings.exchangeRates[cachedCurrency] || 1;
-          const targetRate = settings.exchangeRates[settings.currency] || 1;
-          
-          // Convert: base_price / base_rate * target_rate
-          displayPrice = (cachedProductPrice / baseRate) * targetRate;
-          
-          console.log(`🛒 Cart Items: Currency conversion applied:`);
-          console.log(`🛒 Cart Items: Base: ${cachedProductPrice} ${cachedCurrency} (rate: ${baseRate})`);
-          console.log(`🛒 Cart Items: Target: ${displayPrice} ${displayCurrency} (rate: ${targetRate})`);
+          // Simple conversion logic: multiply base price by target currency rate
+          const targetRate = settings.exchangeRates[settings.currency];
+          if (targetRate && targetRate > 0) {
+            displayPrice = cachedProductPrice * targetRate;
+            console.log(`🛒 Cart Items: FINAL CONVERSION: ${cachedProductPrice} * ${targetRate} = ${displayPrice} ${displayCurrency}`);
+          }
         }
+      } else {
+        console.log(`🛒 Cart Items: No currency settings found, using defaults`);
       }
     } catch (error) {
-      console.error('🚨 Cart Items: Error applying currency settings:', error);
+      console.error('🚨 Cart Items: Currency conversion error:', error);
     }
     
     // Format the price with currency settings applied
