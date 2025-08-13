@@ -213,6 +213,16 @@
         }));
       } catch (_) {}
 
+      // أعلم State Manager و Cart Summary ببيانات المنتج
+      if (window.CodformStateManager) {
+        // تأكد من أن targetCurrency يأتي من إعدادات العملة أو النموذج
+        const targetCurrency = (window.CodformCurrencyManager && window.CodformCurrencyManager.getTargetCurrency) ? 
+          window.CodformCurrencyManager.getTargetCurrency() : 'MAD';
+        
+        window.CodformStateManager.setProductData(productData.price, productData.currency, targetCurrency);
+        console.log(`🛒 Cart Items: State Manager updated with price=${productData.price}, currency=${productData.currency}, target=${targetCurrency}`);
+      }
+
       console.log(`🛒 Cart Items: 🎉 FINAL RESULT - Price: ${productData.price} ${productData.currency}, Title: ${productData.title}`);
       return productData;
 
