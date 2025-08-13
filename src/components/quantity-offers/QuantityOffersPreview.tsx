@@ -88,20 +88,21 @@ const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
   }
 
   const calculatePrice = (offer: Offer) => {
+    const base = unitPrice;
     if (offer.discountType === 'none' || !offer.discountValue) {
-      return realPrice * offer.quantity;
+      return base * offer.quantity;
     }
 
     if (offer.discountType === 'fixed') {
-      return (realPrice * offer.quantity) - offer.discountValue;
+      return (base * offer.quantity) - offer.discountValue;
     }
 
     if (offer.discountType === 'percentage') {
-      const discount = (realPrice * offer.quantity * offer.discountValue) / 100;
-      return (realPrice * offer.quantity) - discount;
+      const discount = (base * offer.quantity * offer.discountValue) / 100;
+      return (base * offer.quantity) - discount;
     }
 
-    return realPrice * offer.quantity;
+    return base * offer.quantity;
   };
 
   
@@ -123,7 +124,7 @@ const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
       <div className="space-y-2 mb-4">
         {offers.map((offer, index) => {
           const totalPrice = calculatePrice(offer);
-          const originalPrice = realPrice * offer.quantity;
+          const originalPrice = unitPrice * offer.quantity;
           const isDiscounted = offer.discountType !== 'none' && offer.discountValue && offer.discountValue > 0;
           const isHighlighted = index === 1; // Highlight second offer
           
@@ -196,7 +197,7 @@ const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
                 </div>
                 {offer.quantity > 1 && (
                   <div className="text-xs text-gray-500 mt-1">
-                    {CurrencyService.formatCurrency(realPrice, displayCurrency)} × {offer.quantity}
+                    {CurrencyService.formatCurrency(unitPrice, displayCurrency)} × {offer.quantity}
                   </div>
                 )}
               </div>
