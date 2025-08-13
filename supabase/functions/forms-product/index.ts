@@ -120,7 +120,11 @@ Deno.serve(async (req) => {
             id
             title
             featuredImage { url }
-            variants(first: 1) { edges { node {
+            priceRangeV2 {
+              minVariantPrice { amount currencyCode }
+              maxVariantPrice { amount currencyCode }
+            }
+            variants(first: 50) { edges { node {
               id
               price
             }}}
@@ -131,11 +135,21 @@ Deno.serve(async (req) => {
       const node = data.product
       const firstVariant = node?.variants?.edges?.[0]?.node
 
-      if (node && firstVariant) {
-        const price = typeof firstVariant.price === 'object' ? (firstVariant.price?.amount ?? '0') : String(firstVariant.price ?? '0');
+      if (node) {
+        const minRange = node?.priceRangeV2?.minVariantPrice;
+        const minPriceAmount = typeof minRange?.amount === 'string'
+          ? minRange.amount
+          : (minRange?.amount != null ? String(minRange.amount) : null);
+        const fallbackPriceStr = typeof firstVariant?.price === 'object'
+          ? (firstVariant.price?.amount ?? '0')
+          : String(firstVariant?.price ?? '0');
+        const resolvedPrice = (minPriceAmount && parseFloat(minPriceAmount) > 0)
+          ? String(minPriceAmount)
+          : fallbackPriceStr;
+
         productData = {
           id: productId,
-          price,
+          price: resolvedPrice,
           currency: data.shop?.currencyCode || 'USD',
           title: node.title,
           image: node.featuredImage?.url || null,
