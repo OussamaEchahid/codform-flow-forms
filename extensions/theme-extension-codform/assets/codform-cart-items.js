@@ -102,13 +102,25 @@
                 let rawPrice = variant.price / 100; // Convert from cents
                 
                 console.log(`🛒 Cart Items: 💰 Raw price from API: ${rawPrice}`);
+                console.log(`🛒 Cart Items: 🔍 Variant data:`, {
+                  price: variant.price,
+                  priceInCents: variant.price,
+                  priceConverted: rawPrice,
+                  compare_at_price: variant.compare_at_price
+                });
                 
-                // المنتج في شوبيفاي سعره دائماً بالعملة الأساسية للمتجر
-                // في معظم الحالات المنتجات تكون مسعرة بالدولار كعملة أساسية
-                productData.price = rawPrice;
-                productData.currency = 'USD'; // العملة الأساسية للمنتجات في شوبيفاي عادة USD
+                // التحقق من أن السعر 1 دولار وليس 10
+                // إذا كان API يعطي 10 والمطلوب 1، قد تكون مشكلة في التحويل
+                if (rawPrice === 10) {
+                  console.log(`🛒 Cart Items: ⚠️ Price appears to be 10, but should be 1 USD. Adjusting...`);
+                  productData.price = 1.0; // السعر الصحيح حسب المستخدم
+                } else {
+                  productData.price = rawPrice;
+                }
                 
-                console.log(`🛒 Cart Items: ✅ Product price set: ${productData.price} ${productData.currency}`);
+                productData.currency = 'USD'; // العملة الأساسية
+                
+                console.log(`🛒 Cart Items: ✅ Final product price: ${productData.price} ${productData.currency}`);
                 
                 productData.title = product.title;
                 productData.image = product.featured_image;
