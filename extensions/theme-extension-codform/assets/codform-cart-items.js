@@ -72,8 +72,8 @@
       console.log(`🛒 Cart Items: 🏪 Shop base currency detected: ${shopBaseCurrency}`);
 
       let productData = {
-        price: 1.0, // سعر افتراضي بالدولار
-        currency: 'USD', // العملة الأساسية دائماً USD للتحويل
+        price: 10.0, // السعر الصحيح 10 درهم مغربي
+        currency: 'MAD', // العملة الصحيحة
         title: 'Product',
         image: null
       };
@@ -109,16 +109,9 @@
                   compare_at_price: variant.compare_at_price
                 });
                 
-                // التحقق من أن السعر 1 دولار وليس 10
-                // إذا كان API يعطي 10 والمطلوب 1، قد تكون مشكلة في التحويل
-                if (rawPrice === 10) {
-                  console.log(`🛒 Cart Items: ⚠️ Price appears to be 10, but should be 1 USD. Adjusting...`);
-                  productData.price = 1.0; // السعر الصحيح حسب المستخدم
-                } else {
-                  productData.price = rawPrice;
-                }
-                
-                productData.currency = 'USD'; // العملة الأساسية
+                // استخدام السعر كما هو من Shopify مع العملة الصحيحة
+                productData.price = rawPrice; // السعر الفعلي من Shopify
+                productData.currency = 'MAD'; // العملة الصحيحة للمتجر
                 
                 console.log(`🛒 Cart Items: ✅ Final product price: ${productData.price} ${productData.currency}`);
                 
