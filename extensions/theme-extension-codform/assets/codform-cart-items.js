@@ -328,19 +328,22 @@
       || (window.Shopify && window.Shopify.currency && window.Shopify.currency.active)
       || currencyForRender;
     
-    // Convert unit price to target currency if needed
+    // لا تحويل العملة هنا - سيتم التحويل في updatePriceDisplay
     let unitPrice = priceForRender;
-    if (window.CodformCurrencyManager && typeof window.CodformCurrencyManager.convertCurrency === 'function' && currencyForRender !== targetCurrency) {
-      unitPrice = window.CodformCurrencyManager.convertCurrency(priceForRender, currencyForRender, targetCurrency);
-    }
+    let baseCurrencyForData = currencyForRender;
     
-    // Format using Currency Manager when available
+    // استخدم السعر الأساسي بدون تحويل للـ data attributes
+    // التحويل سيحدث في updatePriceDisplay فقط
+    
+    // Format using base price for display initially  
     let formattedPrice;
     if (window.CodformCurrencyManager && typeof window.CodformCurrencyManager.formatCurrency === 'function') {
-      formattedPrice = window.CodformCurrencyManager.formatCurrency(unitPrice, targetCurrency);
+      formattedPrice = window.CodformCurrencyManager.formatCurrency(unitPrice, baseCurrencyForData);
     } else {
-      formattedPrice = `${unitPrice} ${targetCurrency}`;
+      formattedPrice = `${unitPrice} ${baseCurrencyForData}`;
     }
+    
+    console.log(`🛒 Cart Items RENDER: Using base price ${unitPrice} ${baseCurrencyForData} for data attributes`);
 
     // Get product data from cache
     const productData = window.CodformProductData || {};
