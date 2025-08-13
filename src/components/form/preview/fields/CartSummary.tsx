@@ -85,7 +85,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
     discountValue: 0,
     shippingType: 'manual', 
     shippingValue: 0,
-    currency: 'SAR',
+    currency: formCurrency || formStyle.currency || 'MAD', // استخدام عملة النموذج الصحيحة
     subtotalText: config.subtotalText || defaultTexts.subtotalText,
     discountText: config.discountText || defaultTexts.discountText,
     shippingText: config.shippingText || defaultTexts.shippingText,
@@ -178,7 +178,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
                              productData.currency || 
                              productData.shop?.currency || 
                              'USD';
-      const targetCurrency = formCurrency || formStyle.currency || 'SAR';
+      const targetCurrency = formCurrency || formStyle.currency || 'MAD';
       
       // تحويل السعر قبل الحسابات
       const convertedPrice = convertCurrency(originalPrice, productCurrency, targetCurrency);
@@ -202,7 +202,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
     // Show demo prices when not using auto calculation OR when auto calculation fails
     const demoPrice = 99.00;
     console.log('🎭 Using demo price:', demoPrice);
-    return calculatePrices(demoPrice, null, finalConfig, formCurrency || formStyle.currency || 'SAR');
+    return calculatePrices(demoPrice, null, finalConfig, formCurrency || formStyle.currency || 'MAD');
   }, [productData, finalConfig, formCurrency, formStyle.currency, loading]);
 
   // البحث عن المنتج المرتبط بالنموذج من قاعدة البيانات
@@ -301,7 +301,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
   const formatPrice = (amount: number | null) => {
     if (amount === null) return '...';
     
-    const currency = formCurrency || formStyle.currency || finalConfig.currency || 'SAR';
+    const currency = formCurrency || formStyle.currency || finalConfig.currency || 'MAD';
     
     // استخدام CurrencyService للتنسيق مع الإعدادات المخصصة
     return CurrencyService.formatCurrency(amount, currency, 'ar');

@@ -126,7 +126,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
   
   // Form settings state - حفظ الإعدادات من النموذج الحالي
   const [formCountry, setFormCountry] = useState('SA');
-  const [formCurrency, setFormCurrency] = useState('SAR');
+  const [formCurrency, setFormCurrency] = useState('MAD');
   const [formPhonePrefix, setFormPhonePrefix] = useState('+966');
 
   // إنشاء نموذج افتراضي جديد مع الحقول المطلوبة
@@ -811,7 +811,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
           shippingType: 'manual',
           shippingValue: 0,
           autoCalculate: true,
-          currency: 'SAR',
+          currency: 'MAD',
           direction: 'rtl',
           ...newElement.cartSummaryConfig
         };

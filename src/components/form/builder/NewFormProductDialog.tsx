@@ -187,7 +187,7 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
           totalLabel: lang === 'ar' ? 'المجموع الكلي' : 'Total',
           freeShippingText: lang === 'ar' ? 'شحن مجاني' : 'Free shipping',
           direction: lang === 'ar' ? 'rtl' : 'ltr',
-          currency: 'SAR'
+          currency: 'MAD'
         }
       });
     }

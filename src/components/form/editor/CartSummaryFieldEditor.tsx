@@ -72,7 +72,7 @@ const CartSummaryFieldEditor: React.FC<CartSummaryFieldEditorProps> = ({
       shippingType: 'manual', // 'manual' or 'free'
       shippingValue: 0,
       autoCalculate: true,
-      currency: 'SAR', // العملة الافتراضية
+      currency: 'MAD', // العملة الافتراضية
       ...field.cartSummaryConfig
     }
   });
