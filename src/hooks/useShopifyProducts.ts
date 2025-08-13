@@ -106,6 +106,8 @@ export const useShopifyProducts = () => {
     }
 
     try {
+      console.log('🔄 Fetching product:', { productId, store: currentStore });
+      
       const { data, error } = await supabase.functions.invoke('shopify-products-fixed', {
         body: { 
           shop: currentStore,
@@ -113,15 +115,30 @@ export const useShopifyProducts = () => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Supabase function error:', error);
+        throw new Error(`Function invocation failed: ${error.message}`);
+      }
+      
+      console.log('📦 Product response:', data);
       
       if (data?.success && data?.product) {
+        console.log('✅ Product loaded successfully:', data.product);
         return data.product;
+      } else if (!data?.success) {
+        const errorMsg = data?.message || data?.error || 'Product not found';
+        console.warn('⚠️ Product fetch failed:', errorMsg);
+        throw new Error(errorMsg);
       } else {
-        throw new Error(data?.error || 'Product not found');
+        throw new Error('No product data returned');
       }
     } catch (err: any) {
-      console.error('❌ Error getting product:', err);
+      console.error('❌ Error getting product:', {
+        error: err.message,
+        productId,
+        store: currentStore,
+        fullError: err
+      });
       throw err;
     }
   };

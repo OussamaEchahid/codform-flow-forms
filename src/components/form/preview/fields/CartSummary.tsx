@@ -268,7 +268,11 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
           }
         })
         .catch(error => {
-          console.error('❌ Cart Summary - Error loading product data:', error);
+          console.error('❌ Cart Summary - Error loading product data:', {
+            error: error.message,
+            productId: finalProductId,
+            fullError: error
+          });
           // Set empty product data to avoid infinite loading
           setProductData({});
         })

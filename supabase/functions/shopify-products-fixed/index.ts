@@ -99,7 +99,13 @@ Deno.serve(async (req) => {
       .single();
 
     if (storeErr || !store?.access_token) {
-      return new Response(JSON.stringify({ success: false, error: `STORE_NOT_FOUND:${shop}`, message: 'Store not found or missing token' }), {
+      console.error(`❌ Store not found: ${shop}`, storeErr);
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: `STORE_NOT_FOUND`, 
+        message: `المتجر ${shop} غير موجود أو لا يحتوي على رمز الوصول`,
+        shop: shop 
+      }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
@@ -146,8 +152,15 @@ Deno.serve(async (req) => {
 
       const node = data.product;
       if (!node) {
-        return new Response(JSON.stringify({ error: 'Product not found', message: `المنتج بمعرف ${productIdParam} غير موجود` }), {
-          status: 404,
+        console.log(`⚠️ Product ${productIdParam} not found in shop ${shop}`);
+        return new Response(JSON.stringify({ 
+          success: false,
+          error: 'PRODUCT_NOT_FOUND', 
+          message: `المنتج بمعرف ${productIdParam} غير موجود في المتجر ${shop}`,
+          shop,
+          productId: productIdParam
+        }), {
+          status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
@@ -205,7 +218,12 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('[shopify-products-fixed] Error:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
-    return new Response(JSON.stringify({ success: false, error: message, message }), {
+    return new Response(JSON.stringify({ 
+      success: false, 
+      error: 'FUNCTION_ERROR',
+      message: `خطأ في جلب بيانات المنتج: ${message}`,
+      details: message 
+    }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
