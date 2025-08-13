@@ -1,7 +1,6 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { FormField } from '@/lib/form-utils';
-import { useI18n } from '@/lib/i18n';
 import { useShopifyProducts } from '@/hooks/useShopifyProducts';
 import { supabase } from '@/integrations/supabase/client';
 import { CurrencyService } from '@/lib/services/CurrencyService';
@@ -19,7 +18,6 @@ interface CartSummaryProps {
 }
 
 const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, formCurrency }) => {
-  const { language } = useI18n();
   const { getProductById } = useShopifyProducts();
   const [productData, setProductData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -40,29 +38,73 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
   }, []);
 
   const fieldStyle = field.style || {};
-  const config = {
-    autoCalculate: true, // Default to true if not set
+  
+  // الحصول على إعدادات محفوظة من المحرر
+  const config = field.cartSummaryConfig || {};
+  
+  // النصوص الافتراضية حسب المحتوى أو الاعدادات المحفوظة
+  const getDefaultTexts = () => {
+    // أولاً نتحقق من النصوص المحفوظة
+    if (config.subtotalText || config.discountText || config.shippingText || config.totalText) {
+      return {
+        subtotalText: config.subtotalText || 'Subtotal',
+        discountText: config.discountText || 'Discount', 
+        shippingText: config.shippingText || 'Shipping',
+        totalText: config.totalText || 'Total'
+      };
+    }
+    
+    // في حالة عدم وجود نصوص محفوظة، نحدد بناءً على محتوى النصوص الموجودة
+    const allTexts = [
+      config.subtotalText, config.discountText, 
+      config.shippingText, config.totalText,
+      field.label, field.placeholder
+    ].filter(Boolean).join(' ');
+    
+    const hasArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(allTexts);
+    
+    return hasArabic ? {
+      subtotalText: 'المجموع الفرعي',
+      discountText: 'الخصم',
+      shippingText: 'الشحن', 
+      totalText: 'الإجمالي'
+    } : {
+      subtotalText: 'Subtotal',
+      discountText: 'Discount',
+      shippingText: 'Shipping',
+      totalText: 'Total'
+    };
+  };
+  
+  const defaultTexts = getDefaultTexts();
+  
+  const finalConfig = {
+    autoCalculate: true,
     showDiscount: true,
     discountType: 'percentage',
     discountValue: 0,
-    shippingType: 'manual',
+    shippingType: 'manual', 
     shippingValue: 0,
-    direction: 'auto', // Default direction
-    ...field.cartSummaryConfig
+    currency: 'SAR',
+    subtotalText: config.subtotalText || defaultTexts.subtotalText,
+    discountText: config.discountText || defaultTexts.discountText,
+    shippingText: config.shippingText || defaultTexts.shippingText,
+    totalText: config.totalText || defaultTexts.totalText,
+    ...config
   };
   
   // تحديد اتجاه النص
   const getTextDirection = () => {
-    if (config.direction && config.direction !== 'auto') {
-      return config.direction;
+    if (finalConfig.direction && finalConfig.direction !== 'auto') {
+      return finalConfig.direction;
     }
     
-    // تحديد الاتجاه التلقائي بناءً على النصوص
+    // تحديد الاتجاه بناءً على النصوص المحفوظة
     const texts = [
-      config.subtotalText,
-      config.discountText,
-      config.shippingText,
-      config.totalText
+      finalConfig.subtotalText,
+      finalConfig.discountText,
+      finalConfig.shippingText,
+      finalConfig.totalText
     ].filter(Boolean).join(' ');
     
     const hasArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(texts);
@@ -148,11 +190,11 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
         convertedPrice
       });
       
-      return calculatePrices(convertedPrice, productData, config, targetCurrency);
+      return calculatePrices(convertedPrice, productData, finalConfig, targetCurrency);
     }
     
     // Show placeholder prices instead of null to prevent white screen
-    if (config.autoCalculate && loading) {
+    if (finalConfig.autoCalculate && loading) {
       console.log('⏳ Waiting for product data...');
       return { subtotal: null, discount: null, shipping: null, total: null };
     }
@@ -160,8 +202,8 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
     // Show demo prices when not using auto calculation OR when auto calculation fails
     const demoPrice = 99.00;
     console.log('🎭 Using demo price:', demoPrice);
-    return calculatePrices(demoPrice, null, config, formCurrency || formStyle.currency || 'SAR');
-  }, [productData, config, formCurrency, formStyle.currency, loading]);
+    return calculatePrices(demoPrice, null, finalConfig, formCurrency || formStyle.currency || 'SAR');
+  }, [productData, finalConfig, formCurrency, formStyle.currency, loading]);
 
   // البحث عن المنتج المرتبط بالنموذج من قاعدة البيانات
   React.useEffect(() => {
@@ -203,7 +245,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
       productId
     });
     
-    if (config.autoCalculate && finalProductId && finalProductId !== 'auto-detect' && !loading && !productData) {
+    if (finalConfig.autoCalculate && finalProductId && finalProductId !== 'auto-detect' && !loading && !productData) {
       setLoading(true);
       console.log('📦 Cart Summary - Starting to load product:', finalProductId);
       
@@ -236,117 +278,139 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
         });
     } else {
       console.log('⏭️ Cart Summary - Skipping product load:', {
-        autoCalculate: config.autoCalculate,
+        autoCalculate: finalConfig.autoCalculate,
         finalProductId,
         loading,
         hasProductData: !!productData
       });
     }
-  }, [linkedProductId, productId, config.autoCalculate]); // Remove loading and productData dependencies
+  }, [linkedProductId, productId, finalConfig.autoCalculate]); // Remove loading and productData dependencies
 
   // Load shipping rates from Shopify if auto shipping is enabled
   useEffect(() => {
-    if (config.shippingType === 'auto' && productData && productData.shop) {
+    if (finalConfig.shippingType === 'auto' && productData && productData.shop) {
       // This would call Shopify shipping API - placeholder for now
       console.log('Loading shipping rates from Shopify...');
     }
-  }, [config.shippingType, productData]);
+  }, [finalConfig.shippingType, productData]);
 
   const formatPrice = (amount: number | null) => {
     if (amount === null) return '...';
     
-    const currency = formCurrency || formStyle.currency || 'SAR';
+    const currency = formCurrency || formStyle.currency || finalConfig.currency || 'SAR';
     
     // استخدام CurrencyService للتنسيق مع الإعدادات المخصصة
-    return CurrencyService.formatCurrency(amount, currency, language);
+    return CurrencyService.formatCurrency(amount, currency, 'ar');
   };
   
   return (
-    <div className="mb-0 codform-cart-summary">
+    <div className="cart-summary-field codform-cart-summary" style={{
+      width: '100%',
+      margin: '16px 0',
+      direction: textDirection as 'ltr' | 'rtl',
+      fontFamily: textDirection === 'rtl' ? 'Cairo, Tajawal, Arial, sans-serif' : 'Inter, Arial, sans-serif'
+    }}>
       <div
-        className="border rounded-md p-4"
         style={{ 
-          borderRadius,
-          backgroundColor: fieldStyle.backgroundColor || '#ffffff',
-          borderColor: fieldStyle.borderColor || '#e5e7eb',
+          backgroundColor: fieldStyle.backgroundColor || '#f9fafb',
+          border: `1px solid ${fieldStyle.borderColor || '#e5e7eb'}`,
+          borderRadius: fieldStyle.borderRadius || '8px',
+          padding: '16px',
           direction: textDirection as 'ltr' | 'rtl',
-          fontFamily: fieldStyle.fontFamily || 'Cairo',
+          fontFamily: fieldStyle.fontFamily || (textDirection === 'rtl' ? 'Cairo, Tajawal, Arial, sans-serif' : 'Inter, Arial, sans-serif')
         }}
       >
-        <div className="flex justify-between mb-3" data-product-price-display="subtotal">
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '8px'
+        }}>
           <span style={{ 
-            fontSize: fieldStyle.labelsFontSize || fieldStyle.labelFontSize || '14px',
-            color: fieldStyle.labelsColor || fieldStyle.labelColor || '#374151',
-            fontFamily: fieldStyle.fontFamily || 'Cairo',
+            color: fieldStyle.labelColor || '#374151',
+            fontSize: fieldStyle.labelFontSize || '16px',
             fontWeight: fieldStyle.labelWeight || '500'
           }}>
-            {config.subtotalText || (language === 'ar' ? 'المجموع الفرعي' : 'Subtotal')}
+            {finalConfig.subtotalText}
           </span>
           <span style={{
-            fontSize: fieldStyle.labelsFontSize || fieldStyle.valueFontSize || '14px',
-            color: fieldStyle.labelsColor || fieldStyle.valueColor || '#374151',
-            fontFamily: fieldStyle.fontFamily || 'Cairo',
-            fontWeight: fieldStyle.valueWeight || '400'
-          }} className="product-price">
+            color: fieldStyle.valueColor || '#111827',
+            fontSize: fieldStyle.valueFontSize || '16px',
+            fontWeight: '600',
+            visibility: loading ? 'hidden' : 'visible'
+          }} className="subtotal-value">
             {formatPrice(prices.subtotal)}
           </span>
         </div>
         
-        {config.showDiscount && prices.discount > 0 && (
-          <div className="flex justify-between mb-3">
+        {finalConfig.showDiscount && prices.discount > 0 && (
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '8px'
+          }}>
             <span style={{ 
-              fontSize: fieldStyle.labelsFontSize || fieldStyle.labelFontSize || '14px',
-              color: fieldStyle.labelsColor || fieldStyle.labelColor || '#374151',
-              fontFamily: fieldStyle.fontFamily || 'Cairo',
+              color: fieldStyle.labelColor || '#374151',
+              fontSize: fieldStyle.labelFontSize || '16px',
               fontWeight: fieldStyle.labelWeight || '500'
             }}>
-              {config.discountText || (language === 'ar' ? 'الخصم' : 'Discount')}
+              {finalConfig.discountText}
             </span>
             <span style={{
-              fontSize: fieldStyle.labelsFontSize || fieldStyle.valueFontSize || '14px',
-              color: '#ef4444', // Red color for discount
-              fontFamily: fieldStyle.fontFamily || 'Cairo',
-              fontWeight: fieldStyle.valueWeight || '400'
-            }} className="discount-price">
+              color: '#dc2626',
+              fontSize: fieldStyle.valueFontSize || '16px',
+              fontWeight: '600',
+              visibility: loading ? 'hidden' : 'visible'
+            }} className="discount-value">
               -{formatPrice(prices.discount)}
             </span>
           </div>
         )}
         
-        <div className="flex justify-between mb-3">
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '12px',
+          borderBottom: `1px solid ${fieldStyle.borderColor || '#e5e7eb'}`,
+          paddingBottom: '8px'
+        }}>
           <span style={{ 
-            fontSize: fieldStyle.labelsFontSize || fieldStyle.labelFontSize || '14px',
-            color: fieldStyle.labelsColor || fieldStyle.labelColor || '#374151',
-            fontFamily: fieldStyle.fontFamily || 'Cairo',
+            color: fieldStyle.labelColor || '#374151',
+            fontSize: fieldStyle.labelFontSize || '16px',
             fontWeight: fieldStyle.labelWeight || '500'
           }}>
-            {config.shippingText || (language === 'ar' ? 'الشحن' : 'Shipping')}
+            {finalConfig.shippingText}
           </span>
           <span style={{
-            fontSize: fieldStyle.labelsFontSize || fieldStyle.valueFontSize || '14px',
-            color: fieldStyle.labelsColor || fieldStyle.valueColor || '#374151',
-            fontFamily: fieldStyle.fontFamily || 'Cairo',
-            fontWeight: fieldStyle.valueWeight || '400'
-          }} className="shipping-price">
-            {prices.shipping === 0 ? (language === 'ar' ? 'مجاني' : 'Free') : formatPrice(prices.shipping)}
+            color: fieldStyle.valueColor || '#111827',
+            fontSize: fieldStyle.valueFontSize || '16px',
+            fontWeight: '600',
+            visibility: loading ? 'hidden' : 'visible'
+          }} className="shipping-value">
+            {prices.shipping === 0 ? (textDirection === 'rtl' ? 'مجاني' : 'Free') : formatPrice(prices.shipping)}
           </span>
         </div>
         
-        <div className="border-t pt-3 mt-3 flex justify-between">
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
           <span style={{
-            fontSize: fieldStyle.labelsFontSize || fieldStyle.totalLabelFontSize || '14px',
-            color: fieldStyle.labelsColor || fieldStyle.totalLabelColor || '#374151',
-            fontFamily: fieldStyle.fontFamily || 'Cairo',
-            fontWeight: fieldStyle.totalLabelWeight || '600'
+            color: fieldStyle.totalLabelColor || '#111827',
+            fontSize: fieldStyle.totalLabelFontSize || '18px',
+            fontWeight: '700'
           }}>
-            {config.totalText || (language === 'ar' ? 'الإجمالي' : 'Total')}
+            {finalConfig.totalText}
           </span>
           <span style={{
-            fontSize: fieldStyle.labelsFontSize || fieldStyle.totalValueFontSize || '14px',
-            color: fieldStyle.totalColor || fieldStyle.totalValueColor || '#16a34a',
-            fontFamily: fieldStyle.fontFamily || 'Cairo',
-            fontWeight: fieldStyle.totalValueWeight || '600'
-          }} className="total-price">
+            color: fieldStyle.totalValueColor || '#059669',
+            fontSize: fieldStyle.totalValueFontSize || '18px',
+            fontWeight: '700',
+            visibility: loading ? 'hidden' : 'visible'
+          }} className="total-value">
             {formatPrice(prices.total)}
           </span>
         </div>

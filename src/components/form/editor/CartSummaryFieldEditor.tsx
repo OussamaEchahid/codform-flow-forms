@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { FormField } from '@/lib/form-utils';
-import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -23,7 +22,22 @@ const CartSummaryFieldEditor: React.FC<CartSummaryFieldEditorProps> = ({
   onSave,
   onClose
 }) => {
-  const { language } = useI18n();
+  // تحديد اللغة بناءً على النصوص الموجودة في الحقل أو الافتراضي
+  const detectLanguage = () => {
+    const existingTexts = [
+      field.cartSummaryConfig?.subtotalText,
+      field.cartSummaryConfig?.discountText,
+      field.cartSummaryConfig?.shippingText,
+      field.cartSummaryConfig?.totalText,
+      field.label,
+      field.placeholder
+    ].filter(Boolean).join(' ');
+    
+    const hasArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(existingTexts);
+    return hasArabic ? 'ar' : 'en';
+  };
+  
+  const language = detectLanguage();
   const [currentField, setCurrentField] = useState<FormField>({
     ...field,
     style: {
@@ -58,7 +72,7 @@ const CartSummaryFieldEditor: React.FC<CartSummaryFieldEditorProps> = ({
       shippingType: 'manual', // 'manual' or 'free'
       shippingValue: 0,
       autoCalculate: true,
-      currency: 'MAD', // العملة المخصصة لهذا الحقل
+      currency: 'SAR', // العملة الافتراضية
       ...field.cartSummaryConfig
     }
   });

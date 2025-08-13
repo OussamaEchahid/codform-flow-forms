@@ -701,10 +701,52 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
       };
     }
     
-    const updatedElements = [...formElements, newElement];
+    // إضافة منطق خاص لـ Cart Summary لوضعه فوق زر الطلب للنماذج العربية
+    let updatedElements = [...formElements];
+    let insertIndex = updatedElements.length; // افتراضياً في النهاية
+    
+    if (type === 'cart-summary') {
+      // تحديد اللغة بناءً على النصوص الموجودة في العناصر أو إعدادات النموذج
+      const isArabicForm = language === 'ar' || formStyle.formDirection === 'rtl' ||
+        formElements.some(el => {
+          const text = el.label || el.placeholder || el.content || '';
+          return /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(text);
+        });
+      
+      if (isArabicForm) {
+        // البحث عن زر الطلب (submit) ووضع Cart Summary قبله مباشرة
+        const submitButtonIndex = updatedElements.findIndex(el => el.type === 'submit');
+        if (submitButtonIndex !== -1) {
+          insertIndex = submitButtonIndex;
+        }
+      }
+      
+      // إضافة إعدادات افتراضية للنصوص العربية إذا كان النموذج عربياً
+      if (isArabicForm && newElement.type === 'cart-summary') {
+        newElement.cartSummaryConfig = {
+          subtotalText: 'المجموع الفرعي',
+          discountText: 'الخصم',
+          shippingText: 'الشحن',
+          totalText: 'الإجمالي',
+          showDiscount: true,
+          discountType: 'percentage',
+          discountValue: 0,
+          shippingType: 'manual',
+          shippingValue: 0,
+          autoCalculate: true,
+          currency: 'SAR',
+          direction: 'rtl',
+          ...newElement.cartSummaryConfig
+        };
+      }
+    }
+    
+    // إدراج العنصر في الموضع المحدد
+    updatedElements.splice(insertIndex, 0, newElement);
     setFormElements(updatedElements);
+    
     setTimeout(() => {
-      setSelectedIndex(updatedElements.length - 1);
+      setSelectedIndex(insertIndex);
       setRefreshKey(prev => prev + 1);
     }, 100);
     
