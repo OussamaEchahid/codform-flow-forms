@@ -5,7 +5,7 @@ import TextInput from './fields/TextInput';
 import TextArea from './fields/TextArea'; // إضافة import للمكون TextArea
 import SubmitButton from './fields/SubmitButton';
 import FormTitleField from './fields/FormTitleField';
-import CartItems from './fields/CartItems';
+
 import CartSummary from './fields/CartSummary';
 import CheckboxGroup from './fields/CheckboxGroup';
 import RadioGroup from './fields/RadioGroup';
@@ -80,8 +80,6 @@ const FormField: React.FC<FormFieldProps> = ({
     case 'submit':
       return <SubmitButton field={enhancedField} formStyle={formStyle} onClick={onClick} disabled={disabled} />;
     
-    case 'cart-items':
-      return <CartItems field={enhancedField} formStyle={formStyle} productId={productId} formCurrency={formCurrency} />;
     
     case 'cart-summary':
       return <CartSummary field={enhancedField} formStyle={formStyle} productId={productId} formCurrency={formCurrency} />;

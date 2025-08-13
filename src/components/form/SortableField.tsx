@@ -13,7 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import FieldEditor from './FieldEditor';
-import CartItemsFieldEditor from './editor/CartItemsFieldEditor';
+
 import { supabase } from '@/integrations/supabase/client';
 
 interface SortableFieldProps {
@@ -1801,18 +1801,6 @@ const SortableField: React.FC<SortableFieldProps> = ({
         />
       )}
       
-      {/* CartItemsFieldEditor لعناصر السلة */}
-      {showFieldEditor && field.type === 'cart-items' && (
-        <CartItemsFieldEditor
-          field={field}
-          onUpdate={(updates) => {
-            if (onFieldUpdate) {
-              onFieldUpdate({ ...field, ...updates });
-            }
-          }}
-          onClose={() => setShowFieldEditor(false)}
-        />
-      )}
     </div>
   );
 };
