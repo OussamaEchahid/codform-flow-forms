@@ -84,8 +84,9 @@
       }
 
       try {
+        const sid = (this.shopId && this.shopId.includes('.myshopify.com')) ? this.shopId : `${this.shopId}.myshopify.com`;
         const response = await fetch(
-          `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/get-shop-currency-settings?shop_id=${encodeURIComponent(this.shopId)}`,
+          `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/get-shop-currency-settings?shop_id=${encodeURIComponent(sid)}`,
           {
             method: 'GET',
             headers: {

@@ -57,7 +57,7 @@ window.CodformQuantityOffers = (function() {
   // Enhanced currency conversion with custom rates
   async function convertCurrency(amount, fromCurrency, toCurrency, shopId) {
     // Get custom settings
-    const shopDomain = shopId || window.Shopify?.shop?.domain || 'astrem.myshopify.com';
+    const shopDomain = shopId || (window.Shopify && (window.Shopify.shop || window.Shopify.shop_domain)) || window.codformShopDomain || (window.getShopDomain && window.getShopDomain()) || window.location.hostname;
     const settings = await getCustomCurrencySettings(shopDomain);
     
     // Default exchange rates
@@ -171,7 +171,7 @@ window.CodformQuantityOffers = (function() {
     console.log(`💰 Base price: ${basePrice} ${productCurrency}`);
     
     // جلب الإعدادات المخصصة للعرض
-    const shopDomain = window.Shopify?.shop?.domain || 'astrem.myshopify.com';
+    const shopDomain = (window.Shopify && (window.Shopify.shop || window.Shopify.shop_domain)) || window.codformShopDomain || (window.getShopDomain && window.getShopDomain()) || window.location.hostname;
     const customSettings = await getCustomCurrencySettings(shopDomain);
     
     console.log(`⚙️ Custom settings loaded:`, customSettings);
