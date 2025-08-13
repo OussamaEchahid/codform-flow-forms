@@ -816,8 +816,11 @@
         // تحديث cart summary عند تغيير الحالة
         if (newState.finalPrice !== previousState.finalPrice || 
             newState.currentQuantity !== previousState.currentQuantity) {
-          cartSummaryData.productPrice = newState.finalPrice;
-          cartSummaryData.currentQuantity = newState.currentQuantity;
+          
+          console.log(`🔄 Cart Summary: Updating from State - finalPrice: ${newState.finalPrice}, quantity: ${newState.currentQuantity}`);
+          
+          // لا نغير cartSummaryData.productPrice - نتركه كما هو لحفظ سعر الوحدة الأصلي
+          // سيتم استخدام newState.finalPrice مباشرة في calculatePrices()
           updateCartSummary();
         }
       });
