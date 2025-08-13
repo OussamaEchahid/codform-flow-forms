@@ -302,16 +302,45 @@
   }
 
   /**
-   * Render cart items field
+   * Render cart items field - Enhanced to wait for product data
    */
   function renderCartItems(field, formStyle, formDirection) {
-    const isLoading = (!cachedProductPrice || !cachedCurrency);
+    // التأكد من توفر بيانات المنتج قبل العرض
+    const productData = window.CodformProductData || {};
+    const hasProductData = productData.title && productData.price;
+    
+    if (!hasProductData) {
+      console.log('🛒 Cart Items: Product data not ready, fetching before render...');
+      
+      // إذا لم تكن البيانات جاهزة، ابدأ بتحميلها
+      fetchProductPrice().then(() => {
+        console.log('🛒 Cart Items: Product data loaded, re-rendering...');
+        // إعادة العرض بعد تحميل البيانات
+        const container = document.querySelector('.codform-cart-items')?.parentElement;
+        if (container) {
+          const updatedHtml = renderCartItems(field, formStyle, formDirection);
+          container.innerHTML = updatedHtml;
+          
+          // تحديث الأسعار بعد إعادة العرض
+          setTimeout(() => {
+            const qty = parseInt(document.querySelector('.cart-items-quantity')?.textContent || '1');
+            updatePriceDisplay(qty);
+          }, 100);
+        }
+      });
+    }
 
     const fieldStyle = field.style || {};
     const direction = formDirection || 'ltr';
     const isRTL = direction === 'rtl';
-    const priceForRender = cachedProductPrice ?? 0;
-    const currencyForRender = cachedCurrency ?? (window.CodformFormData?.currency || (window.Shopify && window.Shopify.currency && window.Shopify.currency.active) || detectShopBaseCurrency());
+    
+    // استخدام البيانات الفعلية أو الافتراضية
+    const priceForRender = productData.price || 1;
+    const currencyForRender = productData.currency || 'USD';
+    const productTitle = productData.title || 'Loading...';
+    const productImage = productData.image || null;
+    
+    console.log(`🛒 Cart Items RENDER: Product title: "${productTitle}", Image: ${productImage ? 'Available' : 'Not available'}`);
     
     // Dynamic labels based on direction
     const priceLabel = isRTL ? 'السعر:' : 'Price:';
@@ -328,27 +357,17 @@
       || (window.Shopify && window.Shopify.currency && window.Shopify.currency.active)
       || currencyForRender;
     
-    // لا تحويل العملة هنا - سيتم التحويل في updatePriceDisplay
-    let unitPrice = priceForRender;
-    let baseCurrencyForData = currencyForRender;
-    
-    // استخدم السعر الأساسي بدون تحويل للـ data attributes
-    // التحويل سيحدث في updatePriceDisplay فقط
+    console.log(`🛒 Cart Items RENDER: Target currency: ${targetCurrency}, Base currency: ${currencyForRender}`);
     
     // Format using base price for display initially  
     let formattedPrice;
     if (window.CodformCurrencyManager && typeof window.CodformCurrencyManager.formatCurrency === 'function') {
-      formattedPrice = window.CodformCurrencyManager.formatCurrency(unitPrice, baseCurrencyForData);
+      formattedPrice = window.CodformCurrencyManager.formatCurrency(priceForRender, targetCurrency);
     } else {
-      formattedPrice = `${unitPrice} ${baseCurrencyForData}`;
+      formattedPrice = `${priceForRender} ${targetCurrency}`;
     }
     
-    console.log(`🛒 Cart Items RENDER: Using base price ${unitPrice} ${baseCurrencyForData} for data attributes`);
-
-    // Get product data from cache
-    const productData = window.CodformProductData || {};
-    const productTitle = productData.title || 'Product';
-    const productImage = productData.image;
+    console.log(`🛒 Cart Items RENDER: Using base price ${priceForRender} ${currencyForRender} for data attributes, displaying as ${formattedPrice}`);
 
     return `
       <div class="codform-cart-items" style="
