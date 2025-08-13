@@ -71,44 +71,31 @@ const SortableField: React.FC<SortableFieldProps> = ({
 
   // When component mounts or field changes, sync the edited field state
   useEffect(() => {
-    console.log('🚀 SortableField useEffect - Field changed:', {
-      fieldType: field.type,
-      fieldId: field.id,
-      cartSummaryConfig: field.cartSummaryConfig,
-      language
-    });
     let fieldToSet = field;
     
-    // Initialize cartSummaryConfig if it doesn't exist for cart-summary fields
-    if (field.type === 'cart-summary' && !field.cartSummaryConfig) {
-      // Detect language from existing field data or form context
-      const fieldTexts = [field.label, field.placeholder].filter(Boolean).join(' ');
-      const hasArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(fieldTexts);
-      const detectedLanguage = hasArabic ? 'ar' : language;
-      
+    // للنماذج العربية: تعيين cart summary بالعربية افتراضياً
+    if (field.type === 'cart-summary' && language === 'ar') {
       fieldToSet = {
         ...field,
         cartSummaryConfig: {
-          subtotalText: detectedLanguage === 'ar' ? 'المجموع الفرعي' : 'Subtotal',
-          discountText: detectedLanguage === 'ar' ? 'الخصم' : 'Discount',
-          shippingText: detectedLanguage === 'ar' ? 'الشحن' : 'Shipping',
-          totalText: detectedLanguage === 'ar' ? 'الإجمالي' : 'Total',
+          subtotalText: 'المجموع الفرعي',
+          discountText: 'الخصم',
+          shippingText: 'الشحن',
+          totalText: 'الإجمالي',
           showDiscount: false,
           discountType: 'percentage',
           discountValue: 0,
           shippingType: 'auto',
           shippingValue: 0,
           autoCalculate: true,
-          direction: 'auto' // إضافة إعداد الاتجاه
+          direction: 'rtl',
+          ...field.cartSummaryConfig
         },
         style: {
           ...field.style,
           backgroundColor: '#ffffff',
           borderColor: '#e5e7eb',
-          labelsColor: '#374151',
-          totalColor: '#16a34a', // اللون الأخضر للمبلغ النهائي
-          labelsFontSize: '14px',
-          fontFamily: 'Cairo' // الخط الافتراضي Cairo
+          fontFamily: 'Cairo'
         }
       };
     }
@@ -1084,20 +1071,9 @@ const SortableField: React.FC<SortableFieldProps> = ({
                            <div className="space-y-1">
                               <Label>{language === 'ar' ? 'نص المجموع الفرعي' : 'Subtotal Text'}</Label>
                               <Input
-                                value={(() => {
-                                  const value = editedField.cartSummaryConfig?.subtotalText ?? (language === 'ar' ? 'المجموع الفرعي' : 'Subtotal');
-                                  console.log('🔍 Subtotal Text Debug:', {
-                                    cartSummaryConfig: editedField.cartSummaryConfig,
-                                    subtotalText: editedField.cartSummaryConfig?.subtotalText,
-                                    language,
-                                    fallback: language === 'ar' ? 'المجموع الفرعي' : 'Subtotal',
-                                    finalValue: value
-                                  });
-                                  return value;
-                                })()}
+                                value={editedField.cartSummaryConfig?.subtotalText || (language === 'ar' ? 'المجموع الفرعي' : 'Subtotal')}
                                 onChange={(e) => {
                                   const config = { ...editedField.cartSummaryConfig, subtotalText: e.target.value };
-                                  console.log('💾 Saving subtotalText:', e.target.value, 'Full config:', config);
                                   handleFieldChange('cartSummaryConfig', config);
                                 }}
                                 className={language === 'ar' ? 'text-right' : ''}
@@ -1107,14 +1083,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
                             <div className="space-y-1">
                               <Label>{language === 'ar' ? 'نص الخصم' : 'Discount Text'}</Label>
                               <Input
-                                value={(() => {
-                                  const value = editedField.cartSummaryConfig?.discountText ?? (language === 'ar' ? 'الخصم' : 'Discount');
-                                  console.log('🔍 Discount Text Debug:', {
-                                    discountText: editedField.cartSummaryConfig?.discountText,
-                                    finalValue: value
-                                  });
-                                  return value;
-                                })()}
+                                value={editedField.cartSummaryConfig?.discountText || (language === 'ar' ? 'الخصم' : 'Discount')}
                                 onChange={(e) => {
                                   const config = { ...editedField.cartSummaryConfig, discountText: e.target.value };
                                   handleFieldChange('cartSummaryConfig', config);
@@ -1126,7 +1095,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
                            <div className="space-y-1">
                              <Label>{language === 'ar' ? 'نص الشحن' : 'Shipping Text'}</Label>
                              <Input
-                               value={editedField.cartSummaryConfig?.shippingText ?? (language === 'ar' ? 'الشحن' : 'Shipping')}
+                               value={editedField.cartSummaryConfig?.shippingText || (language === 'ar' ? 'الشحن' : 'Shipping')}
                                onChange={(e) => {
                                  const config = { ...editedField.cartSummaryConfig, shippingText: e.target.value };
                                  handleFieldChange('cartSummaryConfig', config);
@@ -1138,7 +1107,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
                            <div className="space-y-1">
                              <Label>{language === 'ar' ? 'نص الإجمالي' : 'Total Text'}</Label>
                              <Input
-                               value={editedField.cartSummaryConfig?.totalText ?? (language === 'ar' ? 'الإجمالي' : 'Total')}
+                               value={editedField.cartSummaryConfig?.totalText || (language === 'ar' ? 'الإجمالي' : 'Total')}
                                onChange={(e) => {
                                  const config = { ...editedField.cartSummaryConfig, totalText: e.target.value };
                                  handleFieldChange('cartSummaryConfig', config);
