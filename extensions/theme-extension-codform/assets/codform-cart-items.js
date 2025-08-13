@@ -330,7 +330,7 @@
                 color: #6b7280;
                 margin: 0;
                 font-size: 14px;
-              ">${priceLabel} <span class="cart-items-price" data-currency="${targetCurrency}">${formattedPrice}</span></p>
+              ">${priceLabel} <span class="cart-items-price" data-currency="${targetCurrency}" style="visibility: hidden;">${formattedPrice}</span></p>
             </div>
             
             <!-- Quantity Controls -->
@@ -474,8 +474,18 @@
     try {
       console.log('🛒 Cart Items: Initializing...');
       
+      // Hide price until currency is resolved to avoid flicker
+      setCartItemsLoading(true);
+      
       // Fetch product data from API
       await fetchProductPrice();
+
+      // Attempt initial price render (will remain hidden until currency resolved)
+      try {
+        const existingCartItems = document.querySelector('.codform-cart-items');
+        const quantity = parseInt(existingCartItems?.querySelector('.cart-items-quantity')?.textContent || '1');
+        updatePriceDisplay(quantity || 1);
+      } catch (e) {}
       
       isInitialized = true;
       console.log('🛒 Cart Items: Initialization complete');
@@ -485,6 +495,12 @@
       console.error('🚨 Cart Items: Initialization failed:', error);
       return false;
     }
+  }
+
+  function setCartItemsLoading(isLoading) {
+    document.querySelectorAll('.codform-cart-items .cart-items-price').forEach(el => {
+      el.style.visibility = isLoading ? 'hidden' : 'visible';
+    });
   }
 
   /**
@@ -531,8 +547,17 @@
       priceElement.setAttribute('data-currency', targetCurrency);
       console.log(`🛒 Cart Items: Updated price element to: ${formattedPrice}`);
     });
-    
-    
+
+    // Reveal prices only when target currency is resolved from reliable sources
+    const hasResolvedCurrency = Boolean(
+      (window.CodformFormData && window.CodformFormData.currency) ||
+      (window.currentFormData && window.currentFormData.savedFormCurrency) ||
+      window.formCurrency ||
+      (document.querySelector('.cart-summary-field') && document.querySelector('.cart-summary-field').getAttribute('data-currency'))
+    );
+    if (hasResolvedCurrency && isFinite(totalPrice)) {
+      setCartItemsLoading(false);
+    }
 
     console.log(`🛒 Cart Items: Price updated - Quantity: ${quantity}, Total: ${formattedPrice}`);
   }
@@ -696,6 +721,7 @@
     if (existingCartItems) {
       const quantity = parseInt(existingCartItems.querySelector('.cart-items-quantity')?.textContent || '1');
       updatePriceDisplay(quantity || 1);
+      setCartItemsLoading(false);
     }
   });
 
@@ -710,6 +736,7 @@
       const existingCartItems = document.querySelector('.codform-cart-items');
       const qty = parseInt(existingCartItems?.querySelector('.cart-items-quantity')?.textContent || '1');
       updatePriceDisplay(qty || 1);
+      setCartItemsLoading(false);
     }
   });
 
