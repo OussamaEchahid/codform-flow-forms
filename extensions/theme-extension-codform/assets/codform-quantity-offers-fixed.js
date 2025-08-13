@@ -18,14 +18,13 @@ window.CodformQuantityOffers = (function() {
 
     try {
       console.log(`🔍 Fetching custom currency settings for shop: ${shopId}`);
-      // Prefer POST (edge function expects POST)
-      const response = await fetch('https://trlklwixfeaexhydzaue.supabase.co/functions/v1/get-shop-currency-settings', {
-        method: 'POST',
+      // Use GET as the edge function only allows GET
+      const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/get-shop-currency-settings?shop_id=${encodeURIComponent(shopId)}`, {
+        method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M'
-        },
-        body: JSON.stringify({ shop_id: shopId })
+          'Cache-Control': 'no-cache'
+        }
       });
 
       if (!response.ok) {
