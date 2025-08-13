@@ -39,33 +39,44 @@ const CartItems: React.FC<CartItemsProps> = ({ field, formStyle, productId, form
     return CurrencyService.convertCurrency(amount, fromCurrency, toCurrency);
   };
 
-  // البحث عن المنتج المرتبط بالنموذج من قاعدة البيانات
+  // البحث عن معرف المنتج من الصفحة الحالية
   React.useEffect(() => {
-    const fetchLinkedProduct = async () => {
+    const getCurrentProductId = () => {
       try {
-        // الحصول على form ID من URL أو context
-        const pathParts = window.location.pathname.split('/');
-        const formId = pathParts[pathParts.length - 1];
-        
-        if (formId && formId !== 'form-builder') {
-          const { data, error } = await supabase
-            .from('shopify_product_settings')
-            .select('product_id')
-            .eq('form_id', formId)
-            .single();
-          
-          if (data && !error) {
-            console.log('Found linked product:', data.product_id);
-            setLinkedProductId(data.product_id);
-          }
+        // أولاً: محاولة الحصول على معرف المنتج من productId المرسل
+        if (productId && productId !== 'auto-detect') {
+          console.log('🆔 Using provided product ID:', productId);
+          setLinkedProductId(productId);
+          return;
         }
+
+        // ثانياً: محاولة الحصول على معرف المنتج من البيانات الموجودة في الصفحة
+        const productDataFromPage = (window as any).product || (window as any).meta?.product;
+        if (productDataFromPage?.id) {
+          console.log('🆔 Found product ID from page data:', productDataFromPage.id);
+          setLinkedProductId(productDataFromPage.id.toString());
+          return;
+        }
+
+        // ثالثاً: محاولة استخراج معرف المنتج من URL
+        const urlPath = window.location.pathname;
+        const productMatch = urlPath.match(/\/products\/([^\/\?]+)/);
+        if (productMatch) {
+          const productHandle = productMatch[1];
+          console.log('🆔 Found product handle from URL:', productHandle);
+          // يمكن استخدام handle أو البحث عن ID
+          setLinkedProductId(productHandle);
+          return;
+        }
+
+        console.log('⚠️ No product ID found');
       } catch (error) {
-        console.error('Error fetching linked product:', error);
+        console.error('Error getting current product ID:', error);
       }
     };
 
-    fetchLinkedProduct();
-  }, []);
+    getCurrentProductId();
+  }, [productId]);
 
   // تحميل بيانات المنتج من Shopify
   useEffect(() => {
@@ -203,7 +214,13 @@ const CartItems: React.FC<CartItemsProps> = ({ field, formStyle, productId, form
               fontSize: '14px',
             }}>
               {language === 'ar' ? 'السعر:' : 'Price:'} 
-              <span className="cart-items-price" data-currency={convertedPrice.currency}>
+              <span 
+                className="cart-items-price" 
+                data-base-price={productData?.variants?.[0]?.price || '10'}
+                data-base-currency={productData?.variants?.[0]?.currency_code || productData?.currency || 'MAD'}
+                data-target-currency={formCurrency || 'MAD'}
+                data-currency={convertedPrice.currency}
+              >
                 {formatPrice(convertedPrice.price)}
               </span>
             </p>
