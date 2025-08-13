@@ -92,7 +92,7 @@ const QuantityOffersManager: React.FC = () => {
 
       if (shopData?.store) {
         setStoreData({
-          currency: shopData.store.currency || 'SAR'
+          currency: shopData.store.currency || 'MAD'
         });
         console.log('💰 Store currency loaded:', shopData.store.currency);
       }
@@ -184,7 +184,7 @@ const QuantityOffersManager: React.FC = () => {
       }
 
       const allProducts = productsData?.products || [];
-      const storeCurrency = productsData?.store?.currency || storeData.currency || 'SAR';
+      const storeCurrency = productsData?.store?.currency || storeData.currency || 'MAD';
       
       console.log('📦 All Shopify products fetched:', allProducts.length);
       console.log('💰 Store currency:', storeCurrency);
@@ -629,9 +629,9 @@ const QuantityOffersManager: React.FC = () => {
                           compareAtPrice: associatedProduct.product_compare_at_price,
                           title: associatedProduct.product_title,
                           image: associatedProduct.product_image,
-                          currency: associatedProduct.product_currency || storeData.currency || 'SAR'
+                          currency: associatedProduct.product_currency || storeData.currency || 'MAD'
                         } : undefined}
-                        currency={storeData.currency || 'SAR'}
+                        currency={storeData.currency || 'MAD'}
                       />
                       {associatedProduct ? (
                         <div className="mt-3 text-xs text-green-600 bg-green-50 p-2 rounded">

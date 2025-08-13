@@ -136,7 +136,7 @@ const QuantityOffers = () => {
     },
     position: 'before_form'
   });
-  const [storeCurrency, setStoreCurrency] = useState<string>('SAR');
+  const [storeCurrency, setStoreCurrency] = useState<string>('MAD');
 
   useEffect(() => {
     loadForms();
@@ -166,7 +166,7 @@ const QuantityOffers = () => {
       const data = await response.json();
       
       // Extract currency from shop info or first product
-      let currency = 'SAR'; // default
+      let currency = 'MAD'; // default
       
       if (data.currency) {
         currency = data.currency;

@@ -125,9 +125,9 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
   const [currentFormId, setCurrentFormId] = useState<string | undefined>(initialFormId);
   
   // Form settings state - حفظ الإعدادات من النموذج الحالي
-  const [formCountry, setFormCountry] = useState('');
-  const [formCurrency, setFormCurrency] = useState('');
-  const [formPhonePrefix, setFormPhonePrefix] = useState('');
+  const [formCountry, setFormCountry] = useState('MA'); // MAD/Morocco default
+  const [formCurrency, setFormCurrency] = useState('MAD'); // MAD default
+  const [formPhonePrefix, setFormPhonePrefix] = useState('+212'); // Morocco default
 
   // إنشاء نموذج افتراضي جديد مع الحقول المطلوبة
   const createDefaultForm = (currency: string = 'MAD'): FormField[] => {

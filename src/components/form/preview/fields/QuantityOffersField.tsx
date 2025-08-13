@@ -43,7 +43,7 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
   productId,
   formId,
   productData,
-  currency = 'SAR',
+  currency = 'MAD',
   formDirection = 'ltr'
 }) => {
   console.log('🎯 QuantityOffersField - LOGICAL SOLUTION - Product Data:', {

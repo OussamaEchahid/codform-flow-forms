@@ -84,7 +84,7 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
   // دالة لتنسيق السعر باستخدام تنسيق المتجر
   const formatPrice = (amount: number) => {
     // استخدام CurrencyService بدلاً من التنسيق الثابت
-    const currency = productData?.currency || formStyle?.currency || formCountry || 'SAR';
+    const currency = productData?.currency || formStyle?.currency || formCountry || 'MAD';
     return CurrencyService.formatCurrency(amount, currency, formDirection === 'rtl' ? 'ar' : 'en');
   };
 

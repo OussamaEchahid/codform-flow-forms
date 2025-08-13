@@ -210,7 +210,7 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
                   <Label className="text-sm font-medium">{language === 'ar' ? 'السعر' : 'Price'}</Label>
                   <div className="flex items-center mt-1">
                     <div className="w-8 h-6 bg-blue-500 rounded-sm mr-2"></div>
-                    <span className="text-sm">{shippingCost} {order.currency || 'SAR'}</span>
+                    <span className="text-sm">{shippingCost} {order.currency || 'MAD'}</span>
                   </div>
                 </div>
               </div>
@@ -251,7 +251,7 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
                       <div className="grid grid-cols-3 gap-8 text-center">
                         <div>
                           <div className="text-sm text-muted-foreground">{language === 'ar' ? 'سعر الوحدة' : 'Unit Price'}</div>
-                          <div className="font-medium">{item.price || 0} {order.currency || 'SAR'}</div>
+                          <div className="font-medium">{item.price || 0} {order.currency || 'MAD'}</div>
                         </div>
                         
                         <div>
@@ -261,7 +261,7 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
                         
                         <div>
                           <div className="text-sm text-muted-foreground">{language === 'ar' ? 'المجموع' : 'Total'}</div>
-                          <div className="font-medium">{(item.price || 0) * (item.quantity || 1)} {order.currency || 'SAR'}</div>
+                          <div className="font-medium">{(item.price || 0) * (item.quantity || 1)} {order.currency || 'MAD'}</div>
                         </div>
                       </div>
                     </div>
@@ -297,24 +297,24 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-sm">{language === 'ar' ? 'المنتجات' : 'Products'}</span>
-                  <span className="font-medium">{subtotal.toFixed(2)} {order.currency || 'SAR'}</span>
+                  <span className="font-medium">{subtotal.toFixed(2)} {order.currency || 'MAD'}</span>
                 </div>
                 
                 <div className="flex justify-between items-center">
                   <span className="text-sm">{language === 'ar' ? 'إضافي' : 'Extra'}</span>
-                  <span className="font-medium">{extras} {order.currency || 'SAR'}</span>
+                  <span className="font-medium">{extras} {order.currency || 'MAD'}</span>
                 </div>
                 
                 <div className="flex justify-between items-center">
                   <span className="text-sm">{language === 'ar' ? 'الشحن' : 'Shipping'}</span>
-                  <span className="font-medium">{shippingCost} {order.currency || 'SAR'}</span>
+                  <span className="font-medium">{shippingCost} {order.currency || 'MAD'}</span>
                 </div>
                 
                 <Separator />
                 
                 <div className="flex justify-between items-center">
                   <span className="font-semibold">{language === 'ar' ? 'المجموع' : 'Total'}</span>
-                  <span className="font-bold text-lg">{total.toFixed(2)} {order.currency || 'SAR'}</span>
+                  <span className="font-bold text-lg">{total.toFixed(2)} {order.currency || 'MAD'}</span>
                 </div>
               </div>
             </CardContent>

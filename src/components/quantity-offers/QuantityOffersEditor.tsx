@@ -86,7 +86,7 @@ const QuantityOffersEditor: React.FC<Props> = ({ offer, isCreating, onSave, onCa
         }
 
         const allProducts = productsData?.products || [];
-        const storeCurrency = productsData?.store?.currency || 'SAR';
+        const storeCurrency = productsData?.store?.currency || 'MAD';
         const product = allProducts.find((p: any) => String(p.id) === String(currentOffer.product_id));
         
         console.log('🔍 Found product:', product?.title, {
@@ -385,7 +385,7 @@ const QuantityOffersEditor: React.FC<Props> = ({ offer, isCreating, onSave, onCa
             priceColor: '#000000'
           }}
                   productData={productData || undefined}
-                  currency={productData?.currency || 'SAR'}
+                  currency={productData?.currency || 'MAD'}
                 />
               )}
               {productData ? (

@@ -45,7 +45,7 @@ const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
   position,
   enabled = true,
   productData,
-  currency = 'SAR'
+  currency = 'MAD'
 }) => {
   // تهيئة CurrencyService عند تحميل المكون
   React.useEffect(() => {

@@ -40,7 +40,7 @@ const QuantityOffersDisplay: React.FC<QuantityOffersDisplayProps> = ({
   styling, 
   basePrice,
   productData,
-  currency = 'SAR',
+  currency = 'MAD',
   formDirection = 'ltr'
 }) => {
   React.useEffect(() => {
