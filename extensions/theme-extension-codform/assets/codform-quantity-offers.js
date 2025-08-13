@@ -6,6 +6,68 @@
 window.CodformQuantityOffers = (function() {
   'use strict';
 
+  // ✅ Local currency settings cache when Unified System isn't present
+  let __codformCurrencySettings = null;
+
+  async function __ensureCurrencySettings() {
+    try {
+      if (window.CodformUnifiedSystem) return; // Unified System handles settings globally
+      if (__codformCurrencySettings) return;
+
+      // Try cached settings written by other components
+      const cached = localStorage.getItem('codform_currency_settings');
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          __codformCurrencySettings = {
+            showSymbol: parsed.displaySettings?.showSymbol ?? true,
+            symbolPosition: parsed.displaySettings?.symbolPosition || 'before',
+            decimalPlaces: parsed.displaySettings?.decimalPlaces ?? 2,
+            customSymbols: parsed.customSymbols || {},
+            customRates: parsed.exchangeRates || {}
+          };
+          return;
+        } catch (_) { /* ignore */ }
+      }
+
+      // Fetch from API as fallback
+      const shopDomain = (typeof Shopify !== 'undefined' && Shopify.shop) || (window.getShopDomain && window.getShopDomain()) || null;
+      if (!shopDomain) return;
+
+      const res = await fetch('https://trlklwixfeaexhydzaue.supabase.co/functions/v1/get-shop-currency-settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M'
+        },
+        body: JSON.stringify({ shop_id: shopDomain })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        __codformCurrencySettings = {
+          showSymbol: data.display_settings?.show_symbol ?? true,
+          symbolPosition: data.display_settings?.symbol_position || 'before',
+          decimalPlaces: data.display_settings?.decimal_places ?? 2,
+          customSymbols: data.custom_symbols || {},
+          customRates: data.custom_rates || {}
+        };
+
+        // Cache in a uniform shape for other scripts
+        localStorage.setItem('codform_currency_settings', JSON.stringify({
+          currency: null,
+          exchangeRates: __codformCurrencySettings.customRates,
+          displaySettings: {
+            showSymbol: __codformCurrencySettings.showSymbol,
+            symbolPosition: __codformCurrencySettings.symbolPosition,
+            decimalPlaces: __codformCurrencySettings.decimalPlaces
+          },
+          customSymbols: __codformCurrencySettings.customSymbols
+        }));
+      }
+    } catch (_) { /* ignore */ }
+  }
+
   // دالة تحويل العملة مع Ultimate Currency System
   function convertCurrency(amount, fromCurrency, toCurrency) {
     fromCurrency = (fromCurrency || 'USD').toString().toUpperCase().trim();
@@ -43,10 +105,12 @@ window.CodformQuantityOffers = (function() {
       return window.CurrencyService.convertCurrency(amount, fromCurrency, toCurrency);
     }
     
-    // الاحتياطي: استخدام الأسعار المحلية
-    const exchangeRates = {
+    // الاحتياطي: استخدام الأسعار المحلية + أي معدلات مخصصة متاحة
+    const defaultRates = {
       'USD': 1.0, 'SAR': 3.75, 'AED': 3.67, 'MAD': 10.0, 'EUR': 0.85, 'GBP': 0.75
     };
+    const customRates = (__codformCurrencySettings && __codformCurrencySettings.customRates) || {};
+    const exchangeRates = { ...defaultRates, ...customRates };
     
     if (fromCurrency === toCurrency) return amount;
     
@@ -81,10 +145,24 @@ window.CodformQuantityOffers = (function() {
         const symbolPosition = s.symbolPosition || s.symbol_position || 'before';
         const customSymbols = s.customSymbols || {};
         const defaultSymbols = { 'USD': '$', 'EUR': '€', 'GBP': '£', 'SAR': 'ر.س', 'AED': 'د.إ', 'MAD': 'د.م' };
-        const display = customSymbols[currency] || (showSymbol ? (defaultSymbols[currency] || currency) : currency);
+        const displaySymbol = customSymbols[currency] || defaultSymbols[currency] || currency;
         const amt = Number.isFinite(amount) ? amount.toFixed(decimalPlaces) : '0.00';
-        return symbolPosition === 'before' ? `${display}${amt}` : `${amt} ${display}`;
+        if (!showSymbol) return amt;
+        return symbolPosition === 'before' ? `${displaySymbol} ${amt}` : `${amt} ${displaySymbol}`;
       }
+    }
+
+    // استخدام الإعدادات المحلية إذا كانت متاحة
+    if (__codformCurrencySettings) {
+      const s = __codformCurrencySettings;
+      const decimalPlaces = s.decimalPlaces ?? 2;
+      const showSymbol = s.showSymbol !== false;
+      const symbolPosition = s.symbolPosition || 'before';
+      const defaultSymbols = { 'USD': '$', 'EUR': '€', 'GBP': '£', 'SAR': 'ر.س', 'AED': 'د.إ', 'MAD': 'د.م' };
+      const symbol = s.customSymbols[currency] || defaultSymbols[currency] || currency;
+      const amt = Number.isFinite(amount) ? amount.toFixed(decimalPlaces) : '0.00';
+      if (!showSymbol) return amt;
+      return symbolPosition === 'before' ? `${symbol} ${amt}` : `${amt} ${symbol}`;
     }
     
     // استخدام CurrencyService إذا كان متاحاً للتنسيق المخصص
@@ -717,6 +795,9 @@ window.CodformQuantityOffers = (function() {
       console.log("🚀 SPEED BOOST: Loading quantity offers for product", productId, "in", blockId, "from shop", shop);
       console.log("💰 Form currency parameter:", formCurrency);
       console.log("💰 Current window.CodformFormData:", window.CodformFormData);
+
+      // Ensure currency settings are available (when Unified System isn't present)
+      await __ensureCurrencySettings();
       
       // ✅ SPEED BOOST: تحقق من cache البيانات أولاً
       const cacheKey = `offers_${shop}_${productId}`;
