@@ -57,11 +57,12 @@
                 if (window.CodformShopCurrency) {
                   productData.currency = window.CodformShopCurrency;
                 } else if (window.Shopify && window.Shopify.currency) {
-                  const shopCur = window.Shopify.currency.shopCurrency || window.Shopify.currency.shop_currency;
-                  if (shopCur) {
-                    productData.currency = shopCur;
-                  } else if (window.Shopify.currency.active) {
-                    productData.currency = window.Shopify.currency.active;
+                  const activeCur = window.Shopify.currency.active;
+                  const shopBase = window.Shopify.currency.shopCurrency || window.Shopify.currency.shop_currency;
+                  if (activeCur) {
+                    productData.currency = activeCur;
+                  } else if (shopBase) {
+                    productData.currency = shopBase;
                   }
                 } else if (window.theme && window.theme.moneyWithCurrencyFormat) {
                   // Extract currency from money format
@@ -70,6 +71,16 @@
                     productData.currency = currencyMatch[0];
                   }
                 }
+                // Extra safety: read currency from OG/JSON-LD meta if present
+                try {
+                  const ogCur = document.querySelector('meta[property="og:price:currency"]')?.content
+                    || document.querySelector('meta[property="product:price:currency"]')?.content
+                    || null;
+                  if (ogCur) {
+                    productData.currency = ogCur;
+                  }
+                } catch (e) {}
+
                 
                 console.log('🛒 Cart Items: Product data loaded:', productData);
               }
@@ -241,13 +252,14 @@
     const fontFamily = isRTL ? "'Cairo', sans-serif" : "inherit";
     
     // Resolve target currency from form settings first (prefer unified system if available)
-    const targetCurrency = (window.CodformUnifiedSystem && typeof window.CodformUnifiedSystem.getPreferredCurrency === 'function' && window.CodformUnifiedSystem.getPreferredCurrency())
-      || (window.CodformFormData && window.CodformFormData.currency)
+    const targetCurrency =
+      (window.CodformFormData && window.CodformFormData.currency)
       || (window.currentFormData && window.currentFormData.savedFormCurrency)
       || window.formCurrency
       || (document.querySelector('.cart-summary-field') && document.querySelector('.cart-summary-field').getAttribute('data-currency'))
       || (window.CodformSmartCurrency && typeof window.CodformSmartCurrency.getCurrentCurrency === 'function' && window.CodformSmartCurrency.getCurrentCurrency())
       || (window.Shopify && window.Shopify.currency && window.Shopify.currency.active)
+      || (window.CodformUnifiedSystem && typeof window.CodformUnifiedSystem.getPreferredCurrency === 'function' && window.CodformUnifiedSystem.getPreferredCurrency())
       || cachedCurrency;
     
     // Convert unit price to target currency if needed
