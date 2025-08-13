@@ -146,7 +146,8 @@
 
       // Cache the results
       cachedProductPrice = productData.price;
-      cachedCurrency = productData.currency;
+      cachedCurrency = (window.CodformFormData && window.CodformFormData.currency) ? window.CodformFormData.currency : productData.currency;
+      productData.currency = cachedCurrency; // align with resolved form currency when available
       window.CodformProductData = productData; // Store globally for access
 
       console.log(`🛒 Cart Items: Final product data - Price: ${productData.price}, Currency: ${productData.currency}, Title: ${productData.title}`);
@@ -689,8 +690,15 @@
   });
   
   // React once the form currency is resolved by Cart Summary/API
-  window.addEventListener('codform:form-currency-resolved', function() {
+  window.addEventListener('codform:form-currency-resolved', function(e) {
     console.log('🛒 Cart Items: Form currency resolved event received');
+    const resolved = (window.CodformFormData && window.CodformFormData.currency) || null;
+    if (resolved) {
+      cachedCurrency = resolved;
+      if (window.CodformProductData) {
+        window.CodformProductData.currency = resolved;
+      }
+    }
     const existingCartItems = document.querySelector('.codform-cart-items');
     if (existingCartItems) {
       const quantity = parseInt(existingCartItems.querySelector('.cart-items-quantity')?.textContent || '1');

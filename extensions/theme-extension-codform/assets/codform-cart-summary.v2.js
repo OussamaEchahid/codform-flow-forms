@@ -420,7 +420,8 @@
         
         // Update cart summary data with real (sanity-checked) product data
         cartSummaryData.productPrice = price;
-        cartSummaryData.productCurrency = finalCurrency;
+        // Force product currency to the resolved target/form currency to avoid double conversion
+        cartSummaryData.productCurrency = cartSummaryData.targetCurrency;
         
         // تحديث State Manager مع بيانات المنتج الحقيقية
         if (window.CodformStateManager) {
@@ -700,7 +701,7 @@
       
       if (productPrice && productCurrency) {
         cartSummaryData.productPrice = productPrice;
-        cartSummaryData.productCurrency = productCurrency;
+        cartSummaryData.productCurrency = formCurrency; // align to form currency to avoid double conversion
         
         // تحديث State Manager أيضاً
         if (window.CodformStateManager) {
@@ -734,6 +735,7 @@
       // ✅ استخدام البيانات من State Manager مع التحقق الصحيح
       cartSummaryData.productPrice = state.unitPrice * quantity;
       cartSummaryData.currency = state.targetCurrency;
+      cartSummaryData.productCurrency = state.targetCurrency; // keep currencies aligned to avoid double conversion
       console.log(`💰✅ Cart Summary using State Manager data:`, {
         unitPrice: state.unitPrice,
         quantity: quantity,
@@ -794,7 +796,7 @@
     loadProductData: loadProductData,  // Export loadProductData function
     setProductData: function(price, currency) {
       cartSummaryData.productPrice = price;
-      cartSummaryData.productCurrency = currency;
+      cartSummaryData.productCurrency = cartSummaryData.targetCurrency;
       
       // تحديث State Manager أيضاً
       if (window.CodformStateManager) {
