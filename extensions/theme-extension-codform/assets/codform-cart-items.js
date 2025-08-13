@@ -736,12 +736,27 @@
       let finalPrice = totalBasePrice;
       let formattedPrice = `${finalPrice} ${finalTargetCurrency}`;
       
-      // Use Currency Manager for conversion and formatting
+          // Use Currency Manager for conversion and formatting
       if (window.CodformCurrencyManager) {
         try {
           // Convert currency if different
           if (baseCurrency !== finalTargetCurrency && typeof window.CodformCurrencyManager.convertCurrency === 'function') {
             console.log(`🛒 Cart Items: 💱 STARTING CONVERSION: ${totalBasePrice} ${baseCurrency} → ${finalTargetCurrency}`);
+            
+            // فحص معدلات العملة قبل التحويل
+            if (typeof window.CodformCurrencyManager.getExchangeRate === 'function') {
+              const fromRate = window.CodformCurrencyManager.getExchangeRate(baseCurrency);
+              const toRate = window.CodformCurrencyManager.getExchangeRate(finalTargetCurrency);
+              console.log(`🛒 Cart Items: 📊 EXCHANGE RATES: ${baseCurrency}=${fromRate}, ${finalTargetCurrency}=${toRate}`);
+              
+              // فحص خاص لـ CAD
+              if (finalTargetCurrency === 'CAD') {
+                console.log(`🛒 Cart Items: 🍁 CAD RATE CHECK: ${toRate} (should be around 1.35)`);
+                if (!toRate || toRate === 1.0) {
+                  console.error(`🛒 Cart Items: ❌ CAD RATE MISSING OR WRONG: ${toRate}`);
+                }
+              }
+            }
             
             finalPrice = window.CodformCurrencyManager.convertCurrency(totalBasePrice, baseCurrency, finalTargetCurrency);
             

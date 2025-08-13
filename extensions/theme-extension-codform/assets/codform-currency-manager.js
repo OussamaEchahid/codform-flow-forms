@@ -29,7 +29,8 @@
     'EGP': 30.85,
     'MAD': 10.0,
     'EUR': 0.85,
-    'GBP': 0.75
+    'GBP': 0.75,
+    'CAD': 1.35
   };
   
   let currencySettings = { ...DEFAULT_SETTINGS };
