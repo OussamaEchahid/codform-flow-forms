@@ -245,7 +245,7 @@ export const useFormTemplates = () => {
   };
 
   // Helper function to create default form fields
-  const createCompleteDefaultFormFields = (language = 'ar'): FormField[] => {
+  const createCompleteDefaultFormFields = (language: string, shopCurrency: string = 'USD'): FormField[] => {
     const defaultFields: FormField[] = [];
     
     // Add form title field
@@ -310,7 +310,7 @@ export const useFormTemplates = () => {
         totalLabel: language === 'ar' ? 'المجموع الكلي' : 'Total',
         freeShippingText: language === 'ar' ? 'شحن مجاني' : 'Free shipping',
         direction: language === 'ar' ? 'rtl' : 'ltr',
-        currency: 'USD' // Will be updated with actual shop currency
+        currency: shopCurrency // Use actual shop currency
       }
     });
     
@@ -356,8 +356,34 @@ export const useFormTemplates = () => {
       const newFormId = uuidv4();
       console.log('Creating new form with ID:', newFormId);
       
+      // Get shop currency first using the existing function below
+      const getShopCurrencyAndCountry = async (): Promise<{ currency?: string; country?: string }> => {
+        try {
+          const { data, error } = await supabase.functions.invoke('shopify-shop-info', {
+            body: { shop: shopId }
+          });
+            
+          if (error) {
+            console.log('Error fetching shop info:', error);
+            return {};
+          }
+          
+          console.log('✅ Shop info fetched for new form:', data);
+          return {
+            currency: data?.shop?.money_format?.replace(/[^A-Z]/g, '') || data?.shop?.currency,
+            country: data?.shop?.country_code
+          };
+        } catch (error) {
+          console.log('Could not fetch shop info, using default');
+          return {};
+        }
+      };
+
+      const { currency: shopCurrency } = await getShopCurrencyAndCountry();
+      console.log('🏪 Shop currency for new form:', shopCurrency);
+      
       const currentLanguage = document.documentElement.lang || 'ar';
-      const completeFields = createCompleteDefaultFormFields(currentLanguage);
+      const completeFields = createCompleteDefaultFormFields(currentLanguage, shopCurrency || 'USD');
       
       // Prepare the form data
       const formData: FormData = {
@@ -392,31 +418,8 @@ export const useFormTemplates = () => {
         return null;
       }
 
-      // Get shop currency and country from shopify-shop-info function
-      const getShopCurrencyAndCountry = async (): Promise<{ currency?: string; country?: string }> => {
-        try {
-          const { data, error } = await supabase.functions.invoke('shopify-shop-info', {
-            body: { shop: shopId }
-          });
-            
-          if (error) {
-            console.log('Error fetching shop info:', error);
-            return {};
-          }
-          
-          console.log('✅ Shop info fetched for default form:', data);
-          return {
-            currency: data?.shop?.money_format?.replace(/[^A-Z]/g, '') || data?.shop?.currency,
-            country: data?.shop?.country_code
-          };
-        } catch (error) {
-          console.log('Could not fetch shop info, using default');
-          return {};
-        }
-      };
-
-      const { currency: shopCurrency, country: shopCountry } = await getShopCurrencyAndCountry();
-      const defaultSettings = getDefaultCountryCurrencySettings(shopCurrency, shopCountry);
+      // Use the already fetched shop currency and country
+      const defaultSettings = getDefaultCountryCurrencySettings(shopCurrency);
 
       const { error } = await supabase
         .from('forms')
