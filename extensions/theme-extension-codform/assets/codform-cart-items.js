@@ -103,43 +103,12 @@
                 
                 console.log(`🛒 Cart Items: 💰 Raw price from API: ${rawPrice}`);
                 
-                // التحقق من العملة النشطة في شوبيفاي
-                const currentActiveCurrency = window.Shopify?.currency?.active || 'USD';
-                console.log(`🛒 Cart Items: 💱 Current active currency in Shopify: ${currentActiveCurrency}`);
+                // المنتج في شوبيفاي سعره دائماً بالعملة الأساسية للمتجر
+                // في معظم الحالات المنتجات تكون مسعرة بالدولار كعملة أساسية
+                productData.price = rawPrice;
+                productData.currency = 'USD'; // العملة الأساسية للمنتجات في شوبيفاي عادة USD
                 
-                // إذا كان السعر بعملة أخرى غير USD، نحتاج لتحويله إلى USD أولاً
-                if (currentActiveCurrency !== 'USD') {
-                  console.log(`🛒 Cart Items: 🔄 Converting price from ${currentActiveCurrency} to USD base`);
-                  
-                  // استخدام معدلات التحويل العكسية للحصول على السعر بالدولار
-                  if (window.CodformCurrencyManager && typeof window.CodformCurrencyManager.getRates === 'function') {
-                    const rates = window.CodformCurrencyManager.getRates();
-                    const currentRate = rates[currentActiveCurrency];
-                    
-                    if (currentRate && currentRate > 0) {
-                      // تحويل عكسي: من العملة النشطة إلى USD
-                      const usdPrice = rawPrice / currentRate;
-                      productData.price = parseFloat(usdPrice.toFixed(2));
-                      productData.currency = 'USD'; // العملة الأساسية
-                      
-                      console.log(`🛒 Cart Items: ✅ Converted ${rawPrice} ${currentActiveCurrency} → ${productData.price} USD (rate: ${currentRate})`);
-                    } else {
-                      console.warn(`🛒 Cart Items: ⚠️ No rate found for ${currentActiveCurrency}, assuming USD`);
-                      productData.price = rawPrice;
-                      productData.currency = 'USD';
-                    }
-                  } else {
-                    // fallback: افتراض أن السعر بالدولار
-                    console.warn('🛒 Cart Items: ⚠️ Currency Manager not available, assuming USD price');
-                    productData.price = rawPrice;
-                    productData.currency = 'USD';
-                  }
-                } else {
-                  // السعر بالدولار بالفعل
-                  productData.price = rawPrice;
-                  productData.currency = 'USD';
-                  console.log(`🛒 Cart Items: ✅ Price is already in USD: ${productData.price}`);
-                }
+                console.log(`🛒 Cart Items: ✅ Product price set: ${productData.price} ${productData.currency}`);
                 
                 productData.title = product.title;
                 productData.image = product.featured_image;
