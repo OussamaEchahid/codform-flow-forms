@@ -12,6 +12,79 @@
   let cachedCurrency = null;
   let isInitialized = false;
 
+  // Robust detection of the shop BASE currency (not active/display)
+  function detectShopBaseCurrency() {
+    try {
+      const votes = {};
+      const push = (code, weight = 1) => {
+        if (!code || typeof code !== 'string') return;
+        const cur = code.trim().toUpperCase();
+        if (!/^[A-Z]{3}$/.test(cur)) return;
+        votes[cur] = (votes[cur] || 0) + weight;
+      };
+
+      // 1) Shopify declared shop currency (highest priority)
+      push(window.Shopify && window.Shopify.currency && (window.Shopify.currency.shopCurrency || window.Shopify.currency.shop_currency), 4);
+      push(window.Shopify && window.Shopify.shopCurrency, 3);
+
+      // 2) Stored/base currency from previous detections
+      try { push(localStorage.getItem('codform_shop_base_currency'), 3); } catch (_) {}
+
+      // 3) Meta tags from theme (often reflect shop base currency)
+      try {
+        const og = document.querySelector('meta[property="og:price:currency"]')?.content
+          || document.querySelector('meta[property="product:price:currency"]')?.content
+          || document.querySelector('meta[itemprop="priceCurrency"]')?.content;
+        push(og, 2);
+      } catch (_) {}
+
+      // 4) JSON-LD blocks containing priceCurrency
+      try {
+        const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
+        for (const s of scripts) {
+          try {
+            const data = JSON.parse(s.textContent || 'null');
+            const arr = Array.isArray(data) ? data : [data];
+            for (const obj of arr) {
+              const cur = obj?.offers?.priceCurrency || obj?.priceCurrency;
+              if (cur) push(cur, 2);
+            }
+          } catch (_) {}
+        }
+      } catch (_) {}
+
+      // 5) Money format strings in theme
+      const moneyFormats = [
+        window.Shopify && window.Shopify.money_format,
+        window.Shopify && window.Shopify.money_with_currency_format,
+        window.theme && window.theme.moneyFormat,
+        window.theme && window.theme.moneyWithCurrencyFormat
+      ];
+      moneyFormats.forEach(fmt => {
+        if (typeof fmt === 'string') {
+          const m = fmt.match(/\b[A-Z]{3}\b/);
+          if (m) push(m[0], 1);
+        }
+      });
+
+      // 6) As a last resort, align with form currency when only Cart Items exists
+      push(window.CodformFormData && window.CodformFormData.currency, 1);
+
+      // Choose by majority vote
+      let selected = null; let max = -1;
+      Object.entries(votes).forEach(([code, score]) => { if (score > max) { selected = code; max = score; } });
+      if (selected) {
+        try { localStorage.setItem('codform_shop_base_currency', selected); } catch (_) {}
+        window.CodformShopCurrency = selected;
+        console.log('🧭 Cart Items: Detected shop BASE currency:', selected, votes);
+        return selected;
+      }
+    } catch (e) {
+      console.warn('⚠️ Cart Items: detectShopBaseCurrency failed', e);
+    }
+    return window.CodformShopCurrency || 'MAD';
+  }
+
   /**
    * Fetch product data from current Shopify page or API
    */
@@ -21,10 +94,7 @@
 
       let productData = {
         price: 29.99,
-        // Source currency must be the shop base currency (variant.price is in shop base)
-        currency: (window.Shopify && window.Shopify.currency && (window.Shopify.currency.shopCurrency || window.Shopify.currency.shop_currency))
-                  || window.CodformShopCurrency
-                  || 'MAD',
+        currency: detectShopBaseCurrency() || 'MAD',
         title: 'Product',
         image: null
       };
@@ -54,22 +124,11 @@
                 productData.title = product.title;
                 productData.image = product.featured_image;
                 
-                // Determine source currency: ALWAYS shop base (variant.price is in shop base)
-                if (window.Shopify && window.Shopify.currency) {
-                  const shopBase = window.Shopify.currency.shopCurrency || window.Shopify.currency.shop_currency;
-                  if (shopBase) {
-                    productData.currency = shopBase;
-                  }
-                } else if (window.CodformShopCurrency) {
-                  productData.currency = window.CodformShopCurrency;
-                } else if (window.theme && window.theme.moneyWithCurrencyFormat) {
-                  // Extract currency from money format
-                  const currencyMatch = window.theme.moneyWithCurrencyFormat.match(/\b[A-Z]{3}\b/);
-                  if (currencyMatch) {
-                    productData.currency = currencyMatch[0];
-                  }
+                // Determine source currency robustly (BASE currency of the shop)
+                const detectedBase = detectShopBaseCurrency();
+                if (detectedBase) {
+                  productData.currency = detectedBase;
                 }
-                // Do NOT override with active/display currency; conversions will handle target
                 console.log('🛒 Cart Items: Product data loaded:', productData);
               }
             }
