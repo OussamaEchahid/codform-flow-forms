@@ -3,7 +3,8 @@
   Renders cart summary with subtotal, discount, shipping, and total
 {% endcomment %}
 
-{% assign config = field.config | default: blank %}
+{% comment %} Prioritize config over cartSummaryConfig for unified data structure {% endcomment %}
+{% assign config = field.config | default: field.cartSummaryConfig | default: blank %}
 {% assign showSubtotal = config.showSubtotal | default: true %}
 {% assign showDiscount = config.showDiscount | default: true %}
 {% assign showShipping = config.showShipping | default: true %}

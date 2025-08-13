@@ -78,6 +78,39 @@ export interface FieldDefaults {
     alt: string;
     width: string;
   };
+  cartSummary: {
+    config: {
+      subtotalText: string;
+      discountText: string;
+      shippingText: string;
+      totalText: string;
+      showDiscount: boolean;
+      discountType: string;
+      discountValue: number;
+      shippingType: string;
+      shippingValue: number;
+      autoCalculate: boolean;
+      currency: string;
+    };
+    style: {
+      backgroundColor: string;
+      borderColor: string;
+      borderRadius: string;
+      labelColor: string;
+      valueColor: string;
+      totalLabelColor: string;
+      totalValueColor: string;
+      fontFamily: string;
+      labelFontSize: string;
+      valueFontSize: string;
+      totalLabelFontSize: string;
+      totalValueFontSize: string;
+      labelWeight: string;
+      valueWeight: string;
+      totalLabelWeight: string;
+      totalValueWeight: string;
+    };
+  };
 }
 
 /**
@@ -158,6 +191,39 @@ export const FIELD_DEFAULTS: FieldDefaults = {
     src: 'https://codform.com/assets/image_place_holder.avif',
     alt: 'صورة',
     width: '100'
+  },
+  cartSummary: {
+    config: {
+      subtotalText: 'المجموع الفرعي', // Will be set based on language
+      discountText: 'الخصم',
+      shippingText: 'الشحن',
+      totalText: 'الإجمالي',
+      showDiscount: true,
+      discountType: 'percentage',
+      discountValue: 0,
+      shippingType: 'manual',
+      shippingValue: 0,
+      autoCalculate: true,
+      currency: 'MAD'
+    },
+    style: {
+      backgroundColor: '#f9fafb',
+      borderColor: '#e5e7eb',
+      borderRadius: '8px',
+      labelColor: '#374151',
+      valueColor: '#111827',
+      totalLabelColor: '#111827',
+      totalValueColor: '#059669',
+      fontFamily: 'Cairo, Tajawal, Arial, sans-serif',
+      labelFontSize: '16px',
+      valueFontSize: '16px',
+      totalLabelFontSize: '18px',
+      totalValueFontSize: '18px',
+      labelWeight: '500',
+      valueWeight: '600',
+      totalLabelWeight: '700',
+      totalValueWeight: '700'
+    }
   }
 };
 
@@ -242,6 +308,21 @@ export const createFieldWithDefaults = (type: string, language: string = 'en') =
         alt: defaults.image.alt,
         width: defaults.image.width,
         style: defaults.image.style
+      };
+    
+    case 'cart-summary':
+      return {
+        ...baseField,
+        label: language === 'ar' ? 'ملخص الطلب' : 'Cart Summary',
+        config: {
+          ...defaults.cartSummary.config,
+          // Set correct language texts
+          subtotalText: language === 'ar' ? 'المجموع الفرعي' : 'Subtotal',
+          discountText: language === 'ar' ? 'الخصم' : 'Discount',
+          shippingText: language === 'ar' ? 'الشحن' : 'Shipping',
+          totalText: language === 'ar' ? 'الإجمالي' : 'Total'
+        },
+        style: defaults.cartSummary.style
       };
     
     case 'text/html':

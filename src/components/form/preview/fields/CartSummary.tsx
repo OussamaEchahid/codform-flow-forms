@@ -39,8 +39,8 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
 
   const fieldStyle = field.style || {};
   
-  // الحصول على إعدادات محفوظة من المحرر
-  const config = field.cartSummaryConfig || {};
+  // الحصول على إعدادات محفوظة من المحرر - أولوية لـ config ثم cartSummaryConfig
+  const config = field.config || field.cartSummaryConfig || {};
   
   // النصوص الافتراضية حسب المحتوى أو الاعدادات المحفوظة
   const getDefaultTexts = () => {

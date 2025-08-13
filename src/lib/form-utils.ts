@@ -76,6 +76,29 @@ export interface FormField {
   whatsappNumber?: string;
   message?: string;
   productId?: string;
+  config?: {
+    [key: string]: any;
+    subtotalText?: string;
+    subtotalLabel?: string;
+    discountText?: string;
+    discountLabel?: string;
+    shippingText?: string;
+    shippingLabel?: string;
+    totalText?: string;
+    totalLabel?: string;
+    freeShippingText?: string;
+    showSubtotal?: boolean;
+    showDiscount?: boolean;
+    showShipping?: boolean;
+    showTotal?: boolean;
+    discountType?: 'percentage' | 'fixed';
+    discountValue?: number;
+    shippingType?: 'auto' | 'manual';
+    shippingValue?: number;
+    autoCalculate?: boolean;
+    currency?: string;
+    direction?: 'auto' | 'rtl' | 'ltr';
+  };
   cartSummaryConfig?: {
     subtotalText?: string;
     subtotalLabel?: string;

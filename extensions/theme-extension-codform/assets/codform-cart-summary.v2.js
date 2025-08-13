@@ -510,86 +510,102 @@
     window.currentFormStyle = formStyle;
     
     cartSummaries.forEach(summary => {
-      // ✅ Apply custom text labels to HTML elements
+      // ✅ Force apply custom text labels immediately to prevent Shopify auto-translation
       const summaryRows = summary.querySelectorAll('.summary-row');
       
-      // Find and update each label
-      summaryRows.forEach((row, index) => {
+      // Apply custom texts with DOM attributes to prevent translation
+      summaryRows.forEach((row) => {
         const label = row.querySelector('.summary-label');
         if (!label) return;
         
-        // Determine which label this is based on its position or class
-        const discountRow = row.classList.contains('discount-row');
-        const totalRow = row.classList.contains('total-row');
-        const hasShippingValue = row.querySelector('.shipping-value');
+        // Set data attribute to prevent Shopify translation
+        label.setAttribute('data-no-translate', 'true');
+        label.setAttribute('translate', 'no');
         
-        if (discountRow && config.discountText) {
+        // Determine which label this is and apply custom text
+        if (row.classList.contains('discount-row') && config.discountText) {
           label.textContent = config.discountText;
-        } else if (totalRow && config.totalText) {
+          label.setAttribute('data-original-text', config.discountText);
+        } else if (row.classList.contains('total-row') && config.totalText) {
           label.textContent = config.totalText;
-        } else if (hasShippingValue && config.shippingText) {
+          label.setAttribute('data-original-text', config.totalText);
+        } else if (row.querySelector('.shipping-value') && config.shippingText) {
           label.textContent = config.shippingText;
-        } else if (index === 0 && config.subtotalText && !discountRow && !totalRow && !hasShippingValue) {
-          // First row that's not discount, total, or shipping = subtotal
+          label.setAttribute('data-original-text', config.shippingText);
+        } else if (row.querySelector('.subtotal-value') && config.subtotalText) {
           label.textContent = config.subtotalText;
+          label.setAttribute('data-original-text', config.subtotalText);
         }
       });
       // تطبيق اتجاه النص
       const direction = getTextDirection(config);
       summary.style.direction = direction;
       
-      // تطبيق الألوان والخلفية
-      summary.style.backgroundColor = style.backgroundColor || '#ffffff';
-      summary.style.borderColor = style.borderColor || '#e5e7eb';
-      summary.style.fontFamily = style.fontFamily || 'Cairo';
+      // Apply all styling to match React preview exactly
+      const style = field.style || {};
       
-      // تطبيق النصوص المخصصة
-      const subtotalLabel = summary.querySelector('.subtotal-label');
-      const discountLabel = summary.querySelector('.discount-label');
-      const shippingLabel = summary.querySelector('.shipping-label');
-      const totalLabel = summary.querySelector('.total-label');
+      // Container styling
+      summary.style.backgroundColor = style.backgroundColor || '#f9fafb';
+      summary.style.border = `1px solid ${style.borderColor || '#e5e7eb'}`;
+      summary.style.borderRadius = style.borderRadius || '8px';
+      summary.style.padding = '16px';
+      summary.style.margin = '16px 0';
+      summary.style.fontFamily = style.fontFamily || (direction === 'rtl' ? 'Cairo, Tajawal, Arial, sans-serif' : 'Inter, Arial, sans-serif');
       
-      if (subtotalLabel) {
-        subtotalLabel.textContent = config.subtotalText || 'المجموع الفرعي';
-        subtotalLabel.style.color = style.labelsColor || '#374151';
-        subtotalLabel.style.fontSize = style.labelsFontSize || '14px';
-      }
-      
-      if (discountLabel) {
-        discountLabel.textContent = config.discountText || 'الخصم';
-        discountLabel.style.color = style.labelsColor || '#374151';
-        discountLabel.style.fontSize = style.labelsFontSize || '14px';
-      }
-      
-      if (shippingLabel) {
-        shippingLabel.textContent = config.shippingText || 'الشحن';
-        shippingLabel.style.color = style.labelsColor || '#374151';
-        shippingLabel.style.fontSize = style.labelsFontSize || '14px';
-      }
-      
-      if (totalLabel) {
-        totalLabel.textContent = config.totalText || 'الإجمالي';
-        totalLabel.style.color = style.labelsColor || '#374151';
-        totalLabel.style.fontSize = style.labelsFontSize || '14px';
-        totalLabel.style.fontWeight = '600';
-      }
-      
-      // تطبيق لون المبلغ النهائي الأخضر
-      const totalValue = summary.querySelector('.total-value');
-      if (totalValue) {
-        totalValue.style.color = style.totalColor || style.totalValueColor || '#16a34a';
-        totalValue.style.fontSize = style.labelsFontSize || '14px';
-        totalValue.style.fontWeight = '600';
-      }
-      
-      // تطبيق أحجام الخطوط على جميع القيم
-      const valueElements = summary.querySelectorAll('.subtotal-value, .discount-value, .shipping-value');
-      valueElements.forEach(element => {
-        element.style.color = style.labelsColor || '#374151';
-        element.style.fontSize = style.labelsFontSize || '14px';
-        element.style.fontFamily = style.fontFamily || 'Cairo';
+      // Apply label styling
+      summary.querySelectorAll('.summary-label').forEach(label => {
+        label.style.color = style.labelColor || '#374151';
+        label.style.fontSize = style.labelFontSize || '16px';
+        label.style.fontWeight = style.labelWeight || '500';
       });
+      
+      // Apply value styling
+      summary.querySelectorAll('.summary-value').forEach(value => {
+        if (value.classList.contains('total-value')) {
+          value.style.color = style.totalValueColor || '#059669';
+          value.style.fontSize = style.totalValueFontSize || '18px';
+          value.style.fontWeight = '700';
+        } else if (value.classList.contains('discount-value')) {
+          value.style.color = '#dc2626';
+          value.style.fontSize = style.valueFontSize || '16px';
+          value.style.fontWeight = '600';
+        } else {
+          value.style.color = style.valueColor || '#111827';
+          value.style.fontSize = style.valueFontSize || '16px';
+          value.style.fontWeight = '600';
+        }
+      });
+      
+      // Apply total label styling
+      const totalLabel = summary.querySelector('.total-row .summary-label');
+      if (totalLabel) {
+        totalLabel.style.color = style.totalLabelColor || '#111827';
+        totalLabel.style.fontSize = style.totalLabelFontSize || '18px';
+        totalLabel.style.fontWeight = '700';
+      }
     });
+    
+    // ✅ Apply translations prevention and ensure custom texts persist
+    const preventTranslation = () => {
+      cartSummaries.forEach(summary => {
+        summary.querySelectorAll('.summary-label').forEach(label => {
+          const originalText = label.getAttribute('data-original-text');
+          if (originalText && label.textContent !== originalText) {
+            console.log('🔄 Restoring original text:', originalText);
+            label.textContent = originalText;
+          }
+        });
+      });
+    };
+    
+    // Run prevention every 100ms to catch Shopify auto-translation attempts
+    const translationGuard = setInterval(preventTranslation, 100);
+    
+    // Store guard reference for cleanup
+    if (!window.codformTranslationGuards) {
+      window.codformTranslationGuards = [];
+    }
+    window.codformTranslationGuards.push(translationGuard);
   }
   
   /**

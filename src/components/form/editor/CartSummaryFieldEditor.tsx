@@ -87,6 +87,7 @@ const CartSummaryFieldEditor: React.FC<CartSummaryFieldEditorProps> = ({
   const handleConfigChange = (key: string, value: any) => {
     setCurrentField(prev => ({
       ...prev,
+      config: { ...prev.config, [key]: value },
       cartSummaryConfig: { ...prev.cartSummaryConfig, [key]: value }
     }));
   };
