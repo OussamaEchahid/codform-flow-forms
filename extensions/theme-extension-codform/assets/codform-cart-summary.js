@@ -387,7 +387,35 @@
         // If currencies match, treat product as having form currency (no conversion)
         const finalCurrency = (productCurrency === formCurrency) ? formCurrency : productCurrency;
         
-        // Update cart summary data with real product data
+        // 🔎 Sanity-check with Shopify storefront endpoint to avoid ×10 issues
+        try {
+          const href = window.location && window.location.href || '';
+          if (href.includes('/products/')) {
+            const handle = href.split('/products/')[1]?.split('?')[0]?.split('#')[0];
+            if (handle) {
+              const res = await fetch(`/products/${handle}.js`);
+              if (res.ok) {
+                const prod = await res.json();
+                const v = prod?.variants?.[0];
+                if (v && typeof v.price === 'number') {
+                  const storefrontPrice = v.price / 100; // cents -> major
+                  if (isFinite(storefrontPrice) && storefrontPrice > 0) {
+                    const ratio = price / storefrontPrice;
+                    // If API price appears inflated by ~10x or ~100x, trust storefront value
+                    if (ratio > 1.9 && ratio < 20 || ratio > 50 && ratio < 200) {
+                      console.warn('🩹 Cart Summary - Correcting price using storefront endpoint', { apiPrice: price, storefrontPrice, ratio });
+                      price = storefrontPrice;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        } catch (e) {
+          console.log('ℹ️ Cart Summary - Storefront sanity check skipped/failed:', e);
+        }
+        
+        // Update cart summary data with real (sanity-checked) product data
         cartSummaryData.productPrice = price;
         cartSummaryData.productCurrency = finalCurrency;
         
