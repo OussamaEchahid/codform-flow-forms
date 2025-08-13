@@ -383,7 +383,7 @@
                 color: #6b7280;
                 margin: 0;
                 font-size: 14px;
-              ">${priceLabel} <span class="cart-items-price" data-currency="${targetCurrency}" data-base-price="${priceForRender}" data-base-currency="${currencyForRender}">${formattedPrice}</span></p>
+              ">${priceLabel} <span class="cart-items-price" data-currency="${targetCurrency}" data-base-price="${productData.price}" data-base-currency="${productData.currency}">${formattedPrice}</span></p>
             </div>
             
             <!-- Quantity Controls -->
