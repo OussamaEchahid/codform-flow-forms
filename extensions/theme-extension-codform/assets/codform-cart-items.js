@@ -458,12 +458,30 @@
     quantityElement.textContent = newQuantity;
     console.log(`🛒 Cart Items: Quantity increased to ${newQuantity}`);
     
-    // إعلام State Manager بتغيير الكمية
+    // Update State Manager with new quantity and calculated price
     if (window.CodformStateManager) {
+      // Calculate the final price for this quantity
+      const basePriceElement = button.parentElement.parentElement.querySelector('.cart-items-price');
+      const basePrice = parseFloat(basePriceElement?.getAttribute('data-base-price')) || cachedProductPrice || 1;
+      const finalPrice = basePrice * newQuantity;
+      
+      // Update both quantity and final price in State Manager
       window.CodformStateManager.updateQuantity(newQuantity);
+      const currentState = window.CodformStateManager.getState();
+      window.CodformStateManager.updateState({ 
+        ...currentState, 
+        currentQuantity: newQuantity, 
+        finalPrice: finalPrice 
+      });
     }
     
-    // فترة انتظار قصيرة لضمان تطبيق المعدلات المخصصة
+    // Trigger cart summary update
+    try {
+      window.dispatchEvent(new CustomEvent('codform:quantity-changed', { 
+        detail: { quantity: newQuantity } 
+      }));
+    } catch (e) {}
+    
     setTimeout(() => {
       updatePriceDisplay(newQuantity);
     }, 50);
@@ -481,12 +499,30 @@
       quantityElement.textContent = newQuantity;
       console.log(`🛒 Cart Items: Quantity decreased to ${newQuantity}`);
       
-      // إعلام State Manager بتغيير الكمية
+      // Update State Manager with new quantity and calculated price
       if (window.CodformStateManager) {
+        // Calculate the final price for this quantity
+        const basePriceElement = button.parentElement.parentElement.querySelector('.cart-items-price');
+        const basePrice = parseFloat(basePriceElement?.getAttribute('data-base-price')) || cachedProductPrice || 1;
+        const finalPrice = basePrice * newQuantity;
+        
+        // Update both quantity and final price in State Manager
         window.CodformStateManager.updateQuantity(newQuantity);
+        const currentState = window.CodformStateManager.getState();
+        window.CodformStateManager.updateState({ 
+          ...currentState, 
+          currentQuantity: newQuantity, 
+          finalPrice: finalPrice 
+        });
       }
       
-      // فترة انتظار قصيرة لضمان تطبيق المعدلات المخصصة
+      // Trigger cart summary update
+      try {
+        window.dispatchEvent(new CustomEvent('codform:quantity-changed', { 
+          detail: { quantity: newQuantity } 
+        }));
+      } catch (e) {}
+      
       setTimeout(() => {
         updatePriceDisplay(newQuantity);
       }, 50);

@@ -203,10 +203,19 @@
     const state = window.CodformStateManager ? window.CodformStateManager.getState() : null;
     
     let effectivePrice;
-    if (state && state.finalPrice !== null) {
+    let quantity = 1;
+    
+    if (state && state.finalPrice !== null && state.currentQuantity) {
+      // Use the final calculated price and quantity from State Manager
       effectivePrice = state.finalPrice;
+      quantity = state.currentQuantity;
     } else {
+      // Fallback to base price * quantity
       effectivePrice = cartSummaryData.productPrice;
+      quantity = state?.currentQuantity || 1;
+      if (effectivePrice && quantity > 1) {
+        effectivePrice = effectivePrice * quantity;
+      }
     }
     
     const { productCurrency, targetCurrency, discountType, discountValue, shippingCost } = cartSummaryData;
@@ -221,11 +230,12 @@
       };
     }
     
-    // ✅ CRITICAL FIX: Check if currencies match - no conversion needed
+    // Check if currencies match - no conversion needed for effective price
     let convertedPrice;
     if (productCurrency === targetCurrency) {
-      convertedPrice = effectivePrice; // Same currency - use price directly
+      convertedPrice = effectivePrice; // Same currency - use final price directly
     } else {
+      // Convert only if needed (effective price should already be converted by Cart Items)
       convertedPrice = convertCurrency(effectivePrice, productCurrency, targetCurrency);
     }
     
