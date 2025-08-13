@@ -357,9 +357,17 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
         shop_id: activeShopId
       });
 
-      console.log('✅ Form created successfully with ID:', newFormId);
+      console.log('✅ Form created successfully with ID:', newFormId, 'using shop currency:', actualShopCurrency);
       
-      // Update form state
+      // Update the form immediately with currency and country settings
+      await supabase.from('forms').update({
+        country: actualCountry,
+        currency: actualShopCurrency,
+        phone_prefix: defaultSettings.phonePrefix,
+        updated_at: new Date().toISOString()
+      }).eq('id', newFormId);
+      
+      // Update form state with shop settings
       setFormState({
         id: newFormId,
         title: formTitle,
