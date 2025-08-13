@@ -505,7 +505,35 @@
     
     console.log('🎨 Cart Summary - Applying custom settings:', { config, style });
     
+    // Save current field and form style for later use
+    window.currentFieldData = field;
+    window.currentFormStyle = formStyle;
+    
     cartSummaries.forEach(summary => {
+      // ✅ Apply custom text labels to HTML elements
+      const summaryRows = summary.querySelectorAll('.summary-row');
+      
+      // Find and update each label
+      summaryRows.forEach((row, index) => {
+        const label = row.querySelector('.summary-label');
+        if (!label) return;
+        
+        // Determine which label this is based on its position or class
+        const discountRow = row.classList.contains('discount-row');
+        const totalRow = row.classList.contains('total-row');
+        const hasShippingValue = row.querySelector('.shipping-value');
+        
+        if (discountRow && config.discountText) {
+          label.textContent = config.discountText;
+        } else if (totalRow && config.totalText) {
+          label.textContent = config.totalText;
+        } else if (hasShippingValue && config.shippingText) {
+          label.textContent = config.shippingText;
+        } else if (index === 0 && config.subtotalText && !discountRow && !totalRow && !hasShippingValue) {
+          // First row that's not discount, total, or shipping = subtotal
+          label.textContent = config.subtotalText;
+        }
+      });
       // تطبيق اتجاه النص
       const direction = getTextDirection(config);
       summary.style.direction = direction;

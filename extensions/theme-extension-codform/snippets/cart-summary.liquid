@@ -15,17 +15,44 @@
 {% assign autoCalculate = config.autoCalculate | default: false %}
 
 {% comment %} Labels with direction support {% endcomment %}
-{% assign subtotalLabel = config.subtotalLabel | default: 'المجموع الفرعي' %}
-{% assign discountLabel = config.discountLabel | default: 'الخصم' %}
-{% assign shippingLabel = config.shippingLabel | default: 'الشحن' %}
-{% assign totalLabel = config.totalLabel | default: 'الإجمالي' %}
+{% comment %} Get custom texts from config first, then fallback to defaults {% endcomment %}
+{% assign subtotalLabel = config.subtotalText | default: config.subtotalLabel %}
+{% assign discountLabel = config.discountText | default: config.discountLabel %}
+{% assign shippingLabel = config.shippingText | default: config.shippingLabel %}
+{% assign totalLabel = config.totalText | default: config.totalLabel %}
 
-{% if formDirection == 'ltr' %}
-  {% assign subtotalLabel = config.subtotalLabel | default: 'Subtotal' %}
-  {% assign discountLabel = config.discountLabel | default: 'Discount' %}
-  {% assign shippingLabel = config.shippingLabel | default: 'Shipping' %}
-  {% assign totalLabel = config.totalLabel | default: 'Total' %}
-{% endif %}
+{% comment %} Fallback to defaults if still empty {% endcomment %}
+{% unless subtotalLabel and subtotalLabel != '' %}
+  {% if formDirection == 'ltr' %}
+    {% assign subtotalLabel = 'Subtotal' %}
+  {% else %}
+    {% assign subtotalLabel = 'المجموع الفرعي' %}
+  {% endif %}
+{% endunless %}
+
+{% unless discountLabel and discountLabel != '' %}
+  {% if formDirection == 'ltr' %}
+    {% assign discountLabel = 'Discount' %}
+  {% else %}
+    {% assign discountLabel = 'الخصم' %}
+  {% endif %}
+{% endunless %}
+
+{% unless shippingLabel and shippingLabel != '' %}
+  {% if formDirection == 'ltr' %}
+    {% assign shippingLabel = 'Shipping' %}
+  {% else %}
+    {% assign shippingLabel = 'الشحن' %}
+  {% endif %}
+{% endunless %}
+
+{% unless totalLabel and totalLabel != '' %}
+  {% if formDirection == 'ltr' %}
+    {% assign totalLabel = 'Total' %}
+  {% else %}
+    {% assign totalLabel = 'الإجمالي' %}
+  {% endif %}
+{% endunless %}
 
 {% comment %} Styling {% endcomment %}
 {% assign labelColor = field.style.labelColor | default: '#374151' %}
