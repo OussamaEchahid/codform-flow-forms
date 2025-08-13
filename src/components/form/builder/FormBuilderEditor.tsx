@@ -256,10 +256,39 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
       const newId = uuidv4();
       setCurrentFormId(newId);
 
-      // Set form defaults - hardcoded to MAD for Moroccan stores
-      const defaultSettings = { country: 'MA', currency: 'MAD', phonePrefix: '+212' };
+      // Get shop's actual currency for new forms
+      let actualShopCurrency = 'MAD'; // fallback
       
-      console.log('🏪 Setting form defaults to:', defaultSettings);
+      try {
+        console.log('🔍 NEW FORM - Fetching shop info for:', activeShopId);
+        const { data: shopInfo } = await supabase.functions.invoke('shopify-shop-info', {
+          body: { shop: activeShopId }
+        });
+        
+        if (shopInfo?.success && shopInfo?.shop) {
+          // Extract currency from money_format instead of direct currency field
+          const moneyFormat = shopInfo.shop.money_format || shopInfo.shop.money_with_currency_format || '';
+          console.log('💰 NEW FORM - Money format from shop:', moneyFormat);
+          
+          // Extract currency code from format strings like "{{ amount }} MAD" or "£{{ amount }}"
+          if (moneyFormat.includes('MAD')) actualShopCurrency = 'MAD';
+          else if (moneyFormat.includes('SAR') || moneyFormat.includes('﷼')) actualShopCurrency = 'SAR';
+          else if (moneyFormat.includes('AED')) actualShopCurrency = 'AED';
+          else if (moneyFormat.includes('USD') || moneyFormat.includes('$')) actualShopCurrency = 'USD';
+          else if (moneyFormat.includes('EUR') || moneyFormat.includes('€')) actualShopCurrency = 'EUR';
+          else if (moneyFormat.includes('GBP') || moneyFormat.includes('£')) actualShopCurrency = 'GBP';
+          else if (moneyFormat.includes('EGP')) actualShopCurrency = 'EGP';
+          
+          console.log('✅ NEW FORM - Extracted currency from format:', actualShopCurrency);
+        } else {
+          console.log('⚠️ NEW FORM - Shop info response:', shopInfo);
+        }
+      } catch (error) {
+        console.log('❌ NEW FORM - Error fetching shop info:', error);
+      }
+      
+      const defaultSettings = getDefaultCountryCurrencySettings(actualShopCurrency);
+      console.log('🏪 NEW FORM - Using settings for currency', actualShopCurrency, ':', defaultSettings);
       
       // Set form settings based on shop currency
       setFormCountry(defaultSettings.country);
@@ -373,10 +402,42 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
             setFormTitle(formData.title);
             setFormDescription(formData.description || '');
             
-            // Load form settings with default to MAD
-            const defaultSettings = { country: 'MA', currency: 'MAD', phonePrefix: '+212' };
+            // Get shop's actual currency
+            let actualShopCurrency = 'MAD'; // fallback
+            const activeShopId = getActiveShopId();
             
-            console.log('🏪 Loading form with defaults:', defaultSettings);
+            if (activeShopId) {
+              try {
+                console.log('🔍 Fetching shop info for:', activeShopId);
+                const { data: shopInfo } = await supabase.functions.invoke('shopify-shop-info', {
+                  body: { shop: activeShopId }
+                });
+                
+                if (shopInfo?.success && shopInfo?.shop) {
+                  // Extract currency from money_format instead of direct currency field
+                  const moneyFormat = shopInfo.shop.money_format || shopInfo.shop.money_with_currency_format || '';
+                  console.log('💰 Money format from shop:', moneyFormat);
+                  
+                  // Extract currency code from format strings like "{{ amount }} MAD" or "£{{ amount }}"
+                  if (moneyFormat.includes('MAD')) actualShopCurrency = 'MAD';
+                  else if (moneyFormat.includes('SAR') || moneyFormat.includes('﷼')) actualShopCurrency = 'SAR';
+                  else if (moneyFormat.includes('AED')) actualShopCurrency = 'AED';
+                  else if (moneyFormat.includes('USD') || moneyFormat.includes('$')) actualShopCurrency = 'USD';
+                  else if (moneyFormat.includes('EUR') || moneyFormat.includes('€')) actualShopCurrency = 'EUR';
+                  else if (moneyFormat.includes('GBP') || moneyFormat.includes('£')) actualShopCurrency = 'GBP';
+                  else if (moneyFormat.includes('EGP')) actualShopCurrency = 'EGP';
+                  
+                  console.log('✅ Extracted currency from format:', actualShopCurrency);
+                } else {
+                  console.log('⚠️ Shop info response:', shopInfo);
+                }
+              } catch (error) {
+                console.log('❌ Error fetching shop info:', error);
+              }
+            }
+            
+            const defaultSettings = getDefaultCountryCurrencySettings(actualShopCurrency);
+            console.log('🏪 Using settings for currency', actualShopCurrency, ':', defaultSettings);
             
             setFormCountry(formData.country || defaultSettings.country);
             setFormCurrency(formData.currency || defaultSettings.currency);
