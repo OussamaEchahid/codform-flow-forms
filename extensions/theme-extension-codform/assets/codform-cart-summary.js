@@ -396,15 +396,18 @@
           window.CodformStateManager.setProductData(price, finalCurrency, formCurrency);
         }
         
-    // Update display
-    updateCartSummary();
-    
-    // إعادة تطبيق الإعدادات المخصصة بعد تحديث المحتوى
-    if (window.currentFieldData) {
-      setTimeout(() => applySummarySettings(window.currentFieldData, window.currentFormStyle), 100);
-    }
-    
-    return data.product;
+        // أبلغ الويدجتات الأخرى ببيانات المنتج المؤكدة
+        try { window.dispatchEvent(new CustomEvent('codform:product-data', { detail: { price, currency: finalCurrency, productCurrency, formCurrency, targetCurrency: cartSummaryData.targetCurrency } })); } catch (e) {}
+        
+        // Update display
+        updateCartSummary();
+        
+        // إعادة تطبيق الإعدادات المخصصة بعد تحديث المحتوى
+        if (window.currentFieldData) {
+          setTimeout(() => applySummarySettings(window.currentFieldData, window.currentFormStyle), 100);
+        }
+        
+        return data.product;
       } else {
         console.error('❌ Cart Summary - No product data in API response');
         return null;

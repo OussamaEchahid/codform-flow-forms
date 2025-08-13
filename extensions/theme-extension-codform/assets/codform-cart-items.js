@@ -697,6 +697,20 @@
     }
   });
 
+  // Sync price/currency from Cart Summary product data (single source of truth)
+  window.addEventListener('codform:product-data', function(event) {
+    const detail = event.detail || {};
+    if (typeof detail.price === 'number' && detail.currency) {
+      console.log('🛒 Cart Items: Received product data from summary:', detail);
+      cachedProductPrice = detail.price;
+      cachedCurrency = detail.currency;
+      window.CodformProductData = { ...(window.CodformProductData || {}), price: cachedProductPrice, currency: cachedCurrency };
+      const existingCartItems = document.querySelector('.codform-cart-items');
+      const qty = parseInt(existingCartItems?.querySelector('.cart-items-quantity')?.textContent || '1');
+      updatePriceDisplay(qty || 1);
+    }
+  });
+
   // Export global API
   window.CodformCartItems = {
     render: renderCartItems,
