@@ -21,9 +21,10 @@
 
       let productData = {
         price: 29.99,
-        currency: (window.CodformFormData && window.CodformFormData.currency) ||
-                  (window.Shopify && window.Shopify.currency && (window.Shopify.currency.active || window.Shopify.currency.shopCurrency || window.Shopify.currency.shop_currency)) ||
-                  'MAD',
+        // Source currency must be the shop base currency (variant.price is in shop base)
+        currency: (window.Shopify && window.Shopify.currency && (window.Shopify.currency.shopCurrency || window.Shopify.currency.shop_currency))
+                  || window.CodformShopCurrency
+                  || 'MAD',
         title: 'Product',
         image: null
       };
@@ -53,17 +54,14 @@
                 productData.title = product.title;
                 productData.image = product.featured_image;
                 
-                // Get currency (prefer shop base currency)
-                if (window.CodformShopCurrency) {
-                  productData.currency = window.CodformShopCurrency;
-                } else if (window.Shopify && window.Shopify.currency) {
-                  const activeCur = window.Shopify.currency.active;
+                // Determine source currency: ALWAYS shop base (variant.price is in shop base)
+                if (window.Shopify && window.Shopify.currency) {
                   const shopBase = window.Shopify.currency.shopCurrency || window.Shopify.currency.shop_currency;
-                  if (activeCur) {
-                    productData.currency = activeCur;
-                  } else if (shopBase) {
+                  if (shopBase) {
                     productData.currency = shopBase;
                   }
+                } else if (window.CodformShopCurrency) {
+                  productData.currency = window.CodformShopCurrency;
                 } else if (window.theme && window.theme.moneyWithCurrencyFormat) {
                   // Extract currency from money format
                   const currencyMatch = window.theme.moneyWithCurrencyFormat.match(/\b[A-Z]{3}\b/);
@@ -71,17 +69,7 @@
                     productData.currency = currencyMatch[0];
                   }
                 }
-                // Extra safety: read currency from OG/JSON-LD meta if present
-                try {
-                  const ogCur = document.querySelector('meta[property="og:price:currency"]')?.content
-                    || document.querySelector('meta[property="product:price:currency"]')?.content
-                    || null;
-                  if (ogCur) {
-                    productData.currency = ogCur;
-                  }
-                } catch (e) {}
-
-                
+                // Do NOT override with active/display currency; conversions will handle target
                 console.log('🛒 Cart Items: Product data loaded:', productData);
               }
             }
