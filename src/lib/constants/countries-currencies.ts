@@ -418,6 +418,20 @@ export const COUNTRIES: Country[] = [
 
 export const CURRENCIES: Currency[] = [
   {
+    code: 'MAD',
+    name: 'Moroccan Dirham',
+    nameAr: 'درهم مغربي',
+    symbol: 'د.م.',
+    exchangeRate: 10.50
+  },
+  {
+    code: 'USD',
+    name: 'US Dollar',
+    nameAr: 'دولار أمريكي',
+    symbol: '$',
+    exchangeRate: 1.00
+  },
+  {
     code: 'SAR',
     name: 'Saudi Riyal',
     nameAr: 'ريال سعودي',
@@ -479,34 +493,6 @@ export const CURRENCIES: Currency[] = [
     nameAr: 'ليرة لبنانية',
     symbol: 'ل.ل',
     exchangeRate: 89500
-  },
-  {
-    code: 'MAD',
-    name: 'Moroccan Dirham',
-    nameAr: 'درهم مغربي',
-    symbol: 'د.م',
-    exchangeRate: 10.0
-  },
-  {
-    code: 'TND',
-    name: 'Tunisian Dinar',
-    nameAr: 'دينار تونسي',
-    symbol: 'د.ت',
-    exchangeRate: 3.15
-  },
-  {
-    code: 'DZD',
-    name: 'Algerian Dinar',
-    nameAr: 'دينار جزائري',
-    symbol: 'د.ج',
-    exchangeRate: 134.25
-  },
-  {
-    code: 'USD',
-    name: 'US Dollar',
-    nameAr: 'دولار أمريكي',
-    symbol: '$',
-    exchangeRate: 1.0
   },
   {
     code: 'EUR',
