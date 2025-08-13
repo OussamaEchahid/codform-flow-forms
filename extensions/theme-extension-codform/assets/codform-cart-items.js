@@ -215,10 +215,31 @@
 
       // Update State Manager and Cart Summary with product data
       if (window.CodformStateManager) {
-        // Ensure targetCurrency comes from currency settings or form
-        const targetCurrency = (window.CodformCurrencyManager && window.CodformCurrencyManager.getTargetCurrency) ? 
-          window.CodformCurrencyManager.getTargetCurrency() : 'MAD';
+        // استخدام العملة المستهدفة من النموذج أو إعدادات العملة
+        let targetCurrency = 'USD'; // افتراضي
         
+        // محاولة الحصول على العملة من النموذج أولاً
+        if (window.CodformFormData && window.CodformFormData.currency) {
+          targetCurrency = window.CodformFormData.currency;
+          console.log(`🛒 Cart Items: Target currency from form: ${targetCurrency}`);
+        }
+        // ثم من SmartCurrency
+        else if (window.CodformSmartCurrency && typeof window.CodformSmartCurrency.getCurrentCurrency === 'function') {
+          targetCurrency = window.CodformSmartCurrency.getCurrentCurrency() || targetCurrency;
+          console.log(`🛒 Cart Items: Target currency from SmartCurrency: ${targetCurrency}`);
+        }
+        // ثم من CurrencyManager
+        else if (window.CodformCurrencyManager && window.CodformCurrencyManager.getTargetCurrency) {
+          targetCurrency = window.CodformCurrencyManager.getTargetCurrency() || targetCurrency;
+          console.log(`🛒 Cart Items: Target currency from CurrencyManager: ${targetCurrency}`);
+        }
+        // أخيراً من Shopify
+        else if (window.Shopify && window.Shopify.currency && window.Shopify.currency.active) {
+          targetCurrency = window.Shopify.currency.active;
+          console.log(`🛒 Cart Items: Target currency from Shopify: ${targetCurrency}`);
+        }
+        
+        console.log(`🛒 Cart Items: Final target currency: ${targetCurrency}`);
         window.CodformStateManager.setProductData(productData.price, productData.currency, targetCurrency);
       }
 
@@ -249,13 +270,17 @@
     try {
       // Determine preferred target currency
       let target = currency;
-      if (window.CodformSmartCurrency && typeof window.CodformSmartCurrency.getCurrentCurrency === 'function') {
+      
+      // محاولة الحصول على العملة من النموذج أولاً
+      if (window.CodformFormData && window.CodformFormData.currency) {
+        target = window.CodformFormData.currency;
+      } else if (window.CodformSmartCurrency && typeof window.CodformSmartCurrency.getCurrentCurrency === 'function') {
         target = window.CodformSmartCurrency.getCurrentCurrency() || target;
-      } else if (window.CodformFormData && window.CodformFormData.currency) {
-        target = window.CodformFormData.currency || target;
       } else if (window.Shopify && window.Shopify.currency && window.Shopify.currency.active) {
         target = window.Shopify.currency.active || target;
       }
+
+      console.log(`🛒 Cart Items: formatCurrency - amount: ${amount}, from: ${currency}, to: ${target}`);
 
       // Prefer Currency Manager for conversion + formatting
       if (window.CodformCurrencyManager) {
