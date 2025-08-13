@@ -52,9 +52,16 @@
                 productData.title = product.title;
                 productData.image = product.featured_image;
                 
-                // Get currency from Shopify theme
-                if (window.Shopify && window.Shopify.currency && window.Shopify.currency.active) {
-                  productData.currency = window.Shopify.currency.active;
+                // Get currency (prefer shop base currency)
+                if (window.CodformShopCurrency) {
+                  productData.currency = window.CodformShopCurrency;
+                } else if (window.Shopify && window.Shopify.currency) {
+                  const shopCur = window.Shopify.currency.shopCurrency || window.Shopify.currency.shop_currency;
+                  if (shopCur) {
+                    productData.currency = shopCur;
+                  } else if (window.Shopify.currency.active) {
+                    productData.currency = window.Shopify.currency.active;
+                  }
                 } else if (window.theme && window.theme.moneyWithCurrencyFormat) {
                   // Extract currency from money format
                   const currencyMatch = window.theme.moneyWithCurrencyFormat.match(/\b[A-Z]{3}\b/);

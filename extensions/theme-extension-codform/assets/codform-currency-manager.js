@@ -139,6 +139,8 @@
         if (data.custom_rates) {
           customRates = { ...DEFAULT_RATES, ...data.custom_rates };
           console.log('💰 Updated custom rates:', customRates);
+          // Persist updated rates so subsequent reloads don't overwrite them with stale values
+          saveSettingsToLocalStorage();
         }
         
         console.log('✅ Currency settings successfully loaded and applied from API');
@@ -147,6 +149,13 @@
         setTimeout(() => {
           reapplyCurrencyFormatting();
           notifySystemUpdates();
+          // Notify listeners that currency settings changed
+          try { window.dispatchEvent(new CustomEvent('currencySettingsUpdated', { detail: { source: 'currency-manager' } })); } catch (e) {}
+          // Recalculate cart items totals using latest rates
+          if (window.CodformCartItems && typeof window.CodformCartItems.updatePriceDisplay === 'function') {
+            const qty = parseInt(document.querySelector('.codform-cart-items .cart-items-quantity')?.textContent || '1');
+            window.CodformCartItems.updatePriceDisplay(qty || 1);
+          }
         }, 100);
         
         return true;
@@ -600,7 +609,8 @@
       const savedRates = localStorage.getItem('codform_custom_rates');
       if (savedRates) {
         const parsed = JSON.parse(savedRates);
-        customRates = { ...customRates, ...parsed };
+        // Give precedence to in-memory (fresh) rates to avoid stale LS overriding
+        customRates = { ...parsed, ...customRates };
       }
     } catch (error) {
       console.warn('⚠️ Error loading custom settings:', error);
