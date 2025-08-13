@@ -379,6 +379,20 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
       setIsLoading(true);
       const id = actualFormId;
       
+      // Auto-fix shop currency settings when loading forms
+      const activeShopId = getActiveShopId();
+      if (activeShopId) {
+        try {
+          console.log('🔧 Auto-fixing shop currency for:', activeShopId);
+          await supabase.functions.invoke('fix-shop-currency', {
+            body: { shop: activeShopId }
+          });
+          console.log('✅ Shop currency auto-fix completed');
+        } catch (error) {
+          console.log('⚠️ Auto-fix failed, continuing:', error);
+        }
+      }
+      
       if (id) {
         setCurrentFormId(id);
         try {
