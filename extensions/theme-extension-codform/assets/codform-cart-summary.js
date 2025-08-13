@@ -359,8 +359,11 @@
           window.currentFormData.savedFormCurrency = data.currency;
         }
         
-        cartSummaryData.targetCurrency = data.currency;
-        console.log('💰✅ Cart Summary - Target currency updated to:', data.currency);
+        const scCurrency = (window.CodformSmartCurrency && typeof window.CodformSmartCurrency.getCurrentCurrency === 'function')
+          ? window.CodformSmartCurrency.getCurrentCurrency()
+          : null;
+        cartSummaryData.targetCurrency = scCurrency || data.currency;
+        console.log('💰✅ Cart Summary - Target currency updated to:', cartSummaryData.targetCurrency);
       } else {
         console.error('❌🔥 Cart Summary - API Response missing currency field!', data);
         // Don't proceed if no currency - this prevents incorrect calculations
@@ -574,7 +577,10 @@
       shippingValue = parseFloat(config.shippingCost) || 0;
     }
     cartSummaryData.shippingCost = shippingValue;
-    cartSummaryData.targetCurrency = formCurrency; // استخدام العملة الحقيقية فقط
+    const scCurrency = (window.CodformSmartCurrency && typeof window.CodformSmartCurrency.getCurrentCurrency === 'function')
+      ? window.CodformSmartCurrency.getCurrentCurrency()
+      : null;
+    cartSummaryData.targetCurrency = scCurrency || formCurrency; // استخدم عملة النظام الذكي إن وجدت
     
     console.log('💾 Cart Summary - Data updated with real currency:', {
       discountType: cartSummaryData.discountType,
