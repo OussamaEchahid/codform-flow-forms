@@ -11,6 +11,10 @@ window.CodformQuantityOffers = (function() {
     fromCurrency = (fromCurrency || 'USD').toString().toUpperCase().trim();
     toCurrency = (toCurrency || 'MAD').toString().toUpperCase().trim();
 
+    // استخدام Unified System أولاً إن توفر
+    if (window.CodformUnifiedSystem && typeof window.CodformUnifiedSystem.convertCurrency === 'function') {
+      return window.CodformUnifiedSystem.convertCurrency(amount, fromCurrency, toCurrency);
+    }
     // استخدام Ultimate Currency System الجديد
     if (window.CodformUltimateCurrency && typeof window.CodformUltimateCurrency.convertCurrency === 'function') {
       return window.CodformUltimateCurrency.convertCurrency(amount, fromCurrency, toCurrency);
@@ -55,6 +59,10 @@ window.CodformQuantityOffers = (function() {
   // دالة تنسيق العملة مع Ultimate Currency System
   function formatCurrency(amount, currency, language = 'en') {
     currency = (currency || 'MAD').toString().toUpperCase().trim();
+    // استخدام Unified System أولاً إن توفر
+    if (window.CodformUnifiedSystem && typeof window.CodformUnifiedSystem.formatCurrency === 'function') {
+      return window.CodformUnifiedSystem.formatCurrency(amount, currency, language);
+    }
     // استخدام Ultimate Currency System الجديد
     if (window.CodformUltimateCurrency && typeof window.CodformUltimateCurrency.formatCurrency === 'function') {
       return window.CodformUltimateCurrency.formatCurrency(amount, currency);
@@ -633,6 +641,8 @@ window.CodformQuantityOffers = (function() {
           font-weight: 400;
         `;
         originalPriceElement.textContent = formatCurrency(originalPrice, finalCurrency, formDirection === 'rtl' ? 'ar' : 'en');
+        originalPriceElement.setAttribute('data-price', `${originalPrice}`);
+        originalPriceElement.setAttribute('data-currency', `${finalCurrency}`);
         priceSection.appendChild(originalPriceElement);
       }
 
@@ -645,6 +655,8 @@ window.CodformQuantityOffers = (function() {
         line-height: 1.2;
       `;
       finalPriceElement.textContent = formatCurrency(totalPrice, finalCurrency, formDirection === 'rtl' ? 'ar' : 'en');
+      finalPriceElement.setAttribute('data-price', `${totalPrice}`);
+      finalPriceElement.setAttribute('data-currency', `${finalCurrency}`);
       priceSection.appendChild(finalPriceElement);
 
       // السعر للقطعة الواحدة (إذا كانت الكمية أكثر من 1)
@@ -685,6 +697,11 @@ window.CodformQuantityOffers = (function() {
       container.style.transition = 'all 0.3s ease-out';
       container.style.opacity = '1';
       container.style.transform = 'translateY(0)';
+      try {
+        if (window.CodformUnifiedSystem && typeof window.CodformUnifiedSystem.updateQuantityOffers === 'function') {
+          window.CodformUnifiedSystem.updateQuantityOffers();
+        }
+      } catch (e) { /* ignore */ }
     }, 50);
 
     console.log("✅ EXACT PREVIEW MATCH - Quantity offers displayed with identical styling");

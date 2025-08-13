@@ -123,6 +123,10 @@ const QuantityOffersDisplay: React.FC<QuantityOffersDisplayProps> = ({
           savingsPercentage = Math.round(((offer.discountValue || 0) / originalPrice) * 100);
         }
 
+        const lang = formDirection === 'rtl' ? 'ar' : 'en';
+        const formattedOriginal = isDiscounted ? CurrencyService.formatCurrency(originalPrice, displayCurrency, lang) : '';
+        const formattedTotal = CurrencyService.formatCurrency(totalPrice, displayCurrency, lang);
+        const formattedUnit = CurrencyService.formatCurrency(realPrice, displayCurrency, lang);
         return (
           <div 
             key={offer.id}
@@ -191,18 +195,18 @@ const QuantityOffersDisplay: React.FC<QuantityOffersDisplayProps> = ({
             <div className={formDirection === 'rtl' ? 'text-left' : 'text-right'}>
               {isDiscounted && (
                 <div className="text-sm line-through text-gray-400">
-                  {formDirection === 'rtl' ? `${displayCurrency} ${originalPrice.toFixed(2)}` : `${originalPrice.toFixed(2)} ${displayCurrency}`}
+                  {formattedOriginal}
                 </div>
               )}
               <div 
                 className="font-bold text-lg"
                 style={{ color: styling.priceColor }}
               >
-                {formDirection === 'rtl' ? `${displayCurrency} ${totalPrice.toFixed(2)}` : `${totalPrice.toFixed(2)} ${displayCurrency}`}
+                {formattedTotal}
               </div>
               {offer.quantity > 1 && (
                 <div className="text-xs text-gray-500 mt-1">
-                  {formDirection === 'rtl' ? `${offer.quantity} × ${displayCurrency} ${realPrice.toFixed(2)}` : `${realPrice.toFixed(2)} ${displayCurrency} × ${offer.quantity}`}
+                  {formDirection === 'rtl' ? `${offer.quantity} × ${formattedUnit}` : `${formattedUnit} × ${offer.quantity}`}
                 </div>
               )}
             </div>
