@@ -309,9 +309,10 @@
     const direction = formDirection || 'ltr';
     const isRTL = direction === 'rtl';
     
-    // استخدام البيانات الفعلية أو الافتراضية
-    const priceForRender = productData.price || 1;
-    const currencyForRender = productData.currency || 'USD';
+    // Get product data from cache or use defaults
+    const productData = window.CodformProductData || {};
+    const priceForRender = productData.price || cachedProductPrice || 1;
+    const currencyForRender = productData.currency || cachedCurrency || 'USD';
     const productTitle = productData.title || 'Loading...';
     const productImage = productData.image || null;
     
