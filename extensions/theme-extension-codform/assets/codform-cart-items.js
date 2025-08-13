@@ -466,6 +466,11 @@
     quantityElement.textContent = newQuantity;
     console.log(`🛒 Cart Items: Quantity increased to ${newQuantity}`);
     
+    // إعلام State Manager بتغيير الكمية
+    if (window.CodformStateManager) {
+      window.CodformStateManager.updateQuantity(newQuantity);
+    }
+    
     // فترة انتظار قصيرة لضمان تطبيق المعدلات المخصصة
     setTimeout(() => {
       updatePriceDisplay(newQuantity);
@@ -483,6 +488,11 @@
       const newQuantity = currentQuantity - 1;
       quantityElement.textContent = newQuantity;
       console.log(`🛒 Cart Items: Quantity decreased to ${newQuantity}`);
+      
+      // إعلام State Manager بتغيير الكمية
+      if (window.CodformStateManager) {
+        window.CodformStateManager.updateQuantity(newQuantity);
+      }
       
       // فترة انتظار قصيرة لضمان تطبيق المعدلات المخصصة
       setTimeout(() => {
