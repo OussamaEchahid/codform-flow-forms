@@ -51,24 +51,32 @@ const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
   React.useEffect(() => {
     CurrencyService.initialize();
   }, []);
-  // استخراج البيانات الحقيقية للمنتج
-  const realPrice = productData?.price || 5000; // استخدام السعر الحقيقي من المنتج
-  const productTitle = productData?.title || 'njhygfjuygfujk'; // استخدام اسم المنتج الحقيقي
+  const realPrice = productData?.price || 5000; // سعر المنتج من بيانات Shopify
+  const productTitle = productData?.title || 'المنتج';
   const productImage = productData?.image || productData?.featuredImage;
-  const displayCurrency = productData?.currency || currency;
+  // عرض الأسعار يجب أن يكون بعملة النموذج
+  const displayCurrency = (form as any)?.currency || currency;
+  // عملة مصدر السعر (عملة المنتج)
+  const sourceCurrency = productData?.currency || displayCurrency;
+  // تحويل سعر الوحدة إلى عملة العرض إذا اختلفت
+  const unitPrice = sourceCurrency !== displayCurrency
+    ? CurrencyService.convertCurrency(realPrice, sourceCurrency, displayCurrency)
+    : realPrice;
   
   console.log('🎯 QuantityOffersPreview - Product Data:', {
     realPrice,
+    unitPrice,
     productTitle,
     productImage,
     displayCurrency,
+    sourceCurrency,
     fallbackCurrency: currency,
     productData
   });
   
   console.log('🎯 QuantityOffersPreview - Currency Analysis:', {
+    'form.currency': (form as any)?.currency,
     'productData.currency': productData?.currency,
-    'fallback currency param': currency,
     'final displayCurrency': displayCurrency
   });
   if (!enabled || !form) {

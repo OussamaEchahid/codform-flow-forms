@@ -15,6 +15,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useSimpleShopify } from '@/hooks/useSimpleShopify';
 import { toast } from 'sonner';
 import QuantityOffersPreview from '@/components/quantity-offers/QuantityOffersPreview';
+import { CurrencyService } from '@/lib/services/CurrencyService';
 
 // Simple currency conversion rates (you can replace with real API)
 const CURRENCY_RATES: { [key: string]: number } = {
@@ -104,6 +105,15 @@ const QuantityOffers = () => {
     isShopifyAuthenticated,
     isConnected
   });
+
+  // Ensure currency service uses the correct shop context and loads custom rates
+  useEffect(() => {
+    if (effectiveStore) {
+      CurrencyService.setShopContext(effectiveStore, null);
+      CurrencyService.initialize();
+    }
+  }, [effectiveStore]);
+
   const [currentStep, setCurrentStep] = useState<'form' | 'product' | 'settings'>('form');
   const [forms, setForms] = useState<Form[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -1121,17 +1131,10 @@ const QuantityOffers = () => {
                     position={quantityOffer.position}
                     enabled={quantityOffer.enabled}
                     productData={selectedProduct ? {
-                      price: (() => {
-                        const originalPrice = parseFloat(selectedProduct.price) || 0;
-                        const productCurrency = selectedProduct.currency || storeCurrency; // عملة المنتج الأصلية
-                        const formCurrency = selectedForm?.currency || 'USD'; // عملة النموذج من الإعدادات
-                        const convertedPrice = convertCurrency(originalPrice, productCurrency, formCurrency);
-                        console.log(`🔄 Currency conversion CORRECTED: ${originalPrice} ${productCurrency} → ${convertedPrice} ${formCurrency}`);
-                        return convertedPrice;
-                      })(),
+                      price: parseFloat(selectedProduct.price) || 0,
                       title: selectedProduct.title,
                       image: selectedProduct.images?.[0]?.url,
-                      currency: selectedForm?.currency || 'USD' // عملة النموذج
+                      currency: selectedProduct.currency || storeCurrency // عملة المنتج الأصلية؛ التحويل سيتم داخل المعاينة
                     } : undefined}
                   />
                 </CardContent>
