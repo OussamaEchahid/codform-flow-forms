@@ -672,20 +672,31 @@
    * تحويل العملة
    */
   function convertCurrency(amount, fromCurrency, toCurrency) {
+    console.log(`🔄 CurrencyManager converting: ${amount} from ${fromCurrency} to ${toCurrency}`);
+    console.log(`💱 Custom rates:`, customRates);
+    
     // استخدام CurrencyService إذا كان متاحاً
     if (window.CurrencyService && typeof window.CurrencyService.convertCurrency === 'function') {
       return window.CurrencyService.convertCurrency(amount, fromCurrency, toCurrency);
     }
     
     // التحويل الاحتياطي
-    if (fromCurrency === toCurrency) return amount;
+    if (fromCurrency === toCurrency) return parseFloat(amount);
     
-    const fromRate = customRates[fromCurrency] || DEFAULT_RATES[fromCurrency] || 1;
-    const toRate = customRates[toCurrency] || DEFAULT_RATES[toCurrency] || 1;
+    // تأكد من تحميل الإعدادات المخصصة
+    loadCustomSettings();
+    
+    const fromRate = parseFloat(customRates[fromCurrency]) || parseFloat(DEFAULT_RATES[fromCurrency]) || 1;
+    const toRate = parseFloat(customRates[toCurrency]) || parseFloat(DEFAULT_RATES[toCurrency]) || 1;
+    
+    console.log(`📊 Rates: ${fromCurrency} = ${fromRate}, ${toCurrency} = ${toRate}`);
     
     // تحويل عبر USD
-    const usdAmount = amount / fromRate;
-    return usdAmount * toRate;
+    const usdAmount = parseFloat(amount) / fromRate;
+    const result = usdAmount * toRate;
+    
+    console.log(`✅ CurrencyManager result: ${result}`);
+    return result;
   }
   
   /**
@@ -762,7 +773,12 @@
       return window.CurrencyService.getExchangeRate(currencyCode);
     }
     
-    return customRates[currencyCode] || DEFAULT_RATES[currencyCode] || 1;
+    // تأكد من تحميل الإعدادات المخصصة
+    loadCustomSettings();
+    
+    const rate = parseFloat(customRates[currencyCode]) || parseFloat(DEFAULT_RATES[currencyCode]) || 1;
+    console.log(`📊 Exchange rate for ${currencyCode}: ${rate} (custom: ${customRates[currencyCode]}, default: ${DEFAULT_RATES[currencyCode]})`);
+    return rate;
   }
   
   // تصدير الدوال عالمياً

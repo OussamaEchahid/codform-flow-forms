@@ -55,6 +55,11 @@ window.getExchangeRate = function(currencyCode) {
     return window.CurrencyService.getExchangeRate(currencyCode);
   }
   
+  // محاولة الحصول على المعدل المخصص من CurrencyManager
+  if (window.CodformCurrencyManager && typeof window.CodformCurrencyManager.getExchangeRate === 'function') {
+    return window.CodformCurrencyManager.getExchangeRate(currencyCode);
+  }
+  
   // استخدام المعدلات الافتراضية
   return window.CodformCurrencyRates[currencyCode] || 1.0;
 };
@@ -74,6 +79,11 @@ window.convertCurrency = function(amount, fromCurrency, toCurrency) {
     return window.CurrencyService.convertCurrency(amount, fromCurrency, toCurrency);
   }
   
+  // محاولة استخدام CurrencyManager للتحويل
+  if (window.CodformCurrencyManager && typeof window.CodformCurrencyManager.convertCurrency === 'function') {
+    return window.CodformCurrencyManager.convertCurrency(amount, fromCurrency, toCurrency);
+  }
+  
   // التحويل الاحتياطي باستخدام المعدلات الافتراضية
   if (fromCurrency === toCurrency) return amount;
   
@@ -86,8 +96,8 @@ window.convertCurrency = function(amount, fromCurrency, toCurrency) {
   }
   
   // تحويل إلى USD أولاً، ثم إلى العملة المطلوبة
-  const usdAmount = amount / fromRate;
-  const convertedAmount = usdAmount * toRate;
+  const usdAmount = parseFloat(amount) / parseFloat(fromRate);
+  const convertedAmount = usdAmount * parseFloat(toRate);
   
   console.log(`✅ Converted: ${amount} ${fromCurrency} -> ${convertedAmount.toFixed(2)} ${toCurrency}`);
   return convertedAmount;
