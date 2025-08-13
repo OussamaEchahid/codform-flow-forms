@@ -677,24 +677,45 @@
    */
   function updatePriceDisplay(quantity = 1) {
     console.log(`🛒 Cart Items: 🔄 UPDATING PRICE DISPLAY for quantity: ${quantity}`);
-    console.log(`🛒 Cart Items: Currency Manager available: ${!!window.CodformCurrencyManager}`);
     
-    // تحقق مفصل من معدلات العملة
-    if (window.CodformCurrencyManager && typeof window.CodformCurrencyManager.getRates === 'function') {
-      const currentRates = window.CodformCurrencyManager.getRates();
-      console.log(`🛒 Cart Items: 💰 CURRENT RATES IN SYSTEM:`, currentRates);
-      console.log(`🛒 Cart Items: 🔍 MAD RATE CHECK: ${currentRates.MAD} (expected: 12, default: 10)`);
-      
-      if (currentRates.MAD === 12) {
-        console.log(`🛒 Cart Items: ✅ CORRECT - Custom MAD rate is loaded (12)`);
-      } else if (currentRates.MAD === 10) {
-        console.log(`🛒 Cart Items: ❌ WRONG - Still using default MAD rate (10)`);
-      } else {
-        console.log(`🛒 Cart Items: ⚠️ UNKNOWN - MAD rate is ${currentRates.MAD}`);
-      }
+    // التأكد من توفر Currency Manager مع إعادة المحاولة
+    if (!window.CodformCurrencyManager) {
+      console.log('🛒 Cart Items: Currency Manager not available, waiting...');
+      setTimeout(() => updatePriceDisplay(quantity), 200);
+      return;
     }
     
-    const priceElements = document.querySelectorAll('.cart-items-price');
+    console.log('🛒 Cart Items: Currency Manager available: true');
+    
+    if (typeof window.CodformCurrencyManager.getRates === 'function') {
+      const rates = window.CodformCurrencyManager.getRates();
+      console.log('🛒 Cart Items: 💰 CURRENT RATES IN SYSTEM:', rates);
+    }
+    
+    // البحث عن عناصر Cart Items مع إعادة المحاولة
+    let priceElements = document.querySelectorAll('.cart-items-price');
+    
+    // إذا لم توجد عناصر، ابحث في DOM بطريقة أوسع
+    if (priceElements.length === 0) {
+      console.log('🛒 Cart Items: No .cart-items-price elements found, searching wider...');
+      
+      // ابحث عن أي عناصر cart items أو price
+      const alternativeSelectors = [
+        '.codform-cart-items .cart-items-price',
+        '[data-base-price]',
+        '.cart-items-price[data-currency]',
+        '.codform-cart-items [data-base-price]'
+      ];
+      
+      for (const selector of alternativeSelectors) {
+        const elements = document.querySelectorAll(selector);
+        if (elements.length > 0) {
+          priceElements = elements;
+          console.log(`🛒 Cart Items: Found ${elements.length} elements using selector: ${selector}`);
+          break;
+        }
+      }
+    }
     console.log(`🛒 Cart Items: Found ${priceElements.length} price elements to update`);
     
     priceElements.forEach((priceElement, index) => {
@@ -842,22 +863,83 @@
     cachedProductPrice = null;
     cachedCurrency = null;
     
-    // Re-initialize the system
+    // Re-initialize with retry mechanism
     setTimeout(() => {
       console.log('🛒 Cart Items: Re-initializing after currency change...');
       isInitialized = false;
-      initialize();
+      
+      // تأكد من وجود عناصر Cart Items قبل التهيئة
+      const checkAndInit = () => {
+        const elements = document.querySelectorAll('.cart-items-price, .codform-cart-items');
+        if (elements.length > 0) {
+          initialize();
+        } else {
+          console.log('🛒 Cart Items: Waiting for elements to appear...');
+          setTimeout(checkAndInit, 200);
+        }
+      };
+      
+      checkAndInit();
     }, 100);
   }
 
-  // تهيئة تلقائية عند تحميل الصفحة - محسن
+  // تهيئة محسنة مع مراقبة DOM وإعادة المحاولة
+  let initRetries = 0;
+  const maxRetries = 5;
+  
+  function attemptInitialize() {
+    console.log(`🛒 Cart Items: Attempting initialization (attempt ${initRetries + 1}/${maxRetries})`);
+    
+    // تأكد من وجود عناصر Cart Items في DOM
+    const cartItemsElements = document.querySelectorAll('.cart-items-price, .codform-cart-items');
+    console.log(`🛒 Cart Items: Found ${cartItemsElements.length} elements in DOM`);
+    
+    if (cartItemsElements.length > 0 || initRetries >= maxRetries - 1) {
+      console.log('🛒 Cart Items: DOM elements found or max retries reached, proceeding with initialization');
+      isInitialized = false; // Force fresh initialization
+      initialize();
+    } else {
+      initRetries++;
+      console.log(`🛒 Cart Items: No elements found, retrying in 500ms (${initRetries}/${maxRetries})`);
+      setTimeout(attemptInitialize, 500);
+    }
+  }
+  
+  // مراقب DOM للكشف عن إضافة عناصر Cart Items
+  const observer = new MutationObserver((mutations) => {
+    let cartItemsAdded = false;
+    
+    mutations.forEach((mutation) => {
+      mutation.addedNodes.forEach((node) => {
+        if (node.nodeType === 1) { // Element node
+          if (node.matches && (node.matches('.codform-cart-items') || node.querySelector && node.querySelector('.cart-items-price'))) {
+            cartItemsAdded = true;
+          }
+        }
+      });
+    });
+    
+    if (cartItemsAdded) {
+      console.log('🛒 Cart Items: New Cart Items elements detected in DOM, re-initializing...');
+      isInitialized = false;
+      setTimeout(() => {
+        initialize();
+      }, 100);
+    }
+  });
+  
+  // Start observing
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
+  
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-      setTimeout(initialize, 1000); // انتظار أطول عند التحميل
+      setTimeout(attemptInitialize, 1000);
     });
   } else {
-    // الصفحة محملة بالفعل - انتظار أطول لضمان تحميل Currency Manager
-    setTimeout(initialize, 1500);
+    setTimeout(attemptInitialize, 500);
   }
 
   // مراقبة أحداث النظام - محسن للمعدلات المخصصة
