@@ -349,23 +349,18 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
       
       console.log('🎯 Creating form with default fields:', defaultFields);
       
-      // Start with full form data including default fields
+      // Start with full form data including default fields with shop currency info
       const newFormId = await formManagementService.createForm({
         title: formTitle,
         description: formDescription,
         data: [initialFormStep],
-        shop_id: activeShopId
+        shop_id: activeShopId,
+        country: actualCountry,
+        currency: actualShopCurrency,
+        phone_prefix: defaultSettings.phonePrefix
       });
 
       console.log('✅ Form created successfully with ID:', newFormId, 'using shop currency:', actualShopCurrency);
-      
-      // Update the form immediately with currency and country settings
-      await supabase.from('forms').update({
-        country: actualCountry,
-        currency: actualShopCurrency,
-        phone_prefix: defaultSettings.phonePrefix,
-        updated_at: new Date().toISOString()
-      }).eq('id', newFormId);
       
       // Update form state with shop settings
       setFormState({

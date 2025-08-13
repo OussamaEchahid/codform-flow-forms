@@ -715,14 +715,26 @@ export type Database = {
         Returns: undefined
       }
       create_form_for_shop: {
-        Args: {
-          p_shop_id: string
-          p_title: string
-          p_description?: string
-          p_data?: Json
-          p_style?: Json
-          p_is_published?: boolean
-        }
+        Args:
+          | {
+              p_shop_id: string
+              p_title: string
+              p_description?: string
+              p_data?: Json
+              p_style?: Json
+              p_is_published?: boolean
+            }
+          | {
+              p_shop_id: string
+              p_title: string
+              p_description?: string
+              p_data?: Json
+              p_style?: Json
+              p_is_published?: boolean
+              p_country?: string
+              p_currency?: string
+              p_phone_prefix?: string
+            }
         Returns: string
       }
       delete_form_full: {

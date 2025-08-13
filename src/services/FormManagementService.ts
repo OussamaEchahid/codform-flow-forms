@@ -172,6 +172,9 @@ export class FormManagementService {
     description?: string;
     data?: FormStep[];
     shop_id?: string;
+    country?: string;
+    currency?: string;
+    phone_prefix?: string;
   }): Promise<string> {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -190,7 +193,10 @@ export class FormManagementService {
         p_description: formData.description ?? null,
         p_data: (formData.data || []) as any,
         p_style: null,
-        p_is_published: false
+        p_is_published: false,
+        p_country: formData.country ?? null,
+        p_currency: formData.currency ?? null,
+        p_phone_prefix: formData.phone_prefix ?? null
       });
 
       if (error) {
