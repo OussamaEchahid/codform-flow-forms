@@ -64,6 +64,7 @@
       color: {{ valueColor }};
       font-size: {{ fontSize }};
       font-weight: 600;
+      visibility: hidden;
     " data-amount="0">{{ currency }} 0.00</span>
   </div>
   {% endif %}
@@ -85,6 +86,7 @@
       color: #dc2626;
       font-size: {{ fontSize }};
       font-weight: 600;
+      visibility: hidden;
     " data-amount="0">-{{ currency }} 0.00</span>
   </div>
   {% endif %}
@@ -107,6 +109,7 @@
       color: {{ valueColor }};
       font-size: {{ fontSize }};
       font-weight: 600;
+      visibility: hidden;
     " data-amount="{{ shippingCost }}">
       {% if shippingCost == 0 %}
         {{ formDirection == 'rtl' ? 'مجاني' : 'Free' }}
@@ -132,6 +135,7 @@
       color: {{ field.style.totalValueColor | default: '#059669' }};
       font-size: {{ field.style.totalFontSize | default: '18px' }};
       font-weight: 700;
+      visibility: hidden;
     " data-amount="0">{{ currency }} 0.00</span>
   </div>
   {% endif %}

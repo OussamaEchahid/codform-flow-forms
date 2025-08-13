@@ -254,6 +254,17 @@
     };
   }
 
+  // Hide/show values to avoid initial currency flicker
+  function setCartSummaryLoading(isLoading) {
+    const cartSummaries = document.querySelectorAll('.cart-summary-field');
+    cartSummaries.forEach(summary => {
+      const els = summary.querySelectorAll('.subtotal-value, .discount-value, .shipping-value, .total-value');
+      els.forEach(el => {
+        el.style.visibility = isLoading ? 'hidden' : 'visible';
+      });
+    });
+  }
+
   /**
    * Update cart summary display - reduced logging
    */
@@ -317,6 +328,10 @@
         totalElement.dataset.amount = prices.total;
       }
     });
+
+    if (cartSummaryData.productPrice !== null && cartSummaryData.productCurrency && isFinite(prices.total)) {
+      setCartSummaryLoading(false);
+    }
   }
 
   /**
@@ -583,6 +598,9 @@
     
     // تطبيق الإعدادات المخصصة فوراً
     applySummarySettings(field, formStyle);
+
+    // إخفاء القيم حتى تُحمّل بيانات العملة/المنتج لتفادي الوميض
+    setCartSummaryLoading(true);
 
     // الحصول على العملة الحقيقية فقط - بدون أي عملات افتراضية
     const formCurrency = getRealFormCurrency();
