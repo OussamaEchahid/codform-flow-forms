@@ -738,8 +738,21 @@ export const getCountryByCurrencyCode = (currencyCode: string): Country | undefi
 };
 
 // Get default country and currency settings based on shop currency
-export const getDefaultCountryCurrencySettings = (shopCurrency?: string) => {
-  console.log('🔍 Getting default settings for currency:', shopCurrency);
+export const getDefaultCountryCurrencySettings = (shopCurrency?: string, shopCountry?: string) => {
+  console.log('🔍 Getting default settings for currency:', shopCurrency, 'country:', shopCountry);
+  
+  // If we have both currency and country from Shopify, prioritize that
+  if (shopCountry && shopCurrency) {
+    const countryData = getCountryByCode(shopCountry.toUpperCase());
+    if (countryData) {
+      console.log('✅ Using Shopify country and currency:', shopCountry, shopCurrency);
+      return {
+        country: countryData.code,
+        currency: shopCurrency.toUpperCase(),
+        phonePrefix: countryData.phonePrefix
+      };
+    }
+  }
   
   // Default to Morocco if no currency provided
   if (!shopCurrency) {

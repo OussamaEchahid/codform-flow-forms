@@ -150,30 +150,31 @@ export const useFormTemplates = () => {
         return null;
       }
 
-      // Get shop currency for default settings
-      const getShopCurrency = async (): Promise<string | undefined> => {
+      // Get shop currency and country from shopify-shop-info function
+      const getShopCurrencyAndCountry = async (): Promise<{ currency?: string; country?: string }> => {
         try {
-          const { data: storeData, error } = await supabase
-            .from('shopify_stores')
-            .select('*')
-            .eq('shop', shopId)
-            .maybeSingle();
+          const { data, error } = await supabase.functions.invoke('shopify-shop-info', {
+            body: { shop: shopId }
+          });
             
           if (error) {
-            console.log('Error fetching shop data:', error);
-            return undefined;
+            console.log('Error fetching shop info:', error);
+            return {};
           }
           
-          // Access currency from the data object
-          return (storeData as any)?.currency;
+          console.log('✅ Shop info fetched:', data);
+          return {
+            currency: data?.shop?.money_format?.replace(/[^A-Z]/g, '') || data?.shop?.currency,
+            country: data?.shop?.country_code
+          };
         } catch (error) {
-          console.log('Could not fetch shop currency, using default');
-          return undefined;
+          console.log('Could not fetch shop info, using default');
+          return {};
         }
       };
 
-      const shopCurrency = await getShopCurrency();
-      const defaultSettings = getDefaultCountryCurrencySettings(shopCurrency);
+      const { currency: shopCurrency, country: shopCountry } = await getShopCurrencyAndCountry();
+      const defaultSettings = getDefaultCountryCurrencySettings(shopCurrency, shopCountry);
 
       // New form data
       const newFormId = uuidv4();
@@ -309,7 +310,7 @@ export const useFormTemplates = () => {
         totalLabel: language === 'ar' ? 'المجموع الكلي' : 'Total',
         freeShippingText: language === 'ar' ? 'شحن مجاني' : 'Free shipping',
         direction: language === 'ar' ? 'rtl' : 'ltr',
-        currency: 'SAR'
+        currency: 'USD' // Will be updated with actual shop currency
       }
     });
     
@@ -391,29 +392,31 @@ export const useFormTemplates = () => {
         return null;
       }
 
-      // Get shop currency for default settings
-      const getShopCurrency = async (): Promise<string | undefined> => {
+      // Get shop currency and country from shopify-shop-info function
+      const getShopCurrencyAndCountry = async (): Promise<{ currency?: string; country?: string }> => {
         try {
-          const { data: storeData, error } = await supabase
-            .from('shopify_stores')
-            .select('*')
-            .eq('shop', shopId)
-            .maybeSingle();
+          const { data, error } = await supabase.functions.invoke('shopify-shop-info', {
+            body: { shop: shopId }
+          });
             
           if (error) {
-            console.log('Error fetching shop data:', error);
-            return undefined;
+            console.log('Error fetching shop info:', error);
+            return {};
           }
           
-          return (storeData as any)?.currency;
+          console.log('✅ Shop info fetched for default form:', data);
+          return {
+            currency: data?.shop?.money_format?.replace(/[^A-Z]/g, '') || data?.shop?.currency,
+            country: data?.shop?.country_code
+          };
         } catch (error) {
-          console.log('Could not fetch shop currency, using default');
-          return undefined;
+          console.log('Could not fetch shop info, using default');
+          return {};
         }
       };
 
-      const shopCurrency = await getShopCurrency();
-      const defaultSettings = getDefaultCountryCurrencySettings(shopCurrency);
+      const { currency: shopCurrency, country: shopCountry } = await getShopCurrencyAndCountry();
+      const defaultSettings = getDefaultCountryCurrencySettings(shopCurrency, shopCountry);
 
       const { error } = await supabase
         .from('forms')
