@@ -125,9 +125,9 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
   const [currentFormId, setCurrentFormId] = useState<string | undefined>(initialFormId);
   
   // Form settings state - حفظ الإعدادات من النموذج الحالي
-  const [formCountry, setFormCountry] = useState('MA');
-  const [formCurrency, setFormCurrency] = useState('MAD');
-  const [formPhonePrefix, setFormPhonePrefix] = useState('+212');
+  const [formCountry, setFormCountry] = useState('');
+  const [formCurrency, setFormCurrency] = useState('');
+  const [formPhonePrefix, setFormPhonePrefix] = useState('');
 
   // إنشاء نموذج افتراضي جديد مع الحقول المطلوبة
   const createDefaultForm = (): FormField[] => {
@@ -257,7 +257,8 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
       setCurrentFormId(newId);
 
       // Get shop's actual currency for new forms
-      let actualShopCurrency = 'MAD'; // fallback
+      let actualShopCurrency = 'MAD'; // fallback only
+      let actualCountry = 'MA'; // fallback only
       
       try {
         console.log('🔍 NEW FORM - Fetching shop info for:', activeShopId);
@@ -266,20 +267,12 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
         });
         
         if (shopInfo?.success && shopInfo?.shop) {
-          // Extract currency from money_format instead of direct currency field
-          const moneyFormat = shopInfo.shop.money_format || shopInfo.shop.money_with_currency_format || '';
-          console.log('💰 NEW FORM - Money format from shop:', moneyFormat);
+          // Use the direct currency field from shop
+          actualShopCurrency = shopInfo.shop.currency || 'MAD';
+          actualCountry = shopInfo.shop.country || 'MA';
           
-          // Extract currency code from format strings like "{{ amount }} MAD" or "£{{ amount }}"
-          if (moneyFormat.includes('MAD')) actualShopCurrency = 'MAD';
-          else if (moneyFormat.includes('SAR') || moneyFormat.includes('﷼')) actualShopCurrency = 'SAR';
-          else if (moneyFormat.includes('AED')) actualShopCurrency = 'AED';
-          else if (moneyFormat.includes('USD') || moneyFormat.includes('$')) actualShopCurrency = 'USD';
-          else if (moneyFormat.includes('EUR') || moneyFormat.includes('€')) actualShopCurrency = 'EUR';
-          else if (moneyFormat.includes('GBP') || moneyFormat.includes('£')) actualShopCurrency = 'GBP';
-          else if (moneyFormat.includes('EGP')) actualShopCurrency = 'EGP';
-          
-          console.log('✅ NEW FORM - Extracted currency from format:', actualShopCurrency);
+          console.log('✅ NEW FORM - Shop currency:', actualShopCurrency);
+          console.log('✅ NEW FORM - Shop country:', actualCountry);
         } else {
           console.log('⚠️ NEW FORM - Shop info response:', shopInfo);
         }
@@ -290,9 +283,9 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
       const defaultSettings = getDefaultCountryCurrencySettings(actualShopCurrency);
       console.log('🏪 NEW FORM - Using settings for currency', actualShopCurrency, ':', defaultSettings);
       
-      // Set form settings based on shop currency
-      setFormCountry(defaultSettings.country);
-      setFormCurrency(defaultSettings.currency);
+      // Set form settings based on shop currency and country
+      setFormCountry(actualCountry);
+      setFormCurrency(actualShopCurrency);
       setFormPhonePrefix(defaultSettings.phonePrefix);
 
       // Set initial form style with all required properties
@@ -415,20 +408,10 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
                 });
                 
                 if (shopInfo?.success && shopInfo?.shop) {
-                  // Extract currency from money_format instead of direct currency field
-                  const moneyFormat = shopInfo.shop.money_format || shopInfo.shop.money_with_currency_format || '';
-                  console.log('💰 Money format from shop:', moneyFormat);
+                  // Use the direct currency field from shop
+                  actualShopCurrency = shopInfo.shop.currency || 'MAD';
                   
-                  // Extract currency code from format strings like "{{ amount }} MAD" or "£{{ amount }}"
-                  if (moneyFormat.includes('MAD')) actualShopCurrency = 'MAD';
-                  else if (moneyFormat.includes('SAR') || moneyFormat.includes('﷼')) actualShopCurrency = 'SAR';
-                  else if (moneyFormat.includes('AED')) actualShopCurrency = 'AED';
-                  else if (moneyFormat.includes('USD') || moneyFormat.includes('$')) actualShopCurrency = 'USD';
-                  else if (moneyFormat.includes('EUR') || moneyFormat.includes('€')) actualShopCurrency = 'EUR';
-                  else if (moneyFormat.includes('GBP') || moneyFormat.includes('£')) actualShopCurrency = 'GBP';
-                  else if (moneyFormat.includes('EGP')) actualShopCurrency = 'EGP';
-                  
-                  console.log('✅ Extracted currency from format:', actualShopCurrency);
+                  console.log('✅ Extracted currency from shop:', actualShopCurrency);
                 } else {
                   console.log('⚠️ Shop info response:', shopInfo);
                 }
