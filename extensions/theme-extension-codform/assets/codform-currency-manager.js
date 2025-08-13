@@ -736,7 +736,22 @@
     // التنسيق المحلي كحل احتياطي
     console.log('🔄 Using local formatting with settings:', currencySettings);
     
-    const formattedAmount = amount.toFixed(currencySettings.decimalPlaces);
+    // منطق ذكي للأرقام العشرية
+    let formattedAmount;
+    if (currencySettings.decimalPlaces === 0) {
+      // إذا كان الرقم كاملاً، استخدم التنسيق بدون كسور
+      if (amount % 1 === 0) {
+        formattedAmount = amount.toFixed(0);
+      } else {
+        // إذا كان الرقم يحتوي على كسور، اعرضه بدقة واحدة على الأقل
+        formattedAmount = amount.toFixed(Math.max(1, currencySettings.decimalPlaces));
+      }
+    } else {
+      formattedAmount = amount.toFixed(currencySettings.decimalPlaces);
+    }
+    
+    console.log(`🔢 Amount formatting: ${amount} → "${formattedAmount}" (decimal places: ${currencySettings.decimalPlaces})`);
+    
     let symbol = currencySettings.customSymbols[currencyCode] || currencyCode;
     
     // تطبيق رموز افتراضية إضافية
