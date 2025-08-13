@@ -1071,7 +1071,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
                            <div className="space-y-1">
                               <Label>{language === 'ar' ? 'نص المجموع الفرعي' : 'Subtotal Text'}</Label>
                               <Input
-                                value={editedField.cartSummaryConfig?.subtotalText || (language === 'ar' ? 'المجموع الفرعي' : 'Subtotal')}
+                                value={editedField.cartSummaryConfig?.subtotalText || 'المجموع الفرعي'}
                                 onChange={(e) => {
                                   const config = { ...editedField.cartSummaryConfig, subtotalText: e.target.value };
                                   handleFieldChange('cartSummaryConfig', config);
@@ -1083,7 +1083,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
                             <div className="space-y-1">
                               <Label>{language === 'ar' ? 'نص الخصم' : 'Discount Text'}</Label>
                               <Input
-                                value={editedField.cartSummaryConfig?.discountText || (language === 'ar' ? 'الخصم' : 'Discount')}
+                                value={editedField.cartSummaryConfig?.discountText || 'الخصم'}
                                 onChange={(e) => {
                                   const config = { ...editedField.cartSummaryConfig, discountText: e.target.value };
                                   handleFieldChange('cartSummaryConfig', config);
@@ -1095,7 +1095,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
                            <div className="space-y-1">
                              <Label>{language === 'ar' ? 'نص الشحن' : 'Shipping Text'}</Label>
                              <Input
-                               value={editedField.cartSummaryConfig?.shippingText || (language === 'ar' ? 'الشحن' : 'Shipping')}
+                               value={editedField.cartSummaryConfig?.shippingText || 'الشحن'}
                                onChange={(e) => {
                                  const config = { ...editedField.cartSummaryConfig, shippingText: e.target.value };
                                  handleFieldChange('cartSummaryConfig', config);
@@ -1107,7 +1107,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
                            <div className="space-y-1">
                              <Label>{language === 'ar' ? 'نص الإجمالي' : 'Total Text'}</Label>
                              <Input
-                               value={editedField.cartSummaryConfig?.totalText || (language === 'ar' ? 'الإجمالي' : 'Total')}
+                               value={editedField.cartSummaryConfig?.totalText || 'الإجمالي'}
                                onChange={(e) => {
                                  const config = { ...editedField.cartSummaryConfig, totalText: e.target.value };
                                  handleFieldChange('cartSummaryConfig', config);
