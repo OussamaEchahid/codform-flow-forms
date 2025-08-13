@@ -140,9 +140,7 @@
                 productData.image = product.featured_image;
                 
                 // Determine source currency robustly (BASE currency of the shop)
-                const detectedBase = detectShopBaseCurrency();
-                const apiBase = await detectShopBaseCurrencyAsync();
-                const finalBase = apiBase || detectedBase;
+                const finalBase = detectShopBaseCurrency();
                 if (finalBase) {
                   productData.currency = finalBase;
                 }
