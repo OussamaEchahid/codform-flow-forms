@@ -5,7 +5,7 @@
 
 (function() {
   'use strict';
-  const CODFORM_CART_SUMMARY_BUILD = '2025-08-13-02';
+  const CODFORM_CART_SUMMARY_BUILD = '2025-08-13-03';
   try { console.log('🧩 CODFORM Cart Summary loaded - build', CODFORM_CART_SUMMARY_BUILD); } catch(e) {}
 
 
@@ -420,8 +420,8 @@
         
         // Update cart summary data with real (sanity-checked) product data
         cartSummaryData.productPrice = price;
-        // Force product currency to the resolved target/form currency to avoid double conversion
-        cartSummaryData.productCurrency = cartSummaryData.targetCurrency;
+        // Keep product currency as the true source currency to allow custom rates conversion
+        cartSummaryData.productCurrency = finalCurrency;
         
         // تحديث State Manager مع بيانات المنتج الحقيقية
         if (window.CodformStateManager) {
@@ -701,7 +701,7 @@
       
       if (productPrice && productCurrency) {
         cartSummaryData.productPrice = productPrice;
-        cartSummaryData.productCurrency = formCurrency; // align to form currency to avoid double conversion
+        cartSummaryData.productCurrency = productCurrency; // keep source currency for conversion
         
         // تحديث State Manager أيضاً
         if (window.CodformStateManager) {
@@ -735,7 +735,7 @@
       // ✅ استخدام البيانات من State Manager مع التحقق الصحيح
       cartSummaryData.productPrice = state.unitPrice * quantity;
       cartSummaryData.currency = state.targetCurrency;
-      cartSummaryData.productCurrency = state.targetCurrency; // keep currencies aligned to avoid double conversion
+      cartSummaryData.productCurrency = state.productCurrency || cartSummaryData.productCurrency; // keep source currency
       console.log(`💰✅ Cart Summary using State Manager data:`, {
         unitPrice: state.unitPrice,
         quantity: quantity,
@@ -796,7 +796,7 @@
     loadProductData: loadProductData,  // Export loadProductData function
     setProductData: function(price, currency) {
       cartSummaryData.productPrice = price;
-      cartSummaryData.productCurrency = cartSummaryData.targetCurrency;
+      cartSummaryData.productCurrency = currency;
       
       // تحديث State Manager أيضاً
       if (window.CodformStateManager) {
