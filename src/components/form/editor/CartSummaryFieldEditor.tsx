@@ -25,6 +25,10 @@ const CartSummaryFieldEditor: React.FC<CartSummaryFieldEditorProps> = ({
   // تحديد اللغة بناءً على النصوص الموجودة في الحقل أو الافتراضي
   const detectLanguage = () => {
     const existingTexts = [
+      field.config?.subtotalText,
+      field.config?.discountText,
+      field.config?.shippingText,
+      field.config?.totalText,
       field.cartSummaryConfig?.subtotalText,
       field.cartSummaryConfig?.discountText,
       field.cartSummaryConfig?.shippingText,
@@ -38,6 +42,31 @@ const CartSummaryFieldEditor: React.FC<CartSummaryFieldEditorProps> = ({
   };
   
   const language = detectLanguage();
+  
+  // إعداد النصوص الافتراضية بناءً على اللغة المكتشفة
+  const getDefaultTexts = (lang: string) => ({
+    subtotalText: lang === 'ar' ? 'المجموع الفرعي' : 'Subtotal',
+    discountText: lang === 'ar' ? 'الخصم' : 'Discount',
+    shippingText: lang === 'ar' ? 'الشحن' : 'Shipping',
+    totalText: lang === 'ar' ? 'الإجمالي' : 'Total'
+  });
+  
+  const defaultTexts = getDefaultTexts(language);
+  
+  // دمج الإعدادات الموجودة مع الافتراضية
+  const mergedConfig = {
+    ...defaultTexts,
+    showDiscount: true,
+    discountType: 'percentage' as 'percentage' | 'fixed',
+    discountValue: 0,
+    shippingType: 'manual' as 'auto' | 'manual', 
+    shippingValue: 0,
+    autoCalculate: true,
+    currency: 'MAD',
+    ...(field.config || {}),
+    ...(field.cartSummaryConfig || {})
+  };
+  
   const [currentField, setCurrentField] = useState<FormField>({
     ...field,
     style: {
@@ -61,20 +90,9 @@ const CartSummaryFieldEditor: React.FC<CartSummaryFieldEditorProps> = ({
       totalValueWeight: 'bold',
       ...field.style
     },
-    cartSummaryConfig: {
-      subtotalText: language === 'ar' ? 'المجموع الفرعي' : 'Subtotal',
-      discountText: language === 'ar' ? 'الخصم' : 'Discount',
-      shippingText: language === 'ar' ? 'الشحن' : 'Shipping',
-      totalText: language === 'ar' ? 'الإجمالي' : 'Total',
-      showDiscount: true,
-      discountType: 'percentage', // 'percentage' or 'fixed'
-      discountValue: 0,
-      shippingType: 'manual', // 'manual' or 'free'
-      shippingValue: 0,
-      autoCalculate: true,
-      currency: 'MAD', // العملة الافتراضية
-      ...field.cartSummaryConfig
-    }
+    // تعيين النصوص الصحيحة في كلا المكانين
+    config: mergedConfig,
+    cartSummaryConfig: mergedConfig
   });
 
   const handleStyleChange = (key: string, value: any) => {
@@ -132,7 +150,7 @@ const CartSummaryFieldEditor: React.FC<CartSummaryFieldEditorProps> = ({
               <div>
                 <Label>{language === 'ar' ? 'نص المجموع الفرعي' : 'Subtotal Text'}</Label>
                 <Input
-                  value={currentField.cartSummaryConfig?.subtotalText || ''}
+                  value={currentField.config?.subtotalText || currentField.cartSummaryConfig?.subtotalText || ''}
                   onChange={(e) => handleConfigChange('subtotalText', e.target.value)}
                 />
               </div>
@@ -140,7 +158,7 @@ const CartSummaryFieldEditor: React.FC<CartSummaryFieldEditorProps> = ({
               <div>
                 <Label>{language === 'ar' ? 'نص الخصم' : 'Discount Text'}</Label>
                 <Input
-                  value={currentField.cartSummaryConfig?.discountText || ''}
+                  value={currentField.config?.discountText || currentField.cartSummaryConfig?.discountText || ''}
                   onChange={(e) => handleConfigChange('discountText', e.target.value)}
                 />
               </div>
@@ -148,7 +166,7 @@ const CartSummaryFieldEditor: React.FC<CartSummaryFieldEditorProps> = ({
               <div>
                 <Label>{language === 'ar' ? 'نص الشحن' : 'Shipping Text'}</Label>
                 <Input
-                  value={currentField.cartSummaryConfig?.shippingText || ''}
+                  value={currentField.config?.shippingText || currentField.cartSummaryConfig?.shippingText || ''}
                   onChange={(e) => handleConfigChange('shippingText', e.target.value)}
                 />
               </div>
@@ -156,7 +174,7 @@ const CartSummaryFieldEditor: React.FC<CartSummaryFieldEditorProps> = ({
               <div>
                 <Label>{language === 'ar' ? 'نص الإجمالي' : 'Total Text'}</Label>
                 <Input
-                  value={currentField.cartSummaryConfig?.totalText || ''}
+                  value={currentField.config?.totalText || currentField.cartSummaryConfig?.totalText || ''}
                   onChange={(e) => handleConfigChange('totalText', e.target.value)}
                 />
               </div>
@@ -175,7 +193,7 @@ const CartSummaryFieldEditor: React.FC<CartSummaryFieldEditorProps> = ({
               <div>
                 <Label>{language === 'ar' ? 'العملة' : 'Currency'}</Label>
                 <Select
-                  value={currentField.cartSummaryConfig?.currency || 'MAD'}
+                  value={currentField.config?.currency || currentField.cartSummaryConfig?.currency || 'MAD'}
                   onValueChange={(value) => handleConfigChange('currency', value)}
                 >
                   <SelectTrigger>
@@ -194,7 +212,7 @@ const CartSummaryFieldEditor: React.FC<CartSummaryFieldEditorProps> = ({
               <div className="flex items-center justify-between">
                 <Label>{language === 'ar' ? 'حساب تلقائي من المنتج' : 'Auto Calculate from Product'}</Label>
                 <Switch
-                  checked={currentField.cartSummaryConfig?.autoCalculate || false}
+                  checked={currentField.config?.autoCalculate || currentField.cartSummaryConfig?.autoCalculate || false}
                   onCheckedChange={(checked) => handleConfigChange('autoCalculate', checked)}
                 />
               </div>
