@@ -71,6 +71,12 @@ const SortableField: React.FC<SortableFieldProps> = ({
 
   // When component mounts or field changes, sync the edited field state
   useEffect(() => {
+    console.log('🚀 SortableField useEffect - Field changed:', {
+      fieldType: field.type,
+      fieldId: field.id,
+      cartSummaryConfig: field.cartSummaryConfig,
+      language
+    });
     let fieldToSet = field;
     
     // Initialize cartSummaryConfig if it doesn't exist for cart-summary fields
@@ -1076,28 +1082,46 @@ const SortableField: React.FC<SortableFieldProps> = ({
                          {/* Text Labels */}
                          <div className="grid grid-cols-2 gap-3">
                            <div className="space-y-1">
-                             <Label>{language === 'ar' ? 'نص المجموع الفرعي' : 'Subtotal Text'}</Label>
-                             <Input
-                               value={editedField.cartSummaryConfig?.subtotalText ?? (language === 'ar' ? 'المجموع الفرعي' : 'Subtotal')}
-                               onChange={(e) => {
-                                 const config = { ...editedField.cartSummaryConfig, subtotalText: e.target.value };
-                                 handleFieldChange('cartSummaryConfig', config);
-                               }}
-                               className={language === 'ar' ? 'text-right' : ''}
-                             />
+                              <Label>{language === 'ar' ? 'نص المجموع الفرعي' : 'Subtotal Text'}</Label>
+                              <Input
+                                value={(() => {
+                                  const value = editedField.cartSummaryConfig?.subtotalText ?? (language === 'ar' ? 'المجموع الفرعي' : 'Subtotal');
+                                  console.log('🔍 Subtotal Text Debug:', {
+                                    cartSummaryConfig: editedField.cartSummaryConfig,
+                                    subtotalText: editedField.cartSummaryConfig?.subtotalText,
+                                    language,
+                                    fallback: language === 'ar' ? 'المجموع الفرعي' : 'Subtotal',
+                                    finalValue: value
+                                  });
+                                  return value;
+                                })()}
+                                onChange={(e) => {
+                                  const config = { ...editedField.cartSummaryConfig, subtotalText: e.target.value };
+                                  console.log('💾 Saving subtotalText:', e.target.value, 'Full config:', config);
+                                  handleFieldChange('cartSummaryConfig', config);
+                                }}
+                                className={language === 'ar' ? 'text-right' : ''}
+                              />
                            </div>
                            
-                           <div className="space-y-1">
-                             <Label>{language === 'ar' ? 'نص الخصم' : 'Discount Text'}</Label>
-                             <Input
-                               value={editedField.cartSummaryConfig?.discountText ?? (language === 'ar' ? 'الخصم' : 'Discount')}
-                               onChange={(e) => {
-                                 const config = { ...editedField.cartSummaryConfig, discountText: e.target.value };
-                                 handleFieldChange('cartSummaryConfig', config);
-                               }}
-                               className={language === 'ar' ? 'text-right' : ''}
-                             />
-                           </div>
+                            <div className="space-y-1">
+                              <Label>{language === 'ar' ? 'نص الخصم' : 'Discount Text'}</Label>
+                              <Input
+                                value={(() => {
+                                  const value = editedField.cartSummaryConfig?.discountText ?? (language === 'ar' ? 'الخصم' : 'Discount');
+                                  console.log('🔍 Discount Text Debug:', {
+                                    discountText: editedField.cartSummaryConfig?.discountText,
+                                    finalValue: value
+                                  });
+                                  return value;
+                                })()}
+                                onChange={(e) => {
+                                  const config = { ...editedField.cartSummaryConfig, discountText: e.target.value };
+                                  handleFieldChange('cartSummaryConfig', config);
+                                }}
+                                className={language === 'ar' ? 'text-right' : ''}
+                              />
+                            </div>
                            
                            <div className="space-y-1">
                              <Label>{language === 'ar' ? 'نص الشحن' : 'Shipping Text'}</Label>
