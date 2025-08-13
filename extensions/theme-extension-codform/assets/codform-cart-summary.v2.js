@@ -146,14 +146,8 @@
     // ✅ FALLBACK: Manual formatting with custom rates application
     let finalAmount = amount;
     
-    // Apply custom conversion rates if available
-    if (window.CodformCurrencyManager && window.CodformCurrencyManager.getRates) {
-      const customRates = window.CodformCurrencyManager.getRates();
-      if (customRates && customRates[currency]) {
-        finalAmount = amount * customRates[currency];
-        console.log(`🛒 Cart Summary: Applied custom rate ${customRates[currency]} - Original: ${amount} -> Final: ${finalAmount}`);
-      }
-    }
+    // Do NOT convert here. All conversions must be handled in calculatePrices()
+    // Keep the amount as-is and only handle string formatting below.
     
     // Enhanced currency symbols
     const symbols = {
@@ -648,34 +642,38 @@
         shopDomain = shopDomain || shopMeta?.getAttribute('content') || window.location.hostname;
         console.log('🔍 Cart Summary - After DOM check:', { shopDomain, productId });
 
-        // ✅ FINAL FALLBACK: Extract handle from URL and fetch /products/{handle}.js to get numeric ID
+        // ✅ FINAL FALLBACK: Extract handle from URL and fetch /products/{handle}.js to get numeric ID (non-blocking)
+        let storefrontResolutionPending = false;
         if (!productId && typeof window !== 'undefined' && window.location.pathname.includes('/products/')) {
-          try {
-            const handle = window.location.pathname.split('/products/')[1]?.split('?')[0]?.split('#')[0];
-            if (handle) {
-              const res = await fetch(`/products/${handle}.js`);
-              if (res.ok) {
-                const prod = await res.json();
-                const numericId = prod?.id || (prod?.variants?.[0]?.product_id);
-                if (numericId) {
-                  productId = String(numericId);
-                  console.log('✅ Cart Summary - Resolved productId from storefront .js:', productId);
-                }
-                if (!shopDomain) {
-                  shopDomain = window.location.hostname;
+          storefrontResolutionPending = true;
+          (async () => {
+            try {
+              const handle = window.location.pathname.split('/products/')[1]?.split('?')[0]?.split('#')[0];
+              if (handle) {
+                const res = await fetch(`/products/${handle}.js`);
+                if (res.ok) {
+                  const prod = await res.json();
+                  const numericId = prod?.id || (prod?.variants?.[0]?.product_id);
+                  if (numericId) {
+                    const pid = String(numericId);
+                    const sd = shopDomain || window.location.hostname;
+                    console.log('✅ Cart Summary - Resolved productId from storefront .js:', pid);
+                    // Call loader immediately once resolved
+                    loadProductData(pid, sd);
+                  }
                 }
               }
+            } catch (e) {
+              console.warn('ℹ️ Cart Summary - Storefront fallback failed:', e);
             }
-          } catch (e) {
-            console.warn('ℹ️ Cart Summary - Storefront fallback failed:', e);
-          }
+          })();
         }
       }
       
       if (productId && shopDomain) {
         console.log('📲 Cart Summary - Calling loadProductData...');
         loadProductData(productId, shopDomain);
-      } else {
+      } else if (!storefrontResolutionPending) {
         console.warn('❌ Cart Summary - Cannot load product data: missing required data');
       }
     }
