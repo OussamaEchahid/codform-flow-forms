@@ -511,13 +511,8 @@
       console.log(`🛒 Cart Items: Updated price element to: ${formattedPrice}`);
     });
     
-    // Update all price elements in cart items
-    document.querySelectorAll('.codform-cart-items .cart-items-price').forEach(priceElement => {
-      priceElement.textContent = formattedPrice;
-      priceElement.setAttribute('data-currency', displayCurrency);
-      console.log(`🛒 Cart Items: Updated price element to: ${formattedPrice}`);
-    });
     
+
     console.log(`🛒 Cart Items: Price updated - Quantity: ${quantity}, Total: ${formattedPrice}`);
   }
 
