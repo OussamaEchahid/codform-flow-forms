@@ -139,7 +139,7 @@ const CartItems: React.FC<CartItemsProps> = ({ field, formStyle, productId, form
   const borderRadius = formStyle.borderRadius || '0.5rem';
   
   return (
-    <div className="mb-0 codform-cart-items w-full" style={{ direction: fieldStyle.direction || (language === 'ar' ? 'rtl' : 'ltr') }}>
+    <div className="mb-0 codform-cart-items w-full" data-field-type="cart_items" style={{ direction: fieldStyle.direction || (language === 'ar' ? 'rtl' : 'ltr') }}>
       <div style={{ 
         backgroundColor: '#ffffff',
         border: '1px solid #e5e7eb',
@@ -203,7 +203,12 @@ const CartItems: React.FC<CartItemsProps> = ({ field, formStyle, productId, form
               fontSize: '14px',
             }}>
               {language === 'ar' ? 'السعر:' : 'Price:'} 
-              <span className="cart-items-price" data-currency={convertedPrice.currency}>
+              <span 
+                className="cart-items-price" 
+                data-currency={convertedPrice.currency}
+                data-base-price={productData?.variants?.[0]?.price || convertedPrice.price}
+                data-base-currency={productData?.variants?.[0]?.currency_code || 'USD'}
+              >
                 {formatPrice(convertedPrice.price)}
               </span>
             </p>
