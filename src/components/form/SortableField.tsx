@@ -1070,50 +1070,50 @@ const SortableField: React.FC<SortableFieldProps> = ({
                          <div className="grid grid-cols-2 gap-3">
                            <div className="space-y-1">
                               <Label>{language === 'ar' ? 'نص المجموع الفرعي' : 'Subtotal Text'}</Label>
-                              <Input
-                                value={editedField.cartSummaryConfig?.subtotalText || 'المجموع الفرعي'}
-                                onChange={(e) => {
-                                  const config = { ...editedField.cartSummaryConfig, subtotalText: e.target.value };
-                                  handleFieldChange('cartSummaryConfig', config);
-                                }}
-                                className={language === 'ar' ? 'text-right' : ''}
-                              />
+                               <Input
+                                 value={editedField.cartSummaryConfig?.subtotalText || (language === 'ar' ? 'المجموع الفرعي' : 'Subtotal')}
+                                 onChange={(e) => {
+                                   const config = { ...editedField.cartSummaryConfig, subtotalText: e.target.value };
+                                   handleFieldChange('cartSummaryConfig', config);
+                                 }}
+                                 className={language === 'ar' ? 'text-right' : ''}
+                               />
                            </div>
                            
                             <div className="space-y-1">
                               <Label>{language === 'ar' ? 'نص الخصم' : 'Discount Text'}</Label>
-                              <Input
-                                value={editedField.cartSummaryConfig?.discountText || 'الخصم'}
-                                onChange={(e) => {
-                                  const config = { ...editedField.cartSummaryConfig, discountText: e.target.value };
-                                  handleFieldChange('cartSummaryConfig', config);
-                                }}
-                                className={language === 'ar' ? 'text-right' : ''}
-                              />
+                               <Input
+                                 value={editedField.cartSummaryConfig?.discountText || (language === 'ar' ? 'الخصم' : 'Discount')}
+                                 onChange={(e) => {
+                                   const config = { ...editedField.cartSummaryConfig, discountText: e.target.value };
+                                   handleFieldChange('cartSummaryConfig', config);
+                                 }}
+                                 className={language === 'ar' ? 'text-right' : ''}
+                               />
                             </div>
                            
                            <div className="space-y-1">
                              <Label>{language === 'ar' ? 'نص الشحن' : 'Shipping Text'}</Label>
-                             <Input
-                               value={editedField.cartSummaryConfig?.shippingText || 'الشحن'}
-                               onChange={(e) => {
-                                 const config = { ...editedField.cartSummaryConfig, shippingText: e.target.value };
-                                 handleFieldChange('cartSummaryConfig', config);
-                               }}
-                               className={language === 'ar' ? 'text-right' : ''}
-                             />
+                              <Input
+                                value={editedField.cartSummaryConfig?.shippingText || (language === 'ar' ? 'الشحن' : 'Shipping')}
+                                onChange={(e) => {
+                                  const config = { ...editedField.cartSummaryConfig, shippingText: e.target.value };
+                                  handleFieldChange('cartSummaryConfig', config);
+                                }}
+                                className={language === 'ar' ? 'text-right' : ''}
+                              />
                            </div>
                            
                            <div className="space-y-1">
                              <Label>{language === 'ar' ? 'نص الإجمالي' : 'Total Text'}</Label>
-                             <Input
-                               value={editedField.cartSummaryConfig?.totalText || 'الإجمالي'}
-                               onChange={(e) => {
-                                 const config = { ...editedField.cartSummaryConfig, totalText: e.target.value };
-                                 handleFieldChange('cartSummaryConfig', config);
-                               }}
-                               className={language === 'ar' ? 'text-right' : ''}
-                             />
+                              <Input
+                                value={editedField.cartSummaryConfig?.totalText || (language === 'ar' ? 'الإجمالي' : 'Total')}
+                                onChange={(e) => {
+                                  const config = { ...editedField.cartSummaryConfig, totalText: e.target.value };
+                                  handleFieldChange('cartSummaryConfig', config);
+                                }}
+                                className={language === 'ar' ? 'text-right' : ''}
+                              />
                            </div>
                          </div>
                        </div>
