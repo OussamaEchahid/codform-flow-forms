@@ -710,6 +710,15 @@
       console.log('🛒 Cart Items: 💰 CURRENT RATES IN SYSTEM:', rates);
     }
     
+    // التحقق من وجود Cart Items elements أولاً وإعادة رندرتها إذا لزم الأمر
+    const cartItemsElements = document.querySelectorAll('[data-field-type="cart_items"]');
+    cartItemsElements.forEach(element => {
+      if (element && element.fieldData && element.formStyle && !element.innerHTML.includes('cart-items-price')) {
+        console.log('🛒 Cart Items: Element found but no price elements inside, re-rendering...');
+        element.innerHTML = renderCartItems(element.fieldData, element.formStyle, element.formDirection);
+      }
+    });
+    
     // البحث عن عناصر Cart Items مع إعادة المحاولة
     let priceElements = document.querySelectorAll('.cart-items-price');
     
