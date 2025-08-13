@@ -71,10 +71,10 @@
     _getShopId() {
       // البحث في عدة مصادر للعثور على shop ID
       const sources = [
-        () => window.Shopify?.shop,
+        () => (window.Shopify && (window.Shopify.shop || window.Shopify.shop_domain)),
         () => window.shop,
         () => document.body.getAttribute('data-shop'),
-        () => localStorage.getItem('shopify_shop_domain'),
+        () => localStorage.getItem('shopify_shop_domain') || localStorage.getItem('current_shopify_store'),
         () => this._extractFromHostname()
       ];
 
@@ -106,8 +106,9 @@
           {
             method: 'GET',
             headers: {
-              'Content-Type': 'application/json',
-              'Cache-Control': 'no-cache'
+'Content-Type': 'application/json',
+              'Cache-Control': 'no-cache',
+              'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M'
             }
           }
         );
