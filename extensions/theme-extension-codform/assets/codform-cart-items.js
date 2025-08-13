@@ -152,11 +152,29 @@
         for (const selector of priceSelectors) {
           const priceElement = document.querySelector(selector);
           if (priceElement) {
-            const priceText = priceElement.textContent || priceElement.getAttribute('data-price');
-            const priceMatch = priceText.match(/[\d,]+\.?\d*/);
+            const raw = (priceElement.textContent || priceElement.getAttribute('data-price') || '').trim();
+            const priceMatch = raw.match(/[\d,]+\.?\d*/);
             if (priceMatch) {
               productData.price = parseFloat(priceMatch[0].replace(',', ''));
-              console.log('🛒 Cart Items: Found price in DOM:', productData.price);
+              // Detect currency from the same text/element to avoid misinterpreting MAD as USD
+              const detectFromText = (txt) => {
+                if (!txt) return null;
+                const t = txt.replace(/\s+/g, ' ');
+                if (/\bMAD\b|د\.م/.test(t)) return 'MAD';
+                if (/\bSAR\b|ر\.س/.test(t)) return 'SAR';
+                if (/\bAED\b|د\.إ/.test(t)) return 'AED';
+                if (/\bUSD\b|\$/.test(t)) return 'USD';
+                if (/\bEUR\b|€/.test(t)) return 'EUR';
+                if (/\bGBP\b|£/.test(t)) return 'GBP';
+                return null;
+              };
+              const attrCurrency = priceElement.getAttribute('data-currency') || priceElement.closest('[data-currency]')?.getAttribute('data-currency');
+              const textCurrency = detectFromText(raw);
+              const resolved = attrCurrency || textCurrency;
+              if (resolved) {
+                productData.currency = resolved;
+              }
+              console.log('🛒 Cart Items: Found price in DOM:', productData.price, 'currency:', productData.currency);
               break;
             }
           }
