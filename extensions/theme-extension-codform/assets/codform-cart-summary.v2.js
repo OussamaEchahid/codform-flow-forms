@@ -660,8 +660,9 @@
         console.log('🔍 Cart Summary - After DOM check:', { shopDomain, productId });
 
         // ✅ FINAL FALLBACK: Extract handle from URL and fetch /products/{handle}.js to get numeric ID (non-blocking)
+        let storefrontResolutionPending = false;
         if (!productId && typeof window !== 'undefined' && window.location.pathname.includes('/products/')) {
-          let storefrontResolutionPending = true;
+          storefrontResolutionPending = true;
           (async () => {
             try {
               const handle = window.location.pathname.split('/products/')[1]?.split('?')[0]?.split('#')[0];
@@ -681,8 +682,6 @@
               }
             } catch (e) {
               console.warn('ℹ️ Cart Summary - Storefront fallback failed:', e);
-            } finally {
-              storefrontResolutionPending = false;
             }
           })();
         }

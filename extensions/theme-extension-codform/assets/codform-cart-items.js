@@ -10,9 +10,6 @@
 
   let cachedProductPrice = null;
   let cachedCurrency = null;
-  let cachedProductTitle = null;
-  let cachedProductImage = null;
-  let cachedProductData = null;
   let isInitialized = false;
 
   // Robust detection of the shop BASE currency (not active/display)
@@ -207,12 +204,7 @@
       // Cache the results
       cachedProductPrice = productData.price;
       cachedCurrency = productData.currency; // دائماً USD للتحويل
-      cachedProductTitle = productData.title;
-      cachedProductImage = productData.image;
-      cachedProductData = productData;
       window.CodformProductData = productData;
-
-      console.log(`🛒 Cart Items: Product data cached - Title: "${cachedProductTitle}", Image: ${cachedProductImage ? 'Available' : 'Not available'}`);
 
       // Broadcast for other widgets
       try {
@@ -310,35 +302,16 @@
   }
 
   /**
-   * Render cart items field - use cached data directly
+   * Render cart items field
    */
   function renderCartItems(field, formStyle, formDirection) {
+    const isLoading = (!cachedProductPrice || !cachedCurrency);
+
     const fieldStyle = field.style || {};
     const direction = formDirection || 'ltr';
     const isRTL = direction === 'rtl';
-    
-    // Simple fix: Use cached title only
-    if (!cachedProductTitle) {
-      console.log('🛒 Cart Items: No cached product title, showing loading state');
-      return `
-        <div class="cart-items-loading" style="
-          padding: 20px;
-          text-align: center;
-          color: #666;
-          font-family: Arial, sans-serif;
-          direction: ${direction};
-        ">
-          <div style="font-size: 14px;">${isRTL ? 'جاري تحميل بيانات المنتج...' : 'Loading product data...'}</div>
-        </div>
-      `;
-    }
-    
-    const productTitle = cachedProductTitle;
-    const productImage = cachedProductImage;
-    const priceForRender = cachedProductData.price || 1;
-    const currencyForRender = cachedProductData.currency || 'USD';
-    
-    console.log(`🛒 Cart Items RENDER: Product title: "${productTitle}", Image: ${productImage ? 'Available' : 'Not available'}`);
+    const priceForRender = cachedProductPrice ?? 0;
+    const currencyForRender = cachedCurrency ?? (window.CodformFormData?.currency || (window.Shopify && window.Shopify.currency && window.Shopify.currency.active) || detectShopBaseCurrency());
     
     // Dynamic labels based on direction
     const priceLabel = isRTL ? 'السعر:' : 'Price:';
@@ -355,17 +328,27 @@
       || (window.Shopify && window.Shopify.currency && window.Shopify.currency.active)
       || currencyForRender;
     
-    console.log(`🛒 Cart Items RENDER: Target currency: ${targetCurrency}, Base currency: ${currencyForRender}`);
+    // لا تحويل العملة هنا - سيتم التحويل في updatePriceDisplay
+    let unitPrice = priceForRender;
+    let baseCurrencyForData = currencyForRender;
+    
+    // استخدم السعر الأساسي بدون تحويل للـ data attributes
+    // التحويل سيحدث في updatePriceDisplay فقط
     
     // Format using base price for display initially  
     let formattedPrice;
     if (window.CodformCurrencyManager && typeof window.CodformCurrencyManager.formatCurrency === 'function') {
-      formattedPrice = window.CodformCurrencyManager.formatCurrency(priceForRender, targetCurrency);
+      formattedPrice = window.CodformCurrencyManager.formatCurrency(unitPrice, baseCurrencyForData);
     } else {
-      formattedPrice = `${priceForRender} ${targetCurrency}`;
+      formattedPrice = `${unitPrice} ${baseCurrencyForData}`;
     }
     
-    console.log(`🛒 Cart Items RENDER: Using base price ${priceForRender} ${currencyForRender} for data attributes, displaying as ${formattedPrice}`);
+    console.log(`🛒 Cart Items RENDER: Using base price ${unitPrice} ${baseCurrencyForData} for data attributes`);
+
+    // Get product data from cache
+    const productData = window.CodformProductData || {};
+    const productTitle = productData.title || 'Product';
+    const productImage = productData.image;
 
     return `
       <div class="codform-cart-items" style="
@@ -492,7 +475,6 @@
     `;
   }
 
-
   /**
    * Increase quantity - محسن
    */
@@ -592,21 +574,17 @@
       
       // Wait for currency settings AND custom rates to be ready
       console.log('🛒 Cart Items: Waiting for currency manager and custom rates...');
-      await waitForCurrencyManagerWithCustomRates();
+      await waitForCurrencyReady(8000); // زيادة المهلة إلى 8 ثوان
       
       // Check if custom rates are actually loaded
       if (window.CodformCurrencyManager && typeof window.CodformCurrencyManager.getRates === 'function') {
         const rates = window.CodformCurrencyManager.getRates();
         console.log('🛒 Cart Items: Available rates during init:', rates);
         
-        // فحص أكثر ذكاءً للمعدلات المخصصة
-        const targetCurrency = getTargetCurrency();
-        if (targetCurrency && rates[targetCurrency]) {
-          const rate = rates[targetCurrency];
-          const isCustomRate = window.CodformCurrencyManager.isCustomRate && window.CodformCurrencyManager.isCustomRate(targetCurrency);
-          console.log(`🛒 Cart Items: ✅ ${targetCurrency} rate: ${rate} (custom: ${isCustomRate})`);
+        if (rates.MAD && rates.MAD !== 10) {
+          console.log(`🛒 Cart Items: ✅ Custom MAD rate found: ${rates.MAD}`);
         } else {
-          console.warn(`🛒 Cart Items: ⚠️ ${targetCurrency} rate not found in available rates`);
+          console.warn('🛒 Cart Items: ⚠️ Custom MAD rate NOT found or still default (10)');
         }
       }
       
@@ -625,69 +603,54 @@
     }
   }
 
-  // دالة للحصول على العملة المستهدفة
-  function getTargetCurrency() {
-    const sources = [
-      () => window.CodformFormData?.currency,
-      () => window.currentFormData?.savedFormCurrency,
-      () => window.formCurrency,
-      () => document.querySelector('.cart-summary-field')?.getAttribute('data-currency'),
-      () => window.CodformSmartCurrency?.getCurrentCurrency?.(),
-      () => window.Shopify?.currency?.active,
-      () => 'USD'
-    ];
-    
-    for (const source of sources) {
-      try {
-        const currency = source();
-        if (currency && currency !== 'auto-detect') {
-          return currency;
-        }
-      } catch (e) {}
-    }
-    return 'USD';
-  }
-
   /**
-   * الانتظار حتى تصبح العملات جاهزة والتأكد من وجود المعدلات المخصصة
+   * Wait for currency manager to be ready with custom rates - محسن
    */
-  async function waitForCurrencyManagerWithCustomRates() {
-    const maxAttempts = 15; // زيادة المحاولات
-    let attempts = 0;
-    
-    while (attempts < maxAttempts) {
-      attempts++;
-      console.log(`🛒 Cart Items: Currency readiness check #${attempts}`);
+  function waitForCurrencyReady(timeoutMs = 8000) {
+    return new Promise((resolve) => {
+      const startTime = Date.now();
+      let checkCount = 0;
       
-      if (window.CodformCurrencyManager && typeof window.CodformCurrencyManager.getRates === 'function') {
-        const rates = window.CodformCurrencyManager.getRates();
-        console.log('🛒 Cart Items: Current rates during check:', rates);
+      function checkReady() {
+        checkCount++;
+        console.log(`🛒 Cart Items: Currency readiness check #${checkCount}`);
         
-        // فحص أكثر ذكاءً للمعدلات المخصصة - تحقق من وجود أي معدلات مخصصة
-        const hasCustomRates = Object.keys(rates).some(currency => {
-          if (window.CodformCurrencyManager.isCustomRate) {
-            return window.CodformCurrencyManager.isCustomRate(currency);
+        // Check if Currency Manager is available and has custom rates loaded
+        if (window.CodformCurrencyManager && 
+            typeof window.CodformCurrencyManager.getRates === 'function') {
+          
+          const rates = window.CodformCurrencyManager.getRates();
+          console.log('🛒 Cart Items: Current rates during check:', rates);
+          
+          // تحقق أكثر دقة للمعدلات المخصصة
+          const hasCustomMAD = rates && rates.MAD && rates.MAD !== 10; // 10 is default
+          const hasCustomRates = rates && Object.keys(rates).length > 5; // more than just defaults
+          
+          console.log(`🛒 Cart Items: Custom MAD rate check: ${rates.MAD} (is custom: ${hasCustomMAD})`);
+          
+          if (hasCustomMAD || hasCustomRates) {
+            console.log('✅ Cart Items: Currency Manager is ready with CUSTOM rates!');
+            resolve();
+            return;
           }
-          // fallback: تحقق من أن المعدل مختلف عن الافتراضي
-          const defaultRates = { USD: 1, SAR: 3.75, AED: 3.67, MAD: 10, CAD: 1.35 };
-          return rates[currency] !== defaultRates[currency];
-        });
-        
-        if (hasCustomRates) {
-          console.log('✅ Cart Items: Currency Manager is ready with CUSTOM rates!');
-          return true;
-        } else {
-          console.log('🛒 Cart Items: Currency Manager available but no custom rates detected yet');
         }
-      } else {
-        console.log('🛒 Cart Items: Currency Manager not ready yet');
+        
+        // التحقق من تهيئة Currency Manager
+        if (!window.CodformCurrencyManager) {
+          console.log('🛒 Cart Items: Currency Manager not available yet...');
+        }
+        
+        if (Date.now() - startTime < timeoutMs) {
+          setTimeout(checkReady, 300); // فحص كل 300ms
+        } else {
+          console.warn('⚠️ Cart Items: Currency readiness timeout, proceeding with available rates');
+          console.log('⚠️ Final rates at timeout:', window.CodformCurrencyManager?.getRates?.() || 'No rates');
+          resolve();
+        }
       }
       
-      await new Promise(resolve => setTimeout(resolve, 500)); // انتظار 500ms بين المحاولات
-    }
-    
-    console.warn('⚠️ Cart Items: Timeout waiting for custom rates, proceeding anyway');
-    return false;
+      checkReady();
+    });
   }
 
   /**
@@ -695,54 +658,24 @@
    */
   function updatePriceDisplay(quantity = 1) {
     console.log(`🛒 Cart Items: 🔄 UPDATING PRICE DISPLAY for quantity: ${quantity}`);
+    console.log(`🛒 Cart Items: Currency Manager available: ${!!window.CodformCurrencyManager}`);
     
-    // التأكد من توفر Currency Manager مع إعادة المحاولة
-    if (!window.CodformCurrencyManager) {
-      console.log('🛒 Cart Items: Currency Manager not available, waiting...');
-      setTimeout(() => updatePriceDisplay(quantity), 200);
-      return;
-    }
-    
-    console.log('🛒 Cart Items: Currency Manager available: true');
-    
-    if (typeof window.CodformCurrencyManager.getRates === 'function') {
-      const rates = window.CodformCurrencyManager.getRates();
-      console.log('🛒 Cart Items: 💰 CURRENT RATES IN SYSTEM:', rates);
-    }
-    
-    // التحقق من وجود Cart Items elements أولاً وإعادة رندرتها إذا لزم الأمر
-    const cartItemsElements = document.querySelectorAll('[data-field-type="cart_items"]');
-    cartItemsElements.forEach(element => {
-      if (element && element.fieldData && element.formStyle && !element.innerHTML.includes('cart-items-price')) {
-        console.log('🛒 Cart Items: Element found but no price elements inside, re-rendering...');
-        element.innerHTML = renderCartItems(element.fieldData, element.formStyle, element.formDirection);
-      }
-    });
-    
-    // البحث عن عناصر Cart Items مع إعادة المحاولة
-    let priceElements = document.querySelectorAll('.cart-items-price');
-    
-    // إذا لم توجد عناصر، ابحث في DOM بطريقة أوسع
-    if (priceElements.length === 0) {
-      console.log('🛒 Cart Items: No .cart-items-price elements found, searching wider...');
+    // تحقق مفصل من معدلات العملة
+    if (window.CodformCurrencyManager && typeof window.CodformCurrencyManager.getRates === 'function') {
+      const currentRates = window.CodformCurrencyManager.getRates();
+      console.log(`🛒 Cart Items: 💰 CURRENT RATES IN SYSTEM:`, currentRates);
+      console.log(`🛒 Cart Items: 🔍 MAD RATE CHECK: ${currentRates.MAD} (expected: 12, default: 10)`);
       
-      // ابحث عن أي عناصر cart items أو price
-      const alternativeSelectors = [
-        '.codform-cart-items .cart-items-price',
-        '[data-base-price]',
-        '.cart-items-price[data-currency]',
-        '.codform-cart-items [data-base-price]'
-      ];
-      
-      for (const selector of alternativeSelectors) {
-        const elements = document.querySelectorAll(selector);
-        if (elements.length > 0) {
-          priceElements = elements;
-          console.log(`🛒 Cart Items: Found ${elements.length} elements using selector: ${selector}`);
-          break;
-        }
+      if (currentRates.MAD === 12) {
+        console.log(`🛒 Cart Items: ✅ CORRECT - Custom MAD rate is loaded (12)`);
+      } else if (currentRates.MAD === 10) {
+        console.log(`🛒 Cart Items: ❌ WRONG - Still using default MAD rate (10)`);
+      } else {
+        console.log(`🛒 Cart Items: ⚠️ UNKNOWN - MAD rate is ${currentRates.MAD}`);
       }
     }
+    
+    const priceElements = document.querySelectorAll('.cart-items-price');
     console.log(`🛒 Cart Items: Found ${priceElements.length} price elements to update`);
     
     priceElements.forEach((priceElement, index) => {
@@ -890,83 +823,22 @@
     cachedProductPrice = null;
     cachedCurrency = null;
     
-    // Re-initialize with retry mechanism
+    // Re-initialize the system
     setTimeout(() => {
       console.log('🛒 Cart Items: Re-initializing after currency change...');
       isInitialized = false;
-      
-      // تأكد من وجود عناصر Cart Items قبل التهيئة
-      const checkAndInit = () => {
-        const elements = document.querySelectorAll('.cart-items-price, .codform-cart-items');
-        if (elements.length > 0) {
-          initialize();
-        } else {
-          console.log('🛒 Cart Items: Waiting for elements to appear...');
-          setTimeout(checkAndInit, 200);
-        }
-      };
-      
-      checkAndInit();
+      initialize();
     }, 100);
   }
 
-  // تهيئة محسنة مع مراقبة DOM وإعادة المحاولة
-  let initRetries = 0;
-  const maxRetries = 5;
-  
-  function attemptInitialize() {
-    console.log(`🛒 Cart Items: Attempting initialization (attempt ${initRetries + 1}/${maxRetries})`);
-    
-    // تأكد من وجود عناصر Cart Items في DOM
-    const cartItemsElements = document.querySelectorAll('.cart-items-price, .codform-cart-items');
-    console.log(`🛒 Cart Items: Found ${cartItemsElements.length} elements in DOM`);
-    
-    if (cartItemsElements.length > 0 || initRetries >= maxRetries - 1) {
-      console.log('🛒 Cart Items: DOM elements found or max retries reached, proceeding with initialization');
-      isInitialized = false; // Force fresh initialization
-      initialize();
-    } else {
-      initRetries++;
-      console.log(`🛒 Cart Items: No elements found, retrying in 500ms (${initRetries}/${maxRetries})`);
-      setTimeout(attemptInitialize, 500);
-    }
-  }
-  
-  // مراقب DOM للكشف عن إضافة عناصر Cart Items
-  const observer = new MutationObserver((mutations) => {
-    let cartItemsAdded = false;
-    
-    mutations.forEach((mutation) => {
-      mutation.addedNodes.forEach((node) => {
-        if (node.nodeType === 1) { // Element node
-          if (node.matches && (node.matches('.codform-cart-items') || node.querySelector && node.querySelector('.cart-items-price'))) {
-            cartItemsAdded = true;
-          }
-        }
-      });
-    });
-    
-    if (cartItemsAdded) {
-      console.log('🛒 Cart Items: New Cart Items elements detected in DOM, re-initializing...');
-      isInitialized = false;
-      setTimeout(() => {
-        initialize();
-      }, 100);
-    }
-  });
-  
-  // Start observing
-  observer.observe(document.body, {
-    childList: true,
-    subtree: true
-  });
-  
+  // تهيئة تلقائية عند تحميل الصفحة - محسن
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-      setTimeout(attemptInitialize, 1000);
+      setTimeout(initialize, 1000); // انتظار أطول عند التحميل
     });
   } else {
-    setTimeout(attemptInitialize, 500);
+    // الصفحة محملة بالفعل - انتظار أطول لضمان تحميل Currency Manager
+    setTimeout(initialize, 1500);
   }
 
   // مراقبة أحداث النظام - محسن للمعدلات المخصصة
