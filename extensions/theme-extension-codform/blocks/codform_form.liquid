@@ -1818,5 +1818,14 @@ window.handleFormSubmit = async function(event) {
   return false; // منع الإرسال الافتراضي
 };
 
-</script>
+// إضافة الدالة المفقودة لتحميل النموذج
+window.loadFormFromAPI = function(productId, shopDomain) {
+  console.log(`🔄 Loading form for product: ${productId}, shop: ${shopDomain}`);
+  
+  if (productId && productId !== 'auto-detect') {
+    // إعادة تحميل النموذج للمنتج المحدد
+    loadCompleteForm(productId);
+  }
+};
+
 </script>
