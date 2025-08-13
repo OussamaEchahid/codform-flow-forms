@@ -558,6 +558,9 @@
       // Fetch product data from API
       await fetchProductPrice();
 
+      // Wait briefly for Currency Manager custom rates to load (ensures custom MAD rate applied)
+      try { await waitForCurrencyReady(1800); } catch (e) {}
+
       // Attempt initial price render (will remain hidden until currency resolved)
       try {
         const existingCartItems = document.querySelector('.codform-cart-items');
@@ -591,6 +594,31 @@
     });
   }
 
+  // Wait until Currency Manager loads custom rates (or timeout)
+  async function waitForCurrencyReady(timeoutMs = 1500) {
+    const start = Date.now();
+    if (window.CodformCurrencyManager && typeof window.CodformCurrencyManager.getRates === 'function') {
+      const rates = window.CodformCurrencyManager.getRates();
+      if (rates && Object.keys(rates).length > 0) return true;
+    }
+    return await new Promise((resolve) => {
+      let resolved = false;
+      const onUpdate = () => {
+        if (resolved) return;
+        try {
+          const r = window.CodformCurrencyManager?.getRates?.() || {};
+          if (Object.keys(r).length > 0) {
+            resolved = true;
+            window.removeEventListener('currencySettingsUpdated', onUpdate);
+            resolve(true);
+          }
+        } catch (e) {}
+      };
+      window.addEventListener('currencySettingsUpdated', onUpdate);
+      setTimeout(() => { if (!resolved) { window.removeEventListener('currencySettingsUpdated', onUpdate); resolve(false); } }, timeoutMs);
+    });
+  }
+
   /**
    * Update price display based on quantity
    */
@@ -615,30 +643,25 @@
     let unitPrice = cachedProductPrice;
     let formattedPrice;
 
-    // Prefer unified system ONLY when it matches the detected target currency
-    const unifiedPreferred = (window.CodformUnifiedSystem && typeof window.CodformUnifiedSystem.getPreferredCurrency === 'function') ? window.CodformUnifiedSystem.getPreferredCurrency() : null;
-    const shouldUseUnified = !!(window.CodformUnifiedSystem && typeof window.CodformUnifiedSystem.formatCurrency === 'function' && unifiedPreferred && unifiedPreferred === targetCurrency);
-
-    if (shouldUseUnified) {
-      const totalBase = cachedProductPrice * quantity; // base in source currency
-      formattedPrice = window.CodformUnifiedSystem.formatCurrency(totalBase, cachedCurrency);
-      targetCurrency = unifiedPreferred;
-      console.log(`🛒 Cart Items: UnifiedSystem formatted: ${formattedPrice}`);
-    } else {
-      if (window.CodformCurrencyManager && typeof window.CodformCurrencyManager.convertCurrency === 'function' && cachedCurrency !== targetCurrency) {
+    // Prefer Currency Manager first to guarantee custom rates usage
+    if (window.CodformCurrencyManager && typeof window.CodformCurrencyManager.convertCurrency === 'function') {
+      if (cachedCurrency !== targetCurrency) {
         unitPrice = window.CodformCurrencyManager.convertCurrency(cachedProductPrice, cachedCurrency, targetCurrency);
       }
-      
-      // Calculate total price based on quantity
       const totalPrice = unitPrice * quantity;
-      console.log(`🛒 Cart Items: Total price calculation: ${unitPrice} x ${quantity} = ${totalPrice} ${targetCurrency}`);
-      
-      // Format using Currency Manager directly to avoid re-targeting
-      if (window.CodformCurrencyManager && typeof window.CodformCurrencyManager.formatCurrency === 'function') {
+      if (typeof window.CodformCurrencyManager.formatCurrency === 'function') {
         formattedPrice = window.CodformCurrencyManager.formatCurrency(totalPrice, targetCurrency);
       } else {
         formattedPrice = `${totalPrice} ${targetCurrency}`;
       }
+    } else if (window.CodformUnifiedSystem && typeof window.CodformUnifiedSystem.formatCurrency === 'function') {
+      const totalBase = cachedProductPrice * quantity; // base in source currency
+      formattedPrice = window.CodformUnifiedSystem.formatCurrency(totalBase, cachedCurrency);
+      targetCurrency = (window.CodformUnifiedSystem.getPreferredCurrency && window.CodformUnifiedSystem.getPreferredCurrency()) || targetCurrency;
+    } else {
+      // Final fallback: no conversion available
+      const totalPrice = cachedProductPrice * quantity;
+      formattedPrice = `${totalPrice} ${targetCurrency}`;
     }
     console.log(`🛒 Cart Items: Formatted price: ${formattedPrice}`);
     // Update all price elements in cart items
