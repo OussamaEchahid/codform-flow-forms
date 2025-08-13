@@ -149,6 +149,23 @@ export const useFormTemplates = () => {
         return null;
       }
 
+      // Get shop currency for default settings
+      const getShopCurrency = async (): Promise<string | undefined> => {
+        try {
+          const { data: storeData } = await supabase
+            .from('shopify_stores')
+            .select('currency')
+            .eq('shop', shopId)
+            .single();
+          return storeData?.currency;
+        } catch (error) {
+          console.log('Could not fetch shop currency, using default');
+          return undefined;
+        }
+      };
+
+      const shopCurrency = await getShopCurrency();
+
       // New form data
       const newFormId = uuidv4();
       const formData: FormData = {

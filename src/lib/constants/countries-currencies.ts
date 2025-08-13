@@ -732,6 +732,52 @@ export const getCurrencyByCode = (code: string): Currency | undefined => {
   return CURRENCIES.find(currency => currency.code === code);
 };
 
+// Get country by currency code
+export const getCountryByCurrencyCode = (currencyCode: string): Country | undefined => {
+  return COUNTRIES.find(country => country.currency === currencyCode);
+};
+
+// Get default country and currency settings based on shop currency
+export const getDefaultCountryCurrencySettings = (shopCurrency?: string) => {
+  // Default to Saudi Arabia if no currency provided
+  if (!shopCurrency) {
+    return {
+      country: 'SA',
+      currency: 'SAR',
+      phonePrefix: '+966'
+    };
+  }
+
+  // Find country by currency
+  const country = getCountryByCurrencyCode(shopCurrency);
+  
+  if (country) {
+    return {
+      country: country.code,
+      currency: country.currency,
+      phonePrefix: country.phonePrefix
+    };
+  }
+
+  // Fallback for common currencies not in our countries list
+  const currencyDefaults: Record<string, { country: string; currency: string; phonePrefix: string }> = {
+    'USD': { country: 'US', currency: 'USD', phonePrefix: '+1' },
+    'EUR': { country: 'DE', currency: 'EUR', phonePrefix: '+49' },
+    'GBP': { country: 'GB', currency: 'GBP', phonePrefix: '+44' },
+    'AUD': { country: 'AU', currency: 'AUD', phonePrefix: '+61' },
+    'CAD': { country: 'CA', currency: 'CAD', phonePrefix: '+1' },
+    'JPY': { country: 'JP', currency: 'JPY', phonePrefix: '+81' },
+    'CNY': { country: 'CN', currency: 'CNY', phonePrefix: '+86' },
+    'INR': { country: 'IN', currency: 'INR', phonePrefix: '+91' },
+  };
+
+  return currencyDefaults[shopCurrency] || {
+    country: 'SA',
+    currency: 'SAR', 
+    phonePrefix: '+966'
+  };
+};
+
 export const getCountryNameByCode = (code: string, language: 'en' | 'ar' = 'en'): string => {
   const country = getCountryByCode(code);
   if (!country) return code;

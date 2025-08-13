@@ -15,6 +15,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Globe } from 'lucide-react';
 import { FormField } from '@/lib/form-utils';
 import { getFieldDefaults } from '@/lib/defaults/field-defaults';
+import { getDefaultCountryCurrencySettings } from '@/lib/constants/countries-currencies';
 
 interface NewFormProductDialogProps {
   open: boolean;
@@ -252,6 +253,23 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
       // Generate default form fields based on selected language
       const defaultFields = createDefaultFormFields(selectedLanguage);
       
+      // Get shop currency settings for default country/currency
+      const getShopCurrency = async (): Promise<string | undefined> => {
+        try {
+          const { data: storeData } = await supabase
+            .from('shopify_stores')
+            .select('currency')
+            .eq('shop', shopId)
+            .single();
+          return storeData?.currency;
+        } catch (error) {
+          console.log('Could not fetch shop currency, using default');
+          return undefined;
+        }
+      };
+
+      const shopCurrency = await getShopCurrency();
+      
       // Prepare default style
       const defaultStyle = {
         primaryColor: '#9b87f5',
@@ -278,6 +296,9 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
         es: 'Nuevo Formulario'
       };
       
+      // Get default country/currency settings based on shop currency
+      const defaultSettings = getDefaultCountryCurrencySettings(shopCurrency);
+      
       // Create the form via SECURITY DEFINER RPC to satisfy RLS
       const { data: createdFormId, error: createFormError } = await (supabase as any).rpc('create_form_for_shop', {
         p_shop_id: shopId,
@@ -287,6 +308,22 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
         p_style: defaultStyle as any,
         p_is_published: true
       });
+
+      // Update form with country/currency settings after creation
+      if (createdFormId) {
+        const { error: updateError } = await supabase
+          .from('forms')
+          .update({
+            country: defaultSettings.country,
+            currency: defaultSettings.currency,
+            phone_prefix: defaultSettings.phonePrefix
+          })
+          .eq('id', createdFormId);
+          
+        if (updateError) {
+          console.error('Error updating form country/currency settings:', updateError);
+        }
+      }
       
       if (createFormError || !createdFormId) {
         console.error('Error creating form via RPC:', createFormError);
