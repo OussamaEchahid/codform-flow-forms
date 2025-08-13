@@ -11,8 +11,7 @@ function fetchCodForm(shopDomain, productId, blockId) {
   const fetchOptions = {
     method: 'GET',
     headers: {
-      'Content-Type': 'application/json',
-      'Cache-Control': 'no-store, no-cache'
+      'Content-Type': 'application/json'
     }
   };
   
