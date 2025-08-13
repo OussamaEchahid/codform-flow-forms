@@ -214,11 +214,6 @@
 
       console.log(`🛒 Cart Items: Product data cached - Title: "${cachedProductTitle}", Image: ${cachedProductImage ? 'Available' : 'Not available'}`);
 
-      // ✅ CRITICAL: Re-render Cart Items with new data
-      setTimeout(() => {
-        reRenderCartItems();
-      }, 100);
-
       // Broadcast for other widgets
       try {
         window.dispatchEvent(new CustomEvent('codform:product-data', {
@@ -315,20 +310,16 @@
   }
 
   /**
-   * Render cart items field - only when data is ready
+   * Render cart items field - use cached data directly
    */
   function renderCartItems(field, formStyle, formDirection) {
     const fieldStyle = field.style || {};
     const direction = formDirection || 'ltr';
     const isRTL = direction === 'rtl';
     
-    // ✅ CRITICAL FIX: Prioritize cached data over window data
-    const productTitle = cachedProductTitle || (cachedProductData && cachedProductData.title) || (window.CodformProductData && window.CodformProductData.title) || null;
-    const productImage = cachedProductImage || (cachedProductData && cachedProductData.image) || (window.CodformProductData && window.CodformProductData.image) || null;
-    
-    // If we don't have proper data yet, return a loading placeholder
-    if (!productTitle || productTitle === 'Loading...') {
-      console.log('🛒 Cart Items: Data not ready yet, showing loading state');
+    // Simple fix: Use cached data if available, otherwise show loading
+    if (!cachedProductData || !cachedProductTitle) {
+      console.log('🛒 Cart Items: No cached product data, showing loading state');
       return `
         <div class="cart-items-loading" style="
           padding: 20px;
@@ -342,9 +333,10 @@
       `;
     }
     
-    const productData = cachedProductData || window.CodformProductData || {};
-    const priceForRender = productData.price || cachedProductPrice || 1;
-    const currencyForRender = productData.currency || cachedCurrency || 'USD';
+    const productTitle = cachedProductTitle;
+    const productImage = cachedProductImage;
+    const priceForRender = cachedProductData.price || 1;
+    const currencyForRender = cachedProductData.currency || 'USD';
     
     console.log(`🛒 Cart Items RENDER: Product title: "${productTitle}", Image: ${productImage ? 'Available' : 'Not available'}`);
     
@@ -500,29 +492,6 @@
     `;
   }
 
-  /**
-   * Re-render all Cart Items when product data becomes available
-   */
-  function reRenderCartItems() {
-    console.log('🛒 Cart Items: Re-rendering with updated product data');
-    
-    const cartItemsElements = document.querySelectorAll('[data-field-type="cart_items"]');
-    cartItemsElements.forEach(element => {
-      const fieldData = element.fieldData;
-      const formStyle = element.formStyle;
-      const formDirection = element.formDirection;
-      
-      if (fieldData && formStyle) {
-        element.innerHTML = renderCartItems(fieldData, formStyle, formDirection);
-        console.log('🛒 Cart Items: Element re-rendered successfully');
-        
-        // Update price display after re-render
-        setTimeout(() => {
-          updatePriceDisplay(1);
-        }, 50);
-      }
-    });
-  }
 
   /**
    * Increase quantity - محسن
