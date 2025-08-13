@@ -66,6 +66,7 @@ const formElementTypes = [
 
 // Import the unified store manager
 import UnifiedStoreManager from '@/utils/unified-store-manager';
+import { getDefaultCountryCurrencySettings } from '@/lib/constants/countries-currencies';
 
 // Add function to get active shop ID
 const getActiveShopId = (): string | null => {
@@ -255,6 +256,40 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
       const newId = uuidv4();
       setCurrentFormId(newId);
 
+      // Get shop currency and set form defaults
+      let defaultSettings = { country: 'SA', currency: 'SAR', phonePrefix: '+966' };
+      
+      try {
+        // Call edge function to get shop info and currency
+        const { data: shopInfo, error } = await supabase.functions.invoke('shopify-shop-info', {
+          body: { shop: activeShopId }
+        });
+        
+        if (shopInfo?.success && shopInfo?.shop?.money_format) {
+          // Extract currency from money format (e.g., "{{ amount }} SAR" -> SAR)
+          const moneyFormat = shopInfo.shop.money_format || '';
+          
+          // Try to extract currency code from format
+          let detectedCurrency = 'SAR'; // default
+          if (moneyFormat.includes('SAR')) detectedCurrency = 'SAR';
+          else if (moneyFormat.includes('AED')) detectedCurrency = 'AED';
+          else if (moneyFormat.includes('MAD')) detectedCurrency = 'MAD';
+          else if (moneyFormat.includes('USD')) detectedCurrency = 'USD';
+          else if (moneyFormat.includes('EUR')) detectedCurrency = 'EUR';
+          else if (moneyFormat.includes('EGP')) detectedCurrency = 'EGP';
+          
+          defaultSettings = getDefaultCountryCurrencySettings(detectedCurrency);
+          console.log('🏪 New form - Detected shop currency:', detectedCurrency, 'from format:', moneyFormat);
+        }
+      } catch (error) {
+        console.log('Could not fetch shop currency for new form, using defaults:', error);
+      }
+      
+      // Set form settings based on shop currency
+      setFormCountry(defaultSettings.country);
+      setFormCurrency(defaultSettings.currency);
+      setFormPhonePrefix(defaultSettings.phonePrefix);
+
       // Set initial form style with all required properties
       const defaultStyle: FormStyle = {
         primaryColor: '#9b87f5',
@@ -269,7 +304,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
         paddingLeft: '20px',
         paddingRight: '20px',
         formGap: '5px',
-        formDirection: 'ltr',
+        formDirection: defaultSettings.country === 'SA' ? 'rtl' : 'ltr', // RTL for Arabic countries
         floatingLabels: false
       };
       
@@ -362,10 +397,41 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
             setFormTitle(formData.title);
             setFormDescription(formData.description || '');
             
-            // Load form settings
-            setFormCountry(formData.country || 'MA');
-            setFormCurrency(formData.currency || 'MAD');
-            setFormPhonePrefix(formData.phone_prefix || '+212');
+            // Load form settings with shop's default if not set
+            const activeShopId = getActiveShopId();
+            let defaultSettings = { country: 'SA', currency: 'SAR', phonePrefix: '+966' };
+            
+            if (activeShopId) {
+              try {
+                // Call edge function to get shop info and currency
+                const { data: shopInfo, error } = await supabase.functions.invoke('shopify-shop-info', {
+                  body: { shop: activeShopId }
+                });
+                
+                if (shopInfo?.success && shopInfo?.shop?.money_format) {
+                  // Extract currency from money format (e.g., "{{ amount }} SAR" -> SAR)
+                  const moneyFormat = shopInfo.shop.money_format || '';
+                  
+                  // Try to extract currency code from format
+                  let detectedCurrency = 'SAR'; // default
+                  if (moneyFormat.includes('SAR')) detectedCurrency = 'SAR';
+                  else if (moneyFormat.includes('AED')) detectedCurrency = 'AED';
+                  else if (moneyFormat.includes('MAD')) detectedCurrency = 'MAD';
+                  else if (moneyFormat.includes('USD')) detectedCurrency = 'USD';
+                  else if (moneyFormat.includes('EUR')) detectedCurrency = 'EUR';
+                  else if (moneyFormat.includes('EGP')) detectedCurrency = 'EGP';
+                  
+                  defaultSettings = getDefaultCountryCurrencySettings(detectedCurrency);
+                  console.log('🏪 Detected shop currency:', detectedCurrency, 'from format:', moneyFormat);
+                }
+              } catch (error) {
+                console.log('Could not fetch shop currency from edge function, using defaults:', error);
+              }
+            }
+            
+            setFormCountry(formData.country || defaultSettings.country);
+            setFormCurrency(formData.currency || defaultSettings.currency);
+            setFormPhonePrefix(formData.phone_prefix || defaultSettings.phonePrefix);
             
             // Load form elements
             let loadedElements = formData.data?.flatMap(step => step.fields) || [];
