@@ -574,17 +574,21 @@
       
       // Wait for currency settings AND custom rates to be ready
       console.log('🛒 Cart Items: Waiting for currency manager and custom rates...');
-      await waitForCurrencyReady(8000); // زيادة المهلة إلى 8 ثوان
+      await waitForCurrencyManagerWithCustomRates();
       
       // Check if custom rates are actually loaded
       if (window.CodformCurrencyManager && typeof window.CodformCurrencyManager.getRates === 'function') {
         const rates = window.CodformCurrencyManager.getRates();
         console.log('🛒 Cart Items: Available rates during init:', rates);
         
-        if (rates.MAD && rates.MAD !== 10) {
-          console.log(`🛒 Cart Items: ✅ Custom MAD rate found: ${rates.MAD}`);
+        // فحص أكثر ذكاءً للمعدلات المخصصة
+        const targetCurrency = getTargetCurrency();
+        if (targetCurrency && rates[targetCurrency]) {
+          const rate = rates[targetCurrency];
+          const isCustomRate = window.CodformCurrencyManager.isCustomRate && window.CodformCurrencyManager.isCustomRate(targetCurrency);
+          console.log(`🛒 Cart Items: ✅ ${targetCurrency} rate: ${rate} (custom: ${isCustomRate})`);
         } else {
-          console.warn('🛒 Cart Items: ⚠️ Custom MAD rate NOT found or still default (10)');
+          console.warn(`🛒 Cart Items: ⚠️ ${targetCurrency} rate not found in available rates`);
         }
       }
       
@@ -603,54 +607,69 @@
     }
   }
 
+  // دالة للحصول على العملة المستهدفة
+  function getTargetCurrency() {
+    const sources = [
+      () => window.CodformFormData?.currency,
+      () => window.currentFormData?.savedFormCurrency,
+      () => window.formCurrency,
+      () => document.querySelector('.cart-summary-field')?.getAttribute('data-currency'),
+      () => window.CodformSmartCurrency?.getCurrentCurrency?.(),
+      () => window.Shopify?.currency?.active,
+      () => 'USD'
+    ];
+    
+    for (const source of sources) {
+      try {
+        const currency = source();
+        if (currency && currency !== 'auto-detect') {
+          return currency;
+        }
+      } catch (e) {}
+    }
+    return 'USD';
+  }
+
   /**
-   * Wait for currency manager to be ready with custom rates - محسن
+   * الانتظار حتى تصبح العملات جاهزة والتأكد من وجود المعدلات المخصصة
    */
-  function waitForCurrencyReady(timeoutMs = 8000) {
-    return new Promise((resolve) => {
-      const startTime = Date.now();
-      let checkCount = 0;
+  async function waitForCurrencyManagerWithCustomRates() {
+    const maxAttempts = 15; // زيادة المحاولات
+    let attempts = 0;
+    
+    while (attempts < maxAttempts) {
+      attempts++;
+      console.log(`🛒 Cart Items: Currency readiness check #${attempts}`);
       
-      function checkReady() {
-        checkCount++;
-        console.log(`🛒 Cart Items: Currency readiness check #${checkCount}`);
+      if (window.CodformCurrencyManager && typeof window.CodformCurrencyManager.getRates === 'function') {
+        const rates = window.CodformCurrencyManager.getRates();
+        console.log('🛒 Cart Items: Current rates during check:', rates);
         
-        // Check if Currency Manager is available and has custom rates loaded
-        if (window.CodformCurrencyManager && 
-            typeof window.CodformCurrencyManager.getRates === 'function') {
-          
-          const rates = window.CodformCurrencyManager.getRates();
-          console.log('🛒 Cart Items: Current rates during check:', rates);
-          
-          // تحقق أكثر دقة للمعدلات المخصصة
-          const hasCustomMAD = rates && rates.MAD && rates.MAD !== 10; // 10 is default
-          const hasCustomRates = rates && Object.keys(rates).length > 5; // more than just defaults
-          
-          console.log(`🛒 Cart Items: Custom MAD rate check: ${rates.MAD} (is custom: ${hasCustomMAD})`);
-          
-          if (hasCustomMAD || hasCustomRates) {
-            console.log('✅ Cart Items: Currency Manager is ready with CUSTOM rates!');
-            resolve();
-            return;
+        // فحص أكثر ذكاءً للمعدلات المخصصة - تحقق من وجود أي معدلات مخصصة
+        const hasCustomRates = Object.keys(rates).some(currency => {
+          if (window.CodformCurrencyManager.isCustomRate) {
+            return window.CodformCurrencyManager.isCustomRate(currency);
           }
-        }
+          // fallback: تحقق من أن المعدل مختلف عن الافتراضي
+          const defaultRates = { USD: 1, SAR: 3.75, AED: 3.67, MAD: 10, CAD: 1.35 };
+          return rates[currency] !== defaultRates[currency];
+        });
         
-        // التحقق من تهيئة Currency Manager
-        if (!window.CodformCurrencyManager) {
-          console.log('🛒 Cart Items: Currency Manager not available yet...');
-        }
-        
-        if (Date.now() - startTime < timeoutMs) {
-          setTimeout(checkReady, 300); // فحص كل 300ms
+        if (hasCustomRates) {
+          console.log('✅ Cart Items: Currency Manager is ready with CUSTOM rates!');
+          return true;
         } else {
-          console.warn('⚠️ Cart Items: Currency readiness timeout, proceeding with available rates');
-          console.log('⚠️ Final rates at timeout:', window.CodformCurrencyManager?.getRates?.() || 'No rates');
-          resolve();
+          console.log('🛒 Cart Items: Currency Manager available but no custom rates detected yet');
         }
+      } else {
+        console.log('🛒 Cart Items: Currency Manager not ready yet');
       }
       
-      checkReady();
-    });
+      await new Promise(resolve => setTimeout(resolve, 500)); // انتظار 500ms بين المحاولات
+    }
+    
+    console.warn('⚠️ Cart Items: Timeout waiting for custom rates, proceeding anyway');
+    return false;
   }
 
   /**
