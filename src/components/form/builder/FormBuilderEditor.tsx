@@ -256,34 +256,10 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
       const newId = uuidv4();
       setCurrentFormId(newId);
 
-      // Get shop currency and set form defaults to Morocco
-      let defaultSettings = { country: 'MA', currency: 'MAD', phonePrefix: '+212' };
+      // Set form defaults - hardcoded to MAD for Moroccan stores
+      const defaultSettings = { country: 'MA', currency: 'MAD', phonePrefix: '+212' };
       
-      try {
-        // Call edge function to get shop info and currency
-        const { data: shopInfo, error } = await supabase.functions.invoke('shopify-shop-info', {
-          body: { shop: activeShopId }
-        });
-        
-        if (shopInfo?.success && shopInfo?.shop?.money_format) {
-          // Extract currency from money format (e.g., "{{ amount }} SAR" -> SAR)
-          const moneyFormat = shopInfo.shop.money_format || '';
-          
-          // Try to extract currency code from format
-          let detectedCurrency = 'SAR'; // default
-          if (moneyFormat.includes('SAR')) detectedCurrency = 'SAR';
-          else if (moneyFormat.includes('AED')) detectedCurrency = 'AED';
-          else if (moneyFormat.includes('MAD')) detectedCurrency = 'MAD';
-          else if (moneyFormat.includes('USD')) detectedCurrency = 'USD';
-          else if (moneyFormat.includes('EUR')) detectedCurrency = 'EUR';
-          else if (moneyFormat.includes('EGP')) detectedCurrency = 'EGP';
-          
-          defaultSettings = getDefaultCountryCurrencySettings(detectedCurrency);
-          console.log('🏪 New form - Detected shop currency:', detectedCurrency, 'from format:', moneyFormat);
-        }
-      } catch (error) {
-        console.log('Could not fetch shop currency for new form, using defaults:', error);
-      }
+      console.log('🏪 Setting form defaults to:', defaultSettings);
       
       // Set form settings based on shop currency
       setFormCountry(defaultSettings.country);
@@ -304,7 +280,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
         paddingLeft: '20px',
         paddingRight: '20px',
         formGap: '5px',
-        formDirection: defaultSettings.country === 'MA' ? 'rtl' : 'ltr', // RTL for Arabic countries
+        formDirection: 'rtl', // RTL for Arabic countries
         floatingLabels: false
       };
       
@@ -397,37 +373,10 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
             setFormTitle(formData.title);
             setFormDescription(formData.description || '');
             
-            // Load form settings with shop's default if not set
-            const activeShopId = getActiveShopId();
-            let defaultSettings = { country: 'MA', currency: 'MAD', phonePrefix: '+212' };
+            // Load form settings with default to MAD
+            const defaultSettings = { country: 'MA', currency: 'MAD', phonePrefix: '+212' };
             
-            if (activeShopId) {
-              try {
-                // Call edge function to get shop info and currency
-                const { data: shopInfo, error } = await supabase.functions.invoke('shopify-shop-info', {
-                  body: { shop: activeShopId }
-                });
-                
-                if (shopInfo?.success && shopInfo?.shop?.money_format) {
-                  // Extract currency from money format (e.g., "{{ amount }} SAR" -> SAR)
-                  const moneyFormat = shopInfo.shop.money_format || '';
-                  
-                  // Try to extract currency code from format
-                  let detectedCurrency = 'SAR'; // default
-                  if (moneyFormat.includes('SAR')) detectedCurrency = 'SAR';
-                  else if (moneyFormat.includes('AED')) detectedCurrency = 'AED';
-                  else if (moneyFormat.includes('MAD')) detectedCurrency = 'MAD';
-                  else if (moneyFormat.includes('USD')) detectedCurrency = 'USD';
-                  else if (moneyFormat.includes('EUR')) detectedCurrency = 'EUR';
-                  else if (moneyFormat.includes('EGP')) detectedCurrency = 'EGP';
-                  
-                  defaultSettings = getDefaultCountryCurrencySettings(detectedCurrency);
-                  console.log('🏪 Detected shop currency:', detectedCurrency, 'from format:', moneyFormat);
-                }
-              } catch (error) {
-                console.log('Could not fetch shop currency from edge function, using defaults:', error);
-              }
-            }
+            console.log('🏪 Loading form with defaults:', defaultSettings);
             
             setFormCountry(formData.country || defaultSettings.country);
             setFormCurrency(formData.currency || defaultSettings.currency);
