@@ -5,6 +5,9 @@
 
 (function() {
   'use strict';
+  const CODFORM_CART_SUMMARY_BUILD = '2025-08-13-01';
+  try { console.log('🧩 CODFORM Cart Summary loaded - build', CODFORM_CART_SUMMARY_BUILD); } catch(e) {}
+
 
   // ✅ COMPREHENSIVE: Exchange rates - USD as base (complete list for all supported countries)
   const EXCHANGE_RATES = {
