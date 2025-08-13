@@ -119,7 +119,8 @@
           const newSettings = {
             showSymbol: data.display_settings.show_symbol !== false,
             symbolPosition: data.display_settings.symbol_position || 'before',
-            decimalPlaces: data.display_settings.decimal_places || 2,
+            // Use explicit check so 0 is respected
+            decimalPlaces: (typeof data.display_settings.decimal_places === 'number') ? data.display_settings.decimal_places : 2,
             customSymbols: data.custom_symbols || {}
           };
           
