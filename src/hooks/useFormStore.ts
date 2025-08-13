@@ -68,7 +68,7 @@ const defaultFormStyle: FormStyle = {
   paddingBottom: '20px',
   paddingLeft: '20px',
   paddingRight: '20px',
-  formGap: '16px',
+  formGap: '5px',
   formDirection: 'ltr',
   floatingLabels: false
 };

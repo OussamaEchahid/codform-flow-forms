@@ -216,7 +216,7 @@ const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
         direction: formStyle.formDirection || 'ltr',
         fontFamily: formStyle.fontFamily || 'inherit',
         fontSize: formStyle.fontSize || '1rem',
-        gap: formStyle.formGap || '16px'
+        gap: formStyle.formGap || '5px'
       }}
     >
       {/* Show quantity offers based on position */}

@@ -265,7 +265,7 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
         paddingBottom: '20px',
         paddingLeft: '20px',
         paddingRight: '20px',
-        formGap: '16px',
+        formGap: '5px',
         formDirection: selectedLanguage === 'ar' ? 'rtl' : 'ltr',
         floatingLabels: false
       };

@@ -69,7 +69,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
     paddingBottom: '20px',
     paddingLeft: '20px',
     paddingRight: '20px',
-    formGap: '16px',
+    formGap: '5px',
     formDirection: 'ltr',
     floatingLabels: false
   },
@@ -194,7 +194,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
         style={{
           direction: formDirection,
           padding: `${formStyle.paddingTop || '20px'} ${formStyle.paddingRight || '20px'} ${formStyle.paddingBottom || '20px'} ${formStyle.paddingLeft || '20px'}`,
-          gap: formStyle.formGap || '16px',
+          gap: formStyle.formGap || '5px',
           backgroundColor: formBackgroundColor,
           display: 'flex',
           flexDirection: 'column',

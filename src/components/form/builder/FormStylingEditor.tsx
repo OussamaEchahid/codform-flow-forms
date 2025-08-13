@@ -244,9 +244,9 @@ const FormStylingEditor: React.FC<FormStylingEditorProps> = ({ formStyle, onStyl
           </Label>
           <Input
             type="text"
-            value={formStyle.formGap || '16px'}
+            value={formStyle.formGap || '5px'}
             onChange={(e) => handleChange('formGap', e.target.value)}
-            placeholder="16px"
+            placeholder="5px"
           />
         </div>
         

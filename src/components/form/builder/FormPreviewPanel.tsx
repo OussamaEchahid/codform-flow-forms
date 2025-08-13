@@ -209,7 +209,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
               direction: formStyle.formDirection || 'ltr',
               display: 'flex',
               flexDirection: 'column',
-              gap: formStyle.formGap || '16px',
+              gap: formStyle.formGap || '5px',
               paddingTop: formStyle.paddingTop || '20px',
               paddingBottom: formStyle.paddingBottom || '20px',
               paddingLeft: formStyle.paddingLeft || '20px',

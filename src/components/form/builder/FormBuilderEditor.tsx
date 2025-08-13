@@ -107,7 +107,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
     paddingBottom: '20px',
     paddingLeft: '20px',
     paddingRight: '20px',
-    formGap: '16px',
+    formGap: '5px',
     formDirection: 'ltr',
     floatingLabels: false
   });
@@ -268,7 +268,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
         paddingBottom: '20px',
         paddingLeft: '20px',
         paddingRight: '20px',
-        formGap: '16px',
+        formGap: '5px',
         formDirection: 'ltr',
         floatingLabels: false
       };
@@ -418,7 +418,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
                 paddingBottom: formData.style.paddingBottom || '20px',
                 paddingLeft: formData.style.paddingLeft || '20px',
                 paddingRight: formData.style.paddingRight || '20px',
-                formGap: formData.style.formGap || '16px',
+                formGap: formData.style.formGap || '5px',
                 formDirection: formData.style.formDirection || 'ltr',
                 floatingLabels: formData.style.floatingLabels || false
               });
@@ -436,7 +436,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
                 paddingBottom: '20px',
                 paddingLeft: '20px',
                 paddingRight: '20px',
-                formGap: '16px',
+                formGap: '5px',
                 formDirection: 'ltr',
                 floatingLabels: false
               });
@@ -806,7 +806,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
           paddingBottom: templateStyle.paddingBottom || '20px',
           paddingLeft: templateStyle.paddingLeft || '20px',
           paddingRight: templateStyle.paddingRight || '20px',
-          formGap: templateStyle.formGap || '16px',
+          formGap: templateStyle.formGap || '5px',
           formDirection: templateStyle.formDirection || 'ltr',
           floatingLabels: templateStyle.floatingLabels || false
         });
