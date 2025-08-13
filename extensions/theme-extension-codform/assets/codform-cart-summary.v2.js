@@ -642,14 +642,34 @@
       // جرب الحصول على البيانات من DOM
       if (!productId || !shopDomain) {
         console.log('⚠️ Cart Summary - Missing global variables, trying DOM...');
-        
         const productMeta = document.querySelector('meta[name="product-id"]');
         const shopMeta = document.querySelector('meta[name="shop-domain"]');
-        
         productId = productId || productMeta?.getAttribute('content');
         shopDomain = shopDomain || shopMeta?.getAttribute('content') || window.location.hostname;
-        
         console.log('🔍 Cart Summary - After DOM check:', { shopDomain, productId });
+
+        // ✅ FINAL FALLBACK: Extract handle from URL and fetch /products/{handle}.js to get numeric ID
+        if (!productId && typeof window !== 'undefined' && window.location.pathname.includes('/products/')) {
+          try {
+            const handle = window.location.pathname.split('/products/')[1]?.split('?')[0]?.split('#')[0];
+            if (handle) {
+              const res = await fetch(`/products/${handle}.js`);
+              if (res.ok) {
+                const prod = await res.json();
+                const numericId = prod?.id || (prod?.variants?.[0]?.product_id);
+                if (numericId) {
+                  productId = String(numericId);
+                  console.log('✅ Cart Summary - Resolved productId from storefront .js:', productId);
+                }
+                if (!shopDomain) {
+                  shopDomain = window.location.hostname;
+                }
+              }
+            }
+          } catch (e) {
+            console.warn('ℹ️ Cart Summary - Storefront fallback failed:', e);
+          }
+        }
       }
       
       if (productId && shopDomain) {
