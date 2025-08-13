@@ -21,11 +21,12 @@
 
       let productData = {
         price: 29.99,
-        currency: 'SAR',
+        currency: (window.CodformFormData && window.CodformFormData.currency) ||
+                  (window.Shopify && window.Shopify.currency && (window.Shopify.currency.active || window.Shopify.currency.shopCurrency || window.Shopify.currency.shop_currency)) ||
+                  'MAD',
         title: 'Product',
         image: null
       };
-
       // Try to get product data from current page URL
       const currentUrl = window.location.href;
       const isProductPage = currentUrl.includes('/products/');

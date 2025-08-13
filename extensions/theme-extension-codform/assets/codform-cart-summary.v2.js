@@ -384,8 +384,8 @@
         if (price > 1000) { price = price / 100; }
         
         // ✅ CRITICAL FIX: Use form currency directly when currencies match
-        const productCurrency = data.product.currency || 'USD';
         const formCurrency = data.currency;
+        const productCurrency = data.product.currency || formCurrency; // default to form currency if missing
         
         // If currencies match, treat product as having form currency (no conversion)
         const finalCurrency = (productCurrency === formCurrency) ? formCurrency : productCurrency;
