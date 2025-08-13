@@ -61,15 +61,19 @@
   }
 
   /**
-   * Fetch product data from current Shopify page or API
+   * Fetch product data from current Shopify page or API - إصلاح جذري للعملة
    */
   async function fetchProductPrice() {
     try {
       console.log('🛒 Cart Items: Getting product data from current page...');
 
+      // تحديد العملة الأساسية للمتجر (USD في معظم الحالات)
+      const shopBaseCurrency = detectShopBaseCurrency();
+      console.log(`🛒 Cart Items: 🏪 Shop base currency detected: ${shopBaseCurrency}`);
+
       let productData = {
-        price: 29.99,
-        currency: detectShopBaseCurrency() || 'USD',
+        price: 1.0, // سعر افتراضي بالدولار
+        currency: 'USD', // العملة الأساسية دائماً USD للتحويل
         title: 'Product',
         image: null
       };
@@ -85,24 +89,62 @@
           console.log('🛒 Cart Items: Found product handle:', productHandle);
           
           try {
+            // استخدام API مع العملة الأساسية
             const productApiUrl = `/products/${productHandle}.js`;
             const response = await fetch(productApiUrl);
             
             if (response.ok) {
               const product = await response.json();
-              console.log('🛒 Cart Items: Got product from API:', product);
+              console.log('🛒 Cart Items: Raw product data from API:', product);
               
               if (product && product.variants && product.variants.length > 0) {
                 const variant = product.variants[0];
-                productData.price = variant.price / 100; // Convert from cents
+                let rawPrice = variant.price / 100; // Convert from cents
+                
+                console.log(`🛒 Cart Items: 💰 Raw price from API: ${rawPrice}`);
+                
+                // التحقق من العملة النشطة في شوبيفاي
+                const currentActiveCurrency = window.Shopify?.currency?.active || 'USD';
+                console.log(`🛒 Cart Items: 💱 Current active currency in Shopify: ${currentActiveCurrency}`);
+                
+                // إذا كان السعر بعملة أخرى غير USD، نحتاج لتحويله إلى USD أولاً
+                if (currentActiveCurrency !== 'USD') {
+                  console.log(`🛒 Cart Items: 🔄 Converting price from ${currentActiveCurrency} to USD base`);
+                  
+                  // استخدام معدلات التحويل العكسية للحصول على السعر بالدولار
+                  if (window.CodformCurrencyManager && typeof window.CodformCurrencyManager.getRates === 'function') {
+                    const rates = window.CodformCurrencyManager.getRates();
+                    const currentRate = rates[currentActiveCurrency];
+                    
+                    if (currentRate && currentRate > 0) {
+                      // تحويل عكسي: من العملة النشطة إلى USD
+                      const usdPrice = rawPrice / currentRate;
+                      productData.price = parseFloat(usdPrice.toFixed(2));
+                      productData.currency = 'USD'; // العملة الأساسية
+                      
+                      console.log(`🛒 Cart Items: ✅ Converted ${rawPrice} ${currentActiveCurrency} → ${productData.price} USD (rate: ${currentRate})`);
+                    } else {
+                      console.warn(`🛒 Cart Items: ⚠️ No rate found for ${currentActiveCurrency}, assuming USD`);
+                      productData.price = rawPrice;
+                      productData.currency = 'USD';
+                    }
+                  } else {
+                    // fallback: افتراض أن السعر بالدولار
+                    console.warn('🛒 Cart Items: ⚠️ Currency Manager not available, assuming USD price');
+                    productData.price = rawPrice;
+                    productData.currency = 'USD';
+                  }
+                } else {
+                  // السعر بالدولار بالفعل
+                  productData.price = rawPrice;
+                  productData.currency = 'USD';
+                  console.log(`🛒 Cart Items: ✅ Price is already in USD: ${productData.price}`);
+                }
+                
                 productData.title = product.title;
                 productData.image = product.featured_image;
                 
-                const finalBase = detectShopBaseCurrency();
-                if (finalBase) {
-                  productData.currency = finalBase;
-                }
-                console.log('🛒 Cart Items: Product data loaded:', productData);
+                console.log('🛒 Cart Items: 🎯 FINAL PRODUCT DATA:', productData);
               }
             }
           } catch (apiError) {
@@ -112,7 +154,9 @@
       }
 
       // Try to get data from DOM elements if API failed
-      if (productData.price === 29.99) {
+      if (productData.price === 1.0) {
+        console.log('🛒 Cart Items: Trying to extract price from DOM...');
+        
         const priceSelectors = [
           '.price .money',
           '.product-price .money',
@@ -127,8 +171,9 @@
             const raw = (priceElement.textContent || priceElement.getAttribute('data-price') || '').trim();
             const priceMatch = raw.match(/[\d,]+\.?\d*/);
             if (priceMatch) {
-              productData.price = parseFloat(priceMatch[0].replace(',', ''));
+              let domPrice = parseFloat(priceMatch[0].replace(',', ''));
               
+              // تحديد العملة من النص
               const detectFromText = (txt) => {
                 if (!txt) return null;
                 const t = txt.replace(/\s+/g, ' ');
@@ -143,11 +188,32 @@
               
               const attrCurrency = priceElement.getAttribute('data-currency') || priceElement.closest('[data-currency]')?.getAttribute('data-currency');
               const textCurrency = detectFromText(raw);
-              const resolved = attrCurrency || textCurrency;
-              if (resolved) {
-                productData.currency = resolved;
+              const domCurrency = attrCurrency || textCurrency || window.Shopify?.currency?.active || 'USD';
+              
+              console.log(`🛒 Cart Items: DOM price: ${domPrice} ${domCurrency}`);
+              
+              // تحويل إلى USD إذا لم يكن بالفعل
+              if (domCurrency !== 'USD') {
+                if (window.CodformCurrencyManager && typeof window.CodformCurrencyManager.getRates === 'function') {
+                  const rates = window.CodformCurrencyManager.getRates();
+                  const rate = rates[domCurrency];
+                  
+                  if (rate && rate > 0) {
+                    productData.price = parseFloat((domPrice / rate).toFixed(2));
+                    productData.currency = 'USD';
+                    console.log(`🛒 Cart Items: Converted DOM price ${domPrice} ${domCurrency} → ${productData.price} USD`);
+                  } else {
+                    productData.price = domPrice;
+                    productData.currency = 'USD'; // افتراض
+                  }
+                } else {
+                  productData.price = domPrice;
+                  productData.currency = 'USD'; // افتراض
+                }
+              } else {
+                productData.price = domPrice;
+                productData.currency = 'USD';
               }
-              console.log('🛒 Cart Items: Found price in DOM:', productData.price, 'currency:', productData.currency);
               break;
             }
           }
@@ -156,7 +222,7 @@
 
       // Cache the results
       cachedProductPrice = productData.price;
-      cachedCurrency = productData.currency;
+      cachedCurrency = productData.currency; // دائماً USD للتحويل
       window.CodformProductData = productData;
 
       // Broadcast for other widgets
@@ -166,15 +232,15 @@
         }));
       } catch (_) {}
 
-      console.log(`🛒 Cart Items: Final product data - Price: ${productData.price}, Currency: ${productData.currency}, Title: ${productData.title}`);
+      console.log(`🛒 Cart Items: 🎉 FINAL RESULT - Price: ${productData.price} ${productData.currency}, Title: ${productData.title}`);
       return productData;
 
     } catch (error) {
       console.error('🚨 Cart Items - Error getting product data:', error);
       
       const fallbackData = {
-        price: 29.99,
-        currency: 'SAR',
+        price: 1.0,
+        currency: 'USD', // دائماً USD للتحويل
         title: 'Product',
         image: null
       };
