@@ -348,23 +348,26 @@
       console.log('📊 Cart Summary - API Response (quantity offers format):', data);
       
       // ✅ FIXED: Properly save currency from API response
-      if (data.success && data.currency) {
-        window.CodformFormData = window.CodformFormData || {};
-        window.CodformFormData.currency = data.currency;
-        console.log('💰✅ Cart Summary - REAL FORM CURRENCY SAVED FROM API:', data.currency);
-        console.log('💰✅ Cart Summary - window.CodformFormData.currency set to:', window.CodformFormData.currency);
-        
-        // Also save in current form data for backup
-        if (window.currentFormData) {
-          window.currentFormData.savedFormCurrency = data.currency;
-        }
-        
-        const scCurrency = (window.CodformSmartCurrency && typeof window.CodformSmartCurrency.getCurrentCurrency === 'function')
-          ? window.CodformSmartCurrency.getCurrentCurrency()
-          : null;
-        cartSummaryData.targetCurrency = scCurrency || data.currency;
-        console.log('💰✅ Cart Summary - Target currency updated to:', cartSummaryData.targetCurrency);
-      } else {
+        if (data.success && data.currency) {
+          window.CodformFormData = window.CodformFormData || {};
+          window.CodformFormData.currency = data.currency;
+          console.log('💰✅ Cart Summary - REAL FORM CURRENCY SAVED FROM API:', data.currency);
+          console.log('💰✅ Cart Summary - window.CodformFormData.currency set to:', window.CodformFormData.currency);
+          
+          // Also save in current form data for backup
+          if (window.currentFormData) {
+            window.currentFormData.savedFormCurrency = data.currency;
+          }
+          
+          const scCurrency = (window.CodformSmartCurrency && typeof window.CodformSmartCurrency.getCurrentCurrency === 'function')
+            ? window.CodformSmartCurrency.getCurrentCurrency()
+            : null;
+          cartSummaryData.targetCurrency = scCurrency || data.currency;
+          console.log('💰✅ Cart Summary - Target currency updated to:', cartSummaryData.targetCurrency);
+
+          // 🔔 Notify other widgets that the form currency is now resolved
+          try { window.dispatchEvent(new CustomEvent('codform:form-currency-resolved', { detail: { currency: cartSummaryData.targetCurrency } })); } catch (e) {}
+        } else {
         console.error('❌🔥 Cart Summary - API Response missing currency field!', data);
         // Don't proceed if no currency - this prevents incorrect calculations
         return null;

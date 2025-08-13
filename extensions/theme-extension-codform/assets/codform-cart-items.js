@@ -239,20 +239,28 @@
     const quantityLabel = isRTL ? 'الكمية:' : 'Quantity:';
     const fontFamily = isRTL ? "'Cairo', sans-serif" : "inherit";
     
-    // Apply currency settings for initial display - COMPLETE FIX
-    let displayPrice = cachedProductPrice;
-    let displayCurrency = cachedCurrency;
+    // Resolve target currency from form settings first
+    const targetCurrency = (window.CodformFormData && window.CodformFormData.currency)
+      || (window.currentFormData && window.currentFormData.savedFormCurrency)
+      || window.formCurrency
+      || (document.querySelector('.cart-summary-field') && document.querySelector('.cart-summary-field').getAttribute('data-currency'))
+      || (window.CodformSmartCurrency && typeof window.CodformSmartCurrency.getCurrentCurrency === 'function' && window.CodformSmartCurrency.getCurrentCurrency())
+      || (window.Shopify && window.Shopify.currency && window.Shopify.currency.active)
+      || cachedCurrency;
     
-    // ✅ Use currency manager for proper custom rates application
-    let formattedPrice = formatCurrency(cachedProductPrice, cachedCurrency);
-    
-    // Apply custom rates from currency manager if available
-    if (window.CodformCurrencyManager && window.CodformCurrencyManager.formatCurrency) {
-      formattedPrice = window.CodformCurrencyManager.formatCurrency(cachedProductPrice, cachedCurrency);
-    } else if (window.CodformUnifiedSystem && window.CodformUnifiedSystem.formatCurrency) {
-      formattedPrice = window.CodformUnifiedSystem.formatCurrency(cachedProductPrice, cachedCurrency);
+    // Convert unit price to target currency if needed
+    let unitPrice = cachedProductPrice;
+    if (window.CodformCurrencyManager && typeof window.CodformCurrencyManager.convertCurrency === 'function' && cachedCurrency !== targetCurrency) {
+      unitPrice = window.CodformCurrencyManager.convertCurrency(cachedProductPrice, cachedCurrency, targetCurrency);
     }
     
+    // Format using Currency Manager when available
+    let formattedPrice;
+    if (window.CodformCurrencyManager && typeof window.CodformCurrencyManager.formatCurrency === 'function') {
+      formattedPrice = window.CodformCurrencyManager.formatCurrency(unitPrice, targetCurrency);
+    } else {
+      formattedPrice = `${unitPrice} ${targetCurrency}`;
+    }
     // Get product data from cache
     const productData = window.CodformProductData || {};
     const productTitle = productData.title || 'Product';
@@ -321,7 +329,7 @@
                 color: #6b7280;
                 margin: 0;
                 font-size: 14px;
-              ">${priceLabel} <span class="cart-items-price" data-currency="${cachedCurrency}">${formattedPrice}</span></p>
+              ">${priceLabel} <span class="cart-items-price" data-currency="${targetCurrency}">${formattedPrice}</span></p>
             </div>
             
             <!-- Quantity Controls -->
@@ -489,15 +497,15 @@
     
     console.log(`🛒 Cart Items: Updating price for quantity ${quantity} - Base price: ${cachedProductPrice}, Currency: ${cachedCurrency}`);
     
-    // Determine target currency and convert if needed
-    let targetCurrency = cachedCurrency;
-    if (window.CodformSmartCurrency && typeof window.CodformSmartCurrency.getCurrentCurrency === 'function') {
-      targetCurrency = window.CodformSmartCurrency.getCurrentCurrency() || targetCurrency;
-    } else if (window.CodformFormData && window.CodformFormData.currency) {
-      targetCurrency = window.CodformFormData.currency;
-    } else if (window.Shopify && window.Shopify.currency && window.Shopify.currency.active) {
-      targetCurrency = window.Shopify.currency.active;
-    }
+    // Determine target currency from form settings with highest priority
+    let targetCurrency =
+      (window.CodformFormData && window.CodformFormData.currency) ||
+      (window.currentFormData && window.currentFormData.savedFormCurrency) ||
+      window.formCurrency ||
+      (document.querySelector('.cart-summary-field') && document.querySelector('.cart-summary-field').getAttribute('data-currency')) ||
+      (window.CodformSmartCurrency && typeof window.CodformSmartCurrency.getCurrentCurrency === 'function' && window.CodformSmartCurrency.getCurrentCurrency()) ||
+      (window.Shopify && window.Shopify.currency && window.Shopify.currency.active) ||
+      cachedCurrency;
 
     let unitPrice = cachedProductPrice;
     if (window.CodformCurrencyManager && typeof window.CodformCurrencyManager.convertCurrency === 'function' && cachedCurrency !== targetCurrency) {
@@ -508,9 +516,14 @@
     const totalPrice = unitPrice * quantity;
     console.log(`🛒 Cart Items: Total price calculation: ${unitPrice} x ${quantity} = ${totalPrice} ${targetCurrency}`);
     
-    const formattedPrice = formatCurrency(totalPrice, targetCurrency);
+    // Format using Currency Manager directly to avoid re-targeting
+    let formattedPrice;
+    if (window.CodformCurrencyManager && typeof window.CodformCurrencyManager.formatCurrency === 'function') {
+      formattedPrice = window.CodformCurrencyManager.formatCurrency(totalPrice, targetCurrency);
+    } else {
+      formattedPrice = `${totalPrice} ${targetCurrency}`;
+    }
     console.log(`🛒 Cart Items: Formatted price: ${formattedPrice}`);
-    
     // Update all price elements in cart items
     document.querySelectorAll('.codform-cart-items .cart-items-price').forEach(priceElement => {
       priceElement.textContent = formattedPrice;
@@ -551,16 +564,13 @@
     console.log('🔒 Cart Items: Activating ULTIMATE price lock system');
 
     function resolveTargetCurrency() {
-      if (window.CodformSmartCurrency && typeof window.CodformSmartCurrency.getCurrentCurrency === 'function') {
-        return window.CodformSmartCurrency.getCurrentCurrency() || cachedCurrency;
-      }
-      if (window.CodformFormData && window.CodformFormData.currency) {
-        return window.CodformFormData.currency;
-      }
-      if (window.Shopify && window.Shopify.currency && window.Shopify.currency.active) {
-        return window.Shopify.currency.active;
-      }
-      return cachedCurrency;
+      return (window.CodformFormData && window.CodformFormData.currency)
+        || (window.currentFormData && window.currentFormData.savedFormCurrency)
+        || window.formCurrency
+        || (document.querySelector('.cart-summary-field') && document.querySelector('.cart-summary-field').getAttribute('data-currency'))
+        || (window.CodformSmartCurrency && typeof window.CodformSmartCurrency.getCurrentCurrency === 'function' && window.CodformSmartCurrency.getCurrentCurrency())
+        || (window.Shopify && window.Shopify.currency && window.Shopify.currency.active)
+        || cachedCurrency;
     }
 
     // Calculate correct price string for a quantity
@@ -675,6 +685,16 @@
         }
       }
     }, 100);
+  });
+  
+  // React once the form currency is resolved by Cart Summary/API
+  window.addEventListener('codform:form-currency-resolved', function() {
+    console.log('🛒 Cart Items: Form currency resolved event received');
+    const existingCartItems = document.querySelector('.codform-cart-items');
+    if (existingCartItems) {
+      const quantity = parseInt(existingCartItems.querySelector('.cart-items-quantity')?.textContent || '1');
+      updatePriceDisplay(quantity || 1);
+    }
   });
 
   // Export global API
