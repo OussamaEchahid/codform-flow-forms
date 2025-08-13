@@ -213,17 +213,15 @@
         }));
       } catch (_) {}
 
-      // أعلم State Manager و Cart Summary ببيانات المنتج
+      // Update State Manager and Cart Summary with product data
       if (window.CodformStateManager) {
-        // تأكد من أن targetCurrency يأتي من إعدادات العملة أو النموذج
+        // Ensure targetCurrency comes from currency settings or form
         const targetCurrency = (window.CodformCurrencyManager && window.CodformCurrencyManager.getTargetCurrency) ? 
           window.CodformCurrencyManager.getTargetCurrency() : 'MAD';
         
         window.CodformStateManager.setProductData(productData.price, productData.currency, targetCurrency);
-        console.log(`🛒 Cart Items: State Manager updated with price=${productData.price}, currency=${productData.currency}, target=${targetCurrency}`);
       }
 
-      console.log(`🛒 Cart Items: 🎉 FINAL RESULT - Price: ${productData.price} ${productData.currency}, Title: ${productData.title}`);
       return productData;
 
     } catch (error) {
@@ -268,7 +266,6 @@
         const formatted = typeof window.CodformCurrencyManager.formatCurrency === 'function'
           ? window.CodformCurrencyManager.formatCurrency(displayAmount, target)
           : `${displayAmount} ${target}`;
-        console.log(`🛒 Cart Items: Currency Manager formatted: ${formatted}`);
         return formatted;
       }
 
@@ -283,12 +280,7 @@
    * Render cart items field
    */
   function renderCartItems(field, formStyle, formDirection) {
-    console.log('🛒 Cart Items: Rendering field...');
-
     const isLoading = (!cachedProductPrice || !cachedCurrency);
-    if (isLoading) {
-      console.warn('🛒 Cart Items: No cached data yet, rendering skeleton UI');
-    }
 
     const fieldStyle = field.style || {};
     const direction = formDirection || 'ltr';
@@ -393,7 +385,7 @@
                 color: #6b7280;
                 margin: 0;
                 font-size: 14px;
-              ">${priceLabel} <span class="cart-items-price" data-currency="${targetCurrency}" data-base-price="${productData.price}" data-base-currency="${productData.currency}">${formattedPrice}</span></p>
+              ">${priceLabel} <span class="cart-items-price" data-currency="${targetCurrency}" data-base-price="${priceForRender || 1}" data-base-currency="${currencyForRender || 'USD'}">${formattedPrice}</span></p>
             </div>
             
             <!-- Quantity Controls -->

@@ -338,13 +338,11 @@
    * Load product data using quantity offers API (the working method)
    */
   async function loadProductData(productId, shopDomain) {
+    let storefrontResolutionPending = false; // Fixed: Move variable declaration here
+    
     try {
-      console.log('🎯 Cart Summary - Using quantity offers API method:', { productId, shopDomain });
-      
       // Use the same API that works for quantity offers
       const apiUrl = `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/forms-product?shop=${encodeURIComponent(shopDomain)}&product=${encodeURIComponent(productId)}`;
-      
-      console.log('🌐 Cart Summary - API URL (same as quantity offers):', apiUrl);
       
       const response = await fetch(apiUrl, {
         method: 'GET',
@@ -359,103 +357,94 @@
       }
 
       const data = await response.json();
-      console.log('📊 Cart Summary - API Response (quantity offers format):', data);
       
-      // ✅ FIXED: Properly save currency from API response
-        if (data.success && data.currency) {
-          window.CodformFormData = window.CodformFormData || {};
-          window.CodformFormData.currency = data.currency;
-          console.log('💰✅ Cart Summary - REAL FORM CURRENCY SAVED FROM API:', data.currency);
-          console.log('💰✅ Cart Summary - window.CodformFormData.currency set to:', window.CodformFormData.currency);
-          
-          // Also save in current form data for backup
-          if (window.currentFormData) {
-            window.currentFormData.savedFormCurrency = data.currency;
-          }
-          
-          // Force target currency to the form's currency (do not switch to SmartCurrency here)
-          cartSummaryData.targetCurrency = data.currency;
-          console.log('💰✅ Cart Summary - Target currency updated to (FORM):', cartSummaryData.targetCurrency);
+      // Fixed: Properly save currency from API response
+      if (data.success && data.currency) {
+        window.CodformFormData = window.CodformFormData || {};
+        window.CodformFormData.currency = data.currency;
+        
+        // Force target currency to the form's currency
+        cartSummaryData.targetCurrency = data.currency;
 
-          // 🔔 Notify other widgets that the form currency is now resolved
-          try { window.dispatchEvent(new CustomEvent('codform:form-currency-resolved', { detail: { currency: cartSummaryData.targetCurrency } })); } catch (e) {}
-        } else {
-        console.error('❌🔥 Cart Summary - API Response missing currency field!', data);
+        // Notify other widgets that the form currency is now resolved
+        try { window.dispatchEvent(new CustomEvent('codform:form-currency-resolved', { detail: { currency: cartSummaryData.targetCurrency } })); } catch (e) {}
+      } else {
         // Don't proceed if no currency - this prevents incorrect calculations
         return null;
       }
       
       if (data.success && data.product) {
-        // ✅ CRITICAL: Use the same product data structure as quantity offers
+        // Use the same product data structure as quantity offers
         const raw = parseFloat(data.product.price);
         let price = isNaN(raw) ? 0 : raw;
         // Normalize: some APIs return cents
         if (price > 1000) { price = price / 100; }
         
-        // ✅ CRITICAL FIX: Use form currency directly when currencies match
+        // Use form currency directly when currencies match
         const formCurrency = data.currency;
-        const productCurrency = data.product.currency || formCurrency; // default to form currency if missing
+        const productCurrency = data.product.currency || formCurrency;
         
         // If currencies match, treat product as having form currency (no conversion)
         const finalCurrency = (productCurrency === formCurrency) ? formCurrency : productCurrency;
         
-        // 🔎 Sanity-check with Shopify storefront endpoint to avoid ×10 issues
-        try {
-          const href = window.location && window.location.href || '';
-          if (href.includes('/products/')) {
-            const handle = href.split('/products/')[1]?.split('?')[0]?.split('#')[0];
-            if (handle) {
-              const res = await fetch(`/products/${handle}.js`);
-              if (res.ok) {
-                const prod = await res.json();
-                const v = prod?.variants?.[0];
-                if (v && typeof v.price === 'number') {
-                  const storefrontPrice = v.price / 100; // cents -> major
-                  if (isFinite(storefrontPrice) && storefrontPrice > 0) {
-                    const ratio = price / storefrontPrice;
-                    // If API price appears inflated by ~10x or ~100x, trust storefront value
-                    if (ratio > 1.9 && ratio < 20 || ratio > 50 && ratio < 200) {
-                      console.warn('🩹 Cart Summary - Correcting price using storefront endpoint', { apiPrice: price, storefrontPrice, ratio });
-                      price = storefrontPrice;
+        // Sanity-check with Shopify storefront endpoint to avoid ×10 issues
+        if (!storefrontResolutionPending) {
+          storefrontResolutionPending = true;
+          try {
+            const href = window.location && window.location.href || '';
+            if (href.includes('/products/')) {
+              const handle = href.split('/products/')[1]?.split('?')[0]?.split('#')[0];
+              if (handle) {
+                const res = await fetch(`/products/${handle}.js`);
+                if (res.ok) {
+                  const prod = await res.json();
+                  const v = prod?.variants?.[0];
+                  if (v && typeof v.price === 'number') {
+                    const storefrontPrice = v.price / 100; // cents -> major
+                    if (isFinite(storefrontPrice) && storefrontPrice > 0) {
+                      const ratio = price / storefrontPrice;
+                      // If API price appears inflated by ~10x or ~100x, trust storefront value
+                      if (ratio > 1.9 && ratio < 20 || ratio > 50 && ratio < 200) {
+                        price = storefrontPrice;
+                      }
                     }
                   }
                 }
               }
             }
+          } catch (e) {
+            // Silent fail
           }
-        } catch (e) {
-          console.log('ℹ️ Cart Summary - Storefront sanity check skipped/failed:', e);
+          storefrontResolutionPending = false;
         }
         
         // Update cart summary data with real (sanity-checked) product data
         cartSummaryData.productPrice = price;
-        // Keep product currency as the true source currency to allow custom rates conversion
         cartSummaryData.productCurrency = finalCurrency;
         
-        // تحديث State Manager مع بيانات المنتج الحقيقية
+        // Update State Manager with real product data
         if (window.CodformStateManager) {
           window.CodformStateManager.setProductData(price, finalCurrency, formCurrency);
         }
         
-        // أبلغ الويدجتات الأخرى ببيانات المنتج المؤكدة
+        // Notify other widgets with confirmed product data
         try { window.dispatchEvent(new CustomEvent('codform:product-data', { detail: { price, currency: finalCurrency, productCurrency, formCurrency, targetCurrency: cartSummaryData.targetCurrency } })); } catch (e) {}
         
         // Update display
         updateCartSummary();
         
-        // إعادة تطبيق الإعدادات المخصصة بعد تحديث المحتوى
+        // Re-apply custom settings after content update
         if (window.currentFieldData) {
           setTimeout(() => applySummarySettings(window.currentFieldData, window.currentFormStyle), 100);
         }
         
         return data.product;
       } else {
-        console.error('❌ Cart Summary - No product data in API response');
         return null;
       }
       
     } catch (error) {
-      console.error('❌ Cart Summary - Error loading product data:', error);
+      console.error('❌ Cart Summary - API error:', error);
       return null;
     }
   }
@@ -813,14 +802,9 @@
       window.CodformStateManager.subscribe(function(newState, previousState) {
         console.log('🔄 Cart Summary: State changed', { newState, previousState });
         
-        // تحديث cart summary عند تغيير الحالة
+        // Update cart summary when state changes
         if (newState.finalPrice !== previousState.finalPrice || 
             newState.currentQuantity !== previousState.currentQuantity) {
-          
-          console.log(`🔄 Cart Summary: Updating from State - finalPrice: ${newState.finalPrice}, quantity: ${newState.currentQuantity}`);
-          
-          // لا نغير cartSummaryData.productPrice - نتركه كما هو لحفظ سعر الوحدة الأصلي
-          // سيتم استخدام newState.finalPrice مباشرة في calculatePrices()
           updateCartSummary();
         }
       });
