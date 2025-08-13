@@ -264,6 +264,26 @@ export const useFormTemplates = () => {
       required: true,
     });
     
+    // Add cart summary field (positioned before submit button)
+    defaultFields.push({
+      type: 'cart-summary',
+      id: uuidv4(),
+      label: language === 'ar' ? 'ملخص الطلب' : 'Order Summary',
+      cartSummaryConfig: {
+        showSubtotal: true,
+        showDiscount: true,
+        showShipping: true,
+        showTotal: true,
+        subtotalLabel: language === 'ar' ? 'المجموع الفرعي' : 'Subtotal',
+        discountLabel: language === 'ar' ? 'الخصم' : 'Discount',
+        shippingLabel: language === 'ar' ? 'الشحن' : 'Shipping',
+        totalLabel: language === 'ar' ? 'المجموع الكلي' : 'Total',
+        freeShippingText: language === 'ar' ? 'شحن مجاني' : 'Free shipping',
+        direction: language === 'ar' ? 'rtl' : 'ltr',
+        currency: 'SAR'
+      }
+    });
+    
     // Add submit button
     defaultFields.push({
       type: 'submit',

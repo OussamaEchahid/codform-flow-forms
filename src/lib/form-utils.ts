@@ -78,10 +78,18 @@ export interface FormField {
   productId?: string;
   cartSummaryConfig?: {
     subtotalText?: string;
+    subtotalLabel?: string;
     discountText?: string;
+    discountLabel?: string;
     shippingText?: string;
+    shippingLabel?: string;
     totalText?: string;
+    totalLabel?: string;
+    freeShippingText?: string;
+    showSubtotal?: boolean;
     showDiscount?: boolean;
+    showShipping?: boolean;
+    showTotal?: boolean;
     discountType?: 'percentage' | 'fixed';
     discountValue?: number;
     shippingType?: 'auto' | 'manual';
@@ -242,6 +250,7 @@ export const createDefaultForm = (): FormStep[] => {
       fields: [
         createEmptyField('form-title'),
         createEmptyField('text'),
+        createEmptyField('cart-summary'),
         createEmptyField('submit')
       ]
     }

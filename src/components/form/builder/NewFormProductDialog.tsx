@@ -67,6 +67,7 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
         cityPlaceholder: 'أدخل المدينة',
         address: 'العنوان',
         addressPlaceholder: 'أدخل العنوان الكامل',
+        cartSummary: 'ملخص الطلب',
         submit: 'إرسال الطلب'
       },
       en: {
@@ -79,6 +80,7 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
         cityPlaceholder: 'Enter city',
         address: 'Address',
         addressPlaceholder: 'Enter full address',
+        cartSummary: 'Order Summary',
         submit: 'Submit Order'
       },
       fr: {
@@ -91,6 +93,7 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
         cityPlaceholder: 'Entrez la ville',
         address: 'Adresse',
         addressPlaceholder: 'Entrez l\'adresse complète',
+        cartSummary: 'Résumé de Commande',
         submit: 'Envoyer la Commande'
       },
       es: {
@@ -103,6 +106,7 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
         cityPlaceholder: 'Ingrese la ciudad',
         address: 'Dirección',
         addressPlaceholder: 'Ingrese la dirección completa',
+        cartSummary: 'Resumen del Pedido',
         submit: 'Enviar Pedido'
       }
     };
@@ -164,6 +168,28 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
       placeholder: currentTexts.addressPlaceholder,
       required: true,
     });
+    
+    // إضافة Cart Summary قبل زر الإرسال
+    if (currentTexts.cartSummary) {
+      fields.push({
+        type: 'cart-summary',
+        id: `cart-summary-${Date.now()}`,
+        label: currentTexts.cartSummary,
+        cartSummaryConfig: {
+          showSubtotal: true,
+          showDiscount: true,
+          showShipping: true,
+          showTotal: true,
+          subtotalLabel: lang === 'ar' ? 'المجموع الفرعي' : 'Subtotal',
+          discountLabel: lang === 'ar' ? 'الخصم' : 'Discount',
+          shippingLabel: lang === 'ar' ? 'الشحن' : 'Shipping',
+          totalLabel: lang === 'ar' ? 'المجموع الكلي' : 'Total',
+          freeShippingText: lang === 'ar' ? 'شحن مجاني' : 'Free shipping',
+          direction: lang === 'ar' ? 'rtl' : 'ltr',
+          currency: 'SAR'
+        }
+      });
+    }
     
     // Update the submit button default styling in the dialog
     const submitButton: FormField = {
