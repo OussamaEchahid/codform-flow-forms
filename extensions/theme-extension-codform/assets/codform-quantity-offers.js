@@ -8,14 +8,30 @@ window.CodformQuantityOffers = (function() {
 
   // دالة تحويل العملة مع Ultimate Currency System
   function convertCurrency(amount, fromCurrency, toCurrency) {
+    fromCurrency = (fromCurrency || 'USD').toString().toUpperCase().trim();
+    toCurrency = (toCurrency || 'MAD').toString().toUpperCase().trim();
+
     // استخدام Ultimate Currency System الجديد
     if (window.CodformUltimateCurrency && typeof window.CodformUltimateCurrency.convertCurrency === 'function') {
       return window.CodformUltimateCurrency.convertCurrency(amount, fromCurrency, toCurrency);
     }
     
     // استخدام Currency Manager إذا كان متاحاً
-    if (window.CodformCurrencyManager && typeof window.CodformCurrencyManager.convertCurrency === 'function') {
-      return window.CodformCurrencyManager.convertCurrency(amount, fromCurrency, toCurrency);
+    if (window.CodformCurrencyManager) {
+      if (typeof window.CodformCurrencyManager.convertCurrency === 'function') {
+        return window.CodformCurrencyManager.convertCurrency(amount, fromCurrency, toCurrency);
+      }
+      // Fallback: حساب يدوي بمعدلات مخصصة من المدير إذا توفرت
+      if (typeof window.CodformCurrencyManager.getRates === 'function') {
+        const defaultRates = { 'USD': 1.0, 'SAR': 3.75, 'AED': 3.67, 'MAD': 10.0, 'EUR': 0.85, 'GBP': 0.75 };
+        const custom = window.CodformCurrencyManager.getRates() || {};
+        const rates = { ...defaultRates, ...custom };
+        if (fromCurrency === toCurrency) return amount;
+        const fromRate = rates[fromCurrency] || 1;
+        const toRate = rates[toCurrency] || 1;
+        const usdAmount = amount / fromRate;
+        return usdAmount * toRate;
+      }
     }
     
     // استخدام CurrencyService إذا كان متاحاً
@@ -28,9 +44,6 @@ window.CodformQuantityOffers = (function() {
       'USD': 1.0, 'SAR': 3.75, 'AED': 3.67, 'MAD': 10.0, 'EUR': 0.85, 'GBP': 0.75
     };
     
-    fromCurrency = (fromCurrency || 'USD').toString().toUpperCase().trim();
-    toCurrency = (toCurrency || 'MAD').toString().toUpperCase().trim();
-    
     if (fromCurrency === toCurrency) return amount;
     
     const fromRate = exchangeRates[fromCurrency] || 1;
@@ -41,14 +54,29 @@ window.CodformQuantityOffers = (function() {
   
   // دالة تنسيق العملة مع Ultimate Currency System
   function formatCurrency(amount, currency, language = 'en') {
+    currency = (currency || 'MAD').toString().toUpperCase().trim();
     // استخدام Ultimate Currency System الجديد
     if (window.CodformUltimateCurrency && typeof window.CodformUltimateCurrency.formatCurrency === 'function') {
       return window.CodformUltimateCurrency.formatCurrency(amount, currency);
     }
     
     // استخدام Currency Manager إذا كان متاحاً
-    if (window.CodformCurrencyManager && typeof window.CodformCurrencyManager.formatCurrency === 'function') {
-      return window.CodformCurrencyManager.formatCurrency(amount, currency, language);
+    if (window.CodformCurrencyManager) {
+      if (typeof window.CodformCurrencyManager.formatCurrency === 'function') {
+        return window.CodformCurrencyManager.formatCurrency(amount, currency, language);
+      }
+      // Fallback: بناء التنسيق يدوياً من الإعدادات
+      if (typeof window.CodformCurrencyManager.getSettings === 'function') {
+        const s = window.CodformCurrencyManager.getSettings() || {};
+        const decimalPlaces = s.decimalPlaces ?? s.decimal_places ?? 2;
+        const showSymbol = s.showSymbol !== false && s.show_symbol !== false;
+        const symbolPosition = s.symbolPosition || s.symbol_position || 'before';
+        const customSymbols = s.customSymbols || {};
+        const defaultSymbols = { 'USD': '$', 'EUR': '€', 'GBP': '£', 'SAR': 'ر.س', 'AED': 'د.إ', 'MAD': 'د.م' };
+        const display = customSymbols[currency] || (showSymbol ? (defaultSymbols[currency] || currency) : currency);
+        const amt = Number.isFinite(amount) ? amount.toFixed(decimalPlaces) : '0.00';
+        return symbolPosition === 'before' ? `${display}${amt}` : `${amt} ${display}`;
+      }
     }
     
     // استخدام CurrencyService إذا كان متاحاً للتنسيق المخصص

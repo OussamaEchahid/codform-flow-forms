@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { CurrencyService } from '@/lib/services/CurrencyService';
 
 interface Offer {
   id: string;
@@ -42,6 +43,10 @@ const QuantityOffersDisplay: React.FC<QuantityOffersDisplayProps> = ({
   currency = 'SAR',
   formDirection = 'ltr'
 }) => {
+  React.useEffect(() => {
+    CurrencyService.initialize();
+  }, []);
+
   console.log('🎯 QuantityOffersDisplay received:', {
     offers: offers?.length,
     productData,
@@ -64,7 +69,11 @@ const QuantityOffersDisplay: React.FC<QuantityOffersDisplayProps> = ({
   const realPrice = productData.price;
   const productTitle = productData.title || 'المنتج';
   const productImage = productData.image;
-  const displayCurrency = productData.currency || currency;
+  const sourceCurrency = productData.currency || currency;
+  const displayCurrency = currency;
+  const unitPrice = sourceCurrency !== displayCurrency 
+    ? CurrencyService.convertCurrency(realPrice, sourceCurrency, displayCurrency)
+    : realPrice;
   
   console.log('✅ Using real product data:', {
     realPrice,
@@ -74,20 +83,21 @@ const QuantityOffersDisplay: React.FC<QuantityOffersDisplayProps> = ({
   });
   
   const calculatePrice = (offer: Offer) => {
+    const base = unitPrice;
     if (offer.discountType === 'none' || !offer.discountValue) {
-      return realPrice * offer.quantity;
+      return base * offer.quantity;
     }
 
     if (offer.discountType === 'fixed') {
-      return (realPrice * offer.quantity) - offer.discountValue;
+      return (base * offer.quantity) - offer.discountValue;
     }
 
     if (offer.discountType === 'percentage') {
-      const discount = (realPrice * offer.quantity * offer.discountValue) / 100;
-      return (realPrice * offer.quantity) - discount;
+      const discount = (base * offer.quantity * offer.discountValue) / 100;
+      return (base * offer.quantity) - discount;
     }
 
-    return realPrice * offer.quantity;
+    return base * offer.quantity;
   };
 
   if (!offers || offers.length === 0) {
