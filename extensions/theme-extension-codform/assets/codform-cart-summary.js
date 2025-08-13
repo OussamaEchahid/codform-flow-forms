@@ -21,7 +21,7 @@
     
     // عملات شمال أفريقيا والمغرب العربي
     'EGP': 30.85,
-    'MAD': 15.0, // ✅ UPDATED: 1 USD = 15 MAD (matching currency management settings)
+    'MAD': 10.0, // Default; will be overridden by custom rates from Currency Manager
     'TND': 3.15,
     'DZD': 134.25,
     
@@ -276,6 +276,8 @@
     }
     
     cartSummaries.forEach((summary) => {
+      // Expose target currency for other widgets (e.g., cart-items)
+      summary.setAttribute('data-currency', currency);
       const language = summary.style.direction === 'rtl' ? 'ar' : 'en';
       
       // Update subtotal
@@ -359,11 +361,9 @@
             window.currentFormData.savedFormCurrency = data.currency;
           }
           
-          const scCurrency = (window.CodformSmartCurrency && typeof window.CodformSmartCurrency.getCurrentCurrency === 'function')
-            ? window.CodformSmartCurrency.getCurrentCurrency()
-            : null;
-          cartSummaryData.targetCurrency = scCurrency || data.currency;
-          console.log('💰✅ Cart Summary - Target currency updated to:', cartSummaryData.targetCurrency);
+          // Force target currency to the form's currency (do not switch to SmartCurrency here)
+          cartSummaryData.targetCurrency = data.currency;
+          console.log('💰✅ Cart Summary - Target currency updated to (FORM):', cartSummaryData.targetCurrency);
 
           // 🔔 Notify other widgets that the form currency is now resolved
           try { window.dispatchEvent(new CustomEvent('codform:form-currency-resolved', { detail: { currency: cartSummaryData.targetCurrency } })); } catch (e) {}
@@ -375,10 +375,13 @@
       
       if (data.success && data.product) {
         // ✅ CRITICAL: Use the same product data structure as quantity offers
-        const price = parseFloat(data.product.price) || 0;
+        const raw = parseFloat(data.product.price);
+        let price = isNaN(raw) ? 0 : raw;
+        // Normalize: some APIs return cents
+        if (price > 1000) { price = price / 100; }
         
         // ✅ CRITICAL FIX: Use form currency directly when currencies match
-        const productCurrency = data.product.currency || 'SAR';
+        const productCurrency = data.product.currency || 'USD';
         const formCurrency = data.currency;
         
         // If currencies match, treat product as having form currency (no conversion)
