@@ -134,9 +134,15 @@
           saveSettingsToLocalStorage();
         }
         
-        if (data.custom_rates) {
+        if (data.all_rates) {
+          // Use full rates from backend (includes defaults + custom)
+          customRates = data.all_rates;
+          console.log('💰 Updated all rates from API:', customRates);
+          saveSettingsToLocalStorage();
+        } else if (data.custom_rates) {
+          // Merge custom overrides with local defaults
           customRates = { ...DEFAULT_RATES, ...data.custom_rates };
-          console.log('💰 Updated custom rates:', customRates);
+          console.log('💰 Updated custom rates merged with defaults:', customRates);
           // Persist updated rates so subsequent reloads don't overwrite them with stale values
           saveSettingsToLocalStorage();
         }
