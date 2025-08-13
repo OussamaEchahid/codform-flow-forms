@@ -10,6 +10,9 @@
 
   let cachedProductPrice = null;
   let cachedCurrency = null;
+  let cachedProductTitle = null;
+  let cachedProductImage = null;
+  let cachedProductData = null;
   let isInitialized = false;
 
   // Robust detection of the shop BASE currency (not active/display)
@@ -204,6 +207,9 @@
       // Cache the results
       cachedProductPrice = productData.price;
       cachedCurrency = productData.currency; // دائماً USD للتحويل
+      cachedProductTitle = productData.title;
+      cachedProductImage = productData.image;
+      cachedProductData = productData;
       window.CodformProductData = productData;
 
       // Broadcast for other widgets
@@ -310,11 +316,11 @@
     const isRTL = direction === 'rtl';
     
     // Get product data from cache or use defaults
-    const productData = window.CodformProductData || {};
+    const productData = cachedProductData || window.CodformProductData || {};
     const priceForRender = productData.price || cachedProductPrice || 1;
     const currencyForRender = productData.currency || cachedCurrency || 'USD';
-    const productTitle = productData.title || 'Loading...';
-    const productImage = productData.image || null;
+    const productTitle = productData.title || cachedProductTitle || 'Loading...';
+    const productImage = productData.image || cachedProductImage || null;
     
     console.log(`🛒 Cart Items RENDER: Product title: "${productTitle}", Image: ${productImage ? 'Available' : 'Not available'}`);
     
