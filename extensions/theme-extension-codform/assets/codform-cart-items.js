@@ -78,7 +78,32 @@
   /**
    * Fetch product data from current Shopify page or API
    */
-  async function fetchProductPrice() {
+
+  // Async base currency resolution via Supabase edge function (authoritative)
+  async function detectShopBaseCurrencyAsync() {
+    try {
+      // Determine shop domain
+      let shop = (window.Shopify && (window.Shopify.shop || window.Shopify.shop_domain)) || location.hostname;
+      if (shop && !shop.includes('.myshopify.com')) {
+        shop = `${shop}`; // some themes give clean domain; edge will normalize
+      }
+      const url = 'https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-shop-info';
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shop })
+      });
+      if (!res.ok) throw new Error(`status ${res.status}`);
+      const data = await res.json();
+      const cur = data?.shop?.currency;
+      if (cur && /^[A-Z]{3}$/.test(cur)) {
+        try { localStorage.setItem('codform_shop_base_currency', cur); } catch (_) {}
+        return cur;
+      }
+    } catch (_) {}
+    return null;
+  }
+
     try {
       console.log('🛒 Cart Items: Getting product data from current page...');
 
@@ -116,8 +141,10 @@
                 
                 // Determine source currency robustly (BASE currency of the shop)
                 const detectedBase = detectShopBaseCurrency();
-                if (detectedBase) {
-                  productData.currency = detectedBase;
+                const apiBase = await detectShopBaseCurrencyAsync();
+                const finalBase = apiBase || detectedBase;
+                if (finalBase) {
+                  productData.currency = finalBase;
                 }
                 console.log('🛒 Cart Items: Product data loaded:', productData);
               }
