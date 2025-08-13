@@ -256,8 +256,8 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
       const newId = uuidv4();
       setCurrentFormId(newId);
 
-      // Get shop currency and set form defaults
-      let defaultSettings = { country: 'SA', currency: 'SAR', phonePrefix: '+966' };
+      // Get shop currency and set form defaults to Morocco
+      let defaultSettings = { country: 'MA', currency: 'MAD', phonePrefix: '+212' };
       
       try {
         // Call edge function to get shop info and currency
@@ -304,7 +304,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
         paddingLeft: '20px',
         paddingRight: '20px',
         formGap: '5px',
-        formDirection: defaultSettings.country === 'SA' ? 'rtl' : 'ltr', // RTL for Arabic countries
+        formDirection: defaultSettings.country === 'MA' ? 'rtl' : 'ltr', // RTL for Arabic countries
         floatingLabels: false
       };
       
@@ -399,7 +399,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
             
             // Load form settings with shop's default if not set
             const activeShopId = getActiveShopId();
-            let defaultSettings = { country: 'SA', currency: 'SAR', phonePrefix: '+966' };
+            let defaultSettings = { country: 'MA', currency: 'MAD', phonePrefix: '+212' };
             
             if (activeShopId) {
               try {

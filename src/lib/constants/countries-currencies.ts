@@ -739,19 +739,24 @@ export const getCountryByCurrencyCode = (currencyCode: string): Country | undefi
 
 // Get default country and currency settings based on shop currency
 export const getDefaultCountryCurrencySettings = (shopCurrency?: string) => {
-  // Default to Saudi Arabia if no currency provided
+  console.log('🔍 Getting default settings for currency:', shopCurrency);
+  
+  // Default to Morocco if no currency provided
   if (!shopCurrency) {
+    console.log('⚠️ No currency provided, using MAD default');
     return {
-      country: 'SA',
-      currency: 'SAR',
-      phonePrefix: '+966'
+      country: 'MA',
+      currency: 'MAD',
+      phonePrefix: '+212'
     };
   }
 
   // Find country by currency
-  const country = getCountryByCurrencyCode(shopCurrency);
+  const country = getCountryByCurrencyCode(shopCurrency.toUpperCase());
+  console.log('🔍 Found country for currency', shopCurrency, ':', country);
   
   if (country) {
+    console.log('✅ Using country settings:', country.code);
     return {
       country: country.code,
       currency: country.currency,
@@ -771,11 +776,14 @@ export const getDefaultCountryCurrencySettings = (shopCurrency?: string) => {
     'INR': { country: 'IN', currency: 'INR', phonePrefix: '+91' },
   };
 
-  return currencyDefaults[shopCurrency] || {
-    country: 'SA',
-    currency: 'SAR', 
-    phonePrefix: '+966'
+  const result = currencyDefaults[shopCurrency.toUpperCase()] || {
+    country: 'MA',
+    currency: 'MAD', 
+    phonePrefix: '+212'
   };
+  
+  console.log('📋 Final currency settings:', result);
+  return result;
 };
 
 export const getCountryNameByCode = (code: string, language: 'en' | 'ar' = 'en'): string => {
