@@ -2,10 +2,25 @@
 export const allowedOrigins = [
   'https://codmagnet.com',
   'https://www.codmagnet.com',
+  'https://admin.shopify.com',
 ];
 
+function isAllowedOrigin(origin?: string) {
+  if (!origin) return false;
+  try {
+    const { hostname, protocol } = new URL(origin);
+    if (protocol !== 'https:') return false;
+    if (allowedOrigins.includes(origin)) return true;
+    // Allow any Shopify storefront e.g. https://your-store.myshopify.com
+    if (hostname.endsWith('.myshopify.com')) return true;
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 export function buildCorsHeaders(origin?: string) {
-  const allowOrigin = origin && allowedOrigins.includes(origin) ? origin : 'https://codmagnet.com';
+  const allowOrigin = isAllowedOrigin(origin) ? origin! : 'https://codmagnet.com';
   return {
     'Access-Control-Allow-Origin': allowOrigin,
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',

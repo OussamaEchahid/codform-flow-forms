@@ -91,6 +91,7 @@
       this.isInitialized = false;
       this.formId = null;
       this.shopId = null;
+      this.disabled = false; // ✅ إيقاف عند وجود نظام عملات آخر
     }
 
     /**
@@ -101,6 +102,14 @@
       
       this.formId = formId;
       this.shopId = shopId;
+
+      // إذا كان هناك نظام عملات آخر نشط، قم بتعطيل هذا النظام لتجنب التضارب
+      if (window.CodformUnifiedCurrency || window.CodformUltimateCurrency || window.CodformCurrencyManager) {
+        console.log('🛑 Smart Currency disabled: another currency system is active');
+        this.disabled = true;
+        this.isInitialized = false;
+        return true;
+      }
 
       try {
         // ✅ الخطوة 1: قراءة إعدادات النموذج
@@ -151,7 +160,14 @@
           }
         }
       } catch (error) {
-        console.log('⚠️ Could not fetch form currency, using USD');
+        console.log('⚠️ Could not fetch form currency, trying fallbacks');
+      }
+
+      // ✅ Fallbacks: استخدم عملة النموذج المتاحة عالمياً إن وجدت
+      const detected = (window.CodformFormData && window.CodformFormData.currency) || null;
+      if (detected) {
+        console.log(`📋 Using detected form currency: ${detected}`);
+        return detected;
       }
 
       return 'USD';
@@ -271,6 +287,7 @@
      * تطبيق التنسيق على جميع العناصر الموجودة
      */
     applyToAllElements() {
+      if (this.disabled) { console.log('🛑 Smart Currency disabled - skipping apply'); return; }
       console.log('🔄 Smart Currency: Applying to all elements...');
       
       // ✅ معالجة Quantity Offers
@@ -371,6 +388,7 @@
     }
 
     updateGeneralElements() {
+      if (this.disabled) return;
       // البحث عن أي نصوص تحتوي على أسعار وتحديثها
       const priceRegex = /(\d+(?:\.\d{1,2})?)\s*(MAD|SAR|AED|USD|ر\.س|د\.م|د\.إ|\$)/g;
       
@@ -402,6 +420,7 @@
      * مراقبة تغييرات DOM وتطبيق التنسيق على العناصر الجديدة
      */
     startMonitoring() {
+      if (this.disabled) { console.log('🛑 Smart Currency disabled - skipping monitor'); return; }
       const observer = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
           if (mutation.type === 'childList') {

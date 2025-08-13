@@ -1,7 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { corsHeaders } from "../_shared/cors.ts";
+import { buildCorsHeaders } from "../_shared/cors.ts";
 
 // Add retry mechanism for database operations
 async function queryWithRetry(queryFn, maxRetries = 3, delay = 1000) {
@@ -29,6 +29,8 @@ const cache = new Map();
 const CACHE_TTL = 300000; // 5 minutes in milliseconds
 
 serve(async (req: Request) => {
+  const origin = req.headers.get('origin') || undefined;
+  const corsHeaders = buildCorsHeaders(origin);
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     console.log("Handling OPTIONS request for CORS preflight");
