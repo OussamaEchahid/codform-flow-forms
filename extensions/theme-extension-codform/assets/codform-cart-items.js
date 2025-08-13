@@ -331,7 +331,7 @@
                 color: #6b7280;
                 margin: 0;
                 font-size: 14px;
-              ">${priceLabel} <span class="cart-items-price" data-currency="${targetCurrency}" style="visibility: hidden;">${formattedPrice}</span></p>
+              ">${priceLabel} <span class="cart-items-price" data-currency="${targetCurrency}" data-base-price="${cachedProductPrice}" data-base-currency="${cachedCurrency}" style="visibility: hidden;">${formattedPrice}</span></p>
             </div>
             
             <!-- Quantity Controls -->
@@ -491,6 +491,16 @@
       isInitialized = true;
       console.log('🛒 Cart Items: Initialization complete');
       
+      // Final fallback: if currency not resolved within 1.2s, show price using best-known target
+      setTimeout(() => {
+        try {
+          const existingCartItems = document.querySelector('.codform-cart-items');
+          const qty = parseInt(existingCartItems?.querySelector('.cart-items-quantity')?.textContent || '1');
+          updatePriceDisplay(qty || 1);
+          setCartItemsLoading(false);
+        } catch (e) {}
+      }, 1200);
+      
       return true;
     } catch (error) {
       console.error('🚨 Cart Items: Initialization failed:', error);
@@ -516,24 +526,26 @@
     console.log(`🛒 Cart Items: Updating price for quantity ${quantity} - Base price: ${cachedProductPrice}, Currency: ${cachedCurrency}`);
     
     let targetCurrency =
-      (window.CodformUnifiedSystem && typeof window.CodformUnifiedSystem.getPreferredCurrency === 'function' && window.CodformUnifiedSystem.getPreferredCurrency()) ||
       (window.CodformFormData && window.CodformFormData.currency) ||
       (window.currentFormData && window.currentFormData.savedFormCurrency) ||
       window.formCurrency ||
       (document.querySelector('.cart-summary-field') && document.querySelector('.cart-summary-field').getAttribute('data-currency')) ||
       (window.CodformSmartCurrency && typeof window.CodformSmartCurrency.getCurrentCurrency === 'function' && window.CodformSmartCurrency.getCurrentCurrency()) ||
       (window.Shopify && window.Shopify.currency && window.Shopify.currency.active) ||
+      (window.CodformUnifiedSystem && typeof window.CodformUnifiedSystem.getPreferredCurrency === 'function' && window.CodformUnifiedSystem.getPreferredCurrency()) ||
       cachedCurrency;
 
     let unitPrice = cachedProductPrice;
     let formattedPrice;
 
-    // Prefer unified system for conversion + formatting when available
-    if (window.CodformUnifiedSystem && typeof window.CodformUnifiedSystem.formatCurrency === 'function') {
+    // Prefer unified system ONLY when it matches the detected target currency
+    const unifiedPreferred = (window.CodformUnifiedSystem && typeof window.CodformUnifiedSystem.getPreferredCurrency === 'function') ? window.CodformUnifiedSystem.getPreferredCurrency() : null;
+    const shouldUseUnified = !!(window.CodformUnifiedSystem && typeof window.CodformUnifiedSystem.formatCurrency === 'function' && unifiedPreferred && unifiedPreferred === targetCurrency);
+
+    if (shouldUseUnified) {
       const totalBase = cachedProductPrice * quantity; // base in source currency
       formattedPrice = window.CodformUnifiedSystem.formatCurrency(totalBase, cachedCurrency);
-      // adopt unified preferred currency for attribute
-      targetCurrency = (window.CodformUnifiedSystem.getPreferredCurrency && window.CodformUnifiedSystem.getPreferredCurrency()) || targetCurrency;
+      targetCurrency = unifiedPreferred;
       console.log(`🛒 Cart Items: UnifiedSystem formatted: ${formattedPrice}`);
     } else {
       if (window.CodformCurrencyManager && typeof window.CodformCurrencyManager.convertCurrency === 'function' && cachedCurrency !== targetCurrency) {
