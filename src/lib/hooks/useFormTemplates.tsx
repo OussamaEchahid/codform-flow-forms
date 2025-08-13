@@ -6,6 +6,7 @@ import { FormField, FormStep } from '@/lib/form-utils';
 import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
 import { formManagementService } from '@/services/FormManagementService';
+import { getDefaultCountryCurrencySettings } from '@/lib/constants/countries-currencies';
 
 // Export FormData interface
 export interface FormData {
@@ -152,12 +153,19 @@ export const useFormTemplates = () => {
       // Get shop currency for default settings
       const getShopCurrency = async (): Promise<string | undefined> => {
         try {
-          const { data: storeData } = await supabase
+          const { data: storeData, error } = await supabase
             .from('shopify_stores')
-            .select('currency')
+            .select('*')
             .eq('shop', shopId)
-            .single();
-          return storeData?.currency;
+            .maybeSingle();
+            
+          if (error) {
+            console.log('Error fetching shop data:', error);
+            return undefined;
+          }
+          
+          // Access currency from the data object
+          return (storeData as any)?.currency;
         } catch (error) {
           console.log('Could not fetch shop currency, using default');
           return undefined;
@@ -165,6 +173,7 @@ export const useFormTemplates = () => {
       };
 
       const shopCurrency = await getShopCurrency();
+      const defaultSettings = getDefaultCountryCurrencySettings(shopCurrency);
 
       // New form data
       const newFormId = uuidv4();
@@ -206,8 +215,11 @@ export const useFormTemplates = () => {
           data: template.data as any,
           is_published: false,
           shop_id: shopIdForForm,
-          user_id: userIdForForm
-        });
+          user_id: userIdForForm,
+          country: defaultSettings.country,
+          currency: defaultSettings.currency,
+          phone_prefix: defaultSettings.phonePrefix
+        } as any);
 
       if (error) {
         console.error('Error saving form to database:', error);
@@ -218,7 +230,7 @@ export const useFormTemplates = () => {
       setFormState(formData);
       toast.success(`تم إنشاء نموذج من قالب ${template.title}`);
       
-      // Refresh forms list immediately
+      console.log(`✅ تم إنشاء النموذج بنجاح مع الإعدادات: البلد ${defaultSettings.country}, العملة ${defaultSettings.currency}`);
       await fetchForms();
       
       return formData;
@@ -379,17 +391,48 @@ export const useFormTemplates = () => {
         return null;
       }
 
+      // Get shop currency for default settings
+      const getShopCurrency = async (): Promise<string | undefined> => {
+        try {
+          const { data: storeData, error } = await supabase
+            .from('shopify_stores')
+            .select('*')
+            .eq('shop', shopId)
+            .maybeSingle();
+            
+          if (error) {
+            console.log('Error fetching shop data:', error);
+            return undefined;
+          }
+          
+          return (storeData as any)?.currency;
+        } catch (error) {
+          console.log('Could not fetch shop currency, using default');
+          return undefined;
+        }
+      };
+
+      const shopCurrency = await getShopCurrency();
+      const defaultSettings = getDefaultCountryCurrencySettings(shopCurrency);
+
       const { error } = await supabase
         .from('forms')
         .insert({
           id: newFormId,
-          title: formData.title,
-          description: formData.description,
-          data: formData.data as any,
+          title: 'نموذج جديد',
+          description: 'نموذج جديد',
+          data: [{ 
+            id: '1', 
+            title: 'Main Step',
+            fields: completeFields
+          }] as any,
           is_published: false,
           shop_id: shopIdForForm,
-          user_id: userIdForForm
-        });
+          user_id: userIdForForm,
+          country: defaultSettings.country,
+          currency: defaultSettings.currency,
+          phone_prefix: defaultSettings.phonePrefix
+        } as any);
       
       if (error) {
         console.error('Error saving form to database:', error);

@@ -641,6 +641,7 @@ export type Database = {
       shopify_stores: {
         Row: {
           access_token: string | null
+          country: string | null
           created_at: string
           currency: string | null
           email: string | null
@@ -648,14 +649,17 @@ export type Database = {
           is_active: boolean
           money_format: string | null
           money_with_currency_format: string | null
+          province: string | null
           scope: string | null
           shop: string
+          timezone: string | null
           token_type: string | null
           updated_at: string
           user_id: string | null
         }
         Insert: {
           access_token?: string | null
+          country?: string | null
           created_at?: string
           currency?: string | null
           email?: string | null
@@ -663,14 +667,17 @@ export type Database = {
           is_active?: boolean
           money_format?: string | null
           money_with_currency_format?: string | null
+          province?: string | null
           scope?: string | null
           shop: string
+          timezone?: string | null
           token_type?: string | null
           updated_at?: string
           user_id?: string | null
         }
         Update: {
           access_token?: string | null
+          country?: string | null
           created_at?: string
           currency?: string | null
           email?: string | null
@@ -678,8 +685,10 @@ export type Database = {
           is_active?: boolean
           money_format?: string | null
           money_with_currency_format?: string | null
+          province?: string | null
           scope?: string | null
           shop?: string
+          timezone?: string | null
           token_type?: string | null
           updated_at?: string
           user_id?: string | null

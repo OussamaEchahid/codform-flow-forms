@@ -256,12 +256,19 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
       // Get shop currency settings for default country/currency
       const getShopCurrency = async (): Promise<string | undefined> => {
         try {
-          const { data: storeData } = await supabase
+          const { data: storeData, error } = await supabase
             .from('shopify_stores')
-            .select('currency')
+            .select('*')
             .eq('shop', shopId)
-            .single();
-          return storeData?.currency;
+            .maybeSingle();
+          
+          if (error) {
+            console.log('Error fetching shop data:', error);
+            return undefined;
+          }
+          
+          // Access currency from the data object
+          return (storeData as any)?.currency;
         } catch (error) {
           console.log('Could not fetch shop currency, using default');
           return undefined;
@@ -309,19 +316,25 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
         p_is_published: true
       });
 
-      // Update form with country/currency settings after creation
-      if (createdFormId) {
-        const { error: updateError } = await supabase
-          .from('forms')
-          .update({
-            country: defaultSettings.country,
-            currency: defaultSettings.currency,
-            phone_prefix: defaultSettings.phonePrefix
-          })
-          .eq('id', createdFormId);
-          
-        if (updateError) {
-          console.error('Error updating form country/currency settings:', updateError);
+      // Update form with country/currency settings after creation  
+      if (createdFormId && !createFormError) {
+        try {
+          const { error: updateError } = await supabase
+            .from('forms')
+            .update({
+              country: defaultSettings.country,
+              currency: defaultSettings.currency,
+              phone_prefix: defaultSettings.phonePrefix
+            } as any)
+            .eq('id', createdFormId);
+            
+          if (updateError) {
+            console.error('Error updating form country/currency settings:', updateError);
+          } else {
+            console.log('✅ Updated form with country/currency settings:', defaultSettings);
+          }
+        } catch (error) {
+          console.error('Error in form update:', error);
         }
       }
       
