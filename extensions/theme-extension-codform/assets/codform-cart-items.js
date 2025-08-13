@@ -302,34 +302,9 @@
   }
 
   /**
-   * Render cart items field - Enhanced to wait for product data
+   * Render cart items field
    */
   function renderCartItems(field, formStyle, formDirection) {
-    // التأكد من توفر بيانات المنتج قبل العرض
-    const productData = window.CodformProductData || {};
-    const hasProductData = productData.title && productData.price;
-    
-    if (!hasProductData) {
-      console.log('🛒 Cart Items: Product data not ready, fetching before render...');
-      
-      // إذا لم تكن البيانات جاهزة، ابدأ بتحميلها
-      fetchProductPrice().then(() => {
-        console.log('🛒 Cart Items: Product data loaded, re-rendering...');
-        // إعادة العرض بعد تحميل البيانات
-        const container = document.querySelector('.codform-cart-items')?.parentElement;
-        if (container) {
-          const updatedHtml = renderCartItems(field, formStyle, formDirection);
-          container.innerHTML = updatedHtml;
-          
-          // تحديث الأسعار بعد إعادة العرض
-          setTimeout(() => {
-            const qty = parseInt(document.querySelector('.cart-items-quantity')?.textContent || '1');
-            updatePriceDisplay(qty);
-          }, 100);
-        }
-      });
-    }
-
     const fieldStyle = field.style || {};
     const direction = formDirection || 'ltr';
     const isRTL = direction === 'rtl';
