@@ -446,16 +446,18 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
             const defaultSettings = getDefaultCountryCurrencySettings(actualShopCurrency);
             console.log('🏪 Using settings for currency', actualShopCurrency, ':', defaultSettings);
             
-            // تحديث إعدادات النموذج بناءً على عملة المتجر الفعلية
-            // تحديث القيم حتى لو كانت موجودة مسبقاً لضمان استخدام عملة المتجر الصحيحة
-            setFormCountry(defaultSettings.country);
-            setFormCurrency(defaultSettings.currency);
-            setFormPhonePrefix(defaultSettings.phonePrefix);
+            // استخدام العملة المحفوظة في النموذج أو العملة الافتراضية للمتجر
+            const savedCurrency = formData.currency || defaultSettings.currency;
+            const savedCountry = formData.country || defaultSettings.country;
+            const savedPhonePrefix = formData.phone_prefix || defaultSettings.phonePrefix;
             
-            console.log('✅ Updated form settings to match shop currency:', {
-              country: defaultSettings.country,
-              currency: defaultSettings.currency,
-              phonePrefix: defaultSettings.phonePrefix
+            setFormCountry(savedCountry);
+            setFormCurrency(savedCurrency);
+            setFormPhonePrefix(savedPhonePrefix);
+            
+            console.log('✅ Loaded form settings:', {
+              saved: { currency: formData.currency, country: formData.country, phonePrefix: formData.phone_prefix },
+              applied: { country: savedCountry, currency: savedCurrency, phonePrefix: savedPhonePrefix }
             });
             
             // Load form elements
