@@ -15,30 +15,25 @@
   // Robust detection of the shop BASE currency (not active/display)
   function detectShopBaseCurrency() {
     try {
-      const votes = {};
-      const push = (code, weight = 1) => {
-        if (!code || typeof code !== 'string') return;
-        const cur = code.trim().toUpperCase();
-        if (!/^[A-Z]{3}$/.test(cur)) return;
-        votes[cur] = (votes[cur] || 0) + weight;
-      };
+      // 1) Shopify declared base currency (most reliable)
+      const shopBase = window.Shopify?.currency?.shopCurrency || window.Shopify?.currency?.shop_currency;
+      if (shopBase && /^[A-Z]{3}$/.test(shopBase)) return shopBase;
 
-      // 1) Shopify declared shop currency (highest priority)
-      push(window.Shopify && window.Shopify.currency && (window.Shopify.currency.shopCurrency || window.Shopify.currency.shop_currency), 4);
-      push(window.Shopify && window.Shopify.shopCurrency, 3);
-
-      // 2) Stored/base currency from previous detections
-      try { push(localStorage.getItem('codform_shop_base_currency'), 3); } catch (_) {}
-
-      // 3) Meta tags from theme (often reflect shop base currency)
+      // 2) ShopifyAnalytics
       try {
-        const og = document.querySelector('meta[property="og:price:currency"]')?.content
-          || document.querySelector('meta[property="product:price:currency"]')?.content
-          || document.querySelector('meta[itemprop="priceCurrency"]')?.content;
-        push(og, 2);
+        const sa = window.ShopifyAnalytics?.meta?.currency;
+        if (sa && /^[A-Z]{3}$/.test(sa)) return sa;
       } catch (_) {}
 
-      // 4) JSON-LD blocks containing priceCurrency
+      // 3) Meta tags
+      try {
+        const metaCur = document.querySelector('meta[property="og:price:currency"]')?.content
+          || document.querySelector('meta[property="product:price:currency"]')?.content
+          || document.querySelector('meta[itemprop="priceCurrency"]')?.content;
+        if (metaCur && /^[A-Z]{3}$/.test(metaCur)) return metaCur;
+      } catch (_) {}
+
+      // 4) JSON-LD blocks
       try {
         const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
         for (const s of scripts) {
@@ -47,7 +42,7 @@
             const arr = Array.isArray(data) ? data : [data];
             for (const obj of arr) {
               const cur = obj?.offers?.priceCurrency || obj?.priceCurrency;
-              if (cur) push(cur, 2);
+              if (cur && /^[A-Z]{3}$/.test(cur)) return cur;
             }
           } catch (_) {}
         }
@@ -60,29 +55,24 @@
         window.theme && window.theme.moneyFormat,
         window.theme && window.theme.moneyWithCurrencyFormat
       ];
-      moneyFormats.forEach(fmt => {
+      for (const fmt of moneyFormats) {
         if (typeof fmt === 'string') {
           const m = fmt.match(/\b[A-Z]{3}\b/);
-          if (m) push(m[0], 1);
+          if (m) return m[0];
         }
-      });
-
-      // 6) As a last resort, align with form currency when only Cart Items exists
-      push(window.CodformFormData && window.CodformFormData.currency, 1);
-
-      // Choose by majority vote
-      let selected = null; let max = -1;
-      Object.entries(votes).forEach(([code, score]) => { if (score > max) { selected = code; max = score; } });
-      if (selected) {
-        try { localStorage.setItem('codform_shop_base_currency', selected); } catch (_) {}
-        window.CodformShopCurrency = selected;
-        console.log('🧭 Cart Items: Detected shop BASE currency:', selected, votes);
-        return selected;
       }
+
+      // 6) Local storage cache from previous successful detections
+      try {
+        const cached = localStorage.getItem('codform_shop_base_currency');
+        if (cached && /^[A-Z]{3}$/.test(cached)) return cached;
+      } catch (_) {}
+
     } catch (e) {
       console.warn('⚠️ Cart Items: detectShopBaseCurrency failed', e);
     }
-    return window.CodformShopCurrency || 'MAD';
+    // Safe fallback: assume USD (prevents mislabeling MAD as base)
+    return 'USD';
   }
 
   /**
