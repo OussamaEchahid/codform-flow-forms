@@ -85,7 +85,7 @@
   }
   
   /**
-   * تحميل الإعدادات من API
+   * تحميل الإعدادات من API - محسن للمعدلات المخصصة
    */
   async function loadSettingsFromAPI() {
     try {
@@ -135,33 +135,46 @@
           saveSettingsToLocalStorage();
         }
         
-        if (data.all_rates) {
-          // Use full rates from backend (includes defaults + custom)
-          customRates = data.all_rates;
-          console.log('💰 Updated all rates from API:', customRates);
-          saveSettingsToLocalStorage();
-        } else if (data.custom_rates) {
-          // Merge custom overrides with local defaults
+        // تحديث المعدلات المخصصة بدقة
+        if (data.custom_rates && Object.keys(data.custom_rates).length > 0) {
+          console.log('💰 CRITICAL: Processing custom rates from API:', data.custom_rates);
+          
+          // دمج المعدلات المخصصة مع الافتراضية
           customRates = { ...DEFAULT_RATES, ...data.custom_rates };
-          console.log('💰 Updated custom rates merged with defaults:', customRates);
-          // Persist updated rates so subsequent reloads don't overwrite them with stale values
+          
+          console.log('💰 FINAL: Merged rates (Default + Custom):', customRates);
+          console.log(`💰 VERIFICATION: MAD rate is now: ${customRates.MAD}`);
+          
+          // تأكيد حفظ المعدلات المخصصة
           saveSettingsToLocalStorage();
+          
+          // إشعار فوري بالتحديث
+          notifyRatesUpdated();
+        } else if (data.all_rates && Object.keys(data.all_rates).length > 0) {
+          console.log('💰 CRITICAL: Using all_rates from API:', data.all_rates);
+          customRates = data.all_rates;
+          console.log(`💰 VERIFICATION: MAD rate from all_rates: ${customRates.MAD}`);
+          saveSettingsToLocalStorage();
+          notifyRatesUpdated();
+        } else {
+          console.warn('⚠️ No custom rates received from API, keeping defaults');
+          console.log('💰 Current rates remain:', customRates);
         }
         
         console.log('✅ Currency settings successfully loaded and applied from API');
         
-        // تطبيق فوري للتنسيق
+        // تطبيق فوري للتنسيق مع انتظار أطول
         setTimeout(() => {
           reapplyCurrencyFormatting();
           notifySystemUpdates();
-          // Notify listeners that currency settings changed
-          try { window.dispatchEvent(new CustomEvent('currencySettingsUpdated', { detail: { source: 'currency-manager' } })); } catch (e) {}
-          // Recalculate cart items totals using latest rates
+          
+          // إشعار خاص للكارت آيتمز
           if (window.CodformCartItems && typeof window.CodformCartItems.updatePriceDisplay === 'function') {
+            console.log('🛒 Triggering Cart Items price update with new rates...');
             const qty = parseInt(document.querySelector('.codform-cart-items .cart-items-quantity')?.textContent || '1');
             window.CodformCartItems.updatePriceDisplay(qty || 1);
           }
-        }, 100);
+        }, 200); // زيادة الوقت لضمان التطبيق
         
         return true;
         
@@ -175,6 +188,39 @@
       // استخدام الإعدادات المحلية كبديل
       loadCustomSettings();
       return false;
+    }
+  }
+  
+  /**
+   * إشعار النظام بتحديث المعدلات
+   */
+  function notifyRatesUpdated() {
+    console.log('📢 Notifying system that rates have been updated');
+    
+    // إشعارات متعددة لضمان الوصول
+    try {
+      window.dispatchEvent(new CustomEvent('currencySettingsUpdated', { 
+        detail: { 
+          source: 'currency-manager-rates',
+          rates: customRates,
+          timestamp: Date.now()
+        } 
+      }));
+      
+      window.dispatchEvent(new CustomEvent('codform:currency-rates-updated', { 
+        detail: { 
+          rates: customRates,
+          settings: currencySettings
+        } 
+      }));
+      
+      // إشعار مخصص للكارت آيتمز
+      window.dispatchEvent(new CustomEvent('codform:cart-items-refresh', { 
+        detail: { reason: 'rates-updated' } 
+      }));
+      
+    } catch (e) {
+      console.error('❌ Error dispatching rate update events:', e);
     }
   }
   
