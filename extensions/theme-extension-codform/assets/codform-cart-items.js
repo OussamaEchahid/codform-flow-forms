@@ -678,6 +678,27 @@
     const priceElements = document.querySelectorAll('.cart-items-price');
     console.log(`🛒 Cart Items: Found ${priceElements.length} price elements to update`);
     
+    // إذا لم نجد عناصر، ابحث بشكل أوسع
+    if (priceElements.length === 0) {
+      console.log('🛒 Cart Items: No .cart-items-price elements found, searching wider...');
+      const allPriceElements = document.querySelectorAll('[data-field-type="cart_items"] .cart-items-price, .codform-cart-items .cart-items-price, [class*="cart-items"] [class*="price"]');
+      console.log(`🛒 Cart Items: Found ${allPriceElements.length} alternative price elements`);
+      
+      if (allPriceElements.length === 0) {
+        // عرض حالة تحميل أو إضافة عناصر مؤقتة
+        const cartItemsContainer = document.querySelector('.codform-cart-items, [data-field-type="cart_items"]');
+        if (cartItemsContainer && (!window.CodformProductData || !window.CodformProductData.title)) {
+          console.log('🛒 Cart Items: No cached product title, showing loading state');
+          cartItemsContainer.innerHTML = `
+            <div style="padding: 20px; text-align: center; color: #666;">
+              <div style="margin-bottom: 10px;">📦</div>
+              <div>Loading product...</div>
+            </div>
+          `;
+        }
+      }
+    }
+    
     priceElements.forEach((priceElement, index) => {
       console.log(`🛒 Cart Items: 📝 Processing price element ${index + 1}/${priceElements.length}`);
       
@@ -831,14 +852,38 @@
     }, 100);
   }
 
+  // تهيئة محسنة مع إعادة المحاولة
+  function initializeWithRetry(maxRetries = 5) {
+    let retryCount = 0;
+    
+    function tryInitialize() {
+      retryCount++;
+      console.log(`🛒 Cart Items: Attempting initialization (attempt ${retryCount}/${maxRetries})`);
+      
+      // البحث عن cart items elements في DOM
+      const cartItemsElements = document.querySelectorAll('[data-field-type="cart_items"], .codform-cart-items');
+      console.log(`🛒 Cart Items: Found ${cartItemsElements.length} elements in DOM`);
+      
+      if (cartItemsElements.length > 0 || retryCount >= maxRetries) {
+        console.log(`🛒 Cart Items: DOM elements found or max retries reached, proceeding with initialization`);
+        initialize();
+      } else {
+        console.log(`🛒 Cart Items: No elements found, retrying in 500ms (${retryCount}/${maxRetries})`);
+        setTimeout(tryInitialize, 500);
+      }
+    }
+    
+    tryInitialize();
+  }
+  
   // تهيئة تلقائية عند تحميل الصفحة - محسن
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-      setTimeout(initialize, 1000); // انتظار أطول عند التحميل
+      setTimeout(initializeWithRetry, 500);
     });
   } else {
-    // الصفحة محملة بالفعل - انتظار أطول لضمان تحميل Currency Manager
-    setTimeout(initialize, 1500);
+    // الصفحة محملة بالفعل
+    setTimeout(initializeWithRetry, 100);
   }
 
   // مراقبة أحداث النظام - محسن للمعدلات المخصصة
