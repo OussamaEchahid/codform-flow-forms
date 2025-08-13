@@ -104,6 +104,7 @@
     return null;
   }
 
+  async function fetchProductPrice() {
     try {
       console.log('🛒 Cart Items: Getting product data from current page...');
 
