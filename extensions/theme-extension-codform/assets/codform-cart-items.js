@@ -110,7 +110,7 @@
 
       let productData = {
         price: 29.99,
-        currency: detectShopBaseCurrency() || 'MAD',
+        currency: detectShopBaseCurrency() || 'USD',
         title: 'Product',
         image: null
       };
@@ -141,7 +141,7 @@
                 productData.image = product.featured_image;
                 
                 // Determine source currency robustly (BASE currency of the shop)
-                const finalBase = detectShopBaseCurrency();
+                const finalBase = (await detectShopBaseCurrencyAsync()) || detectShopBaseCurrency();
                 if (finalBase) {
                   productData.currency = finalBase;
                 }
@@ -236,10 +236,25 @@
       // Apply currency conversion تم إلغاؤه هنا لتجنب التضارب
       console.log('🛒 Cart Items: Currency conversion will be handled by unified system');
 
+      // Try authoritative base currency via async edge function, then fallback
+      try {
+        const asyncBase = await detectShopBaseCurrencyAsync();
+        if (asyncBase && /^[A-Z]{3}$/.test(asyncBase)) {
+          productData.currency = asyncBase;
+        }
+      } catch (_) {}
+
       // Cache the results
       cachedProductPrice = productData.price;
       cachedCurrency = productData.currency; // keep source currency
       window.CodformProductData = productData; // Store globally for access
+
+      // Broadcast for other widgets (e.g., summary) to sync
+      try {
+        window.dispatchEvent(new CustomEvent('codform:product-data', {
+          detail: { price: productData.price, currency: productData.currency, title: productData.title, image: productData.image }
+        }));
+      } catch (_) {}
 
       console.log(`🛒 Cart Items: Final product data - Price: ${productData.price}, Currency: ${productData.currency}, Title: ${productData.title}`);
 
