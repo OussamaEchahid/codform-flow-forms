@@ -852,29 +852,126 @@
     }, 100);
   }
 
-  // تهيئة محسنة مع إعادة المحاولة
-  function initializeWithRetry(maxRetries = 5) {
+  // تهيئة محسنة مع إعادة المحاولة وانتظار النموذج الكامل
+  function initializeWithRetry(maxRetries = 8) {
     let retryCount = 0;
     
     function tryInitialize() {
       retryCount++;
       console.log(`🛒 Cart Items: Attempting initialization (attempt ${retryCount}/${maxRetries})`);
       
-      // البحث عن cart items elements في DOM
-      const cartItemsElements = document.querySelectorAll('[data-field-type="cart_items"], .codform-cart-items');
-      console.log(`🛒 Cart Items: Found ${cartItemsElements.length} elements in DOM`);
+      // البحث الذكي عن عناصر النموذج والـ cart items
+      const formSelectors = [
+        '.codform-form-container',
+        '.codform-form-wrapper', 
+        '[data-codform-form]',
+        '.form-container',
+        '[data-field-type="cart_items"]',
+        '.codform-cart-items',
+        '.cart-items-container'
+      ];
       
-      if (cartItemsElements.length > 0 || retryCount >= maxRetries) {
+      let formFound = false;
+      let cartItemsElements = [];
+      
+      // التحقق من وجود النموذج أولاً
+      for (const selector of formSelectors) {
+        const elements = document.querySelectorAll(selector);
+        if (elements.length > 0) {
+          console.log(`🛒 Cart Items: Found form/container with selector: ${selector} (${elements.length} elements)`);
+          formFound = true;
+          
+          // البحث عن cart items داخل النموذج
+          elements.forEach(element => {
+            const cartItems = element.querySelectorAll('[data-field-type="cart_items"], .codform-cart-items');
+            cartItemsElements.push(...cartItems);
+          });
+          break;
+        }
+      }
+      
+      // البحث العام إذا لم نجد في النموذج
+      if (cartItemsElements.length === 0) {
+        cartItemsElements = document.querySelectorAll('[data-field-type="cart_items"], .codform-cart-items');
+      }
+      
+      console.log(`🛒 Cart Items: Form found: ${formFound}, Cart Items elements: ${cartItemsElements.length}`);
+      
+      // التحقق من أن بيانات المنتج جاهزة أيضاً
+      const hasProductData = window.CodformProductData && window.CodformProductData.title;
+      console.log(`🛒 Cart Items: Product data ready: ${hasProductData}`);
+      
+      // الشروط للمتابعة: وجود cart items أو وصول للحد الأقصى من المحاولات
+      const shouldProceed = cartItemsElements.length > 0 || retryCount >= maxRetries;
+      
+      if (shouldProceed) {
         console.log(`🛒 Cart Items: DOM elements found or max retries reached, proceeding with initialization`);
+        window.CodformCartItemsInitialized = true;
         initialize();
       } else {
-        console.log(`🛒 Cart Items: No elements found, retrying in 500ms (${retryCount}/${maxRetries})`);
-        setTimeout(tryInitialize, 500);
+        // انتظار متدرج: بداية سريعة ثم أبطأ
+        const waitTime = retryCount <= 3 ? 200 : retryCount <= 6 ? 500 : 1000;
+        console.log(`🛒 Cart Items: No elements found, retrying in ${waitTime}ms (${retryCount}/${maxRetries})`);
+        setTimeout(tryInitialize, waitTime);
       }
     }
     
     tryInitialize();
   }
+  
+  // مراقب تغييرات DOM لالتقاط ظهور النموذج
+  function setupDOMObserver() {
+    if (typeof MutationObserver === 'undefined') return;
+    
+    const observer = new MutationObserver((mutations) => {
+      let shouldCheck = false;
+      
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+          mutation.addedNodes.forEach((node) => {
+            if (node.nodeType === 1) { // Element node
+              // التحقق من إضافة عناصر النموذج أو cart items
+              if (node.matches && (
+                node.matches('[data-field-type="cart_items"]') ||
+                node.matches('.codform-cart-items') ||
+                node.matches('.codform-form-container') ||
+                node.querySelector && (
+                  node.querySelector('[data-field-type="cart_items"]') ||
+                  node.querySelector('.codform-cart-items')
+                )
+              )) {
+                shouldCheck = true;
+              }
+            }
+          });
+        }
+      });
+      
+      if (shouldCheck) {
+        console.log('🛒 Cart Items: DOM changes detected, checking for cart items...');
+        // انتظار قصير للسماح للعناصر بالاستقرار
+        setTimeout(() => {
+          const cartItems = document.querySelectorAll('[data-field-type="cart_items"], .codform-cart-items');
+          if (cartItems.length > 0 && !window.CodformCartItemsInitialized) {
+            console.log('🛒 Cart Items: New cart items detected via DOM observer, initializing...');
+            initialize();
+          }
+        }, 100);
+      }
+    });
+    
+    // بدء المراقبة
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+    
+    console.log('🛒 Cart Items: DOM observer setup complete');
+    return observer;
+  }
+  
+  // إعداد مراقب DOM لالتقاط ظهور النموذج فور حدوثه
+  setupDOMObserver();
   
   // تهيئة تلقائية عند تحميل الصفحة - محسن
   if (document.readyState === 'loading') {
@@ -885,6 +982,9 @@
     // الصفحة محملة بالفعل
     setTimeout(initializeWithRetry, 100);
   }
+  
+  // إضافة متغير global لتتبع حالة التهيئة
+  window.CodformCartItemsInitialized = false;
 
   // مراقبة أحداث النظام - محسن للمعدلات المخصصة
   window.addEventListener('codform:currency-changed', function(event) {
