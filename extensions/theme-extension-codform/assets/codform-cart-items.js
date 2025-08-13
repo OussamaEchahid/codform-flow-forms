@@ -317,9 +317,9 @@
     const direction = formDirection || 'ltr';
     const isRTL = direction === 'rtl';
     
-    // Simple fix: Use cached data if available, otherwise show loading
-    if (!cachedProductData || !cachedProductTitle) {
-      console.log('🛒 Cart Items: No cached product data, showing loading state');
+    // Simple fix: Use cached title only
+    if (!cachedProductTitle) {
+      console.log('🛒 Cart Items: No cached product title, showing loading state');
       return `
         <div class="cart-items-loading" style="
           padding: 20px;
