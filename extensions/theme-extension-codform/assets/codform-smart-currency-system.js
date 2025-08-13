@@ -103,6 +103,9 @@
       this.formId = formId;
       this.shopId = shopId;
 
+      // انتظار سياق العملة أو أنظمة أخرى لمنع التضارب
+      const ctx = await this.waitForCurrencyContext(1800);
+
       // إذا كان هناك نظام عملات آخر نشط، قم بتعطيل هذا النظام لتجنب التضارب
       if (window.CodformUnifiedCurrency || window.CodformUltimateCurrency || window.CodformCurrencyManager) {
         console.log('🛑 Smart Currency disabled: another currency system is active');
@@ -224,6 +227,23 @@
         symbolPosition: 'before',
         decimalPlaces: 0
       };
+    }
+
+    // ينتظر توافر سياق العملة أو النظام الموحد لفترة قصيرة قبل التهيئة
+    async waitForCurrencyContext(timeoutMs = 1500) {
+      const start = Date.now();
+      while (Date.now() - start < timeoutMs) {
+        if (window.CodformUnifiedCurrency || window.CodformUltimateCurrency || window.CodformCurrencyManager) {
+          return { manager: true };
+        }
+        const detected = (window.CodformFormData && window.CodformFormData.currency) || null;
+        if (detected) {
+          this.currentCurrency = detected;
+          return { currency: detected };
+        }
+        await new Promise(r => setTimeout(r, 100));
+      }
+      return null;
     }
 
     /**

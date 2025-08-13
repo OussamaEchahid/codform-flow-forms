@@ -20,7 +20,7 @@ function isAllowedOrigin(origin?: string) {
 }
 
 export function buildCorsHeaders(origin?: string) {
-  const allowOrigin = isAllowedOrigin(origin) ? origin! : 'https://codmagnet.com';
+  const allowOrigin = isAllowedOrigin(origin) ? origin! : '*';
   return {
     'Access-Control-Allow-Origin': allowOrigin,
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
