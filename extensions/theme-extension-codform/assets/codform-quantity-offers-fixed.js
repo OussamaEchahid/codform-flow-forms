@@ -6,45 +6,52 @@
 window.CodformQuantityOffers = (function() {
   'use strict';
 
-  // Custom currency settings cache
-  let customCurrencySettings = null;
+  // Per-shop currency settings cache
+  const currencySettingsCache = {};
 
-  // Function to fetch and cache custom currency settings (with fallback)
+  // Function to fetch and cache custom currency settings (with fallback) PER SHOP
   async function getCustomCurrencySettings(shopId) {
-    if (customCurrencySettings) {
-      return customCurrencySettings;
+    if (!shopId) return null;
+    if (currencySettingsCache[shopId]) {
+      return currencySettingsCache[shopId];
     }
 
     try {
       console.log(`🔍 Fetching custom currency settings for shop: ${shopId}`);
-      
-      // استخدام الـ API المُحسن للحصول على إعدادات العملة المخصصة
-      const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/get-shop-currency-settings?shop_id=${encodeURIComponent(shopId)}`);
+      // Prefer POST (edge function expects POST)
+      const response = await fetch('https://trlklwixfeaexhydzaue.supabase.co/functions/v1/get-shop-currency-settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M'
+        },
+        body: JSON.stringify({ shop_id: shopId })
+      });
+
       if (!response.ok) {
-        console.warn(`⚠️ API returned ${response.status}, using default settings`);
+        console.warn(`⚠️ Currency settings API returned ${response.status}, using defaults`);
         throw new Error(`HTTP ${response.status}`);
       }
-      
+
       const data = await response.json();
-      console.log(`✅ Custom currency settings fetched:`, data);
-      
-      customCurrencySettings = data;
+      console.log('✅ Custom currency settings fetched:', data);
+      currencySettingsCache[shopId] = data;
       return data;
     } catch (error) {
       console.warn('⚠️ Using default currency settings due to error:', error);
-      // Return default settings to prevent breaking the display
-      const defaultSettings = {
+      const defaults = {
         success: true,
-        display_settings: { 
-          show_symbol: true, 
-          symbol_position: 'before', 
-          decimal_places: 2 
+        display_settings: {
+          show_symbol: true,
+          symbol_position: 'before',
+          decimal_places: 2
         },
         custom_symbols: {},
-        custom_rates: {}
+        custom_rates: {},
+        all_rates: null
       };
-      customCurrencySettings = defaultSettings;
-      return defaultSettings;
+      currencySettingsCache[shopId] = defaults;
+      return defaults;
     }
   }
 
@@ -65,10 +72,11 @@ window.CodformQuantityOffers = (function() {
       'XAF': 655.96
     };
 
-    // Apply custom rates if available
-    if (settings.custom_rates) {
-      exchangeRates = { ...exchangeRates, ...settings.custom_rates };
-      console.log('💱 Using custom exchange rates:', settings.custom_rates);
+    // Apply custom rates if available (all_rates takes precedence)
+    const mergedRates = settings.all_rates || settings.custom_rates || {};
+    if (mergedRates && Object.keys(mergedRates).length > 0) {
+      exchangeRates = { ...exchangeRates, ...mergedRates };
+      console.log('💱 Using merged exchange rates:', mergedRates);
     }
     
     if (fromCurrency === toCurrency) return amount;
@@ -207,32 +215,33 @@ window.CodformQuantityOffers = (function() {
       console.log(`💰 Final calculation: basePrice=${convertedBasePrice}, total=${totalPrice}, final=${finalPrice}`);
       
       // ✅ تطبيق إعدادات العرض المخصصة لعملة النموذج
-      let currencyDisplay = formCurrency; // عرض كود العملة كامل افتراضياً
+      let currencyDisplay = formCurrency; // عرض كود العملة افتراضياً
+      let decimalPlaces = 2;
+      let showSymbol = true;
+      let symbolPosition = 'before';
+      let displayText = formCurrency;
       
       if (customSettings && customSettings.display_settings) {
         const displaySettings = customSettings.display_settings;
         const customSymbols = customSettings.custom_symbols || {};
         
-        const decimalPlaces = displaySettings.decimal_places || 2;
-        const showSymbol = displaySettings.show_symbol !== false;
-        const symbolPosition = displaySettings.symbol_position || 'before';
+        decimalPlaces = displaySettings.decimal_places ?? 2; // احترم القيمة 0
+        showSymbol = displaySettings.show_symbol !== false;
+        symbolPosition = displaySettings.symbol_position || 'before';
         
-        // ✅ FIX: تحديد نوع العرض بناءً على الإعدادات
+        // ✅ تحديد نوع العرض بناءً على الإعدادات
         if (customSymbols[formCurrency]) {
           currencyDisplay = customSymbols[formCurrency];
           console.log(`🔤 Using custom symbol for ${formCurrency}: ${customSymbols[formCurrency]}`);
         } else {
-          // تحديد نوع العرض: إذا كان showSymbol = true فعرض الرمز، وإلا عرض الكود
           const displayType = showSymbol ? 'symbol' : 'code';
           currencyDisplay = getCurrencySymbol(formCurrency, displayType);
           console.log(`🔤 Display type: ${displayType}, Currency: ${formCurrency}, Display: ${currencyDisplay}`);
         }
+        displayText = showSymbol ? currencyDisplay : formCurrency;
         
         formattedTotal = totalPrice.toFixed(decimalPlaces);
         formattedFinal = finalPrice.toFixed(decimalPlaces);
-        
-        // ✅ إصلاح منطق العرض: إما رمز أو كود العملة
-        const displayText = showSymbol ? currencyDisplay : formCurrency;
         
         if (symbolPosition === 'after') {
           formattedTotal = `${formattedTotal} ${displayText}`;
@@ -245,11 +254,19 @@ window.CodformQuantityOffers = (function() {
         console.log(`🎨 Applied display settings: decimals=${decimalPlaces}, symbol=${showSymbol}, position=${symbolPosition}, display=${currencyDisplay}`);
       } else {
         // إعدادات افتراضية - عرض كود العملة
-        formattedTotal = `${totalPrice.toFixed(2)} ${formCurrency}`;
-        formattedFinal = `${finalPrice.toFixed(2)} ${formCurrency}`;
+        formattedTotal = `${totalPrice.toFixed(decimalPlaces)} ${formCurrency}`;
+        formattedFinal = `${finalPrice.toFixed(decimalPlaces)} ${formCurrency}`;
       }
       
-      console.log(`✅ Final formatted prices: Total=${formattedTotal}, Final=${formattedFinal}`);
+      // ✅ تنسيق سعر الوحدة بنفس الإعدادات
+      let formattedUnitText = (finalPrice / quantity).toFixed(decimalPlaces);
+      if (symbolPosition === 'after') {
+        formattedUnitText = `${formattedUnitText} ${showSymbol ? currencyDisplay : formCurrency}`;
+      } else {
+        formattedUnitText = `${showSymbol ? currencyDisplay : formCurrency} ${formattedUnitText}`;
+      }
+      
+      console.log(`✅ Final formatted prices: Total=${formattedTotal}, Final=${formattedFinal}, Unit=${formattedUnitText}`);
 
       // ✅ إعدادات الألوان المخصصة
       const borderColors = {
@@ -328,7 +345,7 @@ window.CodformQuantityOffers = (function() {
           </div>
           ${quantity > 1 ? `
             <div style="font-size: 12px; color: #6b7280; margin-top: 2px;">
-              ${(finalPrice / quantity).toFixed(2)} ${formCurrency} × ${quantity}
+              ${formattedUnitText} × ${quantity}
             </div>
           ` : ''}
         </div>
