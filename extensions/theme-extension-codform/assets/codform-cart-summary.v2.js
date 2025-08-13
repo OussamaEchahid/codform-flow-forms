@@ -5,7 +5,7 @@
 
 (function() {
   'use strict';
-  const CODFORM_CART_SUMMARY_BUILD = '2025-08-13-01';
+  const CODFORM_CART_SUMMARY_BUILD = '2025-08-13-02';
   try { console.log('🧩 CODFORM Cart Summary loaded - build', CODFORM_CART_SUMMARY_BUILD); } catch(e) {}
 
 
