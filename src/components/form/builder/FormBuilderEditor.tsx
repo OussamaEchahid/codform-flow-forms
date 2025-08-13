@@ -130,21 +130,23 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
   const [formPhonePrefix, setFormPhonePrefix] = useState('');
 
   // إنشاء نموذج افتراضي جديد مع الحقول المطلوبة
-  const createDefaultForm = (): FormField[] => {
+  const createDefaultForm = (currency: string = 'MAD'): FormField[] => {
     const fields: FormField[] = [];
     
     // إضافة عنوان النموذج كعنصر أول
     fields.push({
-      type: 'formTitle' as FormFieldType,
+      type: 'form-title' as FormFieldType,
       id: `form-title-${Date.now()}`,
-      label: language === 'ar' ? 'عنوان النموذج' : 'Form Title',
-      title: language === 'ar' ? 'اطلب منتجك الآن' : 'Order Your Product Now',
-      subtitle: language === 'ar' ? 'احصل على أفضل الأسعار' : 'Get the best prices',
+      label: language === 'ar' ? 'اطلب الآن' : 'Order Now',
+      helpText: language === 'ar' ? 'اطلب الآن' : 'Order Now',
       style: {
-        fontSize: '1.5rem',
-        fontWeight: '600',
-        color: '#1f2937',
-        textAlign: 'center',
+        fontSize: '24px',
+        fontWeight: 'bold',
+        color: '#000000',
+        textAlign: 'left',
+        backgroundColor: '#9b87f5',
+        descriptionColor: '#ffffff',
+        descriptionFontSize: '14px',
       },
     });
     
@@ -152,18 +154,18 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
     fields.push({
       type: 'text' as FormFieldType,
       id: `text-${Date.now()}-1`,
-      label: language === 'ar' ? 'الاسم الكامل' : 'Full name',
-      placeholder: language === 'ar' ? 'الاسم الكامل' : 'Full name',
+      label: language === 'ar' ? 'الاسم الكامل' : 'Full Name',
+      placeholder: language === 'ar' ? 'أدخل الاسم الكامل' : 'Enter full name',
       required: true,
       icon: 'user',
     });
     
     // إضافة حقل رقم الهاتف
     fields.push({
-      type: 'text' as FormFieldType,
+      type: 'phone' as FormFieldType,
       id: `phone-${Date.now()}-2`,
-      label: language === 'ar' ? 'رقم الهاتف' : 'Phone number',
-      placeholder: language === 'ar' ? 'رقم الهاتف' : 'Phone number',
+      label: language === 'ar' ? 'رقم الهاتف' : 'Phone Number',
+      placeholder: language === 'ar' ? 'أدخل رقم الهاتف' : 'Enter phone number',
       required: true,
       icon: 'phone',
     });
@@ -173,7 +175,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
       type: 'text' as FormFieldType,
       id: `city-${Date.now()}`,
       label: language === 'ar' ? 'المدينة' : 'City',
-      placeholder: language === 'ar' ? 'أدخل اسم المدينة' : 'Enter city name',
+      placeholder: language === 'ar' ? 'أدخل اسم المدينة' : 'Enter city',
       required: true,
       icon: 'map-pin',
     });
@@ -183,28 +185,49 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
       type: 'textarea' as FormFieldType,
       id: `textarea-${Date.now()}`,
       label: language === 'ar' ? 'العنوان' : 'Address',
-      placeholder: language === 'ar' ? 'العنوان' : 'address',
+      placeholder: language === 'ar' ? 'أدخل العنوان الكامل' : 'Enter full address',
       required: true,
+    });
+
+    // إضافة ملخص السلة مع العملة الصحيحة
+    fields.push({
+      type: 'cart-summary' as FormFieldType,
+      id: `cart-summary-${Date.now()}`,
+      label: language === 'ar' ? 'ملخص الطلب' : 'Order Summary',
+      cartSummaryConfig: {
+        currency: currency, // استخدام عملة المتجر الفعلية
+        direction: 'ltr',
+        showSubtotal: true,
+        showDiscount: true,
+        showShipping: true,
+        showTotal: true,
+        subtotalLabel: language === 'ar' ? 'المجموع الفرعي' : 'Subtotal',
+        discountLabel: language === 'ar' ? 'الخصم' : 'Discount',
+        shippingLabel: language === 'ar' ? 'الشحن' : 'Shipping',
+        totalLabel: language === 'ar' ? 'المجموع' : 'Total',
+        freeShippingText: language === 'ar' ? 'شحن مجاني' : 'Free shipping',
+      },
     });
     
     // إضافة زر الطلب مع الإعدادات الجديدة
     fields.push({
       type: 'submit' as FormFieldType,
-      id: `submit-${Date.now()}`,
-      label: language === 'ar' ? 'الدفع عند الاستلام' : 'Buy with Cash on Delivery',
+      id: `submit-button-${Date.now()}`,
+      label: language === 'ar' ? 'تأكيد الطلب' : 'Submit Order',
       icon: 'shopping-cart',
       style: {
-        backgroundColor: '#000000', // لون الخلفية الأسود
+        backgroundColor: '#9b87f5',
         showIcon: true,
         iconPosition: 'right',
-        color: '#ffffff', // لون النص الأبيض
-        fontSize: '1.15rem', // حجم الخط
-        fontWeight: '500', // وزن النص
-        animationType: 'shake', // نوع الحركة
-        borderColor: '#eaeaff', // لون الحدود
-        borderRadius: '6px', // انحناء الحدود
-        borderWidth: '0px', // عرض الحدود
-        paddingY: '12px', // المسافة العمودية
+        color: '#ffffff',
+        fontSize: '18px',
+        iconSize: '18px',
+        paddingY: '15px',
+        animation: true,
+        animationType: 'shake',
+        borderColor: '#eaeaff',
+        borderRadius: '6px',
+        borderWidth: '0px',
       },
     });
     
@@ -309,7 +332,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
       setFormStyle(defaultStyle);
 
       // Create default fields with ALL required fields
-      const defaultFields = createDefaultForm();
+      const defaultFields = createDefaultForm(actualShopCurrency);
       setFormElements(defaultFields);
 
       // Prepare initial form data
@@ -435,7 +458,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
             // If no elements loaded, create default elements immediately
             if (loadedElements.length === 0) {
               console.log('⚡ No elements found, creating default elements');
-              loadedElements = createDefaultForm();
+              loadedElements = createDefaultForm(actualShopCurrency);
               console.log('✨ Created default elements:', loadedElements);
             }
             
@@ -456,6 +479,20 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
       };
               loadedElements.push(submitButton);
             }
+            
+            // تحديث عملة ملخص السلة إذا كانت موجودة
+            loadedElements = loadedElements.map(element => {
+              if (element.type === 'cart-summary' && element.cartSummaryConfig) {
+                return {
+                  ...element,
+                  cartSummaryConfig: {
+                    ...element.cartSummaryConfig,
+                    currency: actualShopCurrency // استخدام عملة المتجر الفعلية
+                  }
+                };
+              }
+              return element;
+            });
             
             // Ensure form title exists and is first
             loadedElements = ensureFormTitleExists(loadedElements);
