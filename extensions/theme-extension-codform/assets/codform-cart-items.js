@@ -141,7 +141,7 @@
                 productData.image = product.featured_image;
                 
                 // Determine source currency robustly (BASE currency of the shop)
-                const finalBase = (await detectShopBaseCurrencyAsync()) || detectShopBaseCurrency();
+                const finalBase = detectShopBaseCurrency();
                 if (finalBase) {
                   productData.currency = finalBase;
                 }
@@ -236,13 +236,8 @@
       // Apply currency conversion تم إلغاؤه هنا لتجنب التضارب
       console.log('🛒 Cart Items: Currency conversion will be handled by unified system');
 
-      // Try authoritative base currency via async edge function, then fallback
-      try {
-        const asyncBase = await detectShopBaseCurrencyAsync();
-        if (asyncBase && /^[A-Z]{3}$/.test(asyncBase)) {
-          productData.currency = asyncBase;
-        }
-      } catch (_) {}
+      // Skip calling async edge function for base currency to avoid 401s on storefront
+      // productData.currency remains as detected locally (shop base or parsed from DOM)
 
       // Cache the results
       cachedProductPrice = productData.price;
@@ -321,26 +316,16 @@
   function renderCartItems(field, formStyle, formDirection) {
     console.log('🛒 Cart Items: Rendering field...');
 
-    if (!cachedProductPrice || !cachedCurrency) {
-      console.warn('🛒 Cart Items: No cached data available, showing placeholder');
-      return `
-        <div class="codform-cart-items" style="
-          margin: 10px 0;
-          padding: 16px;
-          background: #f9fafb;
-          border: 1px solid #e5e7eb;
-          border-radius: 8px;
-          text-align: center;
-          color: #6b7280;
-        ">
-          <p>Loading product information...</p>
-        </div>
-      `;
+    const isLoading = (!cachedProductPrice || !cachedCurrency);
+    if (isLoading) {
+      console.warn('🛒 Cart Items: No cached data yet, rendering skeleton UI');
     }
 
     const fieldStyle = field.style || {};
     const direction = formDirection || 'ltr';
     const isRTL = direction === 'rtl';
+    const priceForRender = cachedProductPrice ?? 0;
+    const currencyForRender = cachedCurrency ?? (window.CodformFormData?.currency || (window.Shopify && window.Shopify.currency && window.Shopify.currency.active) || detectShopBaseCurrency());
     
     // Dynamic labels based on direction
     const priceLabel = isRTL ? 'السعر:' : 'Price:';
@@ -359,9 +344,9 @@
       || cachedCurrency;
     
     // Convert unit price to target currency if needed
-    let unitPrice = cachedProductPrice;
-    if (window.CodformCurrencyManager && typeof window.CodformCurrencyManager.convertCurrency === 'function' && cachedCurrency !== targetCurrency) {
-      unitPrice = window.CodformCurrencyManager.convertCurrency(cachedProductPrice, cachedCurrency, targetCurrency);
+    let unitPrice = priceForRender;
+    if (window.CodformCurrencyManager && typeof window.CodformCurrencyManager.convertCurrency === 'function' && currencyForRender !== targetCurrency) {
+      unitPrice = window.CodformCurrencyManager.convertCurrency(priceForRender, currencyForRender, targetCurrency);
     }
     
     // Format using Currency Manager when available
@@ -439,7 +424,7 @@
                 color: #6b7280;
                 margin: 0;
                 font-size: 14px;
-              ">${priceLabel} <span class="cart-items-price" data-currency="${targetCurrency}" data-base-price="${cachedProductPrice}" data-base-currency="${cachedCurrency}" style="visibility: hidden;">${formattedPrice}</span></p>
+              ">${priceLabel} <span class="cart-items-price" data-currency="${targetCurrency}" data-base-price="${priceForRender}" data-base-currency="${currencyForRender}" style="visibility: hidden;">${formattedPrice}</span></p>
             </div>
             
             <!-- Quantity Controls -->
