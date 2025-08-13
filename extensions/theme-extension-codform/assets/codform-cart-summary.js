@@ -79,35 +79,50 @@
    * Convert currency amount using Currency Manager with custom rates
    */
   function convertCurrency(amount, fromCurrency, toCurrency) {
-    // ✅ استخدام Currency Manager مع المعدلات المخصصة أولاً
+    console.log(`🛒 Cart Summary: Converting ${amount} from ${fromCurrency} to ${toCurrency}`);
+    
+    // ✅ CRITICAL FIX: Force use Currency Manager for custom rates
     if (window.CodformCurrencyManager && typeof window.CodformCurrencyManager.convertCurrency === 'function') {
-      return window.CodformCurrencyManager.convertCurrency(amount, fromCurrency, toCurrency);
+      const converted = window.CodformCurrencyManager.convertCurrency(amount, fromCurrency, toCurrency);
+      console.log(`🛒 Cart Summary: Currency Manager converted: ${amount} ${fromCurrency} -> ${converted} ${toCurrency}`);
+      return converted;
     }
     
-    // التحويل الاحتياطي باستخدام معدلات محدثة
+    // Same currency - no conversion needed
     if (fromCurrency === toCurrency) {
+      console.log(`🛒 Cart Summary: Same currency, returning original amount: ${amount}`);
       return amount;
     }
     
-    // ✅ Get rates from currency manager if available
-    let exchangeRates = EXCHANGE_RATES;
+    // ✅ ENHANCED: Get custom rates from Currency Manager with priority
+    let exchangeRates = { ...EXCHANGE_RATES }; // Copy default rates
+    
     if (window.CodformCurrencyManager && window.CodformCurrencyManager.getRates) {
       const customRates = window.CodformCurrencyManager.getRates();
+      console.log('🛒 Cart Summary: Custom rates from manager:', customRates);
+      
       if (customRates && Object.keys(customRates).length > 0) {
-        exchangeRates = { ...EXCHANGE_RATES, ...customRates };
+        // Override with custom rates
+        exchangeRates = { ...exchangeRates, ...customRates };
+        console.log('🛒 Cart Summary: Using merged rates (custom + default):', exchangeRates);
       }
     }
     
     const fromRate = exchangeRates[fromCurrency];
     const toRate = exchangeRates[toCurrency];
     
+    console.log(`🛒 Cart Summary: Exchange rates - ${fromCurrency}: ${fromRate}, ${toCurrency}: ${toRate}`);
+    
     if (!fromRate || !toRate) {
+      console.warn(`🛒 Cart Summary: Missing exchange rate for conversion, returning original amount`);
       return amount;
     }
     
     // Convert through USD as base
     const usdAmount = amount / fromRate;
     const convertedAmount = usdAmount * toRate;
+    
+    console.log(`🛒 Cart Summary: Conversion calculation - USD amount: ${usdAmount}, Final: ${convertedAmount}`);
     
     return convertedAmount;
   }
@@ -116,12 +131,28 @@
    * Format currency amount using Currency Manager with custom settings
    */
   function formatCurrency(amount, currency, language = 'ar') {
-    // ✅ استخدام Currency Manager مع الإعدادات المخصصة أولاً
+    console.log(`🛒 Cart Summary: Formatting currency - Amount: ${amount}, Currency: ${currency}, Language: ${language}`);
+    
+    // ✅ PRIORITY: Use Currency Manager for complete formatting with custom rates and display settings
     if (window.CodformCurrencyManager && typeof window.CodformCurrencyManager.formatCurrency === 'function') {
-      return window.CodformCurrencyManager.formatCurrency(amount, currency, language);
+      const formatted = window.CodformCurrencyManager.formatCurrency(amount, currency, language);
+      console.log(`🛒 Cart Summary: Currency Manager formatted: ${formatted}`);
+      return formatted;
     }
     
-    // التنسيق الاحتياطي مع رموز محسنة
+    // ✅ FALLBACK: Manual formatting with custom rates application
+    let finalAmount = amount;
+    
+    // Apply custom conversion rates if available
+    if (window.CodformCurrencyManager && window.CodformCurrencyManager.getRates) {
+      const customRates = window.CodformCurrencyManager.getRates();
+      if (customRates && customRates[currency]) {
+        finalAmount = amount * customRates[currency];
+        console.log(`🛒 Cart Summary: Applied custom rate ${customRates[currency]} - Original: ${amount} -> Final: ${finalAmount}`);
+      }
+    }
+    
+    // Enhanced currency symbols
     const symbols = {
       'SAR': 'ر.س',
       'MAD': 'د.م', 
@@ -137,8 +168,35 @@
     };
     
     const symbol = symbols[currency] || currency;
-    const roundedAmount = Math.round(amount * 100) / 100;
-    return `${roundedAmount.toFixed(1)} ${symbol}`;
+    
+    // Get display settings from Currency Manager
+    let decimalPlaces = 1; // Default from API logs
+    let showSymbol = true;
+    let symbolPosition = 'after';
+    
+    if (window.CodformCurrencyManager && window.CodformCurrencyManager.getDisplaySettings) {
+      const settings = window.CodformCurrencyManager.getDisplaySettings();
+      if (settings) {
+        decimalPlaces = settings.decimal_places || settings.decimalPlaces || 1;
+        showSymbol = settings.show_symbol !== false && settings.showSymbol !== false;
+        symbolPosition = settings.symbol_position || settings.symbolPosition || 'after';
+      }
+    }
+    
+    const roundedAmount = Math.round(finalAmount * Math.pow(10, decimalPlaces)) / Math.pow(10, decimalPlaces);
+    const formattedAmount = roundedAmount.toFixed(decimalPlaces);
+    
+    let result;
+    if (!showSymbol) {
+      result = formattedAmount;
+    } else if (symbolPosition === 'before') {
+      result = `${symbol}${formattedAmount}`;
+    } else {
+      result = `${formattedAmount} ${symbol}`;
+    }
+    
+    console.log(`🛒 Cart Summary: Final formatted result: ${result}`);
+    return result;
   }
 
   /**

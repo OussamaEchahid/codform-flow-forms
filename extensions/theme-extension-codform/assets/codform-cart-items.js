@@ -165,20 +165,39 @@
   }
 
   /**
-   * Format currency using the same logic as cart-summary
+   * Format currency using Currency Manager with custom conversion rates
    */
   function formatCurrency(amount, currency, displaySettings = {}) {
     try {
-      console.log(`🛒 Cart Items: Formatting currency - Amount: ${amount}, Currency: ${currency}`);
+      console.log(`🛒 Cart Items: Formatting with conversion - Amount: ${amount}, Currency: ${currency}`);
       
-      // DO NOT use Smart Currency System as it's causing issues
-      // Force use our own formatting to ensure consistency
+      // ✅ CRITICAL FIX: Use Currency Manager for proper custom rates application
+      if (window.CodformCurrencyManager && window.CodformCurrencyManager.formatCurrency) {
+        const formatted = window.CodformCurrencyManager.formatCurrency(amount, currency);
+        console.log(`🛒 Cart Items: Currency Manager formatted: ${formatted}`);
+        return formatted;
+      }
+      
+      // ✅ FALLBACK: Apply custom conversion rates manually if Currency Manager unavailable
+      let convertedAmount = amount;
+      
+      // Get custom rates from Currency Manager
+      if (window.CodformCurrencyManager && window.CodformCurrencyManager.getRates) {
+        const customRates = window.CodformCurrencyManager.getRates();
+        console.log('🛒 Cart Items: Custom rates from manager:', customRates);
+        
+        // Apply conversion if custom rate exists
+        if (customRates && customRates[currency]) {
+          convertedAmount = amount * customRates[currency];
+          console.log(`🛒 Cart Items: Applied custom rate ${customRates[currency]} - Original: ${amount} -> Converted: ${convertedAmount}`);
+        }
+      }
       
       // Enhanced currency symbols with Arabic support
       const symbols = {
         'SAR': 'ر.س',
         'MAD': 'د.م',
-        'AED': 'د.إ', // Dirhams
+        'AED': 'د.إ',
         'USD': '$',
         'EUR': '€',
         'GBP': '£',
@@ -191,19 +210,35 @@
       };
 
       const symbol = symbols[currency] || currency;
-      const formattedAmount = parseFloat(amount).toFixed(2);
       
-      // Format based on currency
-      let formatted;
-      if (['SAR', 'MAD', 'AED', 'EGP', 'JOD', 'KWD', 'QAR', 'BHD', 'OMR'].includes(currency)) {
-        // Arabic currencies - symbol after amount
-        formatted = `${formattedAmount} ${symbol}`;
-      } else {
-        // Western currencies - symbol before amount
-        formatted = `${symbol}${formattedAmount}`;
+      // Get display settings from Currency Manager
+      let decimalPlaces = 2;
+      let showSymbol = true;
+      let symbolPosition = 'after';
+      
+      if (window.CodformCurrencyManager && window.CodformCurrencyManager.getDisplaySettings) {
+        const settings = window.CodformCurrencyManager.getDisplaySettings();
+        if (settings) {
+          decimalPlaces = settings.decimal_places || settings.decimalPlaces || 2;
+          showSymbol = settings.show_symbol !== false && settings.showSymbol !== false;
+          symbolPosition = settings.symbol_position || settings.symbolPosition || 'after';
+        }
       }
       
-      console.log(`🛒 Cart Items: Formatted currency: ${formatted}`);
+      const formattedAmount = parseFloat(convertedAmount).toFixed(decimalPlaces);
+      
+      // Format based on display settings
+      let formatted;
+      if (!showSymbol) {
+        formatted = formattedAmount;
+      } else if (symbolPosition === 'before') {
+        formatted = `${symbol}${formattedAmount}`;
+      } else {
+        // Default and 'after' position
+        formatted = `${formattedAmount} ${symbol}`;
+      }
+      
+      console.log(`🛒 Cart Items: Final formatted currency: ${formatted}`);
       return formatted;
     } catch (error) {
       console.error('🚨 Cart Items - Error formatting currency:', error);
