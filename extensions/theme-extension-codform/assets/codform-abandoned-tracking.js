@@ -280,20 +280,55 @@ class CodformAbandonedTracking {
 
 // تهيئة النظام عند تحميل الصفحة
 if (typeof window !== 'undefined') {
-  // انتظار تحميل النموذج
-  document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => {
-      window.CodformAbandonedTracking = new CodformAbandonedTracking();
-    }, 2000);
-  });
+  console.log('🔧 Setting up abandoned tracking initialization...');
   
-  // في حالة تم تحميل الصفحة بالفعل
-  if (document.readyState === 'loading') {
-    // الوثيقة لا تزال تحمّل
-  } else {
-    // الوثيقة جاهزة
-    setTimeout(() => {
+  // دالة تهيئة محسنة
+  function initializeTracking() {
+    try {
+      console.log('🚀 Starting abandoned tracking initialization...');
+      console.log('📄 Document ready state:', document.readyState);
+      
+      if (window.CodformAbandonedTracking) {
+        console.log('⚠️ Tracking already exists, destroying old instance...');
+        window.CodformAbandonedTracking.destroy();
+      }
+      
+      console.log('🔄 Creating new tracking instance...');
       window.CodformAbandonedTracking = new CodformAbandonedTracking();
-    }, 2000);
+      console.log('✅ Abandoned tracking instance created successfully');
+      
+    } catch (error) {
+      console.error('❌ Error initializing abandoned tracking:', error);
+    }
   }
+  
+  // تهيئة فورية إذا كانت الصفحة جاهزة
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    console.log('📄 Document already ready, initializing immediately...');
+    setTimeout(initializeTracking, 1000);
+  } else {
+    // انتظار تحميل الصفحة
+    console.log('⏳ Waiting for document to load...');
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log('📄 DOMContentLoaded event fired');
+      setTimeout(initializeTracking, 1000);
+    });
+    
+    // احتياطي إضافي للتأكد
+    window.addEventListener('load', () => {
+      console.log('📄 Window load event fired');
+      if (!window.CodformAbandonedTracking || !window.CodformAbandonedTracking.isInitialized) {
+        console.log('🔄 Backup initialization triggered');
+        setTimeout(initializeTracking, 500);
+      }
+    });
+  }
+  
+  // محاولة إضافية بعد 5 ثوان
+  setTimeout(() => {
+    if (!window.CodformAbandonedTracking || !window.CodformAbandonedTracking.isInitialized) {
+      console.log('🔄 Final backup initialization after 5 seconds...');
+      initializeTracking();
+    }
+  }, 5000);
 }
