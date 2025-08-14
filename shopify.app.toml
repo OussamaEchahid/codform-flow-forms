@@ -4,7 +4,7 @@ client_id = "753bee28b4a0b12f2d87c79b56c86641"
 name = "CodMagnet - COD Form"
 handle = "codform-cod-forms"
 application_url = "https://codmagnet.com"
-embedded = true
+embedded = false
 
 [build]
 include_config_on_deploy = true

@@ -26,7 +26,7 @@ const shopify = shopifyApp({
   sessionStorage: new PrismaSessionStorage(prisma),
   distribution: AppDistribution.AppStore,
   // هذا الإعداد مهم جداً - التطبيق غير مضمن
-  isEmbeddedApp: true,
+  isEmbeddedApp: false,
   // إضافة المزيد من النطاقات المسموح بها
   hooks: {
     afterAuth: async ({ session, admin }) => {
