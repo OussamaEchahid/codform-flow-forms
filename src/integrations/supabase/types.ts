@@ -500,6 +500,13 @@ export type Database = {
             referencedRelation: "forms"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "quantity_offers_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "published_forms_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       shop_subscriptions: {
@@ -598,6 +605,13 @@ export type Database = {
             referencedRelation: "forms"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "shopify_form_insertion_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "published_forms_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       shopify_product_settings: {
@@ -640,6 +654,13 @@ export type Database = {
             columns: ["form_id"]
             isOneToOne: false
             referencedRelation: "forms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopify_product_settings_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "published_forms_public"
             referencedColumns: ["id"]
           },
         ]
@@ -703,7 +724,48 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      published_forms_public: {
+        Row: {
+          country: string | null
+          created_at: string | null
+          currency: string | null
+          data: Json | null
+          description: string | null
+          id: string | null
+          is_published: boolean | null
+          phone_prefix: string | null
+          style: Json | null
+          title: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          country?: string | null
+          created_at?: string | null
+          currency?: string | null
+          data?: Json | null
+          description?: string | null
+          id?: string | null
+          is_published?: boolean | null
+          phone_prefix?: string | null
+          style?: Json | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          country?: string | null
+          created_at?: string | null
+          currency?: string | null
+          data?: Json | null
+          description?: string | null
+          id?: string | null
+          is_published?: boolean | null
+          phone_prefix?: string | null
+          style?: Json | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       associate_product_with_form: {
@@ -793,6 +855,19 @@ export type Database = {
       get_product_form_and_offers: {
         Args: { product_id: string; shop_id: string }
         Returns: Json
+      }
+      get_public_form_data: {
+        Args: { p_form_id: string }
+        Returns: {
+          country: string
+          currency: string
+          data: Json
+          description: string
+          id: string
+          phone_prefix: string
+          style: Json
+          title: string
+        }[]
       }
       get_shop_currency_settings: {
         Args: { p_shop_id: string }
