@@ -140,11 +140,21 @@ class CodformAbandonedTracking {
    */
   processFormData(form) {
     const currentData = this.extractFormData(form);
+    console.log('🔍 Extracted current data:', currentData);
     
     // التحقق من وجود بيانات مهمة
-    if (this.hasImportantData(currentData) && !this.abandonedCartId) {
-      console.log('📝 Creating abandoned cart with data:', currentData);
+    const hasImportant = this.hasImportantData(currentData);
+    console.log('❓ Has important data:', hasImportant);
+    console.log('❓ Already has cart ID:', !!this.abandonedCartId);
+    
+    if (hasImportant && !this.abandonedCartId) {
+      console.log('✅ Creating abandoned cart with data:', currentData);
       this.saveAbandonedCart(currentData);
+    } else if (hasImportant && this.abandonedCartId) {
+      console.log('🔄 Cart already exists, updating activity:', this.abandonedCartId);
+      this.updateLastActivity();
+    } else {
+      console.log('⏭️ No important data found, skipping save');
     }
     
     this.formTrackingData = currentData;
@@ -158,14 +168,36 @@ class CodformAbandonedTracking {
     const data = {};
     
     form.querySelectorAll('input, textarea, select').forEach(field => {
-      if (field.name && field.value && field.value.trim()) {
-        data[field.name] = field.value.trim();
-      } else if (field.id && field.value && field.value.trim()) {
-        data[field.id] = field.value.trim();
+      const fieldName = field.name || field.id || field.getAttribute('data-field') || '';
+      const fieldValue = field.value ? field.value.trim() : '';
+      const fieldPlaceholder = field.placeholder || '';
+      
+      console.log(`🔍 Processing field:`, {
+        name: fieldName,
+        value: fieldValue,
+        placeholder: fieldPlaceholder,
+        type: field.type
+      });
+      
+      if (fieldValue) {
+        if (fieldName) {
+          data[fieldName] = fieldValue;
+        }
+        
+        // تحديد نوع الحقل بناءً على الاسم أو placeholder
+        if (fieldName.toLowerCase().includes('email') || fieldPlaceholder.toLowerCase().includes('email') || fieldPlaceholder.includes('بريد')) {
+          data.email = fieldValue;
+        }
+        if (fieldName.toLowerCase().includes('phone') || fieldPlaceholder.toLowerCase().includes('phone') || fieldPlaceholder.includes('هاتف')) {
+          data.phone = fieldValue;
+        }
+        if (fieldName.toLowerCase().includes('name') || fieldPlaceholder.toLowerCase().includes('name') || fieldPlaceholder.includes('اسم')) {
+          data.name = fieldValue;
+        }
       }
     });
     
-    console.log('📊 Extracted form data:', data);
+    console.log('📊 Final extracted form data:', data);
     return data;
   }
 
@@ -173,22 +205,38 @@ class CodformAbandonedTracking {
    * التحقق من وجود بيانات مهمة
    */
   hasImportantData(data) {
-    const hasData = data.email || 
-           data.phone || 
-           data.name || 
-           data.customerEmail || 
-           data.customerPhone || 
-           data.customerName ||
-           Object.keys(data).some(key => 
-             key.toLowerCase().includes('email') || 
-             key.toLowerCase().includes('phone') || 
-             key.toLowerCase().includes('name') ||
-             key.toLowerCase().includes('بريد') ||
-             key.toLowerCase().includes('هاتف') ||
-             key.toLowerCase().includes('اسم')
-           );
+    // البحث عن البيانات المهمة بطرق مختلفة
+    const hasDirectData = data.email || data.phone || data.name;
+    const hasCustomerData = data.customerEmail || data.customerPhone || data.customerName;
     
-    console.log('🤔 Has important data:', hasData, 'Data keys:', Object.keys(data));
+    // البحث في جميع المفاتيح
+    const hasKeywordData = Object.keys(data).some(key => {
+      const lowerKey = key.toLowerCase();
+      return lowerKey.includes('email') || 
+             lowerKey.includes('phone') || 
+             lowerKey.includes('name') ||
+             lowerKey.includes('بريد') ||
+             lowerKey.includes('هاتف') ||
+             lowerKey.includes('اسم');
+    });
+    
+    // التحقق من وجود قيم فعلية
+    const hasValues = Object.values(data).some(value => 
+      value && typeof value === 'string' && value.trim().length > 2
+    );
+    
+    const hasData = (hasDirectData || hasCustomerData || hasKeywordData) && hasValues;
+    
+    console.log('🤔 Has important data analysis:', {
+      hasDirectData,
+      hasCustomerData, 
+      hasKeywordData,
+      hasValues,
+      finalResult: hasData,
+      dataKeys: Object.keys(data),
+      dataValues: Object.values(data)
+    });
+    
     return hasData;
   }
 
@@ -207,16 +255,32 @@ class CodformAbandonedTracking {
       // العثور على أي بيانات مهمة في الحقول الأخرى
       Object.keys(data).forEach(key => {
         const lowerKey = key.toLowerCase();
-        if (lowerKey.includes('email') && !customerEmail) {
-          customerEmail = data[key];
+        const value = data[key];
+        
+        // البحث عن البريد الإلكتروني
+        if ((lowerKey.includes('email') || lowerKey.includes('بريد')) && !customerEmail && value) {
+          customerEmail = value;
         }
-        if ((lowerKey.includes('phone') || lowerKey.includes('هاتف')) && !customerPhone) {
-          customerPhone = data[key];
+        // البحث عن رقم الهاتف
+        if ((lowerKey.includes('phone') || lowerKey.includes('هاتف') || lowerKey.includes('mobile')) && !customerPhone && value) {
+          customerPhone = value;
         }
-        if ((lowerKey.includes('name') || lowerKey.includes('اسم')) && !customerName) {
-          customerName = data[key];
+        // البحث عن الاسم
+        if ((lowerKey.includes('name') || lowerKey.includes('اسم') || lowerKey.includes('full')) && !customerName && value) {
+          customerName = value;
         }
       });
+      
+      // إذا لم نجد بيانات محددة، نأخذ أول قيمة مفيدة
+      if (!customerEmail && !customerPhone && !customerName) {
+        const values = Object.values(data).filter(v => v && v.length > 2);
+        if (values.length > 0) {
+          customerName = values[0]; // نأخذ أول قيمة كاسم
+          if (values.length > 1) {
+            customerPhone = values[1]; // القيمة الثانية كهاتف
+          }
+        }
+      }
 
       console.log('👤 Extracted customer info:', {
         email: customerEmail,

@@ -23,17 +23,20 @@ serve(async (req) => {
 
     if (req.method === 'POST' && action === 'create-abandoned-cart') {
       const cartData = await req.json();
+      console.log('📝 Received cart data:', cartData);
       
       const { data, error } = await supabase
         .from('abandoned_carts')
         .insert({
           customer_email: cartData.customer_email,
           customer_phone: cartData.customer_phone,
+          customer_name: cartData.customer_name,
           cart_items: cartData.cart_items || [],
           total_value: cartData.total_value,
           currency: cartData.currency || 'SAR',
           form_id: cartData.form_id,
           shop_id: cartData.shop_id,
+          form_data: cartData.form_data || {},
           last_activity: new Date().toISOString()
         })
         .select()
