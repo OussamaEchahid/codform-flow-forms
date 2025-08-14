@@ -24,6 +24,9 @@
         return;
       }
       
+      // استخراج السعر والعملة
+      const { price, currency } = extractPriceAndCurrency();
+      
       const cartData = {
         customer_email: data.email || '',
         customer_phone: data.phone || '', 
@@ -31,10 +34,11 @@
         cart_items: [{
           product_id: window.codformProductId || 'unknown',
           quantity: 1,
-          title: document.title || 'منتج'
+          title: document.title || 'منتج',
+          price: price
         }],
-        total_value: 1,
-        currency: 'SAR',
+        total_value: price,
+        currency: currency,
         form_id: window.codformProductId || 'default',
         shop_id: window.location.hostname,
         form_data: data
@@ -66,7 +70,36 @@
     }
   }
   
-  // دالة استخراج البيانات
+  // دالة استخراج السعر النهائي والعملة
+  function extractPriceAndCurrency() {
+    let price = 1;
+    let currency = 'SAR';
+    
+    // البحث عن السعر النهائي في عناصر مختلفة
+    const totalElements = document.querySelectorAll('[class*="total"], [id*="total"], .price, .amount, [class*="price"], [class*="amount"]');
+    
+    for (const element of totalElements) {
+      const text = element.textContent || element.innerText || '';
+      // البحث عن رقم في النص
+      const numbers = text.match(/[\d,]+\.?\d*/g);
+      if (numbers && numbers.length > 0) {
+        const foundPrice = parseFloat(numbers[numbers.length - 1].replace(/,/g, ''));
+        if (foundPrice > price) {
+          price = foundPrice;
+        }
+      }
+      
+      // البحث عن العملة
+      if (text.includes('USD') || text.includes('$')) currency = 'USD';
+      else if (text.includes('SAR') || text.includes('ر.س')) currency = 'SAR';
+      else if (text.includes('EUR') || text.includes('€')) currency = 'EUR';
+      else if (text.includes('AED') || text.includes('د.إ')) currency = 'AED';
+    }
+    
+    return { price, currency };
+  }
+
+  // دالة استخراج البيانات المحسنة
   function extractData() {
     const data = {};
     
@@ -77,24 +110,45 @@
       const value = field.value.trim();
       const name = (field.name || field.id || '').toLowerCase();
       const placeholder = (field.placeholder || '').toLowerCase();
+      const type = field.type || '';
       
-      // تحديد نوع البيانات
+      // تحديد نوع البيانات بدقة أكبر
       if (name.includes('name') || name.includes('اسم') || placeholder.includes('name') || placeholder.includes('اسم')) {
-        data.name = value;
-      } else if (name.includes('email') || name.includes('بريد') || value.includes('@')) {
+        if (!name.includes('phone') && !name.includes('email')) {
+          data.name = value;
+        }
+      } else if (name.includes('email') || name.includes('بريد') || type === 'email' || value.includes('@')) {
         data.email = value;
-      } else if (name.includes('phone') || name.includes('هاتف') || name.includes('mobile') || /[\d\+\-\s\(\)]{8,}/.test(value)) {
-        data.phone = value;
-      } else if (name.includes('city') || name.includes('مدينة')) {
+      } else if (name.includes('phone') || name.includes('هاتف') || name.includes('mobile') || type === 'tel') {
+        // التأكد من أنه رقم هاتف حقيقي وليس id أو name
+        if (/^[\+]?[\d\s\-\(\)]{7,15}$/.test(value) && !value.includes('template') && !value.includes('main')) {
+          data.phone = value;
+        }
+      } else if (name.includes('city') || name.includes('مدينة') || placeholder.includes('city') || placeholder.includes('مدينة')) {
         data.city = value;
-      } else if (name.includes('address') || name.includes('عنوان')) {
+      } else if (name.includes('address') || name.includes('عنوان') || placeholder.includes('address') || placeholder.includes('عنوان')) {
         data.address = value;
       }
       
-      // حفظ جميع البيانات
-      if (field.name) data[field.name] = value;
-      if (field.id && !field.name) data[field.id] = value;
+      // حفظ جميع البيانات مع التحقق
+      if (field.name && !field.name.includes('template') && !field.name.includes('section')) {
+        data[field.name] = value;
+      }
+      if (field.id && !field.name && !field.id.includes('template') && !field.id.includes('section')) {
+        data[field.id] = value;
+      }
     });
+    
+    // البحث عن رقم الهاتف في حقول مخصصة لـ phone
+    if (!data.phone) {
+      const phoneInputs = document.querySelectorAll('input[placeholder*="phone"], input[placeholder*="هاتف"], input[placeholder*="Phone"], input[class*="phone"]');
+      phoneInputs.forEach(input => {
+        const value = input.value?.trim();
+        if (value && /^[\+]?[\d\s\-\(\)]{7,15}$/.test(value) && !value.includes('template')) {
+          data.phone = value;
+        }
+      });
+    }
     
     console.log('🔍 البيانات المستخرجة:', data);
     return data;
