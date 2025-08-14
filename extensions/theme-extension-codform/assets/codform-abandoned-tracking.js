@@ -300,14 +300,25 @@
     if (!cartSummary) {
       // إنشاء ملخص السلة الخفي إذا لم يكن موجود
       cartSummary = createHiddenCartSummary();
-      // انتظار قصير للسماح بتحديث البيانات
+      // انتظار أطول للسماح بتحديث البيانات - 8 ثوانٍ
       setTimeout(() => {
         const updatedData = extractPriceAndCurrency();
         if (updatedData.price > 1) {
           currentData.extractedPrice = updatedData.price;
           currentData.extractedCurrency = updatedData.currency;
+          console.log('🔄 تم تحديث السعر المحول:', updatedData.price, updatedData.currency);
         }
-      }, 2000);
+      }, 8000);
+      
+      // انتظار إضافي للتأكد من التحديث
+      setTimeout(() => {
+        const finalData = extractPriceAndCurrency();
+        if (finalData.price > 1 && finalData.price !== currentData.extractedPrice) {
+          currentData.extractedPrice = finalData.price;
+          currentData.extractedCurrency = finalData.currency;
+          console.log('✅ تم التحديث النهائي للسعر:', finalData.price, finalData.currency);
+        }
+      }, 12000);
     }
     
     if (cartSummary) {
@@ -454,11 +465,18 @@
         clearTimeout(saveTimer);
       }
       
-      // تأخير الحفظ لخمس ثوانٍ للسماح للعميل بملء جميع الحقول
+      // تأخير الحفظ لـ 15 ثانية للسماح بتحديث ملخص السلة بالكامل
       saveTimer = setTimeout(() => {
-        console.log('⏰ حان وقت الحفظ بعد انتظار 5 ثوانٍ');
+        console.log('⏰ حان وقت الحفظ بعد انتظار 15 ثانية');
+        // التأكد من الحصول على أحدث سعر محول قبل الحفظ
+        const finalData = extractPriceAndCurrency();
+        if (finalData.price > 1) {
+          currentData.extractedPrice = finalData.price;
+          currentData.extractedCurrency = finalData.currency;
+          console.log('🔄 تحديث السعر قبل الحفظ:', finalData.price, finalData.currency);
+        }
         saveAbandonedCart(currentData);
-      }, 5000);
+      }, 15000);
     }
   }
   
