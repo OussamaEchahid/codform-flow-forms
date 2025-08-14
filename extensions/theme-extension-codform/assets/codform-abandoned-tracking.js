@@ -1,317 +1,47 @@
 /**
- * CODFORM - نظام تتبع النماذج المتروكة
- * يتتبع تفاعل المستخدمين مع النماذج وحفظ البيانات المتروكة
+ * CODFORM - نظام تتبع السلال المتروكة - إصدار محسن
+ * نهج بسيط وموثوق لتتبع وحفظ البيانات المتروكة
  */
 
-class CodformAbandonedTracking {
-  constructor() {
-    this.abandonedCartId = null;
-    this.formTrackingData = {};
-    this.lastActivity = new Date();
-    this.debounceTimer = null;
-    this.isInitialized = false;
-    
-    // تهيئة النظام عند تحميل الصفحة
-    this.init();
-  }
-
-  /**
-   * تهيئة نظام التتبع
-   */
-  init() {
-    if (this.isInitialized) {
-      console.log('⚠️ Abandoned tracking already initialized');
-      return;
-    }
-
-    console.log('🔄 Initializing abandoned cart tracking...');
-    
-    // انتظار تحميل النموذج ثم بدء التتبع
-    this.waitForForm();
-    this.isInitialized = true;
-  }
-
-  /**
-   * انتظار تحميل النموذج
-   */
-  waitForForm() {
-    const checkForm = () => {
-      const form = this.getForm();
-      if (form) {
-        console.log('✅ Form found, setting up tracking');
-        this.setupFormTracking(form);
-      } else {
-        console.log('⏳ Waiting for form to load...');
-        setTimeout(checkForm, 1000);
-      }
-    };
-    
-    checkForm();
-  }
-
-  /**
-   * الحصول على النموذج
-   */
-  getForm() {
-    // البحث عن النموذج في جميع الأماكن المحتملة
-    return document.querySelector('form[data-form-id]') || 
-           document.querySelector('form') || 
-           document.querySelector('[data-form-preview-id] form') ||
-           document.querySelector('.codform-container form') ||
-           document.querySelector('#codform-form') ||
-           document.getElementById('order-form');
-  }
-
-  /**
-   * إعداد تتبع النموذج
-   */
-  setupFormTracking(form) {
-    if (!form) return;
-
-    console.log('🔍 Setting up form tracking...');
-
-    // إضافة مستمعين للحقول المهمة - تحسين البحث عن الحقول العربية
-    const importantFields = form.querySelectorAll(`
-      input[name*="email"], 
-      input[name*="phone"], 
-      input[name*="name"], 
-      input[type="email"], 
-      input[type="tel"], 
-      input[type="text"],
-      textarea,
-      input[name*="customerEmail"],
-      input[name*="customerPhone"],
-      input[name*="customerName"],
-      input[id*="email"],
-      input[id*="phone"],
-      input[id*="name"],
-      input[placeholder*="بريد"],
-      input[placeholder*="هاتف"],
-      input[placeholder*="اسم"],
-      input[placeholder*="Email"],
-      input[placeholder*="Phone"],
-      input[placeholder*="Name"]
-    `);
-    
-    console.log(`🔍 Found ${importantFields.length} important fields in form`);
-    
-    importantFields.forEach((field, index) => {
-      console.log(`📝 Setting up tracking for field ${index + 1}:`, {
-        name: field.name,
-        type: field.type,
-        id: field.id,
-        placeholder: field.placeholder
-      });
-      
-      field.addEventListener('input', (e) => {
-        console.log(`⌨️ تم اكتشاف إدخال في الحقل: ${e.target.name || e.target.id || 'بدون اسم'}`);
-        console.log(`📝 قيمة الحقل: "${e.target.value}"`);
-        console.log(`🏷️ نوع الحقل: ${e.target.type}`);
-        console.log(`📍 موضع النموذج: ${e.target.placeholder || 'بدون placeholder'}`);
-        this.handleFieldChange(form, e.target);
-      });
-      
-      field.addEventListener('blur', (e) => {
-        console.log(`👁️ تم الخروج من الحقل: ${e.target.name || e.target.id || 'بدون اسم'}`);
-        console.log(`📝 قيمة الحقل عند الخروج: "${e.target.value}"`);
-        this.handleFieldChange(form, e.target);
-      });
-    });
-
-    console.log(`✅ Form tracking setup complete for ${importantFields.length} fields`);
-  }
-
-  /**
-   * معالجة تغيير الحقل
-   */
-  handleFieldChange(form, field) {
-    console.log(`🔄 تم تغيير الحقل: ${field.name || field.id || 'بدون اسم'}, القيمة: "${field.value}"`);
-    console.log(`📊 النموذج المرتبط:`, form);
-    
-    // إلغاء المؤقت السابق
-    if (this.debounceTimer) {
-      clearTimeout(this.debounceTimer);
-      console.log('⏰ تم إلغاء المؤقت السابق');
-    }
-
-    // تأخير المعالجة لتجنب الكثرة
-    this.debounceTimer = setTimeout(() => {
-      console.log('⏰ بدء معالجة بيانات النموذج بعد التأخير...');
-      this.processFormData(form);
-    }, 1000); // تقليل الوقت إلى ثانية واحدة للاختبار
-  }
-
-  /**
-   * معالجة بيانات النموذج
-   */
-  processFormData(form) {
-    const currentData = this.extractFormData(form);
-    console.log('🔍 Extracted current data:', currentData);
-    
-    // التحقق من وجود بيانات مهمة
-    const hasImportant = this.hasImportantData(currentData);
-    console.log('❓ Has important data:', hasImportant);
-    console.log('❓ Already has cart ID:', !!this.abandonedCartId);
-    
-    if (hasImportant && !this.abandonedCartId) {
-      console.log('✅ Creating abandoned cart with data:', currentData);
-      this.saveAbandonedCart(currentData);
-    } else if (hasImportant && this.abandonedCartId) {
-      console.log('🔄 Cart already exists, updating activity:', this.abandonedCartId);
-      this.updateLastActivity();
-    } else {
-      console.log('⏭️ No important data found, skipping save');
-    }
-    
-    this.formTrackingData = currentData;
-    this.lastActivity = new Date();
-  }
-
-  /**
-   * استخراج بيانات النموذج
-   */
-  extractFormData(form) {
-    const data = {};
-    
-    form.querySelectorAll('input, textarea, select').forEach(field => {
-      const fieldName = field.name || field.id || field.getAttribute('data-field') || '';
-      const fieldValue = field.value ? field.value.trim() : '';
-      const fieldPlaceholder = field.placeholder || '';
-      
-      console.log(`🔍 Processing field:`, {
-        name: fieldName,
-        value: fieldValue,
-        placeholder: fieldPlaceholder,
-        type: field.type
-      });
-      
-      if (fieldValue) {
-        if (fieldName) {
-          data[fieldName] = fieldValue;
-        }
-        
-        // تحديد نوع الحقل بناءً على الاسم أو placeholder
-        if (fieldName.toLowerCase().includes('email') || fieldPlaceholder.toLowerCase().includes('email') || fieldPlaceholder.includes('بريد')) {
-          data.email = fieldValue;
-        }
-        if (fieldName.toLowerCase().includes('phone') || fieldPlaceholder.toLowerCase().includes('phone') || fieldPlaceholder.includes('هاتف')) {
-          data.phone = fieldValue;
-        }
-        if (fieldName.toLowerCase().includes('name') || fieldPlaceholder.toLowerCase().includes('name') || fieldPlaceholder.includes('اسم')) {
-          data.name = fieldValue;
-        }
-      }
-    });
-    
-    console.log('📊 Final extracted form data:', data);
-    return data;
-  }
-
-  /**
-   * التحقق من وجود بيانات مهمة
-   */
-  hasImportantData(data) {
-    // البحث عن البيانات المهمة بطرق مختلفة
-    const hasDirectData = data.email || data.phone || data.name;
-    const hasCustomerData = data.customerEmail || data.customerPhone || data.customerName;
-    
-    // البحث في جميع المفاتيح
-    const hasKeywordData = Object.keys(data).some(key => {
-      const lowerKey = key.toLowerCase();
-      return lowerKey.includes('email') || 
-             lowerKey.includes('phone') || 
-             lowerKey.includes('name') ||
-             lowerKey.includes('بريد') ||
-             lowerKey.includes('هاتف') ||
-             lowerKey.includes('اسم');
-    });
-    
-    // التحقق من وجود قيم فعلية
-    const hasValues = Object.values(data).some(value => 
-      value && typeof value === 'string' && value.trim().length > 2
-    );
-    
-    const hasData = (hasDirectData || hasCustomerData || hasKeywordData) && hasValues;
-    
-    console.log('🤔 Has important data analysis:', {
-      hasDirectData,
-      hasCustomerData, 
-      hasKeywordData,
-      hasValues,
-      finalResult: hasData,
-      dataKeys: Object.keys(data),
-      dataValues: Object.values(data)
-    });
-    
-    return hasData;
-  }
-
-  /**
-   * حفظ السلة المتروكة
-   */
-  async saveAbandonedCart(data) {
+(function() {
+  'use strict';
+  
+  console.log('🚀 بدء تشغيل نظام تتبع السلال المتروكة - الإصدار الجديد');
+  
+  let isTracking = false;
+  let currentData = {};
+  let saveTimer = null;
+  let cartId = null;
+  
+  // دالة حفظ البيانات
+  async function saveAbandonedCart(data) {
     try {
-      console.log('💾 Attempting to save abandoned cart with data:', data);
+      console.log('💾 محاولة حفظ السلة المتروكة:', data);
       
-      // استخراج البيانات المهمة
-      let customerEmail = data.email || data.customerEmail || '';
-      let customerPhone = data.phone || data.customerPhone || '';  
-      let customerName = data.name || data.customerName || '';
-      
-      // العثور على أي بيانات مهمة في الحقول الأخرى
-      Object.keys(data).forEach(key => {
-        const lowerKey = key.toLowerCase();
-        const value = data[key];
-        
-        // البحث عن البريد الإلكتروني
-        if ((lowerKey.includes('email') || lowerKey.includes('بريد')) && !customerEmail && value) {
-          customerEmail = value;
-        }
-        // البحث عن رقم الهاتف
-        if ((lowerKey.includes('phone') || lowerKey.includes('هاتف') || lowerKey.includes('mobile')) && !customerPhone && value) {
-          customerPhone = value;
-        }
-        // البحث عن الاسم
-        if ((lowerKey.includes('name') || lowerKey.includes('اسم') || lowerKey.includes('full')) && !customerName && value) {
-          customerName = value;
-        }
-      });
-      
-      // إذا لم نجد بيانات محددة، نأخذ أول قيمة مفيدة
-      if (!customerEmail && !customerPhone && !customerName) {
-        const values = Object.values(data).filter(v => v && v.length > 2);
-        if (values.length > 0) {
-          customerName = values[0]; // نأخذ أول قيمة كاسم
-          if (values.length > 1) {
-            customerPhone = values[1]; // القيمة الثانية كهاتف
-          }
-        }
+      // التأكد من وجود بيانات مهمة
+      if (!data.name && !data.email && !data.phone) {
+        console.log('⚠️ لا توجد بيانات مهمة للحفظ');
+        return;
       }
-
-      console.log('👤 Extracted customer info:', {
-        email: customerEmail,
-        phone: customerPhone,
-        name: customerName
-      });
-
+      
       const cartData = {
-        customer_email: customerEmail,
-        customer_phone: customerPhone,
-        customer_name: customerName,
+        customer_email: data.email || '',
+        customer_phone: data.phone || '', 
+        customer_name: data.name || '',
         cart_items: [{
           product_id: window.codformProductId || 'unknown',
-          quantity: data.quantity || 1,
+          quantity: 1,
           title: document.title || 'منتج'
         }],
-        total_value: 1, // قيمة افتراضية
-        currency: window.CodformFormData?.currency || 'SAR',
+        total_value: 1,
+        currency: 'SAR',
         form_id: window.codformProductId || 'default',
-        shop_id: window.codformShopDomain || this.getShopDomain(),
-        form_data: data // حفظ جميع بيانات النموذج
+        shop_id: window.location.hostname,
+        form_data: data
       };
-
-      console.log('📦 Final cart data to be saved:', cartData);
-
+      
+      console.log('📦 بيانات السلة للحفظ:', cartData);
+      
       const response = await fetch('https://trlklwixfeaexhydzaue.supabase.co/functions/v1/abandoned-carts?action=create-abandoned-cart', {
         method: 'POST',
         headers: {
@@ -320,133 +50,119 @@ class CodformAbandonedTracking {
         },
         body: JSON.stringify(cartData)
       });
-
-      console.log('🌐 Response status:', response.status);
-      console.log('🌐 Response headers:', Object.fromEntries(response.headers.entries()));
-
+      
+      console.log('🌐 حالة الاستجابة:', response.status);
+      
       if (response.ok) {
-        const result = await response.text();
-        console.log('📄 Raw response:', result);
-        
-        try {
-          const jsonResult = JSON.parse(result);
-          this.abandonedCartId = jsonResult.cart?.id;
-          console.log('✅ Abandoned cart saved successfully:', this.abandonedCartId);
-          console.log('📊 Full result:', jsonResult);
-          
-          // تحديث النشاط الأخير للسلة المحفوظة
-          this.updateLastActivity();
-        } catch (parseError) {
-          console.error('❌ Error parsing response:', parseError);
-          console.log('📄 Response text:', result);
-        }
+        const result = await response.json();
+        cartId = result.cart?.id;
+        console.log('✅ تم حفظ السلة المتروكة بنجاح:', cartId);
+        console.log('📊 النتيجة الكاملة:', result);
       } else {
         const errorText = await response.text();
-        console.error('❌ Failed to save abandoned cart:', response.status, errorText);
+        console.error('❌ فشل في حفظ السلة:', response.status, errorText);
       }
     } catch (error) {
-      console.error('❌ Error saving abandoned cart:', error);
-      console.error('❌ Error details:', error.message, error.stack);
+      console.error('❌ خطأ في حفظ السلة:', error);
     }
   }
-
-  /**
-   * تحديث آخر نشاط
-   */
-  async updateLastActivity() {
-    if (!this.abandonedCartId) return;
+  
+  // دالة استخراج البيانات
+  function extractData() {
+    const data = {};
     
-    try {
-      await fetch('https://trlklwixfeaexhydzaue.supabase.co/functions/v1/abandoned-carts?action=update-recovery-attempt', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M'
-        },
-        body: JSON.stringify({
-          cart_id: this.abandonedCartId
-        })
-      });
-    } catch (error) {
-      console.error('❌ Error updating last activity:', error);
-    }
+    // البحث عن جميع حقول الإدخال
+    document.querySelectorAll('input, textarea, select').forEach(field => {
+      if (!field.value || !field.value.trim()) return;
+      
+      const value = field.value.trim();
+      const name = (field.name || field.id || '').toLowerCase();
+      const placeholder = (field.placeholder || '').toLowerCase();
+      
+      // تحديد نوع البيانات
+      if (name.includes('name') || name.includes('اسم') || placeholder.includes('name') || placeholder.includes('اسم')) {
+        data.name = value;
+      } else if (name.includes('email') || name.includes('بريد') || value.includes('@')) {
+        data.email = value;
+      } else if (name.includes('phone') || name.includes('هاتف') || name.includes('mobile') || /[\d\+\-\s\(\)]{8,}/.test(value)) {
+        data.phone = value;
+      } else if (name.includes('city') || name.includes('مدينة')) {
+        data.city = value;
+      } else if (name.includes('address') || name.includes('عنوان')) {
+        data.address = value;
+      }
+      
+      // حفظ جميع البيانات
+      if (field.name) data[field.name] = value;
+      if (field.id && !field.name) data[field.id] = value;
+    });
+    
+    console.log('🔍 البيانات المستخرجة:', data);
+    return data;
   }
-
-  /**
-   * الحصول على دومين المتجر
-   */
-  getShopDomain() {
-    return window.location.hostname || 'unknown';
-  }
-
-  /**
-   * إيقاف التتبع
-   */
-  destroy() {
-    if (this.debounceTimer) {
-      clearTimeout(this.debounceTimer);
-    }
-    this.isInitialized = false;
-    console.log('🛑 Abandoned tracking destroyed');
-  }
-}
-
-// تهيئة النظام عند تحميل الصفحة
-if (typeof window !== 'undefined') {
-  console.log('🔧 Setting up abandoned tracking initialization...');
   
-  // دالة تهيئة محسنة
-  function initializeTracking() {
-    try {
-      console.log('🚀 Starting abandoned tracking initialization...');
-      console.log('📄 Document ready state:', document.readyState);
+  // دالة المعالجة عند تغيير الحقول
+  function handleInput() {
+    console.log('⌨️ تم اكتشاف إدخال في النموذج');
+    
+    const newData = extractData();
+    
+    // التحقق من وجود تغيير مهم
+    const hasImportantData = newData.name || newData.email || newData.phone;
+    
+    if (hasImportantData && !cartId) {
+      currentData = newData;
       
-      if (window.CodformAbandonedTracking && window.CodformAbandonedTracking.isInitialized) {
-        console.log('⚠️ Tracking already initialized, skipping...');
-        return;
+      // إلغاء المؤقت السابق
+      if (saveTimer) {
+        clearTimeout(saveTimer);
       }
       
-      if (window.CodformAbandonedTracking) {
-        console.log('⚠️ Destroying old instance...');
-        window.CodformAbandonedTracking.destroy();
-      }
-      
-      console.log('🔄 Creating new tracking instance...');
-      window.CodformAbandonedTracking = new CodformAbandonedTracking();
-      console.log('✅ Abandoned tracking instance created successfully');
-      
-    } catch (error) {
-      console.error('❌ Error initializing abandoned tracking:', error);
+      // تأخير الحفظ لثانية واحدة
+      saveTimer = setTimeout(() => {
+        console.log('⏰ حان وقت الحفظ');
+        saveAbandonedCart(currentData);
+      }, 1000);
     }
   }
   
-  // تهيئة فورية إذا كانت الصفحة جاهزة
+  // تشغيل النظام
+  function startTracking() {
+    if (isTracking) {
+      console.log('⚠️ النظام يعمل بالفعل');
+      return;
+    }
+    
+    console.log('🔄 بدء تشغيل نظام التتبع');
+    isTracking = true;
+    
+    // إضافة مستمعين لجميع حقول الإدخال
+    document.addEventListener('input', function(e) {
+      if (e.target.matches('input, textarea, select')) {
+        console.log('📝 تم الكتابة في:', e.target.name || e.target.id || 'حقل بدون اسم');
+        handleInput();
+      }
+    });
+    
+    document.addEventListener('change', function(e) {
+      if (e.target.matches('input, textarea, select')) {
+        console.log('🔄 تم تغيير:', e.target.name || e.target.id || 'حقل بدون اسم');
+        handleInput();
+      }
+    });
+    
+    console.log('✅ تم تشغيل نظام التتبع بنجاح');
+  }
+  
+  // تشغيل فوري إذا كانت الصفحة جاهزة
   if (document.readyState === 'complete' || document.readyState === 'interactive') {
-    console.log('📄 Document already ready, initializing immediately...');
-    setTimeout(initializeTracking, 1000);
+    startTracking();
   } else {
-    // انتظار تحميل الصفحة
-    console.log('⏳ Waiting for document to load...');
-    document.addEventListener('DOMContentLoaded', () => {
-      console.log('📄 DOMContentLoaded event fired');
-      setTimeout(initializeTracking, 1000);
-    });
-    
-    // احتياطي إضافي للتأكد
-    window.addEventListener('load', () => {
-      console.log('📄 Window load event fired');
-      if (!window.CodformAbandonedTracking || !window.CodformAbandonedTracking.isInitialized) {
-        console.log('🔄 Backup initialization triggered');
-        setTimeout(initializeTracking, 500);
-      }
-    });
+    document.addEventListener('DOMContentLoaded', startTracking);
   }
   
-  // محاولة إضافية بعد 5 ثوان
-  setTimeout(() => {
-    if (!window.CodformAbandonedTracking || !window.CodformAbandonedTracking.isInitialized) {
-      console.log('🔄 Final backup initialization after 5 seconds...');
-      initializeTracking();
-    }
-  }, 5000);
-}
+  // تشغيل احتياطي بعد ثانيتين
+  setTimeout(startTracking, 2000);
+  
+  console.log('🏁 تم تحميل نظام تتبع السلال المتروكة');
+})();
