@@ -70,13 +70,225 @@
     }
   }
   
+  // إنشاء نظام ملخص طلب خفي في الخلفية
+  function createHiddenCartSummary() {
+    // التحقق من وجود ملخص طلب مرئي
+    const existingCartSummary = document.querySelector('.cart-summary-field');
+    if (existingCartSummary) {
+      console.log('✅ يوجد ملخص طلب مرئي، سيتم استخدامه');
+      return existingCartSummary;
+    }
+    
+    console.log('🔄 إنشاء نظام ملخص طلب خفي في الخلفية');
+    
+    // إنشاء عنصر ملخص طلب خفي
+    const hiddenSummary = document.createElement('div');
+    hiddenSummary.className = 'cart-summary-field hidden-cart-summary';
+    hiddenSummary.style.display = 'none';
+    hiddenSummary.style.position = 'absolute';
+    hiddenSummary.style.left = '-9999px';
+    hiddenSummary.style.top = '-9999px';
+    hiddenSummary.style.opacity = '0';
+    hiddenSummary.style.pointerEvents = 'none';
+    
+    // إضافة العناصر المطلوبة لملخص السلة
+    hiddenSummary.innerHTML = `
+      <div class="subtotal-row">
+        <span class="subtotal-label">المجموع الفرعي:</span>
+        <span class="subtotal-value" data-amount="0">0</span>
+      </div>
+      <div class="discount-row" style="display: none;">
+        <span class="discount-label">الخصم:</span>
+        <span class="discount-value" data-amount="0">0</span>
+      </div>
+      <div class="shipping-row">
+        <span class="shipping-label">الشحن:</span>
+        <span class="shipping-value" data-amount="0">مجاني</span>
+      </div>
+      <div class="total-row">
+        <span class="total-label">المجموع:</span>
+        <span class="total-value" data-amount="0">0</span>
+      </div>
+    `;
+    
+    // إضافة العنصر للصفحة
+    document.body.appendChild(hiddenSummary);
+    
+    // تطبيق نظام ملخص السلة عليه
+    initializeHiddenCartSummary(hiddenSummary);
+    
+    return hiddenSummary;
+  }
+  
+  // تهيئة نظام ملخص السلة الخفي
+  function initializeHiddenCartSummary(summaryElement) {
+    console.log('🔧 تهيئة نظام ملخص السلة الخفي');
+    
+    // الحصول على معرف المنتج ودومين المتجر
+    const productId = window.codformProductId || extractProductId();
+    const shopDomain = window.location.hostname;
+    
+    if (!productId) {
+      console.warn('⚠️ لم يتم العثور على معرف المنتج');
+      return;
+    }
+    
+    // استخدام نفس نظام تحميل البيانات من Cart Summary
+    loadProductDataForHiddenSummary(productId, shopDomain, summaryElement);
+  }
+  
+  // تحميل بيانات المنتج للملخص الخفي
+  async function loadProductDataForHiddenSummary(productId, shopDomain, summaryElement) {
+    try {
+      console.log('📡 تحميل بيانات المنتج للملخص الخفي:', productId);
+      
+      // استخدام نفس API المستخدم في Cart Summary
+      const apiUrl = `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/forms-product?shop=${encodeURIComponent(shopDomain)}&product=${encodeURIComponent(productId)}`;
+      
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.success && data.product && data.currency) {
+        const price = parseFloat(data.product.price) || 0;
+        const currency = data.currency;
+        
+        console.log('✅ تم تحميل بيانات المنتج:', { price, currency });
+        
+        // تطبيق نظام التحويل والتنسيق
+        updateHiddenCartSummary(summaryElement, price, currency);
+      }
+    } catch (error) {
+      console.error('❌ خطأ في تحميل بيانات المنتج:', error);
+    }
+  }
+  
+  // تحديث ملخص السلة الخفي
+  function updateHiddenCartSummary(summaryElement, basePrice, currency) {
+    console.log('🔄 تحديث ملخص السلة الخفي:', { basePrice, currency });
+    
+    // استخدام نظام التحويل من Currency Manager
+    let convertedPrice = basePrice;
+    
+    // التحقق من وجود Currency Manager واستخدامه
+    if (window.CodformCurrencyManager && typeof window.CodformCurrencyManager.convertCurrency === 'function') {
+      // الحصول على العملة المستهدفة من Form Data
+      const targetCurrency = getTargetCurrency();
+      if (targetCurrency && targetCurrency !== currency) {
+        convertedPrice = window.CodformCurrencyManager.convertCurrency(basePrice, currency, targetCurrency);
+        currency = targetCurrency;
+      }
+    }
+    
+    // تطبيق نظام التنسيق
+    let formattedPrice = convertedPrice.toString();
+    if (window.CodformCurrencyManager && typeof window.CodformCurrencyManager.formatCurrency === 'function') {
+      formattedPrice = window.CodformCurrencyManager.formatCurrency(convertedPrice, currency, 'ar');
+    } else {
+      formattedPrice = formatCurrencyFallback(convertedPrice, currency);
+    }
+    
+    // تحديث عناصر الملخص
+    const subtotalElement = summaryElement.querySelector('.subtotal-value');
+    const totalElement = summaryElement.querySelector('.total-value');
+    
+    if (subtotalElement) {
+      subtotalElement.textContent = formattedPrice;
+      subtotalElement.setAttribute('data-amount', convertedPrice);
+    }
+    
+    if (totalElement) {
+      totalElement.textContent = formattedPrice;
+      totalElement.setAttribute('data-amount', convertedPrice);
+    }
+    
+    console.log('✅ تم تحديث ملخص السلة الخفي بالسعر المحول:', formattedPrice);
+  }
+  
+  // الحصول على العملة المستهدفة
+  function getTargetCurrency() {
+    // البحث في Form Data
+    if (window.CodformFormData?.currency) {
+      return window.CodformFormData.currency;
+    }
+    
+    // البحث في current form data
+    if (window.currentFormData?.savedFormCurrency) {
+      return window.currentFormData.savedFormCurrency;
+    }
+    
+    // البحث في form style
+    if (window.currentFormData?.form?.style?.currency) {
+      return window.currentFormData.form.style.currency;
+    }
+    
+    return 'SAR'; // الافتراضي
+  }
+  
+  // تنسيق العملة الاحتياطي
+  function formatCurrencyFallback(amount, currency) {
+    const symbols = {
+      'SAR': 'ر.س',
+      'MAD': 'د.م', 
+      'AED': 'د.إ',
+      'USD': '$',
+      'EUR': '€'
+    };
+    
+    const symbol = symbols[currency] || currency;
+    const formattedAmount = Math.round(amount * 10) / 10; // رقم واحد بعد العلامة العشرية
+    
+    return `${formattedAmount.toFixed(1)} ${symbol}`;
+  }
+  
+  // استخراج معرف المنتج
+  function extractProductId() {
+    // البحث في النموذج
+    const productIdField = document.querySelector('input[name="product-id"], input[id*="product"]');
+    if (productIdField && productIdField.value) {
+      return productIdField.value;
+    }
+    
+    // البحث في URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const productFromUrl = urlParams.get('product') || urlParams.get('productId');
+    if (productFromUrl) {
+      return productFromUrl;
+    }
+    
+    return null;
+  }
+  
   // دالة استخراج السعر النهائي المحول من ملخص السلة
   function extractPriceAndCurrency() {
     let price = 1;
     let currency = 'SAR';
     
-    // أولاً: البحث في ملخص السلة للحصول على السعر النهائي المحول
-    const cartSummary = document.querySelector('.cart-summary-field');
+    // التأكد من وجود ملخص السلة (مرئي أو خفي)
+    let cartSummary = document.querySelector('.cart-summary-field');
+    if (!cartSummary) {
+      // إنشاء ملخص السلة الخفي إذا لم يكن موجود
+      cartSummary = createHiddenCartSummary();
+      // انتظار قصير للسماح بتحديث البيانات
+      setTimeout(() => {
+        const updatedData = extractPriceAndCurrency();
+        if (updatedData.price > 1) {
+          currentData.extractedPrice = updatedData.price;
+          currentData.extractedCurrency = updatedData.currency;
+        }
+      }, 2000);
+    }
+    
     if (cartSummary) {
       // البحث عن المجموع النهائي في ملخص السلة
       const totalValueElement = cartSummary.querySelector('.total-value, .total-row .summary-value');
@@ -113,7 +325,7 @@
       }
     }
     
-    // ثانياً: البحث الاحتياطي في عناصر السعر الأخرى
+    // البحث الاحتياطي في عناصر السعر الأخرى
     const priceElements = document.querySelectorAll('[class*="total"], [class*="price"], [data-amount], .summary-value, .price, .amount');
     
     for (const element of priceElements) {
