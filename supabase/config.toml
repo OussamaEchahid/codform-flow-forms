@@ -122,3 +122,6 @@ verify_jwt = false
 
 [functions.check-secrets]
 verify_jwt = false
+
+[functions.abandoned-carts]
+verify_jwt = false
