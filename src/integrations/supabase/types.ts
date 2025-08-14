@@ -22,6 +22,7 @@ export type Database = {
           customer_email: string | null
           customer_name: string | null
           customer_phone: string | null
+          form_data: Json | null
           form_id: string | null
           id: string
           last_activity: string | null
@@ -37,6 +38,7 @@ export type Database = {
           customer_email?: string | null
           customer_name?: string | null
           customer_phone?: string | null
+          form_data?: Json | null
           form_id?: string | null
           id?: string
           last_activity?: string | null
@@ -52,6 +54,7 @@ export type Database = {
           customer_email?: string | null
           customer_name?: string | null
           customer_phone?: string | null
+          form_data?: Json | null
           form_id?: string | null
           id?: string
           last_activity?: string | null
