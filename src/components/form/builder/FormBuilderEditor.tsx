@@ -816,8 +816,8 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
     let insertIndex = updatedElements.length; // افتراضياً في النهاية
     
     if (type === 'cart-summary') {
-      // تحديد اللغة بناءً على النصوص الموجودة في العناصر أو إعدادات النموذج
-      const isArabicForm = language === 'ar' || formStyle.formDirection === 'rtl' ||
+      // تحديد اللغة بناءً على اتجاه النموذج أولاً ثم النصوص الموجودة
+      const isArabicForm = formStyle.formDirection === 'rtl' || language === 'ar' ||
         formElements.some(el => {
           const text = el.label || el.placeholder || el.content || '';
           return /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(text);
