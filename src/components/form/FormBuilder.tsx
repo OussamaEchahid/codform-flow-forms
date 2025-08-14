@@ -79,6 +79,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
     borderRadius: '0.5rem',
     fontSize: '1rem',
     buttonStyle: 'rounded',
+    formDirection: (language === 'ar' ? 'rtl' : 'ltr') as 'rtl' | 'ltr',
   });
   
   const handleSaveForm = async () => {
@@ -396,6 +397,14 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
         break;
       case 'cart-summary':
         newField.label = 'ملخص الطلب';
+        // Add cartSummaryConfig based on form language direction
+        const isArabic = formStyle.formDirection === 'rtl';
+        newField.cartSummaryConfig = {
+          subtotalText: isArabic ? 'المجموع الفرعي' : 'Subtotal',
+          discountText: isArabic ? 'الخصم' : 'Discount',
+          shippingText: isArabic ? 'الشحن' : 'Shipping',
+          totalText: isArabic ? 'الإجمالي' : 'Total'
+        };
         break;
       case 'submit':
         newField.label = 'زر إرسال الطلب';
@@ -584,24 +593,25 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
                       strategy={verticalListSortingStrategy}
                     >
                       <div className="space-y-2">
-                        {formSteps[currentEditStep]?.fields.map((field) => (
-                          <SortableField
-                            key={field.id}
-                            field={field}
-                            onEdit={() => editField(field)}
-                            onDuplicate={() => duplicateField(field)}
-                            onDelete={() => deleteField(field.id)}
-                            onFieldUpdate={(updatedField) => {
-                              const updatedSteps = [...formSteps];
-                              const fieldIndex = updatedSteps[currentEditStep].fields.findIndex(f => f.id === updatedField.id);
-                              if (fieldIndex !== -1) {
-                                updatedSteps[currentEditStep].fields[fieldIndex] = updatedField;
-                                setFormSteps(updatedSteps);
-                                setPreviewRefresh(prev => prev + 1);
-                              }
-                            }}
-                          />
-                        ))}
+                         {formSteps[currentEditStep]?.fields.map((field) => (
+                           <SortableField
+                             key={field.id}
+                             field={field}
+                             formStyle={formStyle}
+                             onEdit={() => editField(field)}
+                             onDuplicate={() => duplicateField(field)}
+                             onDelete={() => deleteField(field.id)}
+                             onFieldUpdate={(updatedField) => {
+                               const updatedSteps = [...formSteps];
+                               const fieldIndex = updatedSteps[currentEditStep].fields.findIndex(f => f.id === updatedField.id);
+                               if (fieldIndex !== -1) {
+                                 updatedSteps[currentEditStep].fields[fieldIndex] = updatedField;
+                                 setFormSteps(updatedSteps);
+                                 setPreviewRefresh(prev => prev + 1);
+                               }
+                             }}
+                           />
+                         ))}
                       </div>
                     </SortableContext>
                   </DndContext>
