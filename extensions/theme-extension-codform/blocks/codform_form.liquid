@@ -481,34 +481,31 @@
       
       html = `
         <div class="cart-summary-field" data-currency="${currency}" style="
-          background: #f9fafb;
-          border: 1px solid #e5e7eb;
+          background-color: rgb(249, 250, 251);
+          border: 1px solid rgb(229, 231, 235);
           border-radius: 8px;
           padding: 16px;
-          margin: 16px 0;
           direction: ${formDirection};
-          font-family: Cairo, Arial, sans-serif;
+          font-family: ${formDirection === 'rtl' ? 'Cairo, Tajawal, Arial, sans-serif' : 'Inter, Arial, sans-serif'};
         ">
-          <div class="summary-row" style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-            <span style="color: #6b7280;">${subtotalLabel}:</span>
-            <span class="subtotal-value" data-amount="">...</span>
+          <div class="summary-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span style="color: rgb(55, 65, 81); font-size: 16px; font-weight: 500;">${subtotalLabel}</span>
+            <span class="subtotal-value" data-amount="" style="color: rgb(17, 24, 39); font-size: 16px; font-weight: 600; visibility: hidden;">...</span>
           </div>
           
-          <div class="summary-row discount-row" style="display: none; justify-content: space-between; margin-bottom: 8px;">
-            <span style="color: #ef4444;">${discountLabel}:</span>
-            <span class="discount-value" data-amount="0" style="color: #ef4444;">-0.00 ${currency}</span>
+          <div class="summary-row discount-row" style="display: none; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span style="color: rgb(55, 65, 81); font-size: 16px; font-weight: 500;">${discountLabel}</span>
+            <span class="discount-value" data-amount="0" style="color: rgb(239, 68, 68); font-size: 16px; font-weight: 600; visibility: hidden;">-0.00 ${currency}</span>
           </div>
           
-          <div class="summary-row" style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-            <span style="color: #6b7280;">${shippingLabel}:</span>
-            <span class="shipping-value" data-amount="0">${freeShippingText}</span>
+          <div class="summary-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid rgb(229, 231, 235); padding-bottom: 8px;">
+            <span style="color: rgb(55, 65, 81); font-size: 16px; font-weight: 500;">${shippingLabel}</span>
+            <span class="shipping-value" data-amount="0" style="color: rgb(17, 24, 39); font-size: 16px; font-weight: 600; visibility: hidden;">${freeShippingText}</span>
           </div>
           
-          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 12px 0;">
-          
-          <div class="summary-row total-row" style="display: flex; justify-content: space-between; font-weight: 600; font-size: 18px;">
-            <span style="color: #1f2937;">${totalLabel}:</span>
-            <span class="total-value" data-amount="" style="color: #059669;">...</span>
+          <div class="summary-row total-row" style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: rgb(17, 24, 39); font-size: 18px; font-weight: 700;">${totalLabel}</span>
+            <span class="total-value" data-amount="" style="color: rgb(5, 150, 105); font-size: 18px; font-weight: 700; visibility: hidden;">...</span>
           </div>
         </div>
       `;
