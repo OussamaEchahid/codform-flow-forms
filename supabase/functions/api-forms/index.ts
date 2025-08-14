@@ -121,10 +121,10 @@ serve(async (req) => {
 
     console.log('Fetching form with ID:', formId, productId ? `for product: ${productId}` : '');
 
-    // Get form from database
+    // Get form from database - only select essential fields for public access
     const { data: formData, error } = await supabase
       .from('forms')
-      .select('*')
+      .select('id, title, description, data, style, currency, phone_prefix, country, is_published, created_at, updated_at')
       .eq('id', formId)
       .single();
 
