@@ -720,6 +720,20 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      create_abandoned_cart: {
+        Args: {
+          p_cart_items?: Json
+          p_currency?: string
+          p_customer_email: string
+          p_customer_name?: string
+          p_customer_phone?: string
+          p_form_data?: Json
+          p_form_id: string
+          p_shop_id: string
+          p_total_value?: number
+        }
+        Returns: Json
+      }
       create_form_for_shop: {
         Args: {
           p_country?: string
