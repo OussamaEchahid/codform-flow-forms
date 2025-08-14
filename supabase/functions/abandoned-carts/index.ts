@@ -62,11 +62,23 @@ serve(async (req) => {
     if ((req.method === 'GET' || req.method === 'POST') && action === 'list-abandoned-carts') {
       // Handle both URL params and body data
       let shopId;
-      if (req.method === 'GET') {
-        shopId = url.searchParams.get('shop_id');
-      } else {
-        const body = await req.json();
-        shopId = body.shop_id;
+      try {
+        if (req.method === 'GET') {
+          shopId = url.searchParams.get('shop_id');
+        } else {
+          const body = await req.json();
+          shopId = body.shop_id;
+        }
+        console.log('Fetching abandoned carts for shop:', shopId);
+      } catch (error) {
+        console.error('Error parsing request:', error);
+        return new Response(
+          JSON.stringify({ error: 'Invalid request format' }),
+          { 
+            status: 400, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
       }
 
       let query = supabase

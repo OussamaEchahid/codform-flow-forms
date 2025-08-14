@@ -52,9 +52,8 @@ const AbandonedOrders = () => {
           return;
         }
 
-        const { data, error } = await supabase.functions.invoke('abandoned-carts', {
+        const { data, error } = await supabase.functions.invoke('abandoned-carts?action=list-abandoned-carts', {
           body: { 
-            action: 'list-abandoned-carts',
             shop_id: actualShop
           }
         });
