@@ -224,6 +224,39 @@ const OrdersList = () => {
     setSelectedOrder(null);
   };
 
+  // Extract real price from order data
+  const extractOrderPrice = (order) => {
+    // Try to get price from items first
+    if (order.items && Array.isArray(order.items)) {
+      const totalFromItems = order.items.reduce((sum, item) => {
+        const price = parseFloat(item.price || 0);
+        const quantity = parseInt(item.quantity || 1);
+        return sum + (price * quantity);
+      }, 0);
+      
+      if (totalFromItems > 0) {
+        return totalFromItems.toFixed(2);
+      }
+    }
+    
+    // Fallback to total_amount if available and > 0
+    if (order.total_amount && parseFloat(order.total_amount) > 0) {
+      return parseFloat(order.total_amount).toFixed(2);
+    }
+    
+    // Last fallback - check if there's form data with converted price
+    if (order.form_data) {
+      const formData = typeof order.form_data === 'string' ? 
+        JSON.parse(order.form_data) : order.form_data;
+      
+      if (formData.extractedPrice && parseFloat(formData.extractedPrice) > 0) {
+        return parseFloat(formData.extractedPrice).toFixed(2);
+      }
+    }
+    
+    return "0.00";
+  };
+
   // Handle saving order changes
   const handleSaveOrder = (updatedOrder) => {
     // TODO: Implement order update logic
@@ -386,10 +419,7 @@ const OrdersList = () => {
                       <TableCell>{new Date(order.created_at || order.date).toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US')}</TableCell>
                       <TableCell className="text-center">{Array.isArray(order.items) ? order.items.length : order.items || 0}</TableCell>
                       <TableCell className="font-medium">
-                        {order.total_amount !== undefined ? 
-                          `${order.total_amount} ${order.currency || 'USD'}` : 
-                          (order.total || `0 ${order.currency || 'USD'}`)
-                        }
+                        {extractOrderPrice(order)} {order.currency || 'USD'}
                       </TableCell>
                       <TableCell>{getStatusBadge(order.status)}</TableCell>
                       <TableCell>
