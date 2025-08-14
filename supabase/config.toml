@@ -125,3 +125,6 @@ verify_jwt = false
 
 [functions.abandoned-carts]
 verify_jwt = false
+
+[functions.fix-orders-prices]
+verify_jwt = false
