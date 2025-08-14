@@ -453,7 +453,19 @@
     return data;
   }
   
-  // دالة المعالجة عند تغيير الحقول
+  // دالة تحديث السعر المحول
+  function updateExtractedPrice() {
+    const { price, currency } = extractPriceAndCurrency();
+    if (price && price > 1) {
+      currentData.extractedPrice = price;
+      currentData.extractedCurrency = currency;
+      console.log('🔄 تم تحديث السعر المحول في currentData:', price, currency);
+      return true;
+    }
+    return false;
+  }
+  
+  // دالة المعالجة المحسنة عند تغيير الحقول
   function handleInput() {
     console.log('⌨️ تم اكتشاف إدخال في النموذج');
     
@@ -463,26 +475,62 @@
     const hasImportantData = newData.name || newData.email || newData.phone;
     
     if (hasImportantData && !cartId) {
-      currentData = newData;
+      // الحفاظ على السعر المحول المحفوظ مسبقاً
+      const preservedPrice = currentData.extractedPrice;
+      const preservedCurrency = currentData.extractedCurrency;
+      
+      // دمج البيانات الجديدة مع الحفاظ على السعر المحول
+      currentData = {
+        ...currentData,
+        ...newData,
+        // إعادة إدراج السعر المحول إذا كان موجوداً وصالحاً
+        ...(preservedPrice && preservedPrice > 1 && {
+          extractedPrice: preservedPrice,
+          extractedCurrency: preservedCurrency || 'SAR'
+        })
+      };
+      
+      console.log('📋 البيانات المحدثة مع الحفاظ على السعر:', currentData);
+      
+      // تحديث فوري للسعر إذا لم يكن موجوداً
+      if (!currentData.extractedPrice || currentData.extractedPrice <= 1) {
+        updateExtractedPrice();
+      }
       
       // إلغاء المؤقت السابق
       if (saveTimer) {
         clearTimeout(saveTimer);
       }
       
-      // تأخير الحفظ لـ 15 ثانية للسماح بتحديث ملخص السلة بالكامل
+      // تأخير الحفظ لـ 8 ثوانٍ مع تحديثات دورية للسعر
       saveTimer = setTimeout(() => {
-        console.log('⏰ حان وقت الحفظ بعد انتظار 15 ثانية');
-        // التأكد من الحصول على أحدث سعر محول قبل الحفظ
-        const finalData = extractPriceAndCurrency();
-        if (finalData.price > 1) {
-          currentData.extractedPrice = finalData.price;
-          currentData.extractedCurrency = finalData.currency;
-          console.log('🔄 تحديث السعر قبل الحفظ:', finalData.price, finalData.currency);
+        console.log('⏰ حان وقت الحفظ بعد انتظار 8 ثوانٍ');
+        
+        // محاولة أخيرة لتحديث السعر قبل الحفظ
+        if (!currentData.extractedPrice || currentData.extractedPrice <= 1) {
+          const updated = updateExtractedPrice();
+          if (!updated) {
+            console.log('⚠️ لم يتم العثور على سعر محول صالح، ستتم محاولة الحفظ');
+          }
         }
+        
         saveAbandonedCart(currentData);
-      }, 15000);
+      }, 8000);
     }
+  }
+  
+  // إضافة فحص دوري لتحديث السعر المحول
+  function startPeriodicPriceUpdate() {
+    setInterval(() => {
+      if (isTracking && currentData && (currentData.name || currentData.email || currentData.phone)) {
+        const { price, currency } = extractPriceAndCurrency();
+        if (price && price > 1 && price !== currentData.extractedPrice) {
+          currentData.extractedPrice = price;
+          currentData.extractedCurrency = currency;
+          console.log('🔄 تحديث دوري للسعر المحول:', price, currency);
+        }
+      }
+    }, 5000); // فحص كل 5 ثوانٍ
   }
   
   // تشغيل النظام
@@ -516,12 +564,19 @@
   // تشغيل فوري إذا كانت الصفحة جاهزة
   if (document.readyState === 'complete' || document.readyState === 'interactive') {
     startTracking();
+    startPeriodicPriceUpdate();
   } else {
-    document.addEventListener('DOMContentLoaded', startTracking);
+    document.addEventListener('DOMContentLoaded', () => {
+      startTracking();
+      startPeriodicPriceUpdate();
+    });
   }
   
   // تشغيل احتياطي بعد ثانيتين
-  setTimeout(startTracking, 2000);
+  setTimeout(() => {
+    startTracking();
+    startPeriodicPriceUpdate();
+  }, 2000);
   
-  console.log('🏁 تم تحميل نظام تتبع السلال المتروكة');
+  console.log('🏁 تم تحميل نظام تتبع السلال المتروكة مع المراقبة الدورية للأسعار');
 })();
