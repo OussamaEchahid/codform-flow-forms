@@ -24,17 +24,28 @@
         return;
       }
       
-      // استخراج السعر والعملة المحولة الصحيحة
+      // استخراج السعر والعملة المحولة الصحيحة من ملخص السلة
       const { price, currency } = extractPriceAndCurrency();
       
-      // استخدام السعر المحول من البيانات المحفوظة إذا كان متوفر
+      console.log('🔍 السعر المستخرج من ملخص السلة:', price, currency);
+      console.log('🔍 البيانات المحفوظة:', currentData.extractedPrice, currentData.extractedCurrency);
+      
+      // استخدام السعر المحول من ملخص السلة دائماً
       let finalPrice = price;
       let finalCurrency = currency;
       
-      if (currentData.extractedPrice && currentData.extractedPrice > 1) {
+      // التأكد من أن السعر محول وصحيح
+      if (price > 1) {
+        finalPrice = price;
+        finalCurrency = currency;
+        console.log('✅ استخدام السعر المحول من ملخص السلة:', finalPrice, finalCurrency);
+      } else if (currentData.extractedPrice && currentData.extractedPrice > 1) {
         finalPrice = currentData.extractedPrice;
         finalCurrency = currentData.extractedCurrency || currency;
         console.log('💰 استخدام السعر المحول المحفوظ:', finalPrice, finalCurrency);
+      } else {
+        console.log('⚠️ لم يتم العثور على سعر محول، سيتم المحاولة مرة أخرى');
+        return;
       }
       
       const cartData = {
