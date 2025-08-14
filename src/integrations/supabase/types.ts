@@ -969,6 +969,10 @@ export type Database = {
         }
         Returns: string
       }
+      user_can_access_shop: {
+        Args: { p_shop_id: string }
+        Returns: boolean
+      }
       user_owns_store: {
         Args: { p_shop_id: string }
         Returns: boolean
