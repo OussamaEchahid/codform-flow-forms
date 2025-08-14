@@ -132,7 +132,7 @@ class CodformAbandonedTracking {
     this.debounceTimer = setTimeout(() => {
       console.log('⏰ Processing form data after debounce...');
       this.processFormData(form);
-    }, 2000); // تقليل الوقت إلى ثانيتين للاختبار
+    }, 1000); // تقليل الوقت إلى ثانية واحدة للاختبار
   }
 
   /**
@@ -331,8 +331,13 @@ if (typeof window !== 'undefined') {
       console.log('🚀 Starting abandoned tracking initialization...');
       console.log('📄 Document ready state:', document.readyState);
       
+      if (window.CodformAbandonedTracking && window.CodformAbandonedTracking.isInitialized) {
+        console.log('⚠️ Tracking already initialized, skipping...');
+        return;
+      }
+      
       if (window.CodformAbandonedTracking) {
-        console.log('⚠️ Tracking already exists, destroying old instance...');
+        console.log('⚠️ Destroying old instance...');
         window.CodformAbandonedTracking.destroy();
       }
       
