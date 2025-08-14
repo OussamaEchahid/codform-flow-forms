@@ -75,13 +75,32 @@
   };
 
   // تحميل النموذج
-  function loadForm(productId, shopDomain) {
-    if (window.loadFormFromAPI) {
-      window.loadFormFromAPI(productId, shopDomain);
-    } else {
-      console.warn('⚠️ Form loading function not available');
+  async function loadForm(productId, shopDomain) {
+    try {
+      const apiUrl = `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/forms-product?shop=${encodeURIComponent(shopDomain)}&product=${encodeURIComponent(productId)}`;
+      
+      const response = await fetch(apiUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      if (data.success && data.data) {
+        console.log('✅ Form loaded successfully', data);
+        // عرض النموذج
+        if (window.CodformFieldRenderer && window.CodformFieldRenderer.renderForm) {
+          window.CodformFieldRenderer.renderForm(data.data, data.style, data.product);
+        }
+      } else {
+        console.warn('⚠️ No form data found for product', productId);
+      }
+    } catch (error) {
+      console.error('❌ Error loading form:', error);
     }
   }
+
+  // تصدير الدالة للاستخدام العام
+  window.loadFormFromAPI = loadForm;
 
   // تهيئة تلقائية
   function initializeCore() {

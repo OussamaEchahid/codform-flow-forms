@@ -70,6 +70,11 @@
   
   console.log(`🚀 Initializing Smart Currency System for Form: ${formId}, Shop: ${shopId}`);
   
+  // إضافة دالة loadFormFromAPI مؤقتاً حتى يتم تحميل النواة
+  window.loadFormFromAPI = window.loadFormFromAPI || function(productId, shopDomain) {
+    console.log('⚠️ Form loading function called before core is ready');
+  };
+  
   // تهيئة CurrencyService
   if (window.parent && window.parent.CurrencyService) {
     window.CurrencyService = window.parent.CurrencyService;
