@@ -197,10 +197,37 @@ class CodformAbandonedTracking {
    */
   async saveAbandonedCart(data) {
     try {
+      console.log('💾 Attempting to save abandoned cart with data:', data);
+      
+      // استخراج البيانات المهمة
+      let customerEmail = data.email || data.customerEmail || '';
+      let customerPhone = data.phone || data.customerPhone || '';  
+      let customerName = data.name || data.customerName || '';
+      
+      // العثور على أي بيانات مهمة في الحقول الأخرى
+      Object.keys(data).forEach(key => {
+        const lowerKey = key.toLowerCase();
+        if (lowerKey.includes('email') && !customerEmail) {
+          customerEmail = data[key];
+        }
+        if ((lowerKey.includes('phone') || lowerKey.includes('هاتف')) && !customerPhone) {
+          customerPhone = data[key];
+        }
+        if ((lowerKey.includes('name') || lowerKey.includes('اسم')) && !customerName) {
+          customerName = data[key];
+        }
+      });
+
+      console.log('👤 Extracted customer info:', {
+        email: customerEmail,
+        phone: customerPhone,
+        name: customerName
+      });
+
       const cartData = {
-        customer_email: data.email || data.customerEmail || '',
-        customer_phone: data.phone || data.customerPhone || '',
-        customer_name: data.name || data.customerName || '',
+        customer_email: customerEmail,
+        customer_phone: customerPhone,
+        customer_name: customerName,
         cart_items: [{
           product_id: window.codformProductId || 'unknown',
           quantity: data.quantity || 1,
@@ -213,6 +240,8 @@ class CodformAbandonedTracking {
         form_data: data // حفظ جميع بيانات النموذج
       };
 
+      console.log('📦 Final cart data to be saved:', cartData);
+
       const response = await fetch('https://trlklwixfeaexhydzaue.supabase.co/functions/v1/abandoned-carts?action=create-abandoned-cart', {
         method: 'POST',
         headers: {
@@ -222,18 +251,32 @@ class CodformAbandonedTracking {
         body: JSON.stringify(cartData)
       });
 
+      console.log('🌐 Response status:', response.status);
+      console.log('🌐 Response headers:', Object.fromEntries(response.headers.entries()));
+
       if (response.ok) {
-        const result = await response.json();
-        this.abandonedCartId = result.cart?.id;
-        console.log('✅ Abandoned cart saved:', this.abandonedCartId);
+        const result = await response.text();
+        console.log('📄 Raw response:', result);
         
-        // تحديث النشاط الأخير للسلة المحفوظة
-        this.updateLastActivity();
+        try {
+          const jsonResult = JSON.parse(result);
+          this.abandonedCartId = jsonResult.cart?.id;
+          console.log('✅ Abandoned cart saved successfully:', this.abandonedCartId);
+          console.log('📊 Full result:', jsonResult);
+          
+          // تحديث النشاط الأخير للسلة المحفوظة
+          this.updateLastActivity();
+        } catch (parseError) {
+          console.error('❌ Error parsing response:', parseError);
+          console.log('📄 Response text:', result);
+        }
       } else {
-        console.error('❌ Failed to save abandoned cart:', response.status);
+        const errorText = await response.text();
+        console.error('❌ Failed to save abandoned cart:', response.status, errorText);
       }
     } catch (error) {
       console.error('❌ Error saving abandoned cart:', error);
+      console.error('❌ Error details:', error.message, error.stack);
     }
   }
 
