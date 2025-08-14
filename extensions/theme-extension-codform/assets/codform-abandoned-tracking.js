@@ -53,9 +53,13 @@ class CodformAbandonedTracking {
    * الحصول على النموذج
    */
   getForm() {
-    return document.querySelector('form') || 
-           document.querySelector('[data-form-preview-id]') ||
-           document.querySelector('.codform-container form');
+    // البحث عن النموذج في جميع الأماكن المحتملة
+    return document.querySelector('form[data-form-id]') || 
+           document.querySelector('form') || 
+           document.querySelector('[data-form-preview-id] form') ||
+           document.querySelector('.codform-container form') ||
+           document.querySelector('#codform-form') ||
+           document.getElementById('order-form');
   }
 
   /**
@@ -66,25 +70,46 @@ class CodformAbandonedTracking {
 
     console.log('🔍 Setting up form tracking...');
 
-    // إضافة مستمعين للحقول المهمة
+    // إضافة مستمعين للحقول المهمة - تحسين البحث عن الحقول العربية
     const importantFields = form.querySelectorAll(`
       input[name*="email"], 
       input[name*="phone"], 
       input[name*="name"], 
       input[type="email"], 
       input[type="tel"], 
+      input[type="text"],
       textarea,
       input[name*="customerEmail"],
       input[name*="customerPhone"],
-      input[name*="customerName"]
+      input[name*="customerName"],
+      input[id*="email"],
+      input[id*="phone"],
+      input[id*="name"],
+      input[placeholder*="بريد"],
+      input[placeholder*="هاتف"],
+      input[placeholder*="اسم"],
+      input[placeholder*="Email"],
+      input[placeholder*="Phone"],
+      input[placeholder*="Name"]
     `);
     
-    importantFields.forEach(field => {
+    console.log(`🔍 Found ${importantFields.length} important fields in form`);
+    
+    importantFields.forEach((field, index) => {
+      console.log(`📝 Setting up tracking for field ${index + 1}:`, {
+        name: field.name,
+        type: field.type,
+        id: field.id,
+        placeholder: field.placeholder
+      });
+      
       field.addEventListener('input', (e) => {
+        console.log(`⌨️ Input detected in field: ${e.target.name || e.target.id}`);
         this.handleFieldChange(form, e.target);
       });
       
       field.addEventListener('blur', (e) => {
+        console.log(`👁️ Blur detected in field: ${e.target.name || e.target.id}`);
         this.handleFieldChange(form, e.target);
       });
     });
@@ -96,6 +121,8 @@ class CodformAbandonedTracking {
    * معالجة تغيير الحقل
    */
   handleFieldChange(form, field) {
+    console.log(`🔄 Field changed: ${field.name || field.id}, value: ${field.value}`);
+    
     // إلغاء المؤقت السابق
     if (this.debounceTimer) {
       clearTimeout(this.debounceTimer);
@@ -103,8 +130,9 @@ class CodformAbandonedTracking {
 
     // تأخير المعالجة لتجنب الكثرة
     this.debounceTimer = setTimeout(() => {
+      console.log('⏰ Processing form data after debounce...');
       this.processFormData(form);
-    }, 3000);
+    }, 2000); // تقليل الوقت إلى ثانيتين للاختبار
   }
 
   /**
@@ -132,9 +160,12 @@ class CodformAbandonedTracking {
     form.querySelectorAll('input, textarea, select').forEach(field => {
       if (field.name && field.value && field.value.trim()) {
         data[field.name] = field.value.trim();
+      } else if (field.id && field.value && field.value.trim()) {
+        data[field.id] = field.value.trim();
       }
     });
     
+    console.log('📊 Extracted form data:', data);
     return data;
   }
 
@@ -142,7 +173,7 @@ class CodformAbandonedTracking {
    * التحقق من وجود بيانات مهمة
    */
   hasImportantData(data) {
-    return data.email || 
+    const hasData = data.email || 
            data.phone || 
            data.name || 
            data.customerEmail || 
@@ -151,8 +182,14 @@ class CodformAbandonedTracking {
            Object.keys(data).some(key => 
              key.toLowerCase().includes('email') || 
              key.toLowerCase().includes('phone') || 
-             key.toLowerCase().includes('name')
+             key.toLowerCase().includes('name') ||
+             key.toLowerCase().includes('بريد') ||
+             key.toLowerCase().includes('هاتف') ||
+             key.toLowerCase().includes('اسم')
            );
+    
+    console.log('🤔 Has important data:', hasData, 'Data keys:', Object.keys(data));
+    return hasData;
   }
 
   /**
