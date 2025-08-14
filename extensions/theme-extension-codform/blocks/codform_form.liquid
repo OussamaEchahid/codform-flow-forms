@@ -448,10 +448,36 @@
       // Cart summary field with inline HTML (no include tag allowed in app blocks)
       const config = field.cartSummaryConfig || field.config || {};
       const currency = config.currency || 'MAD'; // الافتراضي للدرهم المغربي
-      const subtotalLabel = formDirection === 'rtl' ? 'المجموع الفرعي' : 'Subtotal';
-      const discountLabel = formDirection === 'rtl' ? 'الخصم' : 'Discount';
-      const shippingLabel = formDirection === 'rtl' ? 'الشحن' : 'Shipping';
-      const totalLabel = formDirection === 'rtl' ? 'المجموع الكامل' : 'Total';
+      
+      // ✅ استخدام النصوص المخصصة من تكوين النموذج أولاً، ثم الافتراضيات
+      let subtotalLabel, discountLabel, shippingLabel, totalLabel;
+      
+      if (config.subtotalText || config.subtotalLabel) {
+        subtotalLabel = config.subtotalText || config.subtotalLabel;
+      } else {
+        subtotalLabel = formDirection === 'rtl' ? 'المجموع الفرعي' : 'Subtotal';
+      }
+      
+      if (config.discountText || config.discountLabel) {
+        discountLabel = config.discountText || config.discountLabel;
+      } else {
+        discountLabel = formDirection === 'rtl' ? 'الخصم' : 'Discount';
+      }
+      
+      if (config.shippingText || config.shippingLabel) {
+        shippingLabel = config.shippingText || config.shippingLabel;
+      } else {
+        shippingLabel = formDirection === 'rtl' ? 'الشحن' : 'Shipping';
+      }
+      
+      if (config.totalText || config.totalLabel) {
+        totalLabel = config.totalText || config.totalLabel;
+      } else {
+        totalLabel = formDirection === 'rtl' ? 'الإجمالي' : 'Total';
+      }
+      
+      // Get free shipping text
+      const freeShippingText = config.freeShippingText || (formDirection === 'rtl' ? 'مجاني' : 'Free');
       
       html = `
         <div class="cart-summary-field" data-currency="${currency}" style="
@@ -475,12 +501,12 @@
           
           <div class="summary-row" style="display: flex; justify-content: space-between; margin-bottom: 8px;">
             <span style="color: #6b7280;">${shippingLabel}:</span>
-            <span class="shipping-value" data-amount="0">${formDirection === 'rtl' ? 'مجاني' : 'Free'}</span>
+            <span class="shipping-value" data-amount="0">${freeShippingText}</span>
           </div>
           
           <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 12px 0;">
           
-          <div class="summary-row" style="display: flex; justify-content: space-between; font-weight: 600; font-size: 18px;">
+          <div class="summary-row total-row" style="display: flex; justify-content: space-between; font-weight: 600; font-size: 18px;">
             <span style="color: #1f2937;">${totalLabel}:</span>
             <span class="total-value" data-amount="" style="color: #059669;">...</span>
           </div>
