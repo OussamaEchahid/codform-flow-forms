@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -708,11 +708,11 @@ export type Database = {
     Functions: {
       associate_product_with_form: {
         Args: {
-          p_shop_id: string
-          p_product_id: string
-          p_form_id: string
           p_block_id?: string
           p_enabled?: boolean
+          p_form_id: string
+          p_product_id: string
+          p_shop_id: string
         }
         Returns: string
       }
@@ -722,15 +722,15 @@ export type Database = {
       }
       create_form_for_shop: {
         Args: {
-          p_shop_id: string
-          p_title: string
-          p_description?: string
-          p_data?: Json
-          p_style?: Json
-          p_is_published?: boolean
           p_country?: string
           p_currency?: string
+          p_data?: Json
+          p_description?: string
+          p_is_published?: boolean
           p_phone_prefix?: string
+          p_shop_id: string
+          p_style?: Json
+          p_title: string
         }
         Returns: string
       }
@@ -759,7 +759,7 @@ export type Database = {
         Returns: string
       }
       get_form_quantity_offers: {
-        Args: { p_shop_id: string; p_form_id?: string }
+        Args: { p_form_id?: string; p_shop_id: string }
         Returns: {
           created_at: string
           custom_selector: string | null
@@ -778,20 +778,20 @@ export type Database = {
       get_order_settings: {
         Args: { p_shop_id: string }
         Returns: {
+          created_at: string
           id: string
-          shop_id: string
-          user_id: string
+          popup_message: string
+          popup_title: string
           post_order_action: string
           redirect_enabled: boolean
+          shop_id: string
           thank_you_page_url: string
-          popup_title: string
-          popup_message: string
-          created_at: string
           updated_at: string
+          user_id: string
         }[]
       }
       get_product_form_and_offers: {
-        Args: { shop_id: string; product_id: string }
+        Args: { product_id: string; shop_id: string }
         Returns: Json
       }
       get_shop_currency_settings: {
@@ -801,17 +801,17 @@ export type Database = {
       get_shop_limits: {
         Args: { p_shop: string }
         Returns: {
-          orders_limit: number
           abandoned_limit: number
+          orders_limit: number
         }[]
       }
       get_shop_subscription: {
         Args: { p_shop_domain: string }
         Returns: {
+          next_billing_date: string
           plan_type: Database["public"]["Enums"]["subscription_plan"]
           status: string
           trial_days_remaining: number
-          next_billing_date: string
         }[]
       }
       get_store_access_token: {
@@ -825,34 +825,34 @@ export type Database = {
       get_stores_by_email: {
         Args: { p_email: string }
         Returns: {
-          shop: string
+          access_token: string
           email: string
           is_active: boolean
+          shop: string
           updated_at: string
-          access_token: string
         }[]
       }
       get_user_stores: {
         Args: { p_user_id: string }
         Returns: {
-          shop: string
-          is_active: boolean
-          updated_at: string
           access_token: string
+          is_active: boolean
+          shop: string
+          updated_at: string
         }[]
       }
       get_user_stores_by_email: {
         Args: { p_email?: string }
         Returns: {
-          shop: string
-          email: string
-          user_id: string
           access_token: string
-          is_active: boolean
           created_at: string
-          updated_at: string
+          email: string
+          is_active: boolean
           plan_type: string
+          shop: string
           subscription_status: string
+          updated_at: string
+          user_id: string
         }[]
       }
       is_session_valid: {
@@ -868,11 +868,11 @@ export type Database = {
         Returns: undefined
       }
       link_store_by_email: {
-        Args: { p_shop: string; p_email: string }
+        Args: { p_email: string; p_shop: string }
         Returns: boolean
       }
       link_store_to_user: {
-        Args: { p_shop: string; p_user_id?: string; p_email?: string }
+        Args: { p_email?: string; p_shop: string; p_user_id?: string }
         Returns: boolean
       }
       load_form_with_fallback: {
@@ -881,17 +881,17 @@ export type Database = {
       }
       save_order_settings: {
         Args: {
-          p_shop_id: string
+          p_popup_message?: string
+          p_popup_title?: string
           p_post_order_action?: string
           p_redirect_enabled?: boolean
+          p_shop_id: string
           p_thank_you_page_url?: string
-          p_popup_title?: string
-          p_popup_message?: string
         }
         Returns: string
       }
       set_form_publication: {
-        Args: { p_form_id: string; p_shop_id: string; p_publish: boolean }
+        Args: { p_form_id: string; p_publish: boolean; p_shop_id: string }
         Returns: boolean
       }
       store_is_active: {
@@ -903,28 +903,28 @@ export type Database = {
         Returns: string
       }
       update_form_secure: {
-        Args: { p_form_id: string; p_shop_id: string; p_changes: Json }
+        Args: { p_changes: Json; p_form_id: string; p_shop_id: string }
         Returns: Json
       }
       upgrade_shop_plan: {
         Args: {
-          p_shop_domain: string
           p_new_plan: Database["public"]["Enums"]["subscription_plan"]
+          p_shop_domain: string
           p_shopify_charge_id?: string
         }
         Returns: boolean
       }
       upsert_quantity_offer: {
         Args: {
-          p_shop_id: string
-          p_form_id: string
-          p_product_id: string
-          p_offers: Json
-          p_styling: Json
-          p_enabled?: boolean
-          p_position?: string
           p_custom_selector?: string
+          p_enabled?: boolean
+          p_form_id: string
           p_id?: string
+          p_offers: Json
+          p_position?: string
+          p_product_id: string
+          p_shop_id: string
+          p_styling: Json
         }
         Returns: string
       }
