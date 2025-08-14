@@ -318,12 +318,19 @@
         }
       }
       
-      // Update shipping
+      // Update shipping - use custom text from field config
       const shippingElement = summary.querySelector('.shipping-value');
       if (shippingElement) {
         let formattedShipping;
         if (prices.shipping === 0) {
-          formattedShipping = language === 'ar' ? 'مجاني' : 'Free';
+          // Get custom free shipping text from field config
+          let freeText = language === 'ar' ? 'مجاني' : 'Free';
+          if (window.currentFieldData?.config?.freeShippingText) {
+            freeText = window.currentFieldData.config.freeShippingText;
+          } else if (window.currentFieldData?.cartSummaryConfig?.freeShippingText) {
+            freeText = window.currentFieldData.cartSummaryConfig.freeShippingText;
+          }
+          formattedShipping = freeText;
         } else {
           formattedShipping = formatCurrency(prices.shipping, currency, language);
         }
@@ -523,18 +530,22 @@
         label.setAttribute('translate', 'no');
         
         // Determine which label this is and apply custom text
-        if (row.classList.contains('discount-row') && config.discountText) {
-          label.textContent = config.discountText;
-          label.setAttribute('data-original-text', config.discountText);
-        } else if (row.classList.contains('total-row') && config.totalText) {
-          label.textContent = config.totalText;
-          label.setAttribute('data-original-text', config.totalText);
-        } else if (row.querySelector('.shipping-value') && config.shippingText) {
-          label.textContent = config.shippingText;
-          label.setAttribute('data-original-text', config.shippingText);
-        } else if (row.querySelector('.subtotal-value') && config.subtotalText) {
-          label.textContent = config.subtotalText;
-          label.setAttribute('data-original-text', config.subtotalText);
+        if (row.classList.contains('discount-row')) {
+          const text = config.discountText || config.discountLabel || (formStyle?.formDirection === 'rtl' ? 'الخصم' : 'Discount');
+          label.textContent = text;
+          label.setAttribute('data-original-text', text);
+        } else if (row.classList.contains('total-row')) {
+          const text = config.totalText || config.totalLabel || (formStyle?.formDirection === 'rtl' ? 'الإجمالي' : 'Total');
+          label.textContent = text;
+          label.setAttribute('data-original-text', text);
+        } else if (row.querySelector('.shipping-value')) {
+          const text = config.shippingText || config.shippingLabel || (formStyle?.formDirection === 'rtl' ? 'الشحن' : 'Shipping');
+          label.textContent = text;
+          label.setAttribute('data-original-text', text);
+        } else if (row.querySelector('.subtotal-value')) {
+          const text = config.subtotalText || config.subtotalLabel || (formStyle?.formDirection === 'rtl' ? 'المجموع الفرعي' : 'Subtotal');
+          label.textContent = text;
+          label.setAttribute('data-original-text', text);
         }
       });
       // تطبيق اتجاه النص
