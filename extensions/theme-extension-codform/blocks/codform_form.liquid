@@ -1848,3 +1848,10 @@ window.loadFormFromAPI = function(productId, shopDomain) {
 
 })(); // إغلاق الدالة المجهولة التي بدأت في السطر 59
 </script>
+
+<!-- تحميل نظام تتبع النماذج المتروكة -->
+<script>
+  window.codformShopDomain = '{{ shop.domain }}';
+  window.codformProductId = '{{ product.id }}' || '{{ block.settings.product_id }}' || 'auto-detect';
+</script>
+{{ 'codform-abandoned-tracking.js' | asset_url | script_tag }}

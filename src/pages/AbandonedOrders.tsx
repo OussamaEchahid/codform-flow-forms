@@ -203,11 +203,12 @@ const AbandonedOrders = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{language === 'ar' ? 'رقم المرجع' : 'Reference ID'}</TableHead>
-                  <TableHead>{language === 'ar' ? 'البريد الإلكتروني' : 'Email'}</TableHead>
-                  <TableHead>{language === 'ar' ? 'آخر نشاط' : 'Last Activity'}</TableHead>
-                  <TableHead>{language === 'ar' ? 'قيمة السلة' : 'Cart Value'}</TableHead>
+                  <TableHead>{language === 'ar' ? 'العميل' : 'Customer'}</TableHead>
+                  <TableHead>{language === 'ar' ? 'الهاتف' : 'Phone'}</TableHead>
+                  <TableHead>{language === 'ar' ? 'التاريخ' : 'Date'}</TableHead>
                   <TableHead>{language === 'ar' ? 'المنتجات' : 'Items'}</TableHead>
+                  <TableHead>{language === 'ar' ? 'المجموع' : 'Total'}</TableHead>
+                  <TableHead>{language === 'ar' ? 'الحالة' : 'Status'}</TableHead>
                   <TableHead>{language === 'ar' ? 'خيارات' : 'Actions'}</TableHead>
                 </TableRow>
               </TableHeader>
@@ -215,15 +216,32 @@ const AbandonedOrders = () => {
                 {filteredCarts.length > 0 ? (
                   filteredCarts.map((cart) => (
                     <TableRow key={cart.id} className="hover:bg-muted/30">
-                      <TableCell className="font-medium">{cart.id}</TableCell>
-                      <TableCell>{cart.customer_email || cart.email}</TableCell>
+                      <TableCell className="font-medium">
+                        <div className="flex flex-col">
+                          <span>{cart.customer_name || cart.customer_email || 'غير محدد'}</span>
+                          <span className="text-xs text-gray-500">{cart.customer_email}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>{cart.customer_phone || 'غير محدد'}</TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="bg-gray-50">
-                          {getTimeSince(cart.last_activity || cart.lastActivity)} {language === 'ar' ? 'مضت' : 'ago'}
+                        <div className="flex flex-col">
+                          <span>{new Date(cart.created_at).toLocaleDateString()}</span>
+                          <span className="text-xs text-gray-500">
+                            {getTimeSince(cart.last_activity || cart.created_at)} {language === 'ar' ? 'مضت' : 'ago'}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>{Array.isArray(cart.cart_items) ? cart.cart_items.length : 1}</TableCell>
+                      <TableCell>
+                        <span className="font-medium">
+                          {cart.total_value || 0} {cart.currency || 'SAR'}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="bg-orange-50 text-orange-600 border-orange-200">
+                          {language === 'ar' ? 'متروك' : 'Abandoned'}
                         </Badge>
                       </TableCell>
-                      <TableCell>{cart.total_value ? `${cart.total_value} ${cart.currency}` : cart.cartValue}</TableCell>
-                      <TableCell>{Array.isArray(cart.cart_items) ? cart.cart_items.length : cart.items}</TableCell>
                       <TableCell>
                         <Button variant="default" size="sm" className="bg-purple-600 hover:bg-purple-700">
                           {language === 'ar' ? 'استرداد' : 'Recover'}
@@ -233,7 +251,7 @@ const AbandonedOrders = () => {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-6">
+                    <TableCell colSpan={7} className="text-center py-6">
                       {searchTerm ? 
                         (language === 'ar' ? 'لا توجد نتائج للبحث' : 'No search results found') : 
                         (language === 'ar' ? 'لا توجد سلات متروكة حالياً' : 'No abandoned carts available yet')}
