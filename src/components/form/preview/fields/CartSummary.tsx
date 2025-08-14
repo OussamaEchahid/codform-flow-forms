@@ -12,6 +12,7 @@ interface CartSummaryProps {
     borderRadius?: string;
     fontSize?: string;
     currency?: string;
+    formDirection?: string;
   };
   productId?: string;
   formCurrency?: string;
@@ -42,7 +43,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
   // الحصول على إعدادات محفوظة من المحرر - أولوية لـ config ثم cartSummaryConfig
   const config = field.config || field.cartSummaryConfig || {};
   
-  // النصوص الافتراضية حسب المحتوى أو الاعدادات المحفوظة
+  // النصوص الافتراضية حسب اتجاه النموذج أو المحتوى أو الاعدادات المحفوظة  
   const getDefaultTexts = () => {
     // أولاً نتحقق من النصوص المحفوظة
     if (config.subtotalText || config.discountText || config.shippingText || config.totalText) {
@@ -54,7 +55,23 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
       };
     }
     
-    // في حالة عدم وجود نصوص محفوظة، نحدد بناءً على محتوى النصوص الموجودة
+    // إذا لم توجد نصوص محفوظة، نعتمد على اتجاه النموذج أولاً
+    if (formStyle && 'formDirection' in formStyle) {
+      const isArabic = formStyle.formDirection === 'rtl';
+      return isArabic ? {
+        subtotalText: 'المجموع الفرعي',
+        discountText: 'الخصم',
+        shippingText: 'الشحن', 
+        totalText: 'الإجمالي'
+      } : {
+        subtotalText: 'Subtotal',
+        discountText: 'Discount',
+        shippingText: 'Shipping',
+        totalText: 'Total'
+      };
+    }
+    
+    // كحل أخير، نحدد بناءً على محتوى النصوص الموجودة
     const allTexts = [
       config.subtotalText, config.discountText, 
       config.shippingText, config.totalText,
