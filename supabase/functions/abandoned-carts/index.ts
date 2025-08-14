@@ -107,7 +107,6 @@ serve(async (req) => {
       const { data, error } = await supabase
         .from('abandoned_carts')
         .update({ 
-          recovery_attempts: supabase.raw('recovery_attempts + 1'),
           last_activity: new Date().toISOString()
         })
         .eq('id', cart_id)
