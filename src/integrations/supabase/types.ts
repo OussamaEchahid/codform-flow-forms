@@ -746,6 +746,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      fix_orders_prices: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       fix_user_ownership: {
         Args: Record<PropertyKey, never>
         Returns: undefined
