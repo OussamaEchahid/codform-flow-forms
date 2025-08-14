@@ -24,27 +24,32 @@
         return;
       }
       
-      // استخراج السعر والعملة المحولة الصحيحة من ملخص السلة
-      const { price, currency } = extractPriceAndCurrency();
+      console.log('🔍 البيانات المحفوظة في currentData:', currentData.extractedPrice, currentData.extractedCurrency);
       
-      console.log('🔍 السعر المستخرج من ملخص السلة:', price, currency);
-      console.log('🔍 البيانات المحفوظة:', currentData.extractedPrice, currentData.extractedCurrency);
+      // إعطاء الأولوية القصوى للسعر المحول المحفوظ في currentData
+      let finalPrice = null;
+      let finalCurrency = 'SAR';
       
-      // استخدام السعر المحول من ملخص السلة دائماً
-      let finalPrice = price;
-      let finalCurrency = currency;
-      
-      // التأكد من أن السعر محول وصحيح
-      if (price > 1) {
-        finalPrice = price;
-        finalCurrency = currency;
-        console.log('✅ استخدام السعر المحول من ملخص السلة:', finalPrice, finalCurrency);
-      } else if (currentData.extractedPrice && currentData.extractedPrice > 1) {
+      // الأولوية الأولى: السعر المحول المحفوظ في currentData
+      if (currentData.extractedPrice && currentData.extractedPrice > 1) {
         finalPrice = currentData.extractedPrice;
-        finalCurrency = currentData.extractedCurrency || currency;
-        console.log('💰 استخدام السعر المحول المحفوظ:', finalPrice, finalCurrency);
+        finalCurrency = currentData.extractedCurrency || 'SAR';
+        console.log('🎯 استخدام السعر المحول المحفوظ في currentData:', finalPrice, finalCurrency);
       } else {
-        console.log('⚠️ لم يتم العثور على سعر محول، سيتم المحاولة مرة أخرى');
+        // الأولوية الثانية: استخراج من ملخص السلة مباشرة
+        const { price, currency } = extractPriceAndCurrency();
+        console.log('🔍 السعر المستخرج حالياً من ملخص السلة:', price, currency);
+        
+        if (price && price > 1) {
+          finalPrice = price;
+          finalCurrency = currency;
+          console.log('💰 استخدام السعر المستخرج من ملخص السلة:', finalPrice, finalCurrency);
+        }
+      }
+      
+      // التأكد من وجود سعر صالح
+      if (!finalPrice || finalPrice <= 1) {
+        console.log('⚠️ لا يوجد سعر محول صالح، إيقاف الحفظ');
         return;
       }
       
