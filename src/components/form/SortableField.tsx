@@ -1067,57 +1067,81 @@ const SortableField: React.FC<SortableFieldProps> = ({
                              className={language === 'ar' ? 'text-right' : ''}
                            />
                          </div>
-                         
-                         {/* Text Labels */}
-                         <div className="grid grid-cols-2 gap-3">
-                           <div className="space-y-1">
-                              <Label>{language === 'ar' ? 'نص المجموع الفرعي' : 'Subtotal Text'}</Label>
-                                <Input
-                                  value={editedField.cartSummaryConfig?.subtotalText || (formStyle?.formDirection === 'rtl' ? 'المجموع الفرعي' : 'Subtotal')}
-                                  onChange={(e) => {
-                                    const config = { ...editedField.cartSummaryConfig, subtotalText: e.target.value };
-                                    handleFieldChange('cartSummaryConfig', config);
-                                  }}
-                                  className={language === 'ar' ? 'text-right' : ''}
-                                />
-                           </div>
-                           
+                          
+                          {/* Text Labels */}
+                          <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1">
-                              <Label>{language === 'ar' ? 'نص الخصم' : 'Discount Text'}</Label>
+                               <Label>{language === 'ar' ? 'نص المجموع الفرعي' : 'Subtotal Text'}</Label>
+                                 <Input
+                                   value={editedField.cartSummaryConfig?.subtotalText || (() => {
+                                     // تحديد اللغة بناءً على اتجاه النموذج أو وجود نصوص عربية في الحقل الحالي
+                                     const currentTexts = [editedField.label, editedField.placeholder, editedField.content].filter(Boolean).join(' ');
+                                     const hasArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(currentTexts);
+                                     const isArabicForm = formStyle?.formDirection === 'rtl' || hasArabic;
+                                     return isArabicForm ? 'المجموع الفرعي' : 'Subtotal';
+                                   })()}
+                                   onChange={(e) => {
+                                     const config = { ...editedField.cartSummaryConfig, subtotalText: e.target.value };
+                                     handleFieldChange('cartSummaryConfig', config);
+                                   }}
+                                   className={language === 'ar' ? 'text-right' : ''}
+                                 />
+                            </div>
+                            
+                             <div className="space-y-1">
+                               <Label>{language === 'ar' ? 'نص الخصم' : 'Discount Text'}</Label>
+                                 <Input
+                                   value={editedField.cartSummaryConfig?.discountText || (() => {
+                                     // تحديد اللغة بناءً على اتجاه النموذج أو وجود نصوص عربية في الحقل الحالي
+                                     const currentTexts = [editedField.label, editedField.placeholder, editedField.content].filter(Boolean).join(' ');
+                                     const hasArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(currentTexts);
+                                     const isArabicForm = formStyle?.formDirection === 'rtl' || hasArabic;
+                                     return isArabicForm ? 'الخصم' : 'Discount';
+                                   })()}
+                                   onChange={(e) => {
+                                     const config = { ...editedField.cartSummaryConfig, discountText: e.target.value };
+                                     handleFieldChange('cartSummaryConfig', config);
+                                   }}
+                                   className={language === 'ar' ? 'text-right' : ''}
+                                 />
+                             </div>
+                            
+                            <div className="space-y-1">
+                              <Label>{language === 'ar' ? 'نص الشحن' : 'Shipping Text'}</Label>
                                 <Input
-                                  value={editedField.cartSummaryConfig?.discountText || (formStyle?.formDirection === 'rtl' ? 'الخصم' : 'Discount')}
-                                  onChange={(e) => {
-                                    const config = { ...editedField.cartSummaryConfig, discountText: e.target.value };
-                                    handleFieldChange('cartSummaryConfig', config);
-                                  }}
+                                   value={editedField.cartSummaryConfig?.shippingText || (() => {
+                                     // تحديد اللغة بناءً على اتجاه النموذج أو وجود نصوص عربية في الحقل الحالي
+                                     const currentTexts = [editedField.label, editedField.placeholder, editedField.content].filter(Boolean).join(' ');
+                                     const hasArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFdff\uFE70-\uFEFF]/.test(currentTexts);
+                                     const isArabicForm = formStyle?.formDirection === 'rtl' || hasArabic;
+                                     return isArabicForm ? 'الشحن' : 'Shipping';
+                                   })()}
+                                   onChange={(e) => {
+                                     const config = { ...editedField.cartSummaryConfig, shippingText: e.target.value };
+                                     handleFieldChange('cartSummaryConfig', config);
+                                   }}
+                                   className={language === 'ar' ? 'text-right' : ''}
+                                 />
+                            </div>
+                            
+                            <div className="space-y-1">
+                              <Label>{language === 'ar' ? 'نص الإجمالي' : 'Total Text'}</Label>
+                                <Input
+                                   value={editedField.cartSummaryConfig?.totalText || (() => {
+                                     // تحديد اللغة بناءً على اتجاه النموذج أو وجود نصوص عربية في الحقل الحالي
+                                     const currentTexts = [editedField.label, editedField.placeholder, editedField.content].filter(Boolean).join(' ');
+                                     const hasArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(currentTexts);
+                                     const isArabicForm = formStyle?.formDirection === 'rtl' || hasArabic;
+                                     return isArabicForm ? 'الإجمالي' : 'Total';
+                                   })()}
+                                   onChange={(e) => {
+                                     const config = { ...editedField.cartSummaryConfig, totalText: e.target.value };
+                                     handleFieldChange('cartSummaryConfig', config);
+                                   }}
                                   className={language === 'ar' ? 'text-right' : ''}
                                 />
                             </div>
-                           
-                           <div className="space-y-1">
-                             <Label>{language === 'ar' ? 'نص الشحن' : 'Shipping Text'}</Label>
-                               <Input
-                                  value={editedField.cartSummaryConfig?.shippingText || (formStyle?.formDirection === 'rtl' ? 'الشحن' : 'Shipping')}
-                                  onChange={(e) => {
-                                    const config = { ...editedField.cartSummaryConfig, shippingText: e.target.value };
-                                    handleFieldChange('cartSummaryConfig', config);
-                                  }}
-                                  className={language === 'ar' ? 'text-right' : ''}
-                                />
-                           </div>
-                           
-                           <div className="space-y-1">
-                             <Label>{language === 'ar' ? 'نص الإجمالي' : 'Total Text'}</Label>
-                               <Input
-                                  value={editedField.cartSummaryConfig?.totalText || (formStyle?.formDirection === 'rtl' ? 'الإجمالي' : 'Total')}
-                                  onChange={(e) => {
-                                    const config = { ...editedField.cartSummaryConfig, totalText: e.target.value };
-                                    handleFieldChange('cartSummaryConfig', config);
-                                  }}
-                                 className={language === 'ar' ? 'text-right' : ''}
-                               />
-                           </div>
-                         </div>
+                          </div>
                        </div>
                        
                        {/* Calculation Settings */}
