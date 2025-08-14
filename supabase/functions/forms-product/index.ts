@@ -52,36 +52,68 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
-    // Load form/product settings using secure function
+    // Load form/product settings directly from table
     const { data: formAssociation, error: associationError } = await supabase
-      .rpc('get_product_form_association', {
-        p_shop_id: shop,
-        p_product_id: productId || 'auto-detect'
-      });
+      .from('shopify_product_settings')
+      .select('form_id, enabled')
+      .eq('shop_id', shop)
+      .eq('product_id', productId || 'auto-detect')
+      .eq('enabled', true)
+      .maybeSingle();
 
     let settings = null;
     let settingsError = null;
 
-    if (!associationError && formAssociation && formAssociation.length > 0) {
+    if (!associationError && formAssociation) {
       // Get the full form data using the form_id
       const { data: formData, error: formError } = await supabase
         .from('forms')
         .select('*')
-        .eq('id', formAssociation[0].form_id)
+        .eq('id', formAssociation.form_id)
         .eq('is_published', true)
         .single();
 
       if (!formError && formData) {
         settings = {
-          form_id: formAssociation[0].form_id,
-          enabled: formAssociation[0].enabled,
+          form_id: formAssociation.form_id,
+          enabled: formAssociation.enabled,
           forms: formData
         };
       } else {
         settingsError = formError;
       }
     } else {
-      settingsError = associationError || new Error('No form association found');
+      // Try auto-detect form if specific product not found
+      if (productId !== 'auto-detect') {
+        const { data: autoFormAssociation } = await supabase
+          .from('shopify_product_settings')
+          .select('form_id, enabled')
+          .eq('shop_id', shop)
+          .eq('product_id', 'auto-detect')
+          .eq('enabled', true)
+          .maybeSingle();
+        
+        if (autoFormAssociation) {
+          const { data: formData, error: formError } = await supabase
+            .from('forms')
+            .select('*')
+            .eq('id', autoFormAssociation.form_id)
+            .eq('is_published', true)
+            .single();
+
+          if (!formError && formData) {
+            settings = {
+              form_id: autoFormAssociation.form_id,
+              enabled: autoFormAssociation.enabled,
+              forms: formData
+            };
+          }
+        }
+      }
+      
+      if (!settings) {
+        settingsError = associationError || new Error('No form association found');
+      }
     }
 
     if (settingsError || !settings) {
