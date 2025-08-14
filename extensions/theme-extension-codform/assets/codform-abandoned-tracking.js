@@ -70,22 +70,70 @@
     }
   }
   
-  // دالة استخراج السعر النهائي والعملة
+  // دالة استخراج السعر النهائي المحول من ملخص السلة
   function extractPriceAndCurrency() {
     let price = 1;
     let currency = 'SAR';
     
-    // البحث عن السعر النهائي في عناصر مختلفة
-    const totalElements = document.querySelectorAll('[class*="total"], [id*="total"], .price, .amount, [class*="price"], [class*="amount"]');
+    // أولاً: البحث في ملخص السلة للحصول على السعر النهائي المحول
+    const cartSummary = document.querySelector('.cart-summary-field');
+    if (cartSummary) {
+      // البحث عن المجموع النهائي في ملخص السلة
+      const totalValueElement = cartSummary.querySelector('.total-value, .total-row .summary-value');
+      if (totalValueElement) {
+        const totalText = totalValueElement.textContent || totalValueElement.innerText || '';
+        const dataAmount = totalValueElement.getAttribute('data-amount');
+        
+        // استخراج السعر من data-amount (الأولوية) أو النص
+        if (dataAmount && !isNaN(dataAmount) && parseFloat(dataAmount) > 0) {
+          price = parseFloat(dataAmount);
+          console.log('💰 تم العثور على السعر من data-amount:', price);
+        } else {
+          const numbers = totalText.match(/[\d,]+\.?\d*/g);
+          if (numbers && numbers.length > 0) {
+            const foundPrice = parseFloat(numbers[numbers.length - 1].replace(/,/g, ''));
+            if (foundPrice > 0) {
+              price = foundPrice;
+              console.log('💰 تم العثور على السعر من النص:', price);
+            }
+          }
+        }
+        
+        // استخراج العملة من النص
+        if (totalText.includes('USD') || totalText.includes('$')) currency = 'USD';
+        else if (totalText.includes('SAR') || totalText.includes('ر.س')) currency = 'SAR';
+        else if (totalText.includes('EUR') || totalText.includes('€')) currency = 'EUR';
+        else if (totalText.includes('AED') || totalText.includes('د.إ')) currency = 'AED';
+        else if (totalText.includes('MAD') || totalText.includes('د.م')) currency = 'MAD';
+        
+        if (price > 1) {
+          console.log('✅ تم استخراج السعر النهائي من ملخص السلة:', price, currency);
+          return { price, currency };
+        }
+      }
+    }
     
-    for (const element of totalElements) {
+    // ثانياً: البحث الاحتياطي في عناصر السعر الأخرى
+    const priceElements = document.querySelectorAll('[class*="total"], [class*="price"], [data-amount], .summary-value, .price, .amount');
+    
+    for (const element of priceElements) {
       const text = element.textContent || element.innerText || '';
-      // البحث عن رقم في النص
-      const numbers = text.match(/[\d,]+\.?\d*/g);
-      if (numbers && numbers.length > 0) {
-        const foundPrice = parseFloat(numbers[numbers.length - 1].replace(/,/g, ''));
+      const dataAmount = element.getAttribute('data-amount');
+      
+      // إعطاء أولوية لـ data-amount
+      if (dataAmount && !isNaN(dataAmount)) {
+        const foundPrice = parseFloat(dataAmount);
         if (foundPrice > price) {
           price = foundPrice;
+        }
+      } else {
+        // البحث عن رقم في النص
+        const numbers = text.match(/[\d,]+\.?\d*/g);
+        if (numbers && numbers.length > 0) {
+          const foundPrice = parseFloat(numbers[numbers.length - 1].replace(/,/g, ''));
+          if (foundPrice > price) {
+            price = foundPrice;
+          }
         }
       }
       
@@ -94,8 +142,10 @@
       else if (text.includes('SAR') || text.includes('ر.س')) currency = 'SAR';
       else if (text.includes('EUR') || text.includes('€')) currency = 'EUR';
       else if (text.includes('AED') || text.includes('د.إ')) currency = 'AED';
+      else if (text.includes('MAD') || text.includes('د.م')) currency = 'MAD';
     }
     
+    console.log('💰 السعر النهائي المستخرج:', price, currency);
     return { price, currency };
   }
 
