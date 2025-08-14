@@ -176,20 +176,78 @@ function extractCustomerData(formData: any, formSettings: any = {}): {
   return { name, email, phone, city, address };
 }
 
-function createShopifyOrderData(customer: any, formId: string, formSettings: any = {}) {
+// دالة استخراج السعر المحول من بيانات النموذج (نفس المنطق من abandoned-tracking)
+function extractConvertedPrice(formData: any): { price: number; currency: string } {
+  console.log('💰 Extracting converted price from form data:', formData);
+  
+  // الأولوية الأولى: السعر المحول المحفوظ في البيانات
+  if (formData.extractedPrice && formData.extractedPrice > 1) {
+    const price = parseFloat(formData.extractedPrice);
+    const currency = formData.extractedCurrency || 'SAR';
+    console.log('🎯 Using saved converted price:', price, currency);
+    return { price, currency };
+  }
+  
+  // الأولوية الثانية: البحث في بيانات النموذج عن السعر المحول
+  for (const [key, value] of Object.entries(formData)) {
+    const keyLower = key.toLowerCase();
+    const stringValue = String(value || '').trim();
+    
+    if (!stringValue) continue;
+    
+    // البحث عن السعر المحول
+    if (keyLower.includes('extractedprice') || keyLower.includes('converted_price') || 
+        keyLower.includes('final_price') || keyLower.includes('total_price')) {
+      const price = parseFloat(stringValue);
+      if (price && price > 1) {
+        console.log('💰 Found converted price in form data:', price);
+        
+        // البحث عن العملة المرتبطة
+        const currencyKey = key.replace(/price/i, 'currency').replace(/Price/i, 'Currency');
+        const currency = formData[currencyKey] || 'SAR';
+        
+        return { price, currency };
+      }
+    }
+  }
+  
+  // الأولوية الثالثة: البحث عن أي سعر في البيانات
+  for (const [key, value] of Object.entries(formData)) {
+    const keyLower = key.toLowerCase();
+    const stringValue = String(value || '').trim();
+    
+    if (!stringValue) continue;
+    
+    // البحث عن أي سعر
+    if (keyLower.includes('price') || keyLower.includes('amount') || 
+        keyLower.includes('total') || keyLower.includes('سعر')) {
+      const price = parseFloat(stringValue);
+      if (price && price > 1) {
+        console.log('💰 Found price in form data:', price);
+        return { price, currency: 'SAR' }; // العملة الافتراضية
+      }
+    }
+  }
+  
+  console.log('⚠️ No converted price found, using default 0');
+  return { price: 0, currency: 'SAR' };
+}
+
+function createShopifyOrderData(customer: any, formId: string, formSettings: any = {}, convertedPrice: { price: number; currency: string } = { price: 0, currency: 'SAR' }) {
   const nameParts = customer.name ? customer.name.split(' ') : ['Customer'];
   const firstName = nameParts[0] || 'Customer';
   const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : 'Order'; // Always provide a last name
-  const currency = formSettings.currency || 'SAR'; // استخدام العملة من إعدادات النموذج
+  const currency = convertedPrice.currency || formSettings.currency || 'SAR'; // إعطاء الأولوية للعملة المحولة
+  const totalPrice = convertedPrice.price > 0 ? convertedPrice.price.toFixed(2) : '0.00';
   
-  console.log(`💰 استخدام العملة: ${currency} من إعدادات النموذج`);
+  console.log(`💰 Using converted price: ${totalPrice} ${currency} (from converted price logic)`);
   
   return {
     order: {
       financial_status: 'pending',
       fulfillment_status: null,
       currency: currency,
-      total_price: '0.00',
+      total_price: totalPrice,
       email: customer.email || undefined,
       phone: customer.phone || undefined,
       // Remove customer object to avoid "phone already taken" error
@@ -219,7 +277,7 @@ function createShopifyOrderData(customer: any, formId: string, formSettings: any
         {
           title: 'طلب من النموذج - Form Order',
           quantity: 1,
-          price: '0.00'
+          price: totalPrice // استخدام السعر المحول
         }
       ],
       note: `طلب من النموذج - Form submission. ID: ${formId}\nالعميل: ${customer.name}\nالهاتف: ${customer.phone}\nالبريد: ${customer.email}\nالمدينة: ${customer.city}\nالعنوان: ${customer.address}`,
@@ -228,12 +286,13 @@ function createShopifyOrderData(customer: any, formId: string, formSettings: any
   };
 }
 
-async function createShopifyOrder(shopDomain: string, accessToken: string, customer: any, formId: string, formSettings: any = {}): Promise<string | null> {
+async function createShopifyOrder(shopDomain: string, accessToken: string, customer: any, formId: string, formSettings: any = {}, convertedPrice: { price: number; currency: string } = { price: 0, currency: 'SAR' }): Promise<string | null> {
   console.log('🛒 Starting Shopify order creation process...');
   console.log('📋 Customer data for order:', JSON.stringify(customer, null, 2));
   console.log('⚙️ Form settings:', JSON.stringify(formSettings, null, 2));
+  console.log('💰 Converted price data:', JSON.stringify(convertedPrice, null, 2));
   
-  const orderData = createShopifyOrderData(customer, formId, formSettings);
+  const orderData = createShopifyOrderData(customer, formId, formSettings, convertedPrice);
   console.log('🎯 Creating Shopify order:', JSON.stringify(orderData, null, 2));
   
   try {
@@ -397,6 +456,10 @@ serve(async (req: Request) => {
     try {
       console.log('📝 Processing form data:', JSON.stringify(formData, null, 2));
       
+      // ✅ Extract converted price from form data (same logic as abandoned-tracking)
+      const convertedPrice = extractConvertedPrice(formData);
+      console.log('💰 Extracted converted price:', convertedPrice);
+      
       // Extract customer information using form settings
       const customer = extractCustomerData(formData, formSettings);
       
@@ -415,8 +478,8 @@ serve(async (req: Request) => {
 
       console.log('🔑 Found Shopify access token for shop:', shopDomain);
 
-      // Create order in Shopify with form settings
-      const shopifyOrderId = await createShopifyOrder(shopDomain, shopData.access_token, customer, actualFormId, formSettings);
+      // Create order in Shopify with form settings and converted price
+      const shopifyOrderId = await createShopifyOrder(shopDomain, shopData.access_token, customer, actualFormId, formSettings, convertedPrice);
 
       // Generate order number
       orderNumber = shopifyOrderId ? `SHOP-${shopifyOrderId}` : `ORD-${Date.now()}`;
@@ -431,16 +494,20 @@ serve(async (req: Request) => {
         currency: formSettings.currency || 'USD'
       });
       
-      // Create order in our database with correct currency and settings
+      // Create order in our database with converted price and currency
       const orderInsertData = {
         order_number: orderNumber,
         customer_name: customer.name,
         customer_email: customer.email,
         customer_phone: customer.phone,
-        total_amount: 0.00,
-        currency: formSettings.currency || 'USD',
+        total_amount: convertedPrice.price, // ✅ استخدام السعر المحول
+        currency: convertedPrice.currency || formSettings.currency || 'SAR', // ✅ استخدام العملة المحولة
         status: 'pending',
-        items: [{ title: 'طلب من النموذج - Form Order', quantity: 1, price: '0.00' }],
+        items: [{ 
+          title: 'طلب من النموذج - Form Order', 
+          quantity: 1, 
+          price: convertedPrice.price.toFixed(2) // ✅ استخدام السعر المحول
+        }],
         shipping_address: { address: customer.address, city: customer.city },
         billing_address: { address: customer.address, city: customer.city },
         form_id: actualFormId,
