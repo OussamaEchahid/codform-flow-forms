@@ -104,12 +104,16 @@ class CodformAbandonedTracking {
       });
       
       field.addEventListener('input', (e) => {
-        console.log(`⌨️ Input detected in field: ${e.target.name || e.target.id}`);
+        console.log(`⌨️ تم اكتشاف إدخال في الحقل: ${e.target.name || e.target.id || 'بدون اسم'}`);
+        console.log(`📝 قيمة الحقل: "${e.target.value}"`);
+        console.log(`🏷️ نوع الحقل: ${e.target.type}`);
+        console.log(`📍 موضع النموذج: ${e.target.placeholder || 'بدون placeholder'}`);
         this.handleFieldChange(form, e.target);
       });
       
       field.addEventListener('blur', (e) => {
-        console.log(`👁️ Blur detected in field: ${e.target.name || e.target.id}`);
+        console.log(`👁️ تم الخروج من الحقل: ${e.target.name || e.target.id || 'بدون اسم'}`);
+        console.log(`📝 قيمة الحقل عند الخروج: "${e.target.value}"`);
         this.handleFieldChange(form, e.target);
       });
     });
@@ -121,16 +125,18 @@ class CodformAbandonedTracking {
    * معالجة تغيير الحقل
    */
   handleFieldChange(form, field) {
-    console.log(`🔄 Field changed: ${field.name || field.id}, value: ${field.value}`);
+    console.log(`🔄 تم تغيير الحقل: ${field.name || field.id || 'بدون اسم'}, القيمة: "${field.value}"`);
+    console.log(`📊 النموذج المرتبط:`, form);
     
     // إلغاء المؤقت السابق
     if (this.debounceTimer) {
       clearTimeout(this.debounceTimer);
+      console.log('⏰ تم إلغاء المؤقت السابق');
     }
 
     // تأخير المعالجة لتجنب الكثرة
     this.debounceTimer = setTimeout(() => {
-      console.log('⏰ Processing form data after debounce...');
+      console.log('⏰ بدء معالجة بيانات النموذج بعد التأخير...');
       this.processFormData(form);
     }, 1000); // تقليل الوقت إلى ثانية واحدة للاختبار
   }

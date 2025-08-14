@@ -44,8 +44,9 @@ serve(async (req) => {
 
       if (error) {
         console.error('Error creating abandoned cart:', error);
+        console.log('Cart data that failed:', cartData);
         return new Response(
-          JSON.stringify({ error: 'Failed to create abandoned cart' }),
+          JSON.stringify({ error: 'Failed to create abandoned cart', details: error.message }),
           { 
             status: 400, 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
