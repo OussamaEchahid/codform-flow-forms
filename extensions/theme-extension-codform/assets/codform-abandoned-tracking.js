@@ -578,5 +578,46 @@
     startPeriodicPriceUpdate();
   }, 2000);
   
-  console.log('🏁 تم تحميل نظام تتبع السلال المتروكة مع المراقبة الدورية للأسعار');
+  // إضافة دالة عامة للحصول على البيانات مع السعر المحول
+  window.getCodformDataWithPrice = function() {
+    console.log('📋 طلب البيانات مع السعر المحول');
+    
+    // التأكد من تحديث البيانات
+    const latestData = extractData();
+    currentData = { ...currentData, ...latestData };
+    
+    // التأكد من وجود السعر المحول
+    if (!currentData.extractedPrice || currentData.extractedPrice <= 1) {
+      const { price, currency } = extractPriceAndCurrency();
+      if (price > 1) {
+        currentData.extractedPrice = price;
+        currentData.extractedCurrency = currency;
+        console.log('✅ تم تحديث السعر المحول:', price, currency);
+      }
+    }
+    
+    console.log('📤 إرجاع البيانات مع السعر:', currentData);
+    return currentData;
+  };
+  
+  // إضافة دالة لضمان إرسال السعر مع البيانات النهائية
+  window.enhanceFormDataWithPrice = function(formData) {
+    console.log('🔧 تحسين بيانات النموذج بالسعر المحول');
+    console.log('📥 البيانات الواردة:', formData);
+    
+    // الحصول على البيانات المحدثة مع السعر
+    const enhancedData = window.getCodformDataWithPrice();
+    
+    // دمج البيانات
+    const finalData = {
+      ...formData,
+      extractedPrice: enhancedData.extractedPrice,
+      extractedCurrency: enhancedData.extractedCurrency
+    };
+    
+    console.log('📤 البيانات المحسنة:', finalData);
+    return finalData;
+  };
+  
+  console.log('🏁 تم تحميل نظام تتبع السلال المتروكة مع المراقبة الدورية للأسعار وإضافات الإرسال');
 })();

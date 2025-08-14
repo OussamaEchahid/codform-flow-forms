@@ -176,51 +176,76 @@ function extractCustomerData(formData: any, formSettings: any = {}): {
   return { name, email, phone, city, address };
 }
 
-// دالة استخراج السعر المحول من بيانات النموذج (نفس المنطق من abandoned-tracking)
+// دالة استخراج السعر المحول من بيانات النموذج - محسنة
 function extractConvertedPrice(formData: any): { price: number; currency: string } {
   console.log('💰 Extracting converted price from form data:', formData);
   
-  // الأولوية الأولى: السعر المحول المحفوظ في البيانات
-  if (formData.extractedPrice && formData.extractedPrice > 1) {
+  // الأولوية الأولى: السعر المحول المحفوظ في البيانات المرسلة مباشرة من الفرونت إند
+  if (formData.extractedPrice && parseFloat(formData.extractedPrice) > 1) {
     const price = parseFloat(formData.extractedPrice);
     const currency = formData.extractedCurrency || 'SAR';
-    console.log('🎯 Using saved converted price:', price, currency);
+    console.log('🎯 Using saved converted price from frontend:', price, currency);
     return { price, currency };
   }
   
-  // الأولوية الثانية: البحث في بيانات النموذج عن السعر المحول
-  for (const [key, value] of Object.entries(formData)) {
-    const keyLower = key.toLowerCase();
-    const stringValue = String(value || '').trim();
-    
-    if (!stringValue) continue;
-    
-    // البحث عن السعر المحول
-    if (keyLower.includes('extractedprice') || keyLower.includes('converted_price') || 
-        keyLower.includes('final_price') || keyLower.includes('total_price')) {
-      const price = parseFloat(stringValue);
-      if (price && price > 1) {
-        console.log('💰 Found converted price in form data:', price);
-        
-        // البحث عن العملة المرتبطة
-        const currencyKey = key.replace(/price/i, 'currency').replace(/Price/i, 'Currency');
-        const currency = formData[currencyKey] || 'SAR';
-        
-        return { price, currency };
-      }
+  // الأولوية الثانية: البحث في بيانات النموذج المتداخلة (إذا كانت في data object)
+  if (formData.data && typeof formData.data === 'object') {
+    if (formData.data.extractedPrice && parseFloat(formData.data.extractedPrice) > 1) {
+      const price = parseFloat(formData.data.extractedPrice);
+      const currency = formData.data.extractedCurrency || 'SAR';
+      console.log('🎯 Using saved converted price from nested data:', price, currency);
+      return { price, currency };
     }
   }
   
-  // الأولوية الثالثة: البحث عن أي سعر في البيانات
+  // الأولوية الثالثة: البحث الشامل في جميع مستويات البيانات
+  function searchInObject(obj: any, prefix: string = ''): { price: number; currency: string } | null {
+    for (const [key, value] of Object.entries(obj)) {
+      const keyLower = key.toLowerCase();
+      const fullKey = prefix ? `${prefix}.${key}` : key;
+      
+      if (value && typeof value === 'object' && !Array.isArray(value)) {
+        // البحث الرقصي في الكائنات المتداخلة
+        const nested = searchInObject(value, fullKey);
+        if (nested && nested.price > 1) return nested;
+      } else if (value) {
+        const stringValue = String(value).trim();
+        
+        // البحث عن أنماط السعر المختلفة
+        if (keyLower.includes('extractedprice') || keyLower.includes('converted_price') || 
+            keyLower.includes('final_price') || keyLower.includes('total_price') ||
+            keyLower.includes('finalPrice') || keyLower.includes('convertedPrice')) {
+          const price = parseFloat(stringValue);
+          if (price && price > 1) {
+            console.log(`💰 Found converted price in ${fullKey}:`, price);
+            
+            // البحث عن العملة المرتبطة
+            const currencyKey = key.replace(/price/i, 'currency').replace(/Price/i, 'Currency');
+            const currency = obj[currencyKey] || 'SAR';
+            
+            return { price, currency };
+          }
+        }
+      }
+    }
+    return null;
+  }
+  
+  const foundPrice = searchInObject(formData);
+  if (foundPrice) return foundPrice;
+  
+  // الأولوية الرابعة: البحث عن أي سعر في البيانات
   for (const [key, value] of Object.entries(formData)) {
     const keyLower = key.toLowerCase();
     const stringValue = String(value || '').trim();
     
     if (!stringValue) continue;
     
-    // البحث عن أي سعر
-    if (keyLower.includes('price') || keyLower.includes('amount') || 
-        keyLower.includes('total') || keyLower.includes('سعر')) {
+    // البحث عن أي سعر مع تجنب IDs والقيم غير المرغوبة
+    if ((keyLower.includes('price') || keyLower.includes('amount') || 
+        keyLower.includes('total') || keyLower.includes('سعر')) &&
+        !keyLower.includes('id') && !keyLower.includes('template') &&
+        !keyLower.includes('product-') && !keyLower.includes('form-')) {
       const price = parseFloat(stringValue);
       if (price && price > 1) {
         console.log('💰 Found price in form data:', price);
@@ -457,8 +482,30 @@ serve(async (req: Request) => {
       console.log('📝 Processing form data:', JSON.stringify(formData, null, 2));
       
       // ✅ Extract converted price from form data (same logic as abandoned-tracking)
-      const convertedPrice = extractConvertedPrice(formData);
+      let convertedPrice = extractConvertedPrice(formData);
       console.log('💰 Extracted converted price:', convertedPrice);
+      
+      // ✅ إضافة آلية الأسعار الافتراضية إذا لم يوجد سعر محول
+      if (!convertedPrice.price || convertedPrice.price <= 1) {
+        console.log('⚠️ No valid converted price found, using default price based on currency');
+        
+        // استخدام الأسعار الافتراضية حسب العملة من إعدادات النموذج
+        const currency = formSettings.currency || 'SAR';
+        let defaultPrice = 250; // افتراضي للسعودية
+        
+        if (currency === 'MAD') {
+          defaultPrice = 400;
+        } else if (currency === 'USD') {
+          defaultPrice = 150;
+        } else if (currency === 'AED') {
+          defaultPrice = 200;
+        } else if (currency === 'SAR') {
+          defaultPrice = 250;
+        }
+        
+        convertedPrice = { price: defaultPrice, currency };
+        console.log('🎯 Using default price:', convertedPrice);
+      }
       
       // Extract customer information using form settings
       const customer = extractCustomerData(formData, formSettings);
