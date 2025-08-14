@@ -24,8 +24,18 @@
         return;
       }
       
-      // استخراج السعر والعملة
+      // استخراج السعر والعملة المحولة الصحيحة
       const { price, currency } = extractPriceAndCurrency();
+      
+      // استخدام السعر المحول من البيانات المحفوظة إذا كان متوفر
+      let finalPrice = price;
+      let finalCurrency = currency;
+      
+      if (currentData.extractedPrice && currentData.extractedPrice > 1) {
+        finalPrice = currentData.extractedPrice;
+        finalCurrency = currentData.extractedCurrency || currency;
+        console.log('💰 استخدام السعر المحول المحفوظ:', finalPrice, finalCurrency);
+      }
       
       const cartData = {
         customer_email: data.email || '',
@@ -35,10 +45,10 @@
           product_id: window.codformProductId || 'unknown',
           quantity: 1,
           title: document.title || 'منتج',
-          price: price
+          price: finalPrice
         }],
-        total_value: price,
-        currency: currency,
+        total_value: finalPrice,
+        currency: finalCurrency,
         form_id: window.codformProductId || 'default',
         shop_id: window.location.hostname,
         form_data: data
@@ -433,11 +443,11 @@
         clearTimeout(saveTimer);
       }
       
-      // تأخير الحفظ لثانية واحدة
+      // تأخير الحفظ لخمس ثوانٍ للسماح للعميل بملء جميع الحقول
       saveTimer = setTimeout(() => {
-        console.log('⏰ حان وقت الحفظ');
+        console.log('⏰ حان وقت الحفظ بعد انتظار 5 ثوانٍ');
         saveAbandonedCart(currentData);
-      }, 1000);
+      }, 5000);
     }
   }
   
