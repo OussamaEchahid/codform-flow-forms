@@ -70,159 +70,82 @@
     }
   }
   
-  // دالة استخراج السعر النهائي الشاملة من جميع المصادر الممكنة
+  // دالة استخراج السعر النهائي المحول من ملخص السلة
   function extractPriceAndCurrency() {
     let price = 1;
     let currency = 'SAR';
-    let foundPrice = false;
     
-    console.log('🔍 بدء البحث عن السعر في جميع العناصر...');
-    
-    // 1. البحث في ملخص السلة أولاً (إذا كان موجوداً)
+    // أولاً: البحث في ملخص السلة للحصول على السعر النهائي المحول
     const cartSummary = document.querySelector('.cart-summary-field');
     if (cartSummary) {
-      console.log('📦 تم العثور على ملخص السلة');
+      // البحث عن المجموع النهائي في ملخص السلة
       const totalValueElement = cartSummary.querySelector('.total-value, .total-row .summary-value');
       if (totalValueElement) {
         const totalText = totalValueElement.textContent || totalValueElement.innerText || '';
         const dataAmount = totalValueElement.getAttribute('data-amount');
         
+        // استخراج السعر من data-amount (الأولوية) أو النص
         if (dataAmount && !isNaN(dataAmount) && parseFloat(dataAmount) > 0) {
           price = parseFloat(dataAmount);
-          foundPrice = true;
-          console.log('✅ تم العثور على السعر من ملخص السلة (data-amount):', price);
+          console.log('💰 تم العثور على السعر من data-amount:', price);
         } else {
           const numbers = totalText.match(/[\d,]+\.?\d*/g);
           if (numbers && numbers.length > 0) {
-            const foundPriceFromText = parseFloat(numbers[numbers.length - 1].replace(/,/g, ''));
-            if (foundPriceFromText > 0) {
-              price = foundPriceFromText;
-              foundPrice = true;
-              console.log('✅ تم العثور على السعر من ملخص السلة (النص):', price);
+            const foundPrice = parseFloat(numbers[numbers.length - 1].replace(/,/g, ''));
+            if (foundPrice > 0) {
+              price = foundPrice;
+              console.log('💰 تم العثور على السعر من النص:', price);
             }
           }
         }
         
-        // استخراج العملة من ملخص السلة
+        // استخراج العملة من النص
         if (totalText.includes('USD') || totalText.includes('$')) currency = 'USD';
         else if (totalText.includes('SAR') || totalText.includes('ر.س')) currency = 'SAR';
         else if (totalText.includes('EUR') || totalText.includes('€')) currency = 'EUR';
         else if (totalText.includes('AED') || totalText.includes('د.إ')) currency = 'AED';
         else if (totalText.includes('MAD') || totalText.includes('د.م')) currency = 'MAD';
+        
+        if (price > 1) {
+          console.log('✅ تم استخراج السعر النهائي من ملخص السلة:', price, currency);
+          return { price, currency };
+        }
       }
     }
     
-    // 2. البحث في عروض الكمية إذا لم نجد السعر
-    if (!foundPrice) {
-      console.log('🎯 البحث في عروض الكمية...');
-      const quantityOffers = document.querySelectorAll('.quantity-offers-block, [class*="quantity"], [class*="offer"]');
-      quantityOffers.forEach(offer => {
-        const priceElements = offer.querySelectorAll('[class*="price"], [class*="total"], [data-price]');
-        priceElements.forEach(element => {
-          const text = element.textContent || element.innerText || '';
-          const dataPrice = element.getAttribute('data-price');
-          
-          if (dataPrice && !isNaN(dataPrice)) {
-            const foundOfferPrice = parseFloat(dataPrice);
-            if (foundOfferPrice > price) {
-              price = foundOfferPrice;
-              foundPrice = true;
-              console.log('✅ تم العثور على السعر من عروض الكمية:', price);
-            }
-          } else {
-            const numbers = text.match(/[\d,]+\.?\d*/g);
-            if (numbers && numbers.length > 0) {
-              const foundOfferPrice = parseFloat(numbers[numbers.length - 1].replace(/,/g, ''));
-              if (foundOfferPrice > price) {
-                price = foundOfferPrice;
-                foundPrice = true;
-                console.log('✅ تم العثور على السعر من نص عروض الكمية:', price);
-              }
-            }
-          }
-        });
-      });
-    }
+    // ثانياً: البحث الاحتياطي في عناصر السعر الأخرى
+    const priceElements = document.querySelectorAll('[class*="total"], [class*="price"], [data-amount], .summary-value, .price, .amount');
     
-    // 3. البحث في معلومات المنتج
-    if (!foundPrice) {
-      console.log('🛍️ البحث في معلومات المنتج...');
-      const productPrices = document.querySelectorAll('.product-price, .price, [class*="product"] [class*="price"], .money, [data-price]');
-      productPrices.forEach(element => {
-        const text = element.textContent || element.innerText || '';
-        const dataPrice = element.getAttribute('data-price');
-        
-        if (dataPrice && !isNaN(dataPrice)) {
-          const foundProductPrice = parseFloat(dataPrice);
-          if (foundProductPrice > price) {
-            price = foundProductPrice;
-            foundPrice = true;
-            console.log('✅ تم العثور على السعر من معلومات المنتج (data-price):', price);
-          }
-        } else {
-          const numbers = text.match(/[\d,]+\.?\d*/g);
-          if (numbers && numbers.length > 0) {
-            const foundProductPrice = parseFloat(numbers[numbers.length - 1].replace(/,/g, ''));
-            if (foundProductPrice > price) {
-              price = foundProductPrice;
-              foundPrice = true;
-              console.log('✅ تم العثور على السعر من معلومات المنتج (النص):', price);
-            }
-          }
-        }
-      });
-    }
-    
-    // 4. البحث العام في جميع عناصر السعر والمجموع
-    if (!foundPrice) {
-      console.log('🔎 البحث العام في جميع عناصر السعر...');
-      const allPriceElements = document.querySelectorAll(
-        '[class*="total"], [class*="price"], [class*="amount"], [class*="cost"], ' +
-        '[id*="total"], [id*="price"], [id*="amount"], [data-amount], [data-price], ' +
-        '.money, .currency, .sum, .subtotal'
-      );
+    for (const element of priceElements) {
+      const text = element.textContent || element.innerText || '';
+      const dataAmount = element.getAttribute('data-amount');
       
-      allPriceElements.forEach(element => {
-        const text = element.textContent || element.innerText || '';
-        const dataAmount = element.getAttribute('data-amount') || element.getAttribute('data-price');
-        
-        // إعطاء أولوية للـ data attributes
-        if (dataAmount && !isNaN(dataAmount)) {
-          const foundGeneralPrice = parseFloat(dataAmount);
-          if (foundGeneralPrice > price) {
-            price = foundGeneralPrice;
-            foundPrice = true;
-            console.log('✅ تم العثور على السعر من البحث العام (data):', price);
-          }
-        } else {
-          // البحث في النص
-          const numbers = text.match(/[\d,]+\.?\d*/g);
-          if (numbers && numbers.length > 0) {
-            const foundGeneralPrice = parseFloat(numbers[numbers.length - 1].replace(/,/g, ''));
-            if (foundGeneralPrice > price && foundGeneralPrice < 1000000) { // تجنب الأرقام الكبيرة جداً
-              price = foundGeneralPrice;
-              foundPrice = true;
-              console.log('✅ تم العثور على السعر من البحث العام (النص):', price);
-            }
+      // إعطاء أولوية لـ data-amount
+      if (dataAmount && !isNaN(dataAmount)) {
+        const foundPrice = parseFloat(dataAmount);
+        if (foundPrice > price) {
+          price = foundPrice;
+        }
+      } else {
+        // البحث عن رقم في النص
+        const numbers = text.match(/[\d,]+\.?\d*/g);
+        if (numbers && numbers.length > 0) {
+          const foundPrice = parseFloat(numbers[numbers.length - 1].replace(/,/g, ''));
+          if (foundPrice > price) {
+            price = foundPrice;
           }
         }
-        
-        // البحث عن العملة في جميع العناصر
-        if (text.includes('USD') || text.includes('$')) currency = 'USD';
-        else if (text.includes('SAR') || text.includes('ر.س')) currency = 'SAR';
-        else if (text.includes('EUR') || text.includes('€')) currency = 'EUR';
-        else if (text.includes('AED') || text.includes('د.إ')) currency = 'AED';
-        else if (text.includes('MAD') || text.includes('د.م')) currency = 'MAD';
-      });
+      }
+      
+      // البحث عن العملة
+      if (text.includes('USD') || text.includes('$')) currency = 'USD';
+      else if (text.includes('SAR') || text.includes('ر.س')) currency = 'SAR';
+      else if (text.includes('EUR') || text.includes('€')) currency = 'EUR';
+      else if (text.includes('AED') || text.includes('د.إ')) currency = 'AED';
+      else if (text.includes('MAD') || text.includes('د.م')) currency = 'MAD';
     }
     
-    // 5. البحث في متغيرات JavaScript العامة
-    if (!foundPrice && window.Shopify && window.Shopify.currency) {
-      currency = window.Shopify.currency.active || currency;
-      console.log('💱 تم العثور على العملة من Shopify:', currency);
-    }
-    
-    console.log('💰 السعر النهائي المستخرج:', price, currency, 'تم العثور عليه:', foundPrice);
+    console.log('💰 السعر النهائي المستخرج:', price, currency);
     return { price, currency };
   }
 
