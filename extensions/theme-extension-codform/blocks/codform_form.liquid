@@ -1093,7 +1093,10 @@
       
       // Submitting to shop
       
-      // Submit to edge function
+      // Submit to edge function - مع إضافة السعر المحول
+      const enhancedData = window.enhanceFormDataWithPrice ? window.enhanceFormDataWithPrice(submissionData) : submissionData;
+      console.log('📤 Enhanced data with price:', enhancedData);
+      
       const response = await fetch('https://trlklwixfeaexhydzaue.supabase.co/functions/v1/api-submissions', {
         method: 'POST',
         headers: {
@@ -1103,7 +1106,8 @@
           formId: productId, // Use product ID as form ID
           shopDomain: shopDomain,
           productId: productId,
-          data: submissionData
+          data: enhancedData // ✅ إرسال البيانات المحسنة مع السعر
+        })
         })
       });
       
@@ -1559,7 +1563,10 @@ async function handleFormSubmissionPopup(formData, submitBtn, popup) {
     const productId = '{{ product.id }}' || '{{ product.variants.first.id }}' || 'default';
     const shopDomain = getShopDomain();
     
-    // Submit to edge function
+    // Submit to edge function - مع إضافة السعر المحول للبوب أب
+    const enhancedFormData = window.enhanceFormDataWithPrice ? window.enhanceFormDataWithPrice(formData) : formData;
+    console.log('📤 Enhanced popup data with price:', enhancedFormData);
+    
     const response = await fetch('https://trlklwixfeaexhydzaue.supabase.co/functions/v1/api-submissions', {
       method: 'POST',
       headers: {
@@ -1569,7 +1576,8 @@ async function handleFormSubmissionPopup(formData, submitBtn, popup) {
         formId: productId,
         shopDomain: shopDomain,
         productId: productId,
-        data: formData
+        data: enhancedFormData // ✅ إرسال البيانات المحسنة مع السعر
+      })
       })
     });
     
@@ -1768,6 +1776,10 @@ window.handleFormSubmit = async function(event) {
     
     console.log('📝 Form data collected:', submissionData);
     
+    // تحسين البيانات بالسعر المحول قبل الإرسال
+    const enhancedSubmissionData = window.enhanceFormDataWithPrice ? window.enhanceFormDataWithPrice(submissionData) : submissionData;
+    console.log('📤 Enhanced submission data with price:', enhancedSubmissionData);
+    
     // إرسال البيانات إلى API
     const response = await fetch('https://trlklwixfeaexhydzaue.supabase.co/functions/v1/api-submissions', {
       method: 'POST',
@@ -1778,7 +1790,8 @@ window.handleFormSubmit = async function(event) {
       body: JSON.stringify({
         formId: window.codformProductId,
         shopDomain: window.codformShopDomain,
-        data: submissionData
+        data: enhancedSubmissionData // ✅ إرسال البيانات المحسنة مع السعر
+      })
       })
     });
     
