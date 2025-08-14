@@ -70,11 +70,6 @@
   
   console.log(`🚀 Initializing Smart Currency System for Form: ${formId}, Shop: ${shopId}`);
   
-  // إضافة دالة loadFormFromAPI مؤقتاً حتى يتم تحميل النواة
-  window.loadFormFromAPI = window.loadFormFromAPI || function(productId, shopDomain) {
-    console.log('⚠️ Form loading function called before core is ready');
-  };
-  
   // تهيئة CurrencyService
   if (window.parent && window.parent.CurrencyService) {
     window.CurrencyService = window.parent.CurrencyService;
@@ -601,18 +596,19 @@
 
     // Loading complete form
     
-    // First check if this product has an associated form using edge function
+    // First check if this product has an associated form
     // محاولة البحث عن النموذج المحدد للمنتج أولاً، ثم البحث عن النموذج العام
-    fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/forms-product?shop=${encodeURIComponent(shopDomain)}&product=${encodeURIComponent(productId)}`, {
-      method: 'GET',
+    fetch(`https://trlklwixfeaexhydzaue.supabase.co/rest/v1/shopify_product_settings?shop_id=eq.${shopDomain}&enabled=eq.true&select=*,forms(*)&or=(product_id.eq.${productId},product_id.eq.auto-detect)`, {
       headers: {
+        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
         'Content-Type': 'application/json'
       }
     })
     .then(response => response.json())
-    .then(apiData => {
-      // Check if API returned success
-      if (!apiData || !apiData.success) {
+    .then(productSettings => {
+      // Product settings check
+      
+      if (!productSettings || productSettings.length === 0) {
         // No form associated with this product
         const container = document.querySelector('[data-form-preview-id="form-preview-stable"]');
         if (container) {
@@ -621,12 +617,11 @@
         return;
       }
       
-      // Product has associated form from the new API structure
-      const formData = apiData.data || [];
-      const formStyle = apiData.style || {};
+      // Product has associated form, continue loading
+      const formId = productSettings[0].form_id;
+      // Product has associated form
       
-      // Call the new loadFormFromAPI function with the received data
-      loadFormFromAPI(productId, shopDomain, apiData);
+      loadFormWithValidation(productId, shopDomain, formId);
     })
     .catch(error => {
       console.error('❌ CODFORM: Error checking product settings:', error);
@@ -1852,62 +1847,14 @@ window.handleFormSubmit = async function(event) {
 };
 
 // إضافة الدالة المفقودة لتحميل النموذج
-window.loadFormFromAPI = function(productId, shopDomain, apiData = null) {
+window.loadFormFromAPI = function(productId, shopDomain) {
   console.log(`🔄 Loading form for product: ${productId}, shop: ${shopDomain}`);
   
-  if (apiData && apiData.success) {
-    // استخدام البيانات المتلقاة من API
-    const formData = apiData.data || [];
-    const formStyle = apiData.style || {};
-    const formCurrency = apiData.currency;
-    const formCountry = apiData.country;
-    const quantityOffers = apiData.quantity_offers;
-    
-    console.log('✅ CODFORM: Rendering form with API data');
-    renderFormWithData(formData, formStyle, formCurrency, formCountry, quantityOffers, apiData.product);
-  } else if (productId && productId !== 'auto-detect') {
+  if (productId && productId !== 'auto-detect') {
     // إعادة تحميل النموذج للمنتج المحدد
     loadCompleteForm(productId);
   }
 };
-
-// دالة لرسم النموذج مع البيانات المتلقاة من API
-function renderFormWithData(formData, formStyle, formCurrency, formCountry, quantityOffers, productData) {
-  try {
-    const container = document.querySelector('[data-form-preview-id="form-preview-stable"]');
-    if (!container) {
-      console.error('❌ CODFORM: Form container not found');
-      return;
-    }
-    
-    // إظهار النموذج
-    container.style.display = 'block';
-    
-    // رسم النموذج
-    let formHtml = '';
-    
-    if (formData && formData.length > 0) {
-      formData.forEach(field => {
-        if (field && field.type) {
-          formHtml += renderField(field, formStyle, formCountry === 'SA' ? 'ar' : 'en');
-        }
-      });
-    }
-    
-    // إضافة النموذج للحاوية
-    container.innerHTML = formHtml;
-    
-    // تطبيق Quantity Offers إذا كانت متوفرة
-    if (quantityOffers && window.CodformQuantityOffersFixed) {
-      window.CodformQuantityOffersFixed.initializeOffers(quantityOffers, productData);
-    }
-    
-    console.log('✅ CODFORM: Form rendered successfully');
-    
-  } catch (error) {
-    console.error('❌ CODFORM: Error rendering form:', error);
-  }
-}
 
 })(); // إغلاق الدالة المجهولة التي بدأت في السطر 59
 </script>

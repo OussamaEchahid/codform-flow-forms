@@ -2,9 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.51.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS, PUT, DELETE',
-  'Access-Control-Max-Age': '86400',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
 // Shopify GraphQL helper
@@ -52,68 +50,36 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
-    // Load form/product settings directly from table
+    // Load form/product settings using secure function
     const { data: formAssociation, error: associationError } = await supabase
-      .from('shopify_product_settings')
-      .select('form_id, enabled')
-      .eq('shop_id', shop)
-      .eq('product_id', productId || 'auto-detect')
-      .eq('enabled', true)
-      .maybeSingle();
+      .rpc('get_product_form_association', {
+        p_shop_id: shop,
+        p_product_id: productId || 'auto-detect'
+      });
 
     let settings = null;
     let settingsError = null;
 
-    if (!associationError && formAssociation) {
+    if (!associationError && formAssociation && formAssociation.length > 0) {
       // Get the full form data using the form_id
       const { data: formData, error: formError } = await supabase
         .from('forms')
         .select('*')
-        .eq('id', formAssociation.form_id)
+        .eq('id', formAssociation[0].form_id)
         .eq('is_published', true)
         .single();
 
       if (!formError && formData) {
         settings = {
-          form_id: formAssociation.form_id,
-          enabled: formAssociation.enabled,
+          form_id: formAssociation[0].form_id,
+          enabled: formAssociation[0].enabled,
           forms: formData
         };
       } else {
         settingsError = formError;
       }
     } else {
-      // Try auto-detect form if specific product not found
-      if (productId !== 'auto-detect') {
-        const { data: autoFormAssociation } = await supabase
-          .from('shopify_product_settings')
-          .select('form_id, enabled')
-          .eq('shop_id', shop)
-          .eq('product_id', 'auto-detect')
-          .eq('enabled', true)
-          .maybeSingle();
-        
-        if (autoFormAssociation) {
-          const { data: formData, error: formError } = await supabase
-            .from('forms')
-            .select('*')
-            .eq('id', autoFormAssociation.form_id)
-            .eq('is_published', true)
-            .single();
-
-          if (!formError && formData) {
-            settings = {
-              form_id: autoFormAssociation.form_id,
-              enabled: autoFormAssociation.enabled,
-              forms: formData
-            };
-          }
-        }
-      }
-      
-      if (!settings) {
-        settingsError = associationError || new Error('No form association found');
-      }
+      settingsError = associationError || new Error('No form association found');
     }
 
     if (settingsError || !settings) {
