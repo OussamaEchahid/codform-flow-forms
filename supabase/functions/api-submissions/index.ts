@@ -395,12 +395,30 @@ serve(async (req: Request) => {
       if (formError || !formData) {
         console.log('⚠️ Form not found by ID, trying to find form associated with product:', formId);
         
-        const { data: productSettingData, error: productError } = await supabase
-          .from('shopify_product_settings')
-          .select('form_id, forms(id, country, currency, phone_prefix)')
-          .eq('product_id', formId)
-          .eq('shop_id', shopDomain)
-          .single();
+        // Use secure function to get product-form association
+        const { data: productAssociation, error: productError } = await supabase
+          .rpc('get_product_form_association', {
+            p_shop_id: shopDomain,
+            p_product_id: formId
+          });
+          
+        let productSettingData = null;
+        if (!productError && productAssociation && productAssociation.length > 0) {
+          // Get the form data using the returned form_id
+          const { data: formData, error: formError } = await supabase
+            .from('forms')
+            .select('id, country, currency, phone_prefix')
+            .eq('id', productAssociation[0].form_id)
+            .eq('is_published', true)
+            .single();
+            
+          if (!formError && formData) {
+            productSettingData = {
+              form_id: productAssociation[0].form_id,
+              forms: formData
+            };
+          }
+        }
           
         if (!productError && productSettingData?.forms) {
           formData = productSettingData.forms as any;

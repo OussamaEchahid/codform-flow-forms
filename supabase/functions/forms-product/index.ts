@@ -50,14 +50,37 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
-    // Load form/product settings and quantity offers (unchanged)
-    const { data: settings, error: settingsError } = await supabase
-      .from('shopify_product_settings')
-      .select(`*, forms (*)`)
-      .eq('shop_id', shop)
-      .eq('product_id', productId || 'auto-detect')
-      .eq('enabled', true)
-      .single()
+    // Load form/product settings using secure function
+    const { data: formAssociation, error: associationError } = await supabase
+      .rpc('get_product_form_association', {
+        p_shop_id: shop,
+        p_product_id: productId || 'auto-detect'
+      });
+
+    let settings = null;
+    let settingsError = null;
+
+    if (!associationError && formAssociation && formAssociation.length > 0) {
+      // Get the full form data using the form_id
+      const { data: formData, error: formError } = await supabase
+        .from('forms')
+        .select('*')
+        .eq('id', formAssociation[0].form_id)
+        .eq('is_published', true)
+        .single();
+
+      if (!formError && formData) {
+        settings = {
+          form_id: formAssociation[0].form_id,
+          enabled: formAssociation[0].enabled,
+          forms: formData
+        };
+      } else {
+        settingsError = formError;
+      }
+    } else {
+      settingsError = associationError || new Error('No form association found');
+    }
 
     if (settingsError || !settings) {
       return new Response(JSON.stringify({ success: false, message: 'No form found' }), {

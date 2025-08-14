@@ -794,6 +794,13 @@ export type Database = {
         Args: { product_id: string; shop_id: string }
         Returns: Json
       }
+      get_product_form_association: {
+        Args: { p_product_id: string; p_shop_id: string }
+        Returns: {
+          enabled: boolean
+          form_id: string
+        }[]
+      }
       get_public_form_data: {
         Args: { p_form_id: string }
         Returns: {
@@ -805,6 +812,13 @@ export type Database = {
           phone_prefix: string
           style: Json
           title: string
+        }[]
+      }
+      get_shop_auto_form: {
+        Args: { p_shop_id: string }
+        Returns: {
+          enabled: boolean
+          form_id: string
         }[]
       }
       get_shop_currency_settings: {

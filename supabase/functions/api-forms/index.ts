@@ -146,14 +146,14 @@ serve(async (req) => {
 
     // If we have a product ID, check if this form is associated with this product
     if (productId) {
+      // Use the secure function to get product-form association
       const { data: productSettings, error: productError } = await supabase
-        .from('shopify_product_settings')
-        .select('*')
-        .eq('form_id', formId)
-        .eq('product_id', productId)
-        .single();
+        .rpc('get_product_form_association', {
+          p_shop_id: (new URL(req.url)).searchParams.get('shop') || '',
+          p_product_id: productId
+        });
 
-      if (productError) {
+      if (productError || !productSettings || productSettings.length === 0) {
         // If we don't find a product-specific setting, it might be a global form
         console.log(`No specific product settings found for product ${productId}, checking if this is a global form`);
         // We continue anyway - the form might be used globally
