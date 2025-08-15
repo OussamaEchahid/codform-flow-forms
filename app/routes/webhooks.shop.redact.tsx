@@ -3,10 +3,20 @@ import { authenticate } from "../shopify.server";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   try {
-    await authenticate.webhook(request);
-    return new Response();
+    const { topic, shop } = await authenticate.webhook(request);
+    
+    // Log successful webhook verification
+    console.log(`✅ GDPR webhook verified: ${topic} for shop: ${shop}`);
+    
+    return new Response("OK", { 
+      status: 200,
+      headers: { "Content-Type": "text/plain" }
+    });
   } catch (error) {
-    console.error("Webhook authentication failed:", error);
-    return new Response("Unauthorized", { status: 401 });
+    console.error("❌ Webhook HMAC verification failed:", error);
+    return new Response("Unauthorized - Invalid HMAC", { 
+      status: 401,
+      headers: { "Content-Type": "text/plain" }
+    });
   }
 };
