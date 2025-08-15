@@ -308,7 +308,7 @@ export const useFormTemplates = () => {
         discountLabel: language === 'ar' ? 'الخصم' : 'Discount',
         shippingLabel: language === 'ar' ? 'الشحن' : 'Shipping',
         totalLabel: language === 'ar' ? 'المجموع الكلي' : 'Total',
-        freeShippingText: language === 'ar' ? 'شحن مجاني' : 'Free shipping',
+        freeShippingText: language === 'ar' ? 'مجاني' : 'Free',
         direction: language === 'ar' ? 'rtl' : 'ltr',
         currency: shopCurrency // Use actual shop currency
       }

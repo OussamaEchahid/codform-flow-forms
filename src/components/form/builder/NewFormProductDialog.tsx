@@ -185,7 +185,7 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
           discountLabel: lang === 'ar' ? 'الخصم' : 'Discount',
           shippingLabel: lang === 'ar' ? 'الشحن' : 'Shipping',
           totalLabel: lang === 'ar' ? 'المجموع الكلي' : 'Total',
-          freeShippingText: lang === 'ar' ? 'شحن مجاني' : 'Free shipping',
+          freeShippingText: lang === 'ar' ? 'مجاني' : 'Free',
           direction: lang === 'ar' ? 'rtl' : 'ltr',
           currency: 'MAD'
         }
