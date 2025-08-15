@@ -15,7 +15,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     });
   } catch (error) {
     console.error("❌ Webhook HMAC verification failed:", error);
-    return new Response("Unauthorized - Invalid HMAC", { 
+    return new Response("Unauthorized", { 
       status: 401,
       headers: { "Content-Type": "text/plain" }
     });
