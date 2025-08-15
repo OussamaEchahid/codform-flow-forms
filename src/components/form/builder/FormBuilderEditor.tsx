@@ -205,7 +205,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
         discountLabel: language === 'ar' ? 'الخصم' : 'Discount',
         shippingLabel: language === 'ar' ? 'الشحن' : 'Shipping',
         totalLabel: language === 'ar' ? 'المجموع' : 'Total',
-        freeShippingText: language === 'ar' ? 'شحن مجاني' : 'Free shipping',
+        freeShippingText: language === 'ar' ? 'مجاني' : 'Free',
       },
     });
     
