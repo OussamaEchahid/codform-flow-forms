@@ -27,7 +27,21 @@ const shopify = shopifyApp({
   distribution: AppDistribution.AppStore,
   // هذا الإعداد مهم جداً - التطبيق غير مضمن
   isEmbeddedApp: false,
-  // إضافة المزيد من النطاقات المسموح بها
+  // استخدام Supabase edge functions للـ compliance webhooks
+  webhooks: {
+    CUSTOMERS_DATA_REQUEST: {
+      deliveryMethod: "http",
+      callbackUrl: "https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-webhooks"
+    },
+    CUSTOMERS_REDACT: {
+      deliveryMethod: "http", 
+      callbackUrl: "https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-webhooks"
+    },
+    SHOP_REDACT: {
+      deliveryMethod: "http",
+      callbackUrl: "https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-webhooks"
+    }
+  },
   hooks: {
     afterAuth: async ({ session, admin }) => {
       console.log("Authentication completed successfully for shop:", session.shop);
