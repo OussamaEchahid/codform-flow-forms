@@ -465,24 +465,26 @@ window.CodformQuantityOffers = (function() {
 
     // عرض العروض مع التخطيط المطابق للمعاينة بالضبط
     offers.forEach((offer, index) => {
-      // ✅ CORRECT PRICE CALCULATION - Using the converted price (realPrice)
-      let totalPrice = realPrice * (offer.quantity || 1);
-      let originalPrice = totalPrice;
+      // ✅ EXACT MATCH TO PREVIEW - Price calculation logic from QuantityOffersField.tsx
+      const quantity = offer.quantity || 1;
+      let totalPrice = realPrice * quantity;
+      const originalPrice = totalPrice;
       let savingsPercentage = 0;
 
       const discountValue = parseFloat(offer.discount || offer.discountValue || 0);
-      const discountType = offer.discountType || (offer.discount ? 'percentage' : 'percentage');
+      const discountType = offer.discountType || 'none';
 
-      if (discountType === 'percentage' && discountValue > 0) {
-        const discount = (originalPrice * discountValue) / 100;
-        totalPrice = originalPrice - discount;
-        savingsPercentage = discountValue;
-      } else if (discountType === 'fixed' && discountValue > 0) {
-        totalPrice = Math.max(0, originalPrice - discountValue);
+      // Use exact same logic as preview components
+      if (discountType === 'fixed' && discountValue > 0) {
+        totalPrice = totalPrice - discountValue;
         savingsPercentage = Math.round((discountValue / originalPrice) * 100);
+      } else if (discountType === 'percentage' && discountValue > 0) {
+        const discount = (totalPrice * discountValue) / 100;
+        totalPrice = totalPrice - discount;
+        savingsPercentage = discountValue;
       }
 
-      const isDiscounted = savingsPercentage > 0;
+      const isDiscounted = discountType !== 'none' && discountValue > 0;
       const isHighlighted = index === 1;
 
       // عنصر العرض - نفس التصميم والحجم بالضبط من المعاينة
@@ -491,7 +493,7 @@ window.CodformQuantityOffers = (function() {
       offerElement.setAttribute('data-quantity', offer.quantity);
       offerElement.setAttribute('data-total-price', totalPrice.toFixed(2));
       
-      // ✅ CRITICAL FIX: Apply custom styling properly
+      // ✅ CRITICAL FIX: Apply background color properly like preview
       offerElement.style.cssText = `
         padding: 12px;
         border-radius: 8px;
@@ -725,7 +727,7 @@ window.CodformQuantityOffers = (function() {
         priceSection.appendChild(originalPriceElement);
       }
 
-      // السعر النهائي
+      // السعر النهائي - Apply price color styling
       const finalPriceElement = document.createElement('div');
       finalPriceElement.style.cssText = `
         font-size: 18px;

@@ -282,21 +282,22 @@ const QuantityOffersEditor: React.FC<Props> = ({ offer, isCreating, onSave, onCa
                 </div>
               </div>
 
-              <div>
-                <Label>نوع الخصم</Label>
-                <Select
-                  value={offer.discountType}
-                  onValueChange={(value) => updateOffer(index, 'discountType', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="percentage">نسبة مئوية (%)</SelectItem>
-                    <SelectItem value="fixed">قيمة ثابتة</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div>
+              <Label>نوع الخصم</Label>
+              <Select
+                value={offer.discountType}
+                onValueChange={(value) => updateOffer(index, 'discountType', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">بدون خصم</SelectItem>
+                  <SelectItem value="percentage">نسبة مئوية (%)</SelectItem>
+                  <SelectItem value="fixed">قيمة ثابتة</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
               <div>
                 <Label>نص العرض</Label>
@@ -342,6 +343,23 @@ const QuantityOffersEditor: React.FC<Props> = ({ offer, isCreating, onSave, onCa
                   onChange={(e) => setNewOffer(prev => ({ ...prev, discount: parseFloat(e.target.value) }))}
                 />
               </div>
+            </div>
+
+            <div>
+              <Label>نوع الخصم</Label>
+              <Select
+                value={newOffer.discountType}
+                onValueChange={(value) => setNewOffer(prev => ({ ...prev, discountType: value as 'percentage' | 'fixed' }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">بدون خصم</SelectItem>
+                  <SelectItem value="percentage">نسبة مئوية (%)</SelectItem>
+                  <SelectItem value="fixed">قيمة ثابتة</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <Button onClick={addOffer} className="w-full">
