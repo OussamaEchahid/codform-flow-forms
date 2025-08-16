@@ -97,12 +97,7 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
 
         if (data && !error) {
           setOffers(data.offers || []);
-          setStyling(data.styling || {
-            backgroundColor: '#22c55e',
-            textColor: '#000000',
-            tagColor: '#22c55e',
-            priceColor: '#000000'
-          });
+          setStyling(data.styling || styling);
         }
       } catch (error) {
         console.error('Error loading quantity offers:', error);
@@ -183,7 +178,7 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
                 : 'border-gray-200 bg-white'
             }`}
             style={{ 
-              backgroundColor: styling.backgroundColor || '#22c55e',
+              backgroundColor: isHighlighted ? '#f0fdf4' : styling.backgroundColor,
               direction: formDirection 
             }}
           >

@@ -129,10 +129,10 @@ const QuantityOffers = () => {
     enabled: true,
     offers: [],
     styling: {
-      backgroundColor: '#ffffff',
-      textColor: '#000000',
+      backgroundColor: '#22c55e',
+      textColor: '#ffffff',
       tagColor: '#22c55e',
-      priceColor: '#000000'
+      priceColor: '#ffffff'
     },
     position: 'before_form'
   });
@@ -575,10 +575,10 @@ const QuantityOffers = () => {
       enabled: true,
       offers: [],
       styling: {
-        backgroundColor: '#ffffff',
-        textColor: '#000000',
+        backgroundColor: '#22c55e',
+        textColor: '#ffffff',
         tagColor: '#22c55e',
-        priceColor: '#000000'
+        priceColor: '#ffffff'
       },
       position: 'before_form'
     });
