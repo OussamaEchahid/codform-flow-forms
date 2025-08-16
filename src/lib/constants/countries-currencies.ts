@@ -1,5 +1,11 @@
 // Country and currency constants for forms
 
+// IMPORTANT: This file composes from modular sources (countries-all.ts, currencies-all.ts)
+// to keep the app stable while expanding coverage.
+
+import { CURRENCIES_ALL } from './currencies-all';
+import { COUNTRIES_ALL } from './countries-all';
+
 export interface Country {
   code: string;
   name: string;
@@ -17,7 +23,7 @@ export interface Currency {
   exchangeRate: number; // معدل التحويل مقابل الدولار الأمريكي
 }
 
-export const COUNTRIES: Country[] = [
+const COUNTRIES_BASE: Country[] = [
   {
     code: 'SA',
     name: 'Saudi Arabia',
@@ -497,7 +503,7 @@ export const COUNTRIES: Country[] = [
   }
 ];
 
-export const CURRENCIES: Currency[] = [
+const CURRENCIES_BASE: Currency[] = [
   {
     code: 'MAD',
     name: 'Moroccan Dirham',
@@ -924,6 +930,19 @@ export const getCountryByCode = (code: string): Country | undefined => {
 export const getCurrencyByCode = (code: string): Currency | undefined => {
   return CURRENCIES.find(currency => currency.code === code);
 };
+// Public merged exports: base (existing curated) + ALL (worldwide)
+export const COUNTRIES: Country[] = mergeByCode(COUNTRIES_BASE, COUNTRIES_ALL as any);
+export const CURRENCIES: Currency[] = mergeByCode(CURRENCIES_BASE, CURRENCIES_ALL as any);
+
+
+// Merge helper: prefer local entries, then fill from ALL lists where missing
+export function mergeByCode<T extends { code: string }>(primary: T[], fallback: T[]): T[] {
+  const map = new Map<string, T>();
+  for (const item of fallback) map.set(item.code, item);
+  for (const item of primary) map.set(item.code, item); // primary overrides
+  return Array.from(map.values());
+}
+
 
 // Get country by currency code
 export const getCountryByCurrencyCode = (currencyCode: string): Country | undefined => {
