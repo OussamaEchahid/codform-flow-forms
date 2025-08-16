@@ -44,8 +44,9 @@ const ShopifySync: React.FC = () => {
         // 2. Get form count for this shop
         const { data: formsData, error: formsError } = await supabase
           .from('forms')
-          .select('*')
-          .eq('shop_id', shopId);
+          .select('id, title, created_at, is_published, shop_id, currency')
+          .eq('shop_id', shopId)
+          .limit(50);
           
         if (formsError) {
           console.error("Error fetching forms:", formsError);
@@ -57,8 +58,9 @@ const ShopifySync: React.FC = () => {
         // 3. Get product settings count
         const { data: productsData, error: productsError } = await supabase
           .from('shopify_product_settings')
-          .select('*')
-          .eq('shop_id', shopId);
+          .select('id')
+          .eq('shop_id', shopId)
+          .limit(100);
           
         if (productsError) {
           console.error("Error fetching product settings:", productsError);

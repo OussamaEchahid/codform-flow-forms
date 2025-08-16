@@ -109,9 +109,10 @@ export class FormManagementService {
         // When we have an active shop, fetch by shop. If no session, we'll only see published rows due to RLS.
         let query = supabase
           .from('forms')
-          .select('*')
+          .select('id, title, created_at, is_published, shop_id, currency')
           .eq('shop_id', activeShopId)
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .limit(50);
 
         if (!session?.user?.id) {
           // Anonymous context => restrict to published to satisfy RLS
@@ -128,9 +129,10 @@ export class FormManagementService {
         // No active shop but authenticated user => fetch user's forms
         const { data, error } = await supabase
           .from('forms')
-          .select('*')
+          .select('id, title, created_at, is_published, shop_id, currency')
           .eq('user_id', session.user.id)
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .limit(50);
         if (error) {
           console.error('❌ Error fetching user forms:', error);
           throw error;

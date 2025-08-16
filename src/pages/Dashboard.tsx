@@ -155,8 +155,9 @@ const Dashboard = () => {
       // جلب عدد النماذج للمتجر النشط
       const { data: formsData, error: formsError } = await supabase
         .from('forms')
-        .select('id, shop_id')
-        .eq('shop_id', activeStore);
+        .select('id')
+        .eq('shop_id', activeStore)
+        .limit(200);
       
       if (!formsError && formsData) {
         formsCount = formsData.length;
@@ -167,7 +168,8 @@ const Dashboard = () => {
           const { data: submissionsData, error: submissionsError } = await supabase
             .from('form_submissions')
             .select('id, form_id')
-            .in('form_id', formsData.map(f => f.id.toString()));
+            .in('form_id', formsData.map(f => f.id.toString()))
+        .limit(1000);
           
           if (!submissionsError && submissionsData) {
             ordersCount = submissionsData.length;
