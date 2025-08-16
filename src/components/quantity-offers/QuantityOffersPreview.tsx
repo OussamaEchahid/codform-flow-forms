@@ -62,7 +62,7 @@ const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
   const unitPrice = sourceCurrency !== displayCurrency
     ? CurrencyService.convertCurrency(realPrice, sourceCurrency, displayCurrency)
     : realPrice;
-  
+
   console.log('🎯 QuantityOffersPreview - Product Data:', {
     realPrice,
     unitPrice,
@@ -73,7 +73,7 @@ const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
     fallbackCurrency: currency,
     productData
   });
-  
+
   console.log('🎯 QuantityOffersPreview - Currency Analysis:', {
     'form.currency': (form as any)?.currency,
     'productData.currency': productData?.currency,
@@ -105,7 +105,7 @@ const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
     return base * offer.quantity;
   };
 
-  
+
   const formStyle = form.style || {};
   const formData = Array.isArray(form.data) ? form.data : [];
   const formFields = formData.length > 0 && formData[0]?.fields ? formData[0].fields : [];
@@ -127,7 +127,7 @@ const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
           const originalPrice = unitPrice * offer.quantity;
           const isDiscounted = offer.discountType !== 'none' && offer.discountValue && offer.discountValue > 0;
           const isHighlighted = index === 1; // Highlight second offer
-          
+
           // Calculate savings percentage for display
           let savingsPercentage = 0;
           if (isDiscounted && offer.discountType === 'percentage') {
@@ -136,37 +136,35 @@ const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
             savingsPercentage = Math.round(((offer.discountValue || 0) / originalPrice) * 100);
           }
 
+          // Pastel background like storefront
+          const lightenColor = (hex: string, amount: number) => {
+            try {
+              const h = hex.replace('#','');
+              const full = h.length === 3 ? h.split('').map(c=>c+c).join('') : h;
+              const n = parseInt(full, 16);
+              let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+              r = Math.round(r + (255 - r) * amount);
+              g = Math.round(g + (255 - g) * amount);
+              b = Math.round(b + (255 - b) * amount);
+              const toHex = (v:number)=>v.toString(16).padStart(2,'0');
+              return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+            } catch { return hex; }
+          };
+          const baseColor = styling.backgroundColor || '#22c55e';
+          const cardBg = lightenColor(baseColor, 0.92);
+          const selectedBg = lightenColor(baseColor, 0.96);
+
           return (
-            {(() => {
-              const lightenColor = (hex: string, amount: number) => {
-                try {
-                  const h = hex.replace('#','');
-                  const full = h.length === 3 ? h.split('').map(c=>c+c).join('') : h;
-                  const n = parseInt(full, 16);
-                  let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
-                  r = Math.round(r + (255 - r) * amount);
-                  g = Math.round(g + (255 - g) * amount);
-                  b = Math.round(b + (255 - b) * amount);
-                  const toHex = (v:number)=>v.toString(16).padStart(2,'0');
-                  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-                } catch { return hex; }
-              };
-              const baseColor = styling.backgroundColor || '#22c55e';
-              const cardBg = lightenColor(baseColor, 0.92);
-              const selectedBg = lightenColor(baseColor, 0.96);
-              return (
-                <div
-                  key={offer.id}
-                  className={`p-3 rounded-lg border-2 flex items-center justify-between`}
-                  style={{ backgroundColor: isHighlighted ? selectedBg : cardBg, borderColor: isHighlighted ? baseColor : '#e5e7eb' }}
-                >
-              );
-            })()}
+            <div
+              key={offer.id}
+              className={`p-3 rounded-lg border-2 flex items-center justify-between`}
+              style={{ backgroundColor: isHighlighted ? selectedBg : cardBg, borderColor: isHighlighted ? baseColor : '#e5e7eb' }}
+            >
               <div className="flex items-center space-x-3">
                 <div className="w-12 h-12 bg-gray-100 rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden">
                   {productImage ? (
-                    <img 
-                      src={productImage} 
+                    <img
+                      src={productImage}
                       alt={productTitle}
                       loading="lazy"
                       decoding="async"
@@ -178,16 +176,16 @@ const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
                     </svg>
                   )}
                 </div>
-                
+
                 <div>
-                  <div 
+                  <div
                     className="font-semibold"
                     style={{ color: styling.textColor || '#000000' }}
                   >
                     {offer.text || `Buy ${offer.quantity} Item${offer.quantity > 1 ? 's' : ''}`}
                   </div>
                   {offer.tag && (
-                    <div 
+                    <div
                       className="inline-block px-2 py-1 rounded text-xs font-medium text-white mt-1"
                       style={{ backgroundColor: styling.tagColor }}
                     >
@@ -208,7 +206,7 @@ const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
                     {CurrencyService.formatCurrency(originalPrice, displayCurrency)}
                   </div>
                 )}
-                <div 
+                <div
                   className="font-bold text-lg"
                   style={{ color: styling.priceColor || '#000000' }}
                 >
@@ -228,7 +226,7 @@ const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
   };
 
   return (
-    <div 
+    <div
       className="p-6 rounded-lg border-2 border-purple-400 max-w-md mx-auto"
       style={{
         backgroundColor: formStyle.backgroundColor || '#F9FAFB',
@@ -240,7 +238,7 @@ const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
     >
       {/* Show quantity offers based on position */}
       {position === 'before_form' && <QuantityOffersBlock />}
-      
+
       {/* Render actual form fields */}
       <div className="space-y-4">
         {formFields.map((field: any, index: number) => {
@@ -261,7 +259,7 @@ const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
               </div>
             );
           }
-          
+
           return (
             <FormField
               key={field.id}
@@ -273,7 +271,7 @@ const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
           );
         })}
       </div>
-      
+
       {position === 'after_form' && <QuantityOffersBlock />}
     </div>
   );
