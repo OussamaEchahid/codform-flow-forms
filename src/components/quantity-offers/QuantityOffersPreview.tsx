@@ -137,12 +137,31 @@ const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
           }
 
           return (
-            <div 
-              key={offer.id}
-              className={`p-3 rounded-lg border-2 flex items-center justify-between bg-white ${
-                isHighlighted ? 'border-green-500 bg-green-50' : 'border-gray-200'
-              }`}
-            >
+            {(() => {
+              const lightenColor = (hex: string, amount: number) => {
+                try {
+                  const h = hex.replace('#','');
+                  const full = h.length === 3 ? h.split('').map(c=>c+c).join('') : h;
+                  const n = parseInt(full, 16);
+                  let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+                  r = Math.round(r + (255 - r) * amount);
+                  g = Math.round(g + (255 - g) * amount);
+                  b = Math.round(b + (255 - b) * amount);
+                  const toHex = (v:number)=>v.toString(16).padStart(2,'0');
+                  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+                } catch { return hex; }
+              };
+              const baseColor = styling.backgroundColor || '#22c55e';
+              const cardBg = lightenColor(baseColor, 0.92);
+              const selectedBg = lightenColor(baseColor, 0.96);
+              return (
+                <div
+                  key={offer.id}
+                  className={`p-3 rounded-lg border-2 flex items-center justify-between`}
+                  style={{ backgroundColor: isHighlighted ? selectedBg : cardBg, borderColor: isHighlighted ? baseColor : '#e5e7eb' }}
+                >
+              );
+            })()}
               <div className="flex items-center space-x-3">
                 <div className="w-12 h-12 bg-gray-100 rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden">
                   {productImage ? (
@@ -176,8 +195,8 @@ const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
                     </div>
                   )}
                   {savingsPercentage > 0 && (
-                    <div className="inline-block px-2 py-1 rounded text-xs font-medium text-white bg-green-500 mt-1 ml-2">
-                      Save {savingsPercentage}%
+                    <div className="inline-block px-2 py-1 rounded text-xs font-medium text-white mt-1 ml-2" style={{ backgroundColor: (styling.backgroundColor || '#22c55e') }}>
+                      {(form?.language === 'ar' || (form as any)?.direction === 'rtl') ? 'وفر' : 'Save'} {savingsPercentage}%
                     </div>
                   )}
                 </div>

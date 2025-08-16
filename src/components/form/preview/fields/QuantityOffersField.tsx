@@ -154,6 +154,24 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
     );
   }
 
+  // Lighten helper to mimic storefront pastel background
+  const lightenColor = (hex: string, amount: number) => {
+    try {
+      const h = hex.replace('#','');
+      const full = h.length === 3 ? h.split('').map(c=>c+c).join('') : h;
+      const n = parseInt(full, 16);
+      let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+      r = Math.round(r + (255 - r) * amount);
+      g = Math.round(g + (255 - g) * amount);
+      b = Math.round(b + (255 - b) * amount);
+      const toHex = (v:number)=>v.toString(16).padStart(2,'0');
+      return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+    } catch { return hex; }
+  };
+  const baseColor = styling.backgroundColor || '#22c55e';
+  const cardBg = lightenColor(baseColor, 0.92);
+  const selectedBg = lightenColor(baseColor, 0.96);
+
   return (
     <div className="space-y-2 mb-0" style={{ direction: formDirection }}>
       {offers.map((offer, index) => {
@@ -161,7 +179,7 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
         const originalPrice = realPrice * offer.quantity;
         const isDiscounted = offer.discountType !== 'none' && offer.discountValue && offer.discountValue > 0;
         const isHighlighted = index === 1;
-        
+
         let savingsPercentage = 0;
         if (isDiscounted && offer.discountType === 'percentage') {
           savingsPercentage = offer.discountValue || 0;
@@ -170,16 +188,17 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
         }
 
         return (
-          <div 
+          <div
             key={offer.id}
             className={`p-3 rounded-lg border-2 flex items-center justify-between transition-all cursor-pointer hover:shadow-md ${
-              isHighlighted 
-                ? 'border-green-500 bg-green-50 shadow-sm' 
-                : 'border-gray-200 bg-white'
+              isHighlighted
+                ? 'shadow-sm'
+                : ''
             }`}
-            style={{ 
-              backgroundColor: isHighlighted ? '#f0fdf4' : styling.backgroundColor,
-              direction: formDirection 
+            style={{
+              backgroundColor: isHighlighted ? selectedBg : cardBg,
+              borderColor: isHighlighted ? baseColor : '#e5e7eb',
+              direction: formDirection
             }}
           >
             <div className={`flex items-center ${formDirection === 'rtl' ? 'space-x-reverse space-x-3' : 'space-x-3'}`}>
