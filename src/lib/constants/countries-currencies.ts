@@ -414,6 +414,87 @@ export const COUNTRIES: Country[] = [
     currency: 'XAF',
     flag: '🇹🇩'
   }
+,
+  {
+    code: 'IN',
+    name: 'India',
+    nameAr: 'الهند',
+    phonePrefix: '+91',
+    currency: 'INR',
+    flag: '🇮🇳'
+  },
+  {
+    code: 'ID',
+    name: 'Indonesia',
+    nameAr: 'إندونيسيا',
+    phonePrefix: '+62',
+    currency: 'IDR',
+    flag: '🇮🇩'
+  },
+  {
+    code: 'PK',
+    name: 'Pakistan',
+    nameAr: 'باكستان',
+    phonePrefix: '+92',
+    currency: 'PKR',
+    flag: '🇵🇰'
+  },
+  {
+    code: 'BD',
+    name: 'Bangladesh',
+    nameAr: 'بنغلاديش',
+    phonePrefix: '+880',
+    currency: 'BDT',
+    flag: '🇧🇩'
+  },
+  {
+    code: 'LK',
+    name: 'Sri Lanka',
+    nameAr: 'سريلانكا',
+    phonePrefix: '+94',
+    currency: 'LKR',
+    flag: '🇱🇰'
+  },
+  {
+    code: 'NP',
+    name: 'Nepal',
+    nameAr: 'نيبال',
+    phonePrefix: '+977',
+    currency: 'NPR',
+    flag: '🇳🇵'
+  },
+  {
+    code: 'BT',
+    name: 'Bhutan',
+    nameAr: 'بوتان',
+    phonePrefix: '+975',
+    currency: 'BTN',
+    flag: '🇧🇹'
+  },
+  {
+    code: 'MM',
+    name: 'Myanmar',
+    nameAr: 'ميانمار',
+    phonePrefix: '+95',
+    currency: 'MMK',
+    flag: '🇲🇲'
+  },
+  {
+    code: 'KH',
+    name: 'Cambodia',
+    nameAr: 'كمبوديا',
+    phonePrefix: '+855',
+    currency: 'KHR',
+    flag: '🇰🇭'
+  },
+  {
+    code: 'LA',
+    name: 'Laos',
+    nameAr: 'لاوس',
+    phonePrefix: '+856',
+    currency: 'LAK',
+    flag: '🇱🇦'
+  }
 ];
 
 export const CURRENCIES: Currency[] = [
@@ -622,14 +703,133 @@ export const CURRENCIES: Currency[] = [
     symbol: '﷼',
     exchangeRate: 250
   },
-  // عملات أفريقيا
+  // عملات آسيا
   {
-    code: 'NGN',
-    name: 'Nigerian Naira',
-    nameAr: 'نايرا نيجيرية',
-    symbol: '₦',
-    exchangeRate: 1675
+    code: 'INR',
+    name: 'Indian Rupee',
+    nameAr: 'روبية هندية',
+    symbol: '₹',
+    exchangeRate: 83.0
   },
+  {
+    code: 'IDR',
+    name: 'Indonesian Rupiah',
+    nameAr: 'روبية إندونيسية',
+    symbol: 'Rp',
+    exchangeRate: 15850
+  },
+  {
+    code: 'PKR',
+    name: 'Pakistani Rupee',
+    nameAr: 'روبية باكستانية',
+    symbol: '₨',
+    exchangeRate: 280
+  },
+  {
+    code: 'BDT',
+    name: 'Bangladeshi Taka',
+    nameAr: 'تاكا بنغالية',
+    symbol: '৳',
+    exchangeRate: 110
+  },
+  {
+    code: 'LKR',
+    name: 'Sri Lankan Rupee',
+    nameAr: 'روبية سريلانكية',
+    symbol: 'Rs',
+    exchangeRate: 300
+  },
+  {
+    code: 'NPR',
+    name: 'Nepalese Rupee',
+    nameAr: 'روبية نيبالية',
+    symbol: '₨',
+    exchangeRate: 133
+  },
+  {
+    code: 'BTN',
+    name: 'Bhutanese Ngultrum',
+    nameAr: 'نولترم بوتاني',
+    symbol: 'Nu.',
+    exchangeRate: 83
+  },
+  {
+    code: 'MMK',
+    name: 'Burmese Kyat',
+    nameAr: 'كيات ميانماري',
+    symbol: 'K',
+    exchangeRate: 2100
+  },
+  {
+    code: 'KHR',
+    name: 'Cambodian Riel',
+    nameAr: 'ريال كمبودي',
+    symbol: '៛',
+    exchangeRate: 4100
+  },
+  {
+    code: 'LAK',
+    name: 'Lao Kip',
+    nameAr: 'كيب لاوسي',
+    symbol: '₭',
+    exchangeRate: 20000
+  },
+  {
+    code: 'VND',
+    name: 'Vietnamese Dong',
+    nameAr: 'دونغ فيتنامي',
+    symbol: '₫',
+    exchangeRate: 24000
+  },
+  {
+    code: 'THB',
+    name: 'Thai Baht',
+    nameAr: 'بات تايلاندي',
+    symbol: '฿',
+    exchangeRate: 36
+  },
+  {
+    code: 'MYR',
+    name: 'Malaysian Ringgit',
+    nameAr: 'رنغيت ماليزي',
+    symbol: 'RM',
+    exchangeRate: 4.7
+  },
+  {
+    code: 'SGD',
+    name: 'Singapore Dollar',
+    nameAr: 'دولار سنغافوري',
+    symbol: 'S$',
+    exchangeRate: 1.35
+  },
+  {
+    code: 'HKD',
+    name: 'Hong Kong Dollar',
+    nameAr: 'دولار هونغ كونغ',
+    symbol: 'HK$',
+    exchangeRate: 7.8
+  },
+  {
+    code: 'KRW',
+    name: 'South Korean Won',
+    nameAr: 'وون كوري جنوبي',
+    symbol: '₩',
+    exchangeRate: 1345
+  },
+  {
+    code: 'CNY',
+    name: 'Chinese Yuan',
+    nameAr: 'يوان صيني',
+    symbol: '¥',
+    exchangeRate: 7.24
+  },
+  {
+    code: 'JPY',
+    name: 'Japanese Yen',
+    nameAr: 'ين ياباني',
+    symbol: '¥',
+    exchangeRate: 149
+
   {
     code: 'ZAR',
     name: 'South African Rand',
@@ -643,6 +843,14 @@ export const CURRENCIES: Currency[] = [
     nameAr: 'شلن كيني',
     symbol: 'KSh',
     exchangeRate: 130.5
+  },
+,
+  {
+    code: 'NGN',
+    name: 'Nigerian Naira',
+    nameAr: 'نايرا نيجيرية',
+    symbol: '₦',
+    exchangeRate: 1675
   },
   {
     code: 'GHS',
@@ -726,7 +934,7 @@ export const getCountryByCurrencyCode = (currencyCode: string): Country | undefi
 // Get default country and currency settings based on shop currency
 export const getDefaultCountryCurrencySettings = (shopCurrency?: string, shopCountry?: string) => {
   console.log('🔍 Getting default settings for currency:', shopCurrency, 'country:', shopCountry);
-  
+
   // If we have both currency and country from Shopify, prioritize that
   if (shopCountry && shopCurrency) {
     const countryData = getCountryByCode(shopCountry.toUpperCase());
@@ -739,7 +947,7 @@ export const getDefaultCountryCurrencySettings = (shopCurrency?: string, shopCou
       };
     }
   }
-  
+
   // Default to Morocco if no currency provided
   if (!shopCurrency) {
     console.log('⚠️ No currency provided, using MAD default');
@@ -753,7 +961,7 @@ export const getDefaultCountryCurrencySettings = (shopCurrency?: string, shopCou
   // Find country by currency
   const country = getCountryByCurrencyCode(shopCurrency.toUpperCase());
   console.log('🔍 Found country for currency', shopCurrency, ':', country);
-  
+
   if (country) {
     console.log('✅ Using country settings:', country.code);
     return {
@@ -777,10 +985,10 @@ export const getDefaultCountryCurrencySettings = (shopCurrency?: string, shopCou
 
   const result = currencyDefaults[shopCurrency.toUpperCase()] || {
     country: 'MA',
-    currency: 'MAD', 
+    currency: 'MAD',
     phonePrefix: '+212'
   };
-  
+
   console.log('📋 Final currency settings:', result);
   return result;
 };
@@ -800,10 +1008,10 @@ export const getCurrencyNameByCode = (code: string, language: 'en' | 'ar' = 'en'
 export const formatPhoneNumber = (phone: string, countryCode: string): string => {
   const country = getCountryByCode(countryCode);
   if (!country) return phone;
-  
+
   // Remove any existing country code
   let cleanPhone = phone.replace(/^\+?\d{1,4}/, '').replace(/^0+/, '');
-  
+
   // Add the country's phone prefix
   return `${country.phonePrefix}${cleanPhone}`;
 };
@@ -811,10 +1019,10 @@ export const formatPhoneNumber = (phone: string, countryCode: string): string =>
 export const validatePhoneNumber = (phone: string, countryCode: string): boolean => {
   const country = getCountryByCode(countryCode);
   if (!country) return false;
-  
+
   // Basic validation - adjust patterns per country as needed
   const cleanPhone = phone.replace(/[^\d]/g, '');
-  
+
   switch (countryCode) {
     case 'SA':
       return /^(966)?5\d{8}$/.test(cleanPhone);
@@ -831,9 +1039,9 @@ export const validatePhoneNumber = (phone: string, countryCode: string): boolean
 export const convertCurrency = (amount: number, fromCurrency: string, toCurrency: string): number => {
   const fromCurr = getCurrencyByCode(fromCurrency);
   const toCurr = getCurrencyByCode(toCurrency);
-  
+
   if (!fromCurr || !toCurr) return amount;
-  
+
   // تحويل للدولار أولاً ثم للعملة المطلوبة
   const usdAmount = amount / fromCurr.exchangeRate;
   return usdAmount * toCurr.exchangeRate;
@@ -843,10 +1051,10 @@ export const convertCurrency = (amount: number, fromCurrency: string, toCurrency
 export const formatPrice = (amount: number, currencyCode: string, language: 'en' | 'ar' = 'en'): string => {
   const currency = getCurrencyByCode(currencyCode);
   if (!currency) return amount.toString();
-  
+
   // تنسيق الرقم حسب العملة
   let formattedAmount = '';
-  
+
   if (currency.code === 'KWD' || currency.code === 'BHD' || currency.code === 'OMR') {
     // العملات التي تستخدم 3 منازل عشرية
     formattedAmount = amount.toFixed(3);
@@ -857,7 +1065,7 @@ export const formatPrice = (amount: number, currencyCode: string, language: 'en'
     // باقي العملات (منزلتان عشريتان)
     formattedAmount = amount.toFixed(2);
   }
-  
+
   // إضافة رمز العملة
   if (language === 'ar') {
     return `${formattedAmount} ${currency.symbol}`;
