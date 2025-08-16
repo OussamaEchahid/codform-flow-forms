@@ -306,9 +306,9 @@ window.CodformQuantityOffers = (function() {
     container.innerHTML = '';
     container.style.display = 'block';
 
-    // استخدام التنسيق من البيانات
+    // استخدام التنسيق من البيانات مع اللون الأخضر الافتراضي للخلفية
     const styling = {
-      backgroundColor: quantityOffersData.styling?.backgroundColor || '#ffffff',
+      backgroundColor: quantityOffersData.styling?.backgroundColor || '#22c55e',
       textColor: quantityOffersData.styling?.textColor || '#000000',
       tagColor: quantityOffersData.styling?.tagColor || '#22c55e',
       priceColor: quantityOffersData.styling?.priceColor || '#000000'
@@ -489,12 +489,12 @@ window.CodformQuantityOffers = (function() {
       offerElement.setAttribute('data-quantity', offer.quantity);
       offerElement.setAttribute('data-total-price', totalPrice.toFixed(2));
       
-      // التصميم المطابق للمعاينة بالضبط
+      // التصميم المطابق للمعاينة بالضبط مع لون الخلفية المخصص
       offerElement.style.cssText = `
         padding: 12px;
         border-radius: 8px;
         border: 2px solid ${isHighlighted ? '#22c55e' : '#e5e7eb'};
-        background-color: ${isHighlighted ? '#f0fdf4' : '#ffffff'};
+        background-color: ${isHighlighted ? '#f0fdf4' : (styling.backgroundColor || '#22c55e')};
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -571,7 +571,7 @@ window.CodformQuantityOffers = (function() {
       const mainText = document.createElement('div');
       mainText.style.cssText = `
         font-weight: 600;
-        color: ${styling.textColor};
+        color: ${styling.textColor || '#000000'};
         text-align: ${formDirection === 'rtl' ? 'right' : 'left'};
         font-size: 16px;
         line-height: 1.4;
@@ -589,7 +589,7 @@ window.CodformQuantityOffers = (function() {
       if (offer.tag) {
         const tagElement = document.createElement('div');
         tagElement.style.cssText = `
-          background-color: ${styling.tagColor};
+          background-color: ${styling.tagColor || '#22c55e'};
           color: white;
           padding: 2px 8px;
           border-radius: 4px;
@@ -728,7 +728,7 @@ window.CodformQuantityOffers = (function() {
       finalPriceElement.style.cssText = `
         font-size: 18px;
         font-weight: 700;
-        color: ${styling.priceColor};
+        color: ${styling.priceColor || '#000000'};
         line-height: 1.2;
       `;
       finalPriceElement.textContent = formatCurrency(totalPrice, finalCurrency, formDirection === 'rtl' ? 'ar' : 'en');

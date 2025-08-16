@@ -136,7 +136,7 @@ const QuantityOffersDisplay: React.FC<QuantityOffersDisplayProps> = ({
                 : 'border-gray-200 bg-white'
             }`}
             style={{ 
-              backgroundColor: isHighlighted ? '#f0fdf4' : styling.backgroundColor,
+              backgroundColor: isHighlighted ? '#f0fdf4' : (styling.backgroundColor || '#22c55e'),
               direction: formDirection 
             }}
           >

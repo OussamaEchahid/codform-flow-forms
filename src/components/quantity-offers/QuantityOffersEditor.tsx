@@ -379,8 +379,8 @@ const QuantityOffersEditor: React.FC<Props> = ({ offer, isCreating, onSave, onCa
                     discountValue: offer.discount || 0
                   }))}
           styling={currentOffer.styling || {
-            backgroundColor: '#ffffff',
-            textColor: '#000000',
+            backgroundColor: '#22c55e',
+            textColor: '#000000', 
             tagColor: '#22c55e',
             priceColor: '#000000'
           }}
@@ -418,7 +418,7 @@ const QuantityOffersEditor: React.FC<Props> = ({ offer, isCreating, onSave, onCa
               <Label>لون الخلفية</Label>
               <Input
                 type="color"
-                value={currentOffer.styling.backgroundColor}
+                value={currentOffer.styling?.backgroundColor || '#22c55e'}
                 onChange={(e) => updateStyling('backgroundColor', e.target.value)}
               />
             </div>
@@ -426,7 +426,7 @@ const QuantityOffersEditor: React.FC<Props> = ({ offer, isCreating, onSave, onCa
               <Label>لون النص</Label>
               <Input
                 type="color"
-                value={currentOffer.styling.textColor}
+                value={currentOffer.styling?.textColor || '#000000'}
                 onChange={(e) => updateStyling('textColor', e.target.value)}
               />
             </div>
@@ -434,7 +434,7 @@ const QuantityOffersEditor: React.FC<Props> = ({ offer, isCreating, onSave, onCa
               <Label>لون التسمية</Label>
               <Input
                 type="color"
-                value={currentOffer.styling.tagColor}
+                value={currentOffer.styling?.tagColor || '#22c55e'}
                 onChange={(e) => updateStyling('tagColor', e.target.value)}
               />
             </div>

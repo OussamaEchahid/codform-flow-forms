@@ -55,7 +55,7 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
 
   const [offers, setOffers] = useState<Offer[]>([]);
   const [styling, setStyling] = useState<Styling>({
-    backgroundColor: '#ffffff',
+    backgroundColor: '#22c55e',
     textColor: '#000000',
     tagColor: '#22c55e',
     priceColor: '#000000'
@@ -97,7 +97,12 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
 
         if (data && !error) {
           setOffers(data.offers || []);
-          setStyling(data.styling || styling);
+          setStyling(data.styling || {
+            backgroundColor: '#22c55e',
+            textColor: '#000000',
+            tagColor: '#22c55e',
+            priceColor: '#000000'
+          });
         }
       } catch (error) {
         console.error('Error loading quantity offers:', error);
@@ -178,7 +183,7 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
                 : 'border-gray-200 bg-white'
             }`}
             style={{ 
-              backgroundColor: isHighlighted ? '#f0fdf4' : styling.backgroundColor,
+              backgroundColor: isHighlighted ? '#f0fdf4' : (styling.backgroundColor || '#22c55e'),
               direction: formDirection 
             }}
           >
