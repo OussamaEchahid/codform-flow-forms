@@ -227,7 +227,7 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
                   )}
                   {savingsPercentage > 0 && (
                     <div className="inline-block px-2 py-1 rounded text-xs font-medium text-white bg-green-500">
-                      Save {savingsPercentage}%
+                      {formDirection === 'rtl' ? 'وفر' : 'Save'} {savingsPercentage}%
                     </div>
                   )}
                 </div>
