@@ -306,13 +306,15 @@ window.CodformQuantityOffers = (function() {
     container.innerHTML = '';
     container.style.display = 'block';
 
-    // استخدام التنسيق من البيانات مع اللون الأخضر الافتراضي للخلفية
+    // ✅ CRITICAL FIX: Apply ALL styling from saved settings
     const styling = {
       backgroundColor: quantityOffersData.styling?.backgroundColor || '#22c55e',
       textColor: quantityOffersData.styling?.textColor || '#000000',
       tagColor: quantityOffersData.styling?.tagColor || '#22c55e',
       priceColor: quantityOffersData.styling?.priceColor || '#000000'
     };
+    
+    console.log('🎨 APPLYING STYLING:', styling);
 
     // ✅ CRITICAL FIX: Use real product data from API call - verify structure
     let actualProductData = productData;
@@ -489,12 +491,12 @@ window.CodformQuantityOffers = (function() {
       offerElement.setAttribute('data-quantity', offer.quantity);
       offerElement.setAttribute('data-total-price', totalPrice.toFixed(2));
       
-      // التصميم المطابق للمعاينة بالضبط مع لون الخلفية المخصص
+      // ✅ CRITICAL FIX: Apply custom styling properly
       offerElement.style.cssText = `
         padding: 12px;
         border-radius: 8px;
         border: 2px solid ${isHighlighted ? '#22c55e' : '#e5e7eb'};
-        background-color: ${isHighlighted ? '#f0fdf4' : (styling.backgroundColor || '#22c55e')};
+        background-color: ${styling.backgroundColor || '#22c55e'};
         display: flex;
         align-items: center;
         justify-content: space-between;

@@ -378,11 +378,11 @@ const QuantityOffersEditor: React.FC<Props> = ({ offer, isCreating, onSave, onCa
                     discountType: offer.discountType === 'percentage' ? 'percentage' : 'fixed',
                     discountValue: offer.discount || 0
                   }))}
-          styling={currentOffer.styling || {
-            backgroundColor: '#22c55e',
-            textColor: '#000000', 
-            tagColor: '#22c55e',
-            priceColor: '#000000'
+          styling={{
+            backgroundColor: currentOffer.styling?.backgroundColor || '#22c55e',
+            textColor: currentOffer.styling?.textColor || '#000000', 
+            tagColor: currentOffer.styling?.tagColor || '#22c55e',
+            priceColor: currentOffer.styling?.priceColor || '#000000'
           }}
                   productData={productData || undefined}
                   currency={productData?.currency || 'MAD'}

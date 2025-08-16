@@ -183,7 +183,7 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
                 : 'border-gray-200 bg-white'
             }`}
             style={{ 
-              backgroundColor: isHighlighted ? '#f0fdf4' : (styling.backgroundColor || '#22c55e'),
+              backgroundColor: styling.backgroundColor || '#22c55e',
               direction: formDirection 
             }}
           >
