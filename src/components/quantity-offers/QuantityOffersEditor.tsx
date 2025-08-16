@@ -387,20 +387,20 @@ const QuantityOffersEditor: React.FC<Props> = ({ offer, isCreating, onSave, onCa
                   جاري تحميل بيانات المنتج...
                 </div>
               ) : (
-                <QuantityOffersDisplay 
-                  offers={currentOffer.offers.map((offer: any) => ({
-                    id: String(Math.random()),
-                    text: offer.title?.replace('{quantity}', offer.quantity)?.replace('{discount}', offer.discount) || `اشتري ${offer.quantity} قطع`,
-                    tag: offer.tag || '',
-                    quantity: offer.quantity || 1,
-                    discountType: offer.discountType === 'percentage' ? 'percentage' : 'fixed',
-                    discountValue: offer.discount || 0
-                  }))}
+                  <QuantityOffersDisplay 
+                    offers={currentOffer.offers.map((offer: any) => ({
+                      id: String(Math.random()),
+                      text: offer.title?.replace('{quantity}', offer.quantity)?.replace('{discount}', offer.discount) || `اشتري ${offer.quantity} قطع`,
+                      tag: offer.tag || '',
+                      quantity: offer.quantity || 1,
+                      discountType: offer.discountType || 'none',
+                      discountValue: offer.discount || 0
+                    }))}
           styling={{
             backgroundColor: currentOffer.styling?.backgroundColor || '#22c55e',
-            textColor: currentOffer.styling?.textColor || '#000000', 
-            tagColor: currentOffer.styling?.tagColor || '#22c55e',
-            priceColor: currentOffer.styling?.priceColor || '#000000'
+            textColor: currentOffer.styling?.textColor || '#ffffff', 
+            tagColor: currentOffer.styling?.tagColor || '#ff6b35',
+            priceColor: currentOffer.styling?.priceColor || '#ffffff'
           }}
                   productData={productData || undefined}
                   currency={productData?.currency || 'MAD'}

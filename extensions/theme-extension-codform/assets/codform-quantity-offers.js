@@ -306,15 +306,15 @@ window.CodformQuantityOffers = (function() {
     container.innerHTML = '';
     container.style.display = 'block';
 
-    // ✅ CRITICAL FIX: Apply ALL styling from saved settings
+    // ✅ CRITICAL FIX: Apply ALL styling from saved settings with GREEN DEFAULT
     const styling = {
       backgroundColor: quantityOffersData.styling?.backgroundColor || '#22c55e',
-      textColor: quantityOffersData.styling?.textColor || '#000000',
-      tagColor: quantityOffersData.styling?.tagColor || '#22c55e',
-      priceColor: quantityOffersData.styling?.priceColor || '#000000'
+      textColor: quantityOffersData.styling?.textColor || '#ffffff',
+      tagColor: quantityOffersData.styling?.tagColor || '#ff6b35',
+      priceColor: quantityOffersData.styling?.priceColor || '#ffffff'
     };
     
-    console.log('🎨 APPLYING STYLING:', styling);
+    console.log('🎨 APPLYING STYLING WITH GREEN DEFAULT:', styling);
 
     // ✅ CRITICAL FIX: Use real product data from API call - verify structure
     let actualProductData = productData;
@@ -465,23 +465,35 @@ window.CodformQuantityOffers = (function() {
 
     // عرض العروض مع التخطيط المطابق للمعاينة بالضبط
     offers.forEach((offer, index) => {
-      // ✅ EXACT MATCH TO PREVIEW - Price calculation logic from QuantityOffersField.tsx
+      // ✅ EXACT MATCH TO PREVIEW - Price calculation logic FIXED
       const quantity = offer.quantity || 1;
       let totalPrice = realPrice * quantity;
       const originalPrice = totalPrice;
       let savingsPercentage = 0;
 
-      const discountValue = parseFloat(offer.discount || offer.discountValue || 0);
-      const discountType = offer.discountType || 'none';
+      // ✅ CRITICAL FIX: Support multiple discount field formats
+      const discountValue = parseFloat(offer.discount || offer.discountValue || offer.discount_value || 0);
+      const discountType = offer.discountType || offer.discount_type || 'none';
+
+      console.log('💰 STORE CALCULATION:', {
+        offer,
+        realPrice,
+        quantity,
+        originalPrice,
+        discountType,
+        discountValue
+      });
 
       // Use exact same logic as preview components
       if (discountType === 'fixed' && discountValue > 0) {
         totalPrice = totalPrice - discountValue;
         savingsPercentage = Math.round((discountValue / originalPrice) * 100);
+        console.log('💰 FIXED discount applied:', discountValue, 'new price:', totalPrice);
       } else if (discountType === 'percentage' && discountValue > 0) {
         const discount = (totalPrice * discountValue) / 100;
         totalPrice = totalPrice - discount;
         savingsPercentage = discountValue;
+        console.log('💰 PERCENTAGE discount applied:', discountValue + '%', 'discount amount:', discount, 'new price:', totalPrice);
       }
 
       const isDiscounted = discountType !== 'none' && discountValue > 0;
