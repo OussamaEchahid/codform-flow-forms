@@ -309,12 +309,30 @@ window.CodformQuantityOffers = (function() {
     // ✅ CRITICAL FIX: Apply ALL styling from saved settings with GREEN DEFAULT
     const styling = {
       backgroundColor: quantityOffersData.styling?.backgroundColor || '#22c55e',
-      textColor: quantityOffersData.styling?.textColor || '#ffffff',
-      tagColor: quantityOffersData.styling?.tagColor || '#ff6b35',
-      priceColor: quantityOffersData.styling?.priceColor || '#ffffff'
+      textColor: quantityOffersData.styling?.textColor || '#111827',
+      tagColor: quantityOffersData.styling?.tagColor || '#22c55e',
+      priceColor: quantityOffersData.styling?.priceColor || '#111827'
     };
-    
-    console.log('🎨 APPLYING STYLING WITH GREEN DEFAULT:', styling);
+
+    // Helper: lighten a hex color by mixing with white (amount 0..1)
+    function lightenColor(hex, amount) {
+      try {
+        const h = hex.replace('#','');
+        const bigint = parseInt(h.length === 3 ? h.split('').map(c=>c+c).join('') : h, 16);
+        let r = (bigint >> 16) & 255, g = (bigint >> 8) & 255, b = bigint & 255;
+        r = Math.round(r + (255 - r) * amount);
+        g = Math.round(g + (255 - g) * amount);
+        b = Math.round(b + (255 - b) * amount);
+        const toHex = (v) => v.toString(16).padStart(2, '0');
+        return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+      } catch(_) { return hex; }
+    }
+
+    const baseColor = styling.backgroundColor || '#22c55e';
+    const cardBg = lightenColor(baseColor, 0.92);      // قريب من #F0FDF4
+    const selectedBg = lightenColor(baseColor, 0.96);  // أفتح عند التحديد
+
+    console.log('🎨 APPLYING STYLING WITH GREEN DEFAULT:', { ...styling, cardBg, selectedBg });
 
     // ✅ CRITICAL FIX: Use real product data from API call - verify structure
     let actualProductData = productData;
@@ -474,6 +492,7 @@ window.CodformQuantityOffers = (function() {
       // ✅ CRITICAL FIX: Support multiple discount field formats
       const discountValue = parseFloat(offer.discount || offer.discountValue || offer.discount_value || 0);
       const discountType = offer.discountType || offer.discount_type || 'none';
+      const saveLabel = formDirection === 'rtl' ? 'وفر' : 'Save';
 
       console.log('💰 STORE CALCULATION:', {
         offer,
@@ -505,15 +524,17 @@ window.CodformQuantityOffers = (function() {
       offerElement.setAttribute('data-quantity', offer.quantity);
       offerElement.setAttribute('data-total-price', totalPrice.toFixed(2));
       
-      // ✅ CRITICAL FIX: Apply background color properly like preview
+      // ✅ Apply pastel background derived from selected color
       offerElement.style.cssText = `
         padding: 12px;
         border-radius: 8px;
-        border: 2px solid ${isHighlighted ? '#22c55e' : '#e5e7eb'};
-        background-color: ${styling.backgroundColor || '#22c55e'};
+        border: 2px solid ${isHighlighted ? baseColor : '#e5e7eb'};
+        background-color: ${cardBg};
         display: flex;
         align-items: center;
         justify-content: space-between;
+        gap: 12px;
+        column-gap: 12px;
         transition: all 0.3s ease;
         cursor: pointer;
         margin-bottom: 8px;
@@ -527,13 +548,13 @@ window.CodformQuantityOffers = (function() {
         const allOffers = container.querySelectorAll('[data-offer-id]');
         allOffers.forEach(el => {
           el.style.borderColor = '#e5e7eb';
-          el.style.backgroundColor = styling.backgroundColor;
+          el.style.backgroundColor = cardBg;
           el.style.boxShadow = 'none';
         });
-        
+
         // تحديد العرض المختار
-        this.style.borderColor = '#22c55e';
-        this.style.backgroundColor = '#f0fdf4';
+        this.style.borderColor = baseColor;
+        this.style.backgroundColor = selectedBg;
         this.style.boxShadow = '0 2px 8px rgba(34, 197, 94, 0.2)';
         
         // تحديث كمية المنتج في النموذج
@@ -620,7 +641,7 @@ window.CodformQuantityOffers = (function() {
       if (savingsPercentage > 0) {
         const savingsElement = document.createElement('div');
         savingsElement.style.cssText = `
-          background-color: #22c55e;
+          background-color: ${baseColor};
           color: white;
           padding: 2px 8px;
           border-radius: 4px;
@@ -628,7 +649,7 @@ window.CodformQuantityOffers = (function() {
           font-weight: 500;
           display: inline-block;
         `;
-        savingsElement.textContent = `وفر ${savingsPercentage}%`;
+        savingsElement.textContent = `${saveLabel} ${savingsPercentage}%`;
         tagsContainer.appendChild(savingsElement);
       }
 
@@ -815,7 +836,8 @@ window.CodformQuantityOffers = (function() {
       await __ensureCurrencySettings();
       
       // ✅ SPEED BOOST: تحقق من cache البيانات أولاً
-      const cacheKey = `offers_${shop}_${productId}`;
+      const version = (window.CODFORM_APP_VERSION || '').toString();
+      const cacheKey = `offers_${version}_${shop}_${productId}`;
       const cachedData = sessionStorage.getItem(cacheKey);
       
       if (cachedData) {
@@ -879,7 +901,8 @@ window.CodformQuantityOffers = (function() {
           console.log("✅ Found quantity offers and product data");
           
           // ✅ SPEED BOOST: حفظ البيانات في cache
-          const cacheKey = `offers_${shop}_${productId}`;
+          const version = (window.CODFORM_APP_VERSION || '').toString();
+        const cacheKey = `offers_${version}_${shop}_${productId}`;
           const cacheData = {
             data: data,
             timestamp: Date.now()
@@ -932,7 +955,8 @@ window.CodformQuantityOffers = (function() {
           console.log("✅ Found quantity offers and product data");
           
           // ✅ SPEED BOOST: حفظ البيانات في cache 
-          const cacheKey = `offers_${shop}_${productId}`;
+          const version = (window.CODFORM_APP_VERSION || '').toString();
+        const cacheKey = `offers_${version}_${shop}_${productId}`;
           const cacheData = {
             data: { ...data, currency: window.CodformFormData.currency },
             timestamp: Date.now()
