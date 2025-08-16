@@ -829,7 +829,7 @@ export const CURRENCIES: Currency[] = [
     nameAr: 'ين ياباني',
     symbol: '¥',
     exchangeRate: 149
-
+  },
   {
     code: 'ZAR',
     name: 'South African Rand',
@@ -844,7 +844,6 @@ export const CURRENCIES: Currency[] = [
     symbol: 'KSh',
     exchangeRate: 130.5
   },
-,
   {
     code: 'NGN',
     name: 'Nigerian Naira',
