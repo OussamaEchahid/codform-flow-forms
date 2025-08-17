@@ -17,6 +17,16 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    // Enhanced debugging for the callback
+    const url = new URL(req.url);
+    console.log('🔗 OAuth Callback Debug:', {
+      method: req.method,
+      fullUrl: req.url,
+      pathname: url.pathname,
+      searchParams: Object.fromEntries(url.searchParams.entries()),
+      headers: Object.fromEntries(req.headers.entries())
+    });
+
     // Handle both GET (direct callback) and POST (from frontend)
     let code = '';
     let shopId = '';
@@ -24,9 +34,29 @@ serve(async (req) => {
     let redirectUri = '';
 
     if (req.method === 'GET') {
-      const url = new URL(req.url);
       code = url.searchParams.get('code') || '';
       const state = url.searchParams.get('state') || '';
+      const error = url.searchParams.get('error') || '';
+      const errorDescription = url.searchParams.get('error_description') || '';
+      
+      console.log('📥 GET Parameters:', {
+        code: code ? 'Present (' + code.length + ' chars)' : 'Missing',
+        state: state ? 'Present' : 'Missing',
+        error,
+        errorDescription,
+        allParams: Object.fromEntries(url.searchParams.entries())
+      });
+
+      if (error) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'oauth_error', 
+            details: error,
+            description: errorDescription 
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        );
+      }
       
       if (state) {
         try {
@@ -34,8 +64,9 @@ serve(async (req) => {
           shopId = decoded.s || '';
           userId = decoded.u || '';
           redirectUri = decoded.r || '';
+          console.log('🔓 State decoded:', { shopId, userId, redirectUri });
         } catch (e) {
-          console.error('State decode error:', e);
+          console.error('❌ State decode error:', e);
         }
       }
     } else {
@@ -44,6 +75,7 @@ serve(async (req) => {
       shopId = body.shop_id || '';
       userId = body.user_id || '';
       redirectUri = body.redirect_uri || '';
+      console.log('📨 POST Body:', { code: code ? 'Present' : 'Missing', shopId, userId, redirectUri });
     }
 
     if (!code) {
