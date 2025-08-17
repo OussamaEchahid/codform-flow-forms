@@ -56,49 +56,7 @@ const OrdersChannels = () => {
         } else {
           setGoogleSheetConfigs(data?.configs || []);
         }
-  // Connect Google via OAuth
-  const handleGoogleConnect = async () => {
-    try {
-      const redirectUri = `${window.location.origin}/oauth/google-callback`; // we will handle in frontend or simply close tab on success
-      const { data, error } = await supabase.functions.invoke('google-oauth-start', {
-        body: {},
-        // Pass redirect via query because function expects query; use URLSearchParams in client by GET
-      } as any);
-    } catch (_) {
-      // Fallback: open constructed URL via GET
-      const params = new URLSearchParams({ redirect_uri: `${window.location.origin}/oauth/google-callback` });
-      window.open(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-oauth-start?${params.toString()}`, '_blank');
-    }
-  };
 
-  const refreshSpreadsheets = async () => {
-    try {
-      const shopId = shop || localStorage.getItem('active_shopify_store') || '';
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-sheets-list?shop_id=${encodeURIComponent(shopId)}`);
-      const json = await res.json();
-      if (json.spreadsheets) {
-        setSpreadsheets(json.spreadsheets);
-        setGoogleConnected(true);
-      } else if (json.error === 'not_connected') {
-        setGoogleConnected(false);
-      }
-    } catch (e) {
-      console.error('Failed to list spreadsheets', e);
-    }
-  };
-
-  const refreshSheets = async (spreadsheetId: string) => {
-    try {
-      const shopId = shop || localStorage.getItem('active_shopify_store') || '';
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-sheets-list?shop_id=${encodeURIComponent(shopId)}&spreadsheet_id=${encodeURIComponent(spreadsheetId)}`);
-      const json = await res.json();
-      if (json.sheets) {
-        setSheets(json.sheets);
-      }
-    } catch (e) {
-      console.error('Failed to list sheets', e);
-    }
-  };
 
       } catch (error) {
         console.error('Error fetching configs:', error);
