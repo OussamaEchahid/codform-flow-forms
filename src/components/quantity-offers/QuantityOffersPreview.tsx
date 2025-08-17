@@ -184,19 +184,21 @@ const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
                   >
                     {offer.text || `Buy ${offer.quantity} Item${offer.quantity > 1 ? 's' : ''}`}
                   </div>
-                  {offer.tag && (
-                    <div
-                      className="inline-block px-2 py-1 rounded text-xs font-medium text-white mt-1"
-                      style={{ backgroundColor: styling.tagColor }}
-                    >
-                      {offer.tag}
-                    </div>
-                  )}
-                  {savingsPercentage > 0 && (
-                    <div className="inline-block px-2 py-1 rounded text-xs font-medium text-white mt-1 ml-2" style={{ backgroundColor: (styling.backgroundColor || '#22c55e') }}>
-                      {(form?.language === 'ar' || (form as any)?.direction === 'rtl') ? 'وفر' : 'Save'} {savingsPercentage}%
-                    </div>
-                  )}
+                  <div className={`flex items-center gap-2 mt-1 ${(form?.language === 'ar' || (form as any)?.direction === 'rtl' || form?.style?.formDirection === 'rtl') ? 'justify-end' : 'justify-start'}`}>
+                    {offer.tag && (
+                      <div
+                        className="inline-block px-2 py-1 rounded text-xs font-medium text-white"
+                        style={{ backgroundColor: styling.tagColor }}
+                      >
+                        {offer.tag}
+                      </div>
+                    )}
+                    {savingsPercentage > 0 && (
+                      <div className="inline-block px-2 py-1 rounded text-xs font-medium text-white" style={{ backgroundColor: (styling.tagColor || styling.backgroundColor || '#22c55e') }}>
+                        {(form?.language === 'ar' || (form as any)?.direction === 'rtl' || form?.style?.formDirection === 'rtl') ? 'وفر' : 'Save'} {savingsPercentage}%
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -212,11 +214,7 @@ const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
                 >
                   {CurrencyService.formatCurrency(totalPrice, displayCurrency)}
                 </div>
-                {offer.quantity > 1 && (
-                  <div className="text-xs text-gray-500 mt-1">
-                    {CurrencyService.formatCurrency(unitPrice, displayCurrency)} × {offer.quantity}
-                  </div>
-                )}
+
               </div>
             </div>
           );
