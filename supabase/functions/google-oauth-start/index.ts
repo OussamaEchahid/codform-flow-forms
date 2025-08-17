@@ -57,9 +57,8 @@ serve(async (req) => {
     const statePayload = { s: shopId || '', u: userId || '', r: redirectUri || '' };
     const state = encodeURIComponent(btoa(JSON.stringify(statePayload)));
 
-    // Use server-side callback function as redirect_uri (must match exactly what is registered in Google Console)
-    const functionCallbackBase = `${supabaseUrl}/functions/v1/google-oauth-callback`;
-    const redirectForGoogle = functionCallbackBase;
+    // Use a public callback (no JWT required) so Google can redirect successfully
+    const redirectForGoogle = `${supabaseUrl}/functions/v1/google-oauth-cb-public`;
 
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectForGoogle)}&scope=${scope}&access_type=offline&prompt=consent&state=${state}`;
 
