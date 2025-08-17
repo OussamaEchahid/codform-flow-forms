@@ -169,7 +169,7 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
     } catch { return hex; }
   };
   const baseColor = styling.backgroundColor || '#22c55e';
-  const cardBg = lightenColor(baseColor, 0.92);
+  const cardBg = '#ffffff';
   const selectedBg = lightenColor(baseColor, 0.96);
 
   return (
@@ -178,7 +178,7 @@ const QuantityOffersField: React.FC<QuantityOffersFieldProps> = ({
         const totalPrice = calculatePrice(offer);
         const originalPrice = realPrice * offer.quantity;
         const isDiscounted = offer.discountType !== 'none' && offer.discountValue && offer.discountValue > 0;
-        const isHighlighted = index === 1;
+        const isHighlighted = index === 0; // إبراز العرض الأول للمعاينة
 
         let savingsPercentage = 0;
         if (isDiscounted && offer.discountType === 'percentage') {

@@ -126,7 +126,7 @@ const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
           const totalPrice = calculatePrice(offer);
           const originalPrice = unitPrice * offer.quantity;
           const isDiscounted = offer.discountType !== 'none' && offer.discountValue && offer.discountValue > 0;
-          const isHighlighted = index === 1; // Highlight second offer
+          const isHighlighted = index === 0; // Highlight FIRST offer for preview
 
           // Calculate savings percentage for display
           let savingsPercentage = 0;
@@ -151,7 +151,7 @@ const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
             } catch { return hex; }
           };
           const baseColor = styling.backgroundColor || '#22c55e';
-          const cardBg = lightenColor(baseColor, 0.92);
+          const cardBg = '#ffffff';
           const selectedBg = lightenColor(baseColor, 0.96);
 
           return (

@@ -114,8 +114,8 @@ const QuantityOffersDisplay: React.FC<QuantityOffersDisplayProps> = ({
         const totalPrice = calculatePrice(offer);
         const originalPrice = realPrice * offer.quantity;
         const isDiscounted = offer.discountType !== 'none' && offer.discountValue && offer.discountValue > 0;
-        const isHighlighted = index === 1;
-        
+        const isHighlighted = index === 0; // إبراز الأول في المعاينة
+
         let savingsPercentage = 0;
         if (isDiscounted && offer.discountType === 'percentage') {
           savingsPercentage = offer.discountValue || 0;
@@ -128,16 +128,16 @@ const QuantityOffersDisplay: React.FC<QuantityOffersDisplayProps> = ({
         const formattedTotal = CurrencyService.formatCurrency(totalPrice, displayCurrency, lang);
         const formattedUnit = CurrencyService.formatCurrency(realPrice, displayCurrency, lang);
         return (
-          <div 
+          <div
             key={offer.id}
             className={`p-3 rounded-lg border-2 flex items-center justify-between transition-all cursor-pointer hover:shadow-md ${
-              isHighlighted 
-                ? 'border-green-500 bg-green-50 shadow-sm' 
+              isHighlighted
+                ? 'border-green-500 bg-green-50 shadow-sm'
                 : 'border-gray-200 bg-white'
             }`}
-            style={{ 
-              backgroundColor: styling.backgroundColor || '#22c55e',
-              direction: formDirection 
+            style={{
+              backgroundColor: isHighlighted ? '#f0fdf4' : '#ffffff',
+              direction: formDirection
             }}
           >
             <div className={`flex items-center ${formDirection === 'rtl' ? 'space-x-reverse space-x-3' : 'space-x-3'}`}>
