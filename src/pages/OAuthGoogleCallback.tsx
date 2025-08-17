@@ -8,6 +8,7 @@ export default function OAuthGoogleCallback() {
     const run = async () => {
       try {
         const params = new URLSearchParams(window.location.search);
+        const success = params.get('success');
         const code = params.get('code');
         const err = params.get('error');
 
@@ -16,6 +17,15 @@ export default function OAuthGoogleCallback() {
           return;
         }
 
+        // New flow: the server function already exchanged the code and redirected here with success=1
+        if (success === '1' || success === 'true') {
+          setMessage('Google connected. You can close this window.');
+          try { window.opener?.postMessage({ type: 'GOOGLE_CONNECTED' }, '*'); } catch {}
+          setTimeout(() => window.close(), 1200);
+          return;
+        }
+
+        // Backward compatibility: handle code on the client if present
         if (!code) {
           setMessage('Missing authorization code.');
           return;
@@ -29,16 +39,10 @@ export default function OAuthGoogleCallback() {
         const { data, error } = await supabase.functions.invoke('google-oauth-callback', {
           body: { code, redirect_uri, shop_id: shopId, user_id },
         });
-
         if (error) throw error;
-        if (!(data as any)?.success) {
-          console.warn('Unexpected callback response', data);
-        }
 
         setMessage('Google connected. You can close this window.');
-        try {
-          window.opener?.postMessage({ type: 'GOOGLE_CONNECTED' }, '*');
-        } catch (_) {}
+        try { window.opener?.postMessage({ type: 'GOOGLE_CONNECTED' }, '*'); } catch {}
         setTimeout(() => window.close(), 1200);
       } catch (e: any) {
         console.error('OAuth callback error', e);

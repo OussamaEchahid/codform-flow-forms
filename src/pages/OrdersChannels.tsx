@@ -66,13 +66,26 @@ const OrdersChannels = () => {
     if (actualHasAccess) {
       fetchConfigs();
     }
+
+    // Listen for callback from popup to auto-refresh connection state
+    const onMsg = (ev: MessageEvent) => {
+      if (ev?.data?.type === 'GOOGLE_CONNECTED') {
+        setGoogleConnected(true);
+        refreshSpreadsheets();
+      }
+    };
+    window.addEventListener('message', onMsg);
+    return () => window.removeEventListener('message', onMsg);
   }, [actualHasAccess]);
   // Google OAuth and Sheets helpers
   const handleGoogleConnect = async () => {
     try {
       const redirect_uri = `${window.location.origin}/oauth/google-callback`;
+      const shopId = (actualShop as string) || localStorage.getItem('active_shopify_store') || '';
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id || '';
       const { data, error } = await supabase.functions.invoke('google-oauth-start', {
-        body: { redirect_uri },
+        body: { redirect_uri, shop_id: shopId, user_id: userId },
       });
       if (error) throw error;
       const url = (data as any)?.auth_url || (data as any)?.url || (data as any);

@@ -19,34 +19,38 @@ serve(async (req) => {
 
     const url = new URL(req.url);
     let code = url.searchParams.get('code') || '';
-    let redirectUri = url.searchParams.get('redirect_uri') || '';
     let shopId = url.searchParams.get('shop_id') || '';
     let userId: string | null = url.searchParams.get('user_id') || null;
 
-    // Also accept JSON body for POST invocations
-    if (!code || !redirectUri || !shopId) {
+    // app_redirect carries the app page to show after saving tokens
+    let appRedirect = url.searchParams.get('app_redirect') || '';
+
+    // Accept JSON body fallback
+    if (!code) {
       try {
         const body = await req.json().catch(() => null) as any;
         if (body) {
-          code = code || body.code || '';
-          redirectUri = redirectUri || body.redirect_uri || body.redirectUri || '';
-          shopId = shopId || body.shop_id || body.shopId || '';
-          userId = userId || body.user_id || body.userId || null;
+          code = body.code || code;
+          shopId = body.shop_id || body.shopId || shopId;
+          userId = body.user_id || body.userId || userId;
+          appRedirect = body.app_redirect || appRedirect;
         }
-      } catch (_) {
-        // ignore body parse errors
-      }
+      } catch (_) {}
     }
 
-    if (!code || !redirectUri) {
+    if (!code) {
       return new Response(
-        JSON.stringify({ error: 'missing_parameters', message: 'code and redirect_uri are required' }),
+        JSON.stringify({ error: 'missing_code', message: 'Authorization code is required' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
 
     const clientId = Deno.env.get('GOOGLE_CLIENT_ID') ?? '';
     const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET') ?? '';
+
+    // Our redirect_uri for token exchange must equal the one used in the auth request
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const redirectUri = `${supabaseUrl}/functions/v1/google-oauth-callback`;
 
     // Exchange code for tokens
     const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
@@ -67,7 +71,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'token_exchange_failed', details: tokens }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 });
     }
 
-    // Optionally fetch user email
+    // Fetch user email (optional)
     let email: string | null = null;
     try {
       const infoRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
@@ -96,6 +100,13 @@ serve(async (req) => {
     if (error) {
       console.error('Saving tokens failed:', error);
       return new Response(JSON.stringify({ error: 'save_failed' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 });
+    }
+
+    // If we have an app redirect URL, bounce the browser there with success=1
+    if (appRedirect) {
+      const target = new URL(appRedirect);
+      target.searchParams.set('success', '1');
+      return new Response(null, { status: 302, headers: { ...corsHeaders, Location: target.toString() } });
     }
 
     return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });

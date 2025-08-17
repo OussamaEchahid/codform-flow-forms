@@ -15,12 +15,18 @@ serve(async (req) => {
 
     // Try to get redirect_uri from query, body, or fallback to Origin
     let redirectUri = url.searchParams.get('redirect_uri') || '';
+    let shopId = url.searchParams.get('shop_id') || '';
+    let userId = url.searchParams.get('user_id') || '';
 
-    if (!redirectUri) {
+    if (!redirectUri || !shopId || !userId) {
       try {
         const body = await req.json().catch(() => null) as any;
-        if (body && (body.redirect_uri || body.redirectUri)) {
-          redirectUri = body.redirect_uri || body.redirectUri;
+        if (body) {
+          if (!redirectUri && (body.redirect_uri || body.redirectUri)) {
+            redirectUri = body.redirect_uri || body.redirectUri;
+          }
+          if (!shopId && (body.shop_id || body.shopId)) shopId = body.shop_id || body.shopId;
+          if (!userId && (body.user_id || body.userId)) userId = body.user_id || body.userId;
         }
       } catch (_) {
         // ignore
@@ -29,9 +35,7 @@ serve(async (req) => {
 
     if (!redirectUri) {
       const origin = req.headers.get('origin') || '';
-      if (origin) {
-        redirectUri = `${origin}/oauth/google-callback`;
-      }
+      if (origin) redirectUri = `${origin}/oauth/google-callback`;
     }
 
     if (!redirectUri) {
@@ -42,6 +46,8 @@ serve(async (req) => {
     }
 
     const clientId = Deno.env.get('GOOGLE_CLIENT_ID') ?? '';
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+
     const scope = encodeURIComponent([
       'https://www.googleapis.com/auth/drive.readonly',
       'https://www.googleapis.com/auth/spreadsheets'
@@ -49,9 +55,13 @@ serve(async (req) => {
 
     const state = crypto.randomUUID();
 
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&access_type=offline&prompt=consent&state=${state}`;
+    // Use server-side callback function as redirect_uri for reliability
+    const functionCallbackBase = `${supabaseUrl}/functions/v1/google-oauth-callback`;
+    const redirectForGoogle = `${functionCallbackBase}?shop_id=${encodeURIComponent(shopId || '')}&user_id=${encodeURIComponent(userId || '')}&app_redirect=${encodeURIComponent(redirectUri)}`;
 
-    return new Response(JSON.stringify({ url: authUrl, auth_url: authUrl, state }), {
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectForGoogle)}&scope=${scope}&access_type=offline&prompt=consent&state=${state}`;
+
+    return new Response(JSON.stringify({ url: authUrl, auth_url: authUrl, state, used_redirect_uri: redirectForGoogle }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     });
