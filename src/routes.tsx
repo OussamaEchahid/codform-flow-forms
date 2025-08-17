@@ -133,6 +133,10 @@ export const routes: RouteObject[] = [
     Component: Support,
   },
   {
+    path: '/oauth/google-callback',
+    Component: () => import('@/pages/OAuthGoogleCallback').then(m => ({ default: m.default }))
+  },
+  {
     path: '*',
     Component: NotFound
   }

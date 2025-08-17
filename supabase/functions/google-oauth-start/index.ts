@@ -57,8 +57,9 @@ serve(async (req) => {
     const statePayload = { s: shopId || '', u: userId || '', r: redirectUri || '' };
     const state = encodeURIComponent(btoa(JSON.stringify(statePayload)));
 
-    // Use the frontend callback URL registered in Google Console to receive the code on the client
-    const redirectForGoogle = 'https://codmagnet.com/oauth/google-callback';
+    // Use the Supabase function URL as redirect_uri for Google OAuth
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const redirectForGoogle = `${supabaseUrl}/functions/v1/google-oauth-callback`;
 
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectForGoogle)}&scope=${scope}&access_type=offline&prompt=consent&state=${state}`;
 
