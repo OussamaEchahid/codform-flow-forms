@@ -66,18 +66,49 @@ serve(async (req) => {
           .eq('sync_orders', true)
           .single();
 
-        if (sheetsConfig && sheetsConfig.webhook_url) {
-          await fetch(sheetsConfig.webhook_url, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              type: 'new_order',
-              order: data,
-              timestamp: new Date().toISOString()
-            }),
-          });
+        if (sheetsConfig) {
+          // Try direct Sheets API via form mapping first
+          try {
+            const { data: mapping } = await supabase
+              .from('google_sheets_form_mappings')
+              .select('*')
+              .eq('shop_id', data.shop_id)
+              .eq('form_id', data.form_id)
+              .eq('enabled', true)
+              .single();
+
+            const row = [
+              new Date().toISOString(),
+              data.order_number,
+              data.customer_name,
+              data.customer_phone,
+              data.currency,
+              data.total_amount?.toString() || '',
+              'order',
+              data.status
+            ];
+
+            if (mapping && mapping.spreadsheet_id && mapping.sheet_title) {
+              await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/google-sheets-append`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  shop_id: data.shop_id,
+                  spreadsheet_id: mapping.spreadsheet_id,
+                  sheet_title: mapping.sheet_title,
+                  values: [row]
+                })
+              });
+            } else if (sheetsConfig.webhook_url) {
+              await fetch(sheetsConfig.webhook_url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: 'new_order', order: data, timestamp: new Date().toISOString() }),
+              });
+            }
+          } catch (e) {
+            console.log('Google Sheets sync failed (append/webhook):', e);
+          }
         }
       } catch (sheetError) {
         console.log('Google Sheets sync failed:', sheetError);
