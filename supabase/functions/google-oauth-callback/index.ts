@@ -110,7 +110,10 @@ serve(async (req) => {
 
     if (error) {
       console.error('Saving tokens failed:', error);
-      return new Response(JSON.stringify({ error: 'save_failed' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 });
+      return new Response(
+        JSON.stringify({ error: 'save_failed', details: error?.message || error, code: (error as any)?.code }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
     }
 
     // If we have an app redirect URL, bounce the browser there with success=1
