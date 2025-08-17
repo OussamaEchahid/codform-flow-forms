@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, SUPABASE_URL } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 const OrdersChannels = () => {
@@ -67,6 +67,45 @@ const OrdersChannels = () => {
       fetchConfigs();
     }
   }, [actualHasAccess]);
+  // Google OAuth and Sheets helpers
+  const handleGoogleConnect = () => {
+    try {
+      const params = new URLSearchParams({ redirect_uri: `${window.location.origin}/oauth/google-callback` });
+      window.open(`${SUPABASE_URL}/functions/v1/google-oauth-start?${params.toString()}`, '_blank');
+    } catch (e) {
+      console.error('Failed to open Google OAuth', e);
+    }
+  };
+
+  const refreshSpreadsheets = async () => {
+    try {
+      const shopId = (actualShop as string) || localStorage.getItem('active_shopify_store') || '';
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/google-sheets-list?shop_id=${encodeURIComponent(shopId)}`);
+      const json = await res.json();
+      if (json.spreadsheets) {
+        setSpreadsheets(json.spreadsheets);
+        setGoogleConnected(true);
+      } else if (json.error === 'not_connected') {
+        setGoogleConnected(false);
+      }
+    } catch (e) {
+      console.error('Failed to list spreadsheets', e);
+    }
+  };
+
+  const refreshSheets = async (spreadsheetId: string) => {
+    try {
+      const shopId = (actualShop as string) || localStorage.getItem('active_shopify_store') || '';
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/google-sheets-list?shop_id=${encodeURIComponent(shopId)}&spreadsheet_id=${encodeURIComponent(spreadsheetId)}`);
+      const json = await res.json();
+      if (json.sheets) {
+        setSheets(json.sheets);
+      }
+    } catch (e) {
+      console.error('Failed to list sheets', e);
+    }
+  };
+
 
   const handleAddGoogleSheets = async () => {
     try {
@@ -278,16 +317,14 @@ const OrdersChannels = () => {
                   <div className="space-y-4">
                     <div>
                       <Label htmlFor="sheet_id">
-
-						{/* Divider */}
-						<hr className="my-4" />
-
                         {language === 'ar' ? 'معرف الجدول' : 'Sheet ID'}
                       </Label>
                       <Input
                         id="sheet_id"
                         value={newConfig.sheet_id}
-                        onChange={(e) => setNewConfig({...newConfig, sheet_id: e.target.value})}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewConfig({...newConfig, sheet_id: e.target.value})}
+                        placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms"
+                      />
 
                   {/* Google OAuth connect + selectors like screenshot */}
                   <div className="space-y-3">
@@ -331,6 +368,7 @@ const OrdersChannels = () => {
                     <div className="mt-4">
                       <p className="text-sm font-medium mb-2">{language === 'ar' ? 'اختيار النماذج لإرسالها إلى ورقة محددة' : 'Select which forms to sync and target sheet'}</p>
                       <div className="space-y-2 max-h-56 overflow-auto border rounded p-2">
+
                         {Array.isArray((window as any).cachedForms) ? (window as any).cachedForms.map((form: any) => {
                           const mapping = formMappings[form.id] || { spreadsheet_id: selectedSpreadsheet, sheet_id: selectedSheet.split('|')[0], sheet_title: selectedSheet.split('|')[1] };
                           return (
@@ -357,8 +395,7 @@ const OrdersChannels = () => {
                     </div>
                   </div>
 
-                        placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms"
-                      />
+
                     </div>
                     <div>
                       <Label htmlFor="sheet_name">
