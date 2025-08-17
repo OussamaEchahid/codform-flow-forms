@@ -108,19 +108,44 @@ Deno.serve(async (req) => {
       offers = autoOffers
     }
 
-    const formCurrency = settings.forms?.currency
-    const formCountry = settings.forms?.country
-    const formPhonePrefix = settings.forms?.phone_prefix
+    let formCurrency = settings.forms?.currency
+    let formCountry = settings.forms?.country
+    let formPhonePrefix = settings.forms?.phone_prefix
+
+    // Fallback: auto-detect currency/country if missing on the form
+    if (!formCurrency) {
+      try {
+        const { data: storeInfo } = await supabase
+          .from('shopify_stores')
+          .select('currency, country, access_token')
+          .eq('shop', shop)
+          .single();
+
+        if (storeInfo?.currency) {
+          formCurrency = storeInfo.currency;
+          formCountry = formCountry || storeInfo.country || formCountry;
+        }
+
+        // As a stronger fallback, try Shopify GraphQL to read shop.currencyCode
+        if (!formCurrency && storeInfo?.access_token) {
+          const gql = await shopifyGQL(shop!, storeInfo.access_token, `
+            query ShopCurrency { shop { currencyCode } }
+          `);
+          const shopCurrency = gql?.shop?.currencyCode;
+          if (shopCurrency) {
+            formCurrency = shopCurrency;
+          }
+        }
+      } catch (e) {
+        // ignore and fallback below
+      }
+    }
 
     if (!formCurrency) {
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: 'NO_CURRENCY_CONFIGURED',
-        message: 'Form currency not configured' 
-      }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      })
+      // Final fallback to prevent storefront breakage
+      formCurrency = 'MAD';
+      if (!formCountry) formCountry = 'MA';
+      if (!formPhonePrefix) formPhonePrefix = '+212';
     }
 
     // Fetch store token

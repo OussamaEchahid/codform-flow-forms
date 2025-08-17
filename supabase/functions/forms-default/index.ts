@@ -172,18 +172,39 @@ serve(async (req: Request) => {
         timestamp: Date.now()
       });
       
+      // Ensure currency/country exist; auto-detect simple defaults if missing to avoid storefront breakage
+      const safeForm = { ...formData } as any;
+      if (!safeForm.currency) {
+        try {
+          const { data: storeInfo } = await supabase
+            .from('shopify_stores')
+            .select('currency, country')
+            .eq('shop', shop)
+            .single();
+          if (storeInfo?.currency) {
+            safeForm.currency = storeInfo.currency;
+            safeForm.country = safeForm.country || storeInfo.country;
+          }
+        } catch {}
+        if (!safeForm.currency) {
+          safeForm.currency = 'MAD';
+          safeForm.country = safeForm.country || 'MA';
+          safeForm.phone_prefix = safeForm.phone_prefix || '+212';
+        }
+      }
+
       return new Response(
-        JSON.stringify({ 
-          form: formData,
+        JSON.stringify({
+          form: safeForm,
           success: true
         }),
-        { 
+        {
           headers: {
             ...corsHeaders,
             'Cache-Control': 'public, max-age=300',
             'Content-Type': 'application/json'
-          }, 
-          status: 200 
+          },
+          status: 200
         }
       );
     } else {
