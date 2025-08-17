@@ -17,36 +17,33 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const url = new URL(req.url);
-    let code = url.searchParams.get('code') || '';
+    // Handle both GET (direct callback) and POST (from frontend)
+    let code = '';
+    let shopId = '';
+    let userId = '';
+    let redirectUri = '';
 
-    // Decode app context from state (preferred)
-    let shopId = '' as string;
-    let userId: string | null = null;
-    let appRedirect = '' as string;
-    const state = url.searchParams.get('state') || '';
-    if (state) {
-      try {
-        const decoded = JSON.parse(atob(decodeURIComponent(state)));
-        shopId = decoded.s || '';
-        userId = decoded.u || null;
-        appRedirect = decoded.r || '';
-      } catch (_) {
-        // ignore state parse errors
-      }
-    }
-
-    // Accept JSON body fallback
-    if (!code) {
-      try {
-        const body = await req.json().catch(() => null) as any;
-        if (body) {
-          code = body.code || code;
-          shopId = body.shop_id || body.shopId || shopId;
-          userId = body.user_id || body.userId || userId;
-          appRedirect = body.app_redirect || appRedirect;
+    if (req.method === 'GET') {
+      const url = new URL(req.url);
+      code = url.searchParams.get('code') || '';
+      const state = url.searchParams.get('state') || '';
+      
+      if (state) {
+        try {
+          const decoded = JSON.parse(atob(decodeURIComponent(state)));
+          shopId = decoded.s || '';
+          userId = decoded.u || '';
+          redirectUri = decoded.r || '';
+        } catch (e) {
+          console.error('State decode error:', e);
         }
-      } catch (_) {}
+      }
+    } else {
+      const body = await req.json().catch(() => ({})) as any;
+      code = body.code || '';
+      shopId = body.shop_id || '';
+      userId = body.user_id || '';
+      redirectUri = body.redirect_uri || '';
     }
 
     if (!code) {
@@ -59,9 +56,10 @@ serve(async (req) => {
     const clientId = Deno.env.get('GOOGLE_CLIENT_ID') ?? '';
     const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET') ?? '';
 
-    // Our redirect_uri for token exchange must equal the one used in the auth request
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-    const redirectUri = `${supabaseUrl}/functions/v1/google-oauth-callback`;
+    // Use the same redirect_uri that was used in the auth request
+    const tokenRedirectUri = redirectUri || `${req.headers.get('origin')}/oauth/google-callback`;
+
+    console.log('Token exchange with redirect_uri:', tokenRedirectUri);
 
     // Exchange code for tokens
     const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
@@ -71,7 +69,7 @@ serve(async (req) => {
         code,
         client_id: clientId,
         client_secret: clientSecret,
-        redirect_uri: redirectUri,
+        redirect_uri: tokenRedirectUri,
         grant_type: 'authorization_code'
       })
     });
@@ -79,10 +77,17 @@ serve(async (req) => {
     const tokens = await tokenRes.json();
     if (!tokenRes.ok) {
       console.error('Token exchange failed:', tokens);
-      return new Response(JSON.stringify({ error: 'token_exchange_failed', details: tokens }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 });
+      return new Response(JSON.stringify({ 
+        error: 'token_exchange_failed', 
+        details: tokens,
+        redirect_uri_used: tokenRedirectUri
+      }), { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+        status: 400 
+      });
     }
 
-    // Fetch user email (optional)
+    // Fetch user email
     let email: string | null = null;
     try {
       const infoRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
@@ -92,56 +97,67 @@ serve(async (req) => {
         const info = await infoRes.json();
         email = info.email || null;
       }
-    } catch (_) {}
+    } catch (e) {
+      console.error('Failed to fetch user info:', e);
+    }
 
     // Store tokens
     const { error } = await supabase
       .from('google_oauth_tokens')
-      .insert({
-        user_id: userId,
-        shop_id: shopId,
+      .upsert({
+        user_id: userId || null,
+        shop_id: shopId || null,
         email,
         access_token: tokens.access_token,
         refresh_token: tokens.refresh_token,
-        token_type: tokens.token_type,
+        token_type: tokens.token_type || 'Bearer',
         scope: tokens.scope,
-        expiry: tokens.expires_in ? new Date(Date.now() + tokens.expires_in * 1000).toISOString() : null
+        expiry: tokens.expires_in ? new Date(Date.now() + tokens.expires_in * 1000).toISOString() : null,
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'user_id,shop_id'
       });
 
     if (error) {
       console.error('Saving tokens failed:', error);
       return new Response(
-        JSON.stringify({ error: 'save_failed', details: error?.message || error, code: (error as any)?.code }),
+        JSON.stringify({ error: 'save_failed', details: error?.message }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
 
-    // Determine where to bounce the browser after success
-    let redirectTarget = appRedirect;
-
-    // Fallbacks if state didn't include app redirect
-    if (!redirectTarget) {
-      const origin = req.headers.get('origin') || '';
-      if (origin) redirectTarget = `${origin.replace(/\/$/, '')}/oauth/google-callback`;
-    }
-    if (!redirectTarget) {
-      const frontend = Deno.env.get('FRONTEND_URL') || '';
-      if (frontend) redirectTarget = `${frontend.replace(/\/$/, '')}/oauth/google-callback`;
-    }
-
-    if (redirectTarget) {
+    // For GET requests (direct callbacks), redirect to frontend with success
+    if (req.method === 'GET' && redirectUri) {
       try {
-        const target = new URL(redirectTarget);
+        const target = new URL(redirectUri);
         target.searchParams.set('success', '1');
-        return new Response(null, { status: 302, headers: { ...corsHeaders, Location: target.toString() } });
-      } catch (_) {
-        // ignore and fall through
+        return new Response(null, { 
+          status: 302, 
+          headers: { ...corsHeaders, Location: target.toString() } 
+        });
+      } catch (e) {
+        console.error('Redirect error:', e);
       }
     }
 
-    // As a last resort return JSON
-    return new Response(JSON.stringify({ success: true, note: 'no_redirect_url' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
+    // For POST requests, return JSON success
+    return new Response(JSON.stringify({ 
+      success: true, 
+      email,
+      message: 'Google account connected successfully' 
+    }), { 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+      status: 200 
+    });
+
   } catch (e) {
-    return new Response(JSON.stringify({ error: e?.message || 'failed' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 });
+    console.error('OAuth callback error:', e);
+    return new Response(JSON.stringify({ 
+      error: e?.message || 'failed',
+      stack: e?.stack 
+    }), { 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+      status: 500 
+    });
   }
 });
