@@ -314,77 +314,86 @@ const OrdersChannels = () => {
                         : 'Set up Google Sheets integration to automatically sync data'}
                     </DialogDescription>
                   </DialogHeader>
-                  <div className="space-y-4">
+                  <div className="space-y-6">
+                    {/* 1) Connection */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-2 h-2 rounded-full ${googleConnected ? 'bg-green-500' : 'bg-gray-400'}`} />
+                          <span className="text-sm text-muted-foreground">
+                            {googleConnected
+                              ? (language === 'ar' ? 'متصل بـ Google' : 'Connected to Google')
+                              : (language === 'ar' ? 'غير متصل بـ Google' : 'Not connected to Google')}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button onClick={handleGoogleConnect} variant={googleConnected ? 'secondary' : 'default'}>
+                            {googleConnected ? (language === 'ar' ? 'إعادة الاتصال بـ Google' : 'Reconnect Google') : (language === 'ar' ? 'اتصل بحساب Google' : 'Connect Google account')}
+                          </Button>
+                          <Button variant="outline" onClick={refreshSpreadsheets}>{language === 'ar' ? 'تحديث' : 'Refresh'}</Button>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Switch id="enable_auto_import" checked={enableAutoImport} onCheckedChange={setEnableAutoImport} />
+                        <Label htmlFor="enable_auto_import" className="!mt-0 text-sm">
+                          {language === 'ar' ? 'تفعيل الاستيراد التلقائي للطلبات إلى Google Sheets' : 'Enable automatic import of your orders on Google Sheets'}
+                        </Label>
+                      </div>
+                    </div>
+
+                    <div className="h-px bg-border" />
+
+                    {/* 2) Destination (Spreadsheet / Sheet) */}
+                    <div className="space-y-3">
+                      <div>
+                        <Label className="text-sm font-medium">{language === 'ar' ? 'اختر الملف' : 'Select your spreadsheet'}</Label>
+                        <div className="flex gap-2 mt-1">
+                          <select className="flex-1 border rounded px-2 py-1" value={selectedSpreadsheet} onChange={(e) => { setSelectedSpreadsheet(e.target.value); if (e.target.value) refreshSheets(e.target.value); }}>
+                            <option value="">{language === 'ar' ? 'اختر...' : 'Select...'}</option>
+                            {spreadsheets.map((f: any) => (
+                              <option key={f.id} value={f.id}>{f.name}</option>
+                            ))}
+                          </select>
+                          <Button variant="outline" onClick={() => selectedSpreadsheet && refreshSheets(selectedSpreadsheet)}>{language === 'ar' ? 'تحديث' : 'Refresh'}</Button>
+                        </div>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium">{language === 'ar' ? 'اختر الورقة' : 'Select your sheet'}</Label>
+                        <div className="flex gap-2 mt-1">
+                          <select className="flex-1 border rounded px-2 py-1" value={selectedSheet} onChange={(e) => setSelectedSheet(e.target.value)} disabled={!selectedSpreadsheet}>
+                            <option value="">{language === 'ar' ? 'اختر...' : 'Select...'}</option>
+                            {sheets.map((s: any) => (
+                              <option key={s.id} value={`${s.id}|${s.title}`}>{s.title}</option>
+                            ))}
+                          </select>
+                          <Button variant="outline" onClick={() => selectedSpreadsheet && refreshSheets(selectedSpreadsheet)} disabled={!selectedSpreadsheet}>{language === 'ar' ? 'تحديث' : 'Refresh'}</Button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="h-px bg-border" />
+
+                    {/* 3) Per-form routing (optional) */}
                     <div>
-                      <Label htmlFor="sheet_id">
-                        {language === 'ar' ? 'معرف الجدول' : 'Sheet ID'}
-                      </Label>
-                      <Input
-                        id="sheet_id"
-                        value={newConfig.sheet_id}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewConfig({...newConfig, sheet_id: e.target.value})}
-                        placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms"
-                      />
-
-                  {/* Google OAuth connect + selectors like screenshot */}
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      <Button onClick={handleGoogleConnect} variant={googleConnected ? 'secondary' : 'default'}>
-                        {googleConnected ? (language === 'ar' ? 'إعادة الاتصال بـ Google' : 'Reconnect Google') : (language === 'ar' ? 'اتصل بحساب Google' : 'Connect Google account')}
-                      </Button>
-                      <Button variant="outline" onClick={refreshSpreadsheets}>{language === 'ar' ? 'تحديث' : 'Refresh'}</Button>
-                    </div>
-
-                    <div className="flex items-center gap-2 mt-2">
-                      <input type="checkbox" checked={enableAutoImport} onChange={(e) => setEnableAutoImport(e.target.checked)} />
-                      <span className="text-sm">{language === 'ar' ? 'تفعيل الاستيراد التلقائي للطلبات إلى Google Sheets' : 'Enable automatic import of your orders on Google Sheets'}</span>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-sm">{language === 'ar' ? 'اختر الملف' : 'Select your spreadsheet'}</Label>
-                      <div className="flex gap-2">
-                        <select className="flex-1 border rounded px-2 py-1" value={selectedSpreadsheet} onChange={(e) => { setSelectedSpreadsheet(e.target.value); if (e.target.value) refreshSheets(e.target.value); }}>
-                          <option value="">{language === 'ar' ? 'اختر...' : 'Select...'}</option>
-                          {spreadsheets.map((f) => (
-                            <option key={f.id} value={f.id}>{f.name}</option>
-                          ))}
-                        </select>
-                        <Button variant="outline" onClick={() => selectedSpreadsheet && refreshSheets(selectedSpreadsheet)}>{language === 'ar' ? 'تحديث' : 'Refresh'}</Button>
-                      </div>
-
-                      <Label className="text-sm">{language === 'ar' ? 'اختر الورقة' : 'Select your sheet'}</Label>
-                      <div className="flex gap-2">
-                        <select className="flex-1 border rounded px-2 py-1" value={selectedSheet} onChange={(e) => setSelectedSheet(e.target.value)} disabled={!selectedSpreadsheet}>
-                          <option value="">{language === 'ar' ? 'اختر...' : 'Select...'}</option>
-                          {sheets.map((s) => (
-                            <option key={s.id} value={`${s.id}|${s.title}`}>{s.title}</option>
-                          ))}
-                        </select>
-                        <Button variant="outline" onClick={() => selectedSpreadsheet && refreshSheets(selectedSpreadsheet)} disabled={!selectedSpreadsheet}>{language === 'ar' ? 'تحديث' : 'Refresh'}</Button>
-                      </div>
-                    </div>
-
-                    {/* Per-form routing */}
-                    <div className="mt-4">
                       <p className="text-sm font-medium mb-2">{language === 'ar' ? 'اختيار النماذج لإرسالها إلى ورقة محددة' : 'Select which forms to sync and target sheet'}</p>
                       <div className="space-y-2 max-h-56 overflow-auto border rounded p-2">
-
                         {Array.isArray((window as any).cachedForms) ? (window as any).cachedForms.map((form: any) => {
                           const mapping = formMappings[form.id] || { spreadsheet_id: selectedSpreadsheet, sheet_id: selectedSheet.split('|')[0], sheet_title: selectedSheet.split('|')[1] };
                           return (
                             <div key={form.id} className="flex items-center gap-2">
-                              <input type="checkbox" checked={!!formMappings[form.id]} onChange={(e) => setFormMappings(prev => ({ ...prev, [form.id]: e.target.checked ? mapping : undefined as any }))} />
+                              <input type="checkbox" checked={!!formMappings[form.id]} onChange={(e) => setFormMappings((prev: any) => ({ ...prev, [form.id]: (e.target as HTMLInputElement).checked ? mapping : undefined as any }))} />
                               <span className="text-sm flex-1 truncate">{form.title}</span>
-                              <select className="border rounded px-2 py-1" value={mapping.spreadsheet_id || ''} onChange={(e) => setFormMappings(prev => ({ ...prev, [form.id]: { ...(prev[form.id] || {}), spreadsheet_id: e.target.value } }))}>
+                              <select className="border rounded px-2 py-1" value={mapping.spreadsheet_id || ''} onChange={(e) => setFormMappings((prev: any) => ({ ...prev, [form.id]: { ...(prev[form.id] || {}), spreadsheet_id: (e.target as HTMLSelectElement).value } }))}>
                                 <option value="">{language === 'ar' ? 'الملف' : 'Spreadsheet'}</option>
-                                {spreadsheets.map((f) => (<option key={f.id} value={f.id}>{f.name}</option>))}
+                                {spreadsheets.map((f: any) => (<option key={f.id} value={f.id}>{f.name}</option>))}
                               </select>
                               <select className="border rounded px-2 py-1" value={mapping.sheet_id || ''} onChange={(e) => {
-                                const [sid, title] = [e.target.value, (sheets.find((s:any)=>String(s.id)===String(e.target.value))||{}).title];
-                                setFormMappings(prev => ({ ...prev, [form.id]: { ...(prev[form.id] || {}), sheet_id: sid, sheet_title: title } }));
+                                const target = e.target as HTMLSelectElement;
+                                const [sid, title] = [target.value, (sheets.find((s:any)=>String(s.id)===String(target.value))||{}).title];
+                                setFormMappings((prev: any) => ({ ...prev, [form.id]: { ...(prev[form.id] || {}), sheet_id: sid, sheet_title: title } }));
                               }}>
                                 <option value="">{language === 'ar' ? 'الورقة' : 'Sheet'}</option>
-                                {sheets.map((s) => (<option key={s.id} value={s.id}>{s.title}</option>))}
+                                {sheets.map((s: any) => (<option key={s.id} value={s.id}>{s.title}</option>))}
                               </select>
                             </div>
                           );
@@ -393,52 +402,38 @@ const OrdersChannels = () => {
                         )}
                       </div>
                     </div>
-                  </div>
 
+                    <div className="h-px bg-border" />
 
+                    {/* 4) Optional settings */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="sheet_id_opt" className="text-sm font-medium">{language === 'ar' ? 'معرف الجدول (اختياري)' : 'Sheet ID (optional)'}</Label>
+                        <Input id="sheet_id_opt" value={newConfig.sheet_id} onChange={(e) => setNewConfig({ ...newConfig, sheet_id: e.target.value })} placeholder="1BxiMVs0..." />
+                      </div>
+                      <div>
+                        <Label htmlFor="sheet_name" className="text-sm font-medium">{language === 'ar' ? 'اسم الورقة' : 'Sheet Name'}</Label>
+                        <Input id="sheet_name" value={newConfig.sheet_name} onChange={(e) => setNewConfig({ ...newConfig, sheet_name: e.target.value })} placeholder={language === 'ar' ? 'ورقة الطلبات' : 'Orders Sheet'} />
+                      </div>
+                      <div className="md:col-span-2">
+                        <Label htmlFor="webhook_url" className="text-sm font-medium">{language === 'ar' ? 'رابط الـ Webhook (Zapier/Make) (اختياري)' : 'Webhook URL (Zapier/Make) (optional)'}</Label>
+                        <Input id="webhook_url" value={newConfig.webhook_url} onChange={(e) => setNewConfig({ ...newConfig, webhook_url: e.target.value })} placeholder="https://hooks.zapier.com/hooks/catch/..." />
+                        <p className="text-xs text-muted-foreground mt-1">{language === 'ar' ? 'يُستخدم كحل احتياطي عند عدم ضبط الملف/الورقة' : 'Used as a fallback when spreadsheet/sheet are not configured'}</p>
+                      </div>
                     </div>
-                    <div>
-                      <Label htmlFor="sheet_name">
-                        {language === 'ar' ? 'اسم الجدول' : 'Sheet Name'}
-                      </Label>
-                      <Input
-                        id="sheet_name"
-                        value={newConfig.sheet_name}
-                        onChange={(e) => setNewConfig({...newConfig, sheet_name: e.target.value})}
-                        placeholder={language === 'ar' ? 'ورقة الطلبات' : 'Orders Sheet'}
-                      />
+
+                    {/* 5) Sync options */}
+                    <div className="flex flex-wrap items-center gap-6">
+                      <div className="flex items-center gap-2">
+                        <Switch id="sync_orders" checked={newConfig.sync_orders} onCheckedChange={(checked) => setNewConfig({ ...newConfig, sync_orders: checked as boolean })} />
+                        <Label htmlFor="sync_orders" className="!mt-0">{language === 'ar' ? 'مزامنة الطلبات' : 'Sync Orders'}</Label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Switch id="sync_submissions" checked={newConfig.sync_submissions} onCheckedChange={(checked) => setNewConfig({ ...newConfig, sync_submissions: checked as boolean })} />
+                        <Label htmlFor="sync_submissions" className="!mt-0">{language === 'ar' ? 'مزامنة النماذج' : 'Sync Form Submissions'}</Label>
+                      </div>
                     </div>
-                    <div>
-                      <Label htmlFor="webhook_url">
-                        {language === 'ar' ? 'رابط الـ Webhook (Zapier/Make)' : 'Webhook URL (Zapier/Make)'}
-                      </Label>
-                      <Input
-                        id="webhook_url"
-                        value={newConfig.webhook_url}
-                        onChange={(e) => setNewConfig({...newConfig, webhook_url: e.target.value})}
-                        placeholder="https://hooks.zapier.com/hooks/catch/..."
-                      />
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id="sync_orders"
-                        checked={newConfig.sync_orders}
-                        onCheckedChange={(checked) => setNewConfig({...newConfig, sync_orders: checked})}
-                      />
-                      <Label htmlFor="sync_orders">
-                        {language === 'ar' ? 'مزامنة الطلبات' : 'Sync Orders'}
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id="sync_submissions"
-                        checked={newConfig.sync_submissions}
-                        onCheckedChange={(checked) => setNewConfig({...newConfig, sync_submissions: checked})}
-                      />
-                      <Label htmlFor="sync_submissions">
-                        {language === 'ar' ? 'مزامنة النماذج' : 'Sync Form Submissions'}
-                      </Label>
-                    </div>
+
                     <Button onClick={handleAddGoogleSheets} className="w-full">
                       {language === 'ar' ? 'إضافة التكامل' : 'Add Integration'}
                     </Button>
