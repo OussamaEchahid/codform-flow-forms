@@ -130,9 +130,9 @@ const QuantityOffers = () => {
     offers: [],
     styling: {
       backgroundColor: '#22c55e',
-      textColor: '#ffffff',
+      textColor: '#000000',
       tagColor: '#22c55e',
-      priceColor: '#ffffff'
+      priceColor: '#000000'
     },
     position: 'before_form'
   });
