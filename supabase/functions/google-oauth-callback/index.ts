@@ -116,14 +116,31 @@ serve(async (req) => {
       );
     }
 
-    // If we have an app redirect URL, bounce the browser there with success=1
-    if (appRedirect) {
-      const target = new URL(appRedirect);
-      target.searchParams.set('success', '1');
-      return new Response(null, { status: 302, headers: { ...corsHeaders, Location: target.toString() } });
+    // Determine where to bounce the browser after success
+    let redirectTarget = appRedirect;
+
+    // Fallbacks if state didn't include app redirect
+    if (!redirectTarget) {
+      const origin = req.headers.get('origin') || '';
+      if (origin) redirectTarget = `${origin.replace(/\/$/, '')}/oauth/google-callback`;
+    }
+    if (!redirectTarget) {
+      const frontend = Deno.env.get('FRONTEND_URL') || '';
+      if (frontend) redirectTarget = `${frontend.replace(/\/$/, '')}/oauth/google-callback`;
     }
 
-    return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
+    if (redirectTarget) {
+      try {
+        const target = new URL(redirectTarget);
+        target.searchParams.set('success', '1');
+        return new Response(null, { status: 302, headers: { ...corsHeaders, Location: target.toString() } });
+      } catch (_) {
+        // ignore and fall through
+      }
+    }
+
+    // As a last resort return JSON
+    return new Response(JSON.stringify({ success: true, note: 'no_redirect_url' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
   } catch (e) {
     return new Response(JSON.stringify({ error: e?.message || 'failed' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 });
   }
