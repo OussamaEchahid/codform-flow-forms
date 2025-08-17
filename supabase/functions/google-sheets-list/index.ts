@@ -54,8 +54,13 @@ serve(async (req) => {
     );
 
     const url = new URL(req.url);
-    const shopId = url.searchParams.get('shop_id') || '';
-    const spreadsheetId = url.searchParams.get('spreadsheet_id');
+    let body: any = null;
+    if (req.method !== 'GET') {
+      body = await req.json().catch(() => null);
+    }
+
+    const shopId = url.searchParams.get('shop_id') || body?.shop_id || body?.shopId || '';
+    const spreadsheetId = url.searchParams.get('spreadsheet_id') || body?.spreadsheet_id || body?.spreadsheetId;
 
     const token = await getValidAccessToken(supabase, shopId);
     if (!token) {

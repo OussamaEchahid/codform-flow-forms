@@ -18,10 +18,32 @@ serve(async (req) => {
     );
 
     const url = new URL(req.url);
-    const code = url.searchParams.get('code') || '';
-    const redirectUri = url.searchParams.get('redirect_uri') || '';
-    const shopId = url.searchParams.get('shop_id') || '';
-    const userId = url.searchParams.get('user_id') || null;
+    let code = url.searchParams.get('code') || '';
+    let redirectUri = url.searchParams.get('redirect_uri') || '';
+    let shopId = url.searchParams.get('shop_id') || '';
+    let userId: string | null = url.searchParams.get('user_id') || null;
+
+    // Also accept JSON body for POST invocations
+    if (!code || !redirectUri || !shopId) {
+      try {
+        const body = await req.json().catch(() => null) as any;
+        if (body) {
+          code = code || body.code || '';
+          redirectUri = redirectUri || body.redirect_uri || body.redirectUri || '';
+          shopId = shopId || body.shop_id || body.shopId || '';
+          userId = userId || body.user_id || body.userId || null;
+        }
+      } catch (_) {
+        // ignore body parse errors
+      }
+    }
+
+    if (!code || !redirectUri) {
+      return new Response(
+        JSON.stringify({ error: 'missing_parameters', message: 'code and redirect_uri are required' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
 
     const clientId = Deno.env.get('GOOGLE_CLIENT_ID') ?? '';
     const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET') ?? '';
@@ -81,4 +103,3 @@ serve(async (req) => {
     return new Response(JSON.stringify({ error: e?.message || 'failed' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 });
   }
 });
-
