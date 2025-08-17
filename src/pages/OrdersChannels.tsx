@@ -18,6 +18,14 @@ const OrdersChannels = () => {
   const { toast } = useToast();
   const [googleSheetConfigs, setGoogleSheetConfigs] = useState([]);
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [googleConnected, setGoogleConnected] = useState(false);
+  const [spreadsheets, setSpreadsheets] = useState<any[]>([]);
+  const [sheets, setSheets] = useState<any[]>([]);
+  const [selectedSpreadsheet, setSelectedSpreadsheet] = useState<string>('');
+  const [selectedSheet, setSelectedSheet] = useState<string>('');
+  const [enableAutoImport, setEnableAutoImport] = useState<boolean>(true);
+  const [formMappings, setFormMappings] = useState<Record<string, { spreadsheet_id: string; sheet_id: string; sheet_title: string }>>({});
+
   const [newConfig, setNewConfig] = useState({
     sheet_id: '',
     sheet_name: '',
@@ -26,10 +34,10 @@ const OrdersChannels = () => {
     sync_submissions: false,
     enabled: true
   });
-  
+
   // Allow access if either authenticated with user or connected with Shopify
   const hasAccess = !!user || shopifyConnected;
-  
+
   // Check localStorage as fallback
   const localStorageConnected = localStorage.getItem('shopify_connected') === 'true';
   const actualHasAccess = hasAccess || localStorageConnected;
@@ -48,6 +56,50 @@ const OrdersChannels = () => {
         } else {
           setGoogleSheetConfigs(data?.configs || []);
         }
+  // Connect Google via OAuth
+  const handleGoogleConnect = async () => {
+    try {
+      const redirectUri = `${window.location.origin}/oauth/google-callback`; // we will handle in frontend or simply close tab on success
+      const { data, error } = await supabase.functions.invoke('google-oauth-start', {
+        body: {},
+        // Pass redirect via query because function expects query; use URLSearchParams in client by GET
+      } as any);
+    } catch (_) {
+      // Fallback: open constructed URL via GET
+      const params = new URLSearchParams({ redirect_uri: `${window.location.origin}/oauth/google-callback` });
+      window.open(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-oauth-start?${params.toString()}`, '_blank');
+    }
+  };
+
+  const refreshSpreadsheets = async () => {
+    try {
+      const shopId = shop || localStorage.getItem('active_shopify_store') || '';
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-sheets-list?shop_id=${encodeURIComponent(shopId)}`);
+      const json = await res.json();
+      if (json.spreadsheets) {
+        setSpreadsheets(json.spreadsheets);
+        setGoogleConnected(true);
+      } else if (json.error === 'not_connected') {
+        setGoogleConnected(false);
+      }
+    } catch (e) {
+      console.error('Failed to list spreadsheets', e);
+    }
+  };
+
+  const refreshSheets = async (spreadsheetId: string) => {
+    try {
+      const shopId = shop || localStorage.getItem('active_shopify_store') || '';
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-sheets-list?shop_id=${encodeURIComponent(shopId)}&spreadsheet_id=${encodeURIComponent(spreadsheetId)}`);
+      const json = await res.json();
+      if (json.sheets) {
+        setSheets(json.sheets);
+      }
+    } catch (e) {
+      console.error('Failed to list sheets', e);
+    }
+  };
+
       } catch (error) {
         console.error('Error fetching configs:', error);
       }
@@ -128,8 +180,8 @@ const OrdersChannels = () => {
     return (
       <div className="flex flex-col items-center justify-center h-screen">
         <div className="text-center py-8">
-          {language === 'ar' 
-            ? 'يرجى تسجيل الدخول أو الاتصال بمتجر Shopify للوصول إلى قسم قنوات الطلبات' 
+          {language === 'ar'
+            ? 'يرجى تسجيل الدخول أو الاتصال بمتجر Shopify للوصول إلى قسم قنوات الطلبات'
             : 'Please login or connect a Shopify store to access order channels'}
         </div>
       </div>
@@ -155,8 +207,8 @@ const OrdersChannels = () => {
                 {language === 'ar' ? 'قناة الويب' : 'Web Channel'}
               </CardTitle>
               <CardDescription>
-                {language === 'ar' 
-                  ? 'إدارة الطلبات الواردة من موقعك الإلكتروني' 
+                {language === 'ar'
+                  ? 'إدارة الطلبات الواردة من موقعك الإلكتروني'
                   : 'Manage orders coming from your website'}
               </CardDescription>
             </CardHeader>
@@ -178,8 +230,8 @@ const OrdersChannels = () => {
                 {language === 'ar' ? 'قناة شوبيفاي' : 'Shopify Channel'}
               </CardTitle>
               <CardDescription>
-                {language === 'ar' 
-                  ? 'إدارة الطلبات الواردة من متجر شوبيفاي' 
+                {language === 'ar'
+                  ? 'إدارة الطلبات الواردة من متجر شوبيفاي'
                   : 'Manage orders from your Shopify store'}
               </CardDescription>
             </CardHeader>
@@ -187,7 +239,7 @@ const OrdersChannels = () => {
               <div className="flex items-center gap-2">
                 <div className={`w-2 h-2 rounded-full ${shopifyConnected ? 'bg-green-500' : 'bg-gray-400'}`}></div>
                 <span className="text-sm text-muted-foreground">
-                  {shopifyConnected 
+                  {shopifyConnected
                     ? (language === 'ar' ? 'متصل' : 'Connected')
                     : (language === 'ar' ? 'غير متصل' : 'Not Connected')
                   }
@@ -204,8 +256,8 @@ const OrdersChannels = () => {
                 {language === 'ar' ? 'تكامل Google Sheets' : 'Google Sheets Integration'}
               </CardTitle>
               <CardDescription>
-                {language === 'ar' 
-                  ? 'ربط الطلبات والنماذج مع Google Sheets تلقائياً' 
+                {language === 'ar'
+                  ? 'ربط الطلبات والنماذج مع Google Sheets تلقائياً'
                   : 'Automatically sync orders and form submissions to Google Sheets'}
               </CardDescription>
             </CardHeader>
@@ -218,7 +270,7 @@ const OrdersChannels = () => {
                   {googleSheetConfigs.length}
                 </span>
               </div>
-              
+
               {googleSheetConfigs.map((config: any) => (
                 <div key={config.id} className="border rounded-lg p-3 space-y-2">
                   <div className="flex justify-between items-start">
@@ -260,20 +312,93 @@ const OrdersChannels = () => {
                       {language === 'ar' ? 'إضافة تكامل Google Sheets' : 'Add Google Sheets Integration'}
                     </DialogTitle>
                     <DialogDescription>
-                      {language === 'ar' 
-                        ? 'قم بإعداد تكامل Google Sheets لمزامنة البيانات تلقائياً' 
+                      {language === 'ar'
+                        ? 'قم بإعداد تكامل Google Sheets لمزامنة البيانات تلقائياً'
                         : 'Set up Google Sheets integration to automatically sync data'}
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4">
                     <div>
                       <Label htmlFor="sheet_id">
+
+						{/* Divider */}
+						<hr className="my-4" />
+
                         {language === 'ar' ? 'معرف الجدول' : 'Sheet ID'}
                       </Label>
                       <Input
                         id="sheet_id"
                         value={newConfig.sheet_id}
                         onChange={(e) => setNewConfig({...newConfig, sheet_id: e.target.value})}
+
+                  {/* Google OAuth connect + selectors like screenshot */}
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <Button onClick={handleGoogleConnect} variant={googleConnected ? 'secondary' : 'default'}>
+                        {googleConnected ? (language === 'ar' ? 'إعادة الاتصال بـ Google' : 'Reconnect Google') : (language === 'ar' ? 'اتصل بحساب Google' : 'Connect Google account')}
+                      </Button>
+                      <Button variant="outline" onClick={refreshSpreadsheets}>{language === 'ar' ? 'تحديث' : 'Refresh'}</Button>
+                    </div>
+
+                    <div className="flex items-center gap-2 mt-2">
+                      <input type="checkbox" checked={enableAutoImport} onChange={(e) => setEnableAutoImport(e.target.checked)} />
+                      <span className="text-sm">{language === 'ar' ? 'تفعيل الاستيراد التلقائي للطلبات إلى Google Sheets' : 'Enable automatic import of your orders on Google Sheets'}</span>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-sm">{language === 'ar' ? 'اختر الملف' : 'Select your spreadsheet'}</Label>
+                      <div className="flex gap-2">
+                        <select className="flex-1 border rounded px-2 py-1" value={selectedSpreadsheet} onChange={(e) => { setSelectedSpreadsheet(e.target.value); if (e.target.value) refreshSheets(e.target.value); }}>
+                          <option value="">{language === 'ar' ? 'اختر...' : 'Select...'}</option>
+                          {spreadsheets.map((f) => (
+                            <option key={f.id} value={f.id}>{f.name}</option>
+                          ))}
+                        </select>
+                        <Button variant="outline" onClick={() => selectedSpreadsheet && refreshSheets(selectedSpreadsheet)}>{language === 'ar' ? 'تحديث' : 'Refresh'}</Button>
+                      </div>
+
+                      <Label className="text-sm">{language === 'ar' ? 'اختر الورقة' : 'Select your sheet'}</Label>
+                      <div className="flex gap-2">
+                        <select className="flex-1 border rounded px-2 py-1" value={selectedSheet} onChange={(e) => setSelectedSheet(e.target.value)} disabled={!selectedSpreadsheet}>
+                          <option value="">{language === 'ar' ? 'اختر...' : 'Select...'}</option>
+                          {sheets.map((s) => (
+                            <option key={s.id} value={`${s.id}|${s.title}`}>{s.title}</option>
+                          ))}
+                        </select>
+                        <Button variant="outline" onClick={() => selectedSpreadsheet && refreshSheets(selectedSpreadsheet)} disabled={!selectedSpreadsheet}>{language === 'ar' ? 'تحديث' : 'Refresh'}</Button>
+                      </div>
+                    </div>
+
+                    {/* Per-form routing */}
+                    <div className="mt-4">
+                      <p className="text-sm font-medium mb-2">{language === 'ar' ? 'اختيار النماذج لإرسالها إلى ورقة محددة' : 'Select which forms to sync and target sheet'}</p>
+                      <div className="space-y-2 max-h-56 overflow-auto border rounded p-2">
+                        {Array.isArray((window as any).cachedForms) ? (window as any).cachedForms.map((form: any) => {
+                          const mapping = formMappings[form.id] || { spreadsheet_id: selectedSpreadsheet, sheet_id: selectedSheet.split('|')[0], sheet_title: selectedSheet.split('|')[1] };
+                          return (
+                            <div key={form.id} className="flex items-center gap-2">
+                              <input type="checkbox" checked={!!formMappings[form.id]} onChange={(e) => setFormMappings(prev => ({ ...prev, [form.id]: e.target.checked ? mapping : undefined as any }))} />
+                              <span className="text-sm flex-1 truncate">{form.title}</span>
+                              <select className="border rounded px-2 py-1" value={mapping.spreadsheet_id || ''} onChange={(e) => setFormMappings(prev => ({ ...prev, [form.id]: { ...(prev[form.id] || {}), spreadsheet_id: e.target.value } }))}>
+                                <option value="">{language === 'ar' ? 'الملف' : 'Spreadsheet'}</option>
+                                {spreadsheets.map((f) => (<option key={f.id} value={f.id}>{f.name}</option>))}
+                              </select>
+                              <select className="border rounded px-2 py-1" value={mapping.sheet_id || ''} onChange={(e) => {
+                                const [sid, title] = [e.target.value, (sheets.find((s:any)=>String(s.id)===String(e.target.value))||{}).title];
+                                setFormMappings(prev => ({ ...prev, [form.id]: { ...(prev[form.id] || {}), sheet_id: sid, sheet_title: title } }));
+                              }}>
+                                <option value="">{language === 'ar' ? 'الورقة' : 'Sheet'}</option>
+                                {sheets.map((s) => (<option key={s.id} value={s.id}>{s.title}</option>))}
+                              </select>
+                            </div>
+                          );
+                        }) : (
+                          <div className="text-xs text-muted-foreground">{language === 'ar' ? 'سيتم عرض النماذج بعد تحميلها' : 'Forms will appear after loading'}</div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
                         placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms"
                       />
                     </div>
