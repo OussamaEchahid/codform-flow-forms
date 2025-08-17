@@ -53,11 +53,13 @@ serve(async (req) => {
       'https://www.googleapis.com/auth/spreadsheets'
     ].join(' '));
 
-    const state = crypto.randomUUID();
+    // Encode app context in state instead of query params on redirect_uri (Google requires exact match)
+    const statePayload = { s: shopId || '', u: userId || '', r: redirectUri || '' };
+    const state = encodeURIComponent(btoa(JSON.stringify(statePayload)));
 
-    // Use server-side callback function as redirect_uri for reliability
+    // Use server-side callback function as redirect_uri (must match exactly what is registered in Google Console)
     const functionCallbackBase = `${supabaseUrl}/functions/v1/google-oauth-callback`;
-    const redirectForGoogle = `${functionCallbackBase}?shop_id=${encodeURIComponent(shopId || '')}&user_id=${encodeURIComponent(userId || '')}&app_redirect=${encodeURIComponent(redirectUri)}`;
+    const redirectForGoogle = functionCallbackBase;
 
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectForGoogle)}&scope=${scope}&access_type=offline&prompt=consent&state=${state}`;
 

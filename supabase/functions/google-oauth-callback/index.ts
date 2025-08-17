@@ -19,11 +19,22 @@ serve(async (req) => {
 
     const url = new URL(req.url);
     let code = url.searchParams.get('code') || '';
-    let shopId = url.searchParams.get('shop_id') || '';
-    let userId: string | null = url.searchParams.get('user_id') || null;
 
-    // app_redirect carries the app page to show after saving tokens
-    let appRedirect = url.searchParams.get('app_redirect') || '';
+    // Decode app context from state (preferred)
+    let shopId = '' as string;
+    let userId: string | null = null;
+    let appRedirect = '' as string;
+    const state = url.searchParams.get('state') || '';
+    if (state) {
+      try {
+        const decoded = JSON.parse(atob(decodeURIComponent(state)));
+        shopId = decoded.s || '';
+        userId = decoded.u || null;
+        appRedirect = decoded.r || '';
+      } catch (_) {
+        // ignore state parse errors
+      }
+    }
 
     // Accept JSON body fallback
     if (!code) {
