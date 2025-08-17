@@ -17,65 +17,36 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Enhanced debugging for the callback
     const url = new URL(req.url);
-    console.log('🔗 OAuth Callback Debug:', {
-      method: req.method,
-      fullUrl: req.url,
-      pathname: url.pathname,
-      searchParams: Object.fromEntries(url.searchParams.entries()),
-      headers: Object.fromEntries(req.headers.entries())
-    });
+    let code = url.searchParams.get('code') || '';
 
-    // Handle both GET (direct callback) and POST (from frontend)
-    let code = '';
-    let shopId = '';
-    let userId = '';
-    let redirectUri = '';
-
-    if (req.method === 'GET') {
-      code = url.searchParams.get('code') || '';
-      const state = url.searchParams.get('state') || '';
-      const error = url.searchParams.get('error') || '';
-      const errorDescription = url.searchParams.get('error_description') || '';
-      
-      console.log('📥 GET Parameters:', {
-        code: code ? 'Present (' + code.length + ' chars)' : 'Missing',
-        state: state ? 'Present' : 'Missing',
-        error,
-        errorDescription,
-        allParams: Object.fromEntries(url.searchParams.entries())
-      });
-
-      if (error) {
-        return new Response(
-          JSON.stringify({ 
-            error: 'oauth_error', 
-            details: error,
-            description: errorDescription 
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-        );
+    // Decode app context from state (preferred)
+    let shopId = '' as string;
+    let userId: string | null = null;
+    let appRedirect = '' as string;
+    const state = url.searchParams.get('state') || '';
+    if (state) {
+      try {
+        const decoded = JSON.parse(atob(decodeURIComponent(state)));
+        shopId = decoded.s || '';
+        userId = decoded.u || null;
+        appRedirect = decoded.r || '';
+      } catch (_) {
+        // ignore state parse errors
       }
-      
-      if (state) {
-        try {
-          const decoded = JSON.parse(atob(decodeURIComponent(state)));
-          shopId = decoded.s || '';
-          userId = decoded.u || '';
-          redirectUri = decoded.r || '';
-          console.log('🔓 State decoded:', { shopId, userId, redirectUri });
-        } catch (e) {
-          console.error('❌ State decode error:', e);
+    }
+
+    // Accept JSON body fallback
+    if (!code) {
+      try {
+        const body = await req.json().catch(() => null) as any;
+        if (body) {
+          code = body.code || code;
+          shopId = body.shop_id || body.shopId || shopId;
+          userId = body.user_id || body.userId || userId;
+          appRedirect = body.app_redirect || appRedirect;
         }
-      }
-    } else {
-      const body = await req.json().catch(() => ({})) as any;
-      code = body.code || '';
-      shopId = body.shop_id || '';
-      userId = body.user_id || '';
-      redirectUri = body.redirect_uri || '';
-      console.log('📨 POST Body:', { code: code ? 'Present' : 'Missing', shopId, userId, redirectUri });
+      } catch (_) {}
     }
 
     if (!code) {
@@ -88,10 +59,9 @@ serve(async (req) => {
     const clientId = Deno.env.get('GOOGLE_CLIENT_ID') ?? '';
     const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET') ?? '';
 
-    // Use the same redirect_uri that was used in the auth request
-    const tokenRedirectUri = redirectUri || `${req.headers.get('origin')}/oauth/google-callback`;
-
-    console.log('Token exchange with redirect_uri:', tokenRedirectUri);
+    // Our redirect_uri for token exchange must equal the one used in the auth request
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const redirectUri = `${supabaseUrl}/functions/v1/google-oauth-callback`;
 
     // Exchange code for tokens
     const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
@@ -101,7 +71,7 @@ serve(async (req) => {
         code,
         client_id: clientId,
         client_secret: clientSecret,
-        redirect_uri: tokenRedirectUri,
+        redirect_uri: redirectUri,
         grant_type: 'authorization_code'
       })
     });
@@ -109,17 +79,10 @@ serve(async (req) => {
     const tokens = await tokenRes.json();
     if (!tokenRes.ok) {
       console.error('Token exchange failed:', tokens);
-      return new Response(JSON.stringify({ 
-        error: 'token_exchange_failed', 
-        details: tokens,
-        redirect_uri_used: tokenRedirectUri
-      }), { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-        status: 400 
-      });
+      return new Response(JSON.stringify({ error: 'token_exchange_failed', details: tokens }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 });
     }
 
-    // Fetch user email
+    // Fetch user email (optional)
     let email: string | null = null;
     try {
       const infoRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
@@ -129,67 +92,56 @@ serve(async (req) => {
         const info = await infoRes.json();
         email = info.email || null;
       }
-    } catch (e) {
-      console.error('Failed to fetch user info:', e);
-    }
+    } catch (_) {}
 
     // Store tokens
     const { error } = await supabase
       .from('google_oauth_tokens')
-      .upsert({
-        user_id: userId || null,
-        shop_id: shopId || null,
+      .insert({
+        user_id: userId,
+        shop_id: shopId,
         email,
         access_token: tokens.access_token,
         refresh_token: tokens.refresh_token,
-        token_type: tokens.token_type || 'Bearer',
+        token_type: tokens.token_type,
         scope: tokens.scope,
-        expiry: tokens.expires_in ? new Date(Date.now() + tokens.expires_in * 1000).toISOString() : null,
-        updated_at: new Date().toISOString()
-      }, {
-        onConflict: 'user_id,shop_id'
+        expiry: tokens.expires_in ? new Date(Date.now() + tokens.expires_in * 1000).toISOString() : null
       });
 
     if (error) {
       console.error('Saving tokens failed:', error);
       return new Response(
-        JSON.stringify({ error: 'save_failed', details: error?.message }),
+        JSON.stringify({ error: 'save_failed', details: error?.message || error, code: (error as any)?.code }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
 
-    // For GET requests (direct callbacks), redirect to frontend with success
-    if (req.method === 'GET' && redirectUri) {
+    // Determine where to bounce the browser after success
+    let redirectTarget = appRedirect;
+
+    // Fallbacks if state didn't include app redirect
+    if (!redirectTarget) {
+      const origin = req.headers.get('origin') || '';
+      if (origin) redirectTarget = `${origin.replace(/\/$/, '')}/oauth/google-callback`;
+    }
+    if (!redirectTarget) {
+      const frontend = Deno.env.get('FRONTEND_URL') || '';
+      if (frontend) redirectTarget = `${frontend.replace(/\/$/, '')}/oauth/google-callback`;
+    }
+
+    if (redirectTarget) {
       try {
-        const target = new URL(redirectUri);
+        const target = new URL(redirectTarget);
         target.searchParams.set('success', '1');
-        return new Response(null, { 
-          status: 302, 
-          headers: { ...corsHeaders, Location: target.toString() } 
-        });
-      } catch (e) {
-        console.error('Redirect error:', e);
+        return new Response(null, { status: 302, headers: { ...corsHeaders, Location: target.toString() } });
+      } catch (_) {
+        // ignore and fall through
       }
     }
 
-    // For POST requests, return JSON success
-    return new Response(JSON.stringify({ 
-      success: true, 
-      email,
-      message: 'Google account connected successfully' 
-    }), { 
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-      status: 200 
-    });
-
+    // As a last resort return JSON
+    return new Response(JSON.stringify({ success: true, note: 'no_redirect_url' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
   } catch (e) {
-    console.error('OAuth callback error:', e);
-    return new Response(JSON.stringify({ 
-      error: e?.message || 'failed',
-      stack: e?.stack 
-    }), { 
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-      status: 500 
-    });
+    return new Response(JSON.stringify({ error: e?.message || 'failed' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 });
   }
 });

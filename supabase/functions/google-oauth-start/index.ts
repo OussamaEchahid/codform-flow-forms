@@ -11,44 +11,62 @@ serve(async (req) => {
   }
 
   try {
-    const body = await req.json().catch(() => ({})) as any;
-    
-    const shopId = body.shop_id || '';
-    const userId = body.user_id || '';
-    const redirectUri = body.redirect_uri || '';
+    const url = new URL(req.url);
+
+    // Try to get redirect_uri from query, body, or fallback to Origin
+    let redirectUri = url.searchParams.get('redirect_uri') || '';
+    let shopId = url.searchParams.get('shop_id') || '';
+    let userId = url.searchParams.get('user_id') || '';
+
+    if (!redirectUri || !shopId || !userId) {
+      try {
+        const body = await req.json().catch(() => null) as any;
+        if (body) {
+          if (!redirectUri && (body.redirect_uri || body.redirectUri)) {
+            redirectUri = body.redirect_uri || body.redirectUri;
+          }
+          if (!shopId && (body.shop_id || body.shopId)) shopId = body.shop_id || body.shopId;
+          if (!userId && (body.user_id || body.userId)) userId = body.user_id || body.userId;
+        }
+      } catch (_) {
+        // ignore
+      }
+    }
+
+    if (!redirectUri) {
+      const origin = req.headers.get('origin') || '';
+      if (origin) redirectUri = `${origin}/oauth/google-callback`;
+    }
 
     if (!redirectUri) {
       return new Response(
-        JSON.stringify({ error: 'missing_redirect_uri' }),
+        JSON.stringify({ error: 'missing_redirect_uri', message: 'redirect_uri is required' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
 
     const clientId = Deno.env.get('GOOGLE_CLIENT_ID') ?? '';
-    
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+
     const scope = encodeURIComponent([
       'https://www.googleapis.com/auth/drive.readonly',
       'https://www.googleapis.com/auth/spreadsheets'
     ].join(' '));
 
-    // Store context in state parameter
-    const statePayload = { s: shopId, u: userId, r: redirectUri };
+    // Encode app context in state instead of query params on redirect_uri (Google requires exact match)
+    const statePayload = { s: shopId || '', u: userId || '', r: redirectUri || '' };
     const state = encodeURIComponent(btoa(JSON.stringify(statePayload)));
 
-    // Use the exact redirect_uri from frontend
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&access_type=offline&prompt=consent&state=${state}`;
+    // Use the frontend callback URL registered in Google Console to receive the code on the client
+    const redirectForGoogle = 'https://codmagnet.com/oauth/google-callback';
 
-    return new Response(JSON.stringify({ 
-      url: authUrl, 
-      auth_url: authUrl,
-      state,
-      redirect_uri: redirectUri 
-    }), {
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectForGoogle)}&scope=${scope}&access_type=offline&prompt=consent&state=${state}`;
+
+    return new Response(JSON.stringify({ url: authUrl, auth_url: authUrl, state, used_redirect_uri: redirectForGoogle }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     });
   } catch (e) {
-    console.error('OAuth start error:', e);
     return new Response(
       JSON.stringify({ error: e?.message || 'failed' }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
