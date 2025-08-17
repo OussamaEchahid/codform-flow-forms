@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { supabase, SUPABASE_URL } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 const OrdersChannels = () => {
@@ -68,24 +68,36 @@ const OrdersChannels = () => {
     }
   }, [actualHasAccess]);
   // Google OAuth and Sheets helpers
-  const handleGoogleConnect = () => {
+  const handleGoogleConnect = async () => {
     try {
-      const params = new URLSearchParams({ redirect_uri: `${window.location.origin}/oauth/google-callback` });
-      window.open(`${SUPABASE_URL}/functions/v1/google-oauth-start?${params.toString()}`, '_blank');
+      const redirect_uri = `${window.location.origin}/oauth/google-callback`;
+      const { data, error } = await supabase.functions.invoke('google-oauth-start', {
+        body: { redirect_uri },
+      });
+      if (error) throw error;
+      const url = (data as any)?.auth_url || (data as any)?.url || (data as any);
+      if (typeof url === 'string') {
+        window.open(url, '_blank');
+      } else {
+        console.error('Unexpected response from google-oauth-start:', data);
+      }
     } catch (e) {
-      console.error('Failed to open Google OAuth', e);
+      console.error('Failed to start Google OAuth via edge function', e);
     }
   };
 
   const refreshSpreadsheets = async () => {
     try {
       const shopId = (actualShop as string) || localStorage.getItem('active_shopify_store') || '';
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/google-sheets-list?shop_id=${encodeURIComponent(shopId)}`);
-      const json = await res.json();
-      if (json.spreadsheets) {
+      const { data, error } = await supabase.functions.invoke('google-sheets-list', {
+        body: { shop_id: shopId },
+      });
+      if (error) throw error;
+      const json = data as any;
+      if (json?.spreadsheets) {
         setSpreadsheets(json.spreadsheets);
         setGoogleConnected(true);
-      } else if (json.error === 'not_connected') {
+      } else if (json?.error === 'not_connected') {
         setGoogleConnected(false);
       }
     } catch (e) {
@@ -96,9 +108,12 @@ const OrdersChannels = () => {
   const refreshSheets = async (spreadsheetId: string) => {
     try {
       const shopId = (actualShop as string) || localStorage.getItem('active_shopify_store') || '';
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/google-sheets-list?shop_id=${encodeURIComponent(shopId)}&spreadsheet_id=${encodeURIComponent(spreadsheetId)}`);
-      const json = await res.json();
-      if (json.sheets) {
+      const { data, error } = await supabase.functions.invoke('google-sheets-list', {
+        body: { shop_id: shopId, spreadsheet_id: spreadsheetId },
+      });
+      if (error) throw error;
+      const json = data as any;
+      if (json?.sheets) {
         setSheets(json.sheets);
       }
     } catch (e) {
