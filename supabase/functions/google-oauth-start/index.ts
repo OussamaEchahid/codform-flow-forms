@@ -12,7 +12,34 @@ serve(async (req) => {
 
   try {
     const url = new URL(req.url);
-    const redirectUri = url.searchParams.get('redirect_uri') || '';
+
+    // Try to get redirect_uri from query, body, or fallback to Origin
+    let redirectUri = url.searchParams.get('redirect_uri') || '';
+
+    if (!redirectUri) {
+      try {
+        const body = await req.json().catch(() => null) as any;
+        if (body && (body.redirect_uri || body.redirectUri)) {
+          redirectUri = body.redirect_uri || body.redirectUri;
+        }
+      } catch (_) {
+        // ignore
+      }
+    }
+
+    if (!redirectUri) {
+      const origin = req.headers.get('origin') || '';
+      if (origin) {
+        redirectUri = `${origin}/oauth/google-callback`;
+      }
+    }
+
+    if (!redirectUri) {
+      return new Response(
+        JSON.stringify({ error: 'missing_redirect_uri', message: 'redirect_uri is required' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
 
     const clientId = Deno.env.get('GOOGLE_CLIENT_ID') ?? '';
     const scope = encodeURIComponent([
@@ -24,12 +51,14 @@ serve(async (req) => {
 
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&access_type=offline&prompt=consent&state=${state}`;
 
-    return new Response(JSON.stringify({ url: authUrl, state }), {
+    return new Response(JSON.stringify({ url: authUrl, auth_url: authUrl, state }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     });
   } catch (e) {
-    return new Response(JSON.stringify({ error: e?.message || 'failed' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 });
+    return new Response(
+      JSON.stringify({ error: e?.message || 'failed' }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+    );
   }
 });
-
