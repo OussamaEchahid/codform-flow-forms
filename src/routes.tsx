@@ -25,6 +25,7 @@ import EnhancedMyStores from '@/pages/EnhancedMyStores';
 import Privacy from '@/pages/Privacy';
 import Terms from '@/pages/Terms';
 import Support from '@/pages/Support';
+import OAuthGoogleCallback from '@/pages/OAuthGoogleCallback';
 
 export const routes: RouteObject[] = [
   {
@@ -134,7 +135,7 @@ export const routes: RouteObject[] = [
   },
   {
     path: '/oauth/google-callback',
-    Component: () => import('@/pages/OAuthGoogleCallback').then(m => ({ default: m.default }))
+    Component: OAuthGoogleCallback
   },
   {
     path: '*',
