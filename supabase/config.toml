@@ -25,24 +25,31 @@ pop3_port = 54326
 
 [storage]
 enabled = true
-port = 54327
+# port = 54327  # commented out for CLI deploy
+
 file_size_limit = "50MiB"
 image_transformation = { enabled = true }
 
 [auth]
 enabled = true
-port = 54328
+# port = 54328  # commented out for CLI deploy
+
 site_url = "http://localhost:3000"
 additional_redirect_urls = ["https://localhost:3000"]
 jwt_expiry = 3600
-refresh_token_rotation_enabled = true
-security_refresh_token_reuse_interval = 10
-security_captcha_enabled = false
+# refresh_token_rotation_enabled = true  # commented out for CLI deploy
+
+# security_refresh_token_reuse_interval = 10  # commented out for CLI deploy
+
+# security_captcha_enabled = false  # commented out for CLI deploy
+
 
 [edge_runtime]
 enabled = true
-port = 54329
-ip_version = "ipv4"
+# port = 54329  # commented out for CLI deploy
+
+# ip_version = "ipv4"  # commented out for CLI deploy
+
 
 [functions.api-forms]
 verify_jwt = false
@@ -88,7 +95,8 @@ verify_jwt = false
 
 [functions.shopify-auth-callback]
 verify_jwt = false
-access_control_allow_origin = "https://codmagnet.com"
+# access_control_allow_origin = "https://codmagnet.com"  # commented out for CLI deploy
+
 
 [functions.store-link-manager]
 verify_jwt = true
