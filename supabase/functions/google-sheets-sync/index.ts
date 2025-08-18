@@ -51,18 +51,32 @@ serve(async (req) => {
         console.error('Error creating Google Sheets config:', error);
         return new Response(
           JSON.stringify({ error: 'Failed to create Google Sheets config' }),
-          { 
-            status: 400, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           }
         );
       }
 
+      // Try to persist extra fields (if these columns exist). Non-fatal.
+      try {
+        const updatePayload: any = {};
+        if (configData.spreadsheet_id) updatePayload.spreadsheet_id = configData.spreadsheet_id;
+        if (configData.spreadsheet_name) updatePayload.spreadsheet_name = configData.spreadsheet_name;
+        if (configData.sheet_title) updatePayload.sheet_title = configData.sheet_title;
+        if (configData.columns_mapping) updatePayload.columns_mapping = configData.columns_mapping;
+        if (Object.keys(updatePayload).length > 0) {
+          await supabase.from('google_sheets_configs').update(updatePayload).eq('id', (data as any).id);
+        }
+      } catch (nonFatal) {
+        console.warn('Optional update for extended columns failed (ignored):', (nonFatal as any)?.message || nonFatal);
+      }
+
       return new Response(
         JSON.stringify({ success: true, config: data }),
-        { 
-          status: 200, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       );
     }
@@ -179,7 +193,7 @@ serve(async (req) => {
         const message = (e as any)?.message || '';
         if (message.includes('relation') || message.includes('42P01') || message.includes('not exist')) {
           try {
-            // If exec_sql function exists, create table idempotently
+            // If exec_sql function exists, create table idempotently, otherwise ignore
             await supabase.rpc('exec_sql', { sql: `
               CREATE TABLE IF NOT EXISTS public.google_sheets_form_mappings (
                 id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -194,7 +208,7 @@ serve(async (req) => {
                 updated_at timestamptz NOT NULL DEFAULT now()
               );
               CREATE UNIQUE INDEX IF NOT EXISTS uq_form_mapping_per_shop ON public.google_sheets_form_mappings(shop_id, form_id);
-            ` });
+            ` }).catch(() => null);
             const { error: retryErr } = await supabase
               .from('google_sheets_form_mappings')
               .upsert(records, { onConflict: 'shop_id,form_id' } as any);
@@ -202,11 +216,11 @@ serve(async (req) => {
             return new Response(JSON.stringify({ success: true, upserted: records.length, created_table: true }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
           } catch (fatal) {
             console.error('Upsert form mappings failed, even after ensure-table:', fatal);
-            return new Response(JSON.stringify({ success: false, error: 'UPSERT_FAILED', details: (fatal as any)?.message || String(fatal) }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+            return new Response(JSON.stringify({ success: false, error: 'UPSERT_FAILED', details: (fatal as any)?.message || String(fatal) }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
           }
         }
         console.error('Upsert form mappings failed:', e);
-        return new Response(JSON.stringify({ success: false, error: 'UPSERT_FAILED', details: message || String(e) }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        return new Response(JSON.stringify({ success: false, error: 'UPSERT_FAILED', details: message || String(e) }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
     }
 

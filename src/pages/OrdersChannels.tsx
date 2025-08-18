@@ -29,6 +29,28 @@ const OrdersChannels = () => {
   const [loadingForms, setLoadingForms] = useState<boolean>(false);
   const [forms, setForms] = useState<any[]>([]);
 
+  const orderFieldOptions = [
+    { key: 'created_at', labelAr: 'تاريخ الإنشاء', labelEn: 'Created at' },
+    { key: 'order_number', labelAr: 'رقم الطلب', labelEn: 'Order number' },
+    { key: 'customer_name', labelAr: 'اسم العميل', labelEn: 'Customer name' },
+    { key: 'customer_email', labelAr: 'إيميل العميل', labelEn: 'Customer email' },
+    { key: 'customer_phone', labelAr: 'هاتف العميل', labelEn: 'Customer phone' },
+    { key: 'currency', labelAr: 'العملة', labelEn: 'Currency' },
+    { key: 'total_amount', labelAr: 'الإجمالي', labelEn: 'Total amount' },
+    { key: 'status', labelAr: 'الحالة', labelEn: 'Status' },
+    { key: 'type', labelAr: 'النوع', labelEn: 'Type' },
+  ];
+
+  const defaultOrderColumns = ['created_at','order_number','customer_name','customer_phone','currency','total_amount','type','status'];
+  const [columnsMapping, setColumnsMapping] = useState<{ order: string[] }>({ order: defaultOrderColumns });
+  const colLetter = (i: number) => {
+    let s = '';
+    let n = i + 1;
+    while (n > 0) { const r = (n - 1) % 26; s = String.fromCharCode(65 + r) + s; n = Math.floor((n - 1) / 26); }
+    return s;
+  };
+
+
 
   const [newConfig, setNewConfig] = useState({
     sheet_id: '',
@@ -208,6 +230,9 @@ const OrdersChannels = () => {
         action: 'create-config',
         sheet_id: newConfig.sheet_id || derivedSheetId,
         sheet_name: newConfig.sheet_name || derivedSheetTitle,
+        spreadsheet_id: selectedSpreadsheet,
+        sheet_title: derivedSheetTitle,
+        columns_mapping: columnsMapping,
         sync_orders: newConfig.sync_orders,
         sync_submissions: hasFormMappings || newConfig.sync_submissions, // Auto-enable if forms are mapped
         enabled: true,
@@ -438,7 +463,7 @@ const OrdersChannels = () => {
                     {language === 'ar' ? 'إضافة Google Sheets' : 'Add Google Sheets'}
                   </Button>
                 </DialogTrigger>
-                <DialogContent>
+                <DialogContent className="sm:max-w-[980px]">
                   <DialogHeader>
                     <DialogTitle>
                       {language === 'ar' ? 'إضافة تكامل Google Sheets' : 'Add Google Sheets Integration'}
@@ -528,6 +553,9 @@ const OrdersChannels = () => {
                       <div className="space-y-2 max-h-56 overflow-auto border rounded p-2">
                         {Array.isArray(forms) && forms.length > 0 ? forms.map((form: any) => {
                           const mapping = formMappings[form.id] || { spreadsheet_id: selectedSpreadsheet, sheet_id: selectedSheet.split('|')[0], sheet_title: selectedSheet.split('|')[1] };
+
+
+
                           return (
                             <div key={form.id} className="flex items-center gap-2">
                               <input type="checkbox" checked={!!formMappings[form.id]} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormMappings((prev: any) => ({ ...prev, [form.id]: (e.target as HTMLInputElement).checked ? mapping : undefined as any }))} />
@@ -578,6 +606,36 @@ const OrdersChannels = () => {
                     <Button onClick={handleAddGoogleSheets} className="w-full">
                       {language === 'ar' ? 'إضافة التكامل' : 'Add Integration'}
                     </Button>
+
+                        {/* 3.5) Configure your columns fields */}
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium">{language === 'ar' ? 'تهيئة أعمدة الطلبات' : 'Configure your columns fields'}</p>
+                          <div className="overflow-x-auto border rounded p-2">
+                            <div className="flex items-center gap-2 min-w-[640px]">
+                              {columnsMapping.order.map((key: string, idx: number) => (
+                                <div key={idx} className="flex flex-col items-center gap-1 min-w-[120px]">
+                                  <div className="text-xs text-muted-foreground">{colLetter(idx)}</div>
+                                  <select
+                                    className="border rounded px-2 py-1 w-full"
+                                    value={key}
+                                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                                      const next = [...columnsMapping.order];
+                                      next[idx] = (e.target as HTMLSelectElement).value;
+                                      setColumnsMapping({ order: next });
+                                    }}
+                                  >
+                                    {orderFieldOptions.map((opt) => (
+                                      <option key={opt.key} value={opt.key}>{language === 'ar' ? opt.labelAr : opt.labelEn}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                              ))}
+                              <Button variant="outline" onClick={() => setColumnsMapping({ order: [...columnsMapping.order, 'status'] })}>+
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+
                   </div>
                 </DialogContent>
               </Dialog>

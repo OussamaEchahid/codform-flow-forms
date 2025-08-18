@@ -64,50 +64,73 @@ serve(async (req) => {
           .select('*')
           .eq('enabled', true)
           .eq('sync_orders', true)
+          .eq('shop_id', data.shop_id)
+          .order('created_at', { ascending: false })
+          .limit(1)
           .single();
 
         if (sheetsConfig) {
-          // Try direct Sheets API via form mapping first
+          // 1) Prefer per-form mapping if exists
+          const { data: mapping } = await supabase
+            .from('google_sheets_form_mappings')
+            .select('*')
+            .eq('shop_id', data.shop_id)
+            .eq('form_id', data.form_id)
+            .eq('enabled', true)
+            .maybeSingle();
+
+          // 2) Build row using optional columns_mapping if present
+          const defaultRow = [
+            new Date().toISOString(),
+            data.order_number,
+            data.customer_name,
+            data.customer_phone,
+            data.currency,
+            data.total_amount?.toString() || '',
+            'order',
+            data.status
+          ];
+
+          let valuesToAppend: any[] = defaultRow;
           try {
-            const { data: mapping } = await supabase
-              .from('google_sheets_form_mappings')
-              .select('*')
-              .eq('shop_id', data.shop_id)
-              .eq('form_id', data.form_id)
-              .eq('enabled', true)
-              .single();
-
-            const row = [
-              new Date().toISOString(),
-              data.order_number,
-              data.customer_name,
-              data.customer_phone,
-              data.currency,
-              data.total_amount?.toString() || '',
-              'order',
-              data.status
-            ];
-
-            if (mapping && mapping.spreadsheet_id && mapping.sheet_title) {
-              await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/google-sheets-append`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  shop_id: data.shop_id,
-                  spreadsheet_id: mapping.spreadsheet_id,
-                  sheet_title: mapping.sheet_title,
-                  values: [row]
-                })
-              });
-            } else if (sheetsConfig.webhook_url) {
-              await fetch(sheetsConfig.webhook_url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ type: 'new_order', order: data, timestamp: new Date().toISOString() }),
-              });
+            const cm = (sheetsConfig as any).columns_mapping as Record<string, string[]> | null;
+            if (cm && Array.isArray(cm.order)) {
+              // Map known order fields into provided columns order
+              const fieldMap: Record<string, any> = {
+                created_at: new Date().toISOString(),
+                order_number: data.order_number,
+                customer_name: data.customer_name,
+                customer_email: data.customer_email,
+                customer_phone: data.customer_phone,
+                currency: data.currency,
+                total_amount: data.total_amount,
+                status: data.status,
+                type: 'order'
+              };
+              valuesToAppend = (cm.order as string[]).map((k) => (fieldMap as any)[k] ?? '');
             }
-          } catch (e) {
-            console.log('Google Sheets sync failed (append/webhook):', e);
+          } catch {}
+
+          const spreadsheetId = mapping?.spreadsheet_id || (sheetsConfig as any).spreadsheet_id;
+          const sheetTitle = mapping?.sheet_title || (sheetsConfig as any).sheet_title || (sheetsConfig as any).sheet_name;
+
+          if (spreadsheetId && sheetTitle) {
+            await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/google-sheets-append`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                shop_id: data.shop_id,
+                spreadsheet_id: spreadsheetId,
+                sheet_title: sheetTitle,
+                values: [valuesToAppend]
+              })
+            });
+          } else if (sheetsConfig.webhook_url) {
+            await fetch(sheetsConfig.webhook_url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ type: 'new_order', order: data, timestamp: new Date().toISOString() }),
+            });
           }
         }
       } catch (sheetError) {
