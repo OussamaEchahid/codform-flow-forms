@@ -116,33 +116,8 @@ serve(async (req) => {
       );
     }
 
-    // Determine where to bounce the browser after success
-    let redirectTarget = appRedirect;
-
-    // Fallbacks if state didn't include app redirect
-    if (!redirectTarget) {
-      const origin = req.headers.get('origin') || '';
-      if (origin) redirectTarget = `${origin.replace(/\/$/, '')}/oauth/google-callback`;
-    }
-    if (!redirectTarget) {
-      const frontend = Deno.env.get('FRONTEND_URL') || '';
-      if (frontend) redirectTarget = `${frontend.replace(/\/$/, '')}/oauth/google-callback`;
-    }
-
-    // Try redirecting with success flag first
-    if (redirectTarget) {
-      try {
-        const target = new URL(redirectTarget);
-        target.searchParams.set('success', '1');
-        return new Response(null, { status: 302, headers: { ...corsHeaders, Location: target.toString() } });
-      } catch (_) {
-        // ignore and fall through
-      }
-    }
-
-    // If redirects may strip query params on the host, return a small HTML page
-    // that notifies the opener window and closes itself. This avoids relying on
-    // any query string persistence on the frontend host.
+    // Always respond with a small HTML page that notifies the opener and closes itself.
+    // This avoids any dependence on frontend routes or query string persistence.
     const html = `<!doctype html>
 <html>
   <head><meta charset="utf-8"><title>Google Connected</title></head>
