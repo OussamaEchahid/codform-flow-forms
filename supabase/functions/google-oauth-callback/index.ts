@@ -116,16 +116,41 @@ serve(async (req) => {
       );
     }
 
-    // Always respond with a small HTML page that notifies the opener and closes itself.
-    // This avoids any dependence on frontend routes or query string persistence.
+    // Always respond with a small HTML page. If opened as a popup, notify the opener and close.
+    // If opened in the same tab (no opener), redirect to the app URL embedded in state.
     const html = `<!doctype html>
 <html>
   <head><meta charset="utf-8"><title>Google Connected</title></head>
   <body style="font-family: sans-serif; padding: 24px;">
     <p>Google account connected. You can close this window.</p>
     <script>
-      try { window.opener && window.opener.postMessage({ type: 'GOOGLE_CONNECTED' }, '*'); } catch (e) {}
-      setTimeout(function(){ try { window.close(); } catch(e) {} }, 800);
+      (function(){
+        function getState(){
+          try {
+            var sp = new URLSearchParams(window.location.search);
+            var s = sp.get('state');
+            if (!s) return null;
+            return JSON.parse(atob(decodeURIComponent(s)));
+          } catch(e) { return null; }
+        }
+        try { if (window.opener) { window.opener.postMessage({ type: 'GOOGLE_CONNECTED' }, '*'); } } catch (e) {}
+        // Try to close if popup
+        setTimeout(function(){ try { window.close(); } catch(e) {} }, 300);
+        // If not a popup (or cannot close), redirect back to the app
+        setTimeout(function(){
+          if (!window.opener || !window.closed) {
+            var st = getState();
+            var target = st && st.r;
+            try {
+              if (target) {
+                var u = new URL(target, window.location.origin);
+                u.searchParams.set('success','1');
+                window.location.replace(u.toString());
+              }
+            } catch(e) {}
+          }
+        }, 600);
+      })();
     </script>
   </body>
 </html>`;
