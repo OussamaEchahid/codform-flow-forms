@@ -19,11 +19,20 @@ serve(async (req) => {
     )
 
     const url = new URL(req.url);
-    const action = url.searchParams.get('action');
+    let action = url.searchParams.get('action') || '';
+    let jsonBody: any = null;
+    if (!action && req.method !== 'GET') {
+      try {
+        jsonBody = await req.json();
+        action = (jsonBody?.action as string) || '';
+      } catch (_) {
+        // ignore
+      }
+    }
 
-    if (req.method === 'POST' && action === 'create-config') {
-      const configData = await req.json();
-      
+    if ((req.method === 'POST') && action === 'create-config') {
+      const configData = jsonBody ?? await req.json();
+
       const { data, error } = await supabase
         .from('google_sheets_configs')
         .insert({
@@ -58,7 +67,7 @@ serve(async (req) => {
       );
     }
 
-    if (req.method === 'GET' && action === 'list-configs') {
+    if ((req.method === 'GET' || req.method === 'POST') && action === 'list-configs') {
       const { data, error } = await supabase
         .from('google_sheets_configs')
         .select('*')
@@ -84,9 +93,9 @@ serve(async (req) => {
       );
     }
 
-    if (req.method === 'PUT' && action === 'update-config') {
-      const { config_id, ...updateData } = await req.json();
-      
+    if ((req.method === 'PUT' || req.method === 'POST') && action === 'update-config') {
+      const { config_id, ...updateData } = jsonBody ?? await req.json();
+
       const { data, error } = await supabase
         .from('google_sheets_configs')
         .update(updateData)
@@ -114,9 +123,9 @@ serve(async (req) => {
       );
     }
 
-    if (req.method === 'POST' && action === 'test-webhook') {
-      const { webhook_url } = await req.json();
-      
+    if ((req.method === 'POST') && action === 'test-webhook') {
+      const { webhook_url } = (jsonBody ?? await req.json());
+
       try {
         const response = await fetch(webhook_url, {
           method: 'POST',

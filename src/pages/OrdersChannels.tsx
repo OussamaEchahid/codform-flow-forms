@@ -67,7 +67,25 @@ const OrdersChannels = () => {
       fetchConfigs();
     }
 
-    // Listen for callback from popup to auto-refresh connection state
+    // 1) Handle success param if this page was opened as the OAuth redirect target
+    const params = new URLSearchParams(window.location.search);
+    const success = params.get('success');
+    if (success === '1' || success === 'true') {
+      setGoogleConnected(true);
+      refreshSpreadsheets();
+      try { window.opener?.postMessage({ type: 'GOOGLE_CONNECTED' }, '*'); } catch {}
+      if (window.opener) {
+        setTimeout(() => window.close(), 1200);
+      } else {
+        try {
+          const url = new URL(window.location.href);
+          url.searchParams.delete('success');
+          window.history.replaceState({}, document.title, url.toString());
+        } catch {}
+      }
+    }
+
+    // 2) Listen for callback from popup to auto-refresh connection state
     const onMsg = (ev: MessageEvent) => {
       if (ev?.data?.type === 'GOOGLE_CONNECTED') {
         setGoogleConnected(true);
