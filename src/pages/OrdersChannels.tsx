@@ -463,8 +463,8 @@ const OrdersChannels = () => {
                     {language === 'ar' ? 'إضافة Google Sheets' : 'Add Google Sheets'}
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-[980px]">
-                  <DialogHeader>
+                <DialogContent className="sm:max-w-[980px] p-0">
+                  <DialogHeader className="px-6 pt-6">
                     <DialogTitle>
                       {language === 'ar' ? 'إضافة تكامل Google Sheets' : 'Add Google Sheets Integration'}
                     </DialogTitle>
@@ -474,7 +474,9 @@ const OrdersChannels = () => {
                         : 'Set up Google Sheets integration to automatically sync data'}
                     </DialogDescription>
                   </DialogHeader>
-                  <div className="space-y-6">
+
+                  {/* Scrollable body */}
+                  <div className="px-6 overflow-y-auto max-h-[70vh] space-y-6">
                     {/* 1) Connection */}
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
@@ -603,9 +605,7 @@ const OrdersChannels = () => {
                       </div>
                     </div>
 
-                    <Button onClick={handleAddGoogleSheets} className="w-full">
-                      {language === 'ar' ? 'إضافة التكامل' : 'Add Integration'}
-                    </Button>
+
 
                         {/* 3.5) Configure your columns fields */}
                         <div className="space-y-2">
@@ -636,6 +636,12 @@ const OrdersChannels = () => {
                           </div>
                         </div>
 
+                  {/* Sticky footer */}
+                  <div className="sticky bottom-0 w-full bg-background px-6 py-4 border-t">
+                    <Button onClick={handleAddGoogleSheets} className="w-full">
+                      {language === 'ar' ? 'إضافة التكامل' : 'Add Integration'}
+                    </Button>
+                  </div>
                   </div>
                 </DialogContent>
               </Dialog>
