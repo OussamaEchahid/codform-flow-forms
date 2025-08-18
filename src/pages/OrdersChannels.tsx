@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Globe, ShoppingBag, Settings, Sheet, Plus, TestTube } from 'lucide-react';
+import { Globe, ShoppingBag, Settings, Sheet, Plus, Edit } from 'lucide-react';
 import AppSidebar from '@/components/layout/AppSidebar';
 import { useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
@@ -19,6 +19,8 @@ const OrdersChannels = () => {
   const { toast } = useToast();
   const [googleSheetConfigs, setGoogleSheetConfigs] = useState([]);
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingConfig, setEditingConfig] = useState<any>(null);
   const [googleConnected, setGoogleConnected] = useState(false);
   const [spreadsheets, setSpreadsheets] = useState<any[]>([]);
   const [sheets, setSheets] = useState<any[]>([]);
@@ -325,6 +327,31 @@ const OrdersChannels = () => {
     }
   };
 
+  const handleEditGoogleSheets = (config: any) => {
+    // Set edit mode and store the config being edited
+    setIsEditMode(true);
+    setEditingConfig(config);
+
+    // Set the current config for editing
+    setSelectedSpreadsheet(config.spreadsheet_id || '');
+    setSelectedSheet(config.sheet_title || config.sheet_name || '');
+
+    // Refresh spreadsheets and sheets to populate the dropdowns
+    refreshSpreadsheets();
+    if (config.spreadsheet_id) {
+      refreshSheets(config.spreadsheet_id);
+    }
+
+    // Open the dialog for editing
+    setShowAddDialog(true);
+
+    // Show success message
+    toast({
+      title: language === 'ar' ? 'جاهز للتعديل' : 'Ready to Edit',
+      description: language === 'ar' ? 'يمكنك الآن تعديل إعدادات Google Sheets' : 'You can now modify Google Sheets settings',
+    });
+  };
+
   if (!actualHasAccess) {
     return (
       <div className="flex flex-col items-center justify-center h-screen">
@@ -428,8 +455,13 @@ const OrdersChannels = () => {
                       <p className="text-xs text-muted-foreground">{(config.sheet_id || '').substring(0, 20)}...</p>
                     </div>
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline" onClick={() => handleTestWebhook(config.webhook_url)}>
-                        <TestTube className="h-3 w-3" />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleEditGoogleSheets(config)}
+                        title={language === 'ar' ? 'تعديل إعدادات Google Sheets' : 'Edit Google Sheets Settings'}
+                      >
+                        <Edit className="h-3 w-3" />
                       </Button>
                       <Button size="sm" variant="destructive" onClick={async () => {
                         if (!window.confirm(language === 'ar' ? 'حذف هذا التكامل؟' : 'Delete this integration?')) return;
@@ -456,9 +488,28 @@ const OrdersChannels = () => {
                 </div>
               ))}
 
-              <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+              <Dialog open={showAddDialog} onOpenChange={(open: boolean) => {
+                setShowAddDialog(open);
+                if (!open) {
+                  // Reset edit mode when dialog closes
+                  setIsEditMode(false);
+                  setEditingConfig(null);
+                  setSelectedSpreadsheet('');
+                  setSelectedSheet('');
+                }
+              }}>
                 <DialogTrigger asChild>
-                  <Button className="w-full" variant="outline">
+                  <Button
+                    className="w-full"
+                    variant="outline"
+                    onClick={() => {
+                      // Reset to add mode when clicking Add button
+                      setIsEditMode(false);
+                      setEditingConfig(null);
+                      setSelectedSpreadsheet('');
+                      setSelectedSheet('');
+                    }}
+                  >
                     <Plus className="h-4 w-4 mr-2" />
                     {language === 'ar' ? 'إضافة Google Sheets' : 'Add Google Sheets'}
                   </Button>
@@ -466,12 +517,20 @@ const OrdersChannels = () => {
                 <DialogContent className="sm:max-w-[980px] p-0">
                   <DialogHeader className="px-6 pt-6">
                     <DialogTitle>
-                      {language === 'ar' ? 'إضافة تكامل Google Sheets' : 'Add Google Sheets Integration'}
+                      {isEditMode
+                        ? (language === 'ar' ? 'تعديل تكامل Google Sheets' : 'Edit Google Sheets Integration')
+                        : (language === 'ar' ? 'إضافة تكامل Google Sheets' : 'Add Google Sheets Integration')
+                      }
                     </DialogTitle>
                     <DialogDescription>
-                      {language === 'ar'
-                        ? 'قم بإعداد تكامل Google Sheets لمزامنة البيانات تلقائياً'
-                        : 'Set up Google Sheets integration to automatically sync data'}
+                      {isEditMode
+                        ? (language === 'ar'
+                            ? 'قم بتعديل إعدادات تكامل Google Sheets'
+                            : 'Modify your Google Sheets integration settings')
+                        : (language === 'ar'
+                            ? 'قم بإعداد تكامل Google Sheets لمزامنة البيانات تلقائياً'
+                            : 'Set up Google Sheets integration to automatically sync data')
+                      }
                     </DialogDescription>
                   </DialogHeader>
 
