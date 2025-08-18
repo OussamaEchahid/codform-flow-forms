@@ -10,9 +10,13 @@ export default function OAuthGoogleCallback() {
         const params = new URLSearchParams(window.location.search);
         const hash = window.location.hash || '';
         const hashParams = new URLSearchParams(hash.startsWith('#') ? hash.slice(1) : hash);
-        const success = params.get('success') || hashParams.get('success') || (hash.includes('success=1') ? '1' : null);
+        const href = decodeURI(window.location.href || '');
+        const hasSuccessInHref = /(^|[?#&])success(?:=1|=true|(?=[#&$]))/i.test(href);
+        const rawSuccess = params.get('success') || hashParams.get('success') || (hasSuccessInHref ? '1' : null);
+        const success = (rawSuccess || '').toString().toLowerCase();
         const code = params.get('code');
         const err = params.get('error');
+        console.warn('[OAuthGoogleCallback] href:', href, 'search:', window.location.search, 'hash:', hash, { success, code, err });
 
         if (err) {
           setMessage(`Google authorization failed: ${err}`);
@@ -23,7 +27,10 @@ export default function OAuthGoogleCallback() {
         if (success === '1' || success === 'true') {
           setMessage('Google connected. You can close this window.');
           try { window.opener?.postMessage({ type: 'GOOGLE_CONNECTED' }, '*'); } catch {}
-          setTimeout(() => window.close(), 1200);
+          // Close window if it's a popup; otherwise just leave success message
+          try {
+            if (window.opener) setTimeout(() => window.close(), 1200);
+          } catch {}
           return;
         }
 

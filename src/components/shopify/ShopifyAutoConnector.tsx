@@ -20,6 +20,14 @@ const ShopifyAutoConnector: React.FC<ShopifyAutoConnectorProps> = ({ onConnected
 
   useEffect(() => {
     const detectShop = () => {
+      try {
+        const path = window.location.pathname || '';
+        if (path.startsWith('/oauth/google-callback')) {
+          console.log('⏭️ ShopifyAutoConnector: skipping on Google OAuth callback page to avoid URL cleaning.');
+          return; // Do not touch URL or show dialog on OAuth callback
+        }
+      } catch {}
+
       const urlParams = new URLSearchParams(window.location.search);
       const shopParam = urlParams.get('shop');
       const hmacParam = urlParams.get('hmac');
