@@ -596,6 +596,7 @@ serve(async (req: Request) => {
         console.log('📦 Order details:', JSON.stringify(orderData, null, 2));
 
         // Try to sync with Google Sheets if configured
+        console.log('🔍 Starting Google Sheets sync check for shop:', orderData.shop_id);
         try {
           const { data: sheetsConfig } = await supabase
             .from('google_sheets_configs')
@@ -607,7 +608,9 @@ serve(async (req: Request) => {
             .limit(1)
             .single();
 
+          console.log('📋 Google Sheets config query result:', sheetsConfig);
           if (sheetsConfig) {
+            console.log('✅ Found Google Sheets config, checking for form mapping...');
             // 1) Prefer per-form mapping if exists
             const { data: mapping } = await supabase
               .from('google_sheets_form_mappings')
@@ -649,8 +652,19 @@ serve(async (req: Request) => {
               }
             } catch {}
 
+            // Use existing columns from the database
             const spreadsheetId = mapping?.spreadsheet_id || (sheetsConfig as any).spreadsheet_id;
             const sheetTitle = mapping?.sheet_title || (sheetsConfig as any).sheet_title || (sheetsConfig as any).sheet_name;
+
+            // If spreadsheet_id is missing, we need to extract it from the Google Sheets URL or use a different approach
+            // For now, let's check if we have the required data
+            console.log('🔍 Sheets config data:', {
+              spreadsheet_id: (sheetsConfig as any).spreadsheet_id,
+              sheet_title: (sheetsConfig as any).sheet_title,
+              sheet_name: (sheetsConfig as any).sheet_name,
+              sheet_id: (sheetsConfig as any).sheet_id,
+              webhook_url: sheetsConfig.webhook_url
+            });
 
             if (spreadsheetId && sheetTitle) {
               console.log('📊 Syncing order to Google Sheets:', { spreadsheetId, sheetTitle, values: valuesToAppend });
@@ -679,7 +693,12 @@ serve(async (req: Request) => {
                 body: JSON.stringify({ type: 'new_order', order: orderData, timestamp: new Date().toISOString() }),
               });
             } else {
-              console.log('⚠️ Google Sheets config found but missing spreadsheet_id/sheet_title and webhook_url');
+              console.log('⚠️ Google Sheets config found but missing required data:');
+              console.log('   - spreadsheet_id:', spreadsheetId || 'MISSING');
+              console.log('   - sheet_title:', sheetTitle || 'MISSING');
+              console.log('   - webhook_url:', sheetsConfig.webhook_url || 'MISSING');
+              console.log('   - Available data: sheet_id=' + (sheetsConfig as any).sheet_id + ', sheet_name=' + (sheetsConfig as any).sheet_name);
+              console.log('🔧 Please recreate the Google Sheets integration to fix this issue.');
             }
           } else {
             console.log('ℹ️ No Google Sheets config found for shop:', orderData.shop_id);
