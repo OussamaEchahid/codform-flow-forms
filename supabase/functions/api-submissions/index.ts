@@ -594,6 +594,99 @@ serve(async (req: Request) => {
       } else {
         console.log('✅ Order created in database successfully:', orderData.order_number);
         console.log('📦 Order details:', JSON.stringify(orderData, null, 2));
+
+        // Try to sync with Google Sheets if configured
+        try {
+          const { data: sheetsConfig } = await supabase
+            .from('google_sheets_configs')
+            .select('*')
+            .eq('enabled', true)
+            .eq('sync_orders', true)
+            .eq('shop_id', orderData.shop_id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+
+          if (sheetsConfig) {
+            // 1) Prefer per-form mapping if exists
+            const { data: mapping } = await supabase
+              .from('google_sheets_form_mappings')
+              .select('*')
+              .eq('shop_id', orderData.shop_id)
+              .eq('form_id', orderData.form_id)
+              .eq('enabled', true)
+              .maybeSingle();
+
+            // 2) Build row using optional columns_mapping if present
+            const defaultRow = [
+              new Date().toISOString(),
+              orderData.order_number,
+              orderData.customer_name,
+              orderData.customer_phone,
+              orderData.currency,
+              orderData.total_amount?.toString() || '',
+              'order',
+              orderData.status
+            ];
+
+            let valuesToAppend: any[] = defaultRow;
+            try {
+              const cm = (sheetsConfig as any).columns_mapping as Record<string, string[]> | null;
+              if (cm && Array.isArray(cm.order)) {
+                // Map known order fields into provided columns order
+                const fieldMap: Record<string, any> = {
+                  created_at: new Date().toISOString(),
+                  order_number: orderData.order_number,
+                  customer_name: orderData.customer_name,
+                  customer_email: orderData.customer_email,
+                  customer_phone: orderData.customer_phone,
+                  currency: orderData.currency,
+                  total_amount: orderData.total_amount,
+                  status: orderData.status,
+                  type: 'order'
+                };
+                valuesToAppend = (cm.order as string[]).map((k) => (fieldMap as any)[k] ?? '');
+              }
+            } catch {}
+
+            const spreadsheetId = mapping?.spreadsheet_id || (sheetsConfig as any).spreadsheet_id;
+            const sheetTitle = mapping?.sheet_title || (sheetsConfig as any).sheet_title || (sheetsConfig as any).sheet_name;
+
+            if (spreadsheetId && sheetTitle) {
+              console.log('📊 Syncing order to Google Sheets:', { spreadsheetId, sheetTitle, values: valuesToAppend });
+              const appendResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/google-sheets-append`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  shop_id: orderData.shop_id,
+                  spreadsheet_id: spreadsheetId,
+                  sheet_title: sheetTitle,
+                  values: [valuesToAppend]
+                })
+              });
+
+              const appendResult = await appendResponse.json();
+              if (appendResponse.ok) {
+                console.log('✅ Order synced to Google Sheets successfully');
+              } else {
+                console.error('❌ Failed to sync order to Google Sheets:', appendResult);
+              }
+            } else if (sheetsConfig.webhook_url) {
+              console.log('🔗 Syncing order via webhook:', sheetsConfig.webhook_url);
+              await fetch(sheetsConfig.webhook_url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: 'new_order', order: orderData, timestamp: new Date().toISOString() }),
+              });
+            } else {
+              console.log('⚠️ Google Sheets config found but missing spreadsheet_id/sheet_title and webhook_url');
+            }
+          } else {
+            console.log('ℹ️ No Google Sheets config found for shop:', orderData.shop_id);
+          }
+        } catch (sheetError) {
+          console.error('❌ Google Sheets sync failed:', sheetError);
+        }
       }
 
     } catch (orderCreationError) {
