@@ -16,9 +16,10 @@ const AppWrapper = ({ children }: AppWrapperProps) => {
   const publicRoutes = [
     '/',
     '/shopify',
-    '/shopify-connect', 
+    '/shopify-connect',
     '/shopify-callback',
-    '/shopify-redirect'
+    '/shopify-redirect',
+    '/oauth/google-callback'
   ];
   
   // التحقق من أن المسار الحالي صفحة عامة
