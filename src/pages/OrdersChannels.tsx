@@ -201,12 +201,15 @@ const OrdersChannels = () => {
         return;
       }
 
+      // Check if any forms are selected for mapping
+      const hasFormMappings = Object.keys(formMappings).some(formId => formMappings[formId]);
+
       const payload = {
         action: 'create-config',
         sheet_id: newConfig.sheet_id || derivedSheetId,
         sheet_name: newConfig.sheet_name || derivedSheetTitle,
         sync_orders: newConfig.sync_orders,
-        sync_submissions: newConfig.sync_submissions,
+        sync_submissions: hasFormMappings || newConfig.sync_submissions, // Auto-enable if forms are mapped
         enabled: true,
         shop_id: actualShop
       } as any;
@@ -234,10 +237,13 @@ const OrdersChannels = () => {
 
       if (mappings.length > 0) {
         try {
-          const { error: upsertErr } = await supabase
-            .from('google_sheets_form_mappings')
-            .upsert(mappings, { onConflict: 'shop_id,form_id' } as any);
-          if (upsertErr) throw upsertErr;
+          // Use edge function with service key to avoid client-side RLS/404
+          const { data: upsertRes, error: upsertErr } = await supabase.functions.invoke('google-sheets-sync', {
+            body: { action: 'upsert-form-mappings', records: mappings }
+          });
+          if (upsertErr || (upsertRes && (upsertRes as any).error)) {
+            throw (upsertErr || (upsertRes as any).error);
+          }
         } catch (e) {
           console.warn('Upsert form mappings failed (non-blocking):', e);
         }

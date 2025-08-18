@@ -162,6 +162,54 @@ serve(async (req) => {
       }
     }
 
+    // Upsert per-form mappings with service role (avoids client RLS/404)
+    if ((req.method === 'POST') && action === 'upsert-form-mappings') {
+      const { records } = (jsonBody ?? await req.json());
+      if (!Array.isArray(records) || records.length === 0) {
+        return new Response(JSON.stringify({ success: true, upserted: 0 }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+      try {
+        const { error } = await supabase
+          .from('google_sheets_form_mappings')
+          .upsert(records, { onConflict: 'shop_id,form_id' } as any);
+        if (error) throw error;
+        return new Response(JSON.stringify({ success: true, upserted: records.length }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      } catch (e) {
+        // Attempt to create the table if it doesn't exist (42P01)
+        const message = (e as any)?.message || '';
+        if (message.includes('relation') || message.includes('42P01') || message.includes('not exist')) {
+          try {
+            // If exec_sql function exists, create table idempotently
+            await supabase.rpc('exec_sql', { sql: `
+              CREATE TABLE IF NOT EXISTS public.google_sheets_form_mappings (
+                id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+                shop_id text NOT NULL,
+                form_id uuid NOT NULL,
+                spreadsheet_id text NOT NULL,
+                spreadsheet_name text,
+                sheet_id text NOT NULL,
+                sheet_title text,
+                enabled boolean NOT NULL DEFAULT true,
+                created_at timestamptz NOT NULL DEFAULT now(),
+                updated_at timestamptz NOT NULL DEFAULT now()
+              );
+              CREATE UNIQUE INDEX IF NOT EXISTS uq_form_mapping_per_shop ON public.google_sheets_form_mappings(shop_id, form_id);
+            ` });
+            const { error: retryErr } = await supabase
+              .from('google_sheets_form_mappings')
+              .upsert(records, { onConflict: 'shop_id,form_id' } as any);
+            if (retryErr) throw retryErr;
+            return new Response(JSON.stringify({ success: true, upserted: records.length, created_table: true }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+          } catch (fatal) {
+            console.error('Upsert form mappings failed, even after ensure-table:', fatal);
+            return new Response(JSON.stringify({ success: false, error: 'UPSERT_FAILED', details: (fatal as any)?.message || String(fatal) }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+          }
+        }
+        console.error('Upsert form mappings failed:', e);
+        return new Response(JSON.stringify({ success: false, error: 'UPSERT_FAILED', details: message || String(e) }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+    }
+
     // Delete config
     if ((req.method === 'DELETE' || req.method === 'POST') && action === 'delete-config') {
       const { config_id } = (jsonBody ?? await req.json());
