@@ -124,7 +124,9 @@ serve(async (req) => {
     }
     if (!redirectBase) redirectBase = 'https://codmagnet.com/oauth/google-callback';
 
-    const location = redirectBase.includes('#') ? redirectBase : `${redirectBase}#success=1`;
+    // Add both query and hash flags for maximum compatibility
+    const withQuery = redirectBase.includes('?') ? `${redirectBase}&success=1` : `${redirectBase}?success=1`;
+    const location = withQuery.includes('#') ? withQuery : `${withQuery}#success=1`;
     return new Response(null, { status: 302, headers: { ...corsHeaders, Location: location } });
   } catch (e) {
     return new Response(JSON.stringify({ error: e?.message || 'failed' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 });

@@ -8,7 +8,9 @@ export default function OAuthGoogleCallback() {
     const run = async () => {
       try {
         const params = new URLSearchParams(window.location.search);
-        const success = params.get('success');
+        const hash = window.location.hash || '';
+        const hashParams = new URLSearchParams(hash.startsWith('#') ? hash.slice(1) : hash);
+        const success = params.get('success') || hashParams.get('success') || (hash.includes('success=1') ? '1' : null);
         const code = params.get('code');
         const err = params.get('error');
 
