@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { formManagementService } from '@/services/FormManagementService';
+
 
 const OrdersChannels = () => {
   const { user, shopifyConnected, shop } = useAuth();
@@ -27,6 +27,8 @@ const OrdersChannels = () => {
   const [enableAutoImport, setEnableAutoImport] = useState<boolean>(true);
   const [formMappings, setFormMappings] = useState<Record<string, { spreadsheet_id: string; sheet_id: string; sheet_title: string }>>({});
   const [loadingForms, setLoadingForms] = useState<boolean>(false);
+  const [forms, setForms] = useState<any[]>([]);
+
 
   const [newConfig, setNewConfig] = useState({
     sheet_id: '',
@@ -96,8 +98,40 @@ const OrdersChannels = () => {
     };
     window.addEventListener('message', onMsg);
 
+
+
     return () => window.removeEventListener('message', onMsg);
   }, [actualHasAccess]);
+
+  // Load published forms for mapping UI
+  useEffect(() => {
+    if (!actualHasAccess) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        setLoadingForms(true);
+        const activeShop = (actualShop as string) || localStorage.getItem('active_shopify_store') || localStorage.getItem('shopify_store') || '';
+        let query = supabase
+          .from('forms')
+          .select('id, title, is_published, shop_id')
+          .order('updated_at', { ascending: false })
+          .limit(100);
+        if (activeShop) {
+          query = query.eq('shop_id', activeShop);
+        }
+        const { data, error } = await query as any;
+        if (error) throw error;
+        if (!cancelled) setForms(data || []);
+      } catch (e) {
+        console.error('Failed to fetch forms list for mapping', e);
+        if (!cancelled) setForms([]);
+      } finally {
+        if (!cancelled) setLoadingForms(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [actualHasAccess, actualShop]);
+
   // Google OAuth and Sheets helpers
   const handleGoogleConnect = async () => {
     try {
@@ -116,26 +150,6 @@ const OrdersChannels = () => {
         console.error('Unexpected response from google-oauth-start:', data);
       }
 
-  // Ensure forms list is available for per-form routing UI
-  useEffect(() => {
-    if (!actualHasAccess) return;
-    // 1) Prime from localStorage cache for instant UI
-    try {
-      const cached = localStorage.getItem('cached_forms');
-      if (cached && !(Array.isArray((window as any).cachedForms))) {
-        (window as any).cachedForms = JSON.parse(cached);
-      }
-    } catch {}
-    // 2) Fetch fresh list and update global cache
-    (async () => {
-      try {
-        const forms = await formManagementService.fetchForms();
-        try { (window as any).cachedForms = forms || []; } catch {}
-      } catch (e) {
-        console.error('Failed to load forms for mapping', e);
-      }
-    })();
-  }, [actualHasAccess]);
 
     } catch (e) {
       console.error('Failed to start Google OAuth via edge function', e);
@@ -191,7 +205,6 @@ const OrdersChannels = () => {
         action: 'create-config',
         sheet_id: newConfig.sheet_id || derivedSheetId,
         sheet_name: newConfig.sheet_name || derivedSheetTitle,
-        webhook_url: undefined, // removed from UI
         sync_orders: newConfig.sync_orders,
         sync_submissions: newConfig.sync_submissions,
         enabled: true,
@@ -507,7 +520,7 @@ const OrdersChannels = () => {
                     <div>
                       <p className="text-sm font-medium mb-2">{language === 'ar' ? 'اختيار النماذج لإرسالها إلى ورقة محددة' : 'Select which forms to sync and target sheet'}</p>
                       <div className="space-y-2 max-h-56 overflow-auto border rounded p-2">
-                        {Array.isArray((window as any).cachedForms) ? (window as any).cachedForms.map((form: any) => {
+                        {Array.isArray(forms) && forms.length > 0 ? forms.map((form: any) => {
                           const mapping = formMappings[form.id] || { spreadsheet_id: selectedSpreadsheet, sheet_id: selectedSheet.split('|')[0], sheet_title: selectedSheet.split('|')[1] };
                           return (
                             <div key={form.id} className="flex items-center gap-2">
@@ -528,7 +541,7 @@ const OrdersChannels = () => {
                             </div>
                           );
                         }) : (
-                          <div className="text-xs text-muted-foreground">{language === 'ar' ? 'سيتم عرض النماذج بعد تحميلها' : 'Forms will appear after loading'}</div>
+                          <div className="text-xs text-muted-foreground">{loadingForms ? (language === 'ar' ? '...الرجاء الانتظار' : 'Loading...') : (language === 'ar' ? 'لا توجد نماذج منشورة' : 'No published forms')}</div>
                         )}
                       </div>
                     </div>
@@ -547,11 +560,11 @@ const OrdersChannels = () => {
                     {/* 5) Sync options */}
                     <div className="flex flex-wrap items-center gap-6">
                       <div className="flex items-center gap-2">
-                        <Switch id="sync_orders" checked={newConfig.sync_orders} onCheckedChange={(checked) => setNewConfig({ ...newConfig, sync_orders: checked as boolean })} />
+                        <Switch id="sync_orders" checked={newConfig.sync_orders} onCheckedChange={(checked: boolean) => setNewConfig({ ...newConfig, sync_orders: checked })} />
                         <Label htmlFor="sync_orders" className="!mt-0">{language === 'ar' ? 'مزامنة الطلبات' : 'Sync Orders'}</Label>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Switch id="sync_submissions" checked={newConfig.sync_submissions} onCheckedChange={(checked) => setNewConfig({ ...newConfig, sync_submissions: checked as boolean })} />
+                        <Switch id="sync_submissions" checked={newConfig.sync_submissions} onCheckedChange={(checked: boolean) => setNewConfig({ ...newConfig, sync_submissions: checked })} />
                         <Label htmlFor="sync_submissions" className="!mt-0">{language === 'ar' ? 'مزامنة النماذج' : 'Sync Form Submissions'}</Label>
                       </div>
                     </div>
