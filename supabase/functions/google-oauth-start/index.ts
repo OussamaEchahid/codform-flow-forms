@@ -34,8 +34,7 @@ serve(async (req) => {
     }
 
     if (!redirectUri) {
-      const origin = req.headers.get('origin') || '';
-      if (origin) redirectUri = `${origin}/oauth/google-callback`;
+      redirectUri = 'https://codmagnet.com/orders/channels';
     }
 
     if (!redirectUri) {
