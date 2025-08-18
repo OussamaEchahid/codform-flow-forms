@@ -7,12 +7,31 @@ export default function OAuthGoogleCallback() {
   useEffect(() => {
     const run = async () => {
       try {
+        // Detailed logging for debugging
+        console.log('🔍 OAuth Callback Debug - Full URL:', window.location.href);
+        console.log('🔍 Query string:', window.location.search);
+        console.log('🔍 Hash:', window.location.hash);
+        
         const params = new URLSearchParams(window.location.search);
         const hash = window.location.hash || '';
         const hashParams = new URLSearchParams(hash.startsWith('#') ? hash.slice(1) : hash);
-        const success = params.get('success') || hashParams.get('success') || (hash.includes('success=1') ? '1' : null);
+        
+        // Multiple ways to check for success parameter
+        const successQuery = params.get('success');
+        const successHash = hashParams.get('success');
+        const successInUrl = window.location.href.includes('success=1') || window.location.href.includes('success=true');
+        const success = successQuery || successHash || (successInUrl ? '1' : null);
+        
         const code = params.get('code');
         const err = params.get('error');
+        
+        console.log('🔍 Parsed values:');
+        console.log('  - success (query):', successQuery);
+        console.log('  - success (hash):', successHash);
+        console.log('  - success (in URL):', successInUrl);
+        console.log('  - final success:', success);
+        console.log('  - code:', code ? 'present' : 'missing');
+        console.log('  - error:', err);
 
         if (err) {
           setMessage(`Google authorization failed: ${err}`);
