@@ -129,6 +129,7 @@ serve(async (req) => {
       if (frontend) redirectTarget = `${frontend.replace(/\/$/, '')}/oauth/google-callback`;
     }
 
+    // Try redirecting with success flag first
     if (redirectTarget) {
       try {
         const target = new URL(redirectTarget);
@@ -139,8 +140,21 @@ serve(async (req) => {
       }
     }
 
-    // As a last resort return JSON
-    return new Response(JSON.stringify({ success: true, note: 'no_redirect_url' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
+    // If redirects may strip query params on the host, return a small HTML page
+    // that notifies the opener window and closes itself. This avoids relying on
+    // any query string persistence on the frontend host.
+    const html = `<!doctype html>
+<html>
+  <head><meta charset="utf-8"><title>Google Connected</title></head>
+  <body style="font-family: sans-serif; padding: 24px;">
+    <p>Google account connected. You can close this window.</p>
+    <script>
+      try { window.opener && window.opener.postMessage({ type: 'GOOGLE_CONNECTED' }, '*'); } catch (e) {}
+      setTimeout(function(){ try { window.close(); } catch(e) {} }, 800);
+    </script>
+  </body>
+</html>`;
+    return new Response(html, { headers: { ...corsHeaders, 'Content-Type': 'text/html' }, status: 200 });
   } catch (e) {
     return new Response(JSON.stringify({ error: e?.message || 'failed' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 });
   }
