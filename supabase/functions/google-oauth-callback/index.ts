@@ -116,11 +116,22 @@ serve(async (req) => {
       );
     }
 
-    // Prefer a server-side redirect to the required URL after success
-    let redirectTarget = appRedirect || 'https://codmagnet.com/orders/channels';
+    // Redirect to our OAuth callback page on the frontend so it can auto-close and notify the opener
+    let redirectBase = appRedirect && appRedirect.includes('/oauth/google-callback')
+      ? appRedirect
+      : '';
+    if (!redirectBase) {
+      const origin = req.headers.get('origin') || '';
+      if (origin) redirectBase = `${origin.replace(/\/$/, '')}/oauth/google-callback`;
+    }
+    if (!redirectBase) {
+      const frontend = Deno.env.get('FRONTEND_URL') || '';
+      if (frontend) redirectBase = `${frontend.replace(/\/$/, '')}/oauth/google-callback`;
+    }
+    if (!redirectBase) redirectBase = 'https://codmagnet.com/oauth/google-callback';
 
     try {
-      const target = new URL(redirectTarget);
+      const target = new URL(redirectBase);
       target.searchParams.set('success', '1');
       return new Response(null, { status: 302, headers: { ...corsHeaders, Location: target.toString() } });
     } catch (_) {
@@ -129,7 +140,7 @@ serve(async (req) => {
 
     // Last-resort HTML without scripts/styles (CSP-safe). User can click through.
     const html = `<!doctype html><html><head><meta charset="utf-8"><title>Google Connected</title></head>
-<body>Google account connected. <a href="https://codmagnet.com/orders/channels">Continue</a></body></html>`;
+<body>Google account connected. <a href="/oauth/google-callback?success=1">Continue</a></body></html>`;
     return new Response(html, { headers: { ...corsHeaders, 'Content-Type': 'text/html' }, status: 200 });
   } catch (e) {
     return new Response(JSON.stringify({ error: e?.message || 'failed' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 });

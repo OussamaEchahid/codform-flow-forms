@@ -319,16 +319,24 @@ const OrdersChannels = () => {
                   <div className="flex justify-between items-start">
                     <div>
                       <p className="font-medium text-sm">{config.sheet_name || 'Google Sheet'}</p>
-                      <p className="text-xs text-muted-foreground">{config.sheet_id.substring(0, 20)}...</p>
+                      <p className="text-xs text-muted-foreground">{(config.sheet_id || '').substring(0, 20)}...</p>
                     </div>
                     <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleTestWebhook(config.webhook_url)}
-                      >
+                      <Button size="sm" variant="outline" onClick={() => handleTestWebhook(config.webhook_url)}>
                         <TestTube className="h-3 w-3" />
                       </Button>
+                      <Button size="sm" variant="destructive" onClick={async () => {
+                        if (!window.confirm(language === 'ar' ? 'حذف هذا التكامل؟' : 'Delete this integration?')) return;
+                        try {
+                          const { error } = await supabase.functions.invoke('google-sheets-sync', { body: { action: 'delete-config', config_id: config.id } });
+                          if (error) throw error;
+                          setGoogleSheetConfigs((prev: any) => prev.filter((c: any) => c.id !== config.id));
+                          toast({ title: language === 'ar' ? 'تم الحذف' : 'Deleted', description: language === 'ar' ? 'تم حذف التكامل' : 'Integration deleted' });
+                        } catch (e) {
+                          console.error('Delete config failed', e);
+                          toast({ title: language === 'ar' ? 'خطأ' : 'Error', description: language === 'ar' ? 'فشل حذف التكامل' : 'Failed to delete integration', variant: 'destructive' });
+                        }
+                      }}> {language === 'ar' ? 'حذف' : 'Delete'} </Button>
                     </div>
                   </div>
                   <div className="flex gap-4 text-xs">
@@ -376,6 +384,20 @@ const OrdersChannels = () => {
                           <Button onClick={handleGoogleConnect} variant={googleConnected ? 'secondary' : 'default'}>
                             {googleConnected ? (language === 'ar' ? 'إعادة الاتصال بـ Google' : 'Reconnect Google') : (language === 'ar' ? 'اتصل بحساب Google' : 'Connect Google account')}
                           </Button>
+                          {googleConnected && (
+                            <Button variant="outline" onClick={async () => {
+                              const shopId = (actualShop as string) || localStorage.getItem('active_shopify_store') || '';
+                              try {
+                                const { error } = await supabase.functions.invoke('google-oauth-disconnect', { body: { shop_id: shopId } });
+                                if (error) throw error;
+                                setGoogleConnected(false);
+                                toast({ title: language === 'ar' ? 'تم الفصل' : 'Disconnected', description: language === 'ar' ? 'تم قطع الاتصال بحساب Google' : 'Disconnected from Google' });
+                              } catch (e) {
+                                console.error('Disconnect failed', e);
+                                toast({ title: language === 'ar' ? 'خطأ' : 'Error', description: language === 'ar' ? 'فشل قطع الاتصال' : 'Failed to disconnect', variant: 'destructive' });
+                              }
+                            }}>{language === 'ar' ? 'قطع الاتصال' : 'Disconnect'}</Button>
+                          )}
                           <Button variant="outline" onClick={refreshSpreadsheets}>{language === 'ar' ? 'تحديث' : 'Refresh'}</Button>
                         </div>
                       </div>

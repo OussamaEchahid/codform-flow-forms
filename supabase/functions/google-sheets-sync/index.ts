@@ -162,11 +162,28 @@ serve(async (req) => {
       }
     }
 
+    // Delete config
+    if ((req.method === 'DELETE' || req.method === 'POST') && action === 'delete-config') {
+      const { config_id } = (jsonBody ?? await req.json());
+      if (!config_id) {
+        return new Response(JSON.stringify({ error: 'config_id_required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+      const { error } = await supabase
+        .from('google_sheets_configs')
+        .delete()
+        .eq('id', config_id);
+      if (error) {
+        console.error('Error deleting Google Sheets config:', error);
+        return new Response(JSON.stringify({ error: 'Failed to delete Google Sheets config' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+      return new Response(JSON.stringify({ success: true }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
     return new Response(
       JSON.stringify({ error: 'Invalid action' }),
-      { 
-        status: 400, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
 
@@ -174,9 +191,9 @@ serve(async (req) => {
     console.error('Unexpected error:', error);
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
   }
