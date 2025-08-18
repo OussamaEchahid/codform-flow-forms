@@ -116,28 +116,16 @@ serve(async (req) => {
       );
     }
 
-    // Show a self-contained HTML page that notifies the opener and auto-closes.
-    const html = `<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <title>Google Connected</title>
-</head>
-<body style="font-family: sans-serif; padding: 24px;">
-  <h3>Google account connected</h3>
-  <p>You can close this window.</p>
-  <script>
-    (function(){
-      try { window.opener && window.opener.postMessage({ type: 'GOOGLE_CONNECTED' }, '*'); } catch(e) {}
-      setTimeout(function(){
-        try { window.close(); } catch(e) {}
-      }, 800);
-    })();
-  </script>
-  <p><a href="/orders/channels">Back to app</a></p>
-</body>
-</html>`;
-    return new Response(html, { headers: { ...corsHeaders, 'Content-Type': 'text/html' }, status: 200 });
+    // Redirect back to the frontend callback with a hash flag (no query dependence)
+    let redirectBase = appRedirect && appRedirect.includes('/oauth/google-callback') ? appRedirect : '';
+    if (!redirectBase) {
+      const origin = req.headers.get('origin') || '';
+      if (origin) redirectBase = `${origin.replace(/\/$/, '')}/oauth/google-callback`;
+    }
+    if (!redirectBase) redirectBase = 'https://codmagnet.com/oauth/google-callback';
+
+    const location = redirectBase.includes('#') ? redirectBase : `${redirectBase}#success=1`;
+    return new Response(null, { status: 302, headers: { ...corsHeaders, Location: location } });
   } catch (e) {
     return new Response(JSON.stringify({ error: e?.message || 'failed' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 });
   }
