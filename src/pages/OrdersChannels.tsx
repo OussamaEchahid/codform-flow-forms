@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { formManagementService } from '@/services/FormManagementService';
 
 const OrdersChannels = () => {
   const { user, shopifyConnected, shop } = useAuth();
@@ -25,6 +26,7 @@ const OrdersChannels = () => {
   const [selectedSheet, setSelectedSheet] = useState<string>('');
   const [enableAutoImport, setEnableAutoImport] = useState<boolean>(true);
   const [formMappings, setFormMappings] = useState<Record<string, { spreadsheet_id: string; sheet_id: string; sheet_title: string }>>({});
+  const [loadingForms, setLoadingForms] = useState<boolean>(false);
 
   const [newConfig, setNewConfig] = useState({
     sheet_id: '',
@@ -93,6 +95,7 @@ const OrdersChannels = () => {
       }
     };
     window.addEventListener('message', onMsg);
+
     return () => window.removeEventListener('message', onMsg);
   }, [actualHasAccess]);
   // Google OAuth and Sheets helpers
@@ -112,6 +115,28 @@ const OrdersChannels = () => {
       } else {
         console.error('Unexpected response from google-oauth-start:', data);
       }
+
+  // Ensure forms list is available for per-form routing UI
+  useEffect(() => {
+    if (!actualHasAccess) return;
+    // 1) Prime from localStorage cache for instant UI
+    try {
+      const cached = localStorage.getItem('cached_forms');
+      if (cached && !(Array.isArray((window as any).cachedForms))) {
+        (window as any).cachedForms = JSON.parse(cached);
+      }
+    } catch {}
+    // 2) Fetch fresh list and update global cache
+    (async () => {
+      try {
+        const forms = await formManagementService.fetchForms();
+        try { (window as any).cachedForms = forms || []; } catch {}
+      } catch (e) {
+        console.error('Failed to load forms for mapping', e);
+      }
+    })();
+  }, [actualHasAccess]);
+
     } catch (e) {
       console.error('Failed to start Google OAuth via edge function', e);
     }
@@ -155,19 +180,56 @@ const OrdersChannels = () => {
 
   const handleAddGoogleSheets = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('google-sheets-sync', {
-        body: {
-          action: 'create-config',
-          ...newConfig,
-          shop_id: actualShop
-        }
-      });
-
-      if (error) {
-        throw error;
+      // Derive sheet_id and sheet_name from the selection
+      const [derivedSheetId, derivedSheetTitle] = (selectedSheet || '').split('|');
+      if (!selectedSpreadsheet || !derivedSheetId) {
+        toast({ title: language === 'ar' ? 'مطلوب' : 'Required', description: language === 'ar' ? 'يرجى اختيار الملف والورقة' : 'Please select a spreadsheet and a sheet', variant: 'destructive' });
+        return;
       }
 
-      setGoogleSheetConfigs([...googleSheetConfigs, data.config]);
+      const payload = {
+        action: 'create-config',
+        sheet_id: newConfig.sheet_id || derivedSheetId,
+        sheet_name: newConfig.sheet_name || derivedSheetTitle,
+        webhook_url: undefined, // removed from UI
+        sync_orders: newConfig.sync_orders,
+        sync_submissions: newConfig.sync_submissions,
+        enabled: true,
+        shop_id: actualShop
+      } as any;
+
+      const { data, error } = await supabase.functions.invoke('google-sheets-sync', { body: payload });
+      if (error) throw error;
+
+      setGoogleSheetConfigs([...googleSheetConfigs, (data as any).config]);
+
+      // Persist per-form mappings if any were selected
+      const mappings: any[] = [];
+      Object.entries(formMappings).forEach(([formId, map]: any) => {
+        if (!map) return;
+        const sheetId = map.sheet_id || derivedSheetId;
+        const sheetTitle = map.sheet_title || derivedSheetTitle;
+        mappings.push({
+          shop_id: actualShop,
+          form_id: formId,
+          spreadsheet_id: selectedSpreadsheet,
+          sheet_id: sheetId,
+          sheet_title: sheetTitle,
+          enabled: true,
+        });
+      });
+
+      if (mappings.length > 0) {
+        try {
+          const { error: upsertErr } = await supabase
+            .from('google_sheets_form_mappings')
+            .upsert(mappings, { onConflict: 'shop_id,form_id' } as any);
+          if (upsertErr) throw upsertErr;
+        } catch (e) {
+          console.warn('Upsert form mappings failed (non-blocking):', e);
+        }
+      }
+
       setShowAddDialog(false);
       setNewConfig({
         sheet_id: '',
@@ -416,7 +478,7 @@ const OrdersChannels = () => {
                       <div>
                         <Label className="text-sm font-medium">{language === 'ar' ? 'اختر الملف' : 'Select your spreadsheet'}</Label>
                         <div className="flex gap-2 mt-1">
-                          <select className="flex-1 border rounded px-2 py-1" value={selectedSpreadsheet} onChange={(e) => { setSelectedSpreadsheet(e.target.value); if (e.target.value) refreshSheets(e.target.value); }}>
+                          <select className="flex-1 border rounded px-2 py-1" value={selectedSpreadsheet} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => { setSelectedSpreadsheet(e.target.value); if (e.target.value) refreshSheets(e.target.value); }}>
                             <option value="">{language === 'ar' ? 'اختر...' : 'Select...'}</option>
                             {spreadsheets.map((f: any) => (
                               <option key={f.id} value={f.id}>{f.name}</option>
@@ -428,7 +490,7 @@ const OrdersChannels = () => {
                       <div>
                         <Label className="text-sm font-medium">{language === 'ar' ? 'اختر الورقة' : 'Select your sheet'}</Label>
                         <div className="flex gap-2 mt-1">
-                          <select className="flex-1 border rounded px-2 py-1" value={selectedSheet} onChange={(e) => setSelectedSheet(e.target.value)} disabled={!selectedSpreadsheet}>
+                          <select className="flex-1 border rounded px-2 py-1" value={selectedSheet} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSelectedSheet(e.target.value)} disabled={!selectedSpreadsheet}>
                             <option value="">{language === 'ar' ? 'اختر...' : 'Select...'}</option>
                             {sheets.map((s: any) => (
                               <option key={s.id} value={`${s.id}|${s.title}`}>{s.title}</option>
@@ -449,13 +511,13 @@ const OrdersChannels = () => {
                           const mapping = formMappings[form.id] || { spreadsheet_id: selectedSpreadsheet, sheet_id: selectedSheet.split('|')[0], sheet_title: selectedSheet.split('|')[1] };
                           return (
                             <div key={form.id} className="flex items-center gap-2">
-                              <input type="checkbox" checked={!!formMappings[form.id]} onChange={(e) => setFormMappings((prev: any) => ({ ...prev, [form.id]: (e.target as HTMLInputElement).checked ? mapping : undefined as any }))} />
+                              <input type="checkbox" checked={!!formMappings[form.id]} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormMappings((prev: any) => ({ ...prev, [form.id]: (e.target as HTMLInputElement).checked ? mapping : undefined as any }))} />
                               <span className="text-sm flex-1 truncate">{form.title}</span>
-                              <select className="border rounded px-2 py-1" value={mapping.spreadsheet_id || ''} onChange={(e) => setFormMappings((prev: any) => ({ ...prev, [form.id]: { ...(prev[form.id] || {}), spreadsheet_id: (e.target as HTMLSelectElement).value } }))}>
+                              <select className="border rounded px-2 py-1" value={mapping.spreadsheet_id || ''} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormMappings((prev: any) => ({ ...prev, [form.id]: { ...(prev[form.id] || {}), spreadsheet_id: (e.target as HTMLSelectElement).value } }))}>
                                 <option value="">{language === 'ar' ? 'الملف' : 'Spreadsheet'}</option>
                                 {spreadsheets.map((f: any) => (<option key={f.id} value={f.id}>{f.name}</option>))}
                               </select>
-                              <select className="border rounded px-2 py-1" value={mapping.sheet_id || ''} onChange={(e) => {
+                              <select className="border rounded px-2 py-1" value={mapping.sheet_id || ''} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
                                 const target = e.target as HTMLSelectElement;
                                 const [sid, title] = [target.value, (sheets.find((s:any)=>String(s.id)===String(target.value))||{}).title];
                                 setFormMappings((prev: any) => ({ ...prev, [form.id]: { ...(prev[form.id] || {}), sheet_id: sid, sheet_title: title } }));
@@ -475,18 +537,10 @@ const OrdersChannels = () => {
 
                     {/* 4) Optional settings */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="sheet_id_opt" className="text-sm font-medium">{language === 'ar' ? 'معرف الجدول (اختياري)' : 'Sheet ID (optional)'}</Label>
-                        <Input id="sheet_id_opt" value={newConfig.sheet_id} onChange={(e) => setNewConfig({ ...newConfig, sheet_id: e.target.value })} placeholder="1BxiMVs0..." />
-                      </div>
+                      {/* Removed Sheet ID (optional) and Webhook URL (optional) as requested */}
                       <div>
                         <Label htmlFor="sheet_name" className="text-sm font-medium">{language === 'ar' ? 'اسم الورقة' : 'Sheet Name'}</Label>
-                        <Input id="sheet_name" value={newConfig.sheet_name} onChange={(e) => setNewConfig({ ...newConfig, sheet_name: e.target.value })} placeholder={language === 'ar' ? 'ورقة الطلبات' : 'Orders Sheet'} />
-                      </div>
-                      <div className="md:col-span-2">
-                        <Label htmlFor="webhook_url" className="text-sm font-medium">{language === 'ar' ? 'رابط الـ Webhook (Zapier/Make) (اختياري)' : 'Webhook URL (Zapier/Make) (optional)'}</Label>
-                        <Input id="webhook_url" value={newConfig.webhook_url} onChange={(e) => setNewConfig({ ...newConfig, webhook_url: e.target.value })} placeholder="https://hooks.zapier.com/hooks/catch/..." />
-                        <p className="text-xs text-muted-foreground mt-1">{language === 'ar' ? 'يُستخدم كحل احتياطي عند عدم ضبط الملف/الورقة' : 'Used as a fallback when spreadsheet/sheet are not configured'}</p>
+                        <Input id="sheet_name" value={newConfig.sheet_name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewConfig({ ...newConfig, sheet_name: e.target.value })} placeholder={language === 'ar' ? 'ورقة الطلبات' : 'Orders Sheet'} />
                       </div>
                     </div>
 
