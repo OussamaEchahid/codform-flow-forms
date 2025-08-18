@@ -116,8 +116,7 @@ serve(async (req) => {
       );
     }
 
-    // Always respond with a small HTML page. If opened as a popup, notify the opener and close.
-    // If opened in the same tab (no opener), redirect to the app URL embedded in state.
+    // Always respond with a small HTML page. Notify opener (if any), try to close, then ALWAYS fallback-redirect to app.
     const html = `<!doctype html>
 <html>
   <head><meta charset="utf-8"><title>Google Connected</title></head>
@@ -125,31 +124,20 @@ serve(async (req) => {
     <p>Google account connected. You can close this window.</p>
     <script>
       (function(){
-        function getState(){
+        var TARGET = ${JSON.stringify(appRedirect || '')};
+        function redirect(){
           try {
-            var sp = new URLSearchParams(window.location.search);
-            var s = sp.get('state');
-            if (!s) return null;
-            return JSON.parse(atob(decodeURIComponent(s)));
-          } catch(e) { return null; }
+            if (TARGET) {
+              var u = new URL(TARGET, window.location.origin);
+              u.searchParams.set('success','1');
+              window.location.replace(u.toString());
+            }
+          } catch(e) {}
         }
         try { if (window.opener) { window.opener.postMessage({ type: 'GOOGLE_CONNECTED' }, '*'); } } catch (e) {}
-        // Try to close if popup
-        setTimeout(function(){ try { window.close(); } catch(e) {} }, 300);
-        // If not a popup (or cannot close), redirect back to the app
-        setTimeout(function(){
-          if (!window.opener || !window.closed) {
-            var st = getState();
-            var target = st && st.r;
-            try {
-              if (target) {
-                var u = new URL(target, window.location.origin);
-                u.searchParams.set('success','1');
-                window.location.replace(u.toString());
-              }
-            } catch(e) {}
-          }
-        }, 600);
+        // Try to close if popup; regardless, fallback redirect will occur shortly
+        setTimeout(function(){ try { window.close(); } catch(e) {} }, 200);
+        setTimeout(redirect, 700);
       })();
     </script>
   </body>
