@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export default function OAuthGoogleCallback() {
+  console.log('🚀 OAuthGoogleCallback component is loading!');
   const [message, setMessage] = useState('Processing Google callback...');
 
   useEffect(() => {
@@ -74,6 +75,8 @@ export default function OAuthGoogleCallback() {
     run();
   }, []);
 
+  console.log('🎨 OAuthGoogleCallback component is rendering with message:', message);
+  
   return (
     <div className="p-6 text-center">
       <p>{message}</p>
