@@ -116,32 +116,30 @@ serve(async (req) => {
       );
     }
 
-    // Always respond with a small HTML page. Notify opener (if any), try to close, then ALWAYS fallback-redirect to app.
-    const html = `<!doctype html>
-<html>
-  <head><meta charset="utf-8"><title>Google Connected</title></head>
-  <body style="font-family: sans-serif; padding: 24px;">
-    <p>Google account connected. You can close this window.</p>
-    <script>
-      (function(){
-        var TARGET = ${JSON.stringify(appRedirect || '')};
-        function redirect(){
-          try {
-            if (TARGET) {
-              var u = new URL(TARGET, window.location.origin);
-              u.searchParams.set('success','1');
-              window.location.replace(u.toString());
-            }
-          } catch(e) {}
-        }
-        try { if (window.opener) { window.opener.postMessage({ type: 'GOOGLE_CONNECTED' }, '*'); } } catch (e) {}
-        // Try to close if popup; regardless, fallback redirect will occur shortly
-        setTimeout(function(){ try { window.close(); } catch(e) {} }, 200);
-        setTimeout(redirect, 700);
-      })();
-    </script>
-  </body>
-</html>`;
+    // Prefer a server-side redirect to avoid CSP blocking inline scripts/styles in some contexts
+    let redirectTarget = appRedirect;
+    if (!redirectTarget) {
+      const origin = req.headers.get('origin') || '';
+      if (origin) redirectTarget = `${origin.replace(/\/$/, '')}/oauth/google-callback`;
+    }
+    if (!redirectTarget) {
+      const frontend = Deno.env.get('FRONTEND_URL') || '';
+      if (frontend) redirectTarget = `${frontend.replace(/\/$/, '')}/oauth/google-callback`;
+    }
+
+    if (redirectTarget) {
+      try {
+        const target = new URL(redirectTarget);
+        target.searchParams.set('success', '1');
+        return new Response(null, { status: 302, headers: { ...corsHeaders, Location: target.toString() } });
+      } catch (_) {
+        // fall through to HTML fallback
+      }
+    }
+
+    // Last-resort HTML without scripts/styles (CSP-safe). User can click through.
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Google Connected</title></head>
+<body>Google account connected. <a href="/">Continue</a></body></html>`;
     return new Response(html, { headers: { ...corsHeaders, 'Content-Type': 'text/html' }, status: 200 });
   } catch (e) {
     return new Response(JSON.stringify({ error: e?.message || 'failed' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 });
