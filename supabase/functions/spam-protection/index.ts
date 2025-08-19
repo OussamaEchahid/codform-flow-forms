@@ -52,24 +52,55 @@ Deno.serve(async (req) => {
         )
       }
 
-      // استدعاء دالة التحقق من الحظر
-      const { data, error } = await supabase.rpc('is_ip_blocked', {
-        p_ip_address: ipAddress,
-        p_shop_id: shopId
-      })
-
-      if (error) {
-        console.error('Error checking IP block:', error)
-        return new Response(
-          JSON.stringify({ error: 'Failed to check IP block status' }),
-          { 
-            status: 500, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-          }
-        )
+      // استدعاء دالة التحقق من الحظر مع مسار احتياطي بدون RPC
+      let rpcData: any = null; // eslint-disable-line @typescript-eslint/no-explicit-any
+      let rpcError: any = null; // eslint-disable-line @typescript-eslint/no-explicit-any
+      try {
+        const { data, error } = await supabase.rpc('is_ip_blocked', {
+          p_ip_address: ipAddress,
+          p_shop_id: shopId
+        });
+        rpcData = data;
+        rpcError = error || null;
+      } catch (e) {
+        rpcError = e;
       }
 
-      const result: BlockedIPCheck = data?.[0] || { is_blocked: false }
+      if (rpcError) {
+        console.warn('RPC is_ip_blocked failed, falling back to direct SELECT', rpcError);
+        try {
+          const shopList = [shopId, 'default'].filter(Boolean) as string[];
+          const { data: direct, error: dirErr } = await supabase
+            .from('blocked_ips')
+            .select('redirect_url, reason')
+            .eq('ip_address', ipAddress)
+            .eq('is_active', true)
+            .in('shop_id', shopList)
+            .limit(1);
+
+          if (dirErr) {
+            console.error('Direct SELECT fallback failed', dirErr);
+            // لا نفشل الطلب – نعيد is_blocked=false للحفاظ على تجربة المستخدم
+            return new Response(
+              JSON.stringify({ is_blocked: false, error: 'FALLBACK_SELECT_ERROR' }),
+              { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+
+          if (direct && direct.length > 0) {
+            const r: BlockedIPCheck = { is_blocked: true, redirect_url: direct[0]?.redirect_url, reason: direct[0]?.reason };
+            return new Response(JSON.stringify(r), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+          }
+
+          // لا يوجد حظر
+          return new Response(JSON.stringify({ is_blocked: false }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        } catch (e2) {
+          console.error('Fallback check error', e2);
+          return new Response(JSON.stringify({ is_blocked: false, error: 'FALLBACK_EXCEPTION' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+      }
+
+      const result: BlockedIPCheck = rpcData?.[0] || { is_blocked: false }
 
       return new Response(
         JSON.stringify(result),
