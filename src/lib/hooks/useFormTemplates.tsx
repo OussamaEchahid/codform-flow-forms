@@ -19,10 +19,9 @@ export interface FormData {
   shop_id?: string;
   created_at?: string;
   style?: FormStyle;
-  country?: string; // إعدادات النموذج الأساسية (Country & Currency Settings)
+  country?: string; // إعدادات النموذج الأساسية (Country & Currency Settings) + علامة البلد للعرض
   currency?: string;
   phone_prefix?: string;
-  country_tag?: string; // علامة البلد للعرض فقط (Country Tag)
   associatedProducts?: Array<{
     id: string;
     title: string;
@@ -438,8 +437,7 @@ export const useFormTemplates = () => {
           user_id: userIdForForm,
           country: defaultSettings.country,
           currency: defaultSettings.currency,
-          phone_prefix: defaultSettings.phonePrefix,
-          country_tag: defaultSettings.country // استخدام نفس الدولة كعلامة افتراضية
+          phone_prefix: defaultSettings.phonePrefix
         } as any);
       
       if (error) {

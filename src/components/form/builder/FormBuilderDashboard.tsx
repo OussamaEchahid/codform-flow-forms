@@ -171,9 +171,19 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
     fetchProductCounts();
   }, [fetchProductCounts]);
   
-  const filteredForms = formList.filter(form => 
+  const filteredForms = formList.filter(form =>
     form.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Log للتشخيص
+  React.useEffect(() => {
+    if (formList.length > 0) {
+      console.log('🔍 النماذج المحمّلة في Dashboard:');
+      formList.forEach(form => {
+        console.log(`📋 ${form.title}: country=${form.country}`);
+      });
+    }
+  }, [formList]);
   
   const handleCreateForm = () => {
     console.log('🎯 زر إنشاء النموذج تم النقر عليه');
@@ -436,29 +446,25 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
                      </TableCell>
                      <TableCell className={language === 'ar' ? 'text-right' : ''}>
                        <CountrySelector
-                         value={form.country_tag || form.country}
+                         value={form.country}
                          defaultCountry={form.country || 'SA'}
                          onValueChange={async (countryCode) => {
                            try {
-                             // حفظ في country_tag إذا كان متاحاً، وإلا في country
-                             const updateData = form.country_tag !== undefined
-                               ? { country_tag: countryCode }
-                               : { country: countryCode };
+                             console.log('🏁 تحديث علامة البلد إلى:', countryCode, 'للنموذج:', form.id);
 
-                             const success = await formManagementService.saveForm(form.id, updateData);
+                             // حفظ في country مؤقتاً حتى نضيف country_tag column
+                             const success = await formManagementService.saveForm(form.id, { country: countryCode });
+
                              if (success) {
+                               console.log('✅ تم حفظ علامة البلد بنجاح');
                                toast.success(language === 'ar' ? 'تم تحديث علامة البلد بنجاح' : 'Country tag updated successfully');
                                setFormList(prevForms =>
                                  prevForms.map(f =>
-                                   f.id === form.id ? {
-                                     ...f,
-                                     ...(form.country_tag !== undefined
-                                       ? { country_tag: countryCode }
-                                       : { country: countryCode })
-                                   } : f
+                                   f.id === form.id ? { ...f, country: countryCode } : f
                                  )
                                );
                              } else {
+                               console.error('❌ فشل في حفظ علامة البلد');
                                toast.error(language === 'ar' ? 'فشل في تحديث علامة البلد' : 'Failed to update country tag');
                              }
                            } catch (error) {

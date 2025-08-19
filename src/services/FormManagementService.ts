@@ -109,7 +109,7 @@ export class FormManagementService {
         // When we have an active shop, fetch by shop. If no session, we'll only see published rows due to RLS.
         let query = supabase
           .from('forms')
-          .select('id, title, created_at, is_published, shop_id, currency')
+          .select('*')
           .eq('shop_id', activeShopId)
           .order('created_at', { ascending: false })
           .limit(50);
@@ -129,7 +129,7 @@ export class FormManagementService {
         // No active shop but authenticated user => fetch user's forms
         const { data, error } = await supabase
           .from('forms')
-          .select('id, title, created_at, is_published, shop_id, currency')
+          .select('*')
           .eq('user_id', session.user.id)
           .order('created_at', { ascending: false })
           .limit(50);
@@ -155,9 +155,16 @@ export class FormManagementService {
         style: (form.style as unknown as FormStyle) || undefined,
         country: (form as any).country,
         currency: (form as any).currency,
-        phone_prefix: (form as any).phone_prefix,
-        country_tag: (form as any).country_tag || (form as any).country // استخدام country كافتراضي
+        phone_prefix: (form as any).phone_prefix
       }));
+
+      // Log للتشخيص
+      if (forms.length > 0) {
+        console.log('🔍 تم تحميل النماذج مع البيانات التالية:');
+        forms.forEach(form => {
+          console.log(`📋 النموذج ${form.id}: country=${form.country}, country_tag=${form.country_tag}`);
+        });
+      }
 
       // Cache forms for offline usage
       try {
@@ -178,7 +185,6 @@ export class FormManagementService {
     country?: string;
     currency?: string;
     phone_prefix?: string;
-    country_tag?: string;
   }): Promise<string> {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -200,8 +206,7 @@ export class FormManagementService {
         p_is_published: false,
         p_country: formData.country ?? null,
         p_currency: formData.currency ?? null,
-        p_phone_prefix: formData.phone_prefix ?? null,
-        p_country_tag: formData.country_tag ?? formData.country ?? null
+        p_phone_prefix: formData.phone_prefix ?? null
       });
 
       if (error) {
@@ -332,6 +337,9 @@ export class FormManagementService {
     try {
       const activeShopId = this.getActiveShopId();
 
+      // Log للتشخيص
+      console.log('💾 حفظ النموذج:', formId, 'البيانات:', formData);
+
       // Convert isPublished to is_published for database
       const dbData: any = { ...formData };
       if (dbData.isPublished !== undefined) {
@@ -339,15 +347,34 @@ export class FormManagementService {
         delete dbData.isPublished;
       }
 
-      // Use secure RPC to update form (bypasses RLS safely)
-      const { data, error } = await (supabase as any).rpc('update_form_secure', {
-        p_form_id: formId,
-        p_shop_id: activeShopId,
-        p_changes: dbData as any
-      });
+      // Try RPC first, fallback to direct update
+      let data, error;
+
+      try {
+        const rpcResult = await (supabase as any).rpc('update_form_secure', {
+          p_form_id: formId,
+          p_shop_id: activeShopId,
+          p_changes: dbData as any
+        });
+        data = rpcResult.data;
+        error = rpcResult.error;
+      } catch (rpcError) {
+        console.log('RPC failed, trying direct update:', rpcError);
+
+        // Fallback to direct database update
+        const directResult = await supabase
+          .from('forms')
+          .update(dbData)
+          .eq('id', formId)
+          .select()
+          .single();
+
+        data = directResult.data;
+        error = directResult.error;
+      }
 
       if (error) {
-        console.error('Error updating form via RPC:', error);
+        console.error('Error updating form:', error);
         throw new Error('خطأ في تحديث النموذج');
       }
 
@@ -362,8 +389,7 @@ export class FormManagementService {
         ...row,
         data: Array.isArray(row.data) ? (row.data as unknown as FormStep[]) : [],
         style: (row.style as unknown as FormStyle) || undefined,
-        isPublished: row.is_published,
-        country_tag: row.country_tag || row.country // استخدام country كافتراضي
+        isPublished: row.is_published
       };
 
       return updatedForm;
@@ -410,8 +436,7 @@ export class FormManagementService {
         ...row,
         data: Array.isArray(row.data) ? (row.data as unknown as FormStep[]) : [],
         style: (row.style as unknown as FormStyle) || undefined,
-        isPublished: row.is_published,
-        country_tag: row.country_tag || row.country // استخدام country كافتراضي
+        isPublished: row.is_published
       };
       
       return formData;

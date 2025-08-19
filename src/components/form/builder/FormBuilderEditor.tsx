@@ -357,8 +357,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
         shop_id: activeShopId,
         country: actualCountry,
         currency: actualShopCurrency,
-        phone_prefix: defaultSettings.phonePrefix,
-        country_tag: actualCountry // استخدام نفس الدولة كعلامة افتراضية
+        phone_prefix: defaultSettings.phonePrefix
       });
 
       console.log('✅ Form created successfully with ID:', newFormId, 'using shop currency:', actualShopCurrency);
