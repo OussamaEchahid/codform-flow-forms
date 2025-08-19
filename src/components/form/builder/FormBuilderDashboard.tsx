@@ -417,16 +417,28 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
                     </TableCell>
                     <TableCell className={language === 'ar' ? 'text-right' : ''}>
                       <div className="w-32">
-                         <CountrySelector
-                           value={(form as any).country || ''}
-                           onValueChange={async (newCountry) => {
-                              try {
-                                console.log('Updating country for form:', form.id, 'to:', newCountry);
-                                // Note: country field doesn't exist in forms table schema
-                                // This would need to be added to the database first
-                                toast.info(language === 'ar' ? 'ميزة الدولة غير متاحة حاليًا' : 'Country feature not available yet');
-                                return;
-                             } catch (error) {
+                        <CountrySelector
+                          value={form.country || ''}
+                          onValueChange={async (newCountry) => {
+                            try {
+                              const { error } = await supabase
+                                .from('forms')
+                                .update({ country: newCountry })
+                                .eq('id', form.id);
+
+                              if (error) {
+                                console.error('خطأ في تحديث الدولة:', error);
+                                toast.error(language === 'ar' ? 'فشل في تحديث الدولة' : 'Failed to update country');
+                              } else {
+                                toast.success(language === 'ar' ? 'تم تحديث الدولة بنجاح' : 'Country updated successfully');
+                                // Update local state
+                                setFormList(prevForms =>
+                                  prevForms.map(f =>
+                                    f.id === form.id ? { ...f, country: newCountry } : f
+                                  )
+                                );
+                              }
+                            } catch (error) {
                               console.error('خطأ في تحديث الدولة:', error);
                               toast.error(language === 'ar' ? 'فشل في تحديث الدولة' : 'Failed to update country');
                             }

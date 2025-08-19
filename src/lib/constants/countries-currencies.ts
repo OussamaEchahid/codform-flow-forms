@@ -937,17 +937,9 @@ export const CURRENCIES: Currency[] = mergeByCode(CURRENCIES_BASE, CURRENCIES_AL
 
 // Merge helper: prefer local entries, then fill from ALL lists where missing
 export function mergeByCode<T extends { code: string }>(primary: T[], fallback: T[]): T[] {
-  // Add safety checks for undefined arrays
-  if (!primary || !Array.isArray(primary)) primary = [] as T[];
-  if (!fallback || !Array.isArray(fallback)) fallback = [] as T[];
-  
   const map = new Map<string, T>();
-  for (const item of fallback) {
-    if (item && item.code) map.set(item.code, item);
-  }
-  for (const item of primary) {
-    if (item && item.code) map.set(item.code, item); // primary overrides
-  }
+  for (const item of fallback) map.set(item.code, item);
+  for (const item of primary) map.set(item.code, item); // primary overrides
   return Array.from(map.values());
 }
 
