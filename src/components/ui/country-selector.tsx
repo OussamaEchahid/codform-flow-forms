@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
-import { Check, ChevronDown } from 'lucide-react';
+import { Check, ChevronDown, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // قائمة الدول مع الأعلام
@@ -275,8 +274,20 @@ export function CountrySelector({
   className
 }: CountrySelectorProps) {
   const [open, setOpen] = useState(false);
+  const [searchValue, setSearchValue] = useState('');
 
   const selectedCountry = countries.find(country => country.code === value);
+
+  // Filter countries based on search
+  const filteredCountries = countries.filter((country) => {
+    if (!searchValue) return true;
+    const searchLower = searchValue.toLowerCase();
+    return (
+      country.name.toLowerCase().includes(searchLower) ||
+      (country.nameAr && country.nameAr.includes(searchValue)) ||
+      country.code.toLowerCase().includes(searchLower)
+    );
+  });
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -300,45 +311,48 @@ export function CountrySelector({
           <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-full p-0" align="start">
-        <Command shouldFilter={false}>
-          <CommandInput
+      <PopoverContent className="w-full p-0 bg-background border border-border shadow-md z-50" align="start">
+        <div className="flex items-center border-b px-3" >
+          <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+          <Input
             placeholder={language === 'ar' ? 'البحث عن دولة...' : 'Search country...'}
+            value={searchValue}
+            onChange={(e) => setSearchValue(e.target.value)}
+            className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 border-0 focus:ring-0"
           />
-          <CommandEmpty>
+        </div>
+        
+        {filteredCountries.length === 0 ? (
+          <div className="py-6 text-center text-sm">
             {language === 'ar' ? 'لم يتم العثور على دولة.' : 'No country found.'}
-          </CommandEmpty>
-          <CommandGroup className="max-h-64 overflow-auto">
-            {countries?.filter((country) => 
-              country && country.code && country.name
-            ).map((country) => (
-              <CommandItem
-                key={`country-${country.code}`}
-                value={`${country.name} ${country.code}`}
-                onSelect={(currentValue) => {
-                  // Extract country code from the value
-                  const parts = currentValue.split(' ');
-                  const countryCode = parts[parts.length - 1];
-                  onValueChange?.(countryCode === value ? '' : countryCode);
+          </div>
+        ) : (
+          <div className="max-h-64 overflow-auto p-1">
+            {filteredCountries.map((country) => (
+              <div
+                key={country.code}
+                className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 cursor-pointer"
+                onClick={() => {
+                  onValueChange?.(country.code === value ? '' : country.code);
                   setOpen(false);
+                  setSearchValue('');
                 }}
-                className="flex items-center gap-2"
               >
-                <span className="text-lg">{country.flag}</span>
+                <span className="text-lg mr-2">{country.flag}</span>
                 <span className="flex-1">
                   {language === 'ar' ? (country.nameAr || country.name) : country.name}
                 </span>
-                <span className="text-sm text-muted-foreground">{country.code}</span>
+                <span className="text-sm text-muted-foreground mr-2">{country.code}</span>
                 <Check
                   className={cn(
-                    "ml-auto h-4 w-4",
+                    "h-4 w-4",
                     value === country.code ? "opacity-100" : "opacity-0"
                   )}
                 />
-              </CommandItem>
+              </div>
             ))}
-          </CommandGroup>
-        </Command>
+          </div>
+        )}
       </PopoverContent>
     </Popover>
   );
