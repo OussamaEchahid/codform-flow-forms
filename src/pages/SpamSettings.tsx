@@ -1,6 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Page, Layout, Button, DataTable, TextField, Modal, Banner, Toast, Frame } from '@shopify/polaris';
-import { DeleteIcon, PlusIcon } from '@shopify/polaris-icons';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
+import { Trash2, Plus, Shield, Info } from 'lucide-react';
+import { toast } from 'sonner';
 import { shopifySupabase } from '@/lib/shopify/supabase-client';
 
 interface BlockedIP {
@@ -17,7 +25,6 @@ export default function SpamSettings() {
   const [modalActive, setModalActive] = useState(false);
   const [newIP, setNewIP] = useState('');
   const [newReason, setNewReason] = useState('');
-  const [toast, setToast] = useState<{ content: string; error?: boolean } | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   // جلب قائمة الـ IPs المحظورة
@@ -33,7 +40,7 @@ export default function SpamSettings() {
       setBlockedIPs(data || []);
     } catch (error) {
       console.error('Error fetching blocked IPs:', error);
-      setToast({ content: 'خطأ في جلب قائمة الـ IPs المحظورة', error: true });
+      toast.error('خطأ في جلب قائمة الـ IPs المحظورة');
     } finally {
       setLoading(false);
     }
@@ -42,7 +49,7 @@ export default function SpamSettings() {
   // إضافة IP جديد للحظر
   const addBlockedIP = async () => {
     if (!newIP.trim()) {
-      setToast({ content: 'يرجى إدخال عنوان IP', error: true });
+      toast.error('يرجى إدخال عنوان IP');
       return;
     }
 
@@ -66,10 +73,10 @@ export default function SpamSettings() {
       setModalActive(false);
       setNewIP('');
       setNewReason('');
-      setToast({ content: 'تم إضافة IP للحظر بنجاح' });
+      toast.success('تم إضافة IP للحظر بنجاح');
     } catch (error) {
       console.error('Error adding blocked IP:', error);
-      setToast({ content: 'خطأ في إضافة IP للحظر', error: true });
+      toast.error('خطأ في إضافة IP للحظر');
     } finally {
       setSubmitting(false);
     }
@@ -86,10 +93,10 @@ export default function SpamSettings() {
       if (error) throw error;
 
       setBlockedIPs(prev => prev.filter(ip => ip.id !== id));
-      setToast({ content: 'تم إلغاء حظر IP بنجاح' });
+      toast.success('تم إلغاء حظر IP بنجاح');
     } catch (error) {
       console.error('Error removing blocked IP:', error);
-      setToast({ content: 'خطأ في إلغاء حظر IP', error: true });
+      toast.error('خطأ في إلغاء حظر IP');
     }
   };
 
@@ -97,118 +104,126 @@ export default function SpamSettings() {
     fetchBlockedIPs();
   }, []);
 
-  // تحضير بيانات الجدول
-  const tableRows = blockedIPs.map(ip => [
-    ip.ip_address,
-    ip.reason,
-    new Date(ip.blocked_at).toLocaleString('ar-SA'),
-    <Button
-      key={ip.id}
-      icon={DeleteIcon}
-      variant="primary"
-      tone="critical"
-      onClick={() => removeBlockedIP(ip.id)}
-      size="slim"
-    >
-      إلغاء الحظر
-    </Button>
-  ]);
-
   return (
-    <Frame>
-      <Page
-        title="إعدادات حماية البريد العشوائي"
-        subtitle="إدارة قائمة الـ IPs المحظورة"
-        primaryAction={{
-          content: 'إضافة IP للحظر',
-          icon: PlusIcon,
-          onAction: () => setModalActive(true)
-        }}
-      >
-        <Layout>
-          <Layout.Section>
-            <Banner
-              title="حماية متجر Shopify"
-              status="info"
-            >
-              <p>
-                هذه الإعدادات تتحكم في حماية متجر Shopify الخاص بك من المستخدمين المحظورين.
-                المستخدمون الذين لديهم IPs محظورة لن يتمكنوا من الوصول إلى المتجر.
-              </p>
-            </Banner>
-          </Layout.Section>
-
-          <Layout.Section>
-            <Card>
-              <DataTable
-                columnContentTypes={['text', 'text', 'text', 'text']}
-                headings={['عنوان IP', 'السبب', 'تاريخ الحظر', 'الإجراءات']}
-                rows={tableRows}
-                loading={loading}
-                emptyState={
-                  <div style={{ textAlign: 'center', padding: '2rem' }}>
-                    <p>لا توجد IPs محظورة حالياً</p>
-                    <Button
-                      variant="primary"
-                      onClick={() => setModalActive(true)}
-                      style={{ marginTop: '1rem' }}
-                    >
-                      إضافة IP للحظر
-                    </Button>
-                  </div>
-                }
-              />
-            </Card>
-          </Layout.Section>
-        </Layout>
-
-        {/* Modal لإضافة IP جديد */}
-        <Modal
-          open={modalActive}
-          onClose={() => setModalActive(false)}
-          title="إضافة IP للحظر"
-          primaryAction={{
-            content: 'إضافة للحظر',
-            onAction: addBlockedIP,
-            loading: submitting
-          }}
-          secondaryActions={[
-            {
-              content: 'إلغاء',
-              onAction: () => setModalActive(false)
-            }
-          ]}
-        >
-          <Modal.Section>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <TextField
-                label="عنوان IP"
-                value={newIP}
-                onChange={setNewIP}
-                placeholder="مثال: 192.168.1.1"
-                autoComplete="off"
-              />
-              <TextField
-                label="سبب الحظر (اختياري)"
-                value={newReason}
-                onChange={setNewReason}
-                placeholder="مثال: نشاط مشبوه، بريد عشوائي، إلخ"
-                multiline={2}
-                autoComplete="off"
-              />
+    <div className="container mx-auto p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">إعدادات حماية البريد العشوائي</h1>
+          <p className="text-muted-foreground mt-2">إدارة قائمة الـ IPs المحظورة</p>
+        </div>
+        <Dialog open={modalActive} onOpenChange={setModalActive}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="w-4 h-4 mr-2" />
+              إضافة IP للحظر
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>إضافة IP للحظر</DialogTitle>
+              <DialogDescription>
+                أدخل عنوان IP الذي تريد حظره من الوصول إلى المتجر
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="ip">عنوان IP</Label>
+                <Input
+                  id="ip"
+                  value={newIP}
+                  onChange={(e) => setNewIP(e.target.value)}
+                  placeholder="مثال: 192.168.1.1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="reason">سبب الحظر (اختياري)</Label>
+                <Textarea
+                  id="reason"
+                  value={newReason}
+                  onChange={(e) => setNewReason(e.target.value)}
+                  placeholder="مثال: نشاط مشبوه، بريد عشوائي، إلخ"
+                  rows={3}
+                />
+              </div>
             </div>
-          </Modal.Section>
-        </Modal>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setModalActive(false)}>
+                إلغاء
+              </Button>
+              <Button onClick={addBlockedIP} disabled={submitting}>
+                {submitting ? 'جاري الإضافة...' : 'إضافة للحظر'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
 
-        {/* Toast للإشعارات */}
-        {toast && (
-          <Toast
-            content={toast.content}
-            error={toast.error}
-            onDismiss={() => setToast(null)}
-          />
-        )}
-      </Page>
-    </Frame>
+      <Alert>
+        <Shield className="h-4 w-4" />
+        <AlertTitle>حماية متجر Shopify</AlertTitle>
+        <AlertDescription>
+          هذه الإعدادات تتحكم في حماية متجر Shopify الخاص بك من المستخدمين المحظورين.
+          المستخدمون الذين لديهم IPs محظورة لن يتمكنوا من الوصول إلى المتجر.
+        </AlertDescription>
+      </Alert>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>قائمة الـ IPs المحظورة</CardTitle>
+          <CardDescription>
+            {blockedIPs.length} IP محظور حالياً
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+              <p className="mt-2 text-muted-foreground">جاري التحميل...</p>
+            </div>
+          ) : blockedIPs.length === 0 ? (
+            <div className="text-center py-8">
+              <Info className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground mb-4">لا توجد IPs محظورة حالياً</p>
+              <Button onClick={() => setModalActive(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                إضافة IP للحظر
+              </Button>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>عنوان IP</TableHead>
+                  <TableHead>السبب</TableHead>
+                  <TableHead>تاريخ الحظر</TableHead>
+                  <TableHead>الإجراءات</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {blockedIPs.map((ip) => (
+                  <TableRow key={ip.id}>
+                    <TableCell className="font-mono">{ip.ip_address}</TableCell>
+                    <TableCell>{ip.reason}</TableCell>
+                    <TableCell>
+                      {new Date(ip.blocked_at).toLocaleString('ar-SA')}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => removeBlockedIP(ip.id)}
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        إلغاء الحظر
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
