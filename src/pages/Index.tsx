@@ -12,7 +12,7 @@ import { Link } from 'react-router-dom';
 import { fixShopifyConnectionState } from '@/utils/fix-shopify-state';
 import ShopifyAutoConnector from '@/components/shopify/ShopifyAutoConnector';
 import { parseShopifyParams } from '@/utils/shopify-helpers';
-import { useSpamProtectionGuard } from '@/hooks/useSpamProtection';
+
 import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
 import { shopifyStores } from '@/lib/shopify/supabase-client';
 import { toast } from '@/hooks/use-toast';
@@ -21,8 +21,7 @@ const Index = () => {
   const navigate = useNavigate();
   const [isProcessingShopify, setIsProcessingShopify] = useState(false);
 
-  // تطبيق حماية البريد العشوائي
-  useSpamProtectionGuard();
+
 
   useEffect(() => {
     const handleShopifyConnection = async () => {

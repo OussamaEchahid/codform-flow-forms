@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import FormFieldComponent from '../preview/FormField';
 import { useShopify } from '@/hooks/useShopify';
 import { supabase } from '@/integrations/supabase/client';
-import FormWithSpamProtection from '@/components/form/FormWithSpamProtection';
+
 
 interface FormPreviewPanelProps {
   formId?: string;
@@ -212,10 +212,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
       </CardHeader>
       
       <CardContent className="flex-1 p-6">
-        <FormWithSpamProtection
-          shopId={shop}
-          enabled={true}
-          showStatus={false}
+        <div
         >
           <form onSubmit={handleSubmit} className="space-y-4">
             <div
@@ -254,7 +251,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
               ))}
             </div>
           </form>
-        </FormWithSpamProtection>
+        </div>
       </CardContent>
       
       {/* Popup Button Preview */}
