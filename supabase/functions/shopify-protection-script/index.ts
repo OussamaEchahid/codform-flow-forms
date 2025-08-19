@@ -151,23 +151,132 @@ function generateShopifyProtectionScript(shopDomain: string): string {
   
   function blockAccess(blockInfo) {
     // إيقاف كل شيء فوراً
-    document.documentElement.style.cssText = 'margin:0!important;padding:0!important;overflow:hidden!important;';
-    document.body.style.cssText = 'margin:0!important;padding:0!important;overflow:hidden!important;';
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
     
-    // إخفاء كل المحتوى الموجود
-    const hideStyle = document.createElement('style');
-    hideStyle.innerHTML = \`
-      * { display: none !important; }
-      html, body { display: block !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important; }
-      .codform-blocked-page { display: flex !important; }
-      .codform-blocked-page * { display: block !important; }
+    // مسح كل المحتوى وإضافة صفحة الحظر مباشرة
+    document.body.innerHTML = \`
+      <style>
+        * { margin: 0 !important; padding: 0 !important; box-sizing: border-box !important; }
+        body {
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+          min-height: 100vh !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          padding: 20px !important;
+          direction: rtl !important;
+          overflow: hidden !important;
+        }
+        .blocked-container {
+          background: white !important;
+          border-radius: 20px !important;
+          padding: 40px !important;
+          max-width: 600px !important;
+          text-align: center !important;
+          box-shadow: 0 20px 50px rgba(0,0,0,0.3) !important;
+          animation: slideIn 0.5s ease-out !important;
+        }
+        @keyframes slideIn {
+          from { opacity: 0; transform: translateY(-50px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .shield-icon {
+          width: 80px !important;
+          height: 80px !important;
+          background: #ff4757 !important;
+          border-radius: 50% !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          margin: 0 auto 30px !important;
+          font-size: 40px !important;
+          animation: pulse 2s infinite !important;
+        }
+        @keyframes pulse {
+          0% { transform: scale(1); }
+          50% { transform: scale(1.1); }
+          100% { transform: scale(1); }
+        }
+        h1 { color: #ff4757 !important; margin-bottom: 20px !important; font-size: 28px !important; }
+        .reason-box {
+          background: #f1f2f6 !important;
+          padding: 20px !important;
+          border-radius: 10px !important;
+          margin: 20px 0 !important;
+          border-right: 4px solid #ff4757 !important;
+          text-align: right !important;
+        }
+        .info-grid {
+          display: grid !important;
+          grid-template-columns: 1fr 1fr !important;
+          gap: 15px !important;
+          margin: 20px 0 !important;
+        }
+        .info-item {
+          background: #f8f9fa !important;
+          padding: 15px !important;
+          border-radius: 8px !important;
+          text-align: center !important;
+        }
+        .btn {
+          background: #5352ed !important;
+          color: white !important;
+          padding: 15px 30px !important;
+          border: none !important;
+          border-radius: 10px !important;
+          font-size: 16px !important;
+          cursor: pointer !important;
+          margin: 10px !important;
+          transition: all 0.3s !important;
+        }
+        .btn:hover { background: #3742fa !important; transform: translateY(-2px) !important; }
+        .footer-info {
+          margin-top: 30px !important;
+          padding-top: 20px !important;
+          border-top: 1px solid #eee !important;
+          font-size: 12px !important;
+          color: #999 !important;
+        }
+      </style>
+      <div class="blocked-container">
+        <div class="shield-icon">🛡️</div>
+        <h1>تم حظر الوصول</h1>
+        <p style="margin-bottom: 30px; color: #666; font-size: 18px;">
+          عذراً، لا يمكنك الوصول إلى هذا المتجر في الوقت الحالي
+        </p>
+        <div class="reason-box">
+          <strong>السبب:</strong> \${blockInfo.reason || 'تم حظر الوصول من موقعك'}
+        </div>
+        <div class="info-grid">
+          <div class="info-item">
+            <strong>نوع الحظر</strong><br>
+            <span style="color: #ff4757; font-weight: bold;">\${blockInfo.block_type === 'country' ? 'حظر جغرافي' : 'حظر عنوان IP'}</span>
+          </div>
+          <div class="info-item">
+            <strong>الوقت</strong><br>
+            <span>\${new Date().toLocaleString('ar-SA')}</span>
+          </div>
+        </div>
+        \${blockInfo.visitor_country ? \`<div class="info-item" style="margin: 20px 0;"><strong>موقعك الجغرافي:</strong> \${blockInfo.visitor_country}</div>\` : ''}
+        <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 20px; border-radius: 10px; margin: 20px 0;">
+          <h3 style="color: #f39c12; margin-bottom: 10px;">هل تعتقد أن هذا خطأ؟</h3>
+          <p style="color: #666; font-size: 14px;">
+            إذا كنت تعتقد أنك تم حظرك بالخطأ، يمكنك التواصل مع إدارة المتجر.
+            تأكد من عدم استخدام VPN أو بروكسي.
+          </p>
+        </div>
+        <div>
+          <button class="btn" onclick="window.location.reload()">🔄 إعادة المحاولة</button>
+          \${blockInfo.redirect_url && blockInfo.redirect_url !== '/blocked' ? \`<button class="btn" onclick="window.location.href='\${blockInfo.redirect_url}'">🔗 انتقال إلى صفحة أخرى</button>\` : ''}
+        </div>
+        <div class="footer-info">
+          🛡️ محمي بواسطة CodForm Security System<br>
+          جميع محاولات الوصول يتم تسجيلها ومراقبتها
+        </div>
+      </div>
     \`;
-    document.head.appendChild(hideStyle);
-    
-    // مسح محتوى الـ body بالكامل وإضافة صفحة الحظر
-    document.body.innerHTML = '';
-    document.body.className = '';
-    document.body.insertAdjacentHTML('afterbegin', createBlockedPageHTML(blockInfo));
     
     // منع التنقل والتمرير
     window.history.replaceState(null, '', window.location.href);
