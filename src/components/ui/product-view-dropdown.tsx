@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { Eye, ExternalLink } from 'lucide-react';
 import { getActiveShopId } from '@/utils/shop-utils';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AssociatedProduct {
   id: string;
@@ -36,27 +37,47 @@ export const ProductViewDropdown: React.FC<ProductViewDropdownProps> = ({
     return `${cleanShopId}.myshopify.com`;
   };
 
-  // Generate product URL
-  const getProductUrl = (productId: string) => {
+  // Generate product URL for storefront using handle
+  const getProductUrl = async (productId: string): Promise<string> => {
     const shopDomain = getShopDomain();
     if (!shopDomain) return '#';
 
-    // Clean product ID if it contains gid prefix
+    try {
+      // Fetch product details to get handle
+      const { data, error } = await supabase.functions.invoke('shopify-products-fixed', {
+        body: {
+          shop: shopDomain,
+          productId: productId
+        }
+      });
+
+      if (error) {
+        console.error('Supabase function error:', error);
+      } else if (data?.success && data?.product?.handle) {
+        const storeUrl = shopDomain.replace('.myshopify.com', '');
+        return `https://${storeUrl}.myshopify.com/products/${data.product.handle}`;
+      }
+    } catch (error) {
+      console.error('Error fetching product details:', error);
+    }
+
+    // Fallback to admin URL if handle fetch fails
     const cleanProductId = productId.replace('gid://shopify/Product/', '');
-    return `https://${shopDomain}/admin/products/${cleanProductId}`;
+    const storeUrl = shopDomain.replace('.myshopify.com', '');
+    return `https://${storeUrl}.myshopify.com/admin/products/${cleanProductId}`;
   };
 
   // Handle single product click
-  const handleSingleProductClick = () => {
+  const handleSingleProductClick = async () => {
     if (products.length === 1) {
-      const url = getProductUrl(products[0].id);
+      const url = await getProductUrl(products[0].id);
       window.open(url, '_blank');
     }
   };
 
   // Handle multiple products dropdown item click
-  const handleProductClick = (productId: string) => {
-    const url = getProductUrl(productId);
+  const handleProductClick = async (productId: string) => {
+    const url = await getProductUrl(productId);
     window.open(url, '_blank');
     setIsOpen(false);
   };

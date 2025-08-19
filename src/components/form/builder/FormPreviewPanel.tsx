@@ -49,12 +49,13 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [associatedProductId, setAssociatedProductId] = useState<string | null>(null);
+  const [productHandle, setProductHandle] = useState<string | null>(null);
 
-  // Load associated product ID for this form
+  // Load associated product ID and handle for this form
   useEffect(() => {
     const loadAssociatedProduct = async () => {
       if (!formId || !shop) return;
-      
+
       try {
         const { data, error } = await supabase
           .from('shopify_product_settings')
@@ -63,10 +64,27 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           .eq('shop_id', shop)
           .eq('enabled', true)
           .single();
-          
+
         if (data && !error) {
           console.log('🎯 Found associated product:', data.product_id);
           setAssociatedProductId(data.product_id);
+
+          // Fetch product details to get handle
+          try {
+            const { data: productData, error: productError } = await supabase.functions.invoke('shopify-products-fixed', {
+              body: {
+                shop: shop,
+                productId: data.product_id
+              }
+            });
+
+            if (productData?.success && productData?.product?.handle) {
+              console.log('🎯 Found product handle:', productData.product.handle);
+              setProductHandle(productData.product.handle);
+            }
+          } catch (productError) {
+            console.error('❌ Error loading product details:', productError);
+          }
         } else {
           console.log('⚠️ No associated product found for form:', formId);
         }
@@ -74,7 +92,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
         console.error('❌ Error loading associated product:', error);
       }
     };
-    
+
     loadAssociatedProduct();
   }, [formId, shop]);
 
@@ -136,19 +154,13 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
     }));
   };
 
-  // Generate form URL for sharing
-  const generateFormUrl = () => {
-    if (!formId || !shop) return '';
-    return `${window.location.origin}/form/${formId}?shop=${shop}`;
-  };
+  // Generate product URL for storefront using handle
+  const generateProductUrl = () => {
+    if (!productHandle || !shop) return '';
 
-  // Copy form URL to clipboard
-  const copyFormUrl = () => {
-    const url = generateFormUrl();
-    if (url) {
-      navigator.clipboard.writeText(url);
-      toast.success(language === 'ar' ? 'تم نسخ الرابط' : 'URL copied to clipboard');
-    }
+    // Return storefront URL using product handle
+    const storeUrl = shop.replace('.myshopify.com', '');
+    return `https://${storeUrl}.myshopify.com/products/${productHandle}`;
   };
 
   // Toggle form direction between LTR and RTL
@@ -176,24 +188,24 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
             </h3>
           </div>
           <div className="flex items-center space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={copyFormUrl}
-              className="flex items-center space-x-1"
-            >
-              <Share2 className="w-4 h-4" />
-              <span>{language === 'ar' ? 'نسخ الرابط' : 'Copy URL'}</span>
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => window.open(generateFormUrl(), '_blank')}
-              className="flex items-center space-x-1"
-            >
-              <ExternalLink className="w-4 h-4" />
-              <span>{language === 'ar' ? 'فتح' : 'Open'}</span>
-            </Button>
+            {associatedProductId && productHandle && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const productUrl = generateProductUrl();
+                  if (productUrl) {
+                    window.open(productUrl, '_blank');
+                  } else {
+                    toast.error(language === 'ar' ? 'لا يمكن فتح المنتج' : 'Cannot open product');
+                  }
+                }}
+                className="flex items-center space-x-1"
+              >
+                <ExternalLink className="w-4 h-4" />
+                <span>{language === 'ar' ? 'عرض المنتج' : 'View Product'}</span>
+              </Button>
+            )}
           </div>
         </div>
       </CardHeader>
