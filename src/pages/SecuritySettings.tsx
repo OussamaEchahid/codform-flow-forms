@@ -78,26 +78,26 @@ const SecuritySettings = () => {
     
     setLoading(true);
     try {
-      // تحميل عناوين IP المحظورة  
-      const { data: ipsData, error: ipsError } = await supabase.rpc('get_blocked_ips', {
-        p_shop_id: shop
+      // تحميل عناوين IP المحظورة باستخدام Edge Function
+      const { data: ipsData, error: ipsError } = await supabase.functions.invoke('get-blocked-data', {
+        body: { type: 'ips', shop_id: shop }
       });
       
       if (ipsError) console.error('Error loading IPs:', ipsError);
-      setBlockedIPs(ipsData || []);
+      setBlockedIPs(ipsData?.data || []);
 
-      // تحميل الدول المحظورة
-      const { data: countriesData, error: countriesError } = await supabase.rpc('get_blocked_countries', {
-        p_shop_id: shop
+      // تحميل الدول المحظورة باستخدام Edge Function
+      const { data: countriesData, error: countriesError } = await supabase.functions.invoke('get-blocked-data', {
+        body: { type: 'countries', shop_id: shop }
       });
       
       if (countriesError) console.error('Error loading countries:', countriesError);
-      setBlockedCountries(countriesData || []);
+      setBlockedCountries(countriesData?.data || []);
 
       // إحصائيات الأمان
       setSecurityStats({
-        blocked_ips_count: ipsData?.length || 0,
-        blocked_countries_count: countriesData?.length || 0,
+        blocked_ips_count: ipsData?.data?.length || 0,
+        blocked_countries_count: countriesData?.data?.length || 0,
         total_blocks_today: 0 // يمكن إضافة استعلام للحصول على إحصائيات اليوم
       });
 
@@ -117,11 +117,14 @@ const SecuritySettings = () => {
     if (!shop || !newIP.trim()) return;
 
     try {
-      const { error } = await supabase.rpc('add_blocked_ip', {
-        p_ip_address: newIP.trim(),
-        p_shop_id: shop,
-        p_reason: newIPReason.trim() || 'غير محدد',
-        p_redirect_url: newIPRedirect.trim() || null
+      const { data, error } = await supabase.functions.invoke('manage-blocked-items', {
+        body: {
+          action: 'add_ip',
+          shop_id: shop,
+          ip_address: newIP.trim(),
+          reason: newIPReason.trim() || 'غير محدد',
+          redirect_url: newIPRedirect.trim() || null
+        }
       });
 
       if (error) throw error;
@@ -150,8 +153,11 @@ const SecuritySettings = () => {
 
   const handleRemoveIP = async (ipId: string) => {
     try {
-      const { error } = await supabase.rpc('remove_blocked_ip', {
-        p_blocked_id: ipId
+      const { data, error } = await supabase.functions.invoke('manage-blocked-items', {
+        body: {
+          action: 'remove_ip',
+          blocked_id: ipId
+        }
       });
 
       if (error) throw error;
@@ -180,12 +186,15 @@ const SecuritySettings = () => {
     if (!countryInfo) return;
 
     try {
-      const { error } = await supabase.rpc('add_blocked_country', {
-        p_shop_id: shop,
-        p_country_code: selectedCountry,
-        p_country_name: countryInfo.name,
-        p_reason: newCountryReason.trim() || 'غير محدد',
-        p_redirect_url: newCountryRedirect.trim() || null
+      const { data, error } = await supabase.functions.invoke('manage-blocked-items', {
+        body: {
+          action: 'add_country',
+          shop_id: shop,
+          country_code: selectedCountry,
+          country_name: countryInfo.name,
+          reason: newCountryReason.trim() || 'غير محدد',
+          redirect_url: newCountryRedirect.trim() || null
+        }
       });
 
       if (error) throw error;
@@ -214,8 +223,11 @@ const SecuritySettings = () => {
 
   const handleRemoveCountry = async (countryId: string) => {
     try {
-      const { error } = await supabase.rpc('remove_blocked_country', {
-        p_blocked_id: countryId
+      const { data, error } = await supabase.functions.invoke('manage-blocked-items', {
+        body: {
+          action: 'remove_country',
+          blocked_id: countryId
+        }
       });
 
       if (error) throw error;

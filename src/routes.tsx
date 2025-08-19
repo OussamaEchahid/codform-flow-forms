@@ -26,6 +26,8 @@ import EnhancedMyStores from '@/pages/EnhancedMyStores';
 import Privacy from '@/pages/Privacy';
 import Terms from '@/pages/Terms';
 import Support from '@/pages/Support';
+import SecuritySettings from '@/pages/SecuritySettings';
+import BlockedPage from '@/pages/BlockedPage';
 
 export const routes: RouteObject[] = [
   {
