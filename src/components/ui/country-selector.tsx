@@ -275,16 +275,8 @@ export function CountrySelector({
   className
 }: CountrySelectorProps) {
   const [open, setOpen] = useState(false);
-  const [searchValue, setSearchValue] = useState('');
 
   const selectedCountry = countries.find(country => country.code === value);
-
-  const filteredCountries = countries.filter(country => {
-    const searchTerm = searchValue.toLowerCase();
-    const countryName = language === 'ar' ? country.nameAr : country.name;
-    return countryName.toLowerCase().includes(searchTerm) || 
-           country.code.toLowerCase().includes(searchTerm);
-  });
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -310,23 +302,20 @@ export function CountrySelector({
       </PopoverTrigger>
       <PopoverContent className="w-full p-0" align="start">
         <Command>
-          <CommandInput 
+          <CommandInput
             placeholder={language === 'ar' ? 'البحث عن دولة...' : 'Search country...'}
-            value={searchValue}
-            onValueChange={setSearchValue}
           />
           <CommandEmpty>
             {language === 'ar' ? 'لم يتم العثور على دولة.' : 'No country found.'}
           </CommandEmpty>
           <CommandGroup className="max-h-64 overflow-auto">
-            {filteredCountries.map((country) => (
+            {countries.map((country) => (
               <CommandItem
                 key={country.code}
                 value={country.code}
                 onSelect={(currentValue) => {
                   onValueChange?.(currentValue === value ? '' : currentValue);
                   setOpen(false);
-                  setSearchValue('');
                 }}
                 className="flex items-center gap-2"
               >
