@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { I18nProvider } from "@/lib/i18n";
 import { AuthProvider, useAuth } from "@/components/layout/AuthProvider";
 import AppWrapper from "@/components/layout/AppWrapper";
+import { initializeSpamProtection } from "@/utils/spam-protection";
 
 // Pages
 import Dashboard from "@/pages/Dashboard";
@@ -167,6 +168,14 @@ function AppRoutes() {
 }
 
 function App() {
+  // تهيئة حماية البريد العشوائي
+  React.useEffect(() => {
+    initializeSpamProtection({
+      protectForms: true,
+      protectPage: false // لا نريد حماية كل الصفحات، فقط النماذج
+    });
+  }, []);
+
   // معالجة نجاح الاتصال من Shopify - مرة واحدة فقط
   React.useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);

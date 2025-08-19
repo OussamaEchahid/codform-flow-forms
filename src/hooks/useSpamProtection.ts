@@ -227,3 +227,31 @@ export function useSpamCheck(shopId?: string) {
     checkSpam
   };
 }
+
+/**
+ * Hook للتحقق من الحماية عند تحميل الصفحة
+ */
+export function useSpamProtectionGuard(shopId?: string) {
+  useEffect(() => {
+    const initProtection = async () => {
+      try {
+        const protection = await checkSpamProtection(shopId);
+
+        if (protection.shouldBlock) {
+          handleBlockedUser({
+            isBlocked: true,
+            redirectUrl: protection.redirectUrl,
+            reason: protection.reason
+          });
+        }
+      } catch (error) {
+        console.error('Error initializing spam protection:', error);
+      }
+    };
+
+    // تأخير قصير للسماح للصفحة بالتحميل
+    const timer = setTimeout(initProtection, 1000);
+
+    return () => clearTimeout(timer);
+  }, [shopId]);
+}

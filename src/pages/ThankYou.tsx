@@ -1,8 +1,12 @@
 import { CheckCircle, Phone, Mail, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { useSpamProtectionGuard } from "@/hooks/useSpamProtection";
 
 const ThankYou = () => {
+  // تطبيق حماية البريد العشوائي
+  useSpamProtectionGuard();
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background/50 to-primary/5 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">

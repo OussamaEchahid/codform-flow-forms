@@ -1,6 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
+import { useSpamProtectionGuard } from '@/hooks/useSpamProtection';
 import ShopifyErrorHandler from '@/components/shopify/ShopifyErrorHandler';
 import ShopifyTokenUpdater from '@/components/shopify/ShopifyTokenUpdater';
 import { 
@@ -55,6 +56,9 @@ interface DebugInfo {
 }
 
 const ShopifyProducts = () => {
+  // تطبيق حماية البريد العشوائي
+  useSpamProtectionGuard();
+
   const [isLoading, setIsLoading] = useState(false);
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [isConnected, setIsConnected] = useState(false);

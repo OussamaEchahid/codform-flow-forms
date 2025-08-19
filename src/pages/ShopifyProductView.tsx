@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useSpamProtectionGuard } from '@/hooks/useSpamProtection';
 import { Card, CardContent } from "@/components/ui/card";
 import ShopifyProductsList from '@/components/shopify/ShopifyProductsList';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,6 +10,9 @@ import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 
 const ShopifyProductView = () => {
+  // تطبيق حماية البريد العشوائي
+  useSpamProtectionGuard();
+
   const [products, setProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
