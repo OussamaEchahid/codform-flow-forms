@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import FormFieldComponent from '../preview/FormField';
 import { useShopify } from '@/hooks/useShopify';
 import { supabase } from '@/integrations/supabase/client';
+import FormWithSpamProtection from '@/components/form/FormWithSpamProtection';
 
 interface FormPreviewPanelProps {
   formId?: string;
@@ -211,43 +212,49 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
       </CardHeader>
       
       <CardContent className="flex-1 p-6">
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div
-            className="max-w-md mx-auto rounded-lg shadow-sm"
-            style={{
-              backgroundColor: formStyle.backgroundColor || '#ffffff',
-              borderRadius: formStyle.borderRadius || '8px',
-              border: `${formStyle.borderWidth || '1px'} solid ${formStyle.borderColor || '#e5e7eb'}`,
-              direction: formStyle.formDirection || 'ltr',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: formStyle.formGap || '5px',
-              paddingTop: formStyle.paddingTop || '20px',
-              paddingBottom: formStyle.paddingBottom || '20px',
-              paddingLeft: formStyle.paddingLeft || '20px',
-              paddingRight: formStyle.paddingRight || '20px'
-            }}
-          >
-            {fields.map((field, index) => (
-              <div key={`${field.id}-${refreshKey}`}>
-                 <FormFieldComponent
-                   field={field}
-                   formStyle={formStyle}
-                   formCountry={formCountry}
-                   formPhonePrefix={formPhonePrefix}
-                   formCurrency={formCurrency}
-                   value={formData[field.id]}
-                   onChange={(value) => handleInputChange(field.id, value)}
-                   productId={associatedProductId || field.productId}
-                   {...(field.type === 'submit' && { 
-                     onClick: () => handleSubmit({ preventDefault: () => {} } as React.FormEvent),
-                     disabled: isSubmitting 
-                   })}
-                 />
-              </div>
-            ))}
-          </div>
-        </form>
+        <FormWithSpamProtection
+          shopId={shop}
+          enabled={true}
+          showStatus={false}
+        >
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div
+              className="max-w-md mx-auto rounded-lg shadow-sm"
+              style={{
+                backgroundColor: formStyle.backgroundColor || '#ffffff',
+                borderRadius: formStyle.borderRadius || '8px',
+                border: `${formStyle.borderWidth || '1px'} solid ${formStyle.borderColor || '#e5e7eb'}`,
+                direction: formStyle.formDirection || 'ltr',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: formStyle.formGap || '5px',
+                paddingTop: formStyle.paddingTop || '20px',
+                paddingBottom: formStyle.paddingBottom || '20px',
+                paddingLeft: formStyle.paddingLeft || '20px',
+                paddingRight: formStyle.paddingRight || '20px'
+              }}
+            >
+              {fields.map((field, index) => (
+                <div key={`${field.id}-${refreshKey}`}>
+                   <FormFieldComponent
+                     field={field}
+                     formStyle={formStyle}
+                     formCountry={formCountry}
+                     formPhonePrefix={formPhonePrefix}
+                     formCurrency={formCurrency}
+                     value={formData[field.id]}
+                     onChange={(value) => handleInputChange(field.id, value)}
+                     productId={associatedProductId || field.productId}
+                     {...(field.type === 'submit' && {
+                       onClick: () => handleSubmit({ preventDefault: () => {} } as React.FormEvent),
+                       disabled: isSubmitting
+                     })}
+                   />
+                </div>
+              ))}
+            </div>
+          </form>
+        </FormWithSpamProtection>
       </CardContent>
       
       {/* Popup Button Preview */}
