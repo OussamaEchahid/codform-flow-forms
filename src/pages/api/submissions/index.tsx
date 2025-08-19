@@ -1,7 +1,6 @@
 
 import { useEffect, useState } from 'react';
 import { shopifySupabase } from '@/lib/shopify/supabase-client';
-import { useSpamCheck } from '@/hooks/useSpamProtection';
 
 interface SubmissionResponse {
   success: boolean;
@@ -15,16 +14,11 @@ export default function SubmissionAPI() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // التحقق من حماية البريد العشوائي
-  const { isBlocked, isChecking } = useSpamCheck();
+
 
   useEffect(() => {
     async function handleSubmission() {
       try {
-        // التحقق من الحماية أولاً
-        if (isBlocked) {
-          throw new Error('Access blocked due to spam protection');
-        }
         // Get current URL to extract form ID
         const currentUrl = window.location.href;
         const urlParams = new URLSearchParams(window.location.search);
@@ -98,11 +92,8 @@ export default function SubmissionAPI() {
       }
     }
 
-    // تأخير التنفيذ حتى انتهاء فحص الحماية
-    if (!isChecking) {
-      handleSubmission();
-    }
-  }, [isBlocked, isChecking]);
+    handleSubmission();
+  }, []);
 
   // This component acts as an API endpoint, so it returns JSON
   useEffect(() => {
