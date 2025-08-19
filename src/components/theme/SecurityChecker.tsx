@@ -25,6 +25,30 @@ const SecurityChecker: React.FC<SecurityCheckerProps> = ({ shopId, children }) =
     checkSecurity();
   }, [shopId]);
 
+  // إخفاء المحتوى عند الحظر
+  useEffect(() => {
+    if (securityCheck?.blocked) {
+      document.body.style.overflow = 'hidden';
+      // إخفاء جميع عناصر الصفحة
+      const style = document.createElement('style');
+      style.textContent = `
+        body > *:not([data-security-overlay]) {
+          display: none !important;
+        }
+      `;
+      style.setAttribute('data-security-style', 'true');
+      document.head.appendChild(style);
+      
+      return () => {
+        document.body.style.overflow = '';
+        const securityStyle = document.querySelector('[data-security-style]');
+        if (securityStyle) {
+          securityStyle.remove();
+        }
+      };
+    }
+  }, [securityCheck?.blocked]);
+
   const checkSecurity = async () => {
     try {
       // الحصول على عنوان IP الخاص بالزائر
@@ -87,13 +111,26 @@ const SecurityChecker: React.FC<SecurityCheckerProps> = ({ shopId, children }) =
 
   if (securityCheck?.blocked) {
     return (
-      <BlockedPage
-        reason={securityCheck.reason}
-        blockType={securityCheck.block_type}
-        redirectUrl={securityCheck.redirect_url}
-        visitorCountry={securityCheck.visitor_country}
-        visitorIP={securityCheck.visitor_ip}
-      />
+      <div 
+        data-security-overlay="true"
+        className="fixed inset-0 z-[9999] bg-white dark:bg-gray-900"
+        style={{ 
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          zIndex: 999999
+        }}
+      >
+        <BlockedPage
+          reason={securityCheck.reason}
+          blockType={securityCheck.block_type}
+          redirectUrl={securityCheck.redirect_url}
+          visitorCountry={securityCheck.visitor_country}
+          visitorIP={securityCheck.visitor_ip}
+        />
+      </div>
     );
   }
 

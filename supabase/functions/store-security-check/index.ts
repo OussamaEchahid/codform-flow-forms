@@ -41,24 +41,25 @@ serve(async (req) => {
     if (ipBlockData && ipBlockData.length > 0 && ipBlockData[0].is_blocked) {
       console.log(`[${requestId}] IP ${visitor_ip} is blocked for shop ${shop_id}`)
       
-      // تسجيل محاولة الحظر
-      await supabaseClient.rpc('log_security_block', {
-        p_shop_id: shop_id,
-        p_blocked_type: 'ip',
-        p_blocked_value: visitor_ip,
-        p_visitor_ip: visitor_ip,
-        p_user_agent: user_agent,
-        p_referer: referer
-      })
+            // تسجيل محاولة الحظر
+            await supabaseClient.rpc('log_security_block', {
+              p_shop_id: shop_id,
+              p_blocked_type: 'ip',
+              p_blocked_value: visitor_ip,
+              p_visitor_ip: visitor_ip,
+              p_user_agent: user_agent,
+              p_referer: referer
+            })
 
-      return new Response(JSON.stringify({
-        blocked: true,
-        reason: ipBlockData[0].reason || 'IP address is blocked',
-        redirect_url: ipBlockData[0].redirect_url || '/blocked',
-        block_type: 'ip'
-      }), {
-        headers: { 'Content-Type': 'application/json', ...corsHeaders }
-      })
+            return new Response(JSON.stringify({
+              blocked: true,
+              reason: ipBlockData[0].reason || 'IP address is blocked',
+              redirect_url: ipBlockData[0].redirect_url || '/blocked',
+              block_type: 'ip',
+              hide_content: true
+            }), {
+              headers: { 'Content-Type': 'application/json', ...corsHeaders }
+            })
     }
 
     // 2. الحصول على معلومات الموقع الجغرافي
@@ -95,27 +96,28 @@ serve(async (req) => {
     if (countryBlockData && countryBlockData.length > 0 && countryBlockData[0].is_blocked) {
       console.log(`[${requestId}] Country ${country} (${countryCode}) is blocked for shop ${shop_id}`)
       
-      // تسجيل محاولة الحظر
-      await supabaseClient.rpc('log_security_block', {
-        p_shop_id: shop_id,
-        p_blocked_type: 'country',
-        p_blocked_value: countryCode,
-        p_visitor_ip: visitor_ip,
-        p_visitor_country: country,
-        p_user_agent: user_agent,
-        p_referer: referer
-      })
+            // تسجيل محاولة الحظر
+            await supabaseClient.rpc('log_security_block', {
+              p_shop_id: shop_id,
+              p_blocked_type: 'country',
+              p_blocked_value: countryCode,
+              p_visitor_ip: visitor_ip,
+              p_visitor_country: country,
+              p_user_agent: user_agent,
+              p_referer: referer
+            })
 
-      return new Response(JSON.stringify({
-        blocked: true,
-        reason: countryBlockData[0].reason || `Access from ${country} is not allowed`,
-        redirect_url: countryBlockData[0].redirect_url || '/blocked',
-        block_type: 'country',
-        visitor_country: country,
-        visitor_country_code: countryCode
-      }), {
-        headers: { 'Content-Type': 'application/json', ...corsHeaders }
-      })
+            return new Response(JSON.stringify({
+              blocked: true,
+              reason: countryBlockData[0].reason || `Access from ${country} is not allowed`,
+              redirect_url: countryBlockData[0].redirect_url || '/blocked',
+              block_type: 'country',
+              visitor_country: country,
+              visitor_country_code: countryCode,
+              hide_content: true
+            }), {
+              headers: { 'Content-Type': 'application/json', ...corsHeaders }
+            })
     }
 
     // 4. لا يوجد حظر - السماح بالوصول
