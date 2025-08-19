@@ -64,7 +64,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialFormData }) => {
   const { saveForm, publishForm } = useFormTemplates();
   const [formTitle, setFormTitle] = useState(initialFormData.title);
   const [formDescription, setFormDescription] = useState(initialFormData.description || '');
-  const [formSteps, setFormSteps] = useState<FormStep[]>(initialFormData.data);
+  const [formSteps, setFormSteps] = useState<FormStep[]>(initialFormData.data || []);
   const [currentPreviewStep, setCurrentPreviewStep] = useState(1);
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
   const [isFieldEditorOpen, setIsFieldEditorOpen] = useState(false);

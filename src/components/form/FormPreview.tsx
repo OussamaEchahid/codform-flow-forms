@@ -150,11 +150,11 @@ const FormPreview: React.FC<FormPreviewProps> = ({
       data-form-direction={formDirection}
       data-form-structure="main-container"
     >
-      {totalSteps > 1 && (
+      {(totalSteps && totalSteps > 1) && (
         <div className="px-4 py-2 bg-gray-50">
           <div className="flex items-center">
             <div className="flex-1 flex">
-              {Array.from({ length: totalSteps }).map((_, i) => (
+              {Array.from({ length: totalSteps || 1 }).map((_, i) => (
                 <div key={i} className="flex-1 flex items-center">
                   <div 
                     className={cn(
@@ -174,7 +174,7 @@ const FormPreview: React.FC<FormPreviewProps> = ({
                   >
                     {i + 1}
                   </div>
-                  {i < totalSteps - 1 && (
+                  {i < (totalSteps || 1) - 1 && (
                     <div 
                       className={cn(
                         "h-2 flex-1",
