@@ -3,7 +3,7 @@ import { RouteObject } from "react-router-dom";
 import Settings from '@/pages/Settings';
 import OrderSettings from '@/pages/OrderSettings';
 import GeneralSettings from '@/pages/GeneralSettings';
-import SpamSettings from '@/pages/SpamSettings';
+
 import PlansSettings from '@/pages/PlansSettings';
 import CurrencySettings from '@/pages/CurrencySettings';
 import CurrencyManagement from '@/pages/CurrencyManagement';
@@ -83,10 +83,6 @@ export const routes: RouteObject[] = [
   {
     path: '/settings/general',
     Component: GeneralSettings
-  },
-  {
-    path: '/settings/spam',
-    Component: SpamSettings
   },
   {
     path: '/settings/plans',

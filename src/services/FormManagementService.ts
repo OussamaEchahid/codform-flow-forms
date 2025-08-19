@@ -162,7 +162,7 @@ export class FormManagementService {
       if (forms.length > 0) {
         console.log('🔍 تم تحميل النماذج مع البيانات التالية:');
         forms.forEach(form => {
-          console.log(`📋 النموذج ${form.id}: country=${form.country}, country_tag=${form.country_tag}`);
+          console.log(`📋 النموذج ${form.id}: country=${form.country}`);
         });
       }
 

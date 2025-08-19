@@ -32,7 +32,7 @@ import CurrencySettings from "@/pages/CurrencySettings";
 import QuantityOffers from "@/pages/QuantityOffers";
 import AdvertisingTracking from "@/pages/AdvertisingTracking";
 import EnhancedMyStores from "@/pages/EnhancedMyStores";
-import SpamSettings from "@/pages/SpamSettings";
+
 
 // Components
 import { Toaster } from "@/components/ui/toaster";
@@ -157,7 +157,7 @@ function AppRoutes() {
       <Route path="/settings" element={<Settings />} />
       <Route path="/settings/orders" element={<OrderSettings />} />
       <Route path="/settings/general" element={<GeneralSettings />} />
-      <Route path="/settings/spam" element={<SpamSettings />} />
+      
 
       <Route path="/settings/plans" element={<PlansSettings />} />
       <Route path="/settings/currency" element={<CurrencySettings />} />

@@ -77,6 +77,6 @@ const ShopifyWebPixelActivator: React.FC<Props> = ({
     handleActivate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auto, activeStore]);
-  return;
+  return null;
 };
 export default ShopifyWebPixelActivator;

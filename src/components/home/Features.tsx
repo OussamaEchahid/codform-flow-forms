@@ -26,7 +26,7 @@ const Features = () => {
         { title: 'Per‑product form', description: 'Create a custom form for each product easily' },
         { title: 'Smart quantity offers', description: 'Boost AOV with flexible bulk discounts' },
         { title: 'Currency management', description: 'Set currency per form or product with auto updates' },
-        { title: 'Spam protection', description: 'Built‑in protection with smart filters and limits' },
+        
         { title: 'Ad tracking', description: 'Track performance and connect events to ad platforms' },
         { title: 'One‑click creation', description: 'Generate ready‑to‑use forms in your language' },
         { title: 'Landing pages', description: 'Conversion‑optimized landing templates', soon: true as const },
