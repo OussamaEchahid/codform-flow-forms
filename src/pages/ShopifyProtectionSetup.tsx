@@ -16,7 +16,7 @@ const ShopifyProtectionSetup = () => {
   const { shop } = useAuth();
   const [protectionScript, setProtectionScript] = useState('');
   const [loading, setLoading] = useState(false);
-  const [testResult, setTestResult] = useState(null);
+  const [testResult, setTestResult] = useState<any>(null);
   const [shopDomain, setShopDomain] = useState(shop || '');
 
   useEffect(() => {
@@ -46,14 +46,14 @@ const ShopifyProtectionSetup = () => {
 
       if (error) throw error;
 
-      if (data.success) {
+      if (data?.success) {
         setProtectionScript(data.script);
         toast({
           title: 'تم بنجاح',
           description: 'تم إنتاج سكريپت الحماية'
         });
       } else {
-        throw new Error(data.error);
+        throw new Error(data?.error || 'فشل في إنتاج السكريپت');
       }
     } catch (error) {
       console.error('Error generating script:', error);
@@ -88,9 +88,9 @@ const ShopifyProtectionSetup = () => {
 
       if (error) throw error;
 
-      setTestResult(data.test_result);
+      setTestResult(data?.test_result);
       
-      if (data.success) {
+      if (data?.success) {
         toast({
           title: 'تم الاختبار',
           description: 'تم فحص نظام الحماية بنجاح'
