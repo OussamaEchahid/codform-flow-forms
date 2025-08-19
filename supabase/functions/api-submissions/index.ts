@@ -377,55 +377,9 @@ serve(async (req: Request) => {
       );
     }
 
-    // 🛡️ SPAM PROTECTION: Check if user's IP is blocked
-    try {
-      const clientIP = req.headers.get('x-forwarded-for') ||
-                      req.headers.get('x-real-ip') ||
-                      req.headers.get('cf-connecting-ip') ||
-                      'unknown';
 
-      if (clientIP && clientIP !== 'unknown') {
-        console.log('🔍 Checking spam protection for IP:', clientIP);
 
-        const { data: blockCheck, error: blockError } = await supabase.rpc('is_ip_blocked', {
-          p_ip_address: clientIP,
-          p_shop_id: shopDomain
-        });
 
-        if (blockError) {
-          console.warn('⚠️ Error checking IP block (allowing submission):', blockError);
-        } else if (blockCheck && blockCheck.length > 0 && blockCheck[0].is_blocked) {
-          console.log('🚫 IP is blocked:', clientIP);
-
-          // If there's a redirect URL, return it
-          if (blockCheck[0].redirect_url) {
-            return new Response(
-              JSON.stringify({
-                error: 'BLOCKED_IP',
-                message: 'Access denied',
-                redirect_url: blockCheck[0].redirect_url,
-                reason: blockCheck[0].reason
-              }),
-              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
-            );
-          } else {
-            return new Response(
-              JSON.stringify({
-                error: 'BLOCKED_IP',
-                message: 'Access denied. Your IP address has been blocked.',
-                reason: blockCheck[0].reason
-              }),
-              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
-            );
-          }
-        } else {
-          console.log('✅ IP is allowed:', clientIP);
-        }
-      }
-    } catch (spamError) {
-      console.warn('⚠️ Spam protection check failed (allowing submission):', spamError);
-      // في حالة فشل التحقق من الحماية، نسمح بالإرسال لتجنب منع المستخدمين الشرعيين
-    }
 
     // Get form settings from database with fallback
     let formSettings = {};
