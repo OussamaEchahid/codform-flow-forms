@@ -15,7 +15,7 @@ interface BlockedIP {
   id: string;
   ip_address: string;
   reason: string;
-  blocked_at: string;
+  created_at: string;
   shop_id: string;
 }
 
@@ -33,11 +33,11 @@ export default function SpamSettings() {
       setLoading(true);
       const { data, error } = await shopifySupabase
         .from('blocked_ips')
-        .select('*')
-        .order('blocked_at', { ascending: false });
+        .select('id, ip_address, reason, created_at, shop_id')
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setBlockedIPs(data || []);
+      setBlockedIPs((data as unknown as BlockedIP[]) || []);
     } catch (error) {
       console.error('Error fetching blocked IPs:', error);
       toast.error('خطأ في جلب قائمة الـ IPs المحظورة');
@@ -69,7 +69,7 @@ export default function SpamSettings() {
 
       if (error) throw error;
 
-      setBlockedIPs(prev => [data, ...prev]);
+      setBlockedIPs(prev => [(data as unknown as BlockedIP), ...prev]);
       setModalActive(false);
       setNewIP('');
       setNewReason('');
@@ -205,7 +205,7 @@ export default function SpamSettings() {
                     <TableCell className="font-mono">{ip.ip_address}</TableCell>
                     <TableCell>{ip.reason}</TableCell>
                     <TableCell>
-                      {new Date(ip.blocked_at).toLocaleString('ar-SA')}
+                      {new Date(ip.created_at).toLocaleString('ar-SA')}
                     </TableCell>
                     <TableCell>
                       <Button
