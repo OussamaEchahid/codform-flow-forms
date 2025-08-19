@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Plus, Trash2, Download, Upload, Globe, MapPin, AlertTriangle } from 'lucide-react';
+import { Shield, Plus, Trash2, Download, Upload, Globe, MapPin, AlertTriangle, Copy, Code, TestTube } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -65,6 +65,11 @@ const SecuritySettings = () => {
 
   const [csvData, setCsvData] = useState('');
   const [showImportDialog, setShowImportDialog] = useState(false);
+
+  // نافذة منبثقة لسكريپت الحماية
+  const [showProtectionDialog, setShowProtectionDialog] = useState(false);
+  const [protectionScript, setProtectionScript] = useState('');
+  const [scriptLoading, setScriptLoading] = useState(false);
 
   // تحميل البيانات عند بدء الصفحة
   useEffect(() => {
@@ -300,6 +305,79 @@ const SecuritySettings = () => {
     }
   };
 
+  // إنتاج سكريپت الحماية
+  const generateProtectionScript = async () => {
+    if (!shop) {
+      toast({
+        title: 'خطأ',
+        description: 'لا يوجد متجر مرتبط',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setScriptLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('shopify-protection-script', {
+        body: {
+          shop_domain: shop,
+          method: 'get_script'
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        setProtectionScript(data.script);
+        toast({
+          title: 'تم بنجاح',
+          description: 'تم إنتاج سكريپت الحماية'
+        });
+      } else {
+        throw new Error(data?.error || 'فشل في إنتاج السكريپت');
+      }
+    } catch (error) {
+      console.error('Error generating script:', error);
+      toast({
+        title: 'خطأ',
+        description: 'فشل في إنتاج سكريپت الحماية',
+        variant: 'destructive'
+      });
+    } finally {
+      setScriptLoading(false);
+    }
+  };
+
+  // نسخ السكريپت
+  const copyProtectionScript = async () => {
+    try {
+      await navigator.clipboard.writeText(protectionScript);
+      toast({
+        title: 'تم النسخ',
+        description: 'تم نسخ السكريپت إلى الحافظة'
+      });
+    } catch (error) {
+      toast({
+        title: 'خطأ',
+        description: 'فشل في نسخ السكريپت',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  // تحميل السكريپت
+  const downloadProtectionScript = () => {
+    const blob = new Blob([protectionScript], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `codform-protection-${shop}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   if (!shop) {
     return (
       <div className="container mx-auto p-6">
@@ -339,15 +417,105 @@ const SecuritySettings = () => {
                 <p><strong>النتيجة:</strong> سيتم حظر الزوار فوراً عند دخولهم للمتجر</p>
               </div>
               <div className="flex gap-3">
-                <Button 
-                  variant="default" 
-                  size="default"
-                  onClick={() => window.location.href = '/shopify-protection'}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  <Shield className="h-4 w-4 mr-2" />
-                  إنتاج سكريپت الحماية
-                </Button>
+                <Dialog open={showProtectionDialog} onOpenChange={setShowProtectionDialog}>
+                  <DialogTrigger asChild>
+                    <Button 
+                      variant="default" 
+                      size="default"
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      <Shield className="h-4 w-4 mr-2" />
+                      إنتاج سكريپت الحماية
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-4xl max-h-[80vh]">
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center gap-2">
+                        <Shield className="h-5 w-5" />
+                        سكريپت حماية متجر Shopify
+                      </DialogTitle>
+                      <DialogDescription>
+                        قم بإنتاج ونسخ السكريپت لتفعيل الحماية على متجر {shop}
+                      </DialogDescription>
+                    </DialogHeader>
+                    
+                    <div className="space-y-4">
+                      {!protectionScript ? (
+                        <div className="text-center py-8">
+                          <Code className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                          <p className="text-lg font-medium mb-2">إنتاج سكريپت الحماية</p>
+                          <p className="text-sm text-muted-foreground mb-4">
+                            سيتم إنتاج سكريپت مخصص لمتجرك يحتوي على نظام الحماية الكامل
+                          </p>
+                          <Button 
+                            onClick={generateProtectionScript}
+                            disabled={scriptLoading}
+                            size="lg"
+                          >
+                            {scriptLoading ? 'جاري الإنتاج...' : 'إنتاج السكريپت'}
+                            <Code className="ml-2 h-4 w-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                            <div className="flex items-center gap-2 text-green-800 mb-2">
+                              <Shield className="h-4 w-4" />
+                              <span className="font-medium">تم إنتاج السكريپت بنجاح!</span>
+                            </div>
+                            <p className="text-sm text-green-700">
+                              يمكنك الآن نسخ السكريپت أدناه ولصقه في ملف theme.liquid في شوبيفاي قبل إغلاق &lt;/head&gt;
+                            </p>
+                          </div>
+                          
+                          <div className="flex gap-2 mb-4">
+                            <Button onClick={copyProtectionScript} variant="default">
+                              <Copy className="h-4 w-4 mr-2" />
+                              نسخ السكريپت
+                            </Button>
+                            <Button onClick={downloadProtectionScript} variant="outline">
+                              <Download className="h-4 w-4 mr-2" />
+                              تحميل كملف
+                            </Button>
+                          </div>
+                          
+                          <div className="border rounded-lg">
+                            <div className="bg-muted px-3 py-2 border-b">
+                              <span className="text-sm font-medium">سكريپت الحماية - اللصق في theme.liquid</span>
+                            </div>
+                            <Textarea
+                              value={protectionScript}
+                              readOnly
+                              rows={15}
+                              className="font-mono text-xs border-0 rounded-t-none resize-none"
+                            />
+                          </div>
+                          
+                          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                            <h4 className="font-medium text-yellow-800 mb-2">خطوات التطبيق:</h4>
+                            <ol className="list-decimal list-inside space-y-1 text-sm text-yellow-700">
+                              <li>انسخ السكريپت أعلاه</li>
+                              <li>اذهب إلى إعدادات الثيم في شوبيفاي</li>
+                              <li>افتح ملف theme.liquid للتحرير</li>
+                              <li>الصق السكريپت قبل إغلاق &lt;/head&gt;</li>
+                              <li>احفظ التغييرات</li>
+                            </ol>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => {
+                        setShowProtectionDialog(false);
+                        setProtectionScript('');
+                      }}>
+                        إغلاق
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+                
                 <Button 
                   variant="outline" 
                   size="default"
