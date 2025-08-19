@@ -362,19 +362,69 @@ serve(async (req: Request) => {
     // Parse request body
     const requestData = await req.json();
     console.log('📝 Request data received:', JSON.stringify(requestData, null, 2));
-    
+
     const formId = requestData.formId || requestData.form_id;
     const shopDomain = requestData.shopDomain || '';
     const formData = requestData.data || requestData.formData || requestData;
-    
+
     console.log('🏪 Shop domain:', shopDomain);
     console.log('📋 Form ID:', formId);
-    
+
     if (!formId || !shopDomain) {
       return new Response(
         JSON.stringify({ error: 'Missing required parameters: formId and shopDomain' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
+    }
+
+    // 🛡️ SPAM PROTECTION: Check if user's IP is blocked
+    try {
+      const clientIP = req.headers.get('x-forwarded-for') ||
+                      req.headers.get('x-real-ip') ||
+                      req.headers.get('cf-connecting-ip') ||
+                      'unknown';
+
+      if (clientIP && clientIP !== 'unknown') {
+        console.log('🔍 Checking spam protection for IP:', clientIP);
+
+        const { data: blockCheck, error: blockError } = await supabase.rpc('is_ip_blocked', {
+          p_ip_address: clientIP,
+          p_shop_id: shopDomain
+        });
+
+        if (blockError) {
+          console.warn('⚠️ Error checking IP block (allowing submission):', blockError);
+        } else if (blockCheck && blockCheck.length > 0 && blockCheck[0].is_blocked) {
+          console.log('🚫 IP is blocked:', clientIP);
+
+          // If there's a redirect URL, return it
+          if (blockCheck[0].redirect_url) {
+            return new Response(
+              JSON.stringify({
+                error: 'BLOCKED_IP',
+                message: 'Access denied',
+                redirect_url: blockCheck[0].redirect_url,
+                reason: blockCheck[0].reason
+              }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
+            );
+          } else {
+            return new Response(
+              JSON.stringify({
+                error: 'BLOCKED_IP',
+                message: 'Access denied. Your IP address has been blocked.',
+                reason: blockCheck[0].reason
+              }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
+            );
+          }
+        } else {
+          console.log('✅ IP is allowed:', clientIP);
+        }
+      }
+    } catch (spamError) {
+      console.warn('⚠️ Spam protection check failed (allowing submission):', spamError);
+      // في حالة فشل التحقق من الحماية، نسمح بالإرسال لتجنب منع المستخدمين الشرعيين
     }
 
     // Get form settings from database with fallback
@@ -594,8 +644,12 @@ serve(async (req: Request) => {
       } else {
         console.log('✅ Order created in database successfully:', orderData.order_number);
         console.log('📦 Order details:', JSON.stringify(orderData, null, 2));
+      }
 
-        // Try to sync with Google Sheets if configured
+      // IMPORTANT: Try to sync with Google Sheets if configured (independent of order creation success)
+      // This should not affect the main response even if it fails
+      if (orderData) {
+        console.log('🚀 STARTING GOOGLE SHEETS SYNC PROCESS...');
         console.log('🔍 Starting Google Sheets sync check for shop:', orderData.shop_id);
         try {
           const { data: sheetsConfig } = await supabase
@@ -611,7 +665,7 @@ serve(async (req: Request) => {
           console.log('📋 Google Sheets config query result:', sheetsConfig);
           if (sheetsConfig) {
             console.log('✅ Found Google Sheets config, checking for form mapping...');
-            // 1) Prefer per-form mapping if exists
+            // 1) Check if this specific form is mapped to Google Sheets
             const { data: mapping } = await supabase
               .from('google_sheets_form_mappings')
               .select('*')
@@ -619,6 +673,12 @@ serve(async (req: Request) => {
               .eq('form_id', orderData.form_id)
               .eq('enabled', true)
               .maybeSingle();
+
+            console.log('🔍 Form mapping result:', { form_id: orderData.form_id, mapping });
+
+            // Only proceed if form is mapped to Google Sheets
+            if (mapping) {
+              console.log('✅ Form is mapped to Google Sheets, proceeding with sync...');
 
             // 2) Build row using optional columns_mapping if present
             const defaultRow = [
@@ -652,9 +712,9 @@ serve(async (req: Request) => {
               }
             } catch {}
 
-            // Use existing columns from the database
-            const spreadsheetId = mapping?.spreadsheet_id || (sheetsConfig as any).spreadsheet_id;
-            const sheetTitle = mapping?.sheet_title || (sheetsConfig as any).sheet_title || (sheetsConfig as any).sheet_name;
+            // Use mapping data (since we already verified mapping exists)
+            const spreadsheetId = mapping.spreadsheet_id;
+            const sheetTitle = mapping.sheet_title;
 
             // If spreadsheet_id is missing, we need to extract it from the Google Sheets URL or use a different approach
             // For now, let's check if we have the required data
@@ -668,43 +728,36 @@ serve(async (req: Request) => {
 
             if (spreadsheetId && sheetTitle) {
               console.log('📊 Syncing order to Google Sheets:', { spreadsheetId, sheetTitle, values: valuesToAppend });
-              const appendResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/google-sheets-append`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
+              // Use supabase.functions.invoke instead of direct fetch for internal function calls
+              const { data: appendResult, error: appendError } = await supabase.functions.invoke('google-sheets-append', {
+                body: {
                   shop_id: orderData.shop_id,
                   spreadsheet_id: spreadsheetId,
                   sheet_title: sheetTitle,
                   values: [valuesToAppend]
-                })
+                }
               });
 
-              const appendResult = await appendResponse.json();
-              if (appendResponse.ok) {
-                console.log('✅ Order synced to Google Sheets successfully');
+              if (appendError) {
+                console.error('❌ Failed to sync order to Google Sheets:', appendError);
               } else {
-                console.error('❌ Failed to sync order to Google Sheets:', appendResult);
+                console.log('✅ Order synced to Google Sheets successfully:', appendResult);
               }
-            } else if (sheetsConfig.webhook_url) {
-              console.log('🔗 Syncing order via webhook:', sheetsConfig.webhook_url);
-              await fetch(sheetsConfig.webhook_url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ type: 'new_order', order: orderData, timestamp: new Date().toISOString() }),
-              });
             } else {
               console.log('⚠️ Google Sheets config found but missing required data:');
               console.log('   - spreadsheet_id:', spreadsheetId || 'MISSING');
               console.log('   - sheet_title:', sheetTitle || 'MISSING');
-              console.log('   - webhook_url:', sheetsConfig.webhook_url || 'MISSING');
               console.log('   - Available data: sheet_id=' + (sheetsConfig as any).sheet_id + ', sheet_name=' + (sheetsConfig as any).sheet_name);
               console.log('🔧 Please recreate the Google Sheets integration to fix this issue.');
+            }
+            } else {
+              console.log('⏭️ No Google Sheets mapping found for form:', orderData.form_id, '- skipping sync');
             }
           } else {
             console.log('ℹ️ No Google Sheets config found for shop:', orderData.shop_id);
           }
         } catch (sheetError) {
-          console.error('❌ Google Sheets sync failed:', sheetError);
+          console.error('❌ Google Sheets sync failed (but continuing with order):', sheetError);
         }
       }
 
