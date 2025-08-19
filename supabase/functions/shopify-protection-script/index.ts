@@ -83,29 +83,39 @@ serve(async (req) => {
 function generateShopifyProtectionScript(shopDomain: string): string {
   const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
   const apiKey = Deno.env.get('SUPABASE_ANON_KEY') || ''
-  
-  return `
-<!-- CodForm Protection System - Generated for ${shopDomain} -->
+
+  // تنظيف وحماية المتغيرات
+  const cleanShopDomain = shopDomain.replace(/['"\\]/g, '').trim()
+  const cleanSupabaseUrl = supabaseUrl.replace(/['"\\]/g, '').trim()
+  const cleanApiKey = apiKey.replace(/['"\\]/g, '').trim()
+
+  return `<!-- CodForm Protection System - Generated for ${cleanShopDomain} -->
 <script>
 (function() {
   'use strict';
-  
+
   // منع التشغيل المتعدد بشكل مطلق مع علامة عالمية قوية
   if (window.CodFormProtectionActive === true) {
     return;
   }
   window.CodFormProtectionActive = true;
-  
-  const SHOP_DOMAIN = '${shopDomain}';
-  const SECURITY_API = '${supabaseUrl}/functions/v1/store-security-check';
-  const API_KEY = '${apiKey}';
-  
+
+  const SHOP_DOMAIN = '${cleanShopDomain}';
+  const SECURITY_API = '${cleanSupabaseUrl}/functions/v1/store-security-check';
+  const API_KEY = '${cleanApiKey}';
+
   // حظر فوري وكامل للمحتوى
   function immediateBlock() {
-    document.documentElement.style.cssText = 'visibility: hidden !important; opacity: 0 !important; pointer-events: none !important;';
-    document.body.style.cssText = 'display: none !important;';
+    try {
+      document.documentElement.style.cssText = 'visibility: hidden !important; opacity: 0 !important; pointer-events: none !important;';
+      if (document.body) {
+        document.body.style.cssText = 'display: none !important;';
+      }
+    } catch(e) {
+      console.warn('[CodForm] Could not apply immediate block styles:', e);
+    }
   }
-  
+
   // حظر فوري عند التحميل
   immediateBlock();
   
@@ -166,46 +176,140 @@ function generateShopifyProtectionScript(shopDomain: string): string {
   }
   
   function allowAccess() {
-    document.documentElement.style.cssText = 'visibility: visible !important; opacity: 1 !important; pointer-events: auto !important;';
-    document.body.style.cssText = 'display: block !important;';
+    console.log('[CodForm] ✅ Allowing access - restoring page content');
+
+    try {
+      // إزالة جميع أنماط الحظر
+      document.documentElement.style.cssText = '';
+      if (document.body) {
+        document.body.style.cssText = '';
+      }
+
+      // إزالة أي أنماط مضافة للحظر
+      const allElements = document.querySelectorAll('*');
+      allElements.forEach(el => {
+        if (el.style) {
+          el.style.visibility = '';
+          el.style.opacity = '';
+          el.style.display = '';
+          el.style.pointerEvents = '';
+        }
+      });
+
+      // إعادة تفعيل التفاعل
+      document.documentElement.style.visibility = 'visible';
+      document.documentElement.style.opacity = '1';
+      document.documentElement.style.pointerEvents = 'auto';
+
+      if (document.body) {
+        document.body.style.display = 'block';
+        document.body.style.visibility = 'visible';
+        document.body.style.opacity = '1';
+      }
+
+      console.log('[CodForm] ✅ Page content restored successfully');
+
+    } catch(e) {
+      console.error('[CodForm] Error restoring page content:', e);
+      // fallback
+      document.documentElement.style.cssText = 'visibility: visible !important; opacity: 1 !important; pointer-events: auto !important;';
+      if (document.body) {
+        document.body.style.cssText = 'display: block !important;';
+      }
+    }
   }
   
   function blockAccess(blockInfo) {
+    console.log('[CodForm] 🚫 Blocking access with info:', blockInfo);
+
     // إيقاف كل العمليات فوراً
     try {
       if (window.stop) window.stop();
-    } catch(e) {}
-    
-    // إزالة كل المحتوى بالكامل
-    document.documentElement.innerHTML = '';
-    
-    // إنشاء صفحة الحظر
-    const blockedHTML = createBlockedPageHTML(blockInfo);
-    
-    // استبدال الصفحة بالكامل
-    document.open();
-    document.write(blockedHTML);
-    document.close();
-    
-    // منع أي تشغيل إضافي
-    if (window.onload) window.onload = null;
-    if (window.addEventListener) {
-      const originalAddEventListener = window.addEventListener;
-      window.addEventListener = function() {};
+      if (window.location && window.location.replace) {
+        // منع التنقل
+        window.history.replaceState = function() {};
+        window.history.pushState = function() {};
+      }
+    } catch(e) {
+      console.warn('[CodForm] Could not stop window operations:', e);
+    }
+
+    // إزالة كل المحتوى والأحداث
+    try {
+      // إزالة جميع event listeners
+      const allElements = document.querySelectorAll('*');
+      allElements.forEach(el => {
+        if (el.cloneNode) {
+          const newEl = el.cloneNode(true);
+          if (el.parentNode) {
+            el.parentNode.replaceChild(newEl, el);
+          }
+        }
+      });
+
+      // مسح المحتوى بالكامل
+      document.documentElement.innerHTML = '';
+
+      // إنشاء صفحة الحظر
+      const blockedHTML = createBlockedPageHTML(blockInfo);
+
+      // استبدال الصفحة بالكامل
+      document.open();
+      document.write(blockedHTML);
+      document.close();
+
+      // منع أي تشغيل إضافي
+      window.onload = null;
+      window.onbeforeunload = null;
+      window.onunload = null;
+
+      // تعطيل event listeners
+      if (window.addEventListener) {
+        window.addEventListener = function() {};
+      }
+      if (window.removeEventListener) {
+        window.removeEventListener = function() {};
+      }
+
+    } catch(e) {
+      console.error('[CodForm] Error during blocking process:', e);
+      // fallback - إخفاء المحتوى على الأقل
+      document.documentElement.style.cssText = 'display: none !important;';
+      document.body.innerHTML = '<div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f44336; color: white; display: flex; align-items: center; justify-content: center; font-family: Arial; z-index: 999999;"><h1>تم حظر الوصول - Access Blocked</h1></div>';
     }
   }
   
   function createBlockedPageHTML(blockInfo) {
+    // تنظيف وحماية جميع المتغيرات
     const blockTypeText = blockInfo.block_type === 'country' ? 'حظر جغرافي' : 'حظر عنوان IP';
-    const reason = (blockInfo.reason || 'تم حظر الوصول من موقعك').replace(/['"]/g, '');
+    const reason = String(blockInfo.reason || 'تم حظر الوصول من موقعك').replace(/['"<>&]/g, function(match) {
+      switch(match) {
+        case '"': return '&quot;';
+        case "'": return '&#39;';
+        case '<': return '&lt;';
+        case '>': return '&gt;';
+        case '&': return '&amp;';
+        default: return match;
+      }
+    });
+
     const currentTime = new Date().toLocaleString('ar-SA');
-    
-    const locationInfo = blockInfo.visitor_country ? 
-      '<div style="background: #e3f2fd; border: 1px solid #bbdefb; padding: 15px; border-radius: 10px; margin: 15px 0; text-align: center;"><div style="color: #1976d2; font-size: 14px; font-weight: 600;">موقعك الجغرافي: ' + blockInfo.visitor_country.replace(/['"]/g, '') + '</div></div>' : '';
-    
-    const redirectButton = (blockInfo.redirect_url && blockInfo.redirect_url !== '/blocked') ? 
-      '<button style="background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%); color: white; padding: 12px 24px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; margin: 8px; transition: all 0.3s ease; text-decoration: none; display: inline-block; min-width: 120px;" onclick="window.location.href=\\'' + blockInfo.redirect_url + '\\'">🔗 انتقال إلى صفحة أخرى</button>' : '';
-    
+
+    const locationInfo = blockInfo.visitor_country ?
+      '<div style="background: #e3f2fd; border: 1px solid #bbdefb; padding: 15px; border-radius: 10px; margin: 15px 0; text-align: center;"><div style="color: #1976d2; font-size: 14px; font-weight: 600;">موقعك الجغرافي: ' + String(blockInfo.visitor_country).replace(/['"<>&]/g, function(match) {
+        switch(match) {
+          case '"': return '&quot;';
+          case "'": return '&#39;';
+          case '<': return '&lt;';
+          case '>': return '&gt;';
+          case '&': return '&amp;';
+          default: return match;
+        }
+      }) + '</div></div>' : '';
+
+    const redirectButton = (blockInfo.redirect_url && blockInfo.redirect_url !== '/blocked') ?
+      '<button style="background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%); color: white; padding: 12px 24px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; margin: 8px; transition: all 0.3s ease; text-decoration: none; display: inline-block; min-width: 120px;" onclick="window.location.href=\'' + String(blockInfo.redirect_url).replace(/['"]/g, '') + '\'">🔗 انتقال إلى صفحة أخرى</button>' : '';
+
     return [
       '<!DOCTYPE html>',
       '<html lang="ar" dir="rtl">',
@@ -214,9 +318,11 @@ function generateShopifyProtectionScript(shopDomain: string): string {
       '<meta name="viewport" content="width=device-width, initial-scale=1.0">',
       '<title>تم حظر الوصول - Access Blocked</title>',
       '<style>',
-      '*{margin:0!important;padding:0!important;box-sizing:border-box!important}',
-      'html,body{width:100%!important;height:100vh!important;overflow:hidden!important;position:fixed!important;top:0!important;left:0!important;font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif!important;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%)!important;display:flex!important;align-items:center!important;justify-content:center!important;direction:rtl!important;padding:20px!important}',
-      '.blocked-container{background:white!important;border-radius:20px!important;padding:40px!important;max-width:500px!important;width:100%!important;text-align:center!important;box-shadow:0 25px 50px rgba(0,0,0,0.25)!important;animation:slideIn 0.8s ease-out!important;position:relative!important;z-index:999999!important}',
+      '/* إعادة تعيين كامل لجميع العناصر */',
+      '*,*::before,*::after{margin:0!important;padding:0!important;box-sizing:border-box!important;border:none!important;outline:none!important;text-decoration:none!important;list-style:none!important;background:transparent!important;color:inherit!important;font:inherit!important;vertical-align:baseline!important;position:static!important;z-index:auto!important;opacity:1!important;visibility:visible!important;display:block!important;float:none!important;clear:none!important;overflow:visible!important;clip:auto!important;transform:none!important;transition:none!important;animation:none!important}',
+      '/* تعيين الصفحة الأساسية */',
+      'html,body{width:100%!important;height:100vh!important;overflow:hidden!important;position:fixed!important;top:0!important;left:0!important;right:0!important;bottom:0!important;font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif!important;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%)!important;display:flex!important;align-items:center!important;justify-content:center!important;direction:rtl!important;padding:20px!important;z-index:2147483647!important}',
+      '.blocked-container{background:white!important;border-radius:20px!important;padding:40px!important;max-width:500px!important;width:100%!important;text-align:center!important;box-shadow:0 25px 50px rgba(0,0,0,0.25)!important;animation:slideIn 0.8s ease-out!important;position:fixed!important;top:50%!important;left:50%!important;transform:translate(-50%,-50%)!important;z-index:2147483647!important;display:block!important;visibility:visible!important;opacity:1!important}',
       '@keyframes slideIn{from{opacity:0;transform:translateY(-30px) scale(0.9)}to{opacity:1;transform:translateY(0) scale(1)}}',
       '.shield-icon{width:70px!important;height:70px!important;background:#ff4757!important;border-radius:50%!important;display:flex!important;align-items:center!important;justify-content:center!important;margin:0 auto 25px!important;font-size:35px!important;animation:pulse 2s infinite!important}',
       '@keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.05)}100%{transform:scale(1)}}',
@@ -235,6 +341,12 @@ function generateShopifyProtectionScript(shopDomain: string): string {
       '.warning-title{color:#b7791f!important;margin-bottom:8px!important;font-weight:bold!important;font-size:14px!important}',
       '.warning-text{color:#8d6e63!important;font-size:13px!important;line-height:1.4!important}',
       '.footer-info{margin-top:25px!important;padding-top:20px!important;border-top:1px solid #e9ecef!important;font-size:11px!important;color:#adb5bd!important;line-height:1.4!important}',
+      '/* إخفاء جميع العناصر الأخرى */',
+      'body > *:not(.blocked-container){display:none!important;visibility:hidden!important;opacity:0!important;position:absolute!important;top:-9999px!important;left:-9999px!important;z-index:-1!important}',
+      '/* ضمان ظهور صفحة الحظر فقط */',
+      '.blocked-container *{display:block!important;visibility:visible!important;opacity:1!important;position:static!important;z-index:auto!important}',
+      '.blocked-container .info-grid{display:grid!important}',
+      '.blocked-container button{display:inline-block!important;cursor:pointer!important}',
       '</style>',
       '</head>',
       '<body>',
@@ -271,11 +383,28 @@ function generateShopifyProtectionScript(shopDomain: string): string {
     ].join('');
   }
   
-  // تشغيل الحماية فوراً
-  activateProtection();
-  
+  // تشغيل الحماية فوراً مع معالجة الأخطاء
+  try {
+    activateProtection().catch(function(error) {
+      console.error('[CodForm] Protection activation failed:', error);
+      // في حالة فشل التفعيل، إظهار المحتوى لتجنب حظر غير مقصود
+      allowAccess();
+    });
+  } catch(error) {
+    console.error('[CodForm] Critical protection error:', error);
+    allowAccess();
+  }
+
   console.log('[CodForm] 🚀 Protection system initialized for:', SHOP_DOMAIN);
-  
+
+  // إضافة مراقب للتأكد من عدم تعطل الصفحة
+  setTimeout(function() {
+    if (document.documentElement.style.visibility === 'hidden') {
+      console.warn('[CodForm] ⚠️ Page still hidden after timeout, forcing visibility');
+      allowAccess();
+    }
+  }, 10000); // 10 ثوان timeout
+
 })();
 </script>
 `;
