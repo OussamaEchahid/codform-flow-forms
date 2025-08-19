@@ -41,16 +41,20 @@ serve(async (req) => {
           throw new Error('shop_id and ip_address are required')
         }
 
-        // إدراج عنوان IP مباشرة في الجدول
+        // التحقق من صحة IP address
+        const ipRegex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/
+        if (!ipRegex.test(ip_address)) {
+          throw new Error('Invalid IP address format')
+        }
+
         result = await supabaseClient
           .from('blocked_ips')
           .insert({
             shop_id: shop_id,
             ip_address: ip_address,
             reason: reason || 'غير محدد',
-            redirect_url: redirect_url,
-            is_active: true,
-            user_id: null
+            redirect_url: redirect_url || '/blocked',
+            is_active: true
           })
         
         break
@@ -64,7 +68,7 @@ serve(async (req) => {
 
         result = await supabaseClient
           .from('blocked_ips')
-          .delete()
+          .update({ is_active: false })
           .eq('id', ip_blocked_id)
         
         break
@@ -76,16 +80,20 @@ serve(async (req) => {
           throw new Error('shop_id, country_code, and country_name are required')
         }
 
+        // التحقق من صحة country code
+        if (country_code.length !== 2) {
+          throw new Error('Country code must be 2 characters')
+        }
+
         result = await supabaseClient
           .from('blocked_countries')
           .insert({
             shop_id: country_shop_id,
-            country_code: country_code,
+            country_code: country_code.toUpperCase(),
             country_name: country_name,
             reason: country_reason || 'غير محدد',
-            redirect_url: country_redirect,
-            is_active: true,
-            user_id: null
+            redirect_url: country_redirect || '/blocked',
+            is_active: true
           })
         
         break
@@ -99,7 +107,7 @@ serve(async (req) => {
 
         result = await supabaseClient
           .from('blocked_countries')
-          .delete()
+          .update({ is_active: false })
           .eq('id', country_blocked_id)
         
         break

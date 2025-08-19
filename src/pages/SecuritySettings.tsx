@@ -325,6 +325,30 @@ const SecuritySettings = () => {
         </div>
       </div>
 
+      {/* تحذير تفعيل الحماية */}
+      <Card className="border-orange-200 bg-orange-50">
+        <CardContent className="p-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-orange-500 mt-0.5" />
+            <div className="flex-1">
+              <h3 className="font-semibold text-orange-800 mb-1">تفعيل الحماية على المتجر</h3>
+              <p className="text-orange-700 text-sm mb-3">
+                بعد إضافة عناوين IP أو الدول المحظورة، يجب تفعيل نظام الحماية على متجر Shopify لتطبيق الحظر فعلياً.
+              </p>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => window.open('/shopify-protection', '_blank')}
+                className="border-orange-300 text-orange-800 hover:bg-orange-100"
+              >
+                <Shield className="h-4 w-4 mr-2" />
+                تفعيل الحماية على Shopify
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* إحصائيات سريعة */}
       <div className="grid gap-4 md:grid-cols-3">
         <Card>

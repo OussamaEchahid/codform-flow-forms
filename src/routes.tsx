@@ -26,6 +26,7 @@ import Privacy from '@/pages/Privacy';
 import Terms from '@/pages/Terms';
 import Support from '@/pages/Support';
 import BlockedPage from '@/pages/BlockedPage';
+import ShopifyProtectionSetup from '@/pages/ShopifyProtectionSetup';
 
 export const routes: RouteObject[] = [
   {
@@ -140,6 +141,10 @@ export const routes: RouteObject[] = [
   {
     path: '/blocked',
     Component: BlockedPage,
+  },
+  {
+    path: '/shopify-protection',
+    Component: ShopifyProtectionSetup,
   },
   {
     path: '*',

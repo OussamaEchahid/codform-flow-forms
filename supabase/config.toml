@@ -151,3 +151,6 @@ verify_jwt = false
 
 [functions.theme-security-integration]
 verify_jwt = false
+
+[functions.shopify-protection-script]
+verify_jwt = false
