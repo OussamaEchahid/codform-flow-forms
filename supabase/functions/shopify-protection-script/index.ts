@@ -170,7 +170,7 @@ function generateShopifyProtectionScript(shopDomain: string): string {
     }
     html, body {
       width: 100% !important;
-      height: 100% !important;
+      height: 100vh !important;
       overflow: hidden !important;
       position: fixed !important;
       top: 0 !important;
@@ -181,110 +181,161 @@ function generateShopifyProtectionScript(shopDomain: string): string {
       align-items: center !important;
       justify-content: center !important;
       direction: rtl !important;
+      padding: 20px !important;
     }
     .blocked-container {
       background: white !important;
       border-radius: 20px !important;
       padding: 40px !important;
-      max-width: 600px !important;
-      width: 90% !important;
+      max-width: 500px !important;
+      width: 100% !important;
       text-align: center !important;
-      box-shadow: 0 20px 50px rgba(0,0,0,0.3) !important;
-      animation: slideIn 0.5s ease-out !important;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.25) !important;
+      animation: slideIn 0.8s ease-out !important;
       position: relative !important;
       z-index: 999999 !important;
     }
     @keyframes slideIn {
-      from { opacity: 0; transform: translateY(-50px); }
-      to { opacity: 1; transform: translateY(0); }
+      from { 
+        opacity: 0; 
+        transform: translateY(-30px) scale(0.9); 
+      }
+      to { 
+        opacity: 1; 
+        transform: translateY(0) scale(1); 
+      }
     }
     .shield-icon {
-      width: 80px !important;
-      height: 80px !important;
+      width: 70px !important;
+      height: 70px !important;
       background: #ff4757 !important;
       border-radius: 50% !important;
       display: flex !important;
       align-items: center !important;
       justify-content: center !important;
-      margin: 0 auto 30px !important;
-      font-size: 40px !important;
+      margin: 0 auto 25px !important;
+      font-size: 35px !important;
       animation: pulse 2s infinite !important;
     }
     @keyframes pulse {
       0% { transform: scale(1); }
-      50% { transform: scale(1.1); }
+      50% { transform: scale(1.05); }
       100% { transform: scale(1); }
     }
     h1 {
-      color: #ff4757 !important;
-      margin-bottom: 20px !important;
-      font-size: 28px !important;
+      color: #2c3e50 !important;
+      margin-bottom: 15px !important;
+      font-size: 24px !important;
       font-weight: bold !important;
     }
+    .subtitle {
+      color: #7f8c8d !important;
+      font-size: 16px !important;
+      margin-bottom: 25px !important;
+      line-height: 1.5 !important;
+    }
     .reason-box {
-      background: #f1f2f6 !important;
+      background: #fff5f5 !important;
       padding: 20px !important;
-      border-radius: 10px !important;
+      border-radius: 12px !important;
       margin: 20px 0 !important;
-      border-right: 4px solid #ff4757 !important;
+      border: 1px solid #fed7d7 !important;
       text-align: right !important;
+    }
+    .reason-text {
+      color: #c53030 !important;
+      font-weight: 600 !important;
+      font-size: 14px !important;
     }
     .info-grid {
       display: grid !important;
       grid-template-columns: 1fr 1fr !important;
-      gap: 15px !important;
+      gap: 12px !important;
       margin: 20px 0 !important;
     }
     .info-item {
       background: #f8f9fa !important;
       padding: 15px !important;
-      border-radius: 8px !important;
+      border-radius: 10px !important;
       text-align: center !important;
+      border: 1px solid #e9ecef !important;
+    }
+    .info-label {
+      font-size: 12px !important;
+      color: #6c757d !important;
+      font-weight: 600 !important;
+      text-transform: uppercase !important;
+      margin-bottom: 5px !important;
+    }
+    .info-value {
+      color: #495057 !important;
+      font-size: 14px !important;
+      font-weight: 600 !important;
+    }
+    .blocked-type {
+      color: #dc3545 !important;
     }
     .btn {
-      background: #5352ed !important;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
       color: white !important;
-      padding: 15px 30px !important;
+      padding: 12px 24px !important;
       border: none !important;
-      border-radius: 10px !important;
-      font-size: 16px !important;
+      border-radius: 8px !important;
+      font-size: 14px !important;
+      font-weight: 600 !important;
       cursor: pointer !important;
-      margin: 10px !important;
-      transition: all 0.3s !important;
+      margin: 8px !important;
+      transition: all 0.3s ease !important;
       text-decoration: none !important;
       display: inline-block !important;
+      min-width: 120px !important;
     }
     .btn:hover {
-      background: #3742fa !important;
       transform: translateY(-2px) !important;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2) !important;
     }
-    .footer-info {
-      margin-top: 30px !important;
-      padding-top: 20px !important;
-      border-top: 1px solid #eee !important;
-      font-size: 12px !important;
-      color: #999 !important;
+    .btn-secondary {
+      background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%) !important;
     }
     .warning-box {
-      background: #fff3cd !important;
-      border: 1px solid #ffeaa7 !important;
+      background: #fff9e6 !important;
+      border: 1px solid #ffe066 !important;
       padding: 20px !important;
       border-radius: 10px !important;
       margin: 20px 0 !important;
+      text-align: right !important;
     }
     .warning-title {
-      color: #f39c12 !important;
-      margin-bottom: 10px !important;
+      color: #b7791f !important;
+      margin-bottom: 8px !important;
       font-weight: bold !important;
-    }
-    .warning-text {
-      color: #666 !important;
       font-size: 14px !important;
     }
-    p {
-      margin-bottom: 30px !important;
-      color: #666 !important;
-      font-size: 18px !important;
+    .warning-text {
+      color: #8d6e63 !important;
+      font-size: 13px !important;
+      line-height: 1.4 !important;
+    }
+    .footer-info {
+      margin-top: 25px !important;
+      padding-top: 20px !important;
+      border-top: 1px solid #e9ecef !important;
+      font-size: 11px !important;
+      color: #adb5bd !important;
+      line-height: 1.4 !important;
+    }
+    .location-info {
+      background: #e3f2fd !important;
+      border: 1px solid #bbdefb !important;
+      padding: 15px !important;
+      border-radius: 10px !important;
+      margin: 15px 0 !important;
+      text-align: center !important;
+    }
+    .location-text {
+      color: #1976d2 !important;
+      font-size: 14px !important;
+      font-weight: 600 !important;
     }
   </style>
 </head>
@@ -292,35 +343,35 @@ function generateShopifyProtectionScript(shopDomain: string): string {
   <div class="blocked-container">
     <div class="shield-icon">🛡️</div>
     <h1>تم حظر الوصول</h1>
-    <p>عذراً، لا يمكنك الوصول إلى هذا المتجر في الوقت الحالي</p>
+    <p class="subtitle">عذراً، لا يمكنك الوصول إلى هذا المتجر في الوقت الحالي</p>
     
     <div class="reason-box">
-      <strong>السبب:</strong> \${blockInfo.reason || 'تم حظر الوصول من موقعك'}
+      <span class="reason-text">السبب: \${blockInfo.reason || 'تم حظر الوصول من موقعك'}</span>
     </div>
     
     <div class="info-grid">
       <div class="info-item">
-        <strong>نوع الحظر</strong><br>
-        <span style="color: #ff4757; font-weight: bold;">\${blockInfo.block_type === 'country' ? 'حظر جغرافي' : 'حظر عنوان IP'}</span>
+        <div class="info-label">نوع الحظر</div>
+        <div class="info-value blocked-type">\${blockInfo.block_type === 'country' ? 'حظر جغرافي' : 'حظر عنوان IP'}</div>
       </div>
       <div class="info-item">
-        <strong>الوقت</strong><br>
-        <span>\${new Date().toLocaleString('ar-SA')}</span>
+        <div class="info-label">الوقت</div>
+        <div class="info-value">\${new Date().toLocaleString('ar-SA')}</div>
       </div>
     </div>
     
     \${blockInfo.visitor_country ? \`
-    <div class="info-item" style="margin: 20px 0;">
-      <strong>موقعك الجغرافي:</strong> \${blockInfo.visitor_country}
+    <div class="location-info">
+      <div class="location-text">موقعك الجغرافي: \${blockInfo.visitor_country}</div>
     </div>
     \` : ''}
     
     <div class="warning-box">
-      <h3 class="warning-title">هل تعتقد أن هذا خطأ؟</h3>
-      <p class="warning-text">
+      <div class="warning-title">هل تعتقد أن هذا خطأ؟</div>
+      <div class="warning-text">
         إذا كنت تعتقد أنك تم حظرك بالخطأ، يمكنك التواصل مع إدارة المتجر.
         تأكد من عدم استخدام VPN أو بروكسي.
-      </p>
+      </div>
     </div>
     
     <div>
@@ -328,7 +379,7 @@ function generateShopifyProtectionScript(shopDomain: string): string {
         🔄 إعادة المحاولة
       </button>
       \${blockInfo.redirect_url && blockInfo.redirect_url !== '/blocked' ? \`
-      <button class="btn" onclick="window.location.href='\${blockInfo.redirect_url}'">
+      <button class="btn btn-secondary" onclick="window.location.href='\${blockInfo.redirect_url}'">
         🔗 انتقال إلى صفحة أخرى
       </button>
       \` : ''}
