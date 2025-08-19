@@ -309,12 +309,15 @@ export function CountrySelector({
             {language === 'ar' ? 'لم يتم العثور على دولة.' : 'No country found.'}
           </CommandEmpty>
           <CommandGroup className="max-h-64 overflow-auto">
-            {countries.map((country) => (
+            {countries?.map((country) => (
               <CommandItem
                 key={country.code}
-                value={country.code}
+                value={country.name} // Use name instead of code for better filtering
                 onSelect={(currentValue) => {
-                  onValueChange?.(currentValue === value ? '' : currentValue);
+                  // Find the country by name and return its code
+                  const selectedCountry = countries.find(c => c.name === currentValue);
+                  const countryCode = selectedCountry?.code || '';
+                  onValueChange?.(countryCode === value ? '' : countryCode);
                   setOpen(false);
                 }}
                 className="flex items-center gap-2"
