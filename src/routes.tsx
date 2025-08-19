@@ -4,7 +4,6 @@ import Settings from '@/pages/Settings';
 import OrderSettings from '@/pages/OrderSettings';
 import GeneralSettings from '@/pages/GeneralSettings';
 import SecuritySettings from '@/pages/SecuritySettings';
-
 import PlansSettings from '@/pages/PlansSettings';
 import CurrencySettings from '@/pages/CurrencySettings';
 import CurrencyManagement from '@/pages/CurrencyManagement';
@@ -26,7 +25,6 @@ import EnhancedMyStores from '@/pages/EnhancedMyStores';
 import Privacy from '@/pages/Privacy';
 import Terms from '@/pages/Terms';
 import Support from '@/pages/Support';
-import SecuritySettings from '@/pages/SecuritySettings';
 import BlockedPage from '@/pages/BlockedPage';
 
 export const routes: RouteObject[] = [
@@ -134,6 +132,14 @@ export const routes: RouteObject[] = [
   {
     path: '/support',
     Component: Support,
+  },
+  {
+    path: '/security',
+    Component: SecuritySettings,
+  },
+  {
+    path: '/blocked',
+    Component: BlockedPage,
   },
   {
     path: '*',

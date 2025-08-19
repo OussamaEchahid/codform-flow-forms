@@ -87,6 +87,10 @@ const AppSidebar = () => {
     path: '/settings/general',
     icon: Settings
   }, {
+    title: language === 'ar' ? 'الأمان والحماية' : 'Security & Protection',
+    path: '/settings/security',
+    icon: Shield
+  }, {
     title: t('plansSettings'),
     path: '/settings/plans',
     icon: Crown
