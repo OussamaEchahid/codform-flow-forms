@@ -17,7 +17,7 @@ import {
   TableRow 
 } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Plus, Trash2, Edit, FileCheck, Eye, ShoppingCart, Package, RefreshCw, CloudOff, ShoppingBag } from 'lucide-react';
+import { Plus, Trash2, Edit, FileCheck, ShoppingCart, Package, RefreshCw, CloudOff, ShoppingBag } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
@@ -28,6 +28,7 @@ import ProductManagementModal from '../ProductManagementModal';
 import DefaultFormMessage from '@/components/dashboard/DefaultFormMessage';
 import { CountrySelector } from '@/components/ui/country-selector';
 import { formManagementService } from '@/services/FormManagementService';
+import { ProductViewDropdown } from '@/components/ui/product-view-dropdown';
 
 interface FormBuilderDashboardProps {
   initialForms?: any[];
@@ -51,6 +52,7 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [productCounts, setProductCounts] = useState<Record<string, number>>({});
+  const [associatedProducts, setAssociatedProducts] = useState<Record<string, Array<{id: string; title: string; image: string}>>>({});
   const [formList, setFormList] = useState(initialForms.length > 0 ? initialForms : forms);
   const [isInitialized, setIsInitialized] = useState(false);
   const [isNewFormDialogOpen, setIsNewFormDialogOpen] = useState(false);
@@ -148,20 +150,36 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
         return;
       }
       
-      // Count products per form
+      // Count products per form and group product IDs
       const counts: Record<string, number> = {};
-      
+      const productsByForm: Record<string, string[]> = {};
+
       if (data) {
         data.forEach(item => {
           if (!counts[item.form_id]) {
             counts[item.form_id] = 0;
+            productsByForm[item.form_id] = [];
           }
           counts[item.form_id]++;
+          productsByForm[item.form_id].push(item.product_id);
         });
       }
-      
+
       console.log('✅ Product counts for shop', activeShop, ':', counts);
       setProductCounts(counts);
+
+      // Convert product IDs to product details for dropdown
+      const productsDetails: Record<string, Array<{id: string; title: string; image: string}>> = {};
+
+      Object.entries(productsByForm).forEach(([formId, productIds]) => {
+        productsDetails[formId] = productIds.map(id => ({
+          id: id.replace('gid://shopify/Product/', ''),
+          title: `منتج ${id.replace('gid://shopify/Product/', '')}`,
+          image: '/placeholder.svg'
+        }));
+      });
+
+      setAssociatedProducts(productsDetails);
     } catch (error) {
       console.error('❌ Error fetching product counts:', error);
     }
@@ -475,15 +493,10 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
                        />
                      </TableCell>
                      <TableCell className="flex justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        asChild
-                      >
-                        <Link to={`/form/${form.id}/preview`}>
-                          <Eye size={16} />
-                        </Link>
-                      </Button>
+                      <ProductViewDropdown
+                        products={associatedProducts[form.id] || []}
+                        language={language}
+                      />
                       
                       
                       <Button
