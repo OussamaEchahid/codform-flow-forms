@@ -40,7 +40,9 @@
     'MYR': 4.15,
     'IDR': 14250.0,
     'PHP': 50.5,
-    'VND': 22800.0
+    'VND': 22800.0,
+    'XOF': 655.96,
+    'XAF': 655.96
   };
 
   const CURRENCY_SYMBOLS = {

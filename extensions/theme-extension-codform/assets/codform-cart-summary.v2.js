@@ -39,6 +39,25 @@
     'GBP': 0.79,
     'CAD': 1.43,
     'AUD': 1.57,
+    // Asia
+    'INR': 83.0,
+    'IDR': 15850,
+    'PKR': 280,
+    'BDT': 110,
+    'LKR': 300,
+    'NPR': 133,
+    'BTN': 83,
+    'MMK': 2100,
+    'KHR': 4100,
+    'LAK': 20000,
+    'VND': 24000,
+    'THB': 36,
+    'MYR': 4.7,
+    'SGD': 1.35,
+    'HKD': 7.8,
+    'KRW': 1345,
+    'CNY': 7.24,
+    'JPY': 149,
     
     // عملات أمريكا اللاتينية
     'MXN': 20.15,
@@ -66,7 +85,9 @@
     'UGX': 3785,
     'ZWL': 322,
     'ZMW': 27.85,
-    'RWF': 1385
+    'RWF': 1385,
+    'XOF': 655.96,
+    'XAF': 655.96
   };
 
   let cartSummaryData = {
@@ -82,6 +103,16 @@
    * Convert currency amount using Currency Manager with custom rates
    */
   function convertCurrency(amount, fromCurrency, toCurrency) {
+    // Normalize aliases like CFA/FCFA to ISO codes
+    const normalize = (c) => {
+      if (!c) return '';
+      const u = String(c).trim().toUpperCase();
+      if (u === 'CFA') return 'XOF';
+      if (u === 'FCFA') return 'XAF';
+      return u;
+    };
+    fromCurrency = normalize(fromCurrency);
+    toCurrency = normalize(toCurrency);
     console.log(`🛒 Cart Summary: Converting ${amount} from ${fromCurrency} to ${toCurrency}`);
     
     // ✅ CRITICAL FIX: Force use Currency Manager for custom rates
@@ -152,7 +183,7 @@
     // Enhanced currency symbols
     const symbols = {
       'SAR': 'ر.س',
-      'MAD': 'د.م', 
+      'MAD': 'د.م',
       'AED': 'د.إ',
       'USD': '$',
       'EUR': '€',
@@ -161,7 +192,10 @@
       'KWD': 'د.ك',
       'QAR': 'ر.ق',
       'BHD': 'د.ب',
-      'OMR': 'ر.ع'
+      'OMR': 'ر.ع',
+      'INR': '₹', 'IDR': 'Rp', 'PKR': '₨', 'BDT': '৳', 'LKR': 'Rs', 'NPR': '₨', 'BTN': 'Nu.', 'MMK': 'K', 'KHR': '៛', 'LAK': '₭', 'VND': '₫', 'THB': '฿', 'MYR': 'RM', 'SGD': 'S$', 'HKD': 'HK$', 'KRW': '₩', 'CNY': '¥', 'JPY': '¥',
+      'XOF': 'CFA',
+      'XAF': 'FCFA'
     };
     
     const symbol = symbols[currency] || currency;
@@ -820,18 +854,39 @@
    */
   function updateCartSummaryQuantity(quantity) {
     const state = window.CodformStateManager ? window.CodformStateManager.getState() : null;
-    
-    if (state && state.unitPrice !== null && state.targetCurrency) {
-      // ✅ استخدام البيانات من State Manager مع التحقق الصحيح
-      cartSummaryData.productPrice = state.unitPrice * quantity;
-      cartSummaryData.currency = state.targetCurrency;
-      cartSummaryData.productCurrency = state.productCurrency || cartSummaryData.productCurrency; // keep source currency
-      console.log(`💰✅ Cart Summary using State Manager data:`, {
-        unitPrice: state.unitPrice,
-        quantity: quantity,
-        totalPrice: cartSummaryData.productPrice,
-        currency: cartSummaryData.currency
-      });
+
+    if (state && state.targetCurrency) {
+      // استخرج سعر الوحدة بشكل آمن من الحالة أو احسبه من final/base
+      const unitPrice = Number.isFinite(state?.unitPrice)
+        ? state.unitPrice
+        : (Number.isFinite(state?.basePrice)
+            ? state.basePrice
+            : (Number.isFinite(state?.finalPrice) && Number.isFinite(state?.currentQuantity) && state.currentQuantity > 0
+                ? state.finalPrice / state.currentQuantity
+                : null));
+
+      if (Number.isFinite(unitPrice)) {
+        // ✅ استخدام البيانات من State Manager مع التحقق الصحيح
+        cartSummaryData.productPrice = unitPrice * quantity;
+        cartSummaryData.currency = state.targetCurrency;
+        // الأسعار القادمة من الـ State تكون دائماً بعملة النموذج (target)
+        cartSummaryData.productCurrency = state.targetCurrency || cartSummaryData.targetCurrency;
+        console.log(`💰✅ Cart Summary using State Manager data:`, {
+          unitPrice: unitPrice,
+          quantity: quantity,
+          totalPrice: cartSummaryData.productPrice,
+          currency: cartSummaryData.currency
+        });
+      } else {
+        // احتياطي: حساب السعر من القيم الحالية
+        const originalPrice = cartSummaryData.productPrice / (cartSummaryData.currentQuantity || 1);
+        cartSummaryData.productPrice = originalPrice * quantity;
+        console.log(`💰⚠️ Cart Summary using fallback calculation (no unit price in state):`, {
+          originalPrice: originalPrice,
+          quantity: quantity,
+          totalPrice: cartSummaryData.productPrice
+        });
+      }
     } else {
       // الطريقة القديمة كاحتياطي
       const originalPrice = cartSummaryData.productPrice / (cartSummaryData.currentQuantity || 1);
@@ -842,7 +897,7 @@
         totalPrice: cartSummaryData.productPrice
       });
     }
-    
+
     cartSummaryData.currentQuantity = quantity;
     updateCartSummary();
   }
@@ -858,8 +913,18 @@
     // الاستماع لأحداث اختيار العروض
     window.addEventListener('codform:offer-selected', function(event) {
       console.log('🎯 Cart Summary received offer selection event:', event.detail);
-      const offer = event.detail.offer;
-      updateCartSummaryQuantity(offer.quantity || 1);
+      const offer = (event && event.detail && event.detail.offer) ? event.detail.offer : {};
+      if (offer.quantity) {
+        updateCartSummaryQuantity(offer.quantity);
+      }
+      // أمان إضافي: إذا كان السعر النهائي متوفراً، حدّث مباشرةً
+      if (Number.isFinite(offer.finalPrice)) {
+        // السعر النهائي القادم من عروض الكمية محسوب بعملة النموذج دائماً
+        cartSummaryData.productPrice = offer.finalPrice;
+        cartSummaryData.currency = cartSummaryData.targetCurrency;
+        cartSummaryData.productCurrency = cartSummaryData.targetCurrency;
+        updateCartSummary();
+      }
     });
 
     // الاستماع لتحديثات State Manager

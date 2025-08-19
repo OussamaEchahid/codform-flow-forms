@@ -17,7 +17,9 @@
       'SAR': 'ر.س',
       'AED': 'د.إ',
       'USD': '$',
-      'EUR': '€'
+      'EUR': '€',
+      'XOF': 'CFA',
+      'XAF': 'FCFA'
     }
   };
   
@@ -30,7 +32,29 @@
     'MAD': 10.0,
     'EUR': 0.85,
     'GBP': 0.75,
-    'CAD': 1.35
+    'CAD': 1.35,
+    // Asia
+    'INR': 83.0,
+    'IDR': 15850,
+    'PKR': 280,
+    'BDT': 110,
+    'LKR': 300,
+    'NPR': 133,
+    'BTN': 83,
+    'MMK': 2100,
+    'KHR': 4100,
+    'LAK': 20000,
+    'VND': 24000,
+    'THB': 36,
+    'MYR': 4.7,
+    'SGD': 1.35,
+    'HKD': 7.8,
+    'KRW': 1345,
+    'CNY': 7.24,
+    'JPY': 149,
+    // West/Central African CFA Francs
+    'XOF': 655.96,
+    'XAF': 655.96
   };
   
   let currencySettings = { ...DEFAULT_SETTINGS };
@@ -672,7 +696,18 @@
   /**
    * تحويل العملة
    */
+  // Normalize common aliases
+  function normalizeCurrencyCode(code) {
+    if (!code) return '';
+    const c = String(code).trim().toUpperCase();
+    if (c === 'CFA') return 'XOF';
+    if (c === 'FCFA') return 'XAF';
+    return c;
+  }
+
   function convertCurrency(amount, fromCurrency, toCurrency) {
+    fromCurrency = normalizeCurrencyCode(fromCurrency);
+    toCurrency = normalizeCurrencyCode(toCurrency);
     console.log(`🔄 CurrencyManager converting: ${amount} from ${fromCurrency} to ${toCurrency}`);
     console.log(`💱 Custom rates:`, customRates);
     
@@ -704,6 +739,7 @@
    * تنسيق العملة - محسن مع debugging مفصل
    */
   function formatCurrency(amount, currencyCode, language = 'ar') {
+    currencyCode = normalizeCurrencyCode(currencyCode);
     console.log('🔧 formatCurrency called:', { amount, currencyCode, language, currentSettings: currencySettings });
     
     // تحديث الإعدادات أولاً
@@ -785,6 +821,7 @@
    * الحصول على معدل التحويل
    */
   function getExchangeRate(currencyCode) {
+    currencyCode = normalizeCurrencyCode(currencyCode);
     if (window.CurrencyService && typeof window.CurrencyService.getExchangeRate === 'function') {
       return window.CurrencyService.getExchangeRate(currencyCode);
     }

@@ -14,12 +14,20 @@
   
   const EXCHANGE_RATES = {
     'USD': 1.0, 'EUR': 0.85, 'GBP': 0.79, 'SAR': 3.75, 'MAD': 10.0,
-    'AED': 3.67, 'EGP': 30.85, 'CAD': 1.35, 'AUD': 1.52, 'JPY': 110.0
+    'AED': 3.67, 'EGP': 30.85, 'CAD': 1.35, 'AUD': 1.52, 'JPY': 110.0,
+    'INR': 83.0, 'IDR': 15850, 'PKR': 280, 'BDT': 110, 'LKR': 300, 'NPR': 133,
+    'BTN': 83, 'MMK': 2100, 'KHR': 4100, 'LAK': 20000, 'VND': 24000, 'THB': 36,
+    'MYR': 4.7, 'SGD': 1.35, 'HKD': 7.8, 'KRW': 1345, 'CNY': 7.24,
+    'XOF': 655.96, 'XAF': 655.96
   };
 
   const CURRENCY_SYMBOLS = {
     'USD': '$', 'EUR': '€', 'GBP': '£', 'SAR': 'ر.س', 'MAD': 'د.م',
-    'AED': 'د.إ', 'EGP': 'ج.م', 'CAD': 'C$', 'AUD': 'A$', 'JPY': '¥'
+    'AED': 'د.إ', 'EGP': 'ج.م', 'CAD': 'C$', 'AUD': 'A$', 'JPY': '¥',
+    'INR': '₹', 'IDR': 'Rp', 'PKR': '₨', 'BDT': '৳', 'LKR': 'Rs', 'NPR': '₨',
+    'BTN': 'Nu.', 'MMK': 'K', 'KHR': '៛', 'LAK': '₭', 'VND': '₫', 'THB': '฿',
+    'MYR': 'RM', 'SGD': 'S$', 'HKD': 'HK$', 'KRW': '₩', 'CNY': '¥',
+    'XOF': 'CFA', 'XAF': 'FCFA'
   };
 
   const DEFAULT_SETTINGS = {

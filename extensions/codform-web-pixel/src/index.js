@@ -7,13 +7,23 @@ register(({ analytics, init, settings }) => {
 
   const publish = (name, payload = {}) => safe(() => analytics?.publish?.(name, payload));
   const debug = (name, payload = {}) => {
-    try { console.log(`[CODFORM Pixel] ${name}`, payload); } catch (_) { /* no-op */ }
+    try {
+      console.log('[CODFORM Pixel] ' + name, payload);
+      // إضافة تسجيل إضافي للحماية من البريد العشوائي
+      if (name.includes('Spam Protection')) {
+        console.warn('🛡️ ' + name, payload);
+      }
+    } catch (_) { /* no-op */ }
   };
 
+
+
   const subscribe = (event) => safe(() =>
-    analytics?.subscribe?.(event, (e) => {
+    analytics?.subscribe?.(event, async (e) => {
       debug(event, e);
-      publish(`codform:${event}`, { ...e, accountID: settings?.accountID || null });
+
+      // متابعة الوظائف الأصلية لـ CODFORM
+      publish('codform:' + event, { ...e, accountID: settings?.accountID || null });
     })
   );
 

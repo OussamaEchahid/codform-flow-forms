@@ -74,11 +74,17 @@
     }
   };
 
-  // تحميل النموذج
+  // تحميل النموذج مع Boot موحّد وكاش
   function loadForm(productId, shopDomain) {
-    if (window.loadFormFromAPI) {
-      window.loadFormFromAPI(productId, shopDomain);
-    } else {
+    try {
+      // أطلق boot إن لم يكن قد أُطلق
+      (function CodformBoot(){try{const key=`codform_boot_${shopDomain}_${productId}`;if(!window.CodformBootPromise){const url=`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/forms-product?shop=${encodeURIComponent(shopDomain)}&product=${encodeURIComponent(productId)}`;window.CodformBootPromise=fetch(url).then(r=>r.json()).then(data=>{if(data&&data.success){window.CodformBootData=data;try{localStorage.setItem(key,JSON.stringify(data));}catch(_){}window.dispatchEvent(new CustomEvent('codform:boot',{detail:{fromCache:false,data}}));}return data;}).catch(()=>null);}try{const cached=JSON.parse(localStorage.getItem(key)||'null');if(cached&&cached.form&&cached.data){window.CodformBootData=cached;window.dispatchEvent(new CustomEvent('codform:boot',{detail:{fromCache:true,data:cached}}));}}catch(_){}}catch(_){}})();
+
+      // إن وُجدت دالة التحميل القديمة استخدمها كخطة احتياط
+      if (window.loadFormFromAPI) {
+        window.loadFormFromAPI(productId, shopDomain);
+      }
+    } catch (e) {
       console.warn('⚠️ Form loading function not available');
     }
   }
