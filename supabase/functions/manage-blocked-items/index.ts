@@ -41,12 +41,17 @@ serve(async (req) => {
           throw new Error('shop_id and ip_address are required')
         }
 
-        result = await supabaseClient.rpc('add_blocked_ip', {
-          p_ip_address: ip_address,
-          p_shop_id: shop_id,
-          p_reason: reason || 'غير محدد',
-          p_redirect_url: redirect_url
-        })
+        // إدراج عنوان IP مباشرة في الجدول
+        result = await supabaseClient
+          .from('blocked_ips')
+          .insert({
+            shop_id: shop_id,
+            ip_address: ip_address,
+            reason: reason || 'غير محدد',
+            redirect_url: redirect_url,
+            is_active: true,
+            user_id: null
+          })
         
         break
 
@@ -57,9 +62,10 @@ serve(async (req) => {
           throw new Error('blocked_id is required')
         }
 
-        result = await supabaseClient.rpc('remove_blocked_ip', {
-          p_blocked_id: ip_blocked_id
-        })
+        result = await supabaseClient
+          .from('blocked_ips')
+          .delete()
+          .eq('id', ip_blocked_id)
         
         break
 
@@ -70,13 +76,17 @@ serve(async (req) => {
           throw new Error('shop_id, country_code, and country_name are required')
         }
 
-        result = await supabaseClient.rpc('add_blocked_country', {
-          p_shop_id: country_shop_id,
-          p_country_code: country_code,
-          p_country_name: country_name,
-          p_reason: country_reason || 'غير محدد',
-          p_redirect_url: country_redirect
-        })
+        result = await supabaseClient
+          .from('blocked_countries')
+          .insert({
+            shop_id: country_shop_id,
+            country_code: country_code,
+            country_name: country_name,
+            reason: country_reason || 'غير محدد',
+            redirect_url: country_redirect,
+            is_active: true,
+            user_id: null
+          })
         
         break
 
@@ -87,9 +97,10 @@ serve(async (req) => {
           throw new Error('blocked_id is required')
         }
 
-        result = await supabaseClient.rpc('remove_blocked_country', {
-          p_blocked_id: country_blocked_id
-        })
+        result = await supabaseClient
+          .from('blocked_countries')
+          .delete()
+          .eq('id', country_blocked_id)
         
         break
 

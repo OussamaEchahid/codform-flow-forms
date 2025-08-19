@@ -136,3 +136,18 @@ verify_jwt = false
 
 [functions.fix-orders-prices]
 verify_jwt = false
+
+[functions.manage-blocked-items]
+verify_jwt = false
+
+[functions.get-blocked-data]
+verify_jwt = false
+
+[functions.store-security-check]
+verify_jwt = false
+
+[functions.ip-geolocation]
+verify_jwt = false
+
+[functions.theme-security-integration]
+verify_jwt = false
