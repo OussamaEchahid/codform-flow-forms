@@ -4,7 +4,6 @@ import { useParams, useLocation } from 'react-router-dom';
 import { shopifySupabase } from '@/lib/shopify/supabase-client';
 import { FormStep } from '@/lib/form-utils';
 import { Json } from '@/integrations/supabase/types';
-import { useSpamCheck } from '@/hooks/useSpamProtection';
 
 interface FormData {
   id: string;
@@ -23,9 +22,6 @@ export default function FormAPI() {
   const [form, setForm] = useState<FormData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // التحقق من حماية البريد العشوائي
-  const { isBlocked, isChecking } = useSpamCheck();
 
   useEffect(() => {
     async function fetchForm() {
@@ -101,24 +97,14 @@ export default function FormAPI() {
 
   // This component acts as an API endpoint, so it returns JSON
   useEffect(() => {
-    if (!isLoading && !isChecking) {
-      // إذا كان المستخدم محظوراً، إرجاع رسالة خطأ
-      if (isBlocked) {
-        document.body.innerHTML = JSON.stringify({
-          error: 'Access blocked due to spam protection',
-          blocked: true,
-          message: 'Your access has been restricted. Please contact support if you believe this is an error.'
-        }, null, 2);
-        return;
-      }
-
+    if (!isLoading) {
       if (error) {
         document.body.innerHTML = JSON.stringify({ error }, null, 2);
       } else if (form) {
         document.body.innerHTML = JSON.stringify(form, null, 2);
       }
     }
-  }, [isLoading, error, form, isBlocked, isChecking]);
+  }, [isLoading, error, form]);
 
   return null;
 }
