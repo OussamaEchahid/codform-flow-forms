@@ -301,7 +301,7 @@ export function CountrySelector({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-full p-0" align="start">
-        <Command>
+        <Command shouldFilter={false}>
           <CommandInput
             placeholder={language === 'ar' ? 'البحث عن دولة...' : 'Search country...'}
           />
@@ -309,14 +309,16 @@ export function CountrySelector({
             {language === 'ar' ? 'لم يتم العثور على دولة.' : 'No country found.'}
           </CommandEmpty>
           <CommandGroup className="max-h-64 overflow-auto">
-            {countries?.map((country) => (
+            {countries?.filter((country) => 
+              country && country.code && country.name
+            ).map((country) => (
               <CommandItem
-                key={country.code}
-                value={country.name} // Use name instead of code for better filtering
+                key={`country-${country.code}`}
+                value={`${country.name} ${country.code}`}
                 onSelect={(currentValue) => {
-                  // Find the country by name and return its code
-                  const selectedCountry = countries.find(c => c.name === currentValue);
-                  const countryCode = selectedCountry?.code || '';
+                  // Extract country code from the value
+                  const parts = currentValue.split(' ');
+                  const countryCode = parts[parts.length - 1];
                   onValueChange?.(countryCode === value ? '' : countryCode);
                   setOpen(false);
                 }}
@@ -324,8 +326,9 @@ export function CountrySelector({
               >
                 <span className="text-lg">{country.flag}</span>
                 <span className="flex-1">
-                  {language === 'ar' ? country.nameAr : country.name}
+                  {language === 'ar' ? (country.nameAr || country.name) : country.name}
                 </span>
+                <span className="text-sm text-muted-foreground">{country.code}</span>
                 <Check
                   className={cn(
                     "ml-auto h-4 w-4",
