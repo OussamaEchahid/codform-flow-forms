@@ -150,27 +150,38 @@ function generateShopifyProtectionScript(shopDomain: string): string {
   }
   
   function blockAccess(blockInfo) {
-    // إخفاء كامل محتوى الصفحة
-    document.body.style.display = 'none';
+    // إيقاف كل شيء فوراً
+    document.documentElement.style.cssText = 'margin:0!important;padding:0!important;overflow:hidden!important;';
+    document.body.style.cssText = 'margin:0!important;padding:0!important;overflow:hidden!important;';
     
-    // إنشاء صفحة الحظر
-    const blockedPage = document.createElement('div');
-    blockedPage.innerHTML = createBlockedPageHTML(blockInfo);
+    // إخفاء كل المحتوى الموجود
+    const hideStyle = document.createElement('style');
+    hideStyle.innerHTML = \`
+      * { display: none !important; }
+      html, body { display: block !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important; }
+      .codform-blocked-page { display: flex !important; }
+      .codform-blocked-page * { display: block !important; }
+    \`;
+    document.head.appendChild(hideStyle);
     
-    // إضافة الصفحة الجديدة
-    document.documentElement.innerHTML = blockedPage.innerHTML;
+    // مسح محتوى الـ body بالكامل وإضافة صفحة الحظر
+    document.body.innerHTML = '';
+    document.body.className = '';
+    document.body.insertAdjacentHTML('afterbegin', createBlockedPageHTML(blockInfo));
     
-    // منع التنقل
-    window.history.pushState(null, '', window.location.href);
-    window.addEventListener('popstate', function() {
-      window.history.pushState(null, '', window.location.href);
+    // منع التنقل والتمرير
+    window.history.replaceState(null, '', window.location.href);
+    window.addEventListener('popstate', function(e) {
+      e.preventDefault();
+      window.history.replaceState(null, '', window.location.href);
     });
     
-    // إيقاف كافة السكريپتات
-    const scripts = document.querySelectorAll('script');
-    scripts.forEach(script => {
-      if (script.src && !script.src.includes('codform')) {
-        script.remove();
+    // منع التمرير
+    document.addEventListener('wheel', function(e) { e.preventDefault(); }, { passive: false });
+    document.addEventListener('touchmove', function(e) { e.preventDefault(); }, { passive: false });
+    document.addEventListener('keydown', function(e) {
+      if ([32, 33, 34, 35, 36, 37, 38, 39, 40].includes(e.keyCode)) {
+        e.preventDefault();
       }
     });
   }
@@ -270,8 +281,8 @@ function generateShopifyProtectionScript(shopDomain: string): string {
     }
   </style>
 </head>
-<body>
-  <div class="blocked-container">
+<body class="codform-blocked-page">
+  <div class="blocked-container codform-blocked-page">
     <div class="shield-icon">🛡️</div>
     
     <h1>تم حظر الوصول</h1>
