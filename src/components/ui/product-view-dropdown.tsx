@@ -7,7 +7,7 @@ import {
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import { Eye, ExternalLink } from 'lucide-react';
-import { getActiveShopId } from '@/lib/utils/shopify-utils';
+import { getActiveShopId } from '@/utils/shop-utils';
 
 interface AssociatedProduct {
   id: string;
