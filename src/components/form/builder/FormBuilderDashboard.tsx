@@ -17,7 +17,7 @@ import {
   TableRow 
 } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Plus, Trash2, Edit, FileCheck, Eye, ShoppingCart, Package, RefreshCw, CloudOff, ShoppingBag, Flag } from 'lucide-react';
+import { Plus, Trash2, Edit, Copy, FileCheck, Eye, ShoppingCart, Package, RefreshCw, CloudOff, ShoppingBag } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
@@ -26,7 +26,6 @@ import { supabase } from '@/integrations/supabase/client';
 import NewFormProductDialog from './NewFormProductDialog';
 import ProductManagementModal from '../ProductManagementModal';
 import DefaultFormMessage from '@/components/dashboard/DefaultFormMessage';
-import { CountrySelector } from '@/components/ui/country-selector';
 
 interface FormBuilderDashboardProps {
   initialForms?: any[];
@@ -212,7 +211,29 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
     }
   };
   
-
+  const handleDuplicateForm = async (formId: string) => {
+    try {
+      // Create a new form based on the existing one
+      const formToDuplicate = forms.find(form => form.id === formId);
+      if (!formToDuplicate) return;
+      
+      // We'll use the existing saveForm function to create a duplicate
+      const formData = {
+        ...formToDuplicate,
+        title: `${formToDuplicate.title} (${language === 'ar' ? 'نسخة' : 'Copy'})`,
+      };
+      
+      // Remove the ID so a new one is generated
+      delete formData.id;
+      
+      await fetchForms(); // Refresh the list after duplication
+      // Using toast from sonner correctly
+      toast.success(language === 'ar' ? 'تم نسخ النموذج بنجاح' : 'Form duplicated successfully');
+    } catch (error) {
+      console.error('Error duplicating form:', error);
+      toast.error(language === 'ar' ? 'فشل نسخ النموذج' : 'Failed to duplicate form');
+    }
+  };
   
   const formatDate = (dateString: string) => {
     try {
@@ -328,9 +349,6 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
                   {language === 'ar' ? 'العنوان' : 'Title'}
                 </TableHead>
                 <TableHead className={language === 'ar' ? 'text-right' : ''}>
-                  {language === 'ar' ? 'الدولة' : 'Country'}
-                </TableHead>
-                <TableHead className={language === 'ar' ? 'text-right' : ''}>
                   {language === 'ar' ? 'تاريخ الإنشاء' : 'Created'}
                 </TableHead>
                 <TableHead className={language === 'ar' ? 'text-right' : ''}>
@@ -416,39 +434,6 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
                        </div>
                     </TableCell>
                     <TableCell className={language === 'ar' ? 'text-right' : ''}>
-                      <div className="w-32">
-                        <CountrySelector
-                          value={form.country || ''}
-                          onValueChange={async (newCountry) => {
-                            try {
-                              const { error } = await supabase
-                                .from('forms')
-                                .update({ country: newCountry })
-                                .eq('id', form.id);
-
-                              if (error) {
-                                console.error('خطأ في تحديث الدولة:', error);
-                                toast.error(language === 'ar' ? 'فشل في تحديث الدولة' : 'Failed to update country');
-                              } else {
-                                toast.success(language === 'ar' ? 'تم تحديث الدولة بنجاح' : 'Country updated successfully');
-                                // Update local state
-                                setFormList(prevForms =>
-                                  prevForms.map(f =>
-                                    f.id === form.id ? { ...f, country: newCountry } : f
-                                  )
-                                );
-                              }
-                            } catch (error) {
-                              console.error('خطأ في تحديث الدولة:', error);
-                              toast.error(language === 'ar' ? 'فشل في تحديث الدولة' : 'Failed to update country');
-                            }
-                          }}
-                          placeholder={language === 'ar' ? 'اختر الدولة' : 'Select country'}
-                          language={language}
-                        />
-                      </div>
-                    </TableCell>
-                    <TableCell className={language === 'ar' ? 'text-right' : ''}>
                       {formatDate(form.created_at)}
                     </TableCell>
                     <TableCell className={language === 'ar' ? 'text-right' : ''}>
@@ -482,7 +467,13 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
                         </Link>
                       </Button>
                       
-
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDuplicateForm(form.id)}
+                      >
+                        <Copy size={16} />
+                      </Button>
                       
                       <Button
                         variant="ghost"
@@ -543,7 +534,7 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8">
+                  <TableCell colSpan={5} className="text-center py-8">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <Package size={32} className="text-muted-foreground" />
                       <p className="text-muted-foreground">
