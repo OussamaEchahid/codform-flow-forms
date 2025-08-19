@@ -1,4 +1,3 @@
-import { supabase } from '@/integrations/supabase/client';
 import { getActiveShopId } from '@/utils/shop-utils';
 
 export interface BlockedIP {
@@ -43,31 +42,47 @@ class SpamProtectionService {
   }
 
   /**
+   * الحصول على عنوان IP الحالي للمستخدم
+   */
+  async getCurrentUserIP(): Promise<string | null> {
+    try {
+      const response = await fetch('https://api.ipify.org?format=json');
+      const data = await response.json();
+      return data.ip;
+    } catch (error) {
+      console.error('Error getting current IP:', error);
+      return null;
+    }
+  }
+
+  /**
    * التحقق من حظر عنوان IP
    */
   async checkIPBlocked(ipAddress: string, shopId?: string): Promise<BlockedIPCheck> {
     try {
       const targetShopId = shopId || getActiveShopId();
-      
-      const { data, error } = await supabase.functions.invoke('spam-protection', {
+
+      // استخدام fetch مباشرة مع URL parameters
+      const url = new URL('https://trlklwixfeaexhydzaue.supabase.co/functions/v1/spam-protection');
+      url.searchParams.set('action', 'check');
+      url.searchParams.set('ip', ipAddress);
+      if (targetShopId) {
+        url.searchParams.set('shop_id', targetShopId);
+      }
+
+      const response = await fetch(url.toString(), {
         method: 'GET',
-        body: null,
         headers: {
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
           'Content-Type': 'application/json'
-        }
-      }, {
-        query: {
-          action: 'check',
-          ip: ipAddress,
-          shop_id: targetShopId
         }
       });
 
-      if (error) {
-        console.error('Error checking IP block:', error);
-        throw new Error('فشل في التحقق من حالة حظر عنوان IP');
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
+      const data = await response.json();
       return data as BlockedIPCheck;
     } catch (error) {
       console.error('SpamProtectionService.checkIPBlocked error:', error);
@@ -81,29 +96,28 @@ class SpamProtectionService {
   async getBlockedIPs(shopId?: string): Promise<BlockedIP[]> {
     try {
       const targetShopId = shopId || getActiveShopId();
-      
+
       if (!targetShopId) {
         throw new Error('لم يتم العثور على متجر نشط');
       }
 
-      const { data, error } = await supabase.functions.invoke('spam-protection', {
+      const url = new URL('https://trlklwixfeaexhydzaue.supabase.co/functions/v1/spam-protection');
+      url.searchParams.set('action', 'list');
+      url.searchParams.set('shop_id', targetShopId);
+
+      const response = await fetch(url.toString(), {
         method: 'GET',
-        body: null,
         headers: {
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
           'Content-Type': 'application/json'
-        }
-      }, {
-        query: {
-          action: 'list',
-          shop_id: targetShopId
         }
       });
 
-      if (error) {
-        console.error('Error fetching blocked IPs:', error);
-        throw new Error('فشل في جلب قائمة عناوين IP المحظورة');
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
+      const data = await response.json();
       return data.blocked_ips || [];
     } catch (error) {
       console.error('SpamProtectionService.getBlockedIPs error:', error);
@@ -117,7 +131,7 @@ class SpamProtectionService {
   async addBlockedIP(request: AddBlockedIPRequest, shopId?: string): Promise<string> {
     try {
       const targetShopId = shopId || getActiveShopId();
-      
+
       if (!targetShopId) {
         throw new Error('لم يتم العثور على متجر نشط');
       }
@@ -127,27 +141,28 @@ class SpamProtectionService {
         throw new Error('عنوان IP غير صحيح');
       }
 
-      const { data, error } = await supabase.functions.invoke('spam-protection', {
+      const url = new URL('https://trlklwixfeaexhydzaue.supabase.co/functions/v1/spam-protection');
+      url.searchParams.set('action', 'add');
+
+      const response = await fetch(url.toString(), {
         method: 'POST',
-        body: {
+        headers: {
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
           ip_address: request.ip_address,
           shop_id: targetShopId,
           reason: request.reason,
           redirect_url: request.redirect_url
-        },
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      }, {
-        query: {
-          action: 'add'
-        }
+        })
       });
 
-      if (error) {
-        console.error('Error adding blocked IP:', error);
-        throw new Error('فشل في إضافة عنوان IP إلى قائمة الحظر');
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
+
+      const data = await response.json();
 
       if (!data.success) {
         throw new Error(data.error || 'فشل في إضافة عنوان IP');
@@ -165,24 +180,25 @@ class SpamProtectionService {
    */
   async removeBlockedIP(blockedId: string): Promise<boolean> {
     try {
-      const { data, error } = await supabase.functions.invoke('spam-protection', {
+      const url = new URL('https://trlklwixfeaexhydzaue.supabase.co/functions/v1/spam-protection');
+      url.searchParams.set('action', 'remove');
+
+      const response = await fetch(url.toString(), {
         method: 'DELETE',
-        body: {
-          blocked_id: blockedId
-        },
         headers: {
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
           'Content-Type': 'application/json'
-        }
-      }, {
-        query: {
-          action: 'remove'
-        }
+        },
+        body: JSON.stringify({
+          blocked_id: blockedId
+        })
       });
 
-      if (error) {
-        console.error('Error removing blocked IP:', error);
-        throw new Error('فشل في إزالة عنوان IP من قائمة الحظر');
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
+
+      const data = await response.json();
 
       if (!data.success) {
         throw new Error(data.error || 'فشل في إزالة عنوان IP');
@@ -200,27 +216,28 @@ class SpamProtectionService {
    */
   async updateBlockedIP(request: UpdateBlockedIPRequest): Promise<BlockedIP> {
     try {
-      const { data, error } = await supabase.functions.invoke('spam-protection', {
+      const url = new URL('https://trlklwixfeaexhydzaue.supabase.co/functions/v1/spam-protection');
+      url.searchParams.set('action', 'update');
+
+      const response = await fetch(url.toString(), {
         method: 'PUT',
-        body: {
+        headers: {
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
           blocked_id: request.blocked_id,
           reason: request.reason,
           redirect_url: request.redirect_url,
           is_active: request.is_active
-        },
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      }, {
-        query: {
-          action: 'update'
-        }
+        })
       });
 
-      if (error) {
-        console.error('Error updating blocked IP:', error);
-        throw new Error('فشل في تحديث عنوان IP المحظور');
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
+
+      const data = await response.json();
 
       if (!data.success) {
         throw new Error(data.error || 'فشل في تحديث عنوان IP');
@@ -246,20 +263,7 @@ class SpamProtectionService {
     return ipv4Regex.test(ip) || ipv6Regex.test(ip);
   }
 
-  /**
-   * الحصول على عنوان IP الحالي للمستخدم
-   */
-  async getCurrentUserIP(): Promise<string | null> {
-    try {
-      // محاولة الحصول على IP من خدمة خارجية
-      const response = await fetch('https://api.ipify.org?format=json');
-      const data = await response.json();
-      return data.ip || null;
-    } catch (error) {
-      console.error('Error getting current user IP:', error);
-      return null;
-    }
-  }
+
 
   /**
    * التحقق من حظر المستخدم الحالي
