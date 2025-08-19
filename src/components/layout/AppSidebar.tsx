@@ -87,10 +87,6 @@ const AppSidebar = () => {
     path: '/settings/general',
     icon: Settings
   }, {
-    title: t('spamSettings'),
-    path: '/settings/spam',
-    icon: Shield
-  }, {
     title: t('plansSettings'),
     path: '/settings/plans',
     icon: Crown
