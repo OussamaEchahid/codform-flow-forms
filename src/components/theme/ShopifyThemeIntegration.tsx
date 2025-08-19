@@ -46,13 +46,18 @@ const ShopifyThemeIntegration: React.FC<ShopifyThemeIntegrationProps> = ({
             const result = await response.json();
             
             if (result.blocked) {
-              // إذا تم حظر المستخدم، توجيهه إلى الصفحة المحددة
-              if (result.redirect_url) {
-                window.location.href = result.redirect_url;
-              } else {
-                // إنشاء صفحة حظر مبسطة
-                document.body.innerHTML = createBlockedPageHTML(result);
+              // إخفاء المحتوى الحالي تماماً
+              hideAllContent();
+              
+              // إذا تم حظر المستخدم، إنشاء صفحة الحظر
+              if (result.redirect_url && result.redirect_url !== '/blocked') {
+                setTimeout(() => {
+                  window.location.href = result.redirect_url;
+                }, 2000);
               }
+              
+              // إظهار صفحة الحظر
+              showBlockedPage(result);
             }
             
           } catch (error) {
@@ -73,68 +78,115 @@ const ShopifyThemeIntegration: React.FC<ShopifyThemeIntegrationProps> = ({
           }
         }
         
-        // إنشاء صفحة الحظر
-        function createBlockedPageHTML(blockInfo) {
-          return \`
-            <!DOCTYPE html>
-            <html lang="ar" dir="rtl">
-            <head>
-              <meta charset="UTF-8">
-              <meta name="viewport" content="width=device-width, initial-scale=1.0">
-              <title>تم حظر الوصول</title>
-              <style>
-                * { margin: 0; padding: 0; box-sizing: border-box; }
-                body {
-                  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                  min-height: 100vh;
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  padding: 20px;
-                  color: #333;
-                }
-                .container {
-                  background: white;
-                  border-radius: 20px;
-                  padding: 40px;
-                  max-width: 600px;
-                  text-align: center;
-                  box-shadow: 0 20px 50px rgba(0,0,0,0.3);
-                }
-                .icon {
-                  width: 80px;
-                  height: 80px;
-                  background: #ff4757;
-                  border-radius: 50%;
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  margin: 0 auto 30px;
-                  font-size: 40px;
-                  color: white;
-                }
-                h1 { color: #ff4757; margin-bottom: 20px; }
-                .reason { 
-                  background: #f1f2f6; 
-                  padding: 20px; 
-                  border-radius: 10px; 
-                  margin: 20px 0;
-                  border-left: 4px solid #ff4757;
-                }
-                .info {
-                  display: grid;
-                  grid-template-columns: 1fr 1fr;
-                  gap: 20px;
-                  margin: 20px 0;
-                }
-                .info-item {
-                  background: #f8f9fa;
-                  padding: 15px;
-                  border-radius: 8px;
-                }
-                .btn {
-                  background: #5352ed;
+        // إخفاء جميع المحتويات الموجودة
+        function hideAllContent() {
+          // إنشاء ستايل لإخفاء كل شيء
+          const hideStyle = document.createElement('style');
+          hideStyle.id = 'codform-hide-content';
+          hideStyle.innerHTML = \`
+            body > *:not(#codform-blocked-overlay) {
+              display: none !important;
+            }
+            body {
+              margin: 0 !important;
+              padding: 0 !important;
+              overflow: hidden !important;
+            }
+          \`;
+          document.head.appendChild(hideStyle);
+        }
+        
+        // إظهار صفحة الحظر
+        function showBlockedPage(blockInfo) {
+          const overlay = document.createElement('div');
+          overlay.id = 'codform-blocked-overlay';
+          overlay.style.cssText = \`
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            z-index: 999999 !important;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+          \`;
+          
+          overlay.innerHTML = \`
+            <div style="
+              background: white;
+              border-radius: 20px;
+              padding: 40px;
+              max-width: 600px;
+              text-align: center;
+              box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+              margin: 20px;
+            ">
+              <div style="
+                width: 80px;
+                height: 80px;
+                background: #ff4757;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 auto 30px;
+                font-size: 40px;
+                color: white;
+              ">🛡️</div>
+              
+              <h1 style="color: #ff4757; margin-bottom: 20px; font-size: 28px;">تم حظر الوصول</h1>
+              <p style="margin-bottom: 20px; font-size: 16px; color: #666;">
+                عذراً، لا يمكنك الوصول إلى هذا المتجر في الوقت الحالي
+              </p>
+              
+              <div style="
+                background: #f1f2f6; 
+                padding: 20px; 
+                border-radius: 10px; 
+                margin: 20px 0;
+                border-left: 4px solid #ff4757;
+                text-align: right;
+              ">
+                <strong>السبب:</strong> \${blockInfo.reason || 'تم حظر الوصول من موقعك'}
+              </div>
+              
+              <div style="
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 20px;
+                margin: 20px 0;
+              ">
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                  <strong>نوع الحظر:</strong><br>
+                  \${blockInfo.block_type === 'country' ? 'حظر جغرافي' : 'حظر عنوان IP'}
+                </div>
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                  <strong>الوقت:</strong><br>
+                  \${new Date().toLocaleString('ar-SA')}
+                </div>
+              </div>
+              
+              <p style="margin: 20px 0; color: #666; font-size: 14px;">
+                إذا كنت تعتقد أن هذا خطأ، يرجى التواصل مع إدارة المتجر
+              </p>
+              
+              <button onclick="window.location.reload()" style="
+                background: #5352ed;
+                color: white;
+                padding: 15px 30px;
+                border: none;
+                border-radius: 10px;
+                font-size: 16px;
+                cursor: pointer;
+                margin: 10px;
+              ">إعادة المحاولة</button>
+              
+              \${blockInfo.redirect_url && blockInfo.redirect_url !== '/blocked' ? \`
+                <button onclick="window.location.href='\${blockInfo.redirect_url}'" style="
+                  background: #ff6b6b;
                   color: white;
                   padding: 15px 30px;
                   border: none;
@@ -142,41 +194,12 @@ const ShopifyThemeIntegration: React.FC<ShopifyThemeIntegrationProps> = ({
                   font-size: 16px;
                   cursor: pointer;
                   margin: 10px;
-                }
-                .btn:hover { background: #3742fa; }
-              </style>
-            </head>
-            <body>
-              <div class="container">
-                <div class="icon">🛡️</div>
-                <h1>تم حظر الوصول</h1>
-                <p>عذراً، لا يمكنك الوصول إلى هذا المتجر في الوقت الحالي</p>
-                
-                <div class="reason">
-                  <strong>السبب:</strong> \${blockInfo.reason || 'تم حظر الوصول من موقعك'}
-                </div>
-                
-                <div class="info">
-                  <div class="info-item">
-                    <strong>نوع الحظر:</strong><br>
-                    \${blockInfo.block_type === 'country' ? 'حظر جغرافي' : 'حظر عنوان IP'}
-                  </div>
-                  <div class="info-item">
-                    <strong>الوقت:</strong><br>
-                    \${new Date().toLocaleString('ar-SA')}
-                  </div>
-                </div>
-                
-                <p style="margin: 20px 0; color: #666;">
-                  إذا كنت تعتقد أن هذا خطأ، يرجى التواصل مع إدارة المتجر
-                </p>
-                
-                <button class="btn" onclick="window.location.reload()">إعادة المحاولة</button>
-                \${blockInfo.redirect_url ? \`<button class="btn" onclick="window.location.href='\${blockInfo.redirect_url}'">الانتقال إلى صفحة أخرى</button>\` : ''}
-              </div>
-            </body>
-            </html>
+                ">الانتقال إلى صفحة أخرى</button>
+              \` : ''}
+            </div>
           \`;
+          
+          document.body.appendChild(overlay);
         }
         
         // تشغيل فحص الأمان

@@ -28,19 +28,22 @@ const SecurityChecker: React.FC<SecurityCheckerProps> = ({ shopId, children }) =
   // إخفاء المحتوى عند الحظر
   useEffect(() => {
     if (securityCheck?.blocked) {
-      document.body.style.overflow = 'hidden';
       // إخفاء جميع عناصر الصفحة
       const style = document.createElement('style');
       style.textContent = `
         body > *:not([data-security-overlay]) {
           display: none !important;
         }
+        body {
+          margin: 0 !important;
+          padding: 0 !important;
+          overflow: hidden !important;
+        }
       `;
       style.setAttribute('data-security-style', 'true');
       document.head.appendChild(style);
       
       return () => {
-        document.body.style.overflow = '';
         const securityStyle = document.querySelector('[data-security-style]');
         if (securityStyle) {
           securityStyle.remove();
@@ -113,14 +116,18 @@ const SecurityChecker: React.FC<SecurityCheckerProps> = ({ shopId, children }) =
     return (
       <div 
         data-security-overlay="true"
-        className="fixed inset-0 z-[9999] bg-white dark:bg-gray-900"
+        className="fixed inset-0 z-[9999]"
         style={{ 
           position: 'fixed',
           top: 0,
           left: 0,
           width: '100vw',
           height: '100vh',
-          zIndex: 999999
+          zIndex: 999999,
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
         }}
       >
         <BlockedPage
