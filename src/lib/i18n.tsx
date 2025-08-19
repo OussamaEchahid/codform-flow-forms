@@ -151,6 +151,16 @@ const translations = {
     actions: 'Actions',
     removeBlock: 'Remove Block',
     noBlockedIPs: 'No blocked IP addresses',
+    reason: 'Reason',
+    redirectUrl: 'Redirect URL',
+    spamProtectionActive: 'Spam Protection Active',
+    ipBlockedSuccessfully: 'IP address blocked successfully',
+    ipUnblockedSuccessfully: 'IP address unblocked successfully',
+    invalidIPAddress: 'Invalid IP address format',
+    failedToBlockIP: 'Failed to block IP address',
+    failedToUnblockIP: 'Failed to unblock IP address',
+    accessBlocked: 'Access Blocked',
+    accessBlockedMessage: 'Your access has been restricted. Please contact the site administrator if you believe this is an error.',
     
     // Plans Settings
     currentPlan: 'Current',
@@ -422,6 +432,16 @@ const translations = {
     actions: 'الإجراءات',
     removeBlock: 'إزالة الحظر',
     noBlockedIPs: 'لا توجد عناوين IP محظورة',
+    reason: 'السبب',
+    redirectUrl: 'رابط إعادة التوجيه',
+    spamProtectionActive: 'حماية البريد العشوائي نشطة',
+    ipBlockedSuccessfully: 'تم حظر عنوان IP بنجاح',
+    ipUnblockedSuccessfully: 'تم إلغاء حظر عنوان IP بنجاح',
+    invalidIPAddress: 'تنسيق عنوان IP غير صحيح',
+    failedToBlockIP: 'فشل في حظر عنوان IP',
+    failedToUnblockIP: 'فشل في إلغاء حظر عنوان IP',
+    accessBlocked: 'تم حظر الوصول',
+    accessBlockedMessage: 'تم تقييد وصولك. يرجى الاتصال بمدير الموقع إذا كنت تعتقد أن هذا خطأ.',
     
     // Plans Settings
     currentPlan: 'الحالية',
