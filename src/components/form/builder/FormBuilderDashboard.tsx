@@ -436,16 +436,26 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
                      </TableCell>
                      <TableCell className={language === 'ar' ? 'text-right' : ''}>
                        <CountrySelector
-                         value={form.country || 'SA'}
-                         language={language}
+                         value={form.country_tag || form.country}
+                         defaultCountry={form.country || 'SA'}
                          onValueChange={async (countryCode) => {
                            try {
-                             const success = await formManagementService.saveForm(form.id, { country: countryCode });
+                             // حفظ في country_tag إذا كان متاحاً، وإلا في country
+                             const updateData = form.country_tag !== undefined
+                               ? { country_tag: countryCode }
+                               : { country: countryCode };
+
+                             const success = await formManagementService.saveForm(form.id, updateData);
                              if (success) {
                                toast.success(language === 'ar' ? 'تم تحديث علامة البلد بنجاح' : 'Country tag updated successfully');
                                setFormList(prevForms =>
                                  prevForms.map(f =>
-                                   f.id === form.id ? { ...f, country: countryCode } : f
+                                   f.id === form.id ? {
+                                     ...f,
+                                     ...(form.country_tag !== undefined
+                                       ? { country_tag: countryCode }
+                                       : { country: countryCode })
+                                   } : f
                                  )
                                );
                              } else {

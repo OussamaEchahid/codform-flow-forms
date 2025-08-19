@@ -205,7 +205,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
         discountLabel: language === 'ar' ? 'الخصم' : 'Discount',
         shippingLabel: language === 'ar' ? 'الشحن' : 'Shipping',
         totalLabel: language === 'ar' ? 'المجموع' : 'Total',
-        freeShippingText: language === 'ar' ? 'مجاني' : 'Free',
+        freeShippingText: language === 'ar' ? 'شحن مجاني' : 'Free shipping',
       },
     });
     
@@ -357,7 +357,8 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
         shop_id: activeShopId,
         country: actualCountry,
         currency: actualShopCurrency,
-        phone_prefix: defaultSettings.phonePrefix
+        phone_prefix: defaultSettings.phonePrefix,
+        country_tag: actualCountry // استخدام نفس الدولة كعلامة افتراضية
       });
 
       console.log('✅ Form created successfully with ID:', newFormId, 'using shop currency:', actualShopCurrency);

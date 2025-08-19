@@ -266,6 +266,7 @@ export type Database = {
       forms: {
         Row: {
           country: string | null
+          country_tag: string | null
           created_at: string
           currency: string | null
           data: Json
@@ -282,6 +283,7 @@ export type Database = {
         }
         Insert: {
           country?: string | null
+          country_tag?: string | null
           created_at?: string
           currency?: string | null
           data?: Json
@@ -298,6 +300,7 @@ export type Database = {
         }
         Update: {
           country?: string | null
+          country_tag?: string | null
           created_at?: string
           currency?: string | null
           data?: Json

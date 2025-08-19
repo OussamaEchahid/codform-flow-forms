@@ -155,7 +155,8 @@ export class FormManagementService {
         style: (form.style as unknown as FormStyle) || undefined,
         country: (form as any).country,
         currency: (form as any).currency,
-        phone_prefix: (form as any).phone_prefix
+        phone_prefix: (form as any).phone_prefix,
+        country_tag: (form as any).country_tag || (form as any).country // استخدام country كافتراضي
       }));
 
       // Cache forms for offline usage
@@ -177,6 +178,7 @@ export class FormManagementService {
     country?: string;
     currency?: string;
     phone_prefix?: string;
+    country_tag?: string;
   }): Promise<string> {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -198,7 +200,8 @@ export class FormManagementService {
         p_is_published: false,
         p_country: formData.country ?? null,
         p_currency: formData.currency ?? null,
-        p_phone_prefix: formData.phone_prefix ?? null
+        p_phone_prefix: formData.phone_prefix ?? null,
+        p_country_tag: formData.country_tag ?? formData.country ?? null
       });
 
       if (error) {
@@ -359,7 +362,8 @@ export class FormManagementService {
         ...row,
         data: Array.isArray(row.data) ? (row.data as unknown as FormStep[]) : [],
         style: (row.style as unknown as FormStyle) || undefined,
-        isPublished: row.is_published
+        isPublished: row.is_published,
+        country_tag: row.country_tag || row.country // استخدام country كافتراضي
       };
 
       return updatedForm;
@@ -406,7 +410,8 @@ export class FormManagementService {
         ...row,
         data: Array.isArray(row.data) ? (row.data as unknown as FormStep[]) : [],
         style: (row.style as unknown as FormStyle) || undefined,
-        isPublished: row.is_published
+        isPublished: row.is_published,
+        country_tag: row.country_tag || row.country // استخدام country كافتراضي
       };
       
       return formData;

@@ -19,9 +19,10 @@ export interface FormData {
   shop_id?: string;
   created_at?: string;
   style?: FormStyle;
-  country?: string;
+  country?: string; // إعدادات النموذج الأساسية (Country & Currency Settings)
   currency?: string;
   phone_prefix?: string;
+  country_tag?: string; // علامة البلد للعرض فقط (Country Tag)
   associatedProducts?: Array<{
     id: string;
     title: string;
@@ -308,7 +309,7 @@ export const useFormTemplates = () => {
         discountLabel: language === 'ar' ? 'الخصم' : 'Discount',
         shippingLabel: language === 'ar' ? 'الشحن' : 'Shipping',
         totalLabel: language === 'ar' ? 'المجموع الكلي' : 'Total',
-        freeShippingText: language === 'ar' ? 'مجاني' : 'Free',
+        freeShippingText: language === 'ar' ? 'شحن مجاني' : 'Free shipping',
         direction: language === 'ar' ? 'rtl' : 'ltr',
         currency: shopCurrency // Use actual shop currency
       }
@@ -427,8 +428,8 @@ export const useFormTemplates = () => {
           id: newFormId,
           title: 'نموذج جديد',
           description: 'نموذج جديد',
-          data: [{ 
-            id: '1', 
+          data: [{
+            id: '1',
             title: 'Main Step',
             fields: completeFields
           }] as any,
@@ -437,7 +438,8 @@ export const useFormTemplates = () => {
           user_id: userIdForForm,
           country: defaultSettings.country,
           currency: defaultSettings.currency,
-          phone_prefix: defaultSettings.phonePrefix
+          phone_prefix: defaultSettings.phonePrefix,
+          country_tag: defaultSettings.country // استخدام نفس الدولة كعلامة افتراضية
         } as any);
       
       if (error) {
@@ -485,48 +487,6 @@ export const useFormTemplates = () => {
       return false;
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  // Update form title
-  const updateFormTitle = async (formId: string, newTitle: string) => {
-    try {
-      const updatedForm = await formManagementService.saveForm(formId, { title: newTitle });
-      
-      if (updatedForm) {
-        // Update local state
-        setForms(prevForms => 
-          prevForms.map(form => 
-            form.id === formId ? { ...form, title: newTitle } : form
-          )
-        );
-        return true;
-      }
-      return false;
-    } catch (error) {
-      console.error('Error updating form title:', error);
-      return false;
-    }
-  };
-
-  // Update form country
-  const updateFormCountry = async (formId: string, countryCode: string) => {
-    try {
-      const updatedForm = await formManagementService.saveForm(formId, { country: countryCode });
-      
-      if (updatedForm) {
-        // Update local state
-        setForms(prevForms => 
-          prevForms.map(form => 
-            form.id === formId ? { ...form, country: countryCode } : form
-          )
-        );
-        return true;
-      }
-      return false;
-    } catch (error) {
-      console.error('Error updating form country:', error);
-      return false;
     }
   };
 
@@ -613,8 +573,6 @@ export const useFormTemplates = () => {
     createFormFromTemplate,
     createDefaultForm,
     saveForm,
-    updateFormTitle,
-    updateFormCountry,
     publishForm,
     deleteForm,
     loadForm
