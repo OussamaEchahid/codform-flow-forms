@@ -342,7 +342,7 @@ const SecuritySettings = () => {
                 <Button 
                   variant="default" 
                   size="default"
-                  onClick={() => window.open('/shopify-protection', '_blank')}
+                  onClick={() => window.location.href = '/shopify-protection'}
                   className="bg-blue-600 hover:bg-blue-700 text-white"
                 >
                   <Shield className="h-4 w-4 mr-2" />
