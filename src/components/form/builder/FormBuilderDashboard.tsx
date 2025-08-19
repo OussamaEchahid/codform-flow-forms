@@ -17,7 +17,7 @@ import {
   TableRow 
 } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Plus, Trash2, Edit, Copy, FileCheck, Eye, ShoppingCart, Package, RefreshCw, CloudOff, ShoppingBag } from 'lucide-react';
+import { Plus, Trash2, Edit, FileCheck, Eye, ShoppingCart, Package, RefreshCw, CloudOff, ShoppingBag } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
@@ -26,6 +26,8 @@ import { supabase } from '@/integrations/supabase/client';
 import NewFormProductDialog from './NewFormProductDialog';
 import ProductManagementModal from '../ProductManagementModal';
 import DefaultFormMessage from '@/components/dashboard/DefaultFormMessage';
+import { CountrySelector } from '@/components/ui/country-selector';
+import { formManagementService } from '@/services/FormManagementService';
 
 interface FormBuilderDashboardProps {
   initialForms?: any[];
@@ -211,29 +213,6 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
     }
   };
   
-  const handleDuplicateForm = async (formId: string) => {
-    try {
-      // Create a new form based on the existing one
-      const formToDuplicate = forms.find(form => form.id === formId);
-      if (!formToDuplicate) return;
-      
-      // We'll use the existing saveForm function to create a duplicate
-      const formData = {
-        ...formToDuplicate,
-        title: `${formToDuplicate.title} (${language === 'ar' ? 'نسخة' : 'Copy'})`,
-      };
-      
-      // Remove the ID so a new one is generated
-      delete formData.id;
-      
-      await fetchForms(); // Refresh the list after duplication
-      // Using toast from sonner correctly
-      toast.success(language === 'ar' ? 'تم نسخ النموذج بنجاح' : 'Form duplicated successfully');
-    } catch (error) {
-      console.error('Error duplicating form:', error);
-      toast.error(language === 'ar' ? 'فشل نسخ النموذج' : 'Failed to duplicate form');
-    }
-  };
   
   const formatDate = (dateString: string) => {
     try {
@@ -357,6 +336,9 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
                 <TableHead className={language === 'ar' ? 'text-right' : ''}>
                   {language === 'ar' ? 'المنتجات' : 'Products'}
                 </TableHead>
+                <TableHead className={language === 'ar' ? 'text-right' : ''}>
+                  {language === 'ar' ? 'البلد' : 'Country'}
+                </TableHead>
                 <TableHead className="text-right">
                   {language === 'ar' ? 'إجراءات' : 'Actions'}
                 </TableHead>
@@ -368,49 +350,45 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
                 filteredForms.map((form) => (
                    <TableRow key={form.id}>
                      <TableCell className={`font-medium ${language === 'ar' ? 'text-right' : ''}`}>
-                       <div 
-                         className="group cursor-pointer hover:bg-gray-50 p-2 rounded transition-colors flex items-center gap-2"
-                         onClick={async (e) => {
-                           e.stopPropagation();
-                           const titleElement = e.currentTarget;
-                           const currentTitle = form.title;
-                           
-                           // Create input element
-                           const input = document.createElement('input');
-                           input.type = 'text';
-                           input.value = currentTitle;
-                           input.className = 'text-sm font-medium bg-white border-2 border-primary rounded px-2 py-1 w-full focus:outline-none focus:ring-2 focus:ring-primary/20';
-                           
-                           // Handle save on blur and enter
-                           const saveTitle = async () => {
-                             const newTitle = input.value.trim();
-                             if (newTitle && newTitle !== currentTitle) {
-                               try {
-                                 const { error } = await supabase
-                                   .from('forms')
-                                   .update({ title: newTitle })
-                                   .eq('id', form.id);
-                                 
-                                 if (error) {
-                                   console.error('خطأ في تحديث العنوان:', error);
-                                   toast.error(language === 'ar' ? 'فشل في تحديث عنوان النموذج' : 'Failed to update form title');
-                                 } else {
-                                   toast.success(language === 'ar' ? 'تم تحديث عنوان النموذج بنجاح' : 'Form title updated successfully');
-                                   // Update local state
-                                   setFormList(prevForms => 
-                                     prevForms.map(f => 
-                                       f.id === form.id ? { ...f, title: newTitle } : f
-                                     )
-                                   );
-                                 }
-                               } catch (error) {
-                                 console.error('خطأ في تحديث العنوان:', error);
-                                 toast.error(language === 'ar' ? 'فشل في تحديث عنوان النموذج' : 'Failed to update form title');
-                               }
-                             }
-                             titleElement.style.display = 'flex';
-                             input.remove();
-                           };
+                        <div 
+                          className="group cursor-pointer hover:bg-gray-50 p-2 rounded transition-colors flex items-center gap-2"
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            const titleElement = e.currentTarget;
+                            const currentTitle = form.title;
+                            
+                            // Create input element
+                            const input = document.createElement('input');
+                            input.type = 'text';
+                            input.value = currentTitle;
+                            input.className = 'text-sm font-medium bg-white border-2 border-primary rounded px-2 py-1 w-full focus:outline-none focus:ring-2 focus:ring-primary/20';
+                            
+                            // Handle save on blur and enter
+                            const saveTitle = async () => {
+                              const newTitle = input.value.trim();
+                              if (newTitle && newTitle !== currentTitle) {
+                                try {
+                                  const success = await formManagementService.saveForm(form.id, { title: newTitle });
+                                  
+                                  if (success) {
+                                    toast.success(language === 'ar' ? 'تم تحديث عنوان النموذج بنجاح' : 'Form title updated successfully');
+                                    // Update local state
+                                    setFormList(prevForms => 
+                                      prevForms.map(f => 
+                                        f.id === form.id ? { ...f, title: newTitle } : f
+                                      )
+                                    );
+                                  } else {
+                                    toast.error(language === 'ar' ? 'فشل في تحديث عنوان النموذج' : 'Failed to update form title');
+                                  }
+                                } catch (error) {
+                                  console.error('خطأ في تحديث العنوان:', error);
+                                  toast.error(language === 'ar' ? 'فشل في تحديث عنوان النموذج' : 'Failed to update form title');
+                                }
+                              }
+                              titleElement.style.display = 'flex';
+                              input.remove();
+                            };
                            
                            input.addEventListener('blur', saveTitle);
                            input.addEventListener('keydown', (e) => {
@@ -444,19 +422,42 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
                         }
                       </Badge>
                     </TableCell>
-                    <TableCell className={language === 'ar' ? 'text-right' : ''}>
-                      {productCounts[form.id] ? (
-                        <Badge variant="outline" className="flex items-center gap-1">
-                          <ShoppingCart size={12} />
-                          {productCounts[form.id]}
-                        </Badge>
-                      ) : (
-                        <span className="text-muted-foreground text-sm">
-                          {language === 'ar' ? 'لا يوجد' : 'None'}
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell className="flex justify-end gap-2">
+                     <TableCell className={language === 'ar' ? 'text-right' : ''}>
+                       {productCounts[form.id] ? (
+                         <Badge variant="outline" className="flex items-center gap-1">
+                           <ShoppingCart size={12} />
+                           {productCounts[form.id]}
+                         </Badge>
+                       ) : (
+                         <span className="text-muted-foreground text-sm">
+                           {language === 'ar' ? 'لا يوجد' : 'None'}
+                         </span>
+                       )}
+                     </TableCell>
+                     <TableCell className={language === 'ar' ? 'text-right' : ''}>
+                       <CountrySelector
+                         value={form.country || 'SA'}
+                         onValueChange={async (countryCode) => {
+                           try {
+                             const success = await formManagementService.saveForm(form.id, { country: countryCode });
+                             if (success) {
+                               toast.success(language === 'ar' ? 'تم تحديث البلد بنجاح' : 'Country updated successfully');
+                               setFormList(prevForms => 
+                                 prevForms.map(f => 
+                                   f.id === form.id ? { ...f, country: countryCode } : f
+                                 )
+                               );
+                             } else {
+                               toast.error(language === 'ar' ? 'فشل في تحديث البلد' : 'Failed to update country');
+                             }
+                           } catch (error) {
+                             console.error('خطأ في تحديث البلد:', error);
+                             toast.error(language === 'ar' ? 'فشل في تحديث البلد' : 'Failed to update country');
+                           }
+                         }}
+                       />
+                     </TableCell>
+                     <TableCell className="flex justify-end gap-2">
                       <Button
                         variant="ghost"
                         size="icon"
@@ -467,13 +468,6 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
                         </Link>
                       </Button>
                       
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDuplicateForm(form.id)}
-                      >
-                        <Copy size={16} />
-                      </Button>
                       
                       <Button
                         variant="ghost"
@@ -534,7 +528,7 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8">
+                  <TableCell colSpan={6} className="text-center py-8">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <Package size={32} className="text-muted-foreground" />
                       <p className="text-muted-foreground">
