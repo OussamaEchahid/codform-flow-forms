@@ -85,10 +85,23 @@ serve(async (req) => {
           throw new Error('Country code must be 2 characters')
         }
 
+        // الحصول على user_id من جدول shopify_stores
+        const { data: storeData, error: storeError } = await supabaseClient
+          .from('shopify_stores')
+          .select('user_id')
+          .eq('shop', country_shop_id)
+          .eq('is_active', true)
+          .single()
+
+        if (storeError || !storeData) {
+          throw new Error('Store not found or not active')
+        }
+
         result = await supabaseClient
           .from('blocked_countries')
           .insert({
             shop_id: country_shop_id,
+            user_id: storeData.user_id,
             country_code: country_code.toUpperCase(),
             country_name: country_name,
             reason: country_reason || 'غير محدد',

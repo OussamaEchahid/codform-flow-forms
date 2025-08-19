@@ -326,24 +326,37 @@ const SecuritySettings = () => {
       </div>
 
       {/* تحذير تفعيل الحماية */}
-      <Card className="border-orange-200 bg-orange-50">
-        <CardContent className="p-4">
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="h-5 w-5 text-orange-500 mt-0.5" />
+      <Card className="border-blue-200 bg-blue-50">
+        <CardContent className="p-6">
+          <div className="flex items-start gap-4">
+            <Shield className="h-8 w-8 text-blue-600 mt-1" />
             <div className="flex-1">
-              <h3 className="font-semibold text-orange-800 mb-1">تفعيل الحماية على المتجر</h3>
-              <p className="text-orange-700 text-sm mb-3">
-                بعد إضافة عناوين IP أو الدول المحظورة، يجب تفعيل نظام الحماية على متجر Shopify لتطبيق الحظر فعلياً.
-              </p>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => window.open('/shopify-protection', '_blank')}
-                className="border-orange-300 text-orange-800 hover:bg-orange-100"
-              >
-                <Shield className="h-4 w-4 mr-2" />
-                تفعيل الحماية على Shopify
-              </Button>
+              <h3 className="font-bold text-blue-900 text-xl mb-2">🔒 كيفية تفعيل الحماية على متجر Shopify</h3>
+              <div className="text-blue-800 text-sm space-y-2 mb-4">
+                <p><strong>الخطوة 1:</strong> أضف عناوين IP أو الدول المحظورة أدناه</p>
+                <p><strong>الخطوة 2:</strong> اضغط على الزر لإنتاج سكريپت الحماية</p>
+                <p><strong>الخطوة 3:</strong> انسخ السكريپت والصقه في ثيم شوبيفاي</p>
+                <p><strong>النتيجة:</strong> سيتم حظر الزوار فوراً عند دخولهم للمتجر</p>
+              </div>
+              <div className="flex gap-3">
+                <Button 
+                  variant="default" 
+                  size="default"
+                  onClick={() => window.open('/shopify-protection', '_blank')}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  <Shield className="h-4 w-4 mr-2" />
+                  إنتاج سكريپت الحماية
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="default"
+                  onClick={() => window.open('https://www.youtube.com/watch?v=example', '_blank')}
+                  className="border-blue-300 text-blue-800 hover:bg-blue-100"
+                >
+                  📺 شرح فيديو
+                </Button>
+              </div>
             </div>
           </div>
         </CardContent>
