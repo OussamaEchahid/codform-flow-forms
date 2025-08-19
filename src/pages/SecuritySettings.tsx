@@ -346,7 +346,7 @@ const SecuritySettings = () => {
     // تنظيف وحماية المتغيرات
     const cleanShopDomain = shopDomain.replace(/['"\\]/g, '').trim();
 
-    return \`<!-- CodForm Protection System - Generated for \${cleanShopDomain} -->
+    return `<!-- CodForm Protection System - Generated for ${cleanShopDomain} -->
 <script>
 (function() {
   'use strict';
@@ -357,9 +357,9 @@ const SecuritySettings = () => {
   }
   window.CodFormProtectionActive = true;
 
-  const SHOP_DOMAIN = '\${cleanShopDomain}';
-  const SECURITY_API = '\${supabaseUrl}/functions/v1/store-security-check';
-  const API_KEY = '\${apiKey}';
+  const SHOP_DOMAIN = '${cleanShopDomain}';
+  const SECURITY_API = '${supabaseUrl}/functions/v1/store-security-check';
+  const API_KEY = '${apiKey}';
 
   console.log('[CodForm] 🛡️ Protection system initialized for:', SHOP_DOMAIN);
 
@@ -527,7 +527,7 @@ const SecuritySettings = () => {
   }, 10000); // 10 ثوان timeout
 
 })();
-</script>\`;
+</script>`;
   };
 
   // نسخ السكريپت
