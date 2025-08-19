@@ -35,6 +35,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { ShopifyProduct } from '@/lib/shopify/types';
 import { toast } from 'sonner';
 import { ProductAssociationModal } from './ProductAssociationModal';
+import { CountrySelector } from '@/components/ui/country-selector';
 
 interface FormListProps {
   forms: FormData[];
@@ -63,7 +64,7 @@ const FormList: React.FC<FormListProps> = ({
 }) => {
   const [formToDelete, setFormToDelete] = useState<string | null>(null);
   const [isOperating, setIsOperating] = useState<string | null>(null);
-  const { publishForm, deleteForm } = useFormTemplates();
+  const { publishForm, deleteForm, updateFormTitle, updateFormCountry } = useFormTemplates();
   const [enhancedForms, setEnhancedForms] = useState<EnhancedFormData[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
   const [retryAttempts, setRetryAttempts] = useState(0);
@@ -267,6 +268,26 @@ const FormList: React.FC<FormListProps> = ({
     console.log('✅ تم فتح المودال بنجاح');
   };
 
+  const handleCountryChange = async (formId: string, countryCode: string) => {
+    try {
+      const success = await updateFormCountry(formId, countryCode);
+      if (success) {
+        toast.success('تم تحديث بلد النموذج بنجاح');
+        // Update enhanced forms state
+        setEnhancedForms(prevForms => 
+          prevForms.map(f => 
+            f.id === formId ? { ...f, country: countryCode } : f
+          )
+        );
+      } else {
+        toast.error('فشل في تحديث بلد النموذج');
+      }
+    } catch (error) {
+      console.error('خطأ في تحديث البلد:', error);
+      toast.error('فشل في تحديث بلد النموذج');
+    }
+  };
+
   const handleCloseProductModal = () => {
     setIsProductModalOpen(false);
     setSelectedFormForProducts(null);
@@ -420,7 +441,7 @@ const FormList: React.FC<FormListProps> = ({
           console.log('🎨 عرض النموذج:', form.id, 'منتجات مرتبطة:', form.associatedProducts?.length || 0);
           
           return (
-          <Card key={form.id} className="overflow-hidden hover:shadow-md transition-shadow">
+            <Card key={form.id} className="overflow-hidden hover:shadow-md transition-shadow">
             <div className={`h-2 ${form.is_published ? 'bg-green-500' : 'bg-gray-300'}`}></div>
             <CardHeader className="pb-2">
               <div className="flex justify-between items-start">
@@ -445,22 +466,17 @@ const FormList: React.FC<FormListProps> = ({
                               const newTitle = input.value.trim();
                               if (newTitle && newTitle !== currentTitle) {
                                 try {
-                                  const { error } = await supabase
-                                    .from('forms')
-                                    .update({ title: newTitle })
-                                    .eq('id', form.id);
-                                  
-                                  if (error) {
-                                    console.error('خطأ في تحديث العنوان:', error);
-                                    toast.error('فشل في تحديث عنوان النموذج');
-                                  } else {
+                                  const success = await updateFormTitle(form.id, newTitle);
+                                  if (success) {
                                     toast.success('تم تحديث عنوان النموذج بنجاح');
-                                    // Update local state
+                                    // Update enhanced forms state
                                     setEnhancedForms(prevForms => 
                                       prevForms.map(f => 
                                         f.id === form.id ? { ...f, title: newTitle } : f
                                       )
                                     );
+                                  } else {
+                                    toast.error('فشل في تحديث عنوان النموذج');
                                   }
                                 } catch (error) {
                                   console.error('خطأ في تحديث العنوان:', error);
@@ -591,15 +607,15 @@ const FormList: React.FC<FormListProps> = ({
                       )}
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => onSelectForm(form.id)} disabled={isCurrentlyOperating}>
-                      <Edit className="mr-2 h-4 w-4" />
-                      <span>تعديل</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleManageProducts(form.id, form.title)} disabled={isCurrentlyOperating}>
-                      <ShoppingBag className="mr-2 h-4 w-4" />
-                      <span>إدارة المنتجات</span>
-                    </DropdownMenuItem>
+                   <DropdownMenuContent align="end">
+                     <DropdownMenuItem onClick={() => onSelectForm(form.id)} disabled={isCurrentlyOperating}>
+                       <Edit className="mr-2 h-4 w-4" />
+                       <span>تعديل</span>
+                     </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleManageProducts(form.id, form.title)} disabled={isCurrentlyOperating}>
+                        <ShoppingBag className="mr-2 h-4 w-4" />
+                        <span>إدارة المنتجات</span>
+                      </DropdownMenuItem>
                     <DropdownMenuItem 
                       onClick={() => handlePublishToggle(form.id, form.is_published)} 
                       disabled={isCurrentlyOperating}
@@ -643,9 +659,15 @@ const FormList: React.FC<FormListProps> = ({
                 <Badge variant={form.is_published ? "success" : "secondary"}>
                   {form.is_published ? 'منشور' : 'مسودة'}
                 </Badge>
-                <span className="text-xs text-gray-500 rtl:text-left">
-                  {formatDistanceToNow(new Date(form.created_at), { addSuffix: true, locale: ar })}
-                </span>
+                <div className="flex items-center gap-2">
+                  <CountrySelector 
+                    value={form.country}
+                    onValueChange={(countryCode) => handleCountryChange(form.id, countryCode)}
+                  />
+                  <span className="text-xs text-gray-500 rtl:text-left">
+                    {formatDistanceToNow(new Date(form.created_at), { addSuffix: true, locale: ar })}
+                  </span>
+                </div>
               </div>
               <p className="text-sm text-gray-600 line-clamp-2">{form.description || 'لا يوجد وصف'}</p>
             </CardContent>
@@ -666,7 +688,7 @@ const FormList: React.FC<FormListProps> = ({
                 )}
               </Button>
             </CardFooter>
-          </Card>
+            </Card>
           );
         })}
 

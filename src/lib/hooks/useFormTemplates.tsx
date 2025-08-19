@@ -488,6 +488,48 @@ export const useFormTemplates = () => {
     }
   };
 
+  // Update form title
+  const updateFormTitle = async (formId: string, newTitle: string) => {
+    try {
+      const updatedForm = await formManagementService.saveForm(formId, { title: newTitle });
+      
+      if (updatedForm) {
+        // Update local state
+        setForms(prevForms => 
+          prevForms.map(form => 
+            form.id === formId ? { ...form, title: newTitle } : form
+          )
+        );
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error updating form title:', error);
+      return false;
+    }
+  };
+
+  // Update form country
+  const updateFormCountry = async (formId: string, countryCode: string) => {
+    try {
+      const updatedForm = await formManagementService.saveForm(formId, { country: countryCode });
+      
+      if (updatedForm) {
+        // Update local state
+        setForms(prevForms => 
+          prevForms.map(form => 
+            form.id === formId ? { ...form, country: countryCode } : form
+          )
+        );
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error updating form country:', error);
+      return false;
+    }
+  };
+
   // Publish or unpublish a form using the service
   const publishForm = async (formId: string, publish: boolean) => {
     try {
@@ -571,6 +613,8 @@ export const useFormTemplates = () => {
     createFormFromTemplate,
     createDefaultForm,
     saveForm,
+    updateFormTitle,
+    updateFormCountry,
     publishForm,
     deleteForm,
     loadForm
