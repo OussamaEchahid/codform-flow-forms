@@ -41,14 +41,30 @@ export default async function handler(
       });
     }
 
-    // التحقق من حالة الحظر
-    const { data: blockedIP, error } = await shopifySupabase
-      .from('blocked_ips')
-      .select('*')
-      .eq('ip_address', ip)
-      .single();
+    // التحقق من حالة الحظر - أولاً للمتجر المحدد، ثم للحظر العام
+    let blockResult = null;
+    let error = null;
 
-    if (error && error.code !== 'PGRST116') {
+    // البحث في المتجر المحدد أولاً
+    const { data: shopSpecificResult, error: shopError } = await shopifySupabase.rpc('is_ip_blocked', {
+      p_ip_address: ip,
+      p_shop_id: shop_domain
+    });
+
+    if (!shopError && shopSpecificResult && Array.isArray(shopSpecificResult) && shopSpecificResult[0]?.is_blocked) {
+      blockResult = shopSpecificResult;
+    } else {
+      // البحث في الحظر العام (default)
+      const { data: globalResult, error: globalError } = await shopifySupabase.rpc('is_ip_blocked', {
+        p_ip_address: ip,
+        p_shop_id: 'default'
+      });
+
+      blockResult = globalResult;
+      error = globalError;
+    }
+
+    if (error) {
       console.error('Database error:', error);
       // في حالة خطأ قاعدة البيانات، السماح بالوصول (fail-safe)
       return res.status(200).json({
@@ -59,11 +75,13 @@ export default async function handler(
     }
 
     // إرجاع النتيجة
-    if (blockedIP) {
+    const result = Array.isArray(blockResult) ? blockResult[0] : blockResult;
+
+    if (result && result.is_blocked) {
       res.status(200).json({
         is_blocked: true,
-        reason: blockedIP.reason || 'IP address is blocked',
-        redirect_url: 'https://codmagnet.com/blocked',
+        reason: result.reason || 'IP address is blocked',
+        redirect_url: result.redirect_url || 'https://codmagnet.com/blocked',
         shop_domain: shop_domain,
         checked_at: new Date().toISOString()
       });
