@@ -27,6 +27,7 @@ import NewFormProductDialog from './NewFormProductDialog';
 import ProductManagementModal from '../ProductManagementModal';
 import DefaultFormMessage from '@/components/dashboard/DefaultFormMessage';
 import { CountrySelector } from '@/components/ui/country-selector';
+import { CurrencySelector } from '@/components/ui/currency-selector';
 import { formManagementService } from '@/services/FormManagementService';
 
 interface FormBuilderDashboardProps {
@@ -337,7 +338,7 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
                   {language === 'ar' ? 'المنتجات' : 'Products'}
                 </TableHead>
                 <TableHead className={language === 'ar' ? 'text-right' : ''}>
-                  {language === 'ar' ? 'البلد' : 'Country'}
+                  {language === 'ar' ? 'البلد والعملة' : 'Country & Currency'}
                 </TableHead>
                 <TableHead className="text-right">
                   {language === 'ar' ? 'إجراءات' : 'Actions'}
@@ -435,27 +436,52 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
                        )}
                      </TableCell>
                      <TableCell className={language === 'ar' ? 'text-right' : ''}>
-                       <CountrySelector
-                         value={form.country || 'SA'}
-                         onValueChange={async (countryCode) => {
-                           try {
-                             const success = await formManagementService.saveForm(form.id, { country: countryCode });
-                             if (success) {
-                               toast.success(language === 'ar' ? 'تم تحديث البلد بنجاح' : 'Country updated successfully');
-                               setFormList(prevForms => 
-                                 prevForms.map(f => 
-                                   f.id === form.id ? { ...f, country: countryCode } : f
-                                 )
-                               );
-                             } else {
+                       <div className="flex flex-col gap-2">
+                         <CountrySelector
+                           value={form.country || 'SA'}
+                           onValueChange={async (countryCode) => {
+                             try {
+                               const success = await formManagementService.saveForm(form.id, { country: countryCode });
+                               if (success) {
+                                 toast.success(language === 'ar' ? 'تم تحديث البلد بنجاح' : 'Country updated successfully');
+                                 setFormList(prevForms =>
+                                   prevForms.map(f =>
+                                     f.id === form.id ? { ...f, country: countryCode } : f
+                                   )
+                                 );
+                               } else {
+                                 toast.error(language === 'ar' ? 'فشل في تحديث البلد' : 'Failed to update country');
+                               }
+                             } catch (error) {
+                               console.error('خطأ في تحديث البلد:', error);
                                toast.error(language === 'ar' ? 'فشل في تحديث البلد' : 'Failed to update country');
                              }
-                           } catch (error) {
-                             console.error('خطأ في تحديث البلد:', error);
-                             toast.error(language === 'ar' ? 'فشل في تحديث البلد' : 'Failed to update country');
-                           }
-                         }}
-                       />
+                           }}
+                           language={language}
+                         />
+                         <CurrencySelector
+                           value={form.currency || 'SAR'}
+                           onValueChange={async (currencyCode) => {
+                             try {
+                               const success = await formManagementService.saveForm(form.id, { currency: currencyCode });
+                               if (success) {
+                                 toast.success(language === 'ar' ? 'تم تحديث العملة بنجاح' : 'Currency updated successfully');
+                                 setFormList(prevForms =>
+                                   prevForms.map(f =>
+                                     f.id === form.id ? { ...f, currency: currencyCode } : f
+                                   )
+                                 );
+                               } else {
+                                 toast.error(language === 'ar' ? 'فشل في تحديث العملة' : 'Failed to update currency');
+                               }
+                             } catch (error) {
+                               console.error('خطأ في تحديث العملة:', error);
+                               toast.error(language === 'ar' ? 'فشل في تحديث العملة' : 'Failed to update currency');
+                             }
+                           }}
+                           language={language}
+                         />
+                       </div>
                      </TableCell>
                      <TableCell className="flex justify-end gap-2">
                       <Button
