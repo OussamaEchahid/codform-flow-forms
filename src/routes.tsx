@@ -3,6 +3,7 @@ import { RouteObject } from "react-router-dom";
 import Settings from '@/pages/Settings';
 import OrderSettings from '@/pages/OrderSettings';
 import GeneralSettings from '@/pages/GeneralSettings';
+import SecuritySettings from '@/pages/SecuritySettings';
 
 import PlansSettings from '@/pages/PlansSettings';
 import CurrencySettings from '@/pages/CurrencySettings';
@@ -83,6 +84,10 @@ export const routes: RouteObject[] = [
   {
     path: '/settings/general',
     Component: GeneralSettings
+  },
+  {
+    path: '/settings/security',
+    Component: SecuritySettings
   },
   {
     path: '/settings/plans',

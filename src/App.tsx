@@ -26,6 +26,7 @@ import ShopifyCallback from "@/pages/ShopifyCallback";
 import Settings from "@/pages/Settings";
 import OrderSettings from "@/pages/OrderSettings";
 import GeneralSettings from "@/pages/GeneralSettings";
+import SecuritySettings from "@/pages/SecuritySettings";
 
 import PlansSettings from "@/pages/PlansSettings";
 import CurrencySettings from "@/pages/CurrencySettings";
@@ -157,6 +158,7 @@ function AppRoutes() {
       <Route path="/settings" element={<Settings />} />
       <Route path="/settings/orders" element={<OrderSettings />} />
       <Route path="/settings/general" element={<GeneralSettings />} />
+      <Route path="/settings/security" element={<SecuritySettings />} />
       
 
       <Route path="/settings/plans" element={<PlansSettings />} />

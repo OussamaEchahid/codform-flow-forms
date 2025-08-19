@@ -116,6 +116,81 @@ export type Database = {
         }
         Relationships: []
       }
+      blocked_countries: {
+        Row: {
+          country_code: string
+          country_name: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          reason: string | null
+          redirect_url: string | null
+          shop_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          country_code: string
+          country_name: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          reason?: string | null
+          redirect_url?: string | null
+          shop_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          country_code?: string
+          country_name?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          reason?: string | null
+          redirect_url?: string | null
+          shop_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      blocked_ips: {
+        Row: {
+          created_at: string | null
+          id: string
+          ip_address: string
+          is_active: boolean | null
+          reason: string | null
+          redirect_url: string | null
+          shop_id: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          ip_address: string
+          is_active?: boolean | null
+          reason?: string | null
+          redirect_url?: string | null
+          shop_id: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          ip_address?: string
+          is_active?: boolean | null
+          reason?: string | null
+          redirect_url?: string | null
+          shop_id?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       currency_display_settings: {
         Row: {
           created_at: string
@@ -266,7 +341,6 @@ export type Database = {
       forms: {
         Row: {
           country: string | null
-          country_tag: string | null
           created_at: string
           currency: string | null
           data: Json
@@ -283,7 +357,6 @@ export type Database = {
         }
         Insert: {
           country?: string | null
-          country_tag?: string | null
           created_at?: string
           currency?: string | null
           data?: Json
@@ -300,7 +373,6 @@ export type Database = {
         }
         Update: {
           country?: string | null
-          country_tag?: string | null
           created_at?: string
           currency?: string | null
           data?: Json
@@ -317,42 +389,132 @@ export type Database = {
         }
         Relationships: []
       }
+      google_oauth_tokens: {
+        Row: {
+          access_token: string
+          created_at: string
+          email: string | null
+          expiry: string | null
+          id: string
+          refresh_token: string | null
+          scope: string | null
+          shop_id: string | null
+          token_type: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          access_token: string
+          created_at?: string
+          email?: string | null
+          expiry?: string | null
+          id?: string
+          refresh_token?: string | null
+          scope?: string | null
+          shop_id?: string | null
+          token_type?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          access_token?: string
+          created_at?: string
+          email?: string | null
+          expiry?: string | null
+          id?: string
+          refresh_token?: string | null
+          scope?: string | null
+          shop_id?: string | null
+          token_type?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       google_sheets_configs: {
         Row: {
+          columns_mapping: Json | null
           created_at: string
           enabled: boolean | null
           id: string
           sheet_id: string
           sheet_name: string | null
+          sheet_title: string | null
           shop_id: string | null
+          spreadsheet_id: string | null
+          spreadsheet_name: string | null
           sync_orders: boolean | null
           sync_submissions: boolean | null
           updated_at: string
           webhook_url: string | null
         }
         Insert: {
+          columns_mapping?: Json | null
           created_at?: string
           enabled?: boolean | null
           id?: string
           sheet_id: string
           sheet_name?: string | null
+          sheet_title?: string | null
           shop_id?: string | null
+          spreadsheet_id?: string | null
+          spreadsheet_name?: string | null
           sync_orders?: boolean | null
           sync_submissions?: boolean | null
           updated_at?: string
           webhook_url?: string | null
         }
         Update: {
+          columns_mapping?: Json | null
           created_at?: string
           enabled?: boolean | null
           id?: string
           sheet_id?: string
           sheet_name?: string | null
+          sheet_title?: string | null
           shop_id?: string | null
+          spreadsheet_id?: string | null
+          spreadsheet_name?: string | null
           sync_orders?: boolean | null
           sync_submissions?: boolean | null
           updated_at?: string
           webhook_url?: string | null
+        }
+        Relationships: []
+      }
+      google_sheets_form_mappings: {
+        Row: {
+          created_at: string | null
+          enabled: boolean | null
+          form_id: string
+          id: string
+          sheet_id: string | null
+          sheet_title: string
+          shop_id: string
+          spreadsheet_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          enabled?: boolean | null
+          form_id: string
+          id?: string
+          sheet_id?: string | null
+          sheet_title: string
+          shop_id: string
+          spreadsheet_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          enabled?: boolean | null
+          form_id?: string
+          id?: string
+          sheet_id?: string | null
+          sheet_title?: string
+          shop_id?: string
+          spreadsheet_id?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -504,6 +666,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      security_logs: {
+        Row: {
+          blocked_at: string | null
+          blocked_type: string
+          blocked_value: string
+          id: string
+          referer: string | null
+          shop_id: string
+          user_agent: string | null
+          visitor_country: string | null
+          visitor_ip: unknown
+        }
+        Insert: {
+          blocked_at?: string | null
+          blocked_type: string
+          blocked_value: string
+          id?: string
+          referer?: string | null
+          shop_id: string
+          user_agent?: string | null
+          visitor_country?: string | null
+          visitor_ip: unknown
+        }
+        Update: {
+          blocked_at?: string | null
+          blocked_type?: string
+          blocked_value?: string
+          id?: string
+          referer?: string | null
+          shop_id?: string
+          user_agent?: string | null
+          visitor_country?: string | null
+          visitor_ip?: unknown
+        }
+        Relationships: []
       }
       shop_subscriptions: {
         Row: {
@@ -709,6 +907,25 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_blocked_country: {
+        Args: {
+          p_country_code: string
+          p_country_name: string
+          p_reason?: string
+          p_redirect_url?: string
+          p_shop_id: string
+        }
+        Returns: string
+      }
+      add_blocked_ip: {
+        Args: {
+          p_ip_address: string
+          p_reason?: string
+          p_redirect_url?: string
+          p_shop_id: string
+        }
+        Returns: string
+      }
       associate_product_with_form: {
         Args: {
           p_block_id?: string
@@ -722,6 +939,20 @@ export type Database = {
       auto_link_store_to_current_user: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      create_abandoned_cart: {
+        Args: {
+          p_cart_items?: Json
+          p_currency?: string
+          p_customer_email: string
+          p_customer_name?: string
+          p_customer_phone?: string
+          p_form_data?: Json
+          p_form_id: string
+          p_shop_id: string
+          p_total_value?: number
+        }
+        Returns: Json
       }
       create_form_for_shop: {
         Args: {
@@ -756,6 +987,35 @@ export type Database = {
       fix_user_ownership: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      get_blocked_countries: {
+        Args: { p_shop_id: string }
+        Returns: {
+          country_code: string
+          country_name: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          reason: string | null
+          redirect_url: string | null
+          shop_id: string
+          updated_at: string | null
+          user_id: string
+        }[]
+      }
+      get_blocked_ips: {
+        Args: { p_shop_id: string }
+        Returns: {
+          created_at: string | null
+          id: string
+          ip_address: string
+          is_active: boolean | null
+          reason: string | null
+          redirect_url: string | null
+          shop_id: string
+          updated_at: string | null
+          user_id: string | null
+        }[]
       }
       get_current_user_email: {
         Args: Record<PropertyKey, never>
@@ -885,6 +1145,24 @@ export type Database = {
           user_id: string
         }[]
       }
+      is_country_blocked: {
+        Args: { p_country_code: string; p_shop_id: string }
+        Returns: {
+          is_blocked: boolean
+          reason: string
+          redirect_url: string
+        }[]
+      }
+      is_ip_blocked: {
+        Args:
+          | { p_ip_address: string; p_shop_id: string }
+          | { p_ip_address: unknown; p_shop_id?: string }
+        Returns: {
+          is_blocked: boolean
+          reason: string
+          redirect_url: string
+        }[]
+      }
       is_session_valid: {
         Args: Record<PropertyKey, never>
         Returns: boolean
@@ -908,6 +1186,26 @@ export type Database = {
       load_form_with_fallback: {
         Args: { form_id: string }
         Returns: Json
+      }
+      log_security_block: {
+        Args: {
+          p_blocked_type: string
+          p_blocked_value: string
+          p_referer?: string
+          p_shop_id: string
+          p_user_agent?: string
+          p_visitor_country?: string
+          p_visitor_ip: string
+        }
+        Returns: string
+      }
+      remove_blocked_country: {
+        Args: { p_blocked_id: string }
+        Returns: boolean
+      }
+      remove_blocked_ip: {
+        Args: { p_blocked_id: string }
+        Returns: boolean
       }
       save_order_settings: {
         Args: {
@@ -957,6 +1255,10 @@ export type Database = {
           p_styling: Json
         }
         Returns: string
+      }
+      user_can_access_shop: {
+        Args: { p_shop_id: string }
+        Returns: boolean
       }
       user_owns_store: {
         Args: { p_shop_id: string }
