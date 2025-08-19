@@ -92,11 +92,17 @@ function generateShopifyProtectionScript(shopDomain: string): string {
   const API_KEY = '${Deno.env.get('SUPABASE_ANON_KEY')}';
   
   let protectionActive = false;
+  let protectionChecked = false;
   
   // تشغيل فحص الحماية
   async function activateProtection() {
-    if (protectionActive) return;
-    protectionActive = true;
+    // منع التشغيل المتعدد
+    if (protectionChecked || protectionActive) {
+      console.log('[CodForm] 🚫 Protection already checked or active');
+      return;
+    }
+    
+    protectionChecked = true;
     
     try {
       console.log('[CodForm] 🛡️ Activating store protection...');
@@ -138,6 +144,7 @@ function generateShopifyProtectionScript(shopDomain: string): string {
       
       if (result.blocked) {
         console.warn('[CodForm] 🚫 Access BLOCKED:', result.reason);
+        protectionActive = true;
         blockAccess(result);
       } else {
         console.log('[CodForm] ✅ Access ALLOWED');
@@ -343,17 +350,22 @@ function generateShopifyProtectionScript(shopDomain: string): string {
     \`;
   }
   
-  // تشغيل الحماية عند تحميل الصفحة
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', activateProtection);
+  // تشغيل الحماية مرة واحدة فقط
+  window.CodFormProtectionInitialized = window.CodFormProtectionInitialized || false;
+  
+  if (!window.CodFormProtectionInitialized) {
+    window.CodFormProtectionInitialized = true;
+    
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', activateProtection);
+    } else {
+      activateProtection();
+    }
+    
+    console.log('[CodForm] 🚀 Protection system initialized for:', SHOP_DOMAIN);
   } else {
-    activateProtection();
+    console.log('[CodForm] 🔄 Protection already initialized, skipping...');
   }
-  
-  // تشغيل إضافي للتأكد
-  setTimeout(activateProtection, 500);
-  
-  console.log('[CodForm] 🚀 Protection system initialized for:', SHOP_DOMAIN);
   
 })();
 </script>
