@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { spamProtectionService } from '@/services/SpamProtectionService';
+import { shopifySupabase } from '@/lib/shopify/supabase-client';
 
 /**
  * API endpoint للتحقق من حماية البريد العشوائي
@@ -41,25 +41,39 @@ export default async function handler(
       });
     }
 
-    // البحث عن shop_id من domain
-    const shopId = await getShopIdFromDomain(shop_domain);
-    if (!shopId) {
-      return res.status(404).json({ 
-        error: 'Shop not found' 
+    // التحقق من حالة الحظر
+    const { data: blockedIP, error } = await shopifySupabase
+      .from('blocked_ips')
+      .select('*')
+      .eq('ip_address', ip)
+      .single();
+
+    if (error && error.code !== 'PGRST116') {
+      console.error('Database error:', error);
+      // في حالة خطأ قاعدة البيانات، السماح بالوصول (fail-safe)
+      return res.status(200).json({
+        is_blocked: false,
+        error: 'Database error',
+        checked_at: new Date().toISOString()
       });
     }
 
-    // التحقق من حالة الحظر
-    const result = await spamProtectionService.checkIPBlocked(ip, shopId);
-
     // إرجاع النتيجة
-    res.status(200).json({
-      is_blocked: result.is_blocked,
-      reason: result.reason,
-      redirect_url: result.redirect_url,
-      shop_domain: shop_domain,
-      checked_at: new Date().toISOString()
-    });
+    if (blockedIP) {
+      res.status(200).json({
+        is_blocked: true,
+        reason: blockedIP.reason || 'IP address is blocked',
+        redirect_url: 'https://codmagnet.com/blocked',
+        shop_domain: shop_domain,
+        checked_at: new Date().toISOString()
+      });
+    } else {
+      res.status(200).json({
+        is_blocked: false,
+        shop_domain: shop_domain,
+        checked_at: new Date().toISOString()
+      });
+    }
 
   } catch (error) {
     console.error('Error in spam-check API:', error);
@@ -70,32 +84,5 @@ export default async function handler(
       error: 'Internal server error',
       checked_at: new Date().toISOString()
     });
-  }
-}
-
-/**
- * الحصول على shop_id من domain
- */
-async function getShopIdFromDomain(domain: string): Promise<string | null> {
-  try {
-    // إزالة .myshopify.com من النهاية
-    const shopName = domain.replace('.myshopify.com', '');
-    
-    // البحث في قاعدة البيانات عن المتجر
-    const { data, error } = await spamProtectionService.supabase
-      .from('shops')
-      .select('id')
-      .eq('shop_domain', shopName)
-      .single();
-
-    if (error || !data) {
-      console.error('Shop not found:', domain, error);
-      return null;
-    }
-
-    return data.id;
-  } catch (error) {
-    console.error('Error getting shop ID:', error);
-    return null;
   }
 }

@@ -5,7 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { I18nProvider } from "@/lib/i18n";
 import { AuthProvider, useAuth } from "@/components/layout/AuthProvider";
 import AppWrapper from "@/components/layout/AppWrapper";
-import { initializeSpamProtection } from "@/utils/spam-protection";
+
 
 // Pages
 import Dashboard from "@/pages/Dashboard";
@@ -26,12 +26,13 @@ import ShopifyCallback from "@/pages/ShopifyCallback";
 import Settings from "@/pages/Settings";
 import OrderSettings from "@/pages/OrderSettings";
 import GeneralSettings from "@/pages/GeneralSettings";
-import SpamSettings from "@/pages/SpamSettings";
+
 import PlansSettings from "@/pages/PlansSettings";
 import CurrencySettings from "@/pages/CurrencySettings";
 import QuantityOffers from "@/pages/QuantityOffers";
 import AdvertisingTracking from "@/pages/AdvertisingTracking";
 import EnhancedMyStores from "@/pages/EnhancedMyStores";
+import SpamSettings from "@/pages/SpamSettings";
 
 // Components
 import { Toaster } from "@/components/ui/toaster";
@@ -157,6 +158,7 @@ function AppRoutes() {
       <Route path="/settings/orders" element={<OrderSettings />} />
       <Route path="/settings/general" element={<GeneralSettings />} />
       <Route path="/settings/spam" element={<SpamSettings />} />
+
       <Route path="/settings/plans" element={<PlansSettings />} />
       <Route path="/settings/currency" element={<CurrencySettings />} />
       <Route path="/quantity-offers" element={<QuantityOffers />} />
@@ -168,13 +170,6 @@ function AppRoutes() {
 }
 
 function App() {
-  // تهيئة حماية البريد العشوائي
-  React.useEffect(() => {
-    initializeSpamProtection({
-      protectForms: true,
-      protectPage: false // لا نريد حماية كل الصفحات، فقط النماذج
-    });
-  }, []);
 
   // معالجة نجاح الاتصال من Shopify - مرة واحدة فقط
   React.useEffect(() => {
