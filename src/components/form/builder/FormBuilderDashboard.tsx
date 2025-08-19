@@ -337,7 +337,7 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
                   {language === 'ar' ? 'المنتجات' : 'Products'}
                 </TableHead>
                 <TableHead className={language === 'ar' ? 'text-right' : ''}>
-                  {language === 'ar' ? 'البلد' : 'Country'}
+                  {language === 'ar' ? 'علامة البلد' : 'Country Tag'}
                 </TableHead>
                 <TableHead className="text-right">
                   {language === 'ar' ? 'إجراءات' : 'Actions'}
@@ -437,22 +437,23 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
                      <TableCell className={language === 'ar' ? 'text-right' : ''}>
                        <CountrySelector
                          value={form.country || 'SA'}
+                         language={language}
                          onValueChange={async (countryCode) => {
                            try {
                              const success = await formManagementService.saveForm(form.id, { country: countryCode });
                              if (success) {
-                               toast.success(language === 'ar' ? 'تم تحديث البلد بنجاح' : 'Country updated successfully');
-                               setFormList(prevForms => 
-                                 prevForms.map(f => 
+                               toast.success(language === 'ar' ? 'تم تحديث علامة البلد بنجاح' : 'Country tag updated successfully');
+                               setFormList(prevForms =>
+                                 prevForms.map(f =>
                                    f.id === form.id ? { ...f, country: countryCode } : f
                                  )
                                );
                              } else {
-                               toast.error(language === 'ar' ? 'فشل في تحديث البلد' : 'Failed to update country');
+                               toast.error(language === 'ar' ? 'فشل في تحديث علامة البلد' : 'Failed to update country tag');
                              }
                            } catch (error) {
-                             console.error('خطأ في تحديث البلد:', error);
-                             toast.error(language === 'ar' ? 'فشل في تحديث البلد' : 'Failed to update country');
+                             console.error('خطأ في تحديث علامة البلد:', error);
+                             toast.error(language === 'ar' ? 'فشل في تحديث علامة البلد' : 'Failed to update country tag');
                            }
                          }}
                        />
