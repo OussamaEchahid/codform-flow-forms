@@ -271,9 +271,7 @@ const AppSidebar = () => {
               </NavLink>
             </li>
             
-            <li>
-              
-            </li>
+
           </ul>
         </nav>
       </div>
