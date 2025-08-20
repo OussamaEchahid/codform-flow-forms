@@ -16,7 +16,10 @@ serve(async (req) => {
   console.log(`[${requestId}] Manage blocked items request started`)
 
   try {
-    const { action, ...params } = await req.json()
+    const body = await req.json()
+    const { action, ...params } = body
+    
+    console.log(`[${requestId}] Request body:`, body)
     
     if (!action) {
       throw new Error('action is required')
@@ -47,31 +50,49 @@ serve(async (req) => {
           throw new Error('Invalid IP address format')
         }
 
+        console.log(`[${requestId}] Looking for store: ${shop_id}`)
+        
         // الحصول على user_id من جدول shopify_stores
         const { data: ipStoreData, error: ipStoreError } = await supabaseClient
           .from('shopify_stores')
-          .select('user_id')
+          .select('user_id, shop')
           .eq('shop', shop_id)
           .eq('is_active', true)
-          .single()
+          .maybeSingle()
 
-        if (ipStoreError || !ipStoreData) {
-          throw new Error('Store not found or not active')
+        console.log(`[${requestId}] Store query result:`, { ipStoreData, ipStoreError })
+
+        if (ipStoreError) {
+          console.error(`[${requestId}] Store query error:`, ipStoreError)
+          throw new Error(`Database error: ${ipStoreError.message}`)
         }
 
-      result = await supabaseClient
-        .from('blocked_ips')
-        .upsert({
-          shop_id: shop_id,
-          user_id: ipStoreData.user_id,
-          ip_address: ip_address,
-          reason: reason || 'غير محدد',
-          redirect_url: redirect_url || '/blocked',
-          is_active: true
-        }, {
-          onConflict: 'ip_address,shop_id',
-          ignoreDuplicates: false
-        })
+        if (!ipStoreData) {
+          // جلب جميع المتاجر المتاحة للتشخيص
+          const { data: allStores } = await supabaseClient
+            .from('shopify_stores')
+            .select('shop, is_active')
+            .limit(10)
+          
+          console.error(`[${requestId}] Store not found. Available stores:`, allStores)
+          throw new Error(`Store '${shop_id}' not found or not active`)
+        }
+
+        console.log(`[${requestId}] Adding IP ${ip_address} for store ${shop_id}`)
+
+        result = await supabaseClient
+          .from('blocked_ips')
+          .upsert({
+            shop_id: shop_id,
+            user_id: ipStoreData.user_id,
+            ip_address: ip_address,
+            reason: reason || 'غير محدد',
+            redirect_url: redirect_url || '/blocked',
+            is_active: true
+          }, {
+            onConflict: 'ip_address,shop_id',
+            ignoreDuplicates: false
+          })
         
         break
 

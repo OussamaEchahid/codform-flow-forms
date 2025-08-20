@@ -142,6 +142,14 @@ const SecuritySettings = () => {
       }
 
       console.log('🔍 Current shop value for IP:', shop);
+      console.log('🔍 Shop type:', typeof shop);
+      console.log('🔍 Request payload:', {
+        action: 'add_ip',
+        shop_id: shop,
+        ip_address: newIP.trim(),
+        reason: newIPReason.trim() || 'غير محدد',
+        redirect_url: newIPRedirect.trim() || '/blocked'
+      });
 
       // إضافة IP محظور
       const { data: addResponse, error } = await supabase.functions.invoke('manage-blocked-items', {
