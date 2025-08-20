@@ -80,19 +80,38 @@ serve(async (req) => {
 
         console.log(`[${requestId}] Adding IP ${ip_address} for store ${shop_id}`)
 
-        result = await supabaseClient
+        // التحقق من وجود IP مسبقاً
+        const { data: existingIP } = await supabaseClient
           .from('blocked_ips')
-          .upsert({
-            shop_id: shop_id,
-            user_id: ipStoreData.user_id,
-            ip_address: ip_address,
-            reason: reason || 'غير محدد',
-            redirect_url: redirect_url || '/blocked',
-            is_active: true
-          }, {
-            onConflict: 'ip_address,shop_id',
-            ignoreDuplicates: false
-          })
+          .select('id, is_active')
+          .eq('ip_address', ip_address)
+          .eq('shop_id', shop_id)
+          .maybeSingle()
+
+        if (existingIP) {
+          // تحديث IP موجود
+          result = await supabaseClient
+            .from('blocked_ips')
+            .update({
+              reason: reason || 'غير محدد',
+              redirect_url: redirect_url || '/blocked',
+              is_active: true,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', existingIP.id)
+        } else {
+          // إدراج IP جديد
+          result = await supabaseClient
+            .from('blocked_ips')
+            .insert({
+              shop_id: shop_id,
+              user_id: ipStoreData.user_id,
+              ip_address: ip_address,
+              reason: reason || 'غير محدد',
+              redirect_url: redirect_url || '/blocked',
+              is_active: true
+            })
+        }
         
         break
 
