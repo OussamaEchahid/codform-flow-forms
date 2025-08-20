@@ -36,7 +36,7 @@ serve(async (req) => {
     switch (action) {
       case 'add_ip':
         const { shop_id, ip_address, reason, redirect_url } = params
-        
+
         if (!shop_id || !ip_address) {
           throw new Error('shop_id and ip_address are required')
         }
@@ -47,10 +47,23 @@ serve(async (req) => {
           throw new Error('Invalid IP address format')
         }
 
+        // الحصول على user_id من جدول shopify_stores
+        const { data: ipStoreData, error: ipStoreError } = await supabaseClient
+          .from('shopify_stores')
+          .select('user_id')
+          .eq('shop', shop_id)
+          .eq('is_active', true)
+          .single()
+
+        if (ipStoreError || !ipStoreData) {
+          throw new Error('Store not found or not active')
+        }
+
         result = await supabaseClient
           .from('blocked_ips')
           .insert({
             shop_id: shop_id,
+            user_id: ipStoreData.user_id,
             ip_address: ip_address,
             reason: reason || 'غير محدد',
             redirect_url: redirect_url || '/blocked',
