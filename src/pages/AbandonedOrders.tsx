@@ -11,16 +11,30 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { 
+import {
   Search,
   FileDown,
   ListFilter,
   Clock,
   History,
-  ShoppingCart
+  ShoppingCart,
+  Trash2,
+  Download,
+  RotateCcw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 // بيانات فارغة للطلبات المتروكة (سيتم استبدالها ببيانات حقيقية)
 const sampleAbandonedCarts = [];
@@ -31,6 +45,9 @@ const AbandonedOrders = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [abandonedCarts, setAbandonedCarts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedCarts, setSelectedCarts] = useState(new Set());
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
   
   // Allow access if either authenticated with user or connected with Shopify
   const hasAccess = !!user || shopifyConnected;
@@ -108,6 +125,153 @@ const AbandonedOrders = () => {
     }
   };
 
+  // Handle individual cart selection
+  const handleSelectCart = (cartId, checked) => {
+    const newSelected = new Set(selectedCarts);
+    if (checked) {
+      newSelected.add(cartId);
+    } else {
+      newSelected.delete(cartId);
+    }
+    setSelectedCarts(newSelected);
+  };
+
+  // Handle select all carts
+  const handleSelectAll = (checked) => {
+    if (checked) {
+      const allCartIds = new Set(filteredCarts.map(cart => cart.id));
+      setSelectedCarts(allCartIds);
+    } else {
+      setSelectedCarts(new Set());
+    }
+  };
+
+  // Handle bulk delete
+  const handleBulkDelete = async () => {
+    if (selectedCarts.size === 0) return;
+
+    try {
+      setLoading(true);
+
+      // Delete selected carts from database
+      for (const cartId of selectedCarts) {
+        const { error } = await supabase
+          .from('abandoned_carts')
+          .delete()
+          .eq('id', cartId);
+
+        if (error) {
+          console.error(`Failed to delete cart ${cartId}:`, error);
+        }
+      }
+
+      // Refresh carts list
+      window.location.reload();
+
+      // Clear selection
+      setSelectedCarts(new Set());
+      setShowDeleteConfirm(false);
+
+      console.log(`Successfully deleted ${selectedCarts.size} abandoned carts`);
+    } catch (error) {
+      console.error('Error deleting carts:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle cart recovery
+  const handleRecoverCart = async (cart) => {
+    try {
+      setLoading(true);
+
+      // Create a new order from the abandoned cart
+      const orderData = {
+        customer_name: cart.customer_name || cart.customer_email,
+        customer_email: cart.customer_email,
+        customer_phone: cart.customer_phone,
+        total_amount: cart.total_value || 0,
+        currency: cart.currency || 'USD',
+        status: 'pending',
+        items: cart.cart_items || [],
+        shop_id: actualShop,
+        recovered_from_cart: cart.id,
+        created_at: new Date().toISOString()
+      };
+
+      // Insert new order
+      const { data: newOrder, error: orderError } = await supabase
+        .from('orders')
+        .insert([orderData])
+        .select()
+        .single();
+
+      if (orderError) {
+        console.error('Error creating order from cart:', orderError);
+        return;
+      }
+
+      // Mark cart as recovered (or delete it)
+      const { error: updateError } = await supabase
+        .from('abandoned_carts')
+        .update({ status: 'recovered', recovered_at: new Date().toISOString() })
+        .eq('id', cart.id);
+
+      if (updateError) {
+        console.error('Error updating cart status:', updateError);
+      }
+
+      // Refresh the page to show updated data
+      window.location.reload();
+
+      console.log('Cart recovered successfully:', newOrder);
+    } catch (error) {
+      console.error('Error recovering cart:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle export functionality
+  const handleExport = () => {
+    try {
+      const dataToExport = selectedCarts.size > 0
+        ? filteredCarts.filter(cart => selectedCarts.has(cart.id))
+        : filteredCarts;
+
+      // Create CSV content
+      const headers = ['Customer', 'Email', 'Phone', 'Date', 'Items', 'Total', 'Currency', 'Status'];
+      const csvContent = [
+        headers.join(','),
+        ...dataToExport.map(cart => [
+          `"${cart.customer_name || cart.customer_email || ''}"`,
+          `"${cart.customer_email || ''}"`,
+          cart.customer_phone || '',
+          new Date(cart.created_at).toLocaleDateString(),
+          Array.isArray(cart.cart_items) ? cart.cart_items.length : 1,
+          cart.total_value || 0,
+          cart.currency || 'USD',
+          'Abandoned'
+        ].join(','))
+      ].join('\n');
+
+      // Download CSV file
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `abandoned_carts_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      console.log(`Exported ${dataToExport.length} abandoned carts to CSV`);
+    } catch (error) {
+      console.error('Error exporting carts:', error);
+    }
+  };
+
   // Use real data or fallback to sample data
   const cartsData = abandonedCarts.length > 0 ? abandonedCarts : sampleAbandonedCarts;
 
@@ -127,11 +291,32 @@ const AbandonedOrders = () => {
           </h1>
           
           <div className="flex space-x-2 rtl:space-x-reverse">
-            <Button variant="outline" size="sm" className="flex items-center gap-1">
-              <FileDown className="h-4 w-4" />
+            {selectedCarts.size > 0 && (
+              <Button
+                variant="destructive"
+                size="sm"
+                className="flex items-center gap-2"
+                onClick={() => setShowDeleteConfirm(true)}
+              >
+                <Trash2 className="h-4 w-4" />
+                {language === 'ar' ? `حذف (${selectedCarts.size})` : `Delete (${selectedCarts.size})`}
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-1"
+              onClick={handleExport}
+            >
+              <Download className="h-4 w-4" />
               {language === 'ar' ? 'تصدير' : 'Export'}
             </Button>
-            <Button variant="outline" size="sm" className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-1"
+              onClick={() => setShowFilters(!showFilters)}
+            >
               <ListFilter className="h-4 w-4" />
               {language === 'ar' ? 'تصفية' : 'Filter'}
             </Button>
@@ -142,14 +327,26 @@ const AbandonedOrders = () => {
         <div className="bg-white p-4 rounded-lg shadow mb-6">
           <div className="relative max-w-md">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-            <input 
-              type="text" 
+            <input
+              type="text"
               placeholder={language === 'ar' ? 'بحث عن طلب متروك...' : 'Search abandoned carts...'}
               className="pl-10 pr-4 py-2 w-full border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
+
+          {/* Selection info */}
+          {selectedCarts.size > 0 && (
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="text-sm text-blue-800">
+                {language === 'ar'
+                  ? `تم اختيار ${selectedCarts.size} من ${filteredCarts.length} سلة متروكة`
+                  : `${selectedCarts.size} of ${filteredCarts.length} abandoned carts selected`
+                }
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Stats Cards */}
@@ -203,6 +400,13 @@ const AbandonedOrders = () => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-[50px]">
+                    <Checkbox
+                      checked={selectedCarts.size === filteredCarts.length && filteredCarts.length > 0}
+                      onCheckedChange={handleSelectAll}
+                      aria-label={language === 'ar' ? 'تحديد الكل' : 'Select all'}
+                    />
+                  </TableHead>
                   <TableHead>{language === 'ar' ? 'العميل' : 'Customer'}</TableHead>
                   <TableHead>{language === 'ar' ? 'الهاتف' : 'Phone'}</TableHead>
                   <TableHead>{language === 'ar' ? 'التاريخ' : 'Date'}</TableHead>
@@ -216,6 +420,13 @@ const AbandonedOrders = () => {
                 {filteredCarts.length > 0 ? (
                   filteredCarts.map((cart) => (
                     <TableRow key={cart.id} className="hover:bg-muted/30">
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedCarts.has(cart.id)}
+                          onCheckedChange={(checked) => handleSelectCart(cart.id, checked)}
+                          aria-label={language === 'ar' ? 'اختيار السلة' : 'Select cart'}
+                        />
+                      </TableCell>
                       <TableCell className="font-medium">
                         <div className="flex flex-col">
                           <span>{cart.customer_name || cart.customer_email || 'غير محدد'}</span>
@@ -243,7 +454,14 @@ const AbandonedOrders = () => {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Button variant="default" size="sm" className="bg-purple-600 hover:bg-purple-700">
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="bg-purple-600 hover:bg-purple-700 flex items-center gap-1"
+                          onClick={() => handleRecoverCart(cart)}
+                          disabled={loading}
+                        >
+                          <RotateCcw className="h-4 w-4" />
                           {language === 'ar' ? 'استرداد' : 'Recover'}
                         </Button>
                       </TableCell>
@@ -251,9 +469,9 @@ const AbandonedOrders = () => {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-6">
-                      {searchTerm ? 
-                        (language === 'ar' ? 'لا توجد نتائج للبحث' : 'No search results found') : 
+                    <TableCell colSpan={8} className="text-center py-6">
+                      {searchTerm ?
+                        (language === 'ar' ? 'لا توجد نتائج للبحث' : 'No search results found') :
                         (language === 'ar' ? 'لا توجد سلات متروكة حالياً' : 'No abandoned carts available yet')}
                     </TableCell>
                   </TableRow>
@@ -263,6 +481,34 @@ const AbandonedOrders = () => {
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {language === 'ar' ? 'تأكيد الحذف' : 'Confirm Delete'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {language === 'ar'
+                ? `هل أنت متأكد من حذف ${selectedCarts.size} سلة متروكة؟ لا يمكن التراجع عن هذا الإجراء.`
+                : `Are you sure you want to delete ${selectedCarts.size} abandoned cart(s)? This action cannot be undone.`
+              }
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>
+              {language === 'ar' ? 'إلغاء' : 'Cancel'}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDelete}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {language === 'ar' ? 'حذف' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
