@@ -292,6 +292,38 @@ const OrdersList = () => {
     }
   };
 
+  // Handle single order delete
+  const handleDeleteOrder = async (orderId: string) => {
+    try {
+      setLoading(true);
+
+      // Use admin function to delete single order
+      const { data, error } = await supabase.rpc('delete_orders_admin' as any, {
+        order_ids: [orderId]
+      });
+
+      if (error) {
+        console.error('Error deleting order:', error);
+        alert(`خطأ في حذف الطلب: ${error.message}`);
+      } else if (data) {
+        console.log('Delete result:', data);
+        if (data.success) {
+          alert(`تم حذف الطلب بنجاح`);
+          // Refresh orders list
+          window.location.reload();
+        } else {
+          alert(`خطأ في حذف الطلب: ${data.error}`);
+        }
+      }
+
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      alert(`خطأ غير متوقع: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Handle bulk delete
   const handleBulkDelete = async () => {
     if (selectedOrders.size === 0) return;
@@ -299,43 +331,33 @@ const OrdersList = () => {
     try {
       setLoading(true);
 
-      // Delete selected orders using SQL function
+      // Delete selected orders using admin function that bypasses RLS
       const orderIds = Array.from(selectedOrders);
-      const { data, error } = await supabase.rpc('delete_orders' as any, {
+      const { data, error } = await supabase.rpc('delete_orders_admin' as any, {
         order_ids: orderIds
       });
 
       if (error) {
         console.error('Error deleting orders:', error);
-        // Fallback: try individual deletion using raw SQL
-        for (const orderId of selectedOrders) {
-          try {
-            const { error: deleteError } = await supabase
-              .from('orders' as any)
-              .delete()
-              .eq('id', orderId);
-
-            if (deleteError) {
-              console.error(`Failed to delete order ${orderId}:`, deleteError);
-            }
-          } catch (err) {
-            console.error(`Failed to delete order ${orderId}:`, err);
-          }
-        }
+        alert(`خطأ في حذف الطلبات: ${error.message}`);
       } else if (data) {
         console.log('Delete result:', data);
+        if (data.success) {
+          alert(`تم حذف ${data.deleted_count} طلب بنجاح`);
+          // Refresh orders list
+          window.location.reload();
+        } else {
+          alert(`خطأ في حذف الطلبات: ${data.error}`);
+        }
       }
-
-      // Refresh orders list
-      window.location.reload();
 
       // Clear selection
       setSelectedOrders(new Set());
       setShowDeleteConfirm(false);
 
-      console.log(`Successfully processed deletion of ${selectedOrders.size} orders`);
     } catch (error) {
       console.error('Error deleting orders:', error);
+      alert(`خطأ غير متوقع: ${error.message}`);
     } finally {
       setLoading(false);
     }

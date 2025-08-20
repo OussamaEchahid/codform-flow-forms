@@ -153,28 +153,33 @@ const AbandonedOrders = () => {
     try {
       setLoading(true);
 
-      // Delete selected carts from database
-      for (const cartId of selectedCarts) {
-        const { error } = await supabase
-          .from('abandoned_carts')
-          .delete()
-          .eq('id', cartId);
+      // Delete selected carts using admin function that bypasses RLS
+      const cartIds = Array.from(selectedCarts);
+      const { data, error } = await supabase.rpc('delete_abandoned_carts_admin' as any, {
+        cart_ids: cartIds
+      });
 
-        if (error) {
-          console.error(`Failed to delete cart ${cartId}:`, error);
+      if (error) {
+        console.error('Error deleting carts:', error);
+        alert(`خطأ في حذف السلال: ${error.message}`);
+      } else if (data) {
+        console.log('Delete result:', data);
+        if (data.success) {
+          alert(`تم حذف ${data.deleted_count} سلة بنجاح`);
+          // Refresh carts list
+          window.location.reload();
+        } else {
+          alert(`خطأ في حذف السلال: ${data.error}`);
         }
       }
-
-      // Refresh carts list
-      window.location.reload();
 
       // Clear selection
       setSelectedCarts(new Set());
       setShowDeleteConfirm(false);
 
-      console.log(`Successfully deleted ${selectedCarts.size} abandoned carts`);
     } catch (error) {
       console.error('Error deleting carts:', error);
+      alert(`خطأ غير متوقع: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -185,48 +190,32 @@ const AbandonedOrders = () => {
     try {
       setLoading(true);
 
-      // Create a new order from the abandoned cart
-      const orderData = {
-        customer_name: cart.customer_name || cart.customer_email,
-        customer_email: cart.customer_email,
-        customer_phone: cart.customer_phone,
-        total_amount: cart.total_value || 0,
-        currency: cart.currency || 'USD',
-        status: 'pending',
-        items: cart.cart_items || [],
-        shop_id: actualShop,
-        // Note: removed recovered_from_cart as it doesn't exist in orders table
-        created_at: new Date().toISOString()
-      };
+      // Use the SQL function to recover the cart
+      const { data, error } = await supabase.rpc('recover_abandoned_cart' as any, {
+        cart_id: cart.id,
+        shop_id_param: actualShop
+      });
 
-      // Insert new order using any type to bypass TypeScript issues
-      const { data: newOrder, error: orderError } = await supabase
-        .from('orders' as any)
-        .insert([orderData])
-        .select()
-        .single();
-
-      if (orderError) {
-        console.error('Error creating order from cart:', orderError);
+      if (error) {
+        console.error('Error recovering cart:', error);
+        alert(`خطأ في استرداد السلة: ${error.message}`);
         return;
       }
 
-      // Mark cart as recovered (or delete it)
-      const { error: updateError } = await supabase
-        .from('abandoned_carts')
-        .update({ status: 'recovered', recovered_at: new Date().toISOString() })
-        .eq('id', cart.id);
-
-      if (updateError) {
-        console.error('Error updating cart status:', updateError);
+      if (data) {
+        console.log('Recovery result:', data);
+        if (data.success) {
+          alert(`تم استرداد السلة بنجاح وإنشاء طلب جديد`);
+          // Refresh the page to show updated data
+          window.location.reload();
+        } else {
+          alert(`خطأ في استرداد السلة: ${data.error}`);
+        }
       }
 
-      // Refresh the page to show updated data
-      window.location.reload();
-
-      console.log('Cart recovered successfully:', newOrder);
     } catch (error) {
       console.error('Error recovering cart:', error);
+      alert(`خطأ غير متوقع: ${error.message}`);
     } finally {
       setLoading(false);
     }
