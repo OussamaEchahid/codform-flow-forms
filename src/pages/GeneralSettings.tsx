@@ -11,6 +11,7 @@ import SettingsLayout from "@/components/layout/SettingsLayout";
 import { useI18n } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
 import { AuthHelper } from "@/utils/auth-helper";
+import { useAuth } from "@/components/layout/AuthProvider";
 
 const GeneralSettings = () => {
   const { t } = useI18n();
@@ -53,6 +54,7 @@ const GeneralSettings = () => {
         console.log('📝 No settings found, will create defaults on first save');
       } else if (error) {
         console.error('❌ Error loading settings:', error);
+        console.error('❌ Error details:', { code: error.code, message: error.message, details: error.details });
       }
     } catch (error) {
       console.error('❌ Exception loading settings:', error);
@@ -87,10 +89,13 @@ const GeneralSettings = () => {
 
       if (error) {
         console.error('❌ Error saving settings:', error);
+        console.error('❌ Error details:', { code: error.code, message: error.message, details: error.details });
         alert('خطأ في حفظ الإعدادات: ' + error.message);
       } else {
         console.log('✅ Settings saved successfully');
         alert('تم حفظ الإعدادات بنجاح');
+        // إعادة تحميل الإعدادات للتأكد من الحفظ
+        await loadSettings();
       }
     } catch (error) {
       console.error('❌ Exception saving settings:', error);
