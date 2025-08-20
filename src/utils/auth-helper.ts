@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 export class AuthHelper {
   // المستخدم الافتراضي للنظام
-  private static readonly DEFAULT_USER_ID = '36d7eb85-0c45-4b4f-bea1-a9cb732ca893';
+  private static readonly DEFAULT_USER_ID = 'a7a96524-0208-441b-845b-5e30640d003d';
   
   /**
    * الحصول على user_id المناسب

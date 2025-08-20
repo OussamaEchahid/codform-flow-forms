@@ -16,6 +16,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { CountrySelector } from '@/components/ui/country-selector';
 import { COUNTRIES_ALL } from '@/lib/constants/countries-all';
 import { BlockedIP, BlockedCountry } from '@/lib/shopify/types';
+import { AuthHelper } from '@/utils/auth-helper';
 
 interface SecurityStats {
   blocked_ips_count: number;
@@ -83,6 +84,7 @@ const SecuritySettings = () => {
       const { data: countriesData, error: countriesError } = await (supabase as any)
         .from('blocked_countries')
         .select('*')
+        .eq('user_id', AuthHelper.getCurrentUserId())
         .eq('shop_id', shop)
         .eq('is_active', true)
         .order('created_at', { ascending: false });
@@ -99,6 +101,7 @@ const SecuritySettings = () => {
       const { data: ipsData, error: ipsError } = await (supabase as any)
         .from('blocked_ips')
         .select('*')
+        .eq('user_id', AuthHelper.getCurrentUserId())
         .eq('shop_id', shop)
         .eq('is_active', true)
         .order('created_at', { ascending: false });
@@ -177,6 +180,7 @@ const SecuritySettings = () => {
       const { data: newIPData, error: insertError } = await (supabase as any)
         .from('blocked_ips')
         .insert({
+          user_id: AuthHelper.getCurrentUserId(),
           shop_id: shop,
           ip_address: trimmedIP,
           reason: newIPReason.trim() || 'غير محدد',
@@ -222,6 +226,7 @@ const SecuritySettings = () => {
         .from('blocked_ips')
         .delete()
         .eq('id', ipId)
+        .eq('user_id', AuthHelper.getCurrentUserId())
         .eq('shop_id', shop);
 
       if (error) {
@@ -281,16 +286,21 @@ const SecuritySettings = () => {
       }
 
       // إضافة الدولة إلى قاعدة البيانات
+      const insertData = {
+        user_id: AuthHelper.getCurrentUserId(),
+        shop_id: shop,
+        country_code: selectedCountry.toUpperCase(),
+        country_name: countryInfo.name,
+        reason: newCountryReason.trim() || 'غير محدد',
+        redirect_url: newCountryRedirect.trim() || '/blocked',
+        is_active: true
+      };
+
+      console.log('🔍 Inserting country data:', insertData);
+
       const { data: newCountry, error: insertError } = await (supabase as any)
         .from('blocked_countries')
-        .insert({
-          shop_id: shop,
-          country_code: selectedCountry.toUpperCase(),
-          country_name: countryInfo.name,
-          reason: newCountryReason.trim() || 'غير محدد',
-          redirect_url: newCountryRedirect.trim() || '/blocked',
-          is_active: true
-        })
+        .insert(insertData)
         .select()
         .single();
 
@@ -330,6 +340,7 @@ const SecuritySettings = () => {
         .from('blocked_countries')
         .delete()
         .eq('id', countryId)
+        .eq('user_id', AuthHelper.getCurrentUserId())
         .eq('shop_id', shop);
 
       if (error) {
