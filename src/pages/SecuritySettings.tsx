@@ -85,15 +85,15 @@ const SecuritySettings = () => {
     try {
       // تحميل عناوين IP المحظورة باستخدام Edge Function
       const { data: ipsData, error: ipsError } = await supabase.functions.invoke('get-blocked-data', {
-        body: { type: 'ips', shop_id: shop }
+        body: { type: 'ips', shop_id: shop.shop_domain }
       });
-      
+
       if (ipsError) console.error('Error loading IPs:', ipsError);
       setBlockedIPs(ipsData?.data || []);
 
       // تحميل الدول المحظورة باستخدام Edge Function
       const { data: countriesData, error: countriesError } = await supabase.functions.invoke('get-blocked-data', {
-        body: { type: 'countries', shop_id: shop }
+        body: { type: 'countries', shop_id: shop.shop_domain }
       });
       
       if (countriesError) console.error('Error loading countries:', countriesError);
@@ -125,7 +125,7 @@ const SecuritySettings = () => {
       const { data, error } = await supabase.functions.invoke('manage-blocked-items', {
         body: {
           action: 'add_ip',
-          shop_id: shop,
+          shop_id: shop.shop_domain,
           ip_address: newIP.trim(),
           reason: newIPReason.trim() || 'غير محدد',
           redirect_url: newIPRedirect.trim() || null
@@ -194,7 +194,7 @@ const SecuritySettings = () => {
       const { data, error } = await supabase.functions.invoke('manage-blocked-items', {
         body: {
           action: 'add_country',
-          shop_id: shop,
+          shop_id: shop.shop_domain,
           country_code: selectedCountry,
           country_name: countryInfo.name,
           reason: newCountryReason.trim() || 'غير محدد',
@@ -319,7 +319,7 @@ const SecuritySettings = () => {
     setScriptLoading(true);
     try {
       // إنتاج السكريپت محلياً بدلاً من استخدام Edge Function
-      const script = generateShopifyProtectionScript(shop);
+      const script = generateShopifyProtectionScript(shop.shop_domain);
       setProtectionScript(script);
 
       toast({
