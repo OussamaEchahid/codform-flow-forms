@@ -139,6 +139,8 @@ const SecuritySettings = () => {
         return;
       }
 
+      console.log('🔍 Current shop value for IP:', shop);
+
       // الحصول على معلومات المتجر من قاعدة البيانات
       const { data: storeData, error: storeError } = await supabase
         .from('shopify_stores')
@@ -147,7 +149,10 @@ const SecuritySettings = () => {
         .eq('is_active', true)
         .single();
 
+      console.log('📊 Store query result for IP:', { storeData, storeError });
+
       if (storeError || !storeData) {
+        console.error('❌ Store not found for IP. Available stores:', await supabase.from('shopify_stores').select('shop, is_active'));
         throw new Error('لم يتم العثور على معلومات المتجر');
       }
 
@@ -219,6 +224,8 @@ const SecuritySettings = () => {
     if (!countryInfo) return;
 
     try {
+      console.log('🔍 Current shop value:', shop);
+
       // الحصول على معلومات المتجر من قاعدة البيانات
       const { data: storeData, error: storeError } = await supabase
         .from('shopify_stores')
@@ -227,7 +234,10 @@ const SecuritySettings = () => {
         .eq('is_active', true)
         .single();
 
+      console.log('📊 Store query result:', { storeData, storeError });
+
       if (storeError || !storeData) {
+        console.error('❌ Store not found. Available stores:', await supabase.from('shopify_stores').select('shop, is_active'));
         throw new Error('لم يتم العثور على معلومات المتجر');
       }
 
