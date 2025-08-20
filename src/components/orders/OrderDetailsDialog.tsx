@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -14,16 +14,22 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { useI18n } from '@/lib/i18n';
-import { 
-  RotateCcw, 
-  Save, 
-  Package, 
-  MapPin, 
-  Mail, 
-  Phone, 
-  Globe, 
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from '@/integrations/supabase/client';
+import {
+  RotateCcw,
+  Save,
+  Package,
+  MapPin,
+  Mail,
+  Phone,
+  Globe,
   Truck,
-  Calculator
+  Calculator,
+  User,
+  CreditCard,
+  FileText,
+  X
 } from 'lucide-react';
 
 interface OrderDetailsDialogProps {
@@ -40,25 +46,77 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
   onSave
 }) => {
   const { language } = useI18n();
+  const { toast } = useToast();
+
+  // State for editable fields
+  const [orderStatus, setOrderStatus] = useState('');
+  const [orderNotes, setOrderNotes] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [originalOrder, setOriginalOrder] = useState(null);
+
+  // Initialize state when order changes
+  useEffect(() => {
+    if (order) {
+      setOrderStatus(order.status || 'pending');
+      setOrderNotes(order.notes || '');
+      setOriginalOrder({ ...order });
+    }
+  }, [order]);
 
   if (!order) return null;
 
-  const handleSave = () => {
-    // Handle save logic here
-    if (onSave) {
-      onSave(order);
+  const handleSave = async () => {
+    setIsLoading(true);
+    try {
+      // Update order in database
+      const { error } = await supabase
+        .from('orders')
+        .update({
+          status: orderStatus,
+          notes: orderNotes,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', order.id);
+
+      if (error) throw error;
+
+      toast({
+        title: language === 'ar' ? 'تم الحفظ بنجاح' : 'Saved Successfully',
+        description: language === 'ar' ? 'تم حفظ تغييرات الطلب' : 'Order changes have been saved',
+      });
+
+      // Call parent onSave callback
+      if (onSave) {
+        onSave({ ...order, status: orderStatus, notes: orderNotes });
+      }
+
+      onClose();
+    } catch (error) {
+      console.error('Error saving order:', error);
+      toast({
+        title: language === 'ar' ? 'خطأ في الحفظ' : 'Save Error',
+        description: language === 'ar' ? 'حدث خطأ أثناء حفظ التغييرات' : 'An error occurred while saving changes',
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
     }
-    onClose();
   };
 
   const handleReset = () => {
-    // Handle reset logic here
-    console.log('Reset order details');
+    if (originalOrder) {
+      setOrderStatus(originalOrder.status || 'pending');
+      setOrderNotes(originalOrder.notes || '');
+      toast({
+        title: language === 'ar' ? 'تم الإعادة' : 'Reset Complete',
+        description: language === 'ar' ? 'تم إعادة تعيين القيم الأصلية' : 'Original values have been restored',
+      });
+    }
   };
 
   // Parse items if it's a string
-  const orderItems = typeof order.items === 'string' 
-    ? JSON.parse(order.items || '[]') 
+  const orderItems = typeof order.items === 'string'
+    ? JSON.parse(order.items || '[]')
     : (Array.isArray(order.items) ? order.items : []);
 
   // Parse addresses if they're strings
@@ -70,273 +128,364 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
     ? JSON.parse(order.billing_address || '{}')
     : (order.billing_address || {});
 
-  // Calculate totals
-  const subtotal = orderItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const shippingCost = 0; // Add shipping cost calculation here
-  const extras = 0; // Add extras calculation here
-  const total = order.total_amount || subtotal + shippingCost + extras;
+  // Calculate totals with proper discount handling
+  const subtotal = orderItems.reduce((sum, item) => {
+    const price = parseFloat(item.price || 0);
+    const quantity = parseInt(item.quantity || 1);
+    return sum + (price * quantity);
+  }, 0);
+
+  const shippingCost = parseFloat(order.shipping_cost || 0);
+  const extras = parseFloat(order.extras || 0);
+  const discount = parseFloat(order.discount || 0);
+  const total = parseFloat(order.total_amount || (subtotal + shippingCost + extras - discount));
+
+  // Get status badge color
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'processing': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'delivered': return 'bg-green-100 text-green-800 border-green-200';
+      case 'cancelled': return 'bg-red-100 text-red-800 border-red-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader className="border-b pb-4">
+      <DialogContent className="max-w-6xl max-h-[95vh] overflow-hidden flex flex-col" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+        <DialogHeader className="border-b pb-4 flex-shrink-0">
           <div className="flex justify-between items-start">
-            <div>
-              <DialogTitle className="text-xl font-semibold">
+            <div className="flex items-center gap-3">
+              <DialogTitle className="text-2xl font-bold">
                 {language === 'ar' ? 'تفاصيل الطلب' : 'Order Details'}
               </DialogTitle>
+              <Badge className={`${getStatusColor(orderStatus)} border`}>
+                {language === 'ar' ?
+                  (orderStatus === 'pending' ? 'قيد الانتظار' :
+                   orderStatus === 'processing' ? 'قيد المعالجة' :
+                   orderStatus === 'delivered' ? 'تم التوصيل' :
+                   orderStatus === 'cancelled' ? 'ملغي' : orderStatus) :
+                  orderStatus.charAt(0).toUpperCase() + orderStatus.slice(1)
+                }
+              </Badge>
             </div>
-            <div className="text-right text-sm text-muted-foreground">
-              <div className="grid grid-cols-3 gap-4 text-right">
-                <div>
-                  <span className="font-medium">{language === 'ar' ? 'رقم الطلب' : 'Order ID'}</span>
-                  <div className="font-mono text-lg">#{order.order_number || order.id}</div>
-                </div>
-                <div>
-                  <span className="font-medium">{language === 'ar' ? 'تاريخ الإنشاء' : 'Created At'}</span>
-                  <div className="text-lg">
-                    {new Date(order.created_at).toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US')} {' '}
-                    {new Date(order.created_at).toLocaleTimeString(language === 'ar' ? 'ar-SA' : 'en-US', { hour: '2-digit', minute: '2-digit' })}
-                  </div>
-                </div>
-                <div>
-                  <span className="font-medium">IP</span>
-                  <div className="text-lg">196.65.252.43</div>
-                </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              className="h-8 w-8 p-0"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {/* Order Summary Header */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4 p-4 bg-gray-50 rounded-lg">
+            <div className="text-center">
+              <div className="text-sm text-muted-foreground">{language === 'ar' ? 'رقم الطلب' : 'Order ID'}</div>
+              <div className="font-mono font-bold text-lg">#{order.order_number || order.id?.slice(-8)}</div>
+            </div>
+            <div className="text-center">
+              <div className="text-sm text-muted-foreground">{language === 'ar' ? 'تاريخ الإنشاء' : 'Created At'}</div>
+              <div className="font-medium">
+                {new Date(order.created_at).toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US')}
               </div>
+              <div className="text-sm text-muted-foreground">
+                {new Date(order.created_at).toLocaleTimeString(language === 'ar' ? 'ar-SA' : 'en-US', { hour: '2-digit', minute: '2-digit' })}
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-sm text-muted-foreground">{language === 'ar' ? 'إجمالي المبلغ' : 'Total Amount'}</div>
+              <div className="font-bold text-xl text-green-600">
+                {total.toFixed(2)} {order.currency || 'SAR'}
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-sm text-muted-foreground">{language === 'ar' ? 'عدد المنتجات' : 'Items Count'}</div>
+              <div className="font-bold text-lg">{orderItems.length}</div>
             </div>
           </div>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
-          {/* Customer Info */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Package className="h-5 w-5" />
-                {language === 'ar' ? 'معلومات العميل' : 'Customer Info'}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div>
-                  <Label className="text-sm font-medium">{language === 'ar' ? 'الاسم' : 'Name'}</Label>
-                  <Input 
-                    value={order.customer_name || ''} 
-                    className="mt-1"
-                    readOnly
-                  />
-                </div>
-                <div>
-                  <Label className="text-sm font-medium">{language === 'ar' ? 'الهاتف' : 'Phone'}</Label>
-                  <Input 
-                    value={order.customer_phone || ''} 
-                    className="mt-1"
-                    readOnly
-                  />
-                </div>
-                <div>
-                  <Label className="text-sm font-medium">{language === 'ar' ? 'المدينة' : 'City'}</Label>
-                  <Input 
-                    value={shippingAddress.city || ''} 
-                    className="mt-1"
-                    readOnly
-                  />
-                </div>
-                <div>
-                  <Label className="text-sm font-medium">{language === 'ar' ? 'البلد' : 'Country'}</Label>
-                  <Input 
-                    value={shippingAddress.country || ''} 
-                    className="mt-1"
-                    readOnly
-                  />
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <Label className="text-sm font-medium">{language === 'ar' ? 'العنوان' : 'Address'}</Label>
-                  <Input 
-                    value={`${shippingAddress.address1 || ''} ${shippingAddress.address2 || ''}`.trim() || ''}
-                    className="mt-1"
-                    readOnly
-                  />
-                </div>
-                <div>
-                  <Label className="text-sm font-medium">{language === 'ar' ? 'الإيميل' : 'Email'}</Label>
-                  <Input 
-                    value={order.customer_email || ''} 
-                    className="mt-1"
-                    readOnly
-                  />
-                </div>
-                <div>
-                  <Label className="text-sm font-medium">{language === 'ar' ? 'الحالة' : 'Status'}</Label>
-                  <Select defaultValue={order.status}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pending">{language === 'ar' ? 'قيد الانتظار' : 'Pending'}</SelectItem>
-                      <SelectItem value="processing">{language === 'ar' ? 'قيد المعالجة' : 'Processing'}</SelectItem>
-                      <SelectItem value="delivered">{language === 'ar' ? 'تم التوصيل' : 'Delivered'}</SelectItem>
-                      <SelectItem value="cancelled">{language === 'ar' ? 'ملغي' : 'Cancelled'}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Shipping Info */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Truck className="h-5 w-5" />
-                {language === 'ar' ? 'معلومات الشحن' : 'Shipping'}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-sm font-medium">{language === 'ar' ? 'اسم الشحن' : 'Shipping Name'}</Label>
-                  <Input 
-                    value="Free shipping" 
-                    className="mt-1"
-                    readOnly
-                  />
-                </div>
-                <div>
-                  <Label className="text-sm font-medium">{language === 'ar' ? 'السعر' : 'Price'}</Label>
-                  <div className="flex items-center mt-1">
-                    <div className="w-8 h-6 bg-blue-500 rounded-sm mr-2"></div>
-                    <span className="text-sm">{shippingCost} {order.currency || 'MAD'}</span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Product Info */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Package className="h-5 w-5" />
-                {language === 'ar' ? 'معلومات المنتج' : 'Product Info'}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {orderItems.length > 0 ? (
-                <div className="space-y-4">
-                  {orderItems.map((item, index) => (
-                    <div key={index} className="flex items-center gap-4 p-4 border rounded-lg">
-                      <div className="w-16 h-16 bg-gradient-to-br from-purple-400 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                        {item.image ? (
-                          <img 
-                            src={item.image} 
-                            alt={item.title || item.name} 
-                            loading="lazy"
-                            decoding="async"
-                            className="w-full h-full object-cover rounded-lg"
-                          />
-                        ) : (
-                          <Package className="w-8 h-8 text-white" />
-                        )}
-                      </div>
-                      
-                      <div className="flex-1">
-                        <h4 className="font-medium text-sm">{item.title || item.name || 'Product'}</h4>
-                      </div>
-                      
-                      <div className="grid grid-cols-3 gap-8 text-center">
-                        <div>
-                          <div className="text-sm text-muted-foreground">{language === 'ar' ? 'سعر الوحدة' : 'Unit Price'}</div>
-                          <div className="font-medium">{item.price || 0} {order.currency || 'MAD'}</div>
-                        </div>
-                        
-                        <div>
-                          <div className="text-sm text-muted-foreground">{language === 'ar' ? 'الكمية' : 'Quantity'}</div>
-                          <div className="font-medium">{item.quantity || 1}</div>
-                        </div>
-                        
-                        <div>
-                          <div className="text-sm text-muted-foreground">{language === 'ar' ? 'المجموع' : 'Total'}</div>
-                          <div className="font-medium">{(item.price || 0) * (item.quantity || 1)} {order.currency || 'MAD'}</div>
-                        </div>
-                      </div>
+        <div className="flex-1 overflow-y-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6">
+            {/* Left Column */}
+            <div className="space-y-6">
+              {/* Customer Info */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <User className="h-5 w-5 text-blue-600" />
+                    {language === 'ar' ? 'معلومات العميل' : 'Customer Info'}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium flex items-center gap-1">
+                        <User className="h-4 w-4" />
+                        {language === 'ar' ? 'الاسم' : 'Name'}
+                      </Label>
+                      <Input
+                        value={order.customer_name || ''}
+                        className="mt-1 bg-gray-50"
+                        readOnly
+                      />
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  {language === 'ar' ? 'لا توجد منتجات' : 'No products found'}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    <div>
+                      <Label className="text-sm font-medium flex items-center gap-1">
+                        <Phone className="h-4 w-4" />
+                        {language === 'ar' ? 'الهاتف' : 'Phone'}
+                      </Label>
+                      <Input
+                        value={order.customer_phone || ''}
+                        className="mt-1 bg-gray-50"
+                        readOnly
+                      />
+                    </div>
+                  </div>
 
-          {/* Notes */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">
-                {language === 'ar' ? 'ملاحظة' : 'Note'}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Textarea 
-                placeholder={language === 'ar' ? 'اكتب ملاحظتك هنا' : 'Write your note here'}
-                className="min-h-[100px]"
-                defaultValue=""
-              />
-            </CardContent>
-          </Card>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium flex items-center gap-1">
+                        <Mail className="h-4 w-4" />
+                        {language === 'ar' ? 'الإيميل' : 'Email'}
+                      </Label>
+                      <Input
+                        value={order.customer_email || ''}
+                        className="mt-1 bg-gray-50"
+                        readOnly
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium">{language === 'ar' ? 'الحالة' : 'Status'}</Label>
+                      <Select value={orderStatus} onValueChange={setOrderStatus}>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pending">{language === 'ar' ? 'قيد الانتظار' : 'Pending'}</SelectItem>
+                          <SelectItem value="processing">{language === 'ar' ? 'قيد المعالجة' : 'Processing'}</SelectItem>
+                          <SelectItem value="delivered">{language === 'ar' ? 'تم التوصيل' : 'Delivered'}</SelectItem>
+                          <SelectItem value="cancelled">{language === 'ar' ? 'ملغي' : 'Cancelled'}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
-          {/* Order Summary */}
-          <Card>
-            <CardContent className="pt-6">
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">{language === 'ar' ? 'المنتجات' : 'Products'}</span>
-                  <span className="font-medium">{subtotal.toFixed(2)} {order.currency || 'MAD'}</span>
-                </div>
-                
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">{language === 'ar' ? 'إضافي' : 'Extra'}</span>
-                  <span className="font-medium">{extras} {order.currency || 'MAD'}</span>
-                </div>
-                
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">{language === 'ar' ? 'الشحن' : 'Shipping'}</span>
-                  <span className="font-medium">{shippingCost} {order.currency || 'MAD'}</span>
-                </div>
-                
-                <Separator />
-                
-                <div className="flex justify-between items-center">
-                  <span className="font-semibold">{language === 'ar' ? 'المجموع' : 'Total'}</span>
-                  <span className="font-bold text-lg">{total.toFixed(2)} {order.currency || 'MAD'}</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              {/* Shipping Address */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <MapPin className="h-5 w-5 text-green-600" />
+                    {language === 'ar' ? 'عنوان الشحن' : 'Shipping Address'}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium">{language === 'ar' ? 'المدينة' : 'City'}</Label>
+                      <Input
+                        value={shippingAddress.city || order.customer_city || ''}
+                        className="mt-1 bg-gray-50"
+                        readOnly
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium">{language === 'ar' ? 'البلد' : 'Country'}</Label>
+                      <Input
+                        value={shippingAddress.country || order.customer_country || 'السعودية'}
+                        className="mt-1 bg-gray-50"
+                        readOnly
+                      />
+                    </div>
+                  </div>
 
-          {/* Action Buttons */}
-          <div className="flex justify-between items-center pt-4 border-t">
-            <Button 
-              variant="outline" 
+                  <div>
+                    <Label className="text-sm font-medium">{language === 'ar' ? 'العنوان الكامل' : 'Full Address'}</Label>
+                    <Textarea
+                      value={
+                        shippingAddress.address ||
+                        order.customer_address ||
+                        `${shippingAddress.address1 || ''} ${shippingAddress.address2 || ''}`.trim() ||
+                        (language === 'ar' ? 'لم يتم توفير العنوان' : 'Address not provided')
+                      }
+                      className="mt-1 bg-gray-50 min-h-[80px]"
+                      readOnly
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Right Column */}
+            <div className="space-y-6">
+              {/* Product Info */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Package className="h-5 w-5 text-purple-600" />
+                    {language === 'ar' ? 'معلومات المنتجات' : 'Product Info'}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {orderItems.length > 0 ? (
+                    <div className="space-y-4">
+                      {orderItems.map((item, index) => (
+                        <div key={index} className="flex items-center gap-4 p-4 border rounded-lg bg-gray-50">
+                          <div className="w-16 h-16 bg-gradient-to-br from-purple-400 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                            {item.image ? (
+                              <img
+                                src={item.image}
+                                alt={item.title || item.name}
+                                loading="lazy"
+                                decoding="async"
+                                className="w-full h-full object-cover rounded-lg"
+                              />
+                            ) : (
+                              <Package className="w-8 h-8 text-white" />
+                            )}
+                          </div>
+
+                          <div className="flex-1">
+                            <h4 className="font-medium text-sm mb-2">{item.title || item.name || 'منتج'}</h4>
+                            <div className="grid grid-cols-3 gap-4 text-sm">
+                              <div>
+                                <div className="text-muted-foreground">{language === 'ar' ? 'سعر الوحدة' : 'Unit Price'}</div>
+                                <div className="font-medium">{parseFloat(item.price || 0).toFixed(2)} {order.currency || 'SAR'}</div>
+                              </div>
+
+                              <div>
+                                <div className="text-muted-foreground">{language === 'ar' ? 'الكمية' : 'Quantity'}</div>
+                                <div className="font-medium">{item.quantity || 1}</div>
+                              </div>
+
+                              <div>
+                                <div className="text-muted-foreground">{language === 'ar' ? 'المجموع' : 'Total'}</div>
+                                <div className="font-medium text-green-600">
+                                  {(parseFloat(item.price || 0) * parseInt(item.quantity || 1)).toFixed(2)} {order.currency || 'SAR'}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                      {language === 'ar' ? 'لا توجد منتجات' : 'No products found'}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Order Summary */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Calculator className="h-5 w-5 text-green-600" />
+                    {language === 'ar' ? 'ملخص الطلب' : 'Order Summary'}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">{language === 'ar' ? 'المنتجات' : 'Products'}</span>
+                      <span className="font-medium">{subtotal.toFixed(2)} {order.currency || 'SAR'}</span>
+                    </div>
+
+                    {extras > 0 && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">{language === 'ar' ? 'إضافي' : 'Extra'}</span>
+                        <span className="font-medium">{extras.toFixed(2)} {order.currency || 'SAR'}</span>
+                      </div>
+                    )}
+
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">{language === 'ar' ? 'الشحن' : 'Shipping'}</span>
+                      <span className="font-medium text-blue-600">
+                        {shippingCost > 0 ? `${shippingCost.toFixed(2)} ${order.currency || 'SAR'}` : (language === 'ar' ? 'مجاني' : 'Free')}
+                      </span>
+                    </div>
+
+                    {discount > 0 && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-red-600">{language === 'ar' ? 'الخصم' : 'Discount'}</span>
+                        <span className="font-medium text-red-600">-{discount.toFixed(2)} {order.currency || 'SAR'}</span>
+                      </div>
+                    )}
+
+                    <Separator />
+
+                    <div className="flex justify-between items-center">
+                      <span className="font-semibold text-lg">{language === 'ar' ? 'المجموع الكلي' : 'Total'}</span>
+                      <span className="font-bold text-xl text-green-600">{total.toFixed(2)} {order.currency || 'SAR'}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* Notes Section - Full Width */}
+          <div className="px-6 pb-4">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <FileText className="h-5 w-5 text-orange-600" />
+                  {language === 'ar' ? 'ملاحظات الطلب' : 'Order Notes'}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Textarea
+                  placeholder={language === 'ar' ? 'اكتب ملاحظاتك حول هذا الطلب...' : 'Write your notes about this order...'}
+                  className="min-h-[120px] resize-none"
+                  value={orderNotes}
+                  onChange={(e) => setOrderNotes(e.target.value)}
+                />
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Action Buttons - Fixed at bottom */}
+        <div className="border-t bg-gray-50 px-6 py-4 flex justify-between items-center flex-shrink-0">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Globe className="h-4 w-4" />
+            <span>{language === 'ar' ? 'آخر تحديث:' : 'Last updated:'} {new Date(order.updated_at || order.created_at).toLocaleString(language === 'ar' ? 'ar-SA' : 'en-US')}</span>
+          </div>
+
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
               onClick={handleReset}
               className="flex items-center gap-2"
+              disabled={isLoading}
             >
               <RotateCcw className="h-4 w-4" />
               {language === 'ar' ? 'إعادة تعيين' : 'Reset'}
             </Button>
-            
-            <Button 
+
+            <Button
               onClick={handleSave}
-              className="bg-orange-500 hover:bg-orange-600 text-white flex items-center gap-2"
+              className="bg-orange-500 hover:bg-orange-600 text-white flex items-center gap-2 min-w-[120px]"
+              disabled={isLoading}
             >
-              <Save className="h-4 w-4" />
-              {language === 'ar' ? 'حفظ' : 'Save'}
+              {isLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  {language === 'ar' ? 'جاري الحفظ...' : 'Saving...'}
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4" />
+                  {language === 'ar' ? 'حفظ التغييرات' : 'Save Changes'}
+                </>
+              )}
             </Button>
           </div>
         </div>

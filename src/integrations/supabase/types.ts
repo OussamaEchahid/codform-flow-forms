@@ -562,14 +562,21 @@ export type Database = {
           billing_address: Json | null
           created_at: string
           currency: string | null
+          customer_address: string | null
+          customer_city: string | null
+          customer_country: string | null
           customer_email: string | null
           customer_name: string | null
           customer_phone: string | null
+          discount: number | null
+          extras: number | null
           form_id: string | null
           id: string
           items: Json | null
+          notes: string | null
           order_number: string
           shipping_address: Json | null
+          shipping_cost: number | null
           shop_id: string | null
           shopify_order_id: string | null
           status: string | null
@@ -580,14 +587,21 @@ export type Database = {
           billing_address?: Json | null
           created_at?: string
           currency?: string | null
+          customer_address?: string | null
+          customer_city?: string | null
+          customer_country?: string | null
           customer_email?: string | null
           customer_name?: string | null
           customer_phone?: string | null
+          discount?: number | null
+          extras?: number | null
           form_id?: string | null
           id?: string
           items?: Json | null
+          notes?: string | null
           order_number: string
           shipping_address?: Json | null
+          shipping_cost?: number | null
           shop_id?: string | null
           shopify_order_id?: string | null
           status?: string | null
@@ -598,14 +612,21 @@ export type Database = {
           billing_address?: Json | null
           created_at?: string
           currency?: string | null
+          customer_address?: string | null
+          customer_city?: string | null
+          customer_country?: string | null
           customer_email?: string | null
           customer_name?: string | null
           customer_phone?: string | null
+          discount?: number | null
+          extras?: number | null
           form_id?: string | null
           id?: string
           items?: Json | null
+          notes?: string | null
           order_number?: string
           shipping_address?: Json | null
+          shipping_cost?: number | null
           shop_id?: string | null
           shopify_order_id?: string | null
           status?: string | null
@@ -700,6 +721,75 @@ export type Database = {
           user_agent?: string | null
           visitor_country?: string | null
           visitor_ip?: unknown
+        }
+        Relationships: []
+      }
+      blocked_ips: {
+        Row: {
+          id: string
+          shop_id: string
+          ip_address: string
+          reason: string
+          redirect_url: string
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          shop_id: string
+          ip_address: string
+          reason?: string
+          redirect_url?: string
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          shop_id?: string
+          ip_address?: string
+          reason?: string
+          redirect_url?: string
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      blocked_countries: {
+        Row: {
+          id: string
+          shop_id: string
+          country_code: string
+          country_name: string
+          reason: string
+          redirect_url: string
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          shop_id: string
+          country_code: string
+          country_name: string
+          reason?: string
+          redirect_url?: string
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          shop_id?: string
+          country_code?: string
+          country_name?: string
+          reason?: string
+          redirect_url?: string
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
         }
         Relationships: []
       }

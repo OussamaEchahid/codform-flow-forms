@@ -258,9 +258,22 @@ const OrdersList = () => {
   };
 
   // Handle saving order changes
-  const handleSaveOrder = (updatedOrder) => {
-    // TODO: Implement order update logic
-    console.log('Saving order:', updatedOrder);
+  const handleSaveOrder = async (updatedOrder) => {
+    try {
+      // Update the order in the local state
+      setOrders(prevOrders =>
+        prevOrders.map(order =>
+          order.id === updatedOrder.id ? { ...order, ...updatedOrder } : order
+        )
+      );
+
+      // Refresh orders list to get latest data
+      await fetchOrders(true);
+
+      console.log('Order updated successfully:', updatedOrder);
+    } catch (error) {
+      console.error('Error updating order:', error);
+    }
   };
 
   return (
