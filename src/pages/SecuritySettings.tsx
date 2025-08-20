@@ -79,39 +79,16 @@ const SecuritySettings = () => {
     console.log('🔍 Loading security data for shop:', shop);
     setLoading(true);
     try {
-      // تحميل الدول المحظورة
-      const { data: countriesData, error: countriesError } = await (supabase as any)
-        .from('blocked_countries')
-        .select('*')
-        .eq('shop_id', shop)
-        .eq('is_active', true)
-        .order('created_at', { ascending: false });
+      // استخدام localStorage مؤقتاً حتى يتم إصلاح قاعدة البيانات
+      const savedCountries = localStorage.getItem(`blocked_countries_${shop}`);
+      const countriesData = savedCountries ? JSON.parse(savedCountries) : [];
+      setBlockedCountries(countriesData);
+      console.log('🌍 Loaded countries from localStorage:', countriesData);
 
-      console.log('🌍 Countries result:', { countriesData, countriesError });
-
-      if (countriesError) {
-        console.error('Error loading countries:', countriesError);
-        setBlockedCountries([]);
-      } else {
-        setBlockedCountries(countriesData || []);
-      }
-
-      // تحميل عناوين IP المحظورة
-      const { data: ipsData, error: ipsError } = await (supabase as any)
-        .from('blocked_ips')
-        .select('*')
-        .eq('shop_id', shop)
-        .eq('is_active', true)
-        .order('created_at', { ascending: false });
-
-      console.log('🔒 IPs result:', { ipsData, ipsError });
-
-      if (ipsError) {
-        console.error('Error loading IPs:', ipsError);
-        setBlockedIPs([]);
-      } else {
-        setBlockedIPs(ipsData || []);
-      }
+      const savedIPs = localStorage.getItem(`blocked_ips_${shop}`);
+      const ipsData = savedIPs ? JSON.parse(savedIPs) : [];
+      setBlockedIPs(ipsData);
+      console.log('🔒 Loaded IPs from localStorage:', ipsData);
 
       // إحصائيات الأمان
       setSecurityStats({
@@ -175,23 +152,22 @@ const SecuritySettings = () => {
         throw new Error('لم يتم العثور على معلومات المتجر');
       }
 
-      // إضافة IP إلى قاعدة البيانات
-      const { data: newIPData, error: insertError } = await (supabase as any)
-        .from('blocked_ips')
-        .insert({
-          shop_id: shop,
-          ip_address: trimmedIP,
-          reason: newIPReason.trim() || 'غير محدد',
-          redirect_url: newIPRedirect.trim() || '/blocked',
-          is_active: true
-        })
-        .select()
-        .single();
+      // إضافة IP إلى localStorage
+      const newIPData: BlockedIP = {
+        id: Date.now().toString(),
+        shop_id: shop,
+        ip_address: trimmedIP,
+        reason: newIPReason.trim() || 'غير محدد',
+        redirect_url: newIPRedirect.trim() || '/blocked',
+        is_active: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
 
-      if (insertError) {
-        console.error('Error inserting IP:', insertError);
-        throw insertError;
-      }
+      const savedIPs = localStorage.getItem(`blocked_ips_${shop}`);
+      const existingIPs = savedIPs ? JSON.parse(savedIPs) : [];
+      const updatedIPs = [...existingIPs, newIPData];
+      localStorage.setItem(`blocked_ips_${shop}`, JSON.stringify(updatedIPs));
 
       console.log('✅ IP added successfully:', newIPData);
 
@@ -281,13 +257,14 @@ const SecuritySettings = () => {
       // إضافة الدولة إلى localStorage
       const newCountry: BlockedCountry = {
         id: Date.now().toString(),
+        shop_id: shop,
         country_code: selectedCountry.toUpperCase(),
         country_name: countryInfo.name,
         reason: newCountryReason.trim() || 'غير محدد',
         redirect_url: newCountryRedirect.trim() || '/blocked',
         is_active: true,
         created_at: new Date().toISOString(),
-        shop_id: shop
+        updated_at: new Date().toISOString()
       };
 
       // حفظ في localStorage
