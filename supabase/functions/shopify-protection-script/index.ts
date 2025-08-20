@@ -302,7 +302,7 @@ function generateShopifyProtectionScript(shopDomain: string): string {
       }) + '</div></div>' : '';
 
     const redirectButton = (blockInfo.redirect_url && blockInfo.redirect_url !== '/blocked') ?
-      `<button style="background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%); color: white; padding: 12px 24px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; margin: 8px; transition: all 0.3s ease; text-decoration: none; display: inline-block; min-width: 120px;" onclick="window.location.href='${String(blockInfo.redirect_url).replace(/['"]/g, '')}'" >🔗 انتقال إلى صفحة أخرى</button>` : '';
+      '<button style="background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%); color: white; padding: 12px 24px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; margin: 8px; transition: all 0.3s ease; text-decoration: none; display: inline-block; min-width: 120px;" onclick="window.location.href=\\'' + String(blockInfo.redirect_url).replace(/['"]/g, '') + '\\'">🔗 انتقال إلى صفحة أخرى</button>' : '';
 
     return [
       '<!DOCTYPE html>',
