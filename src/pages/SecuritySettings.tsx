@@ -97,7 +97,7 @@ const SecuritySettings = () => {
       const { data: ipsData, error: ipsError } = await supabase
         .from('blocked_ips')
         .select('*')
-        .eq('shop_id', shop.shop_domain)
+        .eq('shop_id', shop)
         .eq('is_active', true)
         .order('created_at', { ascending: false });
 
@@ -108,7 +108,7 @@ const SecuritySettings = () => {
       const { data: countriesData, error: countriesError } = await supabase
         .from('blocked_countries')
         .select('*')
-        .eq('shop_id', shop.shop_domain)
+        .eq('shop_id', shop)
         .eq('is_active', true)
         .order('created_at', { ascending: false });
 
