@@ -16,10 +16,7 @@ serve(async (req) => {
   console.log(`[${requestId}] Manage blocked items request started`)
 
   try {
-    const body = await req.json()
-    const { action, ...params } = body
-    
-    console.log(`[${requestId}] Request body:`, body)
+    const { action, ...params } = await req.json()
     
     if (!action) {
       throw new Error('action is required')
@@ -50,68 +47,28 @@ serve(async (req) => {
           throw new Error('Invalid IP address format')
         }
 
-        console.log(`[${requestId}] Looking for store: ${shop_id}`)
-        
         // الحصول على user_id من جدول shopify_stores
         const { data: ipStoreData, error: ipStoreError } = await supabaseClient
           .from('shopify_stores')
-          .select('user_id, shop')
+          .select('user_id')
           .eq('shop', shop_id)
           .eq('is_active', true)
-          .maybeSingle()
+          .single()
 
-        console.log(`[${requestId}] Store query result:`, { ipStoreData, ipStoreError })
-
-        if (ipStoreError) {
-          console.error(`[${requestId}] Store query error:`, ipStoreError)
-          throw new Error(`Database error: ${ipStoreError.message}`)
+        if (ipStoreError || !ipStoreData) {
+          throw new Error('Store not found or not active')
         }
 
-        if (!ipStoreData) {
-          // جلب جميع المتاجر المتاحة للتشخيص
-          const { data: allStores } = await supabaseClient
-            .from('shopify_stores')
-            .select('shop, is_active')
-            .limit(10)
-          
-          console.error(`[${requestId}] Store not found. Available stores:`, allStores)
-          throw new Error(`Store '${shop_id}' not found or not active`)
-        }
-
-        console.log(`[${requestId}] Adding IP ${ip_address} for store ${shop_id}`)
-
-        // التحقق من وجود IP مسبقاً
-        const { data: existingIP } = await supabaseClient
+        result = await supabaseClient
           .from('blocked_ips')
-          .select('id, is_active')
-          .eq('ip_address', ip_address)
-          .eq('shop_id', shop_id)
-          .maybeSingle()
-
-        if (existingIP) {
-          // تحديث IP موجود
-          result = await supabaseClient
-            .from('blocked_ips')
-            .update({
-              reason: reason || 'غير محدد',
-              redirect_url: redirect_url || '/blocked',
-              is_active: true,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', existingIP.id)
-        } else {
-          // إدراج IP جديد
-          result = await supabaseClient
-            .from('blocked_ips')
-            .insert({
-              shop_id: shop_id,
-              user_id: ipStoreData.user_id,
-              ip_address: ip_address,
-              reason: reason || 'غير محدد',
-              redirect_url: redirect_url || '/blocked',
-              is_active: true
-            })
-        }
+          .insert({
+            shop_id: shop_id,
+            user_id: ipStoreData.user_id,
+            ip_address: ip_address,
+            reason: reason || 'غير محدد',
+            redirect_url: redirect_url || '/blocked',
+            is_active: true
+          })
         
         break
 
@@ -153,20 +110,17 @@ serve(async (req) => {
           throw new Error('Store not found or not active')
         }
 
-      result = await supabaseClient
-        .from('blocked_countries')
-        .upsert({
-          shop_id: country_shop_id,
-          user_id: storeData.user_id,
-          country_code: country_code.toUpperCase(),
-          country_name: country_name,
-          reason: country_reason || 'غير محدد',
-          redirect_url: country_redirect || '/blocked',
-          is_active: true
-        }, {
-          onConflict: 'shop_id,country_code',
-          ignoreDuplicates: false
-        })
+        result = await supabaseClient
+          .from('blocked_countries')
+          .insert({
+            shop_id: country_shop_id,
+            user_id: storeData.user_id,
+            country_code: country_code.toUpperCase(),
+            country_name: country_name,
+            reason: country_reason || 'غير محدد',
+            redirect_url: country_redirect || '/blocked',
+            is_active: true
+          })
         
         break
 

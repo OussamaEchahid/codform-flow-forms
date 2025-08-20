@@ -16,13 +16,13 @@ serve(async (req) => {
   console.log(`[${requestId}] Get blocked data request started`)
 
   try {
-    const { action, shop_id } = await req.json()
+    const { type, shop_id } = await req.json()
     
-    if (!action || !shop_id) {
-      throw new Error('action and shop_id are required')
+    if (!type || !shop_id) {
+      throw new Error('type and shop_id are required')
     }
 
-    console.log(`[${requestId}] Action: ${action}, Shop: ${shop_id}`)
+    console.log(`[${requestId}] Getting ${type} for shop: ${shop_id}`)
 
     // Create Supabase client
     const supabaseClient = createClient(
@@ -31,40 +31,45 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     )
 
-    let result
+    let data = []
+    let error = null
 
-    switch (action) {
-      case 'get_ips':
-        const { data: ipsData, error: ipsError } = await supabaseClient
-          .from('blocked_ips')
-          .select('*')
-          .eq('shop_id', shop_id)
-          .eq('is_active', true)
-          .order('created_at', { ascending: false })
-
-        if (ipsError) throw ipsError
-        result = { success: true, data: ipsData || [] }
-        break
-
-      case 'get_countries':
-        const { data: countriesData, error: countriesError } = await supabaseClient
-          .from('blocked_countries')
-          .select('*')
-          .eq('shop_id', shop_id)
-          .eq('is_active', true)
-          .order('created_at', { ascending: false })
-
-        if (countriesError) throw countriesError
-        result = { success: true, data: countriesData || [] }
-        break
-
-      default:
-        throw new Error(`Invalid action: ${action}`)
+    if (type === 'ips') {
+      const result = await supabaseClient
+        .from('blocked_ips')
+        .select('*')
+        .eq('shop_id', shop_id)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+      
+      data = result.data
+      error = result.error
+    } else if (type === 'countries') {
+      const result = await supabaseClient
+        .from('blocked_countries')
+        .select('*')
+        .eq('shop_id', shop_id)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+      
+      data = result.data
+      error = result.error
+    } else {
+      throw new Error('Invalid type. Must be "ips" or "countries"')
     }
 
-    console.log(`[${requestId}] Action ${action} completed successfully`)
+    if (error) {
+      console.error(`[${requestId}] Database error:`, error)
+      throw error
+    }
 
-    return new Response(JSON.stringify(result), {
+    console.log(`[${requestId}] Found ${data?.length || 0} blocked ${type}`)
+
+    return new Response(JSON.stringify({
+      success: true,
+      data: data || [],
+      count: data?.length || 0
+    }), {
       headers: { 'Content-Type': 'application/json', ...corsHeaders }
     })
 
@@ -73,7 +78,8 @@ serve(async (req) => {
     
     return new Response(JSON.stringify({
       success: false,
-      error: error.message || 'Internal server error'
+      error: error.message || 'Internal server error',
+      data: []
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json', ...corsHeaders }

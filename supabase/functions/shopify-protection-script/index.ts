@@ -75,12 +75,13 @@ serve(async (req) => {
 })
 
 function generateShopifyProtectionScript(shopDomain: string): string {
-  // استخدام القيم الثابتة المعروفة  
-  const supabaseUrl = 'https://trlklwixfeaexhydzaue.supabase.co'
-  const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M'
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
+  const apiKey = Deno.env.get('SUPABASE_ANON_KEY') || ''
 
   // تنظيف وحماية المتغيرات
   const cleanShopDomain = shopDomain.replace(/['"\\]/g, '').trim()
+  const cleanSupabaseUrl = supabaseUrl.replace(/['"\\]/g, '').trim()
+  const cleanApiKey = apiKey.replace(/['"\\]/g, '').trim()
 
   return `<!-- CodForm Protection System - Generated for ${cleanShopDomain} -->
 <script>
@@ -94,8 +95,8 @@ function generateShopifyProtectionScript(shopDomain: string): string {
   window.CodFormProtectionActive = true;
 
   const SHOP_DOMAIN = '${cleanShopDomain}';
-  const SECURITY_API = '${supabaseUrl}/functions/v1/store-security-check';
-  const API_KEY = '${apiKey}';
+  const SECURITY_API = '${cleanSupabaseUrl}/functions/v1/store-security-check';
+  const API_KEY = '${cleanApiKey}';
 
   // حظر فوري وكامل للمحتوى
   function immediateBlock() {
@@ -301,7 +302,7 @@ function generateShopifyProtectionScript(shopDomain: string): string {
       }) + '</div></div>' : '';
 
     const redirectButton = (blockInfo.redirect_url && blockInfo.redirect_url !== '/blocked') ?
-      '<button style="background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%); color: white; padding: 12px 24px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; margin: 8px; transition: all 0.3s ease; text-decoration: none; display: inline-block; min-width: 120px;" onclick="window.location.href=\\'' + String(blockInfo.redirect_url).replace(/['"]/g, '') + '\\'">🔗 انتقال إلى صفحة أخرى</button>' : '';
+      '<button style="background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%); color: white; padding: 12px 24px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; margin: 8px; transition: all 0.3s ease; text-decoration: none; display: inline-block; min-width: 120px;" onclick="window.location.href=\'' + String(blockInfo.redirect_url).replace(/['"]/g, '') + '\'">🔗 انتقال إلى صفحة أخرى</button>' : '';
 
     return [
       '<!DOCTYPE html>',
@@ -380,22 +381,26 @@ function generateShopifyProtectionScript(shopDomain: string): string {
   try {
     activateProtection().catch(function(error) {
       console.error('[CodForm] Protection activation failed:', error);
+      // في حالة فشل التفعيل، إظهار المحتوى لتجنب حظر غير مقصود
       allowAccess();
     });
-  } catch(e) {
-    console.error('[CodForm] Protection initialization failed:', e);
+  } catch(error) {
+    console.error('[CodForm] Critical protection error:', error);
     allowAccess();
   }
 
-  // ضمان إظهار المحتوى بعد 10 ثوان كحد أقصى
+  console.log('[CodForm] 🚀 Protection system initialized for:', SHOP_DOMAIN);
+
+  // إضافة مراقب للتأكد من عدم تعطل الصفحة
   setTimeout(function() {
-    if (document.documentElement && document.documentElement.style && 
-        document.documentElement.style.visibility === 'hidden') {
-      console.warn('[CodForm] ⏰ Timeout reached - forcing content display');
+    if (document.documentElement.style.visibility === 'hidden') {
+      console.warn('[CodForm] ⚠️ Page still hidden after timeout, forcing visibility');
       allowAccess();
     }
-  }, 10000);
+  }, 10000); // 10 ثوان timeout
 
 })();
-</script>`
+</script>
+`;
 }
+
