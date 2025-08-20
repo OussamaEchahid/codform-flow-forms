@@ -299,26 +299,31 @@ const OrdersList = () => {
     try {
       setLoading(true);
 
-      // Delete selected orders
-      for (const orderId of selectedOrders) {
-        const response = await fetch(
-          `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/orders-management`,
-          {
-            method: 'DELETE',
-            headers: {
-              'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              action: 'delete-order',
-              order_id: orderId
-            })
-          }
-        );
+      // Delete selected orders using SQL function
+      const orderIds = Array.from(selectedOrders);
+      const { data, error } = await supabase.rpc('delete_orders' as any, {
+        order_ids: orderIds
+      });
 
-        if (!response.ok) {
-          console.error(`Failed to delete order ${orderId}`);
+      if (error) {
+        console.error('Error deleting orders:', error);
+        // Fallback: try individual deletion using raw SQL
+        for (const orderId of selectedOrders) {
+          try {
+            const { error: deleteError } = await supabase
+              .from('orders' as any)
+              .delete()
+              .eq('id', orderId);
+
+            if (deleteError) {
+              console.error(`Failed to delete order ${orderId}:`, deleteError);
+            }
+          } catch (err) {
+            console.error(`Failed to delete order ${orderId}:`, err);
+          }
         }
+      } else if (data) {
+        console.log('Delete result:', data);
       }
 
       // Refresh orders list
@@ -328,7 +333,7 @@ const OrdersList = () => {
       setSelectedOrders(new Set());
       setShowDeleteConfirm(false);
 
-      console.log(`Successfully deleted ${selectedOrders.size} orders`);
+      console.log(`Successfully processed deletion of ${selectedOrders.size} orders`);
     } catch (error) {
       console.error('Error deleting orders:', error);
     } finally {

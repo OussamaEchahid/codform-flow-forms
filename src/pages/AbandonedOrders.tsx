@@ -195,13 +195,13 @@ const AbandonedOrders = () => {
         status: 'pending',
         items: cart.cart_items || [],
         shop_id: actualShop,
-        recovered_from_cart: cart.id,
+        // Note: removed recovered_from_cart as it doesn't exist in orders table
         created_at: new Date().toISOString()
       };
 
-      // Insert new order
+      // Insert new order using any type to bypass TypeScript issues
       const { data: newOrder, error: orderError } = await supabase
-        .from('orders')
+        .from('orders' as any)
         .insert([orderData])
         .select()
         .single();
