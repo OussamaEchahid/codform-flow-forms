@@ -59,16 +59,19 @@ serve(async (req) => {
           throw new Error('Store not found or not active')
         }
 
-        result = await supabaseClient
-          .from('blocked_ips')
-          .insert({
-            shop_id: shop_id,
-            user_id: ipStoreData.user_id,
-            ip_address: ip_address,
-            reason: reason || 'غير محدد',
-            redirect_url: redirect_url || '/blocked',
-            is_active: true
-          })
+      result = await supabaseClient
+        .from('blocked_ips')
+        .upsert({
+          shop_id: shop_id,
+          user_id: ipStoreData.user_id,
+          ip_address: ip_address,
+          reason: reason || 'غير محدد',
+          redirect_url: redirect_url || '/blocked',
+          is_active: true
+        }, {
+          onConflict: 'ip_address,shop_id',
+          ignoreDuplicates: false
+        })
         
         break
 
@@ -110,17 +113,20 @@ serve(async (req) => {
           throw new Error('Store not found or not active')
         }
 
-        result = await supabaseClient
-          .from('blocked_countries')
-          .insert({
-            shop_id: country_shop_id,
-            user_id: storeData.user_id,
-            country_code: country_code.toUpperCase(),
-            country_name: country_name,
-            reason: country_reason || 'غير محدد',
-            redirect_url: country_redirect || '/blocked',
-            is_active: true
-          })
+      result = await supabaseClient
+        .from('blocked_countries')
+        .upsert({
+          shop_id: country_shop_id,
+          user_id: storeData.user_id,
+          country_code: country_code.toUpperCase(),
+          country_name: country_name,
+          reason: country_reason || 'غير محدد',
+          redirect_url: country_redirect || '/blocked',
+          is_active: true
+        }, {
+          onConflict: 'shop_id,country_code',
+          ignoreDuplicates: false
+        })
         
         break
 
