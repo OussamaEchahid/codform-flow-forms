@@ -75,13 +75,12 @@ serve(async (req) => {
 })
 
 function generateShopifyProtectionScript(shopDomain: string): string {
-  const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
-  const apiKey = Deno.env.get('SUPABASE_ANON_KEY') || ''
+  // استخدام القيم الثابتة المعروفة
+  const supabaseUrl = 'https://trlklwixfeaexhydzaue.supabase.co'
+  const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M'
 
   // تنظيف وحماية المتغيرات
   const cleanShopDomain = shopDomain.replace(/['"\\]/g, '').trim()
-  const cleanSupabaseUrl = supabaseUrl.replace(/['"\\]/g, '').trim()
-  const cleanApiKey = apiKey.replace(/['"\\]/g, '').trim()
 
   return `<!-- CodForm Protection System - Generated for ${cleanShopDomain} -->
 <script>
@@ -95,8 +94,8 @@ function generateShopifyProtectionScript(shopDomain: string): string {
   window.CodFormProtectionActive = true;
 
   const SHOP_DOMAIN = '${cleanShopDomain}';
-  const SECURITY_API = '${cleanSupabaseUrl}/functions/v1/store-security-check';
-  const API_KEY = '${cleanApiKey}';
+  const SECURITY_API = '${supabaseUrl}/functions/v1/store-security-check';
+  const API_KEY = '${apiKey}';
 
   // حظر فوري وكامل للمحتوى
   function immediateBlock() {
