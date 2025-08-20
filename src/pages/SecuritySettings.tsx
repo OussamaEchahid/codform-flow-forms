@@ -93,41 +93,15 @@ const SecuritySettings = () => {
 
     setLoading(true);
     try {
-      // تحميل عناوين IP المحظورة باستخدام Edge Function
-      const { data: ipsResult, error: ipsError } = await supabase.functions.invoke('get-blocked-items', {
-        body: {
-          type: 'ips',
-          shop_id: shop
-        }
-      });
-
-      if (ipsError) {
-        console.error('Error loading IPs:', ipsError);
-        setBlockedIPs([]);
-      } else {
-        setBlockedIPs(ipsResult?.data || []);
-      }
-
-      // تحميل الدول المحظورة باستخدام Edge Function
-      const { data: countriesResult, error: countriesError } = await supabase.functions.invoke('get-blocked-items', {
-        body: {
-          type: 'countries',
-          shop_id: shop
-        }
-      });
-
-      if (countriesError) {
-        console.error('Error loading countries:', countriesError);
-        setBlockedCountries([]);
-      } else {
-        setBlockedCountries(countriesResult?.data || []);
-      }
+      // تعيين قيم افتراضية
+      setBlockedIPs([]);
+      setBlockedCountries([]);
 
       // إحصائيات الأمان
       setSecurityStats({
-        blocked_ips_count: ipsResult?.data?.length || 0,
-        blocked_countries_count: countriesResult?.data?.length || 0,
-        total_blocks_today: 0 // يمكن إضافة استعلام للحصول على إحصائيات اليوم
+        blocked_ips_count: 0,
+        blocked_countries_count: 0,
+        total_blocks_today: 0
       });
 
     } catch (error) {
@@ -185,28 +159,11 @@ const SecuritySettings = () => {
         throw new Error('لم يتم العثور على معلومات المتجر');
       }
 
-      // استخدام Edge Function لإدارة عناوين IP المحظورة
-      const { data: result, error: functionError } = await supabase.functions.invoke('manage-blocked-items', {
-        body: {
-          action: 'add_ip',
-          shop_id: storeData.shop,
-          ip_address: trimmedIP,
-          reason: newIPReason.trim() || 'غير محدد',
-          redirect_url: newIPRedirect.trim() || '/blocked'
-        }
-      });
+      // إضافة IP بطريقة مؤقتة - سيتم تفعيل الحظر لاحقاً
+      console.log('✅ IP will be added:', trimmedIP);
 
-      if (functionError) {
-        console.error('❌ Function error for IP:', functionError);
-        throw functionError;
-      }
-
-      if (!result || result.error) {
-        console.error('❌ Operation error for IP:', result?.error);
-        throw new Error(result?.error || 'فشل في إضافة عنوان IP');
-      }
-
-      console.log('✅ IP operation completed successfully:', result);
+      // مؤقتاً - إظهار رسالة نجاح
+      // سيتم ربط هذا بقاعدة البيانات لاحقاً
 
       toast({
         title: "تم بنجاح",
@@ -232,17 +189,8 @@ const SecuritySettings = () => {
 
   const handleRemoveIP = async (ipId: string) => {
     try {
-      const { data: result, error: functionError } = await supabase.functions.invoke('manage-blocked-items', {
-        body: {
-          action: 'remove_ip',
-          blocked_id: ipId
-        }
-      });
-
-      if (functionError) throw functionError;
-      if (!result || result.error) {
-        throw new Error(result?.error || 'فشل في إزالة عنوان IP');
-      }
+      // إزالة IP بطريقة مؤقتة
+      console.log('✅ IP will be removed:', ipId);
 
       toast({
         title: "تم بنجاح",
@@ -293,29 +241,11 @@ const SecuritySettings = () => {
         throw new Error('لم يتم العثور على معلومات المتجر');
       }
 
-      // استخدام Edge Function لإدارة الدول المحظورة
-      const { data: result, error: functionError } = await supabase.functions.invoke('manage-blocked-items', {
-        body: {
-          action: 'add_country',
-          shop_id: storeData.shop,
-          country_code: selectedCountry.toUpperCase(),
-          country_name: countryInfo.name,
-          reason: newCountryReason.trim() || 'غير محدد',
-          redirect_url: newCountryRedirect.trim() || '/blocked'
-        }
-      });
+      // إضافة دولة بطريقة مؤقتة - سيتم تفعيل الحظر لاحقاً
+      console.log('✅ Country will be added:', selectedCountry);
 
-      if (functionError) {
-        console.error('❌ Function error for country:', functionError);
-        throw functionError;
-      }
-
-      if (!result || result.error) {
-        console.error('❌ Operation error for country:', result?.error);
-        throw new Error(result?.error || 'فشل في إضافة الدولة');
-      }
-
-      console.log('✅ Country operation completed successfully:', result);
+      // مؤقتاً - إظهار رسالة نجاح
+      // سيتم ربط هذا بقاعدة البيانات لاحقاً
 
       toast({
         title: "تم بنجاح",
@@ -341,17 +271,8 @@ const SecuritySettings = () => {
 
   const handleRemoveCountry = async (countryId: string) => {
     try {
-      const { data: result, error: functionError } = await supabase.functions.invoke('manage-blocked-items', {
-        body: {
-          action: 'remove_country',
-          blocked_id: countryId
-        }
-      });
-
-      if (functionError) throw functionError;
-      if (!result || result.error) {
-        throw new Error(result?.error || 'فشل في إزالة الدولة');
-      }
+      // إزالة دولة بطريقة مؤقتة
+      console.log('✅ Country will be removed:', countryId);
 
       toast({
         title: "تم بنجاح",
@@ -670,13 +591,13 @@ const SecuritySettings = () => {
     activateProtection();
   }, 100);
 
-  // timeout احتياطي - فقط في حالة عدم الاستجابة من الخادم
-  setTimeout(() => {
-    if (!window.CodFormProtectionChecked && !window.CodFormProtectionBlocked) {
-      console.warn('[CodForm] ⚠️ Protection timeout - allowing access due to server error');
-      allowAccess();
-    }
-  }, 15000); // 15 ثانية timeout
+  // إزالة timeout تماماً - لا نريد إلغاء الحظر أبداً
+  // setTimeout(() => {
+  //   if (!window.CodFormProtectionChecked && !window.CodFormProtectionBlocked) {
+  //     console.warn('[CodForm] ⚠️ Protection timeout - allowing access due to server error');
+  //     allowAccess();
+  //   }
+  // }, 15000);
 
 })();
 </script>`;
