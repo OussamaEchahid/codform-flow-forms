@@ -139,11 +139,23 @@ const SecuritySettings = () => {
         return;
       }
 
+      // الحصول على معلومات المتجر من قاعدة البيانات
+      const { data: storeData, error: storeError } = await supabase
+        .from('shopify_stores')
+        .select('shop, user_id')
+        .eq('shop', shop)
+        .eq('is_active', true)
+        .single();
+
+      if (storeError || !storeData) {
+        throw new Error('لم يتم العثور على معلومات المتجر');
+      }
+
       const { error } = await supabase
         .from('blocked_ips')
         .insert({
-          shop_id: shop.shop_domain,
-          user_id: shop.user_id,
+          shop_id: storeData.shop,
+          user_id: storeData.user_id,
           ip_address: newIP.trim(),
           reason: newIPReason.trim() || 'غير محدد',
           redirect_url: newIPRedirect.trim() || '/blocked',
@@ -207,11 +219,23 @@ const SecuritySettings = () => {
     if (!countryInfo) return;
 
     try {
+      // الحصول على معلومات المتجر من قاعدة البيانات
+      const { data: storeData, error: storeError } = await supabase
+        .from('shopify_stores')
+        .select('shop, user_id')
+        .eq('shop', shop)
+        .eq('is_active', true)
+        .single();
+
+      if (storeError || !storeData) {
+        throw new Error('لم يتم العثور على معلومات المتجر');
+      }
+
       const { error } = await supabase
         .from('blocked_countries')
         .insert({
-          shop_id: shop.shop_domain,
-          user_id: shop.user_id,
+          shop_id: storeData.shop,
+          user_id: storeData.user_id,
           country_code: selectedCountry.toUpperCase(),
           country_name: countryInfo.name,
           reason: newCountryReason.trim() || 'غير محدد',
