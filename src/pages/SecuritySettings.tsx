@@ -93,32 +93,40 @@ const SecuritySettings = () => {
 
     setLoading(true);
     try {
-      // تحميل عناوين IP المحظورة مباشرة من قاعدة البيانات
-      const { data: ipsData, error: ipsError } = await supabase
-        .from('blocked_ips')
-        .select('*')
-        .eq('shop_id', shop)
-        .eq('is_active', true)
-        .order('created_at', { ascending: false });
+      // تحميل عناوين IP المحظورة باستخدام Edge Function
+      const { data: ipsResult, error: ipsError } = await supabase.functions.invoke('get-blocked-items', {
+        body: {
+          type: 'ips',
+          shop_id: shop
+        }
+      });
 
-      if (ipsError) console.error('Error loading IPs:', ipsError);
-      setBlockedIPs(ipsData || []);
+      if (ipsError) {
+        console.error('Error loading IPs:', ipsError);
+        setBlockedIPs([]);
+      } else {
+        setBlockedIPs(ipsResult?.data || []);
+      }
 
-      // تحميل الدول المحظورة مباشرة من قاعدة البيانات
-      const { data: countriesData, error: countriesError } = await supabase
-        .from('blocked_countries')
-        .select('*')
-        .eq('shop_id', shop)
-        .eq('is_active', true)
-        .order('created_at', { ascending: false });
+      // تحميل الدول المحظورة باستخدام Edge Function
+      const { data: countriesResult, error: countriesError } = await supabase.functions.invoke('get-blocked-items', {
+        body: {
+          type: 'countries',
+          shop_id: shop
+        }
+      });
 
-      if (countriesError) console.error('Error loading countries:', countriesError);
-      setBlockedCountries(countriesData || []);
+      if (countriesError) {
+        console.error('Error loading countries:', countriesError);
+        setBlockedCountries([]);
+      } else {
+        setBlockedCountries(countriesResult?.data || []);
+      }
 
       // إحصائيات الأمان
       setSecurityStats({
-        blocked_ips_count: ipsData?.length || 0,
-        blocked_countries_count: countriesData?.length || 0,
+        blocked_ips_count: ipsResult?.data?.length || 0,
+        blocked_countries_count: countriesResult?.data?.length || 0,
         total_blocks_today: 0 // يمكن إضافة استعلام للحصول على إحصائيات اليوم
       });
 
@@ -135,19 +143,30 @@ const SecuritySettings = () => {
   };
 
   const handleAddIP = async () => {
-    if (!shop || !newIP.trim()) return;
+    if (!shop || !newIP.trim()) {
+      toast({
+        title: "خطأ",
+        description: "يرجى إدخال عنوان IP صحيح",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
       // التحقق من صحة IP address
       const ipRegex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
-      if (!ipRegex.test(newIP.trim())) {
+      const trimmedIP = newIP.trim();
+
+      if (!ipRegex.test(trimmedIP)) {
         toast({
           title: "خطأ",
-          description: "صيغة عنوان IP غير صحيحة",
+          description: "صيغة عنوان IP غير صحيحة. مثال: 192.168.1.1",
           variant: "destructive",
         });
         return;
       }
+
+      console.log('🔍 Adding IP:', trimmedIP, 'for shop:', shop);
 
       console.log('🔍 Current shop value for IP:', shop);
 
@@ -166,53 +185,28 @@ const SecuritySettings = () => {
         throw new Error('لم يتم العثور على معلومات المتجر');
       }
 
-      // التحقق من وجود سجل معطل لنفس IP
-      const { data: existingIP, error: checkError } = await supabase
-        .from('blocked_ips')
-        .select('id, is_active')
-        .eq('shop_id', storeData.shop)
-        .eq('ip_address', newIP.trim())
-        .single();
+      // استخدام Edge Function لإدارة عناوين IP المحظورة
+      const { data: result, error: functionError } = await supabase.functions.invoke('manage-blocked-items', {
+        body: {
+          action: 'add_ip',
+          shop_id: storeData.shop,
+          ip_address: trimmedIP,
+          reason: newIPReason.trim() || 'غير محدد',
+          redirect_url: newIPRedirect.trim() || '/blocked'
+        }
+      });
 
-      if (checkError && checkError.code !== 'PGRST116') {
-        console.error('❌ Check error for IP:', checkError);
-        throw checkError;
+      if (functionError) {
+        console.error('❌ Function error for IP:', functionError);
+        throw functionError;
       }
 
-      let error;
-      if (existingIP) {
-        // إعادة تفعيل السجل الموجود
-        const { error: updateError } = await supabase
-          .from('blocked_ips')
-          .update({
-            reason: newIPReason.trim() || 'غير محدد',
-            redirect_url: newIPRedirect.trim() || '/blocked',
-            is_active: true,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existingIP.id);
-        error = updateError;
-        console.log('✅ Reactivated existing IP record');
-      } else {
-        // إنشاء سجل جديد
-        const { error: insertError } = await supabase
-          .from('blocked_ips')
-          .insert({
-            shop_id: storeData.shop,
-            user_id: storeData.user_id,
-            ip_address: newIP.trim(),
-            reason: newIPReason.trim() || 'غير محدد',
-            redirect_url: newIPRedirect.trim() || '/blocked',
-            is_active: true
-          });
-        error = insertError;
-        console.log('✅ Created new IP record');
+      if (!result || result.error) {
+        console.error('❌ Operation error for IP:', result?.error);
+        throw new Error(result?.error || 'فشل في إضافة عنوان IP');
       }
 
-      if (error) {
-        console.error('❌ Operation error for IP:', error);
-        throw error;
-      }
+      console.log('✅ IP operation completed successfully:', result);
 
       toast({
         title: "تم بنجاح",
@@ -238,12 +232,17 @@ const SecuritySettings = () => {
 
   const handleRemoveIP = async (ipId: string) => {
     try {
-      const { error } = await supabase
-        .from('blocked_ips')
-        .update({ is_active: false })
-        .eq('id', ipId);
+      const { data: result, error: functionError } = await supabase.functions.invoke('manage-blocked-items', {
+        body: {
+          action: 'remove_ip',
+          blocked_id: ipId
+        }
+      });
 
-      if (error) throw error;
+      if (functionError) throw functionError;
+      if (!result || result.error) {
+        throw new Error(result?.error || 'فشل في إزالة عنوان IP');
+      }
 
       toast({
         title: "تم بنجاح",
@@ -294,54 +293,29 @@ const SecuritySettings = () => {
         throw new Error('لم يتم العثور على معلومات المتجر');
       }
 
-      // التحقق من وجود سجل معطل لنفس الدولة
-      const { data: existingCountry, error: checkError } = await supabase
-        .from('blocked_countries')
-        .select('id, is_active')
-        .eq('shop_id', storeData.shop)
-        .eq('country_code', selectedCountry.toUpperCase())
-        .single();
+      // استخدام Edge Function لإدارة الدول المحظورة
+      const { data: result, error: functionError } = await supabase.functions.invoke('manage-blocked-items', {
+        body: {
+          action: 'add_country',
+          shop_id: storeData.shop,
+          country_code: selectedCountry.toUpperCase(),
+          country_name: countryInfo.name,
+          reason: newCountryReason.trim() || 'غير محدد',
+          redirect_url: newCountryRedirect.trim() || '/blocked'
+        }
+      });
 
-      if (checkError && checkError.code !== 'PGRST116') {
-        console.error('❌ Check error:', checkError);
-        throw checkError;
+      if (functionError) {
+        console.error('❌ Function error for country:', functionError);
+        throw functionError;
       }
 
-      let error;
-      if (existingCountry) {
-        // إعادة تفعيل السجل الموجود
-        const { error: updateError } = await supabase
-          .from('blocked_countries')
-          .update({
-            reason: newCountryReason.trim() || 'غير محدد',
-            redirect_url: newCountryRedirect.trim() || '/blocked',
-            is_active: true,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existingCountry.id);
-        error = updateError;
-        console.log('✅ Reactivated existing country record');
-      } else {
-        // إنشاء سجل جديد
-        const { error: insertError } = await supabase
-          .from('blocked_countries')
-          .insert({
-            shop_id: storeData.shop,
-            user_id: storeData.user_id,
-            country_code: selectedCountry.toUpperCase(),
-            country_name: countryInfo.name,
-            reason: newCountryReason.trim() || 'غير محدد',
-            redirect_url: newCountryRedirect.trim() || '/blocked',
-            is_active: true
-          });
-        error = insertError;
-        console.log('✅ Created new country record');
+      if (!result || result.error) {
+        console.error('❌ Operation error for country:', result?.error);
+        throw new Error(result?.error || 'فشل في إضافة الدولة');
       }
 
-      if (error) {
-        console.error('❌ Operation error:', error);
-        throw error;
-      }
+      console.log('✅ Country operation completed successfully:', result);
 
       toast({
         title: "تم بنجاح",
@@ -367,12 +341,17 @@ const SecuritySettings = () => {
 
   const handleRemoveCountry = async (countryId: string) => {
     try {
-      const { error } = await supabase
-        .from('blocked_countries')
-        .update({ is_active: false })
-        .eq('id', countryId);
+      const { data: result, error: functionError } = await supabase.functions.invoke('manage-blocked-items', {
+        body: {
+          action: 'remove_country',
+          blocked_id: countryId
+        }
+      });
 
-      if (error) throw error;
+      if (functionError) throw functionError;
+      if (!result || result.error) {
+        throw new Error(result?.error || 'فشل في إزالة الدولة');
+      }
 
       toast({
         title: "تم بنجاح",
@@ -574,8 +553,12 @@ const SecuritySettings = () => {
       const result = await response.json();
       console.log('[CodForm] 🔒 Security check result:', result);
 
+      // تعيين علامة أن الفحص تم
+      window.CodFormProtectionChecked = true;
+
       if (result.blocked) {
         console.warn('[CodForm] 🚫 Access BLOCKED:', result.reason);
+        window.CodFormProtectionBlocked = true;
         blockAccess(result);
       } else {
         console.log('[CodForm] ✅ Access ALLOWED');
@@ -590,6 +573,12 @@ const SecuritySettings = () => {
   }
 
   function allowAccess() {
+    // التأكد من أن المستخدم غير محظور
+    if (window.CodFormProtectionBlocked) {
+      console.warn('[CodForm] ⚠️ Cannot allow access - user is blocked');
+      return;
+    }
+
     console.log('[CodForm] ✅ Allowing access - restoring page content');
 
     try {
@@ -617,6 +606,9 @@ const SecuritySettings = () => {
       }
 
       console.log('[CodForm] ✅ Page content restored successfully');
+
+      // تعيين علامة أن الفحص تم
+      window.CodFormProtectionChecked = true;
 
     } catch(e) {
       console.error('[CodForm] Error restoring page content:', e);
@@ -678,13 +670,13 @@ const SecuritySettings = () => {
     activateProtection();
   }, 100);
 
-  // timeout احتياطي
+  // timeout احتياطي - فقط في حالة عدم الاستجابة من الخادم
   setTimeout(() => {
-    if (!window.CodFormProtectionChecked) {
-      console.warn('[CodForm] ⚠️ Protection timeout - allowing access');
+    if (!window.CodFormProtectionChecked && !window.CodFormProtectionBlocked) {
+      console.warn('[CodForm] ⚠️ Protection timeout - allowing access due to server error');
       allowAccess();
     }
-  }, 10000); // 10 ثوان timeout
+  }, 15000); // 15 ثانية timeout
 
 })();
 </script>`;
