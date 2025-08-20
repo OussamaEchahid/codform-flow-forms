@@ -80,29 +80,35 @@ const SecuritySettings = () => {
 
   const loadSecurityData = async () => {
     if (!shop) return;
-    
+
     setLoading(true);
     try {
-      // تحميل عناوين IP المحظورة باستخدام Edge Function
-      const { data: ipsData, error: ipsError } = await supabase.functions.invoke('get-blocked-data', {
-        body: { type: 'ips', shop_id: shop.shop_domain }
-      });
+      // تحميل عناوين IP المحظورة مباشرة من قاعدة البيانات
+      const { data: ipsData, error: ipsError } = await supabase
+        .from('blocked_ips')
+        .select('*')
+        .eq('shop_id', shop.shop_domain)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
 
       if (ipsError) console.error('Error loading IPs:', ipsError);
-      setBlockedIPs(ipsData?.data || []);
+      setBlockedIPs(ipsData || []);
 
-      // تحميل الدول المحظورة باستخدام Edge Function
-      const { data: countriesData, error: countriesError } = await supabase.functions.invoke('get-blocked-data', {
-        body: { type: 'countries', shop_id: shop.shop_domain }
-      });
-      
+      // تحميل الدول المحظورة مباشرة من قاعدة البيانات
+      const { data: countriesData, error: countriesError } = await supabase
+        .from('blocked_countries')
+        .select('*')
+        .eq('shop_id', shop.shop_domain)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+
       if (countriesError) console.error('Error loading countries:', countriesError);
-      setBlockedCountries(countriesData?.data || []);
+      setBlockedCountries(countriesData || []);
 
       // إحصائيات الأمان
       setSecurityStats({
-        blocked_ips_count: ipsData?.data?.length || 0,
-        blocked_countries_count: countriesData?.data?.length || 0,
+        blocked_ips_count: ipsData?.length || 0,
+        blocked_countries_count: countriesData?.length || 0,
         total_blocks_today: 0 // يمكن إضافة استعلام للحصول على إحصائيات اليوم
       });
 
@@ -122,15 +128,27 @@ const SecuritySettings = () => {
     if (!shop || !newIP.trim()) return;
 
     try {
-      const { data, error } = await supabase.functions.invoke('manage-blocked-items', {
-        body: {
-          action: 'add_ip',
+      // التحقق من صحة IP address
+      const ipRegex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+      if (!ipRegex.test(newIP.trim())) {
+        toast({
+          title: "خطأ",
+          description: "صيغة عنوان IP غير صحيحة",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { error } = await supabase
+        .from('blocked_ips')
+        .insert({
           shop_id: shop.shop_domain,
+          user_id: shop.user_id,
           ip_address: newIP.trim(),
           reason: newIPReason.trim() || 'غير محدد',
-          redirect_url: newIPRedirect.trim() || null
-        }
-      });
+          redirect_url: newIPRedirect.trim() || '/blocked',
+          is_active: true
+        });
 
       if (error) throw error;
 
@@ -158,12 +176,10 @@ const SecuritySettings = () => {
 
   const handleRemoveIP = async (ipId: string) => {
     try {
-      const { data, error } = await supabase.functions.invoke('manage-blocked-items', {
-        body: {
-          action: 'remove_ip',
-          blocked_id: ipId
-        }
-      });
+      const { error } = await supabase
+        .from('blocked_ips')
+        .update({ is_active: false })
+        .eq('id', ipId);
 
       if (error) throw error;
 
@@ -191,16 +207,17 @@ const SecuritySettings = () => {
     if (!countryInfo) return;
 
     try {
-      const { data, error } = await supabase.functions.invoke('manage-blocked-items', {
-        body: {
-          action: 'add_country',
+      const { error } = await supabase
+        .from('blocked_countries')
+        .insert({
           shop_id: shop.shop_domain,
-          country_code: selectedCountry,
+          user_id: shop.user_id,
+          country_code: selectedCountry.toUpperCase(),
           country_name: countryInfo.name,
           reason: newCountryReason.trim() || 'غير محدد',
-          redirect_url: newCountryRedirect.trim() || null
-        }
-      });
+          redirect_url: newCountryRedirect.trim() || '/blocked',
+          is_active: true
+        });
 
       if (error) throw error;
 
@@ -228,12 +245,10 @@ const SecuritySettings = () => {
 
   const handleRemoveCountry = async (countryId: string) => {
     try {
-      const { data, error } = await supabase.functions.invoke('manage-blocked-items', {
-        body: {
-          action: 'remove_country',
-          blocked_id: countryId
-        }
-      });
+      const { error } = await supabase
+        .from('blocked_countries')
+        .update({ is_active: false })
+        .eq('id', countryId);
 
       if (error) throw error;
 
