@@ -10,6 +10,7 @@ import { Save } from "lucide-react";
 import SettingsLayout from "@/components/layout/SettingsLayout";
 import { useI18n } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
+import { AuthHelper } from "@/utils/auth-helper";
 
 const GeneralSettings = () => {
   const { t } = useI18n();
@@ -28,27 +29,33 @@ const GeneralSettings = () => {
 
   const loadSettings = async () => {
     try {
-      // Get current user's shop settings
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) return;
+      // استخدام AuthHelper للحصول على user_id
+      const userId = AuthHelper.getCurrentUserId();
+      console.log('🔍 Loading settings for user:', userId);
 
       const { data, error } = await (supabase as any)
         .from('order_settings')
         .select('*')
-        .eq('user_id', userData.user.id)
+        .eq('user_id', userId)
         .limit(1)
         .single();
 
       if (data && !error) {
+        console.log('✅ Settings loaded:', data);
         setPaymentStatus(data.payment_status || "pending");
         setPaymentStatusEnabled(data.payment_status_enabled !== false);
         setDailyOrderLimit(data.daily_order_limit || 5);
         setDailyOrderLimitEnabled(data.daily_order_limit_enabled !== false);
         setOutOfStockMessage(data.out_of_stock_message || "Sorry, this product is currently out of stock / عذراً، هذا المنتج غير متوفر حالياً");
         setOutOfStockMessageEnabled(data.out_of_stock_message_enabled !== false);
+      } else if (error && error.code === 'PGRST116') {
+        // No rows returned - create default settings
+        console.log('📝 No settings found, will create defaults on first save');
+      } else if (error) {
+        console.error('❌ Error loading settings:', error);
       }
     } catch (error) {
-      console.error('Error loading settings:', error);
+      console.error('❌ Exception loading settings:', error);
     }
   };
 
@@ -56,15 +63,13 @@ const GeneralSettings = () => {
     try {
       setLoading(true);
 
-      // Get current user
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) {
-        alert('يجب تسجيل الدخول أولاً');
-        return;
-      }
+      // استخدام AuthHelper للحصول على user_id
+      const userId = AuthHelper.getCurrentUserId();
+      console.log('💾 Saving settings for user:', userId);
 
       const settings = {
-        user_id: userData.user.id,
+        user_id: userId,
+        shop_id: 'default.myshopify.com', // Required field
         payment_status: paymentStatus,
         payment_status_enabled: paymentStatusEnabled,
         daily_order_limit: dailyOrderLimit,
@@ -74,18 +79,21 @@ const GeneralSettings = () => {
         updated_at: new Date().toISOString()
       };
 
+      console.log('💾 Settings to save:', settings);
+
       const { error } = await (supabase as any)
         .from('order_settings')
         .upsert(settings, { onConflict: 'user_id' });
 
       if (error) {
-        console.error('Error saving settings:', error);
+        console.error('❌ Error saving settings:', error);
         alert('خطأ في حفظ الإعدادات: ' + error.message);
       } else {
+        console.log('✅ Settings saved successfully');
         alert('تم حفظ الإعدادات بنجاح');
       }
     } catch (error) {
-      console.error('Error saving settings:', error);
+      console.error('❌ Exception saving settings:', error);
       alert('خطأ غير متوقع: ' + error.message);
     } finally {
       setLoading(false);
