@@ -475,7 +475,7 @@ const SecuritySettings = () => {
     }
   };
 
-  // دالة إنتاج السكريپت محلياً - مبسط وفعال
+  // دالة إنتاج السكريپت محلياً
   const generateShopifyProtectionScript = (shopDomain: string): string => {
     const supabaseUrl = 'https://trlklwixfeaexhydzaue.supabase.co';
     const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M';
@@ -488,58 +488,72 @@ const SecuritySettings = () => {
     // تنظيف وحماية المتغيرات
     const cleanShopDomain = shopDomain.replace(/['"\\]/g, '').trim();
 
-    return `<!-- CodForm Protection System - Simplified for ${cleanShopDomain} -->
+    return `<!-- CodForm Protection System - Generated for ${cleanShopDomain} -->
 <script>
 (function() {
   'use strict';
 
-  // منع التشغيل المتعدد
-  if (window.CodFormProtectionActive) return;
+  // منع التشغيل المتعدد بشكل مطلق مع علامة عالمية قوية
+  if (window.CodFormProtectionActive === true) {
+    return;
+  }
   window.CodFormProtectionActive = true;
 
   const SHOP_DOMAIN = '${cleanShopDomain}';
-  const SUPABASE_URL = '${supabaseUrl}';
+  const SECURITY_API = '${supabaseUrl}/functions/v1/store-security-check';
   const API_KEY = '${apiKey}';
 
-  console.log('[CodForm] 🛡️ Protection initialized for:', SHOP_DOMAIN);
+  console.log('[CodForm] 🛡️ Protection system initialized for:', SHOP_DOMAIN);
 
-  // إخفاء الصفحة فوراً
-  document.documentElement.style.cssText = 'visibility: hidden !important;';
+  // حظر فوري وكامل للمحتوى
+  function immediateBlock() {
+    try {
+      // إنشاء overlay كامل لحظر المحتوى
+      const blockOverlay = document.createElement('div');
+      blockOverlay.id = 'codform-block-overlay';
+      blockOverlay.style.cssText = 'position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; background: white !important; z-index: 2147483647 !important; display: block !important; visibility: visible !important; opacity: 1 !important;';
 
-  // دالة إظهار شاشة بيضاء
-  function showWhiteScreen() {
-    document.documentElement.style.cssText = 'visibility: visible !important;';
-    document.body.innerHTML = '';
-    document.body.style.cssText = 'margin: 0; padding: 0; background: white; width: 100vw; height: 100vh;';
-  }
+      // إضافة الـ overlay فوراً
+      if (document.head) {
+        document.head.appendChild(blockOverlay);
+      } else {
+        document.documentElement.appendChild(blockOverlay);
+      }
 
-  // دالة إعادة التوجيه
-  function redirectTo(url) {
-    if (url && url !== '/blocked') {
-      window.location.href = url;
-    } else {
-      showWhiteScreen();
+      // إخفاء المحتوى الأصلي
+      document.documentElement.style.cssText = 'visibility: hidden !important; opacity: 0 !important; pointer-events: none !important;';
+      if (document.body) {
+        document.body.style.cssText = 'display: none !important;';
+      }
+    } catch(e) {
+      console.warn('[CodForm] Could not apply immediate block styles:', e);
     }
   }
 
-  // دالة إظهار الصفحة العادية
-  function showNormalPage() {
-    document.documentElement.style.cssText = '';
-    console.log('[CodForm] ✅ Access allowed');
-  }
+  // حظر فوري عند التحميل
+  immediateBlock();
 
-  // فحص الحماية
-  async function checkSecurity() {
+  // تشغيل فحص الحماية
+  async function activateProtection() {
     try {
-      // الحصول على IP
-      const ipResponse = await fetch('https://api.ipify.org?format=json');
-      const ipData = await ipResponse.json();
-      const visitorIP = ipData.ip;
+      console.log('[CodForm] 🛡️ Activating store protection...');
 
-      console.log('[CodForm] 🔍 Checking IP:', visitorIP);
+      // الحصول على IP العنوان
+      const visitorIP = await fetch('https://api.ipify.org?format=json')
+        .then(r => r.json())
+        .then(data => data.ip)
+        .catch(() => null);
 
-      // استخدام Edge Function للفحص
-      const checkResponse = await fetch(SUPABASE_URL + '/functions/v1/store-security-check', {
+      if (!visitorIP) {
+        console.warn('[CodForm] ⚠️ Could not get visitor IP - allowing access');
+        allowAccess();
+        return;
+      }
+
+      console.log('[CodForm] 🔍 Checking security for IP:', visitorIP);
+
+      // فحص الحماية
+      const response = await fetch(SECURITY_API, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -553,31 +567,124 @@ const SecuritySettings = () => {
         })
       });
 
-      if (!checkResponse.ok) {
-        console.warn('[CodForm] ⚠️ Check failed, allowing access');
-        showNormalPage();
-        return;
+      if (!response.ok) {
+        throw new Error('Security check failed: ' + response.status);
       }
 
-      const result = await checkResponse.json();
-      console.log('[CodForm] 📊 Check result:', result);
+      const result = await response.json();
+      console.log('[CodForm] 🔒 Security check result:', result);
 
       if (result.blocked) {
-        console.log('[CodForm] 🚫 Access blocked:', result.reason);
-        redirectTo(result.redirect_url);
+        console.warn('[CodForm] 🚫 Access BLOCKED:', result.reason);
+        blockAccess(result);
       } else {
-        showNormalPage();
+        console.log('[CodForm] ✅ Access ALLOWED');
+        allowAccess();
       }
 
     } catch (error) {
-      console.error('[CodForm] ❌ Error:', error);
-      showNormalPage(); // في حالة الخطأ، إظهار الصفحة
-    }
+      console.error('[CodForm] ❌ Protection error:', error);
+      // في حالة الخطأ، إظهار المحتوى
+      allowAccess();
     }
   }
 
-  // تشغيل فحص الحماية عند تحميل الصفحة
-  checkSecurity();
+  function allowAccess() {
+    console.log('[CodForm] ✅ Allowing access - restoring page content');
+
+    try {
+      // إزالة الـ overlay
+      const blockOverlay = document.getElementById('codform-block-overlay');
+      if (blockOverlay) {
+        blockOverlay.remove();
+      }
+
+      // إزالة جميع أنماط الحظر
+      document.documentElement.style.cssText = '';
+      if (document.body) {
+        document.body.style.cssText = '';
+      }
+
+      // إعادة تفعيل التفاعل
+      document.documentElement.style.visibility = 'visible';
+      document.documentElement.style.opacity = '1';
+      document.documentElement.style.pointerEvents = 'auto';
+
+      if (document.body) {
+        document.body.style.display = 'block';
+        document.body.style.visibility = 'visible';
+        document.body.style.opacity = '1';
+      }
+
+      console.log('[CodForm] ✅ Page content restored successfully');
+
+    } catch(e) {
+      console.error('[CodForm] Error restoring page content:', e);
+      // fallback
+      const blockOverlay = document.getElementById('codform-block-overlay');
+      if (blockOverlay) {
+        blockOverlay.remove();
+      }
+      document.documentElement.style.cssText = 'visibility: visible !important; opacity: 1 !important; pointer-events: auto !important;';
+      if (document.body) {
+        document.body.style.cssText = 'display: block !important;';
+      }
+    }
+  }
+
+  function blockAccess(blockInfo) {
+    console.log('[CodForm] 🚫 Blocking access with info:', blockInfo);
+
+    try {
+      // التحقق من وجود redirect_url وتطبيقه
+      if (blockInfo.redirect_url && blockInfo.redirect_url !== '/blocked' && blockInfo.redirect_url.trim() !== '') {
+        console.log('[CodForm] 🔄 Redirecting to:', blockInfo.redirect_url);
+        window.location.href = blockInfo.redirect_url;
+        return;
+      }
+
+      // إنشاء overlay صفحة بيضاء للحظر
+      const blockOverlay = document.getElementById('codform-block-overlay') || document.createElement('div');
+      blockOverlay.id = 'codform-block-overlay';
+      blockOverlay.style.cssText = 'position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; background: white !important; z-index: 2147483647 !important; display: block !important; visibility: visible !important; opacity: 1 !important;';
+
+      // إضافة الـ overlay إلى الصفحة
+      if (!document.getElementById('codform-block-overlay')) {
+        if (document.body) {
+          document.body.appendChild(blockOverlay);
+        } else {
+          document.documentElement.appendChild(blockOverlay);
+        }
+      }
+
+      // إخفاء المحتوى الأصلي بالكامل
+      document.documentElement.style.cssText = 'visibility: hidden !important; opacity: 0 !important; pointer-events: none !important;';
+      if (document.body) {
+        document.body.style.cssText = 'visibility: hidden !important; opacity: 0 !important;';
+      }
+
+    } catch(e) {
+      console.error('[CodForm] Error creating block overlay:', e);
+      // fallback - إخفاء المحتوى فقط
+      document.documentElement.style.cssText = 'visibility: hidden !important; opacity: 0 !important; pointer-events: none !important;';
+      if (document.body) {
+        document.body.style.cssText = 'display: none !important;';
+      }
+    }
+  }
+
+  // تشغيل الحماية مع timeout
+  setTimeout(() => {
+    activateProtection();
+  }, 100);
+
+  // timeout احتياطي
+  setTimeout(() => {
+    if (!window.CodFormProtectionChecked) {
+      console.warn('[CodForm] ⚠️ Protection timeout - allowing access');
+      allowAccess();
+    }
+  }, 10000); // 10 ثوان timeout
 
 })();
 </script>`;
