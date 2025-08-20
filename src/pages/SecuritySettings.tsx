@@ -621,14 +621,37 @@ const SecuritySettings = () => {
     }
   }
 
+  // دالة لتطبيع عنوان URL للإعادة التوجيه
+  function normalizeRedirectUrl(redirectUrl) {
+    if (!redirectUrl || redirectUrl.trim() === '') {
+      return '/blocked';
+    }
+
+    const trimmedUrl = redirectUrl.trim();
+
+    // إذا كان URL يبدأ بـ http:// أو https://، استخدمه كما هو
+    if (trimmedUrl.startsWith('http://') || trimmedUrl.startsWith('https://')) {
+      return trimmedUrl;
+    }
+
+    // إذا كان URL يبدأ بـ www. أو يحتوي على نقطة ولا يبدأ بـ /، أضف https://
+    if (trimmedUrl.startsWith('www.') || (trimmedUrl.includes('.') && !trimmedUrl.startsWith('/'))) {
+      return 'https://' + trimmedUrl;
+    }
+
+    // إذا كان مسار نسبي، أبقه كما هو
+    return trimmedUrl;
+  }
+
   function blockAccess(blockInfo) {
     console.log('[CodForm] 🚫 Blocking access with info:', blockInfo);
 
     try {
-      // التحقق من وجود redirect_url وتطبيقه
-      if (blockInfo.redirect_url && blockInfo.redirect_url !== '/blocked' && blockInfo.redirect_url.trim() !== '') {
-        console.log('[CodForm] 🔄 Redirecting to:', blockInfo.redirect_url);
-        window.location.href = blockInfo.redirect_url;
+      // تطبيع وتطبيق redirect_url
+      const normalizedRedirectUrl = normalizeRedirectUrl(blockInfo.redirect_url);
+      if (normalizedRedirectUrl && normalizedRedirectUrl !== '/blocked') {
+        console.log('[CodForm] 🔄 Redirecting to:', normalizedRedirectUrl);
+        window.location.href = normalizedRedirectUrl;
         return;
       }
 

@@ -98,6 +98,28 @@ function generateShopifyProtectionScript(shopDomain: string): string {
   const SECURITY_API = '${cleanSupabaseUrl}/functions/v1/store-security-check';
   const API_KEY = '${cleanApiKey}';
 
+  // دالة لتطبيع عنوان URL للإعادة التوجيه
+  function normalizeRedirectUrl(redirectUrl) {
+    if (!redirectUrl || redirectUrl.trim() === '') {
+      return '/blocked';
+    }
+
+    const trimmedUrl = redirectUrl.trim();
+
+    // إذا كان URL يبدأ بـ http:// أو https://، استخدمه كما هو
+    if (trimmedUrl.startsWith('http://') || trimmedUrl.startsWith('https://')) {
+      return trimmedUrl;
+    }
+
+    // إذا كان URL يبدأ بـ www. أو يحتوي على نقطة ولا يبدأ بـ /، أضف https://
+    if (trimmedUrl.startsWith('www.') || (trimmedUrl.includes('.') && !trimmedUrl.startsWith('/'))) {
+      return 'https://' + trimmedUrl;
+    }
+
+    // إذا كان مسار نسبي، أبقه كما هو
+    return trimmedUrl;
+  }
+
   // حظر فوري وكامل للمحتوى
   function immediateBlock() {
     try {
@@ -301,8 +323,9 @@ function generateShopifyProtectionScript(shopDomain: string): string {
         }
       }) + '</div></div>' : '';
 
-    const redirectButton = (blockInfo.redirect_url && blockInfo.redirect_url !== '/blocked') ?
-      '<button style="background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%); color: white; padding: 12px 24px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; margin: 8px; transition: all 0.3s ease; text-decoration: none; display: inline-block; min-width: 120px;" onclick="window.location.href=\'' + String(blockInfo.redirect_url).replace(/['"]/g, '') + '\'">🔗 انتقال إلى صفحة أخرى</button>' : '';
+    const normalizedRedirectUrl = normalizeRedirectUrl(blockInfo.redirect_url);
+    const redirectButton = (normalizedRedirectUrl && normalizedRedirectUrl !== '/blocked') ?
+      '<button style="background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%); color: white; padding: 12px 24px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; margin: 8px; transition: all 0.3s ease; text-decoration: none; display: inline-block; min-width: 120px;" onclick="window.location.href=\'' + String(normalizedRedirectUrl).replace(/['"]/g, '') + '\'">🔗 انتقال إلى صفحة أخرى</button>' : '';
 
     return [
       '<!DOCTYPE html>',

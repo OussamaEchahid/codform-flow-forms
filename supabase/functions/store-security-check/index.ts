@@ -6,6 +6,28 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// دالة لتطبيع عنوان URL للإعادة التوجيه
+function normalizeRedirectUrl(redirectUrl: string): string {
+  if (!redirectUrl || redirectUrl.trim() === '') {
+    return '/blocked'
+  }
+
+  const trimmedUrl = redirectUrl.trim()
+
+  // إذا كان URL يبدأ بـ http:// أو https://، استخدمه كما هو
+  if (trimmedUrl.startsWith('http://') || trimmedUrl.startsWith('https://')) {
+    return trimmedUrl
+  }
+
+  // إذا كان URL يبدأ بـ www. أو يحتوي على نقطة ولا يبدأ بـ /، أضف https://
+  if (trimmedUrl.startsWith('www.') || (trimmedUrl.includes('.') && !trimmedUrl.startsWith('/'))) {
+    return 'https://' + trimmedUrl
+  }
+
+  // إذا كان مسار نسبي، أبقه كما هو
+  return trimmedUrl
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -91,7 +113,7 @@ serve(async (req) => {
             return new Response(JSON.stringify({
               blocked: true,
               reason: ipBlockData[0].reason || 'IP address is blocked',
-              redirect_url: ipBlockData[0].redirect_url || '/blocked',
+              redirect_url: normalizeRedirectUrl(ipBlockData[0].redirect_url || '/blocked'),
               block_type: 'ip',
               hide_content: true
             }), {
@@ -147,7 +169,7 @@ serve(async (req) => {
             return new Response(JSON.stringify({
               blocked: true,
               reason: countryBlockData[0].reason || `Access from ${country} is not allowed`,
-              redirect_url: countryBlockData[0].redirect_url || '/blocked',
+              redirect_url: normalizeRedirectUrl(countryBlockData[0].redirect_url || '/blocked'),
               block_type: 'country',
               visitor_country: country,
               visitor_country_code: countryCode,

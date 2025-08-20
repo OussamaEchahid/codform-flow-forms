@@ -19,12 +19,31 @@ const BlockedPage: React.FC<BlockedPageProps> = ({
   visitorCountry,
   visitorIP
 }) => {
-  const handleRedirect = () => {
-    if (redirectUrl) {
-      window.location.href = redirectUrl;
-    } else {
-      window.location.href = '/';
+  // دالة لتطبيع عنوان URL للإعادة التوجيه
+  const normalizeRedirectUrl = (url: string): string => {
+    if (!url || url.trim() === '') {
+      return '/';
     }
+
+    const trimmedUrl = url.trim();
+
+    // إذا كان URL يبدأ بـ http:// أو https://، استخدمه كما هو
+    if (trimmedUrl.startsWith('http://') || trimmedUrl.startsWith('https://')) {
+      return trimmedUrl;
+    }
+
+    // إذا كان URL يبدأ بـ www. أو يحتوي على نقطة ولا يبدأ بـ /، أضف https://
+    if (trimmedUrl.startsWith('www.') || (trimmedUrl.includes('.') && !trimmedUrl.startsWith('/'))) {
+      return 'https://' + trimmedUrl;
+    }
+
+    // إذا كان مسار نسبي، أبقه كما هو
+    return trimmedUrl;
+  };
+
+  const handleRedirect = () => {
+    const normalizedUrl = normalizeRedirectUrl(redirectUrl || '/');
+    window.location.href = normalizedUrl;
   };
 
   const getBlockTypeLabel = () => {

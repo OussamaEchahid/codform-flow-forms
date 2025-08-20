@@ -98,6 +98,28 @@ function generateShopifyProtectionScript(shopDomain: string): string {
   const SECURITY_API = '${cleanSupabaseUrl}/functions/v1/store-security-check';
   const API_KEY = '${cleanApiKey}';
 
+  // دالة لتطبيع عنوان URL للإعادة التوجيه
+  function normalizeRedirectUrl(redirectUrl) {
+    if (!redirectUrl || redirectUrl.trim() === '') {
+      return '/blocked';
+    }
+
+    const trimmedUrl = redirectUrl.trim();
+
+    // إذا كان URL يبدأ بـ http:// أو https://، استخدمه كما هو
+    if (trimmedUrl.startsWith('http://') || trimmedUrl.startsWith('https://')) {
+      return trimmedUrl;
+    }
+
+    // إذا كان URL يبدأ بـ www. أو يحتوي على نقطة ولا يبدأ بـ /، أضف https://
+    if (trimmedUrl.startsWith('www.') || (trimmedUrl.includes('.') && !trimmedUrl.startsWith('/'))) {
+      return 'https://' + trimmedUrl;
+    }
+
+    // إذا كان مسار نسبي، أبقه كما هو
+    return trimmedUrl;
+  }
+
   console.log('[CodForm] 🛡️ Protection system initialized for:', SHOP_DOMAIN);
 
   // حظر فوري وكامل للمحتوى
