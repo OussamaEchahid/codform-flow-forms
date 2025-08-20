@@ -38,6 +38,29 @@ export interface ShopifyFormInsertion {
   updated_at: string;
 }
 
+export interface BlockedIP {
+  id: string;
+  shop_id: string;
+  ip_address: string;
+  reason: string;
+  redirect_url: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BlockedCountry {
+  id: string;
+  shop_id: string;
+  country_code: string;
+  country_name: string;
+  reason: string;
+  redirect_url: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface QuantityOffer {
   id: string;
   shop_id: string;
