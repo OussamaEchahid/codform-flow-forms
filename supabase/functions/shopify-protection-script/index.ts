@@ -75,7 +75,7 @@ serve(async (req) => {
 })
 
 function generateShopifyProtectionScript(shopDomain: string): string {
-  // استخدام القيم الثابتة المعروفة
+  // استخدام القيم الثابتة المعروفة  
   const supabaseUrl = 'https://trlklwixfeaexhydzaue.supabase.co'
   const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M'
 
@@ -380,26 +380,22 @@ function generateShopifyProtectionScript(shopDomain: string): string {
   try {
     activateProtection().catch(function(error) {
       console.error('[CodForm] Protection activation failed:', error);
-      // في حالة فشل التفعيل، إظهار المحتوى لتجنب حظر غير مقصود
       allowAccess();
     });
-  } catch(error) {
-    console.error('[CodForm] Critical protection error:', error);
+  } catch(e) {
+    console.error('[CodForm] Protection initialization failed:', e);
     allowAccess();
   }
 
-  console.log('[CodForm] 🚀 Protection system initialized for:', SHOP_DOMAIN);
-
-  // إضافة مراقب للتأكد من عدم تعطل الصفحة
+  // ضمان إظهار المحتوى بعد 10 ثوان كحد أقصى
   setTimeout(function() {
-    if (document.documentElement.style.visibility === 'hidden') {
-      console.warn('[CodForm] ⚠️ Page still hidden after timeout, forcing visibility');
+    if (document.documentElement && document.documentElement.style && 
+        document.documentElement.style.visibility === 'hidden') {
+      console.warn('[CodForm] ⏰ Timeout reached - forcing content display');
       allowAccess();
     }
-  }, 10000); // 10 ثوان timeout
+  }, 10000);
 
 })();
-</script>
-`;
+</script>`
 }
-
