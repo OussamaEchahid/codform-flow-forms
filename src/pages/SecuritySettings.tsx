@@ -166,18 +166,53 @@ const SecuritySettings = () => {
         throw new Error('لم يتم العثور على معلومات المتجر');
       }
 
-      const { error } = await supabase
+      // التحقق من وجود سجل معطل لنفس IP
+      const { data: existingIP, error: checkError } = await supabase
         .from('blocked_ips')
-        .insert({
-          shop_id: storeData.shop,
-          user_id: storeData.user_id,
-          ip_address: newIP.trim(),
-          reason: newIPReason.trim() || 'غير محدد',
-          redirect_url: newIPRedirect.trim() || '/blocked',
-          is_active: true
-        });
+        .select('id, is_active')
+        .eq('shop_id', storeData.shop)
+        .eq('ip_address', newIP.trim())
+        .single();
 
-      if (error) throw error;
+      if (checkError && checkError.code !== 'PGRST116') {
+        console.error('❌ Check error for IP:', checkError);
+        throw checkError;
+      }
+
+      let error;
+      if (existingIP) {
+        // إعادة تفعيل السجل الموجود
+        const { error: updateError } = await supabase
+          .from('blocked_ips')
+          .update({
+            reason: newIPReason.trim() || 'غير محدد',
+            redirect_url: newIPRedirect.trim() || '/blocked',
+            is_active: true,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingIP.id);
+        error = updateError;
+        console.log('✅ Reactivated existing IP record');
+      } else {
+        // إنشاء سجل جديد
+        const { error: insertError } = await supabase
+          .from('blocked_ips')
+          .insert({
+            shop_id: storeData.shop,
+            user_id: storeData.user_id,
+            ip_address: newIP.trim(),
+            reason: newIPReason.trim() || 'غير محدد',
+            redirect_url: newIPRedirect.trim() || '/blocked',
+            is_active: true
+          });
+        error = insertError;
+        console.log('✅ Created new IP record');
+      }
+
+      if (error) {
+        console.error('❌ Operation error for IP:', error);
+        throw error;
+      }
 
       toast({
         title: "تم بنجاح",
@@ -259,19 +294,54 @@ const SecuritySettings = () => {
         throw new Error('لم يتم العثور على معلومات المتجر');
       }
 
-      const { error } = await supabase
+      // التحقق من وجود سجل معطل لنفس الدولة
+      const { data: existingCountry, error: checkError } = await supabase
         .from('blocked_countries')
-        .insert({
-          shop_id: storeData.shop,
-          user_id: storeData.user_id,
-          country_code: selectedCountry.toUpperCase(),
-          country_name: countryInfo.name,
-          reason: newCountryReason.trim() || 'غير محدد',
-          redirect_url: newCountryRedirect.trim() || '/blocked',
-          is_active: true
-        });
+        .select('id, is_active')
+        .eq('shop_id', storeData.shop)
+        .eq('country_code', selectedCountry.toUpperCase())
+        .single();
 
-      if (error) throw error;
+      if (checkError && checkError.code !== 'PGRST116') {
+        console.error('❌ Check error:', checkError);
+        throw checkError;
+      }
+
+      let error;
+      if (existingCountry) {
+        // إعادة تفعيل السجل الموجود
+        const { error: updateError } = await supabase
+          .from('blocked_countries')
+          .update({
+            reason: newCountryReason.trim() || 'غير محدد',
+            redirect_url: newCountryRedirect.trim() || '/blocked',
+            is_active: true,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingCountry.id);
+        error = updateError;
+        console.log('✅ Reactivated existing country record');
+      } else {
+        // إنشاء سجل جديد
+        const { error: insertError } = await supabase
+          .from('blocked_countries')
+          .insert({
+            shop_id: storeData.shop,
+            user_id: storeData.user_id,
+            country_code: selectedCountry.toUpperCase(),
+            country_name: countryInfo.name,
+            reason: newCountryReason.trim() || 'غير محدد',
+            redirect_url: newCountryRedirect.trim() || '/blocked',
+            is_active: true
+          });
+        error = insertError;
+        console.log('✅ Created new country record');
+      }
+
+      if (error) {
+        console.error('❌ Operation error:', error);
+        throw error;
+      }
 
       toast({
         title: "تم بنجاح",
