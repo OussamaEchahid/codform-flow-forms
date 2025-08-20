@@ -137,7 +137,14 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
           }, 1500);
         }
       } else {
-        toast.error(result.error || (language === 'ar' ? 'فشل في إرسال الطلب' : 'Failed to submit order'));
+        // Handle specific error types
+        if (result.errorCode === 'OUT_OF_STOCK') {
+          toast.error(result.error || (language === 'ar' ? 'المنتج غير متوفر حالياً' : 'Product is out of stock'));
+        } else if (result.errorCode === 'DAILY_LIMIT_EXCEEDED') {
+          toast.error(result.error || (language === 'ar' ? 'تم تجاوز الحد اليومي للطلبات' : 'Daily order limit exceeded'));
+        } else {
+          toast.error(result.error || (language === 'ar' ? 'فشل في إرسال الطلب' : 'Failed to submit order'));
+        }
       }
     } catch (error) {
       console.error('Error submitting form:', error);

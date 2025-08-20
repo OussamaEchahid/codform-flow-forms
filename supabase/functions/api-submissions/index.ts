@@ -309,18 +309,29 @@ function calculateQuantityFromPrice(totalPrice: number, formData: any): number {
   return 1; // Default fallback
 }
 
-function createShopifyOrderData(customer: any, formId: string, formSettings: any = {}, convertedPrice: { price: number; currency: string } = { price: 0, currency: 'SAR' }) {
+function createShopifyOrderData(customer: any, formId: string, formSettings: any = {}, convertedPrice: { price: number; currency: string } = { price: 0, currency: 'SAR' }, paymentStatus: string = 'pending') {
   const nameParts = customer.name ? customer.name.split(' ') : ['Customer'];
   const firstName = nameParts[0] || 'Customer';
   const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : 'Order'; // Always provide a last name
-  const currency = convertedPrice.currency || formSettings.currency || 'SAR'; // إعطاء الأولوية للعملة المحولة
+  const currency = convertedPrice.currency || formSettings?.currency || 'SAR'; // إعطاء الأولوية للعملة المحولة
   const totalPrice = convertedPrice.price > 0 ? convertedPrice.price.toFixed(2) : '0.00';
-  
+
+  // Map payment status to Shopify financial status
+  let financialStatus = 'pending';
+  if (paymentStatus === 'paid') {
+    financialStatus = 'paid';
+  } else if (paymentStatus === 'refunded') {
+    financialStatus = 'refunded';
+  } else if (paymentStatus === 'partially_refunded') {
+    financialStatus = 'partially_refunded';
+  }
+
   console.log(`💰 Using converted price: ${totalPrice} ${currency} (from converted price logic)`);
-  
+  console.log(`💳 Using financial status: ${financialStatus} (from payment status: ${paymentStatus})`);
+
   return {
     order: {
-      financial_status: 'pending',
+      financial_status: financialStatus, // ✅ استخدام حالة الدفع من الإعدادات
       fulfillment_status: null,
       currency: currency,
       total_price: totalPrice,
@@ -362,13 +373,14 @@ function createShopifyOrderData(customer: any, formId: string, formSettings: any
   };
 }
 
-async function createShopifyOrder(shopDomain: string, accessToken: string, customer: any, formId: string, formSettings: any = {}, convertedPrice: { price: number; currency: string } = { price: 0, currency: 'SAR' }): Promise<string | null> {
+async function createShopifyOrder(shopDomain: string, accessToken: string, customer: any, formId: string, formSettings: any = {}, convertedPrice: { price: number; currency: string } = { price: 0, currency: 'SAR' }, paymentStatus: string = 'pending'): Promise<string | null> {
   console.log('🛒 Starting Shopify order creation process...');
   console.log('📋 Customer data for order:', JSON.stringify(customer, null, 2));
   console.log('⚙️ Form settings:', JSON.stringify(formSettings, null, 2));
   console.log('💰 Converted price data:', JSON.stringify(convertedPrice, null, 2));
-  
-  const orderData = createShopifyOrderData(customer, formId, formSettings, convertedPrice);
+  console.log('💳 Payment status:', paymentStatus);
+
+  const orderData = createShopifyOrderData(customer, formId, formSettings, convertedPrice, paymentStatus);
   console.log('🎯 Creating Shopify order:', JSON.stringify(orderData, null, 2));
   
   try {
@@ -598,12 +610,132 @@ serve(async (req: Request) => {
 
       console.log('🔑 Found Shopify access token for shop:', shopDomain);
 
+      // Get client IP address for daily limit check
+      const clientIP = req.headers.get('x-forwarded-for') ||
+                      req.headers.get('x-real-ip') ||
+                      req.headers.get('cf-connecting-ip') ||
+                      'unknown';
+
+      // Get order settings to determine payment status, daily limits, and out of stock settings
+      let orderStatus = 'pending'; // Default status
+      let dailyOrderLimit = null;
+      let dailyOrderLimitEnabled = false;
+      let outOfStockMessage = null;
+      let outOfStockMessageEnabled = false;
+
+      try {
+        const { data: orderSettings } = await supabase
+          .from('order_settings')
+          .select('payment_status, payment_status_enabled, daily_order_limit, daily_order_limit_enabled, out_of_stock_message, out_of_stock_message_enabled')
+          .eq('shop_id', shopDomain)
+          .single();
+
+        if (orderSettings) {
+          if (orderSettings.payment_status_enabled) {
+            orderStatus = orderSettings.payment_status || 'pending';
+            console.log('✅ Using payment status from settings:', orderStatus);
+          }
+
+          if (orderSettings.daily_order_limit_enabled) {
+            dailyOrderLimit = orderSettings.daily_order_limit;
+            dailyOrderLimitEnabled = true;
+            console.log('✅ Daily order limit enabled:', dailyOrderLimit);
+          }
+
+          if (orderSettings.out_of_stock_message_enabled) {
+            outOfStockMessage = orderSettings.out_of_stock_message;
+            outOfStockMessageEnabled = true;
+            console.log('✅ Out of stock message enabled:', outOfStockMessage);
+          }
+        }
+      } catch (error) {
+        console.log('⚠️ No order settings found, using defaults');
+      }
+
+      // Check daily order limit if enabled
+      if (dailyOrderLimitEnabled && dailyOrderLimit && clientIP !== 'unknown') {
+        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+
+        const { data: todayOrders, error: countError } = await supabase
+          .from('orders')
+          .select('id')
+          .eq('shop_id', shopDomain)
+          .eq('ip_address', clientIP)
+          .gte('created_at', `${today}T00:00:00.000Z`)
+          .lt('created_at', `${today}T23:59:59.999Z`);
+
+        if (!countError && todayOrders) {
+          const todayOrderCount = todayOrders.length;
+          console.log(`📊 Today's orders for IP ${clientIP}: ${todayOrderCount}/${dailyOrderLimit}`);
+
+          if (todayOrderCount >= dailyOrderLimit) {
+            console.log('🚫 Daily order limit exceeded');
+            return new Response(
+              JSON.stringify({
+                error: 'تم تجاوز الحد اليومي للطلبات. يرجى المحاولة غداً.',
+                errorCode: 'DAILY_LIMIT_EXCEEDED',
+                limit: dailyOrderLimit,
+                currentCount: todayOrderCount
+              }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 429 }
+            );
+          }
+        }
+      }
+
+      // Check inventory if out of stock message is enabled and we have a product ID
+      if (outOfStockMessageEnabled && outOfStockMessage && (formData.productId || actualFormId)) {
+        const productIdToCheck = formData.productId || actualFormId;
+        console.log('📦 Checking inventory for product:', productIdToCheck);
+
+        try {
+          // Get product inventory from Shopify
+          const inventoryResponse = await fetch(`https://${shopDomain}/admin/api/2025-04/products/${productIdToCheck}.json`, {
+            headers: {
+              'X-Shopify-Access-Token': shopData.access_token,
+              'Content-Type': 'application/json'
+            }
+          });
+
+          if (inventoryResponse.ok) {
+            const inventoryData = await inventoryResponse.json();
+            const product = inventoryData.product;
+
+            if (product && product.variants) {
+              // Check if any variant has inventory
+              const hasInventory = product.variants.some((variant: any) =>
+                variant.inventory_quantity > 0 || variant.inventory_policy === 'continue'
+              );
+
+              if (!hasInventory) {
+                console.log('🚫 Product is out of stock');
+                return new Response(
+                  JSON.stringify({
+                    error: outOfStockMessage,
+                    errorCode: 'OUT_OF_STOCK',
+                    productId: productIdToCheck
+                  }),
+                  { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+                );
+              }
+
+              console.log('✅ Product has inventory available');
+            }
+          } else {
+            console.log('⚠️ Could not check inventory, proceeding with order');
+          }
+        } catch (inventoryError) {
+          console.error('❌ Error checking inventory:', inventoryError);
+          // Don't block the order if inventory check fails
+        }
+      }
+
       // Create order in Shopify with form settings and converted price
-      const shopifyOrderId = await createShopifyOrder(shopDomain, shopData.access_token, customer, actualFormId, formSettings, convertedPrice);
+      const shopifyOrderId = await createShopifyOrder(shopDomain, shopData.access_token, customer, actualFormId, formSettings, convertedPrice, orderStatus);
 
       // Generate order number
       orderNumber = shopifyOrderId ? `SHOP-${shopifyOrderId}` : `ORD-${Date.now()}`;
-      
+
       console.log('📋 Creating order with data:', {
         orderNumber,
         customerName: customer.name,
@@ -611,14 +743,8 @@ serve(async (req: Request) => {
         customerPhone: customer.phone,
         shopifyOrderId,
         submissionId: submissionData.id,
-        currency: formSettings.currency || 'USD'
+        currency: formSettings?.currency || 'USD'
       });
-      
-      // Get client IP address
-      const clientIP = req.headers.get('x-forwarded-for') ||
-                      req.headers.get('x-real-ip') ||
-                      req.headers.get('cf-connecting-ip') ||
-                      'unknown';
 
       // Create order in our database with converted price and currency
       const orderInsertData = {
@@ -628,10 +754,10 @@ serve(async (req: Request) => {
         customer_phone: customer.phone,
         customer_address: customer.address,
         customer_city: customer.city,
-        customer_country: formSettings.country,
+        customer_country: formSettings?.country || 'SA',
         total_amount: convertedPrice.price, // ✅ استخدام السعر المحول
-        currency: convertedPrice.currency || formSettings.currency || 'USD', // ✅ استخدام العملة المحولة
-        status: 'pending',
+        currency: convertedPrice.currency || formSettings?.currency || 'USD', // ✅ استخدام العملة المحولة
+        status: orderStatus, // ✅ استخدام حالة الدفع من الإعدادات
         items: [{
           title: 'طلب من النموذج - Form Order',
           quantity: calculateQuantityFromPrice(convertedPrice.price, formData),
