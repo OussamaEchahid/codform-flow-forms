@@ -366,6 +366,19 @@ const SecuritySettings = () => {
   // حظر فوري وكامل للمحتوى
   function immediateBlock() {
     try {
+      // إنشاء overlay كامل لحظر المحتوى
+      const blockOverlay = document.createElement('div');
+      blockOverlay.id = 'codform-block-overlay';
+      blockOverlay.style.cssText = 'position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; background: white !important; z-index: 2147483647 !important; display: block !important; visibility: visible !important; opacity: 1 !important;';
+
+      // إضافة الـ overlay فوراً
+      if (document.head) {
+        document.head.appendChild(blockOverlay);
+      } else {
+        document.documentElement.appendChild(blockOverlay);
+      }
+
+      // إخفاء المحتوى الأصلي
       document.documentElement.style.cssText = 'visibility: hidden !important; opacity: 0 !important; pointer-events: none !important;';
       if (document.body) {
         document.body.style.cssText = 'display: none !important;';
@@ -438,6 +451,12 @@ const SecuritySettings = () => {
     console.log('[CodForm] ✅ Allowing access - restoring page content');
 
     try {
+      // إزالة الـ overlay
+      const blockOverlay = document.getElementById('codform-block-overlay');
+      if (blockOverlay) {
+        blockOverlay.remove();
+      }
+
       // إزالة جميع أنماط الحظر
       document.documentElement.style.cssText = '';
       if (document.body) {
@@ -460,6 +479,10 @@ const SecuritySettings = () => {
     } catch(e) {
       console.error('[CodForm] Error restoring page content:', e);
       // fallback
+      const blockOverlay = document.getElementById('codform-block-overlay');
+      if (blockOverlay) {
+        blockOverlay.remove();
+      }
       document.documentElement.style.cssText = 'visibility: visible !important; opacity: 1 !important; pointer-events: auto !important;';
       if (document.body) {
         document.body.style.cssText = 'display: block !important;';
@@ -470,41 +493,59 @@ const SecuritySettings = () => {
   function blockAccess(blockInfo) {
     console.log('[CodForm] 🚫 Blocking access with info:', blockInfo);
 
-    // إزالة كل المحتوى والأحداث
     try {
-      // مسح المحتوى بالكامل
-      document.documentElement.innerHTML = '';
+      // إنشاء overlay صفحة الحظر
+      const blockOverlay = document.getElementById('codform-block-overlay') || document.createElement('div');
+      blockOverlay.id = 'codform-block-overlay';
+      blockOverlay.style.cssText = 'position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; background: #f44336 !important; z-index: 2147483647 !important; display: flex !important; align-items: center !important; justify-content: center !important; font-family: Arial, sans-serif !important; color: white !important; text-align: center !important;';
 
-      // إنشاء صفحة الحظر
-      const blockedHTML = createBlockedPageHTML(blockInfo);
+      // محتوى صفحة الحظر
+      const reason = String(blockInfo.reason || 'تم حظر الوصول من موقعك').replace(/['"<>&]/g, function(match) {
+        switch(match) {
+          case '"': return '&quot;';
+          case "'": return '&#39;';
+          case '<': return '&lt;';
+          case '>': return '&gt;';
+          case '&': return '&amp;';
+          default: return match;
+        }
+      });
 
-      // استبدال الصفحة بالكامل
-      document.open();
-      document.write(blockedHTML);
-      document.close();
+      blockOverlay.innerHTML = '<div style="max-width: 500px; padding: 40px; background: rgba(255,255,255,0.1); border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);"><h1 style="font-size: 2.5em; margin-bottom: 20px;">🛡️ تم حظر الوصول</h1><p style="font-size: 1.2em; margin-bottom: 30px;">عذراً، لا يمكنك الوصول إلى هذا المتجر في الوقت الحالي</p><div style="background: rgba(255,255,255,0.2); padding: 20px; border-radius: 10px; margin: 20px 0;"><strong style="font-size: 1.1em;">السبب: ' + reason + '</strong></div><button onclick="window.location.reload()" style="background: white; color: #f44336; padding: 15px 30px; border: none; border-radius: 8px; cursor: pointer; font-size: 1.1em; font-weight: bold; transition: all 0.3s;">🔄 إعادة المحاولة</button></div>';
+
+      // إضافة الـ overlay إلى الصفحة
+      if (!document.getElementById('codform-block-overlay')) {
+        if (document.body) {
+          document.body.appendChild(blockOverlay);
+        } else {
+          document.documentElement.appendChild(blockOverlay);
+        }
+      }
+
+      // إخفاء المحتوى الأصلي بالكامل
+      document.documentElement.style.cssText = 'visibility: hidden !important; opacity: 0 !important; pointer-events: none !important;';
+      if (document.body) {
+        document.body.style.cssText = 'visibility: hidden !important; opacity: 0 !important;';
+        // إخفاء جميع العناصر الفرعية
+        const allElements = document.body.querySelectorAll('*:not(#codform-block-overlay):not(#codform-block-overlay *)');
+        allElements.forEach(function(el) {
+          if (el.id !== 'codform-block-overlay') {
+            el.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important;';
+          }
+        });
+      }
 
     } catch(e) {
       console.error('[CodForm] Error during blocking process:', e);
       // fallback - إخفاء المحتوى على الأقل
       document.documentElement.style.cssText = 'display: none !important;';
-      document.body.innerHTML = '<div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f44336; color: white; display: flex; align-items: center; justify-content: center; font-family: Arial; z-index: 999999;"><h1>تم حظر الوصول - Access Blocked</h1></div>';
+      if (document.body) {
+        document.body.innerHTML = '<div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f44336; color: white; display: flex; align-items: center; justify-content: center; font-family: Arial; z-index: 999999;"><h1>تم حظر الوصول - Access Blocked</h1></div>';
+      }
     }
   }
 
-  function createBlockedPageHTML(blockInfo) {
-    const reason = String(blockInfo.reason || 'تم حظر الوصول من موقعك').replace(/['"<>&]/g, function(match) {
-      switch(match) {
-        case '"': return '&quot;';
-        case "'": return '&#39;';
-        case '<': return '&lt;';
-        case '>': return '&gt;';
-        case '&': return '&amp;';
-        default: return match;
-      }
-    });
 
-    return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>تم حظر الوصول</title></head><body style="margin:0;padding:20px;font-family:Arial;background:#f44336;color:white;text-align:center;"><div style="max-width:500px;margin:50px auto;"><h1>🛡️ تم حظر الوصول</h1><p>عذراً، لا يمكنك الوصول إلى هذا المتجر في الوقت الحالي</p><div style="background:rgba(255,255,255,0.1);padding:20px;border-radius:10px;margin:20px 0;"><strong>السبب: ' + reason + '</strong></div><button onclick="window.location.reload()" style="background:white;color:#f44336;padding:10px 20px;border:none;border-radius:5px;cursor:pointer;">🔄 إعادة المحاولة</button></div></body></html>';
-  }
 
   // تشغيل الحماية فوراً مع معالجة الأخطاء
   try {
