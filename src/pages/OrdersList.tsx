@@ -14,9 +14,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { 
+import {
   Check,
-  Clock, 
+  Clock,
   Search,
   PackageCheck,
   PackageOpen,
@@ -26,11 +26,24 @@ import {
   Calendar,
   User,
   Phone,
-  ShoppingBag
+  ShoppingBag,
+  Trash2,
+  Download
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 // بيانات فارغة للطلبات (سيتم استبدالها ببيانات حقيقية من قاعدة البيانات)
 const sampleOrders = [];
@@ -43,6 +56,11 @@ const OrdersList = () => {
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedOrders, setSelectedOrders] = useState(new Set());
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState('all');
   
   // Allow access if either authenticated with user or connected with Shopify
   const hasAccess = !!user || shopifyConnected;
@@ -199,12 +217,41 @@ const OrdersList = () => {
   // Use real orders or sample data as fallback
   const ordersData = orders.length > 0 ? orders : sampleOrders;
 
-  // Filter orders based on search term
-  const filteredOrders = ordersData.filter(order => 
-    (order.customer_name || order.customerName || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
-    (order.order_number || order.id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (order.customer_phone || order.phone || '').includes(searchTerm)
-  );
+  // Filter orders based on search term, status, and date
+  const filteredOrders = ordersData.filter(order => {
+    // Search filter
+    const matchesSearch = searchTerm === '' ||
+      (order.customer_name || order.customerName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (order.order_number || order.id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (order.customer_phone || order.phone || '').includes(searchTerm);
+
+    // Status filter
+    const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
+
+    // Date filter
+    let matchesDate = true;
+    if (dateFilter !== 'all') {
+      const orderDate = new Date(order.created_at || order.date);
+      const today = new Date();
+      const daysDiff = Math.floor((today.getTime() - orderDate.getTime()) / (1000 * 60 * 60 * 24));
+
+      switch (dateFilter) {
+        case 'today':
+          matchesDate = daysDiff === 0;
+          break;
+        case 'week':
+          matchesDate = daysDiff <= 7;
+          break;
+        case 'month':
+          matchesDate = daysDiff <= 30;
+          break;
+        default:
+          matchesDate = true;
+      }
+    }
+
+    return matchesSearch && matchesStatus && matchesDate;
+  });
 
   // Summary counts for status cards
   const pendingCount = ordersData.filter(order => order.status === 'pending').length;
@@ -224,36 +271,136 @@ const OrdersList = () => {
     setSelectedOrder(null);
   };
 
+  // Handle individual order selection
+  const handleSelectOrder = (orderId, checked) => {
+    const newSelected = new Set(selectedOrders);
+    if (checked) {
+      newSelected.add(orderId);
+    } else {
+      newSelected.delete(orderId);
+    }
+    setSelectedOrders(newSelected);
+  };
+
+  // Handle select all orders
+  const handleSelectAll = (checked) => {
+    if (checked) {
+      const allOrderIds = new Set(filteredOrders.map(order => order.id));
+      setSelectedOrders(allOrderIds);
+    } else {
+      setSelectedOrders(new Set());
+    }
+  };
+
+  // Handle bulk delete
+  const handleBulkDelete = async () => {
+    if (selectedOrders.size === 0) return;
+
+    try {
+      setLoading(true);
+
+      // Delete selected orders
+      for (const orderId of selectedOrders) {
+        const response = await fetch(
+          `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/orders-management`,
+          {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              action: 'delete-order',
+              order_id: orderId
+            })
+          }
+        );
+
+        if (!response.ok) {
+          console.error(`Failed to delete order ${orderId}`);
+        }
+      }
+
+      // Refresh orders list
+      window.location.reload();
+
+      // Clear selection
+      setSelectedOrders(new Set());
+      setShowDeleteConfirm(false);
+
+      console.log(`Successfully deleted ${selectedOrders.size} orders`);
+    } catch (error) {
+      console.error('Error deleting orders:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle export functionality
+  const handleExport = () => {
+    try {
+      const dataToExport = selectedOrders.size > 0
+        ? filteredOrders.filter(order => selectedOrders.has(order.id))
+        : filteredOrders;
+
+      // Create CSV content
+      const headers = ['Order ID', 'Customer', 'Phone', 'Date', 'Total', 'Currency', 'Status'];
+      const csvContent = [
+        headers.join(','),
+        ...dataToExport.map(order => [
+          order.order_number || order.id,
+          `"${order.customer_name || order.customerName || ''}"`,
+          order.customer_phone || order.phone || '',
+          new Date(order.created_at || order.date).toLocaleDateString(),
+          extractOrderPrice(order),
+          order.currency || 'USD',
+          order.status || 'pending'
+        ].join(','))
+      ].join('\n');
+
+      // Download CSV file
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `orders_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      console.log(`Exported ${dataToExport.length} orders to CSV`);
+    } catch (error) {
+      console.error('Error exporting orders:', error);
+    }
+  };
+
   // Extract real price from order data
   const extractOrderPrice = (order) => {
-    // Try to get price from items first
-    if (order.items && Array.isArray(order.items)) {
-      const totalFromItems = order.items.reduce((sum, item) => {
-        const price = parseFloat(item.price || 0);
-        const quantity = parseInt(item.quantity || 1);
-        return sum + (price * quantity);
-      }, 0);
-      
-      if (totalFromItems > 0) {
-        return totalFromItems.toFixed(2);
-      }
-    }
-    
-    // Fallback to total_amount if available and > 0
+    // First priority: use total_amount (this is the final price after discounts)
     if (order.total_amount && parseFloat(order.total_amount) > 0) {
       return parseFloat(order.total_amount).toFixed(2);
     }
-    
+
+    // Second priority: try to get price from items (but don't multiply by quantity for display)
+    if (order.items && Array.isArray(order.items) && order.items.length > 0) {
+      // For display purposes, use the stored price in items (which should be the final total)
+      const firstItem = order.items[0];
+      if (firstItem.price && parseFloat(firstItem.price) > 0) {
+        return parseFloat(firstItem.price).toFixed(2);
+      }
+    }
+
     // Last fallback - check if there's form data with converted price
     if (order.form_data) {
-      const formData = typeof order.form_data === 'string' ? 
+      const formData = typeof order.form_data === 'string' ?
         JSON.parse(order.form_data) : order.form_data;
-      
+
       if (formData.extractedPrice && parseFloat(formData.extractedPrice) > 0) {
         return parseFloat(formData.extractedPrice).toFixed(2);
       }
     }
-    
+
     return "0.00";
   };
 
@@ -268,7 +415,7 @@ const OrdersList = () => {
       );
 
       // Refresh orders list to get latest data
-      await fetchOrders(true);
+      window.location.reload();
 
       console.log('Order updated successfully:', updatedOrder);
     } catch (error) {
@@ -366,16 +513,115 @@ const OrdersList = () => {
 
         {/* Search and filters section */}
         <div className="bg-white p-4 rounded-lg shadow mb-6">
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-            <input 
-              type="text" 
-              placeholder={language === 'ar' ? 'بحث عن طلب...' : 'Search orders...'}
-              className="pl-10 pr-4 py-2 w-full border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+            <div className="relative max-w-md flex-1">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder={language === 'ar' ? 'بحث عن طلب...' : 'Search orders...'}
+                className="pl-10 pr-4 py-2 w-full border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+
+            <div className="flex gap-2">
+              {selectedOrders.size > 0 && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="flex items-center gap-2"
+                  onClick={() => setShowDeleteConfirm(true)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  {language === 'ar' ? `حذف (${selectedOrders.size})` : `Delete (${selectedOrders.size})`}
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+                onClick={handleExport}
+              >
+                <Download className="h-4 w-4" />
+                {language === 'ar' ? 'تصدير' : 'Export'}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+                onClick={() => setShowFilters(!showFilters)}
+              >
+                <ListFilter className="h-4 w-4" />
+                {language === 'ar' ? 'تصفية' : 'Filter'}
+              </Button>
+            </div>
           </div>
+
+          {/* Filters */}
+          {showFilters && (
+            <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    {language === 'ar' ? 'تصفية حسب الحالة' : 'Filter by Status'}
+                  </label>
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="all">{language === 'ar' ? 'جميع الحالات' : 'All Status'}</option>
+                    <option value="pending">{language === 'ar' ? 'قيد الانتظار' : 'Pending'}</option>
+                    <option value="processing">{language === 'ar' ? 'قيد المعالجة' : 'Processing'}</option>
+                    <option value="delivered">{language === 'ar' ? 'تم التسليم' : 'Delivered'}</option>
+                    <option value="cancelled">{language === 'ar' ? 'ملغي' : 'Cancelled'}</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    {language === 'ar' ? 'تصفية حسب التاريخ' : 'Filter by Date'}
+                  </label>
+                  <select
+                    value={dateFilter}
+                    onChange={(e) => setDateFilter(e.target.value)}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="all">{language === 'ar' ? 'جميع التواريخ' : 'All Dates'}</option>
+                    <option value="today">{language === 'ar' ? 'اليوم' : 'Today'}</option>
+                    <option value="week">{language === 'ar' ? 'هذا الأسبوع' : 'This Week'}</option>
+                    <option value="month">{language === 'ar' ? 'هذا الشهر' : 'This Month'}</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="mt-4 flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setStatusFilter('all');
+                    setDateFilter('all');
+                  }}
+                >
+                  {language === 'ar' ? 'إعادة تعيين' : 'Reset Filters'}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Selection info */}
+          {selectedOrders.size > 0 && (
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="text-sm text-blue-800">
+                {language === 'ar'
+                  ? `تم اختيار ${selectedOrders.size} من ${filteredOrders.length} طلب`
+                  : `${selectedOrders.size} of ${filteredOrders.length} orders selected`
+                }
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="bg-white p-6 rounded-lg shadow">
@@ -392,6 +638,13 @@ const OrdersList = () => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-[50px]">
+                    <Checkbox
+                      checked={selectedOrders.size === filteredOrders.length && filteredOrders.length > 0}
+                      onCheckedChange={handleSelectAll}
+                      aria-label={language === 'ar' ? 'تحديد الكل' : 'Select all'}
+                    />
+                  </TableHead>
                   <TableHead className="w-[100px]">{language === 'ar' ? 'رقم الطلب' : 'Order ID'}</TableHead>
                   <TableHead>
                     <div className="flex items-center gap-1">
@@ -426,6 +679,13 @@ const OrdersList = () => {
                 {filteredOrders.length > 0 ? (
                   filteredOrders.map((order) => (
                     <TableRow key={order.id} className="hover:bg-muted/30">
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedOrders.has(order.id)}
+                          onCheckedChange={(checked) => handleSelectOrder(order.id, checked)}
+                          aria-label={language === 'ar' ? 'اختيار الطلب' : 'Select order'}
+                        />
+                      </TableCell>
                       <TableCell className="font-medium">{order.order_number || order.id}</TableCell>
                       <TableCell>{order.customer_name || order.customerName}</TableCell>
                       <TableCell>{order.customer_phone || order.phone}</TableCell>
@@ -437,18 +697,18 @@ const OrdersList = () => {
                       <TableCell>{getStatusBadge(order.status)}</TableCell>
                       <TableCell>
                         <div className="flex justify-end gap-2">
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="h-8 w-8 p-0" 
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
                             title={language === 'ar' ? 'عرض التفاصيل' : 'View Details'}
                             onClick={() => handleViewOrder(order)}
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button 
-                            variant="default" 
-                            size="sm" 
+                          <Button
+                            variant="default"
+                            size="sm"
                             className="flex items-center gap-1 bg-[#9b87f5] hover:bg-[#8b77e5]"
                             onClick={() => handleViewOrder(order)}
                           >
@@ -460,9 +720,9 @@ const OrdersList = () => {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-6">
-                      {searchTerm ? 
-                        (language === 'ar' ? 'لا توجد نتائج للبحث' : 'No search results found') : 
+                    <TableCell colSpan={9} className="text-center py-6">
+                      {searchTerm ?
+                        (language === 'ar' ? 'لا توجد نتائج للبحث' : 'No search results found') :
                         (language === 'ar' ? 'لا توجد طلبات حالياً' : 'No orders available yet')}
                     </TableCell>
                   </TableRow>
@@ -480,6 +740,34 @@ const OrdersList = () => {
         onClose={handleCloseDialog}
         onSave={handleSaveOrder}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {language === 'ar' ? 'تأكيد الحذف' : 'Confirm Delete'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {language === 'ar'
+                ? `هل أنت متأكد من حذف ${selectedOrders.size} طلب؟ لا يمكن التراجع عن هذا الإجراء.`
+                : `Are you sure you want to delete ${selectedOrders.size} order(s)? This action cannot be undone.`
+              }
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>
+              {language === 'ar' ? 'إلغاء' : 'Cancel'}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDelete}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {language === 'ar' ? 'حذف' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
