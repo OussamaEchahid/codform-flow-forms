@@ -79,16 +79,37 @@ const SecuritySettings = () => {
     console.log('🔍 Loading security data for shop:', shop);
     setLoading(true);
     try {
-      // استخدام localStorage مؤقتاً حتى يتم إصلاح قاعدة البيانات
-      const savedCountries = localStorage.getItem(`blocked_countries_${shop}`);
-      const countriesData = savedCountries ? JSON.parse(savedCountries) : [];
-      setBlockedCountries(countriesData);
-      console.log('🌍 Loaded countries from localStorage:', countriesData);
+      // تحميل الدول المحظورة من قاعدة البيانات
+      const { data: countriesData, error: countriesError } = await (supabase as any)
+        .from('blocked_countries')
+        .select('*')
+        .eq('shop_id', shop)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
 
-      const savedIPs = localStorage.getItem(`blocked_ips_${shop}`);
-      const ipsData = savedIPs ? JSON.parse(savedIPs) : [];
-      setBlockedIPs(ipsData);
-      console.log('🔒 Loaded IPs from localStorage:', ipsData);
+      if (countriesError) {
+        console.error('Error loading countries:', countriesError);
+        setBlockedCountries([]);
+      } else {
+        setBlockedCountries(countriesData || []);
+        console.log('🌍 Loaded countries from database:', countriesData);
+      }
+
+      // تحميل عناوين IP المحظورة من قاعدة البيانات
+      const { data: ipsData, error: ipsError } = await (supabase as any)
+        .from('blocked_ips')
+        .select('*')
+        .eq('shop_id', shop)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+
+      if (ipsError) {
+        console.error('Error loading IPs:', ipsError);
+        setBlockedIPs([]);
+      } else {
+        setBlockedIPs(ipsData || []);
+        console.log('🔒 Loaded IPs from database:', ipsData);
+      }
 
       // إحصائيات الأمان
       setSecurityStats({
@@ -152,22 +173,23 @@ const SecuritySettings = () => {
         throw new Error('لم يتم العثور على معلومات المتجر');
       }
 
-      // إضافة IP إلى localStorage
-      const newIPData: BlockedIP = {
-        id: Date.now().toString(),
-        shop_id: shop,
-        ip_address: trimmedIP,
-        reason: newIPReason.trim() || 'غير محدد',
-        redirect_url: newIPRedirect.trim() || '/blocked',
-        is_active: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
+      // إضافة IP إلى قاعدة البيانات
+      const { data: newIPData, error: insertError } = await (supabase as any)
+        .from('blocked_ips')
+        .insert({
+          shop_id: shop,
+          ip_address: trimmedIP,
+          reason: newIPReason.trim() || 'غير محدد',
+          redirect_url: newIPRedirect.trim() || '/blocked',
+          is_active: true
+        })
+        .select()
+        .single();
 
-      const savedIPs = localStorage.getItem(`blocked_ips_${shop}`);
-      const existingIPs = savedIPs ? JSON.parse(savedIPs) : [];
-      const updatedIPs = [...existingIPs, newIPData];
-      localStorage.setItem(`blocked_ips_${shop}`, JSON.stringify(updatedIPs));
+      if (insertError) {
+        console.error('Error inserting IP:', insertError);
+        throw insertError;
+      }
 
       console.log('✅ IP added successfully:', newIPData);
 
@@ -195,12 +217,16 @@ const SecuritySettings = () => {
 
   const handleRemoveIP = async (ipId: string) => {
     try {
-      // إزالة IP من localStorage
-      const savedIPs = localStorage.getItem(`blocked_ips_${shop}`);
-      if (savedIPs) {
-        const existingIPs = JSON.parse(savedIPs);
-        const updatedIPs = existingIPs.filter((ip: BlockedIP) => ip.id !== ipId);
-        localStorage.setItem(`blocked_ips_${shop}`, JSON.stringify(updatedIPs));
+      // حذف IP من قاعدة البيانات
+      const { error } = await (supabase as any)
+        .from('blocked_ips')
+        .delete()
+        .eq('id', ipId)
+        .eq('shop_id', shop);
+
+      if (error) {
+        console.error('Error deleting IP:', error);
+        throw error;
       }
 
       console.log('✅ IP removed successfully:', ipId);
@@ -254,24 +280,24 @@ const SecuritySettings = () => {
         throw new Error('لم يتم العثور على معلومات المتجر');
       }
 
-      // إضافة الدولة إلى localStorage
-      const newCountry: BlockedCountry = {
-        id: Date.now().toString(),
-        shop_id: shop,
-        country_code: selectedCountry.toUpperCase(),
-        country_name: countryInfo.name,
-        reason: newCountryReason.trim() || 'غير محدد',
-        redirect_url: newCountryRedirect.trim() || '/blocked',
-        is_active: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
+      // إضافة الدولة إلى قاعدة البيانات
+      const { data: newCountry, error: insertError } = await (supabase as any)
+        .from('blocked_countries')
+        .insert({
+          shop_id: shop,
+          country_code: selectedCountry.toUpperCase(),
+          country_name: countryInfo.name,
+          reason: newCountryReason.trim() || 'غير محدد',
+          redirect_url: newCountryRedirect.trim() || '/blocked',
+          is_active: true
+        })
+        .select()
+        .single();
 
-      // حفظ في localStorage
-      const savedCountries = localStorage.getItem(`blocked_countries_${shop}`);
-      const existingCountries = savedCountries ? JSON.parse(savedCountries) : [];
-      const updatedCountries = [...existingCountries, newCountry];
-      localStorage.setItem(`blocked_countries_${shop}`, JSON.stringify(updatedCountries));
+      if (insertError) {
+        console.error('Error inserting country:', insertError);
+        throw insertError;
+      }
 
       console.log('✅ Country added successfully:', newCountry);
 
@@ -299,12 +325,16 @@ const SecuritySettings = () => {
 
   const handleRemoveCountry = async (countryId: string) => {
     try {
-      // إزالة دولة من localStorage
-      const savedCountries = localStorage.getItem(`blocked_countries_${shop}`);
-      if (savedCountries) {
-        const existingCountries = JSON.parse(savedCountries);
-        const updatedCountries = existingCountries.filter((country: BlockedCountry) => country.id !== countryId);
-        localStorage.setItem(`blocked_countries_${shop}`, JSON.stringify(updatedCountries));
+      // حذف الدولة من قاعدة البيانات
+      const { error } = await (supabase as any)
+        .from('blocked_countries')
+        .delete()
+        .eq('id', countryId)
+        .eq('shop_id', shop);
+
+      if (error) {
+        console.error('Error deleting country:', error);
+        throw error;
       }
 
       console.log('✅ Country removed successfully:', countryId);
