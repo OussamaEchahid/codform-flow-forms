@@ -43,6 +43,16 @@ interface SecurityStats {
 
 const SecuritySettings = () => {
   const { shop } = useAuth();
+
+  // تشخيص قيمة shop
+  console.log('🏪 SecuritySettings - shop value:', shop);
+  console.log('🏪 SecuritySettings - shop type:', typeof shop);
+  console.log('🏪 SecuritySettings - shop length:', shop?.length);
+
+  // تشخيص localStorage
+  console.log('💾 localStorage active_shopify_store:', localStorage.getItem('active_shopify_store'));
+  console.log('💾 localStorage current_shopify_store:', localStorage.getItem('current_shopify_store'));
+  console.log('💾 localStorage shopify_store:', localStorage.getItem('shopify_store'));
   const [blockedIPs, setBlockedIPs] = useState<BlockedIP[]>([]);
   const [blockedCountries, setBlockedCountries] = useState<BlockedCountry[]>([]);
   const [securityStats, setSecurityStats] = useState<SecurityStats>({
@@ -139,11 +149,28 @@ const SecuritySettings = () => {
         return;
       }
 
+      console.log('🔍 Current shop value for IP:', shop);
+
+      // الحصول على معلومات المتجر من قاعدة البيانات
+      const { data: storeData, error: storeError } = await supabase
+        .from('shopify_stores')
+        .select('shop, user_id')
+        .eq('shop', shop)
+        .eq('is_active', true)
+        .single();
+
+      console.log('📊 Store query result for IP:', { storeData, storeError });
+
+      if (storeError || !storeData) {
+        console.error('❌ Store not found for IP. Available stores:', await supabase.from('shopify_stores').select('shop, is_active'));
+        throw new Error('لم يتم العثور على معلومات المتجر');
+      }
+
       const { error } = await supabase
         .from('blocked_ips')
         .insert({
-          shop_id: shop.shop_domain,
-          user_id: shop.user_id,
+          shop_id: storeData.shop,
+          user_id: storeData.user_id,
           ip_address: newIP.trim(),
           reason: newIPReason.trim() || 'غير محدد',
           redirect_url: newIPRedirect.trim() || '/blocked',
@@ -201,17 +228,42 @@ const SecuritySettings = () => {
   };
 
   const handleAddCountry = async () => {
-    if (!shop || !selectedCountry) return;
+    if (!shop || !selectedCountry) {
+      console.error('❌ Missing shop or selectedCountry:', { shop, selectedCountry });
+      toast({
+        title: "خطأ",
+        description: "يجب ربط متجر Shopify أولاً",
+        variant: "destructive",
+      });
+      return;
+    }
 
     const countryInfo = COUNTRIES_ALL.find(c => c.code === selectedCountry);
     if (!countryInfo) return;
 
     try {
+      console.log('🔍 Current shop value:', shop);
+
+      // الحصول على معلومات المتجر من قاعدة البيانات
+      const { data: storeData, error: storeError } = await supabase
+        .from('shopify_stores')
+        .select('shop, user_id')
+        .eq('shop', shop)
+        .eq('is_active', true)
+        .single();
+
+      console.log('📊 Store query result:', { storeData, storeError });
+
+      if (storeError || !storeData) {
+        console.error('❌ Store not found. Available stores:', await supabase.from('shopify_stores').select('shop, is_active'));
+        throw new Error('لم يتم العثور على معلومات المتجر');
+      }
+
       const { error } = await supabase
         .from('blocked_countries')
         .insert({
-          shop_id: shop.shop_domain,
-          user_id: shop.user_id,
+          shop_id: storeData.shop,
+          user_id: storeData.user_id,
           country_code: selectedCountry.toUpperCase(),
           country_name: countryInfo.name,
           reason: newCountryReason.trim() || 'غير محدد',
@@ -334,7 +386,7 @@ const SecuritySettings = () => {
     setScriptLoading(true);
     try {
       // إنتاج السكريپت محلياً بدلاً من استخدام Edge Function
-      const script = generateShopifyProtectionScript(shop.shop_domain);
+      const script = generateShopifyProtectionScript(shop);
       setProtectionScript(script);
 
       toast({
@@ -357,6 +409,11 @@ const SecuritySettings = () => {
   const generateShopifyProtectionScript = (shopDomain: string): string => {
     const supabaseUrl = 'https://trlklwixfeaexhydzaue.supabase.co';
     const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M';
+
+    // التحقق من وجود shopDomain
+    if (!shopDomain) {
+      throw new Error('Shop domain is required');
+    }
 
     // تنظيف وحماية المتغيرات
     const cleanShopDomain = shopDomain.replace(/['"\\]/g, '').trim();
