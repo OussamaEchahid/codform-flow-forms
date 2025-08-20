@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Save } from "lucide-react";
 import SettingsLayout from "@/components/layout/SettingsLayout";
 import { useI18n } from "@/lib/i18n";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 
 const GeneralSettings = () => {
   const { t } = useI18n();
@@ -32,7 +32,7 @@ const GeneralSettings = () => {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) return;
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('order_settings')
         .select('*')
         .eq('user_id', userData.user.id)
@@ -74,7 +74,7 @@ const GeneralSettings = () => {
         updated_at: new Date().toISOString()
       };
 
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('order_settings')
         .upsert(settings, { onConflict: 'user_id' });
 
