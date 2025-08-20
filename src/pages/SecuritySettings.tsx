@@ -43,6 +43,16 @@ interface SecurityStats {
 
 const SecuritySettings = () => {
   const { shop } = useAuth();
+
+  // تشخيص قيمة shop
+  console.log('🏪 SecuritySettings - shop value:', shop);
+  console.log('🏪 SecuritySettings - shop type:', typeof shop);
+  console.log('🏪 SecuritySettings - shop length:', shop?.length);
+
+  // تشخيص localStorage
+  console.log('💾 localStorage active_shopify_store:', localStorage.getItem('active_shopify_store'));
+  console.log('💾 localStorage current_shopify_store:', localStorage.getItem('current_shopify_store'));
+  console.log('💾 localStorage shopify_store:', localStorage.getItem('shopify_store'));
   const [blockedIPs, setBlockedIPs] = useState<BlockedIP[]>([]);
   const [blockedCountries, setBlockedCountries] = useState<BlockedCountry[]>([]);
   const [securityStats, setSecurityStats] = useState<SecurityStats>({
