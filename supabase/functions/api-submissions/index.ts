@@ -258,34 +258,54 @@ function extractConvertedPrice(formData: any): { price: number; currency: string
   return { price: 0, currency: 'SAR' };
 }
 
-// Function to calculate quantity from total price
+// Function to calculate quantity from quantity offer selection
 function calculateQuantityFromPrice(totalPrice: number, formData: any): number {
-  // Check if there's quantity information in form data
+  console.log('🔢 Calculating quantity from:', { totalPrice, formData });
+
+  // Base unit price is $2.00 based on the form
+  const baseUnitPrice = 2.0;
+
   if (formData && typeof formData === 'object') {
-    // Look for quantity-related fields
+    // Look for quantity-related fields first
     for (const [key, value] of Object.entries(formData)) {
       if (key.includes('quantity') || key.includes('qty')) {
         const qty = parseInt(String(value));
         if (!isNaN(qty) && qty > 0) {
+          console.log('✅ Found quantity in form data:', qty);
           return qty;
         }
       }
     }
 
-    // Try to calculate from extractedPrice if available
+    // Calculate from extractedPrice if available
     if (formData.extractedPrice && typeof formData.extractedPrice === 'number') {
-      // Common unit prices to check against
-      const commonUnitPrices = [1, 1.8, 9, 18, 90]; // Based on your data
+      const extractedPrice = formData.extractedPrice;
+      console.log('💰 Extracted price:', extractedPrice);
 
-      for (const unitPrice of commonUnitPrices) {
-        const calculatedQty = Math.round(formData.extractedPrice / unitPrice);
-        if (calculatedQty > 0 && Math.abs(formData.extractedPrice - (unitPrice * calculatedQty)) < 0.01) {
-          return calculatedQty;
-        }
+      // Known quantity offer patterns (these are the prices BEFORE discount):
+      // Buy 3 get 1 free: Pay for 3 × $2 = $6 (quantity to buy = 3)
+      // Buy 5 get 2 free: Pay for 5 × $2 = $10 (quantity to buy = 5)
+
+      // The extractedPrice is what the customer pays, not the total value
+      if (Math.abs(extractedPrice - 6.0) < 0.01) {
+        console.log('✅ Detected "Buy 3 get 1 free" offer - quantity: 3');
+        return 3;
+      } else if (Math.abs(extractedPrice - 10.0) < 0.01) {
+        console.log('✅ Detected "Buy 5 get 2 free" offer - quantity: 5');
+        return 5;
+      }
+
+      // For other prices, calculate based on base unit price
+      // But make sure we don't exceed reasonable limits
+      const calculatedQty = Math.round(extractedPrice / baseUnitPrice);
+      if (calculatedQty > 0 && calculatedQty <= 10) {
+        console.log('📊 Calculated quantity from base price:', calculatedQty);
+        return calculatedQty;
       }
     }
   }
 
+  console.log('⚠️ Using default quantity: 1');
   return 1; // Default fallback
 }
 
