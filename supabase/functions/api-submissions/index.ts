@@ -258,6 +258,37 @@ function extractConvertedPrice(formData: any): { price: number; currency: string
   return { price: 0, currency: 'SAR' };
 }
 
+// Function to calculate quantity from total price
+function calculateQuantityFromPrice(totalPrice: number, formData: any): number {
+  // Check if there's quantity information in form data
+  if (formData && typeof formData === 'object') {
+    // Look for quantity-related fields
+    for (const [key, value] of Object.entries(formData)) {
+      if (key.includes('quantity') || key.includes('qty')) {
+        const qty = parseInt(String(value));
+        if (!isNaN(qty) && qty > 0) {
+          return qty;
+        }
+      }
+    }
+
+    // Try to calculate from extractedPrice if available
+    if (formData.extractedPrice && typeof formData.extractedPrice === 'number') {
+      // Common unit prices to check against
+      const commonUnitPrices = [1, 1.8, 9, 18, 90]; // Based on your data
+
+      for (const unitPrice of commonUnitPrices) {
+        const calculatedQty = Math.round(formData.extractedPrice / unitPrice);
+        if (calculatedQty > 0 && Math.abs(formData.extractedPrice - (unitPrice * calculatedQty)) < 0.01) {
+          return calculatedQty;
+        }
+      }
+    }
+  }
+
+  return 1; // Default fallback
+}
+
 function createShopifyOrderData(customer: any, formId: string, formSettings: any = {}, convertedPrice: { price: number; currency: string } = { price: 0, currency: 'SAR' }) {
   const nameParts = customer.name ? customer.name.split(' ') : ['Customer'];
   const firstName = nameParts[0] || 'Customer';
@@ -577,13 +608,13 @@ serve(async (req: Request) => {
         customer_phone: customer.phone,
         customer_address: customer.address,
         customer_city: customer.city,
-        customer_country: formSettings.country || 'US',
+        customer_country: formSettings.country,
         total_amount: convertedPrice.price, // ✅ استخدام السعر المحول
         currency: convertedPrice.currency || formSettings.currency || 'USD', // ✅ استخدام العملة المحولة
         status: 'pending',
         items: [{
           title: 'طلب من النموذج - Form Order',
-          quantity: 1,
+          quantity: calculateQuantityFromPrice(convertedPrice.price, formData),
           price: convertedPrice.price.toFixed(2) // ✅ استخدام السعر المحول
         }],
         shipping_address: { address: customer.address, city: customer.city },

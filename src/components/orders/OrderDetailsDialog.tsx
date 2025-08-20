@@ -55,6 +55,7 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
   const [originalOrder, setOriginalOrder] = useState(null);
   const [productInfo, setProductInfo] = useState(null);
   const [quantityOfferData, setQuantityOfferData] = useState(null);
+  const [formCountry, setFormCountry] = useState('');
 
   // Initialize state when order changes
   useEffect(() => {
@@ -73,6 +74,17 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
     if (!order?.form_id) return;
 
     try {
+      // Get form data to get the country setting
+      const { data: formData } = await (supabase as any)
+        .from('forms')
+        .select('country')
+        .eq('id', order.form_id)
+        .single();
+
+      if (formData?.country) {
+        setFormCountry(formData.country);
+      }
+
       // Get quantity offers for this form to find the correct quantity
       const { data: quantityOffers } = await (supabase as any)
         .from('quantity_offers')
@@ -166,12 +178,34 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
 
   // Get actual quantity from form submission data or quantity offers
   const getActualQuantity = () => {
-    // First try to get from quantity offers data
-    if (quantityOfferData?.offers) {
-      // This would need to be matched with the actual selected offer
-      // For now, we'll check if there's a quantity > 1 in the offers
-      const maxQuantity = Math.max(...quantityOfferData.offers.map((offer: any) => offer.quantity || 1));
-      if (maxQuantity > 1) return maxQuantity;
+    // Try to calculate quantity from total price and unit price
+    if (quantityOfferData?.offers && order.total_amount) {
+      const totalAmount = parseFloat(order.total_amount);
+
+      // Get the base unit price from the first offer or product info
+      let unitPrice = 0;
+      if (productInfo?.price) {
+        unitPrice = parseFloat(productInfo.price);
+      } else if (orderItems.length > 0) {
+        unitPrice = parseFloat(orderItems[0].price || 0);
+      }
+
+      if (unitPrice > 0) {
+        const calculatedQuantity = Math.round(totalAmount / unitPrice);
+
+        // Verify this quantity matches one of the available offers
+        const matchingOffer = quantityOfferData.offers.find((offer: any) => offer.quantity === calculatedQuantity);
+        if (matchingOffer) {
+          return calculatedQuantity;
+        }
+
+        // If no exact match, find the closest offer quantity
+        const availableQuantities = quantityOfferData.offers.map((offer: any) => offer.quantity || 1);
+        const closest = availableQuantities.reduce((prev: number, curr: number) =>
+          Math.abs(curr - calculatedQuantity) < Math.abs(prev - calculatedQuantity) ? curr : prev
+        );
+        return closest;
+      }
     }
 
     // Fallback to order items quantity
@@ -210,10 +244,14 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
 
   // Get country from form settings
   const getActualCountry = () => {
-    // First try from form country setting
-    if (order.form_id) {
-      // This will be loaded from form data
-      return 'US'; // Based on your mention that it was sent from US
+    // First try from form country setting (loaded from database)
+    if (formCountry) {
+      return formCountry;
+    }
+
+    // Try from customer_country field in order
+    if (order.customer_country) {
+      return order.customer_country;
     }
 
     // Try from shipping address
@@ -221,12 +259,8 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
       return shippingAddress.country;
     }
 
-    // Try from customer_country field
-    if (order.customer_country) {
-      return order.customer_country;
-    }
-
-    return 'US'; // Default based on your feedback
+    // Default fallback
+    return 'Unknown';
   };
 
   const actualCountry = getActualCountry();
@@ -299,7 +333,7 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
             <div className="text-center">
               <div className="text-sm text-muted-foreground">IP {language === 'ar' ? 'العنوان' : 'Address'}</div>
               <div className="font-mono text-sm bg-white px-2 py-1 rounded border">
-                {order.ip_address || '192.168.1.1'}
+                {order.ip_address ? order.ip_address.split(',')[0].trim() : '192.168.1.1'}
               </div>
             </div>
           </div>
@@ -394,7 +428,7 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
                     <div>
                       <Label className="text-sm font-medium">{language === 'ar' ? 'البلد' : 'Country'}</Label>
                       <Input
-                        value={actualCountry || 'US'}
+                        value={actualCountry}
                         className="mt-1 bg-gray-50"
                         readOnly
                       />
