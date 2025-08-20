@@ -563,25 +563,35 @@ serve(async (req: Request) => {
         currency: formSettings.currency || 'USD'
       });
       
+      // Get client IP address
+      const clientIP = req.headers.get('x-forwarded-for') ||
+                      req.headers.get('x-real-ip') ||
+                      req.headers.get('cf-connecting-ip') ||
+                      'unknown';
+
       // Create order in our database with converted price and currency
       const orderInsertData = {
         order_number: orderNumber,
         customer_name: customer.name,
         customer_email: customer.email,
         customer_phone: customer.phone,
+        customer_address: customer.address,
+        customer_city: customer.city,
+        customer_country: formSettings.country || 'US',
         total_amount: convertedPrice.price, // ✅ استخدام السعر المحول
-        currency: convertedPrice.currency || formSettings.currency || 'SAR', // ✅ استخدام العملة المحولة
+        currency: convertedPrice.currency || formSettings.currency || 'USD', // ✅ استخدام العملة المحولة
         status: 'pending',
-        items: [{ 
-          title: 'طلب من النموذج - Form Order', 
-          quantity: 1, 
+        items: [{
+          title: 'طلب من النموذج - Form Order',
+          quantity: 1,
           price: convertedPrice.price.toFixed(2) // ✅ استخدام السعر المحول
         }],
         shipping_address: { address: customer.address, city: customer.city },
         billing_address: { address: customer.address, city: customer.city },
         form_id: actualFormId,
         shop_id: shopDomain,
-        shopify_order_id: shopifyOrderId?.toString()
+        shopify_order_id: shopifyOrderId?.toString(),
+        ip_address: clientIP
       };
       
       console.log('📝 Order insert data:', JSON.stringify(orderInsertData, null, 2));

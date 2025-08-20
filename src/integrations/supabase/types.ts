@@ -572,6 +572,7 @@ export type Database = {
           extras: number | null
           form_id: string | null
           id: string
+          ip_address: string | null
           items: Json | null
           notes: string | null
           order_number: string
@@ -597,6 +598,7 @@ export type Database = {
           extras?: number | null
           form_id?: string | null
           id?: string
+          ip_address?: string | null
           items?: Json | null
           notes?: string | null
           order_number: string
@@ -622,6 +624,7 @@ export type Database = {
           extras?: number | null
           form_id?: string | null
           id?: string
+          ip_address?: string | null
           items?: Json | null
           notes?: string | null
           order_number?: string

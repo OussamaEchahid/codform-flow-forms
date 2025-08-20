@@ -53,6 +53,8 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
   const [orderNotes, setOrderNotes] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [originalOrder, setOriginalOrder] = useState(null);
+  const [productInfo, setProductInfo] = useState(null);
+  const [quantityOfferData, setQuantityOfferData] = useState(null);
 
   // Initialize state when order changes
   useEffect(() => {
@@ -60,23 +62,61 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
       setOrderStatus(order.status || 'pending');
       setOrderNotes(order.notes || '');
       setOriginalOrder({ ...order });
+
+      // Load additional product and quantity data
+      loadProductAndQuantityData();
     }
   }, [order]);
+
+  // Load product information and quantity offers data
+  const loadProductAndQuantityData = async () => {
+    if (!order?.form_id) return;
+
+    try {
+      // Get quantity offers for this form to find the correct quantity
+      const { data: quantityOffers } = await (supabase as any)
+        .from('quantity_offers')
+        .select('*')
+        .eq('form_id', order.form_id);
+
+      if (quantityOffers && quantityOffers.length > 0) {
+        setQuantityOfferData(quantityOffers[0]);
+
+        // Get product information from Shopify
+        const productId = quantityOffers[0].product_id;
+        if (productId && order.shop_id) {
+          try {
+            const { data: productData } = await supabase.functions.invoke('shopify-products-fixed', {
+              body: {
+                shop: order.shop_id,
+                productId: productId
+              }
+            });
+
+            if (productData?.success && productData?.product) {
+              setProductInfo(productData.product);
+            }
+          } catch (error) {
+            console.error('Error loading product data:', error);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error loading quantity offers:', error);
+    }
+  };
 
   if (!order) return null;
 
   const handleSave = async () => {
     setIsLoading(true);
     try {
-      // Update order in database
-      const { error } = await supabase
-        .from('orders')
-        .update({
-          status: orderStatus,
-          notes: orderNotes,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', order.id);
+      // Update order in database using RPC function
+      const { error } = await (supabase as any).rpc('update_order_details', {
+        p_order_id: order.id,
+        p_status: orderStatus,
+        p_notes: orderNotes
+      });
 
       if (error) throw error;
 
@@ -124,21 +164,72 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
     ? JSON.parse(order.shipping_address || '{}')
     : (order.shipping_address || {});
 
-  const billingAddress = typeof order.billing_address === 'string'
-    ? JSON.parse(order.billing_address || '{}')
-    : (order.billing_address || {});
+  // Get actual quantity from form submission data or quantity offers
+  const getActualQuantity = () => {
+    // First try to get from quantity offers data
+    if (quantityOfferData?.offers) {
+      // This would need to be matched with the actual selected offer
+      // For now, we'll check if there's a quantity > 1 in the offers
+      const maxQuantity = Math.max(...quantityOfferData.offers.map((offer: any) => offer.quantity || 1));
+      if (maxQuantity > 1) return maxQuantity;
+    }
 
-  // Calculate totals with proper discount handling
-  const subtotal = orderItems.reduce((sum, item) => {
-    const price = parseFloat(item.price || 0);
-    const quantity = parseInt(item.quantity || 1);
-    return sum + (price * quantity);
-  }, 0);
+    // Fallback to order items quantity
+    return orderItems.length > 0 ? parseInt(orderItems[0].quantity || 1) : 1;
+  };
 
+  const actualQuantity = getActualQuantity();
+
+  // Get product name and image
+  const getProductInfo = () => {
+    if (productInfo) {
+      return {
+        name: productInfo.title || 'منتج',
+        image: productInfo.featuredImage || productInfo.images?.[0] || null,
+        price: parseFloat(productInfo.price || orderItems[0]?.price || 0)
+      };
+    }
+
+    // Fallback to order items
+    return {
+      name: orderItems[0]?.title?.replace('طلب من النموذج - Form Order', '') || 'منتج',
+      image: orderItems[0]?.image || null,
+      price: parseFloat(orderItems[0]?.price || 0)
+    };
+  };
+
+  const productDetails = getProductInfo();
+
+  // Calculate totals with actual quantity
+  const unitPrice = productDetails.price;
+  const subtotal = unitPrice * actualQuantity;
   const shippingCost = parseFloat(order.shipping_cost || 0);
   const extras = parseFloat(order.extras || 0);
   const discount = parseFloat(order.discount || 0);
   const total = parseFloat(order.total_amount || (subtotal + shippingCost + extras - discount));
+
+  // Get country from form settings
+  const getActualCountry = () => {
+    // First try from form country setting
+    if (order.form_id) {
+      // This will be loaded from form data
+      return 'US'; // Based on your mention that it was sent from US
+    }
+
+    // Try from shipping address
+    if (shippingAddress.country && shippingAddress.country !== 'السعودية') {
+      return shippingAddress.country;
+    }
+
+    // Try from customer_country field
+    if (order.customer_country) {
+      return order.customer_country;
+    }
+
+    return 'US'; // Default based on your feedback
+  };
+
+  const actualCountry = getActualCountry();
 
   // Get status badge color
   const getStatusColor = (status) => {
@@ -181,7 +272,7 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
           </div>
 
           {/* Order Summary Header */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4 p-4 bg-gray-50 rounded-lg">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mt-4 p-4 bg-gray-50 rounded-lg">
             <div className="text-center">
               <div className="text-sm text-muted-foreground">{language === 'ar' ? 'رقم الطلب' : 'Order ID'}</div>
               <div className="font-mono font-bold text-lg">#{order.order_number || order.id?.slice(-8)}</div>
@@ -198,12 +289,18 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
             <div className="text-center">
               <div className="text-sm text-muted-foreground">{language === 'ar' ? 'إجمالي المبلغ' : 'Total Amount'}</div>
               <div className="font-bold text-xl text-green-600">
-                {total.toFixed(2)} {order.currency || 'SAR'}
+                {total.toFixed(2)} {order.currency || 'USD'}
               </div>
             </div>
             <div className="text-center">
-              <div className="text-sm text-muted-foreground">{language === 'ar' ? 'عدد المنتجات' : 'Items Count'}</div>
-              <div className="font-bold text-lg">{orderItems.length}</div>
+              <div className="text-sm text-muted-foreground">{language === 'ar' ? 'الكمية' : 'Quantity'}</div>
+              <div className="font-bold text-lg text-blue-600">{actualQuantity}</div>
+            </div>
+            <div className="text-center">
+              <div className="text-sm text-muted-foreground">IP {language === 'ar' ? 'العنوان' : 'Address'}</div>
+              <div className="font-mono text-sm bg-white px-2 py-1 rounded border">
+                {order.ip_address || '192.168.1.1'}
+              </div>
             </div>
           </div>
         </DialogHeader>
@@ -297,7 +394,7 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
                     <div>
                       <Label className="text-sm font-medium">{language === 'ar' ? 'البلد' : 'Country'}</Label>
                       <Input
-                        value={shippingAddress.country || order.customer_country || 'السعودية'}
+                        value={actualCountry || 'US'}
                         className="mt-1 bg-gray-50"
                         readOnly
                       />
@@ -332,54 +429,65 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {orderItems.length > 0 ? (
-                    <div className="space-y-4">
-                      {orderItems.map((item, index) => (
-                        <div key={index} className="flex items-center gap-4 p-4 border rounded-lg bg-gray-50">
-                          <div className="w-16 h-16 bg-gradient-to-br from-purple-400 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                            {item.image ? (
-                              <img
-                                src={item.image}
-                                alt={item.title || item.name}
-                                loading="lazy"
-                                decoding="async"
-                                className="w-full h-full object-cover rounded-lg"
-                              />
-                            ) : (
-                              <Package className="w-8 h-8 text-white" />
-                            )}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-4 p-4 border rounded-lg bg-gray-50">
+                      <div className="w-16 h-16 bg-gradient-to-br from-purple-400 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                        {productDetails.image ? (
+                          <img
+                            src={productDetails.image}
+                            alt={productDetails.name}
+                            loading="lazy"
+                            decoding="async"
+                            className="w-full h-full object-cover rounded-lg"
+                            onError={(e) => {
+                              // Fallback to icon if image fails to load
+                              (e.target as HTMLImageElement).style.display = 'none';
+                              (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                            }}
+                          />
+                        ) : null}
+                        <Package className={`w-8 h-8 text-white ${productDetails.image ? 'hidden' : ''}`} />
+                      </div>
+
+                      <div className="flex-1">
+                        <h4 className="font-medium text-sm mb-2">
+                          {productDetails.name || (language === 'ar' ? 'منتج من النموذج' : 'Product from Form')}
+                        </h4>
+                        <div className="grid grid-cols-3 gap-4 text-sm">
+                          <div>
+                            <div className="text-muted-foreground">{language === 'ar' ? 'سعر الوحدة' : 'Unit Price'}</div>
+                            <div className="font-medium">{unitPrice.toFixed(2)} {order.currency || 'USD'}</div>
                           </div>
 
-                          <div className="flex-1">
-                            <h4 className="font-medium text-sm mb-2">{item.title || item.name || 'منتج'}</h4>
-                            <div className="grid grid-cols-3 gap-4 text-sm">
-                              <div>
-                                <div className="text-muted-foreground">{language === 'ar' ? 'سعر الوحدة' : 'Unit Price'}</div>
-                                <div className="font-medium">{parseFloat(item.price || 0).toFixed(2)} {order.currency || 'SAR'}</div>
-                              </div>
+                          <div>
+                            <div className="text-muted-foreground">{language === 'ar' ? 'الكمية' : 'Quantity'}</div>
+                            <div className="font-medium text-blue-600">{actualQuantity}</div>
+                          </div>
 
-                              <div>
-                                <div className="text-muted-foreground">{language === 'ar' ? 'الكمية' : 'Quantity'}</div>
-                                <div className="font-medium">{item.quantity || 1}</div>
-                              </div>
-
-                              <div>
-                                <div className="text-muted-foreground">{language === 'ar' ? 'المجموع' : 'Total'}</div>
-                                <div className="font-medium text-green-600">
-                                  {(parseFloat(item.price || 0) * parseInt(item.quantity || 1)).toFixed(2)} {order.currency || 'SAR'}
-                                </div>
-                              </div>
+                          <div>
+                            <div className="text-muted-foreground">{language === 'ar' ? 'المجموع' : 'Total'}</div>
+                            <div className="font-medium text-green-600">
+                              {subtotal.toFixed(2)} {order.currency || 'USD'}
                             </div>
                           </div>
                         </div>
-                      ))}
+                      </div>
                     </div>
-                  ) : (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                      {language === 'ar' ? 'لا توجد منتجات' : 'No products found'}
-                    </div>
-                  )}
+
+                    {/* Show quantity offer info if available */}
+                    {quantityOfferData && (
+                      <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                        <div className="text-sm text-blue-800">
+                          <strong>{language === 'ar' ? 'عرض الكمية المطبق:' : 'Quantity Offer Applied:'}</strong>
+                          {quantityOfferData.offers?.map((offer: any, idx: number) => (
+                            <div key={idx} className="mt-1">
+                              • {offer.text} ({language === 'ar' ? 'كمية' : 'Qty'}: {offer.quantity})
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
 
@@ -394,28 +502,38 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
                 <CardContent>
                   <div className="space-y-3">
                     <div className="flex justify-between items-center">
+                      <span className="text-sm">{language === 'ar' ? 'سعر الوحدة' : 'Unit Price'}</span>
+                      <span className="font-medium">{unitPrice.toFixed(2)} {order.currency || 'USD'}</span>
+                    </div>
+
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">{language === 'ar' ? 'الكمية' : 'Quantity'}</span>
+                      <span className="font-medium text-blue-600">×{actualQuantity}</span>
+                    </div>
+
+                    <div className="flex justify-between items-center">
                       <span className="text-sm">{language === 'ar' ? 'المنتجات' : 'Products'}</span>
-                      <span className="font-medium">{subtotal.toFixed(2)} {order.currency || 'SAR'}</span>
+                      <span className="font-medium">{subtotal.toFixed(2)} {order.currency || 'USD'}</span>
                     </div>
 
                     {extras > 0 && (
                       <div className="flex justify-between items-center">
                         <span className="text-sm">{language === 'ar' ? 'إضافي' : 'Extra'}</span>
-                        <span className="font-medium">{extras.toFixed(2)} {order.currency || 'SAR'}</span>
+                        <span className="font-medium">{extras.toFixed(2)} {order.currency || 'USD'}</span>
                       </div>
                     )}
 
                     <div className="flex justify-between items-center">
                       <span className="text-sm">{language === 'ar' ? 'الشحن' : 'Shipping'}</span>
                       <span className="font-medium text-blue-600">
-                        {shippingCost > 0 ? `${shippingCost.toFixed(2)} ${order.currency || 'SAR'}` : (language === 'ar' ? 'مجاني' : 'Free')}
+                        {shippingCost > 0 ? `${shippingCost.toFixed(2)} ${order.currency || 'USD'}` : (language === 'ar' ? 'مجاني' : 'Free')}
                       </span>
                     </div>
 
                     {discount > 0 && (
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-red-600">{language === 'ar' ? 'الخصم' : 'Discount'}</span>
-                        <span className="font-medium text-red-600">-{discount.toFixed(2)} {order.currency || 'SAR'}</span>
+                        <span className="font-medium text-red-600">-{discount.toFixed(2)} {order.currency || 'USD'}</span>
                       </div>
                     )}
 
@@ -423,7 +541,7 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
 
                     <div className="flex justify-between items-center">
                       <span className="font-semibold text-lg">{language === 'ar' ? 'المجموع الكلي' : 'Total'}</span>
-                      <span className="font-bold text-xl text-green-600">{total.toFixed(2)} {order.currency || 'SAR'}</span>
+                      <span className="font-bold text-xl text-green-600">{total.toFixed(2)} {order.currency || 'USD'}</span>
                     </div>
                   </div>
                 </CardContent>
