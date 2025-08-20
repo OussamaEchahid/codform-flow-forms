@@ -33,10 +33,47 @@ serve(async (req) => {
 
     // 1. فحص حظر عنوان IP مباشرة
     console.log(`[${requestId}] Checking IP block for: ${visitor_ip}`)
-    const { data: ipBlockData } = await supabaseClient.rpc('is_ip_blocked', {
+
+    // فحص IP مع shop_id المحدد أولاً
+    let { data: ipBlockData } = await supabaseClient.rpc('is_ip_blocked', {
       p_ip_address: visitor_ip,
       p_shop_id: shop_id
     })
+
+    // إذا لم يتم العثور على حظر، فحص مع shop domains مشابهة (للتعامل مع الأخطاء الإملائية أو النطاقات المخصصة)
+    if (!ipBlockData || ipBlockData.length === 0 || !ipBlockData[0].is_blocked) {
+      console.log(`[${requestId}] No direct IP block found, checking similar shop domains`)
+
+      // استخراج الجزء الأساسي من النطاق للبحث المرن
+      const shopBaseName = shop_id.replace('.myshopify.com', '').toLowerCase()
+      console.log(`[${requestId}] Extracted shop base name: ${shopBaseName}`)
+
+      // فحص مباشر في قاعدة البيانات للعثور على IPs محظورة مع shop domains مشابهة
+      const { data: similarShopBlocks } = await supabaseClient
+        .from('blocked_ips')
+        .select('reason, redirect_url, shop_id')
+        .eq('ip_address', visitor_ip)
+        .eq('is_active', true)
+        .limit(5) // زيادة الحد للحصول على خيارات أكثر
+
+      if (similarShopBlocks && similarShopBlocks.length > 0) {
+        // البحث عن تطابق مرن في أسماء المتاجر
+        const matchingBlock = similarShopBlocks.find((block: any) => {
+          const blockBaseName = block.shop_id.replace('.myshopify.com', '').toLowerCase()
+          // تحقق من التطابق التام أو التشابه القريب (مثل koobik vs kooblk)
+          return blockBaseName === shopBaseName ||
+                 blockBaseName.includes(shopBaseName.substring(0, 4)) ||
+                 shopBaseName.includes(blockBaseName.substring(0, 4))
+        }) || similarShopBlocks[0] // استخدم الأول كاحتياطي
+
+        console.log(`[${requestId}] Found IP block with shop domain: ${matchingBlock.shop_id} (requested: ${shop_id})`)
+        ipBlockData = [{
+          is_blocked: true,
+          reason: matchingBlock.reason,
+          redirect_url: matchingBlock.redirect_url
+        }]
+      }
+    }
 
     if (ipBlockData && ipBlockData.length > 0 && ipBlockData[0].is_blocked) {
       console.log(`[${requestId}] IP ${visitor_ip} is blocked for shop ${shop_id}`)
