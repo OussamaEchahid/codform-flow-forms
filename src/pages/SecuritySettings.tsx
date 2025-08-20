@@ -71,17 +71,23 @@ const SecuritySettings = () => {
   }, [shop]);
 
   const loadSecurityData = async () => {
-    if (!shop) return;
+    if (!shop) {
+      console.log('❌ No shop ID available');
+      return;
+    }
 
+    console.log('🔍 Loading security data for shop:', shop);
     setLoading(true);
     try {
-      // تحميل الدول المحظورة من قاعدة البيانات
-      const { data: countriesData, error: countriesError } = await supabase
+      // تحميل الدول المحظورة
+      const { data: countriesData, error: countriesError } = await (supabase as any)
         .from('blocked_countries')
         .select('*')
         .eq('shop_id', shop)
         .eq('is_active', true)
         .order('created_at', { ascending: false });
+
+      console.log('🌍 Countries result:', { countriesData, countriesError });
 
       if (countriesError) {
         console.error('Error loading countries:', countriesError);
@@ -90,13 +96,15 @@ const SecuritySettings = () => {
         setBlockedCountries(countriesData || []);
       }
 
-      // تحميل عناوين IP المحظورة من قاعدة البيانات
-      const { data: ipsData, error: ipsError } = await supabase
+      // تحميل عناوين IP المحظورة
+      const { data: ipsData, error: ipsError } = await (supabase as any)
         .from('blocked_ips')
         .select('*')
         .eq('shop_id', shop)
         .eq('is_active', true)
         .order('created_at', { ascending: false });
+
+      console.log('🔒 IPs result:', { ipsData, ipsError });
 
       if (ipsError) {
         console.error('Error loading IPs:', ipsError);
@@ -168,7 +176,7 @@ const SecuritySettings = () => {
       }
 
       // إضافة IP إلى قاعدة البيانات
-      const { data: newIPData, error: insertError } = await supabase
+      const { data: newIPData, error: insertError } = await (supabase as any)
         .from('blocked_ips')
         .insert({
           shop_id: shop,
