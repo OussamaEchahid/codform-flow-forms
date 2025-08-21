@@ -27,6 +27,7 @@ const PlansSettings = () => {
   const [currentPlan, setCurrentPlan] = useState<string>('free');
   const [loading, setLoading] = useState(false);
   const [shopDomain, setShopDomain] = useState<string>('');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const plans: Plan[] = [
     {
@@ -81,25 +82,34 @@ const PlansSettings = () => {
   ];
 
   useEffect(() => {
+    // Check authentication status
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setIsAuthenticated(!!session);
+
+      if (!session) {
+        toast.error('Please log in to manage your subscription');
+        return;
+      }
+    };
+
+    checkAuth();
+
     // Get shop domain from localStorage or auth context
     const shop = localStorage.getItem('shopify_store') || '';
-    console.log('🏪 Shop domain from localStorage (shopify_store):', shop);
 
     // Try alternative keys if first one is empty
     if (!shop) {
       const altShop = localStorage.getItem('active_store') || localStorage.getItem('shopify_domain') || '';
-      console.log('🔄 Trying alternative shop domain (active_store/shopify_domain):', altShop);
 
       if (!altShop) {
         // Try to get from URL parameters or set a default for testing
         const urlParams = new URLSearchParams(window.location.search);
         const shopFromUrl = urlParams.get('shop') || '';
-        console.log('🌐 Trying shop from URL:', shopFromUrl);
 
         if (!shopFromUrl) {
           // For testing purposes, let's set a default shop
           const defaultShop = 'test-shop.myshopify.com';
-          console.log('⚠️ No shop found anywhere, using default for testing:', defaultShop);
           setShopDomain(defaultShop);
           fetchCurrentPlan(defaultShop);
           return;
@@ -130,28 +140,26 @@ const PlansSettings = () => {
   };
 
   const handlePlanChange = async (planId: string) => {
-    console.log('🚀 Plan change clicked!', { planId, shopDomain });
-
     if (!shopDomain) {
-      console.error('❌ Shop domain is empty:', shopDomain);
       toast.error('Shop domain not found');
       return;
     }
 
-    console.log('✅ Starting plan change process...');
     setLoading(true);
 
     try {
-      console.log('📡 Calling change-plan function with:', { shop: shopDomain, planId });
+      // Get current session for JWT token
+      const { data: { session } } = await supabase.auth.getSession();
 
       const response = await supabase.functions.invoke('change-plan', {
         body: {
           shop: shopDomain,
           planId: planId
+        },
+        headers: {
+          Authorization: `Bearer ${session?.access_token || ''}`
         }
       });
-
-      console.log('📥 Response received:', response);
 
       if (response.error) {
         throw response.error;
@@ -179,7 +187,19 @@ const PlansSettings = () => {
       }
     } catch (error) {
       console.error('Error changing plan:', error);
-      toast.error('Failed to change plan');
+
+      // More specific error messages
+      if (error instanceof Error) {
+        if (error.message.includes('401') || error.message.includes('unauthorized')) {
+          toast.error('Authentication required. Please log in again.');
+        } else if (error.message.includes('404')) {
+          toast.error('Service temporarily unavailable. Please try again later.');
+        } else {
+          toast.error(`Failed to change plan: ${error.message}`);
+        }
+      } else {
+        toast.error('Failed to change plan. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -196,29 +216,7 @@ const PlansSettings = () => {
         <p className="text-sm text-muted-foreground">
           اختر الخطة التي تناسب احتياجات عملك
         </p>
-        {shopDomain ? (
-          <p className="text-xs text-blue-600 mt-2">
-            🏪 Shop: {shopDomain} | Current Plan: {currentPlan}
-          </p>
-        ) : (
-          <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p className="text-sm text-yellow-800 mb-2">
-              ⚠️ No shop domain found. For testing, click below to set a test shop:
-            </p>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => {
-                const testShop = 'test-shop.myshopify.com';
-                localStorage.setItem('shopify_store', testShop);
-                setShopDomain(testShop);
-                console.log('🧪 Test shop set:', testShop);
-              }}
-            >
-              Set Test Shop
-            </Button>
-          </div>
-        )}
+
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -282,11 +280,8 @@ const PlansSettings = () => {
               <Button
                 className="w-full mt-6"
                 variant={currentPlan === plan.id ? 'outline' : 'default'}
-                onClick={() => {
-                  console.log('🖱️ Button clicked for plan:', plan.id);
-                  handlePlanChange(plan.id);
-                }}
-                disabled={loading || currentPlan === plan.id}
+                onClick={() => handlePlanChange(plan.id)}
+                disabled={loading || currentPlan === plan.id || !isAuthenticated}
               >
                 {loading ? (
                   'Processing...'
