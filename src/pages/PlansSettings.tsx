@@ -135,14 +135,37 @@ const PlansSettings = () => {
         if (error) throw error;
         console.log('✅ تم تحديث الخطة إلى مجاني');
       } else {
-        // إنشاء اشتراك عبر Shopify وإرجاع رابط التأكيد
+        // إنشاء اشتراك عبر Shopify وإرجاع رابط التأكيد مع معالجة رسائل الأخطاء
         const { supabase } = await import('@/integrations/supabase/client');
         const { data, error } = await supabase.functions.invoke('change-plan', {
           body: { shop: activeStore, planId }
         });
-        if (error) throw error;
+
+        if (error) {
+          // حاول استخراج تفاصيل مفيدة من الخطأ القادم من Edge Function
+          const errMsg = (error as any)?.message || 'حدث خطأ أثناء إنشاء الاشتراك';
+          try {
+            const payload = JSON.parse(errMsg);
+            if (payload?.details?.length) {
+              const messages = payload.details.map((d: any) => d.message).join(' — ');
+              const { toast } = await import('@/hooks/use-toast');
+              toast.error(messages);
+            }
+          } catch {
+            const { toast } = await import('@/hooks/use-toast');
+            toast.error(errMsg);
+          }
+          throw error;
+        }
+
         if (data?.url) {
+          const { toast } = await import('@/hooks/use-toast');
+          toast.info('سيتم فتح صفحة تأكيد الرسوم في Shopify. يرجى الموافقة لإكمال الترقية.');
           window.open(data.url, '_blank');
+        } else if ((data as any)?.details?.length) {
+          const messages = (data as any).details.map((d: any) => d.message).join(' — ');
+          const { toast } = await import('@/hooks/use-toast');
+          toast.error(messages);
         }
       }
     } catch (e) {

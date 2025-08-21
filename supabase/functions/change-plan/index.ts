@@ -8,7 +8,7 @@ interface ChangePlanPayload {
   planId: 'free' | 'basic' | 'premium';
 }
 
-const GRAPHQL_API_VERSION = '2023-10';
+const GRAPHQL_API_VERSION = '2025-07';
 
 const planPricing: Record<string, { amount: number; currency: string; name: string }> = {
   basic: { amount: 1185, currency: 'USD', name: 'Basic Plan' }, // $11.85
@@ -68,12 +68,29 @@ serve(async (req) => {
       });
     }
 
+    // Detect if this is a partner development store so we can set test=true
+    const shopQuery = `#graphql
+      query { shop { plan { partnerDevelopment } } }
+    `;
+    const planResp = await fetch(`https://${shop}/admin/api/${GRAPHQL_API_VERSION}/graphql.json`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Shopify-Access-Token': token },
+      body: JSON.stringify({ query: shopQuery })
+    });
+    let isDevStore = false;
+    if (planResp.ok) {
+      const planJson = await planResp.json();
+      isDevStore = !!planJson?.data?.shop?.plan?.partnerDevelopment;
+    } else {
+      console.warn(`⚠️ Failed to detect shop plan (HTTP ${planResp.status}). Proceeding with defaults.`);
+    }
+
     const origin = req.headers.get('origin') || 'https://codmagnet.com';
     const returnUrl = `${origin}/settings/plans`;
 
     const mutation = `#graphql
-      mutation appSubscriptionCreate($name: String!, $returnUrl: URL!, $lineItems: [AppSubscriptionLineItemInput!]!, $test: Boolean) {
-        appSubscriptionCreate(name: $name, returnUrl: $returnUrl, lineItems: $lineItems, test: $test) {
+      mutation appSubscriptionCreate($name: String!, $returnUrl: URL!, $lineItems: [AppSubscriptionLineItemInput!]!, $test: Boolean, $replacementBehavior: AppSubscriptionReplacementBehavior) {
+        appSubscriptionCreate(name: $name, returnUrl: $returnUrl, lineItems: $lineItems, test: $test, replacementBehavior: $replacementBehavior) {
           userErrors { field message }
           confirmationUrl
           appSubscription { id }
@@ -88,17 +105,18 @@ serve(async (req) => {
         {
           plan: {
             appRecurringPricingDetails: {
-              price: { amount: (pricing.amount / 100).toFixed(2), currencyCode: pricing.currency },
+              price: { amount: (pricing.amount / 100), currencyCode: pricing.currency },
               interval: 'EVERY_30_DAYS',
             },
           },
         },
       ],
-      test: false,
+      test: isDevStore,
+      replacementBehavior: 'APPLY_IMMEDIATELY',
     };
 
     console.log(`📞 Creating subscription for shop: ${shop}, plan: ${planId}`);
-    
+
     const resp = await fetch(`https://${shop}/admin/api/${GRAPHQL_API_VERSION}/graphql.json`, {
       method: 'POST',
       headers: {
@@ -115,12 +133,12 @@ serve(async (req) => {
 
     const json = await resp.json();
     console.log('📋 Shopify API response:', JSON.stringify(json, null, 2));
-    
+
     const sub = json?.data?.appSubscriptionCreate;
     if (sub?.userErrors?.length) {
       console.error('❌ Shopify billing errors:', sub.userErrors);
-      return new Response(JSON.stringify({ 
-        error: 'Subscription creation failed', 
+      return new Response(JSON.stringify({
+        error: 'Subscription creation failed',
         details: sub.userErrors,
         suggestion: 'Please ensure your app has the correct billing permissions in Shopify Partners Dashboard'
       }), {
