@@ -33,6 +33,7 @@ import CurrencySettings from "@/pages/CurrencySettings";
 import QuantityOffers from "@/pages/QuantityOffers";
 import AdvertisingTracking from "@/pages/AdvertisingTracking";
 import EnhancedMyStores from "@/pages/EnhancedMyStores";
+import SubscriptionCallback from "@/pages/SubscriptionCallback";
 
 
 // Components
@@ -163,6 +164,7 @@ function AppRoutes() {
 
       <Route path="/settings/plans" element={<PlansSettings />} />
       <Route path="/settings/currency" element={<CurrencySettings />} />
+      <Route path="/subscription-callback" element={<SubscriptionCallback />} />
       <Route path="/quantity-offers" element={<QuantityOffers />} />
       <Route path="/settings/quantity-offers" element={<QuantityOffers />} />
       <Route path="/advertising-tracking" element={<AdvertisingTracking />} />
