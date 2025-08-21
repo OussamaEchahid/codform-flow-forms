@@ -4,6 +4,7 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, TrendingUp, ShoppingCart, ShoppingBag } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useI18n } from '@/lib/i18n';
 
 interface UsageQuotaCardProps {
   ordersUsed: number;
@@ -22,6 +23,7 @@ export const UsageQuotaCard: React.FC<UsageQuotaCardProps> = ({
   planType,
   onUpgrade
 }) => {
+  const { t, language } = useI18n();
   const ordersPercentage = ordersLimit ? (ordersUsed / ordersLimit) * 100 : 0;
   const abandonedPercentage = abandonedLimit ? (abandonedUsed / abandonedLimit) * 100 : 0;
 
@@ -41,10 +43,10 @@ export const UsageQuotaCard: React.FC<UsageQuotaCardProps> = ({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <TrendingUp className="h-5 w-5" />
-          إحصائيات الاستخدام - {planType}
+          {t('usageStatistics')} - {planType}
         </CardTitle>
         <CardDescription>
-          استخدامك الحالي من الخطة لهذا الشهر
+          {t('currentMonthUsage')}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -53,12 +55,12 @@ export const UsageQuotaCard: React.FC<UsageQuotaCardProps> = ({
           <Alert className="border-red-200 bg-red-50">
             <AlertTriangle className="h-4 w-4 text-red-600" />
             <AlertDescription className="text-red-800">
-              <div className="font-medium mb-2">تم تجاوز الحد المسموح!</div>
+              <div className="font-medium mb-2">{t('limitExceeded')}</div>
               <div className="text-sm space-y-1">
-                {isOrdersOverLimit && <div>• تم تجاوز حد الطلبات الشهرية</div>}
-                {isAbandonedOverLimit && <div>• تم تجاوز حد السلال المهجورة</div>}
+                {isOrdersOverLimit && <div>• {t('monthlyOrdersExceeded')}</div>}
+                {isAbandonedOverLimit && <div>• {t('abandonedCartsExceeded')}</div>}
                 <div className="mt-2">
-                  <strong>يرجى الترقية لخطة أعلى لمواصلة استقبال الطلبات.</strong>
+                  <strong>{t('upgradeRequired')}</strong>
                 </div>
               </div>
             </AlertDescription>
@@ -69,9 +71,9 @@ export const UsageQuotaCard: React.FC<UsageQuotaCardProps> = ({
           <Alert className="border-yellow-200 bg-yellow-50">
             <AlertTriangle className="h-4 w-4 text-yellow-600" />
             <AlertDescription className="text-yellow-800">
-              <div className="font-medium mb-2">اقتراب من الحد المسموح!</div>
+              <div className="font-medium mb-2">{t('nearingLimit')}</div>
               <div className="text-sm">
-                أنت تقترب من حد الاستخدام الشهري. فكر في الترقية لتجنب انقطاع الخدمة.
+                {t('nearingLimitDesc')}
               </div>
             </AlertDescription>
           </Alert>
@@ -82,7 +84,7 @@ export const UsageQuotaCard: React.FC<UsageQuotaCardProps> = ({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <ShoppingCart className="h-4 w-4 text-blue-500" />
-              <span className="font-medium">الطلبات الشهرية</span>
+              <span className="font-medium">{t('monthlyOrders')}</span>
             </div>
             <div className="text-sm text-muted-foreground">
               {ordersUsed} / {ordersLimit || "∞"}
@@ -95,8 +97,8 @@ export const UsageQuotaCard: React.FC<UsageQuotaCardProps> = ({
                 className="h-2"
               />
               <div className="flex justify-between text-xs text-muted-foreground">
-                <span>{Math.round(ordersPercentage)}% مستخدم</span>
-                <span>{Math.max(0, ordersLimit - ordersUsed)} متبقي</span>
+                <span>{Math.round(ordersPercentage)}% {t('used')}</span>
+                <span>{Math.max(0, ordersLimit - ordersUsed)} {t('remaining')}</span>
               </div>
             </div>
           )}
@@ -107,7 +109,7 @@ export const UsageQuotaCard: React.FC<UsageQuotaCardProps> = ({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <ShoppingBag className="h-4 w-4 text-orange-500" />
-              <span className="font-medium">السلال المهجورة</span>
+              <span className="font-medium">{t('abandonedCarts')}</span>
             </div>
             <div className="text-sm text-muted-foreground">
               {abandonedUsed} / {abandonedLimit || "∞"}
@@ -120,8 +122,8 @@ export const UsageQuotaCard: React.FC<UsageQuotaCardProps> = ({
                 className="h-2"
               />
               <div className="flex justify-between text-xs text-muted-foreground">
-                <span>{Math.round(abandonedPercentage)}% مستخدم</span>
-                <span>{Math.max(0, abandonedLimit - abandonedUsed)} متبقي</span>
+                <span>{Math.round(abandonedPercentage)}% {t('used')}</span>
+                <span>{Math.max(0, abandonedLimit - abandonedUsed)} {t('remaining')}</span>
               </div>
             </div>
           )}
@@ -134,21 +136,21 @@ export const UsageQuotaCard: React.FC<UsageQuotaCardProps> = ({
               className="w-full"
               variant={isOrdersOverLimit || isAbandonedOverLimit ? "default" : "outline"}
             >
-              ترقية الخطة الآن
+              {t('upgradeNow')}
             </Button>
         )}
 
         {/* معلومات الخطة */}
         <div className="text-xs text-muted-foreground space-y-1">
-          <div>الخطة الحالية: <strong>{planType}</strong></div>
+          <div>{t('currentPlanText')}: <strong>{planType}</strong></div>
           {planType === 'free' && (
-            <div>• 70 طلب شهرياً • 30 سلة مهجورة</div>
+            <div>• 70 {t('monthlyOrdersShort')} • 30 {t('abandonedCartsShort')}</div>
           )}
           {planType === 'basic' && (
-            <div>• 1000 طلب شهرياً • 30 سلة مهجورة</div>
+            <div>• 1000 {t('monthlyOrdersShort')} • 30 {t('abandonedCartsShort')}</div>
           )}
           {(planType === 'premium' || planType === 'unlimited') && (
-            <div>• طلبات غير محدودة • سلال مهجورة غير محدودة</div>
+            <div>• {t('unlimitedOrders')} • {t('unlimitedAbandoned')}</div>
           )}
         </div>
       </CardContent>

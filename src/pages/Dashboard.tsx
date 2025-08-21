@@ -92,6 +92,7 @@ const Dashboard = () => {
       // جلب بيانات الاشتراك للمتجر النشط
       try {
         const { data: subscriptionData } = await getShopSubscription(activeStore);
+        console.log('💳 Dashboard - Subscription from getShopSubscription:', subscriptionData);
         setSubscription(subscriptionData);
         console.log('💳 Dashboard - Subscription data loaded:', subscriptionData);
       } catch (subscriptionError) {
@@ -331,6 +332,8 @@ const Dashboard = () => {
                             {t('currentPlanText')}: <span className="font-medium">
                               {subscription?.plan_type ? 
                                 subscription.plan_type.charAt(0).toUpperCase() + subscription.plan_type.slice(1) : 
+                                orderStats?.planType ? 
+                                orderStats.planType.charAt(0).toUpperCase() + orderStats.planType.slice(1) : 
                                 'Free'
                               }
                             </span>

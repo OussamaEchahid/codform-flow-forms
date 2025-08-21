@@ -90,17 +90,20 @@ export const getShopSubscription = async (shopDomain: string) => {
   console.log(`💳 Getting subscription for shop: ${shopDomain}`);
   
   try {
-    const { data, error } = await (supabase as any)
+    const { data, error } = await supabase
       .from('shop_subscriptions')
       .select('*')
       .eq('shop_domain', shopDomain)
       .maybeSingle();
+      
+    console.log(`💳 Query result for ${shopDomain}:`, { data, error });
       
     if (error) {
       console.error('❌ Error getting shop subscription:', error);
       return { data: null, error };
     }
     
+    console.log(`💳 Returning subscription data:`, data);
     return { data: data || null, error: null };
   } catch (err) {
     console.error('❌ Exception getting shop subscription:', err);

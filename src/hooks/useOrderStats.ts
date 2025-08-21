@@ -28,16 +28,21 @@ export const useOrderStats = () => {
         return;
       }
 
+      console.log('🔍 OrderStats - Active store:', activeStore);
+      
       // استدعاء دالة الإحصائيات الشهرية
       const { data, error: functionError } = await supabase.rpc('get_monthly_usage_stats', {
         p_shop_id: activeStore
       });
+
+      console.log('📊 OrderStats - Function response:', { data, functionError });
 
       if (functionError) {
         throw functionError;
       }
 
       if (data) {
+        console.log('📊 OrderStats - Plan type from function:', data.plan_type);
         setStats({
           ordersUsed: data.orders_used || 0,
           ordersLimit: data.orders_limit,
@@ -47,6 +52,7 @@ export const useOrderStats = () => {
           ordersPercentage: data.orders_percentage || 0,
           abandonedPercentage: data.abandoned_percentage || 0
         });
+        console.log('✅ OrderStats - Stats updated with plan:', data.plan_type || 'free');
       }
 
     } catch (err) {
