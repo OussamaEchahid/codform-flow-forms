@@ -281,6 +281,16 @@ const translations = {
     offersConfigured: 'offers configured',
     positionPrefix: 'Position:',
     additionalOffers: 'additional offers',
+    
+    // Dashboard loading and error states
+    loadingDashboard: 'Loading dashboard...',
+    loadingUsageStats: 'Loading usage statistics...',
+    notAvailable: 'Not available',
+    noEmail: 'No email',
+    storeNotSpecified: 'Store not specified',
+    conversionRate: 'Conversion Rate',
+    formConversionRate: 'Form conversion rate',
+    manageYourStores: 'Manage your stores, forms and orders from one place',
   },
   ar: {
     dashboard: 'لوحة التحكم',
@@ -539,9 +549,19 @@ const translations = {
     updateOffer: 'تحديث العرض',
     enabled: 'نشط',
     disabled: 'معطل',
-    offersConfigured: 'عرض مُهيأ',
+     offersConfigured: 'عروض مكونة',
     positionPrefix: 'الموضع:',
-    additionalOffers: 'عرض إضافي',
+    additionalOffers: 'عروض إضافية',
+    
+    // Dashboard loading and error states
+    loadingDashboard: 'جاري تحميل لوحة التحكم...',
+    loadingUsageStats: 'جاري تحميل إحصائيات الاستخدام...',
+    notAvailable: 'غير متوفر',
+    noEmail: 'لا يوجد بريد إلكتروني',
+    storeNotSpecified: 'متجر غير محدد',
+    conversionRate: 'معدل التحويل',
+    formConversionRate: 'نسبة تحويل النماذج',
+    manageYourStores: 'إدارة متاجرك ونماذجك وطلباتك من مكان واحد',
   }
 };
 

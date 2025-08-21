@@ -211,7 +211,7 @@ const Dashboard = () => {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">جاري تحميل لوحة التحكم...</p>
+          <p className="text-muted-foreground">{t('loadingDashboard')}</p>
         </div>
       </div>
     );
@@ -231,7 +231,7 @@ const Dashboard = () => {
                   {t('welcomeToDashboard')}
                 </h1>
                 <p className="text-muted-foreground">
-                  {language === 'ar' ? 'إدارة متاجرك ونماذجك وطلباتك من مكان واحد' : 'Manage your stores, forms and orders from one place'}
+                  {t('manageYourStores')}
                 </p>
               </div>
               
@@ -258,19 +258,19 @@ const Dashboard = () => {
                           <>
                             <p className="font-medium text-sm">{userName}</p>
                             <p className="text-xs text-muted-foreground">
-                              {userEmail || 'غير متوفر'}
+                              {userEmail || t('notAvailable')}
                             </p>
                             <p className="text-xs text-muted-foreground/60">{activeStore}</p>
                           </>
                         ) : userEmail ? (
                           <>
                             <p className="font-medium text-sm">{userEmail}</p>
-                            <p className="text-xs text-muted-foreground">{activeStore || 'متجر غير محدد'}</p>
+                            <p className="text-xs text-muted-foreground">{activeStore || t('storeNotSpecified')}</p>
                           </>
                         ) : (
                           <>
                             <p className="font-medium text-sm">{activeStore}</p>
-                            <p className="text-xs text-muted-foreground">لا يوجد بريد إلكتروني</p>
+                            <p className="text-xs text-muted-foreground">{t('noEmail')}</p>
                           </>
                         )}
                       </div>
@@ -321,10 +321,10 @@ const Dashboard = () => {
                           <small className="text-green-600">{language === 'ar' ? 'الاتصال نشط ويعمل بشكل صحيح' : 'Connection is active and working properly'}</small>
                           <br />
                           <small className="text-green-600/70">
-                            {language === 'ar' ? 'البريد الإلكتروني: ' : 'Email: '}{(() => {
-                              const email = localStorage.getItem('shopify_user_email');
-                              return email && email !== 'مغربي• VIP' ? email : 'غير متوفر';
-                            })()}
+                             {language === 'ar' ? 'البريد الإلكتروني: ' : 'Email: '}{(() => {
+                               const email = localStorage.getItem('shopify_user_email');
+                               return email && email !== 'مغربي• VIP' ? email : t('notAvailable');
+                             })()}
                           </small>
                           <br />
                           <small className="text-green-600/70">
@@ -403,7 +403,7 @@ const Dashboard = () => {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Activity className="h-5 w-5" />
-                      جاري تحميل إحصائيات الاستخدام...
+                      {t('loadingUsageStats')}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -417,47 +417,6 @@ const Dashboard = () => {
             </div>
           )}
           
-          <div className="mb-8">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Activity className="h-5 w-5" />
-                  إحصائيات عامة
-                </CardTitle>
-                <CardDescription>نظرة عامة على حسابك</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                  <div className="space-y-2">
-                    <div className="text-sm text-muted-foreground">النماذج المنشأة</div>
-                    <div className="text-2xl font-bold">{stats.totalForms}</div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="text-sm text-muted-foreground">إجمالي الطلبات</div>
-                    <div className="text-2xl font-bold">{stats.totalOrders}</div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="text-sm text-muted-foreground">الخطة الحالية</div>
-                    <div className="text-2xl font-bold">
-                      {subscription?.plan_type ? 
-                        subscription.plan_type.charAt(0).toUpperCase() + subscription.plan_type.slice(1) : 
-                        'Free'
-                      }
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="text-sm text-muted-foreground">معدل التحويل</div>
-                    <div className="text-2xl font-bold">
-                      {stats.totalForms > 0 && stats.totalOrders > 0 
-                        ? `${Math.round((stats.totalOrders / (stats.totalForms * 10)) * 100)}%`
-                        : '0%'
-                      }
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
 
           {/* إحصائيات سريعة - تحديث فوري */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -488,7 +447,7 @@ const Dashboard = () => {
                                        connectedStore !== 'en' && 
                                        connectedStore !== 'ar' && 
                                        connectedStore.includes('.myshopify.com');
-                    return isValidStore ? `${t('connectedTo')} ${connectedStore}` : (language === 'ar' ? 'لا توجد متاجر متصلة' : 'No stores connected');
+                    return isValidStore ? `${t('connectedTo')} ${connectedStore}` : t('noStoresConnected');
                   })()}
                 </p>
               </CardContent>
@@ -522,7 +481,7 @@ const Dashboard = () => {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{language === 'ar' ? 'معدل التحويل' : 'Conversion Rate'}</CardTitle>
+                <CardTitle className="text-sm font-medium">{t('conversionRate')}</CardTitle>
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -530,7 +489,7 @@ const Dashboard = () => {
                   {stats.totalForms > 0 ? Math.round((stats.totalOrders / stats.totalForms) * 100) : 0}%
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {language === 'ar' ? 'نسبة تحويل النماذج' : 'Form conversion rate'}
+                  {t('formConversionRate')}
                 </p>
               </CardContent>
             </Card>
