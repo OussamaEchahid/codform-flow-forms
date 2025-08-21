@@ -88,6 +88,9 @@ serve(async (req) => {
     const origin = req.headers.get('origin') || 'https://codmagnet.com';
     const returnUrl = `${origin}/settings/plans`;
 
+    // Allow forcing test mode via environment variable for easier dev testing
+    const forceTest = (typeof Deno !== 'undefined' && Deno.env.get('SHOPIFY_BILLING_FORCE_TEST') === 'true');
+
     const mutation = `#graphql
       mutation appSubscriptionCreate($name: String!, $returnUrl: URL!, $lineItems: [AppSubscriptionLineItemInput!]!, $test: Boolean, $replacementBehavior: AppSubscriptionReplacementBehavior) {
         appSubscriptionCreate(name: $name, returnUrl: $returnUrl, lineItems: $lineItems, test: $test, replacementBehavior: $replacementBehavior) {
@@ -111,7 +114,7 @@ serve(async (req) => {
           },
         },
       ],
-      test: isDevStore,
+      test: (forceTest || isDevStore),
       replacementBehavior: 'APPLY_IMMEDIATELY',
     };
 
@@ -143,7 +146,7 @@ serve(async (req) => {
         suggestion: 'Please ensure your app has the correct billing permissions in Shopify Partners Dashboard'
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
+        status: 200,
       });
     }
 
