@@ -83,10 +83,18 @@ const PlansSettings = () => {
   useEffect(() => {
     // Get shop domain from localStorage or auth context
     const shop = localStorage.getItem('shopify_store') || '';
-    setShopDomain(shop);
-    
-    // Fetch current plan from database
-    fetchCurrentPlan(shop);
+    console.log('🏪 Shop domain from localStorage:', shop);
+
+    // Try alternative keys if first one is empty
+    if (!shop) {
+      const altShop = localStorage.getItem('active_store') || localStorage.getItem('shopify_domain') || '';
+      console.log('🔄 Trying alternative shop domain:', altShop);
+      setShopDomain(altShop);
+      fetchCurrentPlan(altShop);
+    } else {
+      setShopDomain(shop);
+      fetchCurrentPlan(shop);
+    }
   }, []);
 
   const fetchCurrentPlan = async (shop: string) => {
@@ -102,20 +110,28 @@ const PlansSettings = () => {
   };
 
   const handlePlanChange = async (planId: string) => {
+    console.log('🚀 Plan change clicked!', { planId, shopDomain });
+
     if (!shopDomain) {
+      console.error('❌ Shop domain is empty:', shopDomain);
       toast.error('Shop domain not found');
       return;
     }
 
+    console.log('✅ Starting plan change process...');
     setLoading(true);
-    
+
     try {
+      console.log('📡 Calling change-plan function with:', { shop: shopDomain, planId });
+
       const response = await supabase.functions.invoke('change-plan', {
         body: {
           shop: shopDomain,
           planId: planId
         }
       });
+
+      console.log('📥 Response received:', response);
 
       if (response.error) {
         throw response.error;
@@ -160,6 +176,11 @@ const PlansSettings = () => {
         <p className="text-sm text-muted-foreground">
           اختر الخطة التي تناسب احتياجات عملك
         </p>
+        {shopDomain && (
+          <p className="text-xs text-blue-600 mt-2">
+            🏪 Shop: {shopDomain} | Current Plan: {currentPlan}
+          </p>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -223,7 +244,10 @@ const PlansSettings = () => {
               <Button
                 className="w-full mt-6"
                 variant={currentPlan === plan.id ? 'outline' : 'default'}
-                onClick={() => handlePlanChange(plan.id)}
+                onClick={() => {
+                  console.log('🖱️ Button clicked for plan:', plan.id);
+                  handlePlanChange(plan.id);
+                }}
                 disabled={loading || currentPlan === plan.id}
               >
                 {loading ? (
