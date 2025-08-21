@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { getUserStores, getShopSubscription } from "@/lib/supabase-with-email";
 import { cn } from "@/lib/utils";
 
+import UnifiedStoreManager from "@/utils/unified-store-manager";
 const PlansSettings = () => {
   const { t, language } = useI18n();
   const [stores, setStores] = useState<any[]>([]);
@@ -35,7 +36,8 @@ const PlansSettings = () => {
         language === 'ar' ? 'أسعار الشحن' : 'Shipping Rates',
         language === 'ar' ? 'دعم 24/7' : '24x7 Support'
       ],
-      buttonText: language === 'ar' ? 'الخطة الحالية' : 'Current Plan',
+      // زر الخطة المجانية يجب أن يظهر للبدء، وليس "الخطة الحالية" بشكل افتراضي
+      buttonText: language === 'ar' ? 'البدء مجاناً' : 'Get Started',
       popular: false
     },
     {
@@ -64,7 +66,7 @@ const PlansSettings = () => {
     {
       id: 'premium',
       name: 'Premium',
-      nameKey: 'premiumPlan', 
+      nameKey: 'premiumPlan',
       price: '$22.85',
       icon: Crown,
       description: language === 'ar' ? 'الأفضل للفرق النامية' : 'Best for growing teams',
@@ -94,17 +96,21 @@ const PlansSettings = () => {
   const loadData = async () => {
     try {
       setLoading(true);
+      // اجلب المتاجر (إن وجدت) لكن لا تربط جلب الاشتراك بوجودها
       const { data: storesData } = await getUserStores();
-      
-      if (storesData && storesData.length > 0) {
-        setStores(storesData);
-        
-        // جلب اشتراك المتجر النشط
-        const activeStore = localStorage.getItem('active_store');
-        if (activeStore) {
-          const { data: subscriptionData } = await getShopSubscription(activeStore);
-          setCurrentSubscription(subscriptionData);
-        }
+      setStores(storesData || []);
+
+      // جلب اشتراك المتجر النشط باستخدام النظام الموحد
+      const activeStore = UnifiedStoreManager.getActiveStore()
+        || localStorage.getItem('active_store')
+        || localStorage.getItem('active_shopify_store')
+        || localStorage.getItem('shopify_store');
+
+      if (activeStore) {
+        const { data: subscriptionData } = await getShopSubscription(activeStore);
+        setCurrentSubscription(subscriptionData);
+      } else {
+        setCurrentSubscription(null);
       }
     } catch (error) {
       console.error('❌ Error loading subscription data:', error);
@@ -116,6 +122,7 @@ const PlansSettings = () => {
   const handleUpgrade = async (planId: string) => {
     try {
       const activeStore =
+        UnifiedStoreManager.getActiveStore() ||
         localStorage.getItem('active_store') ||
         localStorage.getItem('active_shop') ||
         localStorage.getItem('active_shopify_store') ||
@@ -130,10 +137,11 @@ const PlansSettings = () => {
       if (planId === 'free') {
         // تغيير الخطة إلى مجاني مباشرة
         const { supabase } = await import('@/integrations/supabase/client');
-        const { data, error } = await (supabase as any)
+        const { error } = await (supabase as any)
           .rpc('upgrade_shop_plan', { p_shop_domain: activeStore, p_new_plan: 'free' });
         if (error) throw error;
         console.log('✅ تم تحديث الخطة إلى مجاني');
+        await loadData();
       } else {
         // إنشاء اشتراك عبر Shopify وإرجاع رابط التأكيد مع معالجة رسائل الأخطاء
         const { supabase } = await import('@/integrations/supabase/client');
@@ -162,6 +170,11 @@ const PlansSettings = () => {
           const { toast } = await import('@/hooks/use-toast');
           toast.info('سيتم فتح صفحة تأكيد الرسوم في Shopify. يرجى الموافقة لإكمال الترقية.');
           window.open(data.url, '_blank');
+          const onFocus = async () => {
+            await loadData();
+            window.removeEventListener('focus', onFocus);
+          };
+          window.addEventListener('focus', onFocus);
         } else if ((data as any)?.details?.length) {
           const messages = (data as any).details.map((d: any) => d.message).join(' — ');
           const { toast } = await import('@/hooks/use-toast');
@@ -174,17 +187,19 @@ const PlansSettings = () => {
   };
 
   const getCurrentPlan = () => {
-    return currentSubscription?.plan_type || 'free';
+    // لا تُرجِع Free كافتراض حتى لا تُعلم البطاقة مجانًا كخطة حالية بدون بيانات
+    return currentSubscription?.plan_type || null;
   };
 
   const getPlanStatus = (planId: string) => {
     const currentPlan = getCurrentPlan();
+    if (!currentPlan) return 'other'; // غير معروف حتى يتم جلب الاشتراك
     if (currentPlan === planId) return 'current';
-    
+
     const planOrder = ['free', 'basic', 'premium'];
     const currentIndex = planOrder.indexOf(currentPlan);
     const planIndex = planOrder.indexOf(planId);
-    
+
     return planIndex > currentIndex ? 'upgrade' : 'downgrade';
   };
 
@@ -224,12 +239,12 @@ const PlansSettings = () => {
                     <div>
                       <div className="font-medium">{store.shop}</div>
                       <div className="text-sm text-muted-foreground">
-                        {language === 'ar' ? 'الخطة:' : 'Plan:'} {currentSubscription?.plan_type || 'free'}
+                        {language === 'ar' ? 'الخطة:' : 'Plan:'} {currentSubscription?.plan_type ?? (language === 'ar' ? 'غير معروف' : 'Unknown')}
                       </div>
                     </div>
-                    <Badge variant={store.shop === localStorage.getItem('active_store') ? 'default' : 'secondary'}>
-                      {store.shop === localStorage.getItem('active_store') ? 
-                        (language === 'ar' ? 'نشط' : 'Active') : 
+                    <Badge variant={store.shop === (UnifiedStoreManager.getActiveStore() || localStorage.getItem('active_store')) ? 'default' : 'secondary'}>
+                      {store.shop === (UnifiedStoreManager.getActiveStore() || localStorage.getItem('active_store')) ?
+                        (language === 'ar' ? 'نشط' : 'Active') :
                         (language === 'ar' ? 'غير نشط' : 'Inactive')
                       }
                     </Badge>
@@ -245,10 +260,10 @@ const PlansSettings = () => {
           {plans.map((plan) => {
             const status = getPlanStatus(plan.id);
             const IconComponent = plan.icon;
-            
+
             return (
-              <Card 
-                key={plan.id} 
+              <Card
+                key={plan.id}
                 className={cn(
                   "relative transition-all duration-300 hover:shadow-xl",
                   plan.popular && "border-primary shadow-xl scale-105 bg-gradient-to-br from-background to-muted/30",
@@ -262,7 +277,7 @@ const PlansSettings = () => {
                     </Badge>
                   </div>
                 )}
-                
+
                 <CardHeader className="text-center pb-4">
                   <div className="flex items-center justify-center mb-2">
                     <IconComponent className="h-8 w-8 text-primary" />
@@ -283,7 +298,7 @@ const PlansSettings = () => {
                     <Badge variant="secondary" className="mt-2">{language === 'ar' ? 'الخطة الحالية' : 'Current Plan'}</Badge>
                   )}
                 </CardHeader>
-                
+
                 <CardContent className="space-y-6">
                   <ul className="space-y-3">
                     {plan.features.map((feature, index) => (
@@ -293,8 +308,8 @@ const PlansSettings = () => {
                       </li>
                     ))}
                   </ul>
-                  
-                  <Button 
+
+                  <Button
                     className={cn(
                       "w-full py-3 font-semibold transition-all duration-300",
                       plan.popular ? "bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 shadow-lg" : "",
