@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/components/layout/AuthProvider';
 import { useI18n } from '@/lib/i18n';
 import { supabase } from '@/integrations/supabase/client';
+import { UsageQuotaCard } from '@/components/dashboard/UsageQuotaCard';
+import { useOrderStats } from '@/hooks/useOrderStats';
 import { cleanupAuthState, forceSignOut } from '@/utils/auth-cleanup';
 import UnifiedStoreManager from '@/utils/unified-store-manager';
 import AppSidebar from '@/components/layout/AppSidebar';
@@ -33,6 +35,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { user, shops, shop, shopifyConnected, isShopifyAuthenticated } = useAuth();
   const { language, t } = useI18n();
+  const { stats: orderStats, loading: statsLoading, refetch: refetchStats } = useOrderStats();
   
   // إظهار حالة الاتصال بوضوح باستخدام UnifiedStoreManager
   const activeStoreFromManager = UnifiedStoreManager.getActiveStore();
@@ -162,24 +165,22 @@ const Dashboard = () => {
       if (!formsError && formsData) {
         formsCount = formsData.length;
         console.log('📋 Dashboard - Forms found:', formsCount);
-        
-        // جلب عدد الطلبات (الإرسالات) للنماذج
-        if (formsData.length > 0) {
-          const { data: submissionsData, error: submissionsError } = await supabase
-            .from('form_submissions')
-            .select('id, form_id')
-            .in('form_id', formsData.map(f => f.id.toString()))
-        .limit(1000);
-          
-          if (!submissionsError && submissionsData) {
-            ordersCount = submissionsData.length;
-            console.log('🛒 Dashboard - Submissions found:', ordersCount);
-          } else {
-            console.error('❌ Dashboard - Error fetching submissions:', submissionsError);
-          }
-        }
       } else {
         console.error('❌ Dashboard - Error fetching forms:', formsError);
+      }
+
+      // جلب عدد الطلبات الفعلية من جدول orders بدلاً من form_submissions  
+      const { data: ordersData, error: ordersError } = await supabase
+        .from('orders')
+        .select('id')
+        .eq('shop_id', activeStore)
+        .limit(1000);
+      
+      if (!ordersError && ordersData) {
+        ordersCount = ordersData.length;
+        console.log('🛒 Dashboard - Orders found:', ordersCount);
+      } else {
+        console.error('❌ Dashboard - Error fetching orders:', ordersError);
       }
       
       // تحديث الإحصائيات
@@ -386,24 +387,54 @@ const Dashboard = () => {
           })()}
 
           {/* إحصائيات الاستخدام الحالي */}
+          {isShopifyAuthenticated && stats.activeStore && (
+            <div className="mb-8">
+              {!statsLoading && orderStats ? (
+                <UsageQuotaCard 
+                  ordersUsed={orderStats.ordersUsed}
+                  ordersLimit={orderStats.ordersLimit}
+                  abandonedUsed={orderStats.abandonedUsed}
+                  abandonedLimit={orderStats.abandonedLimit}
+                  planType={orderStats.planType}
+                  onUpgrade={() => navigate('/settings/plans')}
+                />
+              ) : (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Activity className="h-5 w-5" />
+                      جاري تحميل إحصائيات الاستخدام...
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="animate-pulse space-y-4">
+                      <div className="h-4 bg-muted rounded w-3/4"></div>
+                      <div className="h-4 bg-muted rounded w-1/2"></div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
+          
           <div className="mb-8">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Activity className="h-5 w-5" />
-                  إحصائيات الاستخدام الحالي
+                  إحصائيات عامة
                 </CardTitle>
-                <CardDescription>استخدامك للخطة الحالية</CardDescription>
+                <CardDescription>نظرة عامة على حسابك</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                   <div className="space-y-2">
-                    <div className="text-sm text-muted-foreground">النماذج المستخدمة</div>
-                    <div className="text-2xl font-bold">{stats.totalForms}/∞</div>
+                    <div className="text-sm text-muted-foreground">النماذج المنشأة</div>
+                    <div className="text-2xl font-bold">{stats.totalForms}</div>
                   </div>
                   <div className="space-y-2">
-                    <div className="text-sm text-muted-foreground">الطلبات هذا الشهر</div>
-                    <div className="text-2xl font-bold">{stats.totalOrders}/70</div>
+                    <div className="text-sm text-muted-foreground">إجمالي الطلبات</div>
+                    <div className="text-2xl font-bold">{stats.totalOrders}</div>
                   </div>
                   <div className="space-y-2">
                     <div className="text-sm text-muted-foreground">الخطة الحالية</div>
@@ -415,11 +446,11 @@ const Dashboard = () => {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <div className="text-sm text-muted-foreground">تاريخ التجديد</div>
+                    <div className="text-sm text-muted-foreground">معدل التحويل</div>
                     <div className="text-2xl font-bold">
-                      {subscription?.next_billing_date ? 
-                        new Date(subscription.next_billing_date).toLocaleDateString('ar-SA') : 
-                        '--'
+                      {stats.totalForms > 0 && stats.totalOrders > 0 
+                        ? `${Math.round((stats.totalOrders / (stats.totalForms * 10)) * 100)}%`
+                        : '0%'
                       }
                     </div>
                   </div>
