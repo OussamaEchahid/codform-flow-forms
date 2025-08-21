@@ -1,0 +1,9 @@
+{
+  "name": "codform-web-pixel",
+  "version": "1.0.0",
+  "description": "CODFORM Web Pixel Extension",
+  "main": "src/index.js",
+  "dependencies": {
+    "@shopify/web-pixels-extension": "^0.4.0"
+  }
+}

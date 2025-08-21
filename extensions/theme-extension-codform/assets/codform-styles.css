@@ -1,0 +1,282 @@
+/* ===============================================================================
+   CODFORM STYLES - Extracted from codform_form.liquid
+   =============================================================================== */
+
+/* Cairo font for Arabic text support */
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
+
+/* Default form styling */
+[data-form-preview-id="form-preview-stable"] {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 24px;
+  margin: 16px 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Form field spacing consistency */
+.codform-field-wrapper {
+  margin-bottom: 16px;
+}
+
+.codform-field-wrapper:last-of-type {
+  margin-bottom: 10px;
+}
+
+/* Cart items styling */
+.codform-cart-item {
+  margin-bottom: 16px;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+
+.codform-cart-item .item-title {
+  font-size: 18px !important;
+  font-weight: 600;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.codform-cart-item .item-price {
+  font-size: 18px !important;
+  font-weight: 600;
+  color: #059669;
+}
+
+.codform-cart-item .item-variant {
+  font-size: 16px !important;
+  color: #6b7280;
+  margin-bottom: 8px;
+}
+
+.codform-cart-item .quantity-selector {
+  margin: 12px 0 16px 0;
+}
+
+.codform-cart-item .quantity-selector button {
+  padding: 8px 16px;
+  font-size: 16px;
+}
+
+.codform-cart-item .quantity-selector span {
+  font-size: 18px;
+  font-weight: 500;
+  min-width: 50px;
+  text-align: center;
+}
+
+/* Submit button spacing */
+.codform-submit-button,
+.codform-submit-btn {
+  margin-top: 12px !important;
+}
+
+/* Remove borders from popup button area only */
+.codform-popup-only-mode [data-form-preview-id="form-preview-stable"] {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Arabic Font Styles */
+.codform-arabic-text,
+.codform-arabic-text *,
+[dir="rtl"],
+[dir="rtl"] *,
+.codform-field-wrapper[dir="rtl"],
+.codform-field-wrapper[dir="rtl"] *,
+.codform-popup-button,
+.codform-popup-trigger,
+button[id^="codform-popup-btn"],
+#codform-popup-modal [dir="rtl"],
+#codform-popup-modal [dir="rtl"] * {
+  font-family: 'Cairo', 'Noto Sans Arabic', 'Amiri', sans-serif !important;
+  font-size: 16px !important;
+  font-feature-settings: "liga" 1, "kern" 1;
+  text-rendering: optimizeLegibility;
+}
+
+/* Fixed input padding to prevent font size conflicts */
+.codform-field-wrapper[dir="rtl"] input[type="text"],
+.codform-field-wrapper[dir="rtl"] input[type="email"],
+.codform-field-wrapper[dir="rtl"] input[type="tel"],
+.codform-field-wrapper[dir="rtl"] input[type="number"],
+.codform-field-wrapper[dir="rtl"] textarea,
+.codform-field-wrapper[dir="rtl"] select,
+.codform-field-wrapper[dir="rtl"] label {
+  font-size: 16px !important;
+}
+
+/* إصلاح padding ثابت لمنع تغيير العرض مع حجم الخط */
+.codform-field-wrapper input,
+.codform-field-wrapper textarea,
+.codform-input {
+  padding-top: 10px !important;
+  padding-bottom: 10px !important;
+  line-height: 1.4 !important;
+  min-height: 44px !important;
+  box-sizing: border-box !important;
+}
+
+/* إضافة قاعدة أكثر تحديداً لضمان عدم تغيير padding */
+input.codform-input,
+input[class*="codform"],
+.codform-field-wrapper input[type="text"],
+.codform-field-wrapper input[type="email"],
+.codform-field-wrapper input[type="tel"] {
+  padding-top: 10px !important;
+  padding-bottom: 10px !important;
+}
+
+/* Placeholder specific styling to prevent interference */
+.codform-field-wrapper input::placeholder,
+.codform-field-wrapper textarea::placeholder {
+  font-size: inherit !important;
+  line-height: inherit !important;
+  color: #9CA3AF !important;
+}
+
+/* Animation Keyframes */
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.3);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 10px rgba(0, 0, 0, 0);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
+  }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 90% { transform: translateX(-2px); }
+  20%, 80% { transform: translateX(4px); }
+  30%, 50%, 70% { transform: translateX(-6px); }
+  40%, 60% { transform: translateX(6px); }
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-10px); }
+  60% { transform: translateY(-5px); }
+}
+
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-5deg); }
+  50% { transform: rotate(0deg); }
+  75% { transform: rotate(5deg); }
+}
+
+@keyframes flash {
+  0%, 50%, 100% { opacity: 1; }
+  25%, 75% { opacity: 0.5; }
+}
+
+/* Animation Classes for popup buttons AND submit buttons */
+.codform-popup-button.pulse-animation,
+button[id^="codform-popup-btn"].pulse-animation,
+.codform-popup-trigger.pulse-animation,
+.codform-submit-btn.pulse-animation,
+button[type="submit"].pulse-animation {
+  animation: pulse 2s infinite !important;
+}
+
+.codform-popup-button.bounce-animation,
+button[id^="codform-popup-btn"].bounce-animation,
+.codform-popup-trigger.bounce-animation,
+.codform-submit-btn.bounce-animation,
+button[type="submit"].bounce-animation {
+  animation: bounce 2s infinite !important;
+}
+
+.codform-popup-button.shake-animation,
+button[id^="codform-popup-btn"].shake-animation,
+.codform-popup-trigger.shake-animation,
+.codform-submit-btn.shake-animation,
+button[type="submit"].shake-animation {
+  animation: shake 0.8s infinite !important;
+}
+
+.codform-popup-button.wiggle-animation,
+button[id^="codform-popup-btn"].wiggle-animation,
+.codform-popup-trigger.wiggle-animation,
+.codform-submit-btn.wiggle-animation,
+button[type="submit"].wiggle-animation {
+  animation: wiggle 2s ease-in-out infinite !important;
+}
+
+.codform-popup-button.flash-animation,
+button[id^="codform-popup-btn"].flash-animation,
+.codform-popup-trigger.flash-animation,
+.codform-submit-btn.flash-animation,
+button[type="submit"].flash-animation {
+  animation: flash 2s infinite !important;
+}
+
+/* Popup button styles - بدون padding ثابت لتجنب التداخل */
+.codform-popup-button,
+button[id^="codform-popup-btn"],
+.codform-popup-trigger {
+  border: 0px solid transparent !important;
+  outline: 0px solid transparent !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  cursor: pointer;
+  font-family: 'Cairo', 'Noto Sans Arabic', 'Amiri', sans-serif !important;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  white-space: nowrap;
+  /* تم إزالة padding الثابت - يتم التحكم فيه بواسطة inline styles */
+}
+
+.codform-popup-button:hover,
+button[id^="codform-popup-btn"]:hover,
+.codform-popup-trigger:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25) !important;
+  border: 0px solid transparent !important;
+  outline: 0px solid transparent !important;
+}
+
+.codform-popup-button:active,
+button[id^="codform-popup-btn"]:active,
+.codform-popup-trigger:active {
+  transform: translateY(0);
+  border: 0px solid transparent !important;
+  outline: 0px solid transparent !important;
+}
+
+.codform-popup-button:focus,
+button[id^="codform-popup-btn"]:focus,
+.codform-popup-trigger:focus {
+  border: 0px solid transparent !important;
+  outline: 0px solid transparent !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25) !important;
+}
+
+/* Apply Cairo font to popup modal content */
+#codform-popup-modal,
+#codform-popup-modal *,
+#codform-popup-overlay,
+#codform-popup-overlay * {
+  font-family: 'Cairo', 'Noto Sans Arabic', 'Amiri', sans-serif !important;
+}
+
+/* Remove borders from all popup button elements */
+button[id^="codform-popup-btn"] *,
+.codform-popup-trigger *,
+.codform-popup-button * {
+  border: 0px solid transparent !important;
+  outline: 0px solid transparent !important;
+}

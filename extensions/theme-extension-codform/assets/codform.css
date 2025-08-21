@@ -1,0 +1,645 @@
+
+/* CODFORM - نماذج الدفع عند الاستلام */
+
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap');
+
+/* تكوين أساسي للحاوية الرئيسية - تمت إزالة الأنماط المرئية لمنع التعارض */
+.codform-container {
+  font-family: 'Cairo', sans-serif;
+  direction: rtl;
+  margin: 10px 0;
+  padding: 0; /* تم التعديل */
+  border: none; /* تم التعديل */
+  background-color: transparent; /* تم التعديل */
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
+  width: 100%;
+  font-size: 16px;
+  line-height: 1.5;
+  box-shadow: none; /* تم التعديل */
+}
+
+/* 
+  حاوية النموذج الرئيسية
+  تمت إزالة الأنماط المتعارضة مثل الخلفية والـ padding من هنا.
+  يتم الآن التحكم فيها بالكامل عبر الأنماط المضمنة (inline styles) 
+  التي يتم إنشاؤها بواسطة JavaScript لتطابق إعدادات المنشئ بدقة.
+*/
+.codform-form {
+  margin-top: 14px;
+}
+
+/* ... keep existing code (from .codform-field to .codform-submit-btn svg) ... */
+.codform-field {
+  margin-bottom: 10px !important;
+  display: block !important;
+  background-color: #ffffff !important;
+  padding: 12px !important;
+  border-radius: 8px !important;
+  border: 1px solid #e5e7eb !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+}
+
+.codform-field label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #374151;
+  /* Font size will be set by JavaScript inline styles */
+}
+
+.codform-field input[type="text"],
+.codform-field input[type="email"],
+.codform-field input[type="tel"],
+.codform-field input[type="number"],
+.codform-field textarea,
+.codform-field select {
+  width: 100% !important;
+  padding: 10px 12px !important;
+  padding-right: 36px !important;
+  padding-left: 12px !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 8px !important;
+  font-size: 16px !important; /* Fixed size for inputs and placeholders */
+  transition: all 0.2s ease-in-out !important;
+  font-family: 'Cairo', sans-serif !important;
+  background-color: #ffffff !important;
+  color: #1f2937 !important;
+  box-sizing: border-box !important;
+  height: auto !important;
+  line-height: 1.5 !important;
+  margin: 0 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Specific styling for textarea */
+.codform-field textarea {
+  min-height: 80px !important;
+  height: auto !important;
+  resize: vertical !important;
+}
+
+/* Ensure textarea height for Arabic language */
+.codform-container[dir="rtl"] .codform-field textarea,
+.codform-container .codform-field textarea {
+  min-height: 80px !important;
+}
+
+/* Placeholder text styling */
+.codform-field input::placeholder,
+.codform-field textarea::placeholder {
+  color: #9ca3af !important;
+  font-size: 16px !important;
+  font-family: 'Cairo', sans-serif !important;
+}
+
+.codform-field input:focus,
+.codform-field textarea:focus,
+.codform-field select:focus {
+  outline: none !important;
+  border-color: #9b87f5 !important;
+  box-shadow: 0 0 0 3px rgba(155, 135, 245, 0.2) !important;
+}
+
+/* تحسين عرض الأيقونات داخل الحقول - دعم RTL/LTR */
+.codform-field-icon {
+  position: absolute !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  color: #9ca3af !important;
+  width: 18px !important;
+  height: 18px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  pointer-events: none !important;
+  z-index: 2 !important;
+  /* Position will be set dynamically by JavaScript based on form direction */
+}
+
+/* RTL icon positioning */
+.codform-container[dir="rtl"] .codform-field-icon {
+  right: 12px !important;
+  left: auto !important;
+}
+
+/* LTR icon positioning */
+.codform-container[dir="ltr"] .codform-field-icon {
+  left: 12px !important;
+  right: auto !important;
+}
+
+.codform-field-wrapper {
+  position: relative !important;
+  display: block !important;
+}
+
+/* مربعات الاختيار */
+.codform-checkbox-container {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.codform-checkbox-container input[type="checkbox"] {
+  margin-left: 8px;
+  width: 18px;
+  height: 18px;
+  accent-color: #9b87f5;
+}
+
+/* مجموعة أزرار الراديو */
+.codform-radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.codform-radio-container {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.codform-radio-container input[type="radio"] {
+  margin-left: 8px;
+  width: 18px;
+  height: 18px;
+  accent-color: #9b87f5;
+}
+
+/* نص المساعدة */
+.codform-help-text {
+  font-size: 14px !important;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+/* علامة الحقول المطلوبة */
+.codform-required {
+  color: #ef4444;
+  margin-right: 3px;
+}
+
+/* أزرار الإرسال والتنقل بين الخطوات - أساسية فقط، الأنماط الأخرى من inline styles */
+.codform-submit-button,
+.codform-next-button,
+.codform-prev-button,
+.codform-submit-btn {
+  cursor: pointer !important;
+  transition: all 0.2s ease-in-out !important;
+  width: 100% !important;
+  margin-top: 14px !important;
+  font-family: 'Cairo', sans-serif !important;
+  position: relative !important;
+  overflow: hidden !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  text-align: center !important;
+  /* جميع الألوان والحجوم والحشو يتم التحكم فيها بالكامل بواسطة inline styles من form builder */
+}
+
+.codform-submit-button:hover,
+.codform-next-button:hover,
+.codform-submit-btn:hover {
+  transform: translateY(-1px) !important;
+  filter: brightness(0.9) !important;
+}
+
+.codform-prev-button {
+  background-color: #9ca3af;
+}
+
+.codform-prev-button:hover {
+  background-color: #8b8f96;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.codform-submit-button:disabled,
+.codform-next-button:disabled,
+.codform-prev-button:disabled,
+.codform-submit-btn:disabled {
+  cursor: not-allowed !important;
+  opacity: 0.7 !important;
+  transform: none !important;
+  filter: grayscale(1) !important;
+}
+
+/* حالة التحميل */
+.codform-loading {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* رسائل النجاح والخطأ */
+.codform-success, .codform-error {
+  text-align: center;
+  padding: 24px 16px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  margin-top: 16px;
+  border: 1px solid #e5e7eb;
+}
+
+.codform-success-icon {
+  background-color: #10b981;
+  color: white;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  margin: 0 auto 16px;
+}
+
+.codform-error-icon {
+  background-color: #ef4444;
+  color: white;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  margin: 0 auto 16px;
+}
+
+/* مؤشر التحميل */
+.codform-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 0;
+  background-color: #ffffff;
+  border-radius: 8px;
+  margin-top: 16px;
+  border: 1px solid #e5e7eb;
+}
+
+.codform-spinner {
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  border-top: 4px solid #9b87f5;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 14px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.codform-button {
+  cursor: pointer !important;
+  margin-top: 14px !important;
+  transition: all 0.2s ease-in-out !important;
+  font-family: 'Cairo', sans-serif !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  width: 100% !important;
+  /* جميع الأنماط الأخرى تأتي من inline styles */
+}
+
+.codform-button:hover {
+  transform: translateY(-1px) !important;
+  filter: brightness(0.9) !important;
+}
+
+/* تنسيق النموذج متعدد الخطوات */
+.codform-steps-nav {
+  margin-bottom: 20px;
+}
+
+.codform-step-indicators {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+
+.codform-step-indicator {
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  background-color: #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  color: #6b7280;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.codform-step-indicator::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 100%;
+  height: 3px;
+  width: 100%;
+  background-color: #e5e7eb;
+  transform: translateY(-50%);
+  transition: background-color 0.3s ease;
+}
+
+.codform-step-indicator:first-child::after {
+  display: none;
+}
+
+.codform-step-active {
+  background-color: #9b87f5;
+  color: white;
+  transform: scale(1.1);
+}
+
+.codform-step-completed {
+  background-color: #10b981;
+  color: white;
+}
+
+.codform-step-completed::after,
+.codform-step-active::after {
+  background-color: #10b981;
+}
+
+.codform-steps-container {
+  min-height: 200px;
+}
+
+.codform-nav-buttons {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.codform-prev-button,
+.codform-next-button {
+  flex: 1;
+}
+
+/* رسائل التحقق */
+.codform-validation-message {
+  color: #ef4444;
+  margin-top: 8px;
+  text-align: center;
+  font-weight: bold;
+}
+
+.codform-field-error {
+  border-color: #ef4444 !important;
+  background-color: rgba(254, 226, 226, 0.3);
+}
+
+/* تنسيقات خاصة بأنواع الحقول المختلفة */
+.codform-field h3 {
+  margin-top: 0 !important;
+  margin-bottom: 8px !important;
+  font-size: 20px !important;
+  color: #374151 !important;
+}
+
+/* تنسيقات حقول العناوين الجديدة - فقط النص بدون خلفية */
+.codform-title-field {
+  margin-bottom: 16px !important;
+  display: block !important;
+  width: 100% !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 12px 0 !important;
+}
+
+/* عنوان الخطوة */
+.codform-step-title {
+  font-weight: 600;
+  font-size: 20px !important;
+  color: #374151;
+  margin-bottom: 16px;
+  padding-bottom: 6px;
+  border-bottom: 2px solid #e5e7eb;
+  background-color: #ffffff;
+  padding: 12px;
+  border-radius: 8px;
+}
+
+/* تحسين المسافات والتخطيط لقراءة أفضل */
+.codform-step {
+  padding: 12px 0;
+}
+
+/* تحسين أنماط التركيز للوصول بشكل أفضل */
+.codform-field input:focus,
+.codform-field select:focus,
+.codform-field textarea:focus {
+  outline: none;
+  border-color: #9b87f5;
+  box-shadow: 0 0 0 3px rgba(155, 135, 245, 0.2);
+}
+
+/* تنسيقات حقول الصور */
+.codform-image-field {
+  text-align: center;
+  margin-bottom: 16px;
+  background-color: #ffffff;
+  padding: 12px;
+  border-radius: 8px;
+}
+
+.codform-image-container {
+  max-width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.codform-image {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* تنسيقات زر الواتساب */
+.codform-whatsapp-button {
+  background-color: #25D366 !important;
+  color: white !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  padding: 14px 20px;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  font-size: 16px !important;
+  text-decoration: none !important;
+  width: 100% !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  font-family: 'Tajawal', sans-serif !important;
+  margin-top: 14px !important;
+  margin-bottom: 8px !important;
+  text-align: center !important;
+}
+
+.codform-whatsapp-button:hover {
+  background-color: #20bd5a !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
+}
+
+.codform-whatsapp-icon {
+  width: 18px !important;
+  height: 18px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Animation Effects */
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.pulse-animation {
+  animation: pulse 2s infinite ease-in-out !important;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 90% { transform: translateX(-2px); }
+  20%, 80% { transform: translateX(4px); }
+  30%, 50%, 70% { transform: translateX(-6px); }
+  40%, 60% { transform: translateX(6px); }
+}
+
+.shake-animation {
+  animation: shake 0.8s infinite ease-in-out !important;
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-10px); }
+  60% { transform: translateY(-5px); }
+}
+
+.bounce-animation {
+  animation: bounce 2s infinite ease-in-out !important;
+}
+
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0); }
+  25% { transform: rotate(-5deg); }
+  50% { transform: rotate(0); }
+  75% { transform: rotate(5deg); }
+}
+
+.wiggle-animation {
+  animation: wiggle 0.7s ease-in-out infinite !important;
+}
+
+@keyframes flash {
+  0%, 50%, 100% { opacity: 1; }
+  25%, 75% { opacity: 0.7; }
+}
+
+.flash-animation {
+  animation: flash 3s infinite ease-in-out !important;
+}
+
+/* تعديلات لتحسين التوافقية مع الأجهزة المختلفة */
+@media (max-width: 768px) {
+  .codform-container {
+    margin: 12px 0;
+  }
+
+  .codform-title-field {
+    padding: 12px 0 !important;
+  }
+
+  /* تثبيت أحجام عناصر النموذج للشاشات الصغيرة */
+  .codform-field label {
+    font-size: 16px !important;
+  }
+
+  .codform-field input[type="text"],
+  .codform-field input[type="email"],
+  .codform-field input[type="tel"],
+  .codform-field input[type="number"],
+  .codform-field textarea,
+  .codform-field select {
+    font-size: 16px !important;
+  }
+}
+
+/* تأكيدات لضمان التنسيق المستمر في جميع المتصفحات */
+.codform-container * {
+  box-sizing: border-box;
+}
+
+/* تحسين موضع الأيقونات */
+.codform-icon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 18px !important;
+  height: 18px !important;
+  flex-shrink: 0 !important;
+  stroke-width: 2px !important;
+}
+
+/* تحسين موضع الأيقونات في الأزرار */
+.codform-submit-btn svg,
+.codform-whatsapp-button svg {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
+/* تحسين عرض الحاوية الرئيسية للنموذج - تمت إزالة الأنماط المتعارضة */
+.codform-form {
+  /*
+    تم إزالة الخصائص المتعارضة مثل padding, border, background-color.
+    يتم الآن التحكم في هذه الأنماط بالكامل بواسطة جافاسكريبت لضمان تطابق المعاينة مع المتجر.
+  */
+}
+
+/* إصلاح موضع الأيقونات في حقول الإدخال */
+.codform-field-icon {
+  position: absolute !important;
+  top: 50% !important;
+  right: 12px !important;
+  transform: translateY(-50%) !important;
+  pointer-events: none !important;
+}
+
+/* تحسين تنسيق الهوامش وpaddign للحقول - لكن ليس للـ submit buttons */
+.codform-field:not(.codform-submit-btn):not(.codform-submit-button) {
+  padding: 12px !important;
+  margin-bottom: 16px !important;
+}
+
+/* إضافة specificity عالية للـ submit button لضمان عمل inline padding */
+.codform-submit-btn,
+.codform-submit-button {
+  /* إزالة أي تداخل مع padding defaults - inline styles تأخذ الأولوية */
+  padding: unset !important;
+}
+
+/* تم إزالة القواعد المتضاربة مع inline styles - للسماح بعمل Padding Y من form builder */

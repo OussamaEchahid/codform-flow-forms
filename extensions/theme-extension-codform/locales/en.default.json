@@ -1,0 +1,29 @@
+
+{
+  "codform": {
+    "form": {
+      "title": "Cash on Delivery Request",
+      "description": "Please fill out the form below to request cash on delivery",
+      "submit": "Submit Request",
+      "success_title": "Request Submitted",
+      "success_message": "We will contact you soon to confirm your order",
+      "error_title": "Error",
+      "error_message": "An error occurred while submitting the form. Please try again",
+      "retry": "Try Again"
+    },
+    "fields": {
+      "name": "Full Name",
+      "email": "Email Address",
+      "phone": "Phone Number",
+      "address": "Delivery Address",
+      "city": "City",
+      "notes": "Additional Notes"
+    },
+    "editor": {
+      "help_title": "How to show the form",
+      "help_line_1": "Add this block to the product template and save.",
+      "help_line_2": "The form will appear on products associated from the app."
+    }
+  }
+}
+
