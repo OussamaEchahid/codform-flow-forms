@@ -91,10 +91,6 @@ const AppSidebar = () => {
     path: '/settings/security',
     icon: Shield
   }, {
-    title: t('plansSettings'),
-    path: '/settings/plans',
-    icon: Crown
-  }, {
     title: language === 'ar' ? 'إدارة العملات' : 'Currency Management',
     path: '/settings/currency',
     icon: DollarSign
