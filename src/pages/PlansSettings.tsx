@@ -130,12 +130,24 @@ const PlansSettings = () => {
       }
 
       console.log('🔄 ترقية الخطة إلى:', planId, 'للمتجر:', activeStore);
+      console.log('🔍 تفاصيل البيانات:', {
+        activeStore,
+        planId,
+        activeStoreType: typeof activeStore,
+        planIdType: typeof planId,
+        activeStoreLength: activeStore?.length,
+        planIdLength: planId?.length
+      });
 
       if (planId === 'free') {
         // تغيير الخطة إلى مجاني مباشرة
         const { supabase } = await import('@/integrations/supabase/client');
         const { data, error } = await (supabase as any)
-          .rpc('upgrade_shop_plan', { p_shop_domain: activeStore, p_new_plan: 'free' });
+          .rpc('upgrade_shop_plan', {
+            p_shop_domain: activeStore,
+            p_new_plan: 'free',
+            p_shopify_charge_id: null
+          });
 
         if (error) {
           console.error('❌ خطأ في تحديث الخطة:', error);
@@ -147,7 +159,7 @@ const PlansSettings = () => {
         alert('تم تحديث الخطة إلى المجانية بنجاح!');
 
         // إعادة تحميل بيانات الاشتراك
-        await loadSubscriptionData();
+        await loadData();
       } else {
         // إنشاء اشتراك عبر Shopify وإرجاع رابط التأكيد
         const { supabase } = await import('@/integrations/supabase/client');
