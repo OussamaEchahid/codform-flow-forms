@@ -143,7 +143,7 @@ const AppSidebar = () => {
                       <ShoppingBag className="mr-3 h-4 w-4" />
                       {language === 'ar' ? 'متاجري' : 'My Stores'}
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/settings/plans')} className="hover:bg-[#2A2E36] text-white cursor-pointer">
+                    <DropdownMenuItem onClick={() => navigate('/plans')} className="hover:bg-[#2A2E36] text-white cursor-pointer">
                       <CreditCard className="mr-3 h-4 w-4" />
                       {language === 'ar' ? 'الخطط' : 'Plans'}
                     </DropdownMenuItem>
@@ -239,6 +239,16 @@ const AppSidebar = () => {
                   <span>{item.title}</span>
                 </NavLink>
               </li>)}
+            
+            {/* Plans - positioned after Landing Pages */}
+            <li>
+              <NavLink to="/plans" className={({
+              isActive
+            }) => cn('flex items-center gap-3 px-4 py-2 rounded-lg transition-colors', isActive ? 'bg-[#2A2E36] text-[#9b87f5]' : 'text-gray-400 hover:bg-[#2A2E36] hover:text-[#9b87f5]')}>
+                <Crown size={20} />
+                <span>{language === 'ar' ? 'الخطط' : 'Plans'}</span>
+              </NavLink>
+            </li>
             
             {/* Settings Menu with Submenu */}
             <li>

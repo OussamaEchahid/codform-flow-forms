@@ -9,7 +9,7 @@ import { getUserStores, getShopSubscription } from "@/lib/supabase-with-email";
 import { cn } from "@/lib/utils";
 
 const PlansSettings = () => {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const [stores, setStores] = useState<any[]>([]);
   const [currentSubscription, setCurrentSubscription] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -21,21 +21,21 @@ const PlansSettings = () => {
       nameKey: 'freePlan',
       price: '$0',
       icon: Star,
-      description: 'Perfect for getting started',
+      description: language === 'ar' ? 'مثالي للبدء' : 'Perfect for getting started',
       features: [
-        '70 Orders/mo',
-        'Custom form design for each product',
-        'Landing page builder',
-        '30 Abandoned checkouts',
-        'Currency Management',
-        'Google Sheets',
-        'Multi Social media Pixels',
-        'Quantity offers + Customized design',
-        'Upsell + Customized design',
-        'Shipping Rates',
-        '24x7 Support'
+        language === 'ar' ? '70 طلب شهرياً' : '70 Orders/mo',
+        language === 'ar' ? 'تصميم نماذج مخصص لكل منتج' : 'Custom form design for each product',
+        language === 'ar' ? 'منشئ صفحات الهبوط' : 'Landing page builder',
+        language === 'ar' ? '30 سلة مهجورة' : '30 Abandoned checkouts',
+        language === 'ar' ? 'إدارة العملات' : 'Currency Management',
+        language === 'ar' ? 'جداول بيانات Google' : 'Google Sheets',
+        language === 'ar' ? 'بيكسلات وسائل التواصل الاجتماعي' : 'Multi Social media Pixels',
+        language === 'ar' ? 'عروض الكمية + تصميم مخصص' : 'Quantity offers + Customized design',
+        language === 'ar' ? 'البيع الإضافي + تصميم مخصص' : 'Upsell + Customized design',
+        language === 'ar' ? 'أسعار الشحن' : 'Shipping Rates',
+        language === 'ar' ? 'دعم 24/7' : '24x7 Support'
       ],
-      buttonText: 'الخطة الحالية',
+      buttonText: language === 'ar' ? 'الخطة الحالية' : 'Current Plan',
       popular: false
     },
     {
@@ -44,22 +44,22 @@ const PlansSettings = () => {
       nameKey: 'basicPlan',
       price: '$11.85',
       icon: Zap,
-      description: 'Great for small businesses',
+      description: language === 'ar' ? 'رائع للأعمال الصغيرة' : 'Great for small businesses',
       popular: false,
       features: [
-        '1000 Orders/mo',
-        'Custom form design for each product',
-        'Landing page builder',
-        '30 Abandoned checkouts',
-        'Currency Management',
-        'Google Sheets',
-        'Multi Social media Pixels',
-        'Quantity offers + Customized design',
-        'Upsell + Customized design',
-        'Shipping Rates',
-        '24x7 Support'
+        language === 'ar' ? '1000 طلب شهرياً' : '1000 Orders/mo',
+        language === 'ar' ? 'تصميم نماذج مخصص لكل منتج' : 'Custom form design for each product',
+        language === 'ar' ? 'منشئ صفحات الهبوط' : 'Landing page builder',
+        language === 'ar' ? '30 سلة مهجورة' : '30 Abandoned checkouts',
+        language === 'ar' ? 'إدارة العملات' : 'Currency Management',
+        language === 'ar' ? 'جداول بيانات Google' : 'Google Sheets',
+        language === 'ar' ? 'بيكسلات وسائل التواصل الاجتماعي' : 'Multi Social media Pixels',
+        language === 'ar' ? 'عروض الكمية + تصميم مخصص' : 'Quantity offers + Customized design',
+        language === 'ar' ? 'البيع الإضافي + تصميم مخصص' : 'Upsell + Customized design',
+        language === 'ar' ? 'أسعار الشحن' : 'Shipping Rates',
+        language === 'ar' ? 'دعم 24/7' : '24x7 Support'
       ],
-      buttonText: 'ترقية للأساسية'
+      buttonText: language === 'ar' ? 'ترقية للأساسية' : 'Upgrade to Basic'
     },
     {
       id: 'premium',
@@ -67,24 +67,23 @@ const PlansSettings = () => {
       nameKey: 'premiumPlan', 
       price: '$22.85',
       icon: Crown,
-      description: 'Best for growing teams',
+      description: language === 'ar' ? 'الأفضل للفرق النامية' : 'Best for growing teams',
       popular: true,
       features: [
-        'Unlimited Orders/mo',
-        'Custom form design for each product',
-        'Landing page builder',
-        'Unlimited Abandoned orders',
-        'Currency Management',
-        'Google Sheets',
-        
-        'Multi Social media Pixels',
-        'Quantity offers + Customized design',
-        'Upsell + Customized design',
-        'Shipping Rates',
-        '24x7 Support',
-        'All new features included'
+        language === 'ar' ? 'طلبات غير محدودة شهرياً' : 'Unlimited Orders/mo',
+        language === 'ar' ? 'تصميم نماذج مخصص لكل منتج' : 'Custom form design for each product',
+        language === 'ar' ? 'منشئ صفحات الهبوط' : 'Landing page builder',
+        language === 'ar' ? 'طلبات مهجورة غير محدودة' : 'Unlimited Abandoned orders',
+        language === 'ar' ? 'إدارة العملات' : 'Currency Management',
+        language === 'ar' ? 'جداول بيانات Google' : 'Google Sheets',
+        language === 'ar' ? 'بيكسلات وسائل التواصل الاجتماعي' : 'Multi Social media Pixels',
+        language === 'ar' ? 'عروض الكمية + تصميم مخصص' : 'Quantity offers + Customized design',
+        language === 'ar' ? 'البيع الإضافي + تصميم مخصص' : 'Upsell + Customized design',
+        language === 'ar' ? 'أسعار الشحن' : 'Shipping Rates',
+        language === 'ar' ? 'دعم 24/7' : '24x7 Support',
+        language === 'ar' ? 'جميع الميزات الجديدة مضمنة' : 'All new features included'
       ],
-      buttonText: 'ترقية للمتقدمة'
+      buttonText: language === 'ar' ? 'ترقية للمتقدمة' : 'Upgrade to Premium'
     }
   ];
 
@@ -170,7 +169,7 @@ const PlansSettings = () => {
     return (
       <SettingsLayout>
         <div className="container mx-auto p-6">
-          <div className="text-center">جاري التحميل...</div>
+          <div className="text-center">{language === 'ar' ? 'جاري التحميل...' : 'Loading...'}</div>
         </div>
       </SettingsLayout>
     );
@@ -183,9 +182,9 @@ const PlansSettings = () => {
           <div>
             <h1 className="text-3xl font-bold flex items-center gap-2">
               <Crown className="h-8 w-8" />
-              خطط الاشتراك
+              {language === 'ar' ? 'خطط الاشتراك' : 'Subscription Plans'}
             </h1>
-            <p className="text-muted-foreground">اختر الخطة المناسبة لمتجرك ومتطلباتك</p>
+            <p className="text-muted-foreground">{language === 'ar' ? 'اختر الخطة المناسبة لمتجرك ومتطلباتك' : 'Choose the right plan for your store and requirements'}</p>
           </div>
         </div>
 
@@ -193,7 +192,7 @@ const PlansSettings = () => {
         {stores.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle>متاجرك الحالية</CardTitle>
+              <CardTitle>{language === 'ar' ? 'متاجرك الحالية' : 'Your Current Stores'}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid gap-3">
@@ -202,11 +201,14 @@ const PlansSettings = () => {
                     <div>
                       <div className="font-medium">{store.shop}</div>
                       <div className="text-sm text-muted-foreground">
-                        الخطة: {currentSubscription?.plan_type || 'free'}
+                        {language === 'ar' ? 'الخطة:' : 'Plan:'} {currentSubscription?.plan_type || 'free'}
                       </div>
                     </div>
                     <Badge variant={store.shop === localStorage.getItem('active_store') ? 'default' : 'secondary'}>
-                      {store.shop === localStorage.getItem('active_store') ? 'نشط' : 'غير نشط'}
+                      {store.shop === localStorage.getItem('active_store') ? 
+                        (language === 'ar' ? 'نشط' : 'Active') : 
+                        (language === 'ar' ? 'غير نشط' : 'Inactive')
+                      }
                     </Badge>
                   </div>
                 ))}
@@ -233,7 +235,7 @@ const PlansSettings = () => {
                 {plan.popular && (
                   <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
                     <Badge className="bg-gradient-to-r from-primary to-purple-600 text-white px-4 py-1 text-sm font-semibold shadow-lg">
-                      الأكثر شعبية
+                      {language === 'ar' ? 'الأكثر شعبية' : 'Most Popular'}
                     </Badge>
                   </div>
                 )}
@@ -247,7 +249,7 @@ const PlansSettings = () => {
                     {plan.price}
                     {plan.id !== 'free' && (
                       <span className="text-lg font-normal text-muted-foreground">
-                        /شهرياً
+                        {language === 'ar' ? '/شهرياً' : '/month'}
                       </span>
                     )}
                   </div>
@@ -255,7 +257,7 @@ const PlansSettings = () => {
                     {plan.description}
                   </p>
                   {status === 'current' && (
-                    <Badge variant="secondary" className="mt-2">الخطة الحالية</Badge>
+                    <Badge variant="secondary" className="mt-2">{language === 'ar' ? 'الخطة الحالية' : 'Current Plan'}</Badge>
                   )}
                 </CardHeader>
                 
@@ -279,7 +281,7 @@ const PlansSettings = () => {
                     disabled={status === 'current'}
                     onClick={() => handleUpgrade(plan.id)}
                   >
-                    {status === 'current' ? 'الخطة الحالية' : plan.buttonText}
+                    {status === 'current' ? (language === 'ar' ? 'الخطة الحالية' : 'Current Plan') : plan.buttonText}
                   </Button>
                 </CardContent>
               </Card>

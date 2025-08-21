@@ -162,6 +162,7 @@ function AppRoutes() {
       
 
       <Route path="/settings/plans" element={<PlansSettings />} />
+      <Route path="/plans" element={<PlansSettings />} />
       <Route path="/settings/currency" element={<CurrencySettings />} />
       <Route path="/quantity-offers" element={<QuantityOffers />} />
       <Route path="/settings/quantity-offers" element={<QuantityOffers />} />
