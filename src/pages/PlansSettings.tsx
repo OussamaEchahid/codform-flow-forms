@@ -27,7 +27,6 @@ const PlansSettings = () => {
   const [currentPlan, setCurrentPlan] = useState<string>('free');
   const [loading, setLoading] = useState(false);
   const [shopDomain, setShopDomain] = useState<string>('');
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const plans: Plan[] = [
     {
@@ -82,18 +81,6 @@ const PlansSettings = () => {
   ];
 
   useEffect(() => {
-    // Check authentication status
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setIsAuthenticated(!!session);
-
-      if (!session) {
-        toast.error('Please log in to manage your subscription');
-        return;
-      }
-    };
-
-    checkAuth();
 
     // Get shop domain from localStorage or auth context
     const shop = localStorage.getItem('shopify_store') || '';
@@ -151,13 +138,19 @@ const PlansSettings = () => {
       // Get current session for JWT token
       const { data: { session } } = await supabase.auth.getSession();
 
+      if (!session) {
+        toast.error('Please log in to manage your subscription');
+        setLoading(false);
+        return;
+      }
+
       const response = await supabase.functions.invoke('change-plan', {
         body: {
           shop: shopDomain,
           planId: planId
         },
         headers: {
-          Authorization: `Bearer ${session?.access_token || ''}`
+          Authorization: `Bearer ${session.access_token}`
         }
       });
 
@@ -281,7 +274,7 @@ const PlansSettings = () => {
                 className="w-full mt-6"
                 variant={currentPlan === plan.id ? 'outline' : 'default'}
                 onClick={() => handlePlanChange(plan.id)}
-                disabled={loading || currentPlan === plan.id || !isAuthenticated}
+                disabled={loading || currentPlan === plan.id}
               >
                 {loading ? (
                   'Processing...'
