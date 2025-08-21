@@ -97,6 +97,8 @@ serve(async (req) => {
       test: false,
     };
 
+    console.log(`📞 Creating subscription for shop: ${shop}, plan: ${planId}`);
+    
     const resp = await fetch(`https://${shop}/admin/api/${GRAPHQL_API_VERSION}/graphql.json`, {
       method: 'POST',
       headers: {
@@ -106,11 +108,22 @@ serve(async (req) => {
       body: JSON.stringify({ query: mutation, variables }),
     });
 
+    if (!resp.ok) {
+      console.error(`❌ HTTP error: ${resp.status} ${resp.statusText}`);
+      throw new Error(`Shopify API error: ${resp.status} ${resp.statusText}`);
+    }
+
     const json = await resp.json();
+    console.log('📋 Shopify API response:', JSON.stringify(json, null, 2));
+    
     const sub = json?.data?.appSubscriptionCreate;
     if (sub?.userErrors?.length) {
-      console.error('Shopify billing errors:', sub.userErrors);
-      return new Response(JSON.stringify({ error: sub.userErrors }), {
+      console.error('❌ Shopify billing errors:', sub.userErrors);
+      return new Response(JSON.stringify({ 
+        error: 'Subscription creation failed', 
+        details: sub.userErrors,
+        suggestion: 'Please ensure your app has the correct billing permissions in Shopify Partners Dashboard'
+      }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
       });
