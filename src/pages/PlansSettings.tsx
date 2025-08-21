@@ -1,327 +1,318 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
-import { Check, Crown, Star } from 'lucide-react';
-
-interface PlanFeature {
-  name: string;
-  included: boolean;
-}
-
-interface Plan {
-  id: string;
-  name: string;
-  nameAr: string;
-  price: number;
-  currency: string;
-  interval: string;
-  features: PlanFeature[];
-  popular?: boolean;
-  current?: boolean;
-}
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Crown, Star, Zap, Check, X } from "lucide-react";
+import SettingsLayout from "@/components/layout/SettingsLayout";
+import { useI18n } from "@/lib/i18n";
+import { useEffect, useState } from "react";
+import { getUserStores, getShopSubscription } from "@/lib/supabase-with-email";
+import { cn } from "@/lib/utils";
 
 const PlansSettings = () => {
-  const [currentPlan, setCurrentPlan] = useState<string>('free');
-  const [loading, setLoading] = useState(false);
-  const [shopDomain, setShopDomain] = useState<string>('');
+  const { t } = useI18n();
+  const [stores, setStores] = useState<any[]>([]);
+  const [currentSubscription, setCurrentSubscription] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  const plans: Plan[] = [
+  const plans = [
     {
       id: 'free',
-      name: 'Free Plan',
-      nameAr: 'الخطة المجانية',
-      price: 0,
-      currency: 'USD',
-      interval: 'forever',
+      name: 'Free',
+      nameKey: 'freePlan',
+      price: '$0',
+      icon: Star,
+      description: 'Perfect for getting started',
       features: [
-        { name: 'Up to 50 form submissions', included: true },
-        { name: 'Basic form builder', included: true },
-        { name: 'Email notifications', included: true },
-        { name: 'Basic analytics', included: false },
-        { name: 'Advanced integrations', included: false },
-        { name: 'Priority support', included: false }
-      ]
+        '70 Orders/mo',
+        'Custom form design for each product',
+        'Landing page builder',
+        '30 Abandoned checkouts',
+        'Currency Management',
+        'Google Sheets',
+        'Multi Social media Pixels',
+        'Quantity offers + Customized design',
+        'Upsell + Customized design',
+        'Shipping Rates',
+        '24x7 Support'
+      ],
+      buttonText: 'الخطة الحالية',
+      popular: false
     },
     {
       id: 'basic',
-      name: 'Basic Plan',
-      nameAr: 'الخطة الأساسية',
-      price: 11.85,
-      currency: 'USD',
-      interval: 'month',
-      popular: true,
+      name: 'Basic',
+      nameKey: 'basicPlan',
+      price: '$11.85',
+      icon: Zap,
+      description: 'Great for small businesses',
+      popular: false,
       features: [
-        { name: 'Unlimited form submissions', included: true },
-        { name: 'Advanced form builder', included: true },
-        { name: 'Email notifications', included: true },
-        { name: 'Basic analytics', included: true },
-        { name: 'Shopify integration', included: true },
-        { name: 'Priority support', included: false }
-      ]
+        '1000 Orders/mo',
+        'Custom form design for each product',
+        'Landing page builder',
+        '30 Abandoned checkouts',
+        'Currency Management',
+        'Google Sheets',
+        'Multi Social media Pixels',
+        'Quantity offers + Customized design',
+        'Upsell + Customized design',
+        'Shipping Rates',
+        '24x7 Support'
+      ],
+      buttonText: 'ترقية للأساسية'
     },
     {
       id: 'premium',
-      name: 'Premium Plan',
-      nameAr: 'الخطة المتقدمة',
-      price: 22.85,
-      currency: 'USD',
-      interval: 'month',
+      name: 'Premium',
+      nameKey: 'premiumPlan', 
+      price: '$22.85',
+      icon: Crown,
+      description: 'Best for growing teams',
+      popular: true,
       features: [
-        { name: 'Everything in Basic', included: true },
-        { name: 'Advanced analytics', included: true },
-        { name: 'Custom integrations', included: true },
-        { name: 'White-label options', included: true },
-        { name: 'Priority support', included: true },
-        { name: 'Custom development', included: true }
-      ]
+        'Unlimited Orders/mo',
+        'Custom form design for each product',
+        'Landing page builder',
+        'Unlimited Abandoned orders',
+        'Currency Management',
+        'Google Sheets',
+        
+        'Multi Social media Pixels',
+        'Quantity offers + Customized design',
+        'Upsell + Customized design',
+        'Shipping Rates',
+        '24x7 Support',
+        'All new features included'
+      ],
+      buttonText: 'ترقية للمتقدمة'
     }
   ];
 
   useEffect(() => {
-
-    // Get shop domain from localStorage or auth context
-    const shop = localStorage.getItem('shopify_store') || '';
-
-    // Try alternative keys if first one is empty
-    if (!shop) {
-      const altShop = localStorage.getItem('active_store') || localStorage.getItem('shopify_domain') || '';
-
-      if (!altShop) {
-        // Try to get from URL parameters or set a default for testing
-        const urlParams = new URLSearchParams(window.location.search);
-        const shopFromUrl = urlParams.get('shop') || '';
-
-        if (!shopFromUrl) {
-          // For testing purposes, let's set a default shop
-          const defaultShop = 'test-shop.myshopify.com';
-          setShopDomain(defaultShop);
-          fetchCurrentPlan(defaultShop);
-          return;
-        }
-
-        setShopDomain(shopFromUrl);
-        fetchCurrentPlan(shopFromUrl);
-      } else {
-        setShopDomain(altShop);
-        fetchCurrentPlan(altShop);
-      }
-    } else {
-      setShopDomain(shop);
-      fetchCurrentPlan(shop);
-    }
+    loadData();
   }, []);
 
-  const fetchCurrentPlan = async (shop: string) => {
-    if (!shop) return;
-    
+  const loadData = async () => {
     try {
-      // For now, use localStorage to store plan info until shop_subscriptions table is created
-      const savedPlan = localStorage.getItem(`plan_${shop}`) || 'free';
-      setCurrentPlan(savedPlan);
-    } catch (error) {
-      console.log('No current plan found, defaulting to free');
-    }
-  };
-
-  const handlePlanChange = async (planId: string) => {
-    console.log('Starting plan change to:', planId);
-    console.log('Shop domain:', shopDomain);
-    
-    if (!shopDomain) {
-      toast.error('Shop domain not found');
-      return;
-    }
-
-    // For free plan, just update locally
-    if (planId === 'free') {
-      setCurrentPlan(planId);
-      localStorage.setItem(`plan_${shopDomain}`, planId);
-      toast.success('Switched to free plan successfully');
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      // Get current session for JWT token
-      const { data: { session } } = await supabase.auth.getSession();
-      console.log('Session:', session ? 'Found' : 'Not found');
-
-      if (!session) {
-        toast.error('Please log in to manage your subscription');
-        setLoading(false);
-        return;
-      }
-
-      console.log('Calling change-plan function...');
-      const response = await supabase.functions.invoke('change-plan', {
-        body: {
-          shop: shopDomain,
-          planId: planId
-        },
-        headers: {
-          Authorization: `Bearer ${session.access_token}`
-        }
-      });
-
-      console.log('Response:', response);
-
-      if (response.error) {
-        console.error('Response error:', response.error);
-        throw new Error(response.error.message || 'Unknown error occurred');
-      }
-
-      const result = response.data;
-      console.log('Result data:', result);
-
-      if (result?.success) {
-        // Save plan selection locally before redirect
-        localStorage.setItem(`plan_${shopDomain}`, planId);
-        setCurrentPlan(planId);
+      setLoading(true);
+      const { data: storesData } = await getUserStores();
+      
+      if (storesData && storesData.length > 0) {
+        setStores(storesData);
         
-        // Redirect to Shopify billing confirmation
-        if (result.url) {
-          toast.success('Redirecting to Shopify billing...');
-          setTimeout(() => {
-            window.location.href = result.url;
-          }, 1000);
-        } else {
-          toast.success('Plan updated successfully');
+        // جلب اشتراك المتجر النشط
+        const activeStore = localStorage.getItem('active_store');
+        if (activeStore) {
+          const { data: subscriptionData } = await getShopSubscription(activeStore);
+          setCurrentSubscription(subscriptionData);
         }
-      } else {
-        const errorMsg = result?.error || result?.message || 'Failed to change plan';
-        console.error('Plan change failed:', errorMsg);
-        toast.error(errorMsg);
       }
     } catch (error) {
-      console.error('Error changing plan:', error);
-      
-      let errorMessage = 'Failed to change plan. Please try again.';
-      
-      if (error instanceof Error) {
-        if (error.message.includes('401') || error.message.includes('unauthorized')) {
-          errorMessage = 'Authentication required. Please log in again.';
-        } else if (error.message.includes('404')) {
-          errorMessage = 'Service temporarily unavailable. Please try again later.';
-        } else if (error.message.includes('FunctionsRelayError')) {
-          errorMessage = 'Network error. Please check your connection and try again.';
-        } else {
-          errorMessage = `Error: ${error.message}`;
-        }
-      }
-      
-      toast.error(errorMessage);
+      console.error('❌ Error loading subscription data:', error);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleUpgrade = async (planId: string) => {
+    try {
+      const activeStore =
+        localStorage.getItem('active_store') ||
+        localStorage.getItem('active_shop') ||
+        localStorage.getItem('active_shopify_store') ||
+        localStorage.getItem('shopify_store') ||
+        stores[0]?.shop;
+
+      if (!activeStore) {
+        console.error('❌ لا يوجد متجر نشط');
+        alert('خطأ: لا يوجد متجر نشط');
+        return;
+      }
+
+      console.log('🔄 ترقية الخطة إلى:', planId, 'للمتجر:', activeStore);
+
+      if (planId === 'free') {
+        // تغيير الخطة إلى مجاني مباشرة
+        const { supabase } = await import('@/integrations/supabase/client');
+        const { data, error } = await (supabase as any)
+          .rpc('upgrade_shop_plan', { p_shop_domain: activeStore, p_new_plan: 'free' });
+
+        if (error) {
+          console.error('❌ خطأ في تحديث الخطة:', error);
+          alert(`خطأ في تحديث الخطة: ${error.message}`);
+          return;
+        }
+
+        console.log('✅ تم تحديث الخطة إلى مجاني');
+        alert('تم تحديث الخطة إلى المجانية بنجاح!');
+
+        // إعادة تحميل بيانات الاشتراك
+        await loadSubscriptionData();
+      } else {
+        // إنشاء اشتراك عبر Shopify وإرجاع رابط التأكيد
+        const { supabase } = await import('@/integrations/supabase/client');
+        const { data, error } = await supabase.functions.invoke('change-plan', {
+          body: { shop: activeStore, planId }
+        });
+
+        if (error) {
+          console.error('❌ خطأ في إنشاء الاشتراك:', error);
+          alert(`خطأ في إنشاء الاشتراك: ${error.message}`);
+          return;
+        }
+
+        if (data?.url) {
+          console.log('✅ تم إنشاء رابط التأكيد:', data.url);
+          window.open(data.url, '_blank');
+        } else {
+          console.error('❌ لم يتم إرجاع رابط التأكيد');
+          alert('خطأ: لم يتم إرجاع رابط التأكيد من Shopify');
+        }
+      }
+    } catch (e: any) {
+      console.error('❌ خطأ في ترقية الخطة:', e);
+      alert(`خطأ في ترقية الخطة: ${e.message || 'خطأ غير معروف'}`);
+    }
+  };
+
+  const getCurrentPlan = () => {
+    return currentSubscription?.plan_type || 'free';
+  };
+
+  const getPlanStatus = (planId: string) => {
+    const currentPlan = getCurrentPlan();
+    if (currentPlan === planId) return 'current';
+    
+    const planOrder = ['free', 'basic', 'premium'];
+    const currentIndex = planOrder.indexOf(currentPlan);
+    const planIndex = planOrder.indexOf(planId);
+    
+    return planIndex > currentIndex ? 'upgrade' : 'downgrade';
+  };
+
+  if (loading) {
+    return (
+      <SettingsLayout>
+        <div className="container mx-auto p-6">
+          <div className="text-center">جاري التحميل...</div>
+        </div>
+      </SettingsLayout>
+    );
+  }
+
   return (
-    <div className="container mx-auto p-6 max-w-6xl">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Subscription Plans</h1>
-        <h2 className="text-xl text-muted-foreground mb-4">خطط الاشتراك</h2>
-        <p className="text-muted-foreground">
-          Choose the plan that best fits your business needs
-        </p>
-        <p className="text-sm text-muted-foreground">
-          اختر الخطة التي تناسب احتياجات عملك
-        </p>
+    <SettingsLayout>
+      <div className="container mx-auto p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold flex items-center gap-2">
+              <Crown className="h-8 w-8" />
+              خطط الاشتراك
+            </h1>
+            <p className="text-muted-foreground">اختر الخطة المناسبة لمتجرك ومتطلباتك</p>
+          </div>
+        </div>
 
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {plans.map((plan) => (
-          <Card 
-            key={plan.id} 
-            className={`relative ${plan.popular ? 'ring-2 ring-primary' : ''} ${
-              currentPlan === plan.id ? 'ring-2 ring-green-500' : ''
-            }`}
-          >
-            {plan.popular && (
-              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                <Badge className="bg-primary text-primary-foreground px-3 py-1">
-                  <Star className="w-3 h-3 mr-1" />
-                  Most Popular
-                </Badge>
-              </div>
-            )}
-            
-            {currentPlan === plan.id && (
-              <div className="absolute -top-3 right-4">
-                <Badge className="bg-green-500 text-white px-3 py-1">
-                  <Check className="w-3 h-3 mr-1" />
-                  Current Plan
-                </Badge>
-              </div>
-            )}
-
-            <CardHeader className="text-center pb-4">
-              <div className="flex items-center justify-center mb-2">
-                {plan.id === 'premium' && <Crown className="w-6 h-6 text-yellow-500 mr-2" />}
-                <CardTitle className="text-xl">{plan.name}</CardTitle>
-              </div>
-              <CardDescription className="text-sm mb-2">{plan.nameAr}</CardDescription>
-              <div className="text-3xl font-bold">
-                ${plan.price}
-                {plan.price > 0 && (
-                  <span className="text-sm font-normal text-muted-foreground">
-                    /{plan.interval}
-                  </span>
-                )}
-              </div>
+        {/* عرض المتاجر */}
+        {stores.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>متاجرك الحالية</CardTitle>
             </CardHeader>
-
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                {plan.features.map((feature, index) => (
-                  <div key={index} className="flex items-center text-sm">
-                    {feature.included ? (
-                      <Check className="w-4 h-4 text-green-500 mr-2 flex-shrink-0" />
-                    ) : (
-                      <div className="w-4 h-4 mr-2 flex-shrink-0" />
-                    )}
-                    <span className={!feature.included ? 'text-muted-foreground line-through' : ''}>
-                      {feature.name}
-                    </span>
+            <CardContent>
+              <div className="grid gap-3">
+                {stores.map((store, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-secondary/10 rounded-lg">
+                    <div>
+                      <div className="font-medium">{store.shop}</div>
+                      <div className="text-sm text-muted-foreground">
+                        الخطة: {currentSubscription?.plan_type || 'free'}
+                      </div>
+                    </div>
+                    <Badge variant={store.shop === localStorage.getItem('active_store') ? 'default' : 'secondary'}>
+                      {store.shop === localStorage.getItem('active_store') ? 'نشط' : 'غير نشط'}
+                    </Badge>
                   </div>
                 ))}
               </div>
-
-              <Button
-                className="w-full mt-6"
-                variant={currentPlan === plan.id ? 'outline' : 'default'}
-                onClick={() => handlePlanChange(plan.id)}
-                disabled={loading || currentPlan === plan.id}
-              >
-                {loading ? (
-                  'Processing...'
-                ) : currentPlan === plan.id ? (
-                  'Current Plan'
-                ) : plan.price === 0 ? (
-                  'Switch to Free'
-                ) : (
-                  `Upgrade to ${plan.name}`
-                )}
-              </Button>
             </CardContent>
           </Card>
-        ))}
-      </div>
+        )}
 
-      <div className="mt-8 p-4 bg-muted rounded-lg">
-        <h3 className="font-semibold mb-2">Important Notes:</h3>
-        <ul className="text-sm text-muted-foreground space-y-1">
-          <li>• Plans are billed monthly through Shopify</li>
-          <li>• You can change or cancel your plan at any time</li>
-          <li>• Upgrades take effect immediately</li>
-          <li>• Downgrades take effect at the next billing cycle</li>
-        </ul>
+        {/* الخطط */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          {plans.map((plan) => {
+            const status = getPlanStatus(plan.id);
+            const IconComponent = plan.icon;
+            
+            return (
+              <Card 
+                key={plan.id} 
+                className={cn(
+                  "relative transition-all duration-300 hover:shadow-xl",
+                  plan.popular && "border-primary shadow-xl scale-105 bg-gradient-to-br from-background to-muted/30",
+                  status === 'current' && "ring-2 ring-primary"
+                )}
+              >
+                {plan.popular && (
+                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
+                    <Badge className="bg-gradient-to-r from-primary to-purple-600 text-white px-4 py-1 text-sm font-semibold shadow-lg">
+                      الأكثر شعبية
+                    </Badge>
+                  </div>
+                )}
+                
+                <CardHeader className="text-center pb-4">
+                  <div className="flex items-center justify-center mb-2">
+                    <IconComponent className="h-8 w-8 text-primary" />
+                  </div>
+                  <CardTitle className="text-2xl font-bold text-foreground">{plan.name}</CardTitle>
+                  <div className="text-4xl font-bold text-primary">
+                    {plan.price}
+                    {plan.id !== 'free' && (
+                      <span className="text-lg font-normal text-muted-foreground">
+                        /شهرياً
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-muted-foreground text-sm">
+                    {plan.description}
+                  </p>
+                  {status === 'current' && (
+                    <Badge variant="secondary" className="mt-2">الخطة الحالية</Badge>
+                  )}
+                </CardHeader>
+                
+                <CardContent className="space-y-6">
+                  <ul className="space-y-3">
+                    {plan.features.map((feature, index) => (
+                      <li key={index} className="flex items-start gap-3">
+                        <Check className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+                        <span className="text-sm text-foreground leading-relaxed">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  
+                  <Button 
+                    className={cn(
+                      "w-full py-3 font-semibold transition-all duration-300",
+                      plan.popular ? "bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 shadow-lg" : "",
+                      status === 'current' ? "bg-muted text-muted-foreground" : ""
+                    )}
+                    variant={status === 'current' ? 'secondary' : 'default'}
+                    disabled={status === 'current'}
+                    onClick={() => handleUpgrade(plan.id)}
+                  >
+                    {status === 'current' ? 'الخطة الحالية' : plan.buttonText}
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+
       </div>
-    </div>
+    </SettingsLayout>
   );
 };
 
