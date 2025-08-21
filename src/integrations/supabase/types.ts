@@ -521,7 +521,13 @@ export type Database = {
       order_settings: {
         Row: {
           created_at: string
+          daily_order_limit: number | null
+          daily_order_limit_enabled: boolean | null
           id: string
+          out_of_stock_message: string | null
+          out_of_stock_message_enabled: boolean | null
+          payment_status: string | null
+          payment_status_enabled: boolean | null
           popup_message: string | null
           popup_title: string | null
           post_order_action: string
@@ -533,7 +539,13 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          daily_order_limit?: number | null
+          daily_order_limit_enabled?: boolean | null
           id?: string
+          out_of_stock_message?: string | null
+          out_of_stock_message_enabled?: boolean | null
+          payment_status?: string | null
+          payment_status_enabled?: boolean | null
           popup_message?: string | null
           popup_title?: string | null
           post_order_action?: string
@@ -545,7 +557,13 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          daily_order_limit?: number | null
+          daily_order_limit_enabled?: boolean | null
           id?: string
+          out_of_stock_message?: string | null
+          out_of_stock_message_enabled?: boolean | null
+          payment_status?: string | null
+          payment_status_enabled?: boolean | null
           popup_message?: string | null
           popup_title?: string | null
           post_order_action?: string
@@ -724,75 +742,6 @@ export type Database = {
           user_agent?: string | null
           visitor_country?: string | null
           visitor_ip?: unknown
-        }
-        Relationships: []
-      }
-      blocked_ips: {
-        Row: {
-          id: string
-          shop_id: string
-          ip_address: string
-          reason: string
-          redirect_url: string
-          is_active: boolean
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          shop_id: string
-          ip_address: string
-          reason?: string
-          redirect_url?: string
-          is_active?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          shop_id?: string
-          ip_address?: string
-          reason?: string
-          redirect_url?: string
-          is_active?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      blocked_countries: {
-        Row: {
-          id: string
-          shop_id: string
-          country_code: string
-          country_name: string
-          reason: string
-          redirect_url: string
-          is_active: boolean
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          shop_id: string
-          country_code: string
-          country_name: string
-          reason?: string
-          redirect_url?: string
-          is_active?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          shop_id?: string
-          country_code?: string
-          country_name?: string
-          reason?: string
-          redirect_url?: string
-          is_active?: boolean
-          created_at?: string
-          updated_at?: string
         }
         Relationships: []
       }
@@ -1061,9 +1010,21 @@ export type Database = {
         }
         Returns: string
       }
+      delete_abandoned_carts_admin: {
+        Args: { cart_ids: string[] }
+        Returns: Json
+      }
       delete_form_full: {
         Args: { p_form_id: string; p_shop_id: string }
         Returns: boolean
+      }
+      delete_orders: {
+        Args: { order_ids: string[] }
+        Returns: Json
+      }
+      delete_orders_admin: {
+        Args: { order_ids: string[] }
+        Returns: Json
       }
       delete_quantity_offer: {
         Args: { p_offer_id: string; p_shop_id: string }
@@ -1292,6 +1253,10 @@ export type Database = {
         }
         Returns: string
       }
+      recover_abandoned_cart: {
+        Args: { cart_id: string; shop_id_param: string }
+        Returns: Json
+      }
       remove_blocked_country: {
         Args: { p_blocked_id: string }
         Returns: boolean
@@ -1326,6 +1291,10 @@ export type Database = {
       update_form_secure: {
         Args: { p_changes: Json; p_form_id: string; p_shop_id: string }
         Returns: Json
+      }
+      update_order_details: {
+        Args: { p_notes?: string; p_order_id: string; p_status?: string }
+        Returns: undefined
       }
       upgrade_shop_plan: {
         Args: {
