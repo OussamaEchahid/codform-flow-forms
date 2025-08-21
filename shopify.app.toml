@@ -21,12 +21,16 @@ api_version = "2025-04"
   uri = "/webhooks/app/uninstalled"
 
   [[webhooks.subscriptions]]
-  topics = [ "app_subscriptions/update", "app_subscriptions/create", "app_subscriptions/cancel" ]
-  uri = "https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-billing-webhook"
+  topics = [ "customers/data_request" ]
+  uri = "/webhooks/customers/data_request"
 
   [[webhooks.subscriptions]]
-  compliance_topics = ["customers/data_request", "customers/redact", "shop/redact"]
-  uri = "https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-webhooks"
+  topics = [ "customers/redact" ]
+  uri = "/webhooks/customers/redact"
+
+  [[webhooks.subscriptions]]
+  topics = [ "shop/redact" ]
+  uri = "/webhooks/shop/redact"
 
 
 [access_scopes]

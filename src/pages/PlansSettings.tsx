@@ -124,54 +124,30 @@ const PlansSettings = () => {
         stores[0]?.shop;
 
       if (!activeStore) {
-        console.error('❌ لا يوجد متجر نشط');
-        alert('خطأ: لا يوجد متجر نشط');
+        console.error('لا يوجد متجر نشط');
         return;
       }
-
-      console.log('🔄 ترقية الخطة إلى:', planId, 'للمتجر:', activeStore);
 
       if (planId === 'free') {
         // تغيير الخطة إلى مجاني مباشرة
         const { supabase } = await import('@/integrations/supabase/client');
         const { data, error } = await (supabase as any)
           .rpc('upgrade_shop_plan', { p_shop_domain: activeStore, p_new_plan: 'free' });
-
-        if (error) {
-          console.error('❌ خطأ في تحديث الخطة:', error);
-          alert(`خطأ في تحديث الخطة: ${error.message}`);
-          return;
-        }
-
+        if (error) throw error;
         console.log('✅ تم تحديث الخطة إلى مجاني');
-        alert('تم تحديث الخطة إلى المجانية بنجاح!');
-
-        // إعادة تحميل بيانات الاشتراك
-        await loadSubscriptionData();
       } else {
         // إنشاء اشتراك عبر Shopify وإرجاع رابط التأكيد
         const { supabase } = await import('@/integrations/supabase/client');
         const { data, error } = await supabase.functions.invoke('change-plan', {
           body: { shop: activeStore, planId }
         });
-
-        if (error) {
-          console.error('❌ خطأ في إنشاء الاشتراك:', error);
-          alert(`خطأ في إنشاء الاشتراك: ${error.message}`);
-          return;
-        }
-
+        if (error) throw error;
         if (data?.url) {
-          console.log('✅ تم إنشاء رابط التأكيد:', data.url);
           window.open(data.url, '_blank');
-        } else {
-          console.error('❌ لم يتم إرجاع رابط التأكيد');
-          alert('خطأ: لم يتم إرجاع رابط التأكيد من Shopify');
         }
       }
-    } catch (e: any) {
+    } catch (e) {
       console.error('❌ خطأ في ترقية الخطة:', e);
-      alert(`خطأ في ترقية الخطة: ${e.message || 'خطأ غير معروف'}`);
     }
   };
 
