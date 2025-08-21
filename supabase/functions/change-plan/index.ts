@@ -27,10 +27,12 @@ serve(async (req) => {
 
   try {
     console.log('Change plan request received:', req.method);
+    console.log('Request headers:', Object.fromEntries(req.headers.entries()));
 
     let requestBody;
     try {
       requestBody = await req.json();
+      console.log('Request body parsed successfully:', requestBody);
     } catch (e) {
       console.error('Error parsing request body:', e);
       return new Response(JSON.stringify({ error: 'Invalid JSON in request body' }), {
@@ -70,7 +72,8 @@ serve(async (req) => {
       console.log('Upgrading to free plan for shop:', shop);
       const { data, error } = await supabase.rpc('upgrade_shop_plan', {
         p_shop_domain: shop,
-        p_new_plan: 'free'
+        p_new_plan: 'free',
+        p_shopify_charge_id: null
       });
 
       if (error) {
