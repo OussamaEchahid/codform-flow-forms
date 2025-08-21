@@ -1,0 +1,11 @@
+# Name is localized via locales/* files when using t:name
+name = "t:name"
+handle = "subscription-link"
+type = "admin_link"
+
+# For embedded apps, URLs can be relative to application_url
+# url = "app://path"
+
+[[targeting]]
+target = "admin.product-details.action.link"
+url = "https://codmagnet.com/settings/plans?shop={{shop.domain}}"
