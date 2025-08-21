@@ -123,15 +123,18 @@ serve(async (req) => {
       });
     }
 
-    const planPricing = {
+    const planPricing: Record<string, { amount: number; currency: string; name: string }> = {
       basic: { amount: 1185, currency: 'USD', name: 'Basic Plan' },
       premium: { amount: 2285, currency: 'USD', name: 'Premium Plan' },
     };
 
-    const planConfig = planPricing[planId];
+    const planConfig = planPricing[planId as keyof typeof planPricing];
     if (!planConfig) {
       console.log('Invalid plan ID:', planId);
-      return new Response(JSON.stringify({ error: 'Invalid plan ID' }), {
+      return new Response(JSON.stringify({ 
+        error: 'Invalid plan ID',
+        validPlans: Object.keys(planPricing)
+      }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
       });

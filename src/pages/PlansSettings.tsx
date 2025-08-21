@@ -127,8 +127,19 @@ const PlansSettings = () => {
   };
 
   const handlePlanChange = async (planId: string) => {
+    console.log('Starting plan change to:', planId);
+    console.log('Shop domain:', shopDomain);
+    
     if (!shopDomain) {
       toast.error('Shop domain not found');
+      return;
+    }
+
+    // For free plan, just update locally
+    if (planId === 'free') {
+      setCurrentPlan(planId);
+      localStorage.setItem(`plan_${shopDomain}`, planId);
+      toast.success('Switched to free plan successfully');
       return;
     }
 
@@ -137,6 +148,7 @@ const PlansSettings = () => {
     try {
       // Get current session for JWT token
       const { data: { session } } = await supabase.auth.getSession();
+      console.log('Session:', session ? 'Found' : 'Not found');
 
       if (!session) {
         toast.error('Please log in to manage your subscription');
@@ -144,6 +156,7 @@ const PlansSettings = () => {
         return;
       }
 
+      console.log('Calling change-plan function...');
       const response = await supabase.functions.invoke('change-plan', {
         body: {
           shop: shopDomain,
@@ -154,45 +167,53 @@ const PlansSettings = () => {
         }
       });
 
+      console.log('Response:', response);
+
       if (response.error) {
-        throw response.error;
+        console.error('Response error:', response.error);
+        throw new Error(response.error.message || 'Unknown error occurred');
       }
 
       const result = response.data;
+      console.log('Result data:', result);
 
-      if (result.success) {
-        if (planId === 'free') {
-          toast.success('Successfully switched to free plan');
-          setCurrentPlan(planId);
-          localStorage.setItem(`plan_${shopDomain}`, planId);
-        } else {
-          // Save plan selection locally before redirect
-          localStorage.setItem(`plan_${shopDomain}`, planId);
-          // Redirect to Shopify billing confirmation
-          if (result.url) {
+      if (result?.success) {
+        // Save plan selection locally before redirect
+        localStorage.setItem(`plan_${shopDomain}`, planId);
+        setCurrentPlan(planId);
+        
+        // Redirect to Shopify billing confirmation
+        if (result.url) {
+          toast.success('Redirecting to Shopify billing...');
+          setTimeout(() => {
             window.location.href = result.url;
-          } else {
-            toast.error('Failed to create billing subscription');
-          }
+          }, 1000);
+        } else {
+          toast.success('Plan updated successfully');
         }
       } else {
-        toast.error(result.error || 'Failed to change plan');
+        const errorMsg = result?.error || result?.message || 'Failed to change plan';
+        console.error('Plan change failed:', errorMsg);
+        toast.error(errorMsg);
       }
     } catch (error) {
       console.error('Error changing plan:', error);
-
-      // More specific error messages
+      
+      let errorMessage = 'Failed to change plan. Please try again.';
+      
       if (error instanceof Error) {
         if (error.message.includes('401') || error.message.includes('unauthorized')) {
-          toast.error('Authentication required. Please log in again.');
+          errorMessage = 'Authentication required. Please log in again.';
         } else if (error.message.includes('404')) {
-          toast.error('Service temporarily unavailable. Please try again later.');
+          errorMessage = 'Service temporarily unavailable. Please try again later.';
+        } else if (error.message.includes('FunctionsRelayError')) {
+          errorMessage = 'Network error. Please check your connection and try again.';
         } else {
-          toast.error(`Failed to change plan: ${error.message}`);
+          errorMessage = `Error: ${error.message}`;
         }
-      } else {
-        toast.error('Failed to change plan. Please try again.');
       }
+      
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
