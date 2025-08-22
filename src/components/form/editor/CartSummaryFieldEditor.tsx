@@ -209,13 +209,7 @@ const CartSummaryFieldEditor: React.FC<CartSummaryFieldEditorProps> = ({
                 </Select>
               </div>
 
-              <div className="flex items-center justify-between">
-                <Label>{language === 'ar' ? 'حساب تلقائي من المنتج' : 'Auto Calculate from Product'}</Label>
-                <Switch
-                  checked={currentField.config?.autoCalculate || currentField.cartSummaryConfig?.autoCalculate || false}
-                  onCheckedChange={(checked) => handleConfigChange('autoCalculate', checked)}
-                />
-              </div>
+
 
               <div className="space-y-4">
                 <div className="flex items-center justify-between">

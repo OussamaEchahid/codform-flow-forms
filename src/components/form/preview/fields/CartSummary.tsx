@@ -96,11 +96,10 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
   const defaultTexts = getDefaultTexts();
   
   const finalConfig = {
-    autoCalculate: true,
     showDiscount: true,
     discountType: 'percentage',
     discountValue: 0,
-    shippingType: 'manual', 
+    shippingType: 'manual',
     shippingValue: 0,
     currency: formCurrency || formStyle.currency || 'MAD', // استخدام عملة النموذج الصحيحة
     subtotalText: config.subtotalText || defaultTexts.subtotalText,
@@ -180,7 +179,6 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
   const prices = useMemo(() => {
     console.log('🔍 Cart Summary Debug:', {
       productData,
-      autoCalculate: config.autoCalculate,
       productId,
       formCurrency,
       formStyleCurrency: formStyle.currency,
@@ -211,12 +209,12 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
     }
     
     // Show placeholder prices instead of null to prevent white screen
-    if (finalConfig.autoCalculate && loading) {
+    if (loading) {
       console.log('⏳ Waiting for product data...');
       return { subtotal: null, discount: null, shipping: null, total: null };
     }
-    
-    // Show demo prices when not using auto calculation OR when auto calculation fails
+
+    // Show demo prices when product data is not available
     const demoPrice = 99.00;
     console.log('🎭 Using demo price:', demoPrice);
     return calculatePrices(demoPrice, null, finalConfig, formCurrency || formStyle.currency || 'MAD');
@@ -255,14 +253,13 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
     const finalProductId = linkedProductId || productId;
     console.log('🔄 Cart Summary - useEffect triggered:', {
       finalProductId,
-      autoCalculate: config.autoCalculate,
       loading,
       hasProductData: !!productData,
       linkedProductId,
       productId
     });
-    
-    if (finalConfig.autoCalculate && finalProductId && finalProductId !== 'auto-detect' && !loading && !productData) {
+
+    if (finalProductId && finalProductId !== 'auto-detect' && !loading && !productData) {
       setLoading(true);
       console.log('📦 Cart Summary - Starting to load product:', finalProductId);
       

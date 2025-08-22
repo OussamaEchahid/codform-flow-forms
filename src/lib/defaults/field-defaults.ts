@@ -89,7 +89,7 @@ export interface FieldDefaults {
       discountValue: number;
       shippingType: string;
       shippingValue: number;
-      autoCalculate: boolean;
+
       currency: string;
     };
     style: {
@@ -203,7 +203,7 @@ export const FIELD_DEFAULTS: FieldDefaults = {
       discountValue: 0,
       shippingType: 'manual',
       shippingValue: 0,
-      autoCalculate: true,
+
       currency: 'MAD'
     },
     style: {

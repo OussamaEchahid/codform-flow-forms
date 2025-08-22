@@ -1150,17 +1150,7 @@ const SortableField: React.FC<SortableFieldProps> = ({
                            {language === 'ar' ? 'إعدادات الحساب' : 'Calculation Settings'}
                          </h3>
                          
-                         {/* Auto Calculate */}
-                         <div className="flex items-center space-x-2 rtl:space-x-reverse">
-                           <Switch 
-                             checked={editedField.cartSummaryConfig?.autoCalculate || false}
-                             onCheckedChange={(checked) => {
-                               const config = { ...editedField.cartSummaryConfig, autoCalculate: checked };
-                               handleFieldChange('cartSummaryConfig', config);
-                             }}
-                           />
-                           <Label>{language === 'ar' ? 'حساب تلقائي من المنتج' : 'Auto Calculate from Product'}</Label>
-                         </div>
+
                          
                          {/* Show Discount */}
                          <div className="flex items-center space-x-2 rtl:space-x-reverse">
