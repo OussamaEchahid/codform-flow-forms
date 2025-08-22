@@ -240,3 +240,79 @@
   height: 0 !important;
 }
 
+/* إصلاح مشاكل RTL للمكونات التفاعلية */
+@layer components {
+  /* إصلاح Switch في RTL */
+  [dir="rtl"] [data-radix-switch-thumb] {
+    transform: translateX(0) !important;
+  }
+
+  [dir="rtl"] [data-state="checked"] [data-radix-switch-thumb] {
+    transform: translateX(-20px) !important;
+  }
+
+  /* إصلاح Toggle Groups في RTL */
+  [dir="rtl"] .toggle-group {
+    flex-direction: row-reverse;
+  }
+
+  /* إصلاح Dropdown menus في RTL */
+  [dir="rtl"] [data-radix-dropdown-menu-content] {
+    transform-origin: top right !important;
+  }
+
+  /* إصلاح Select components في RTL */
+  [dir="rtl"] [data-radix-select-content] {
+    transform-origin: top right !important;
+  }
+
+  /* إصلاح أيقونات الأسهم في RTL */
+  [dir="rtl"] .chevron-right {
+    transform: rotate(180deg);
+  }
+
+  [dir="rtl"] .chevron-left {
+    transform: rotate(180deg);
+  }
+
+  /* إصلاح مكونات Sidebar في RTL */
+  [dir="rtl"] [data-sidebar="trigger"] {
+    transform: scaleX(-1);
+  }
+
+  /* إصلاح أزرار الإغلاق والفتح */
+  [dir="rtl"] .close-button,
+  [dir="rtl"] .toggle-button {
+    transform: scaleX(-1);
+  }
+
+  /* إصلاحات إضافية لـ Radix UI في RTL */
+  [dir="rtl"] [data-radix-popper-content-wrapper] {
+    transform-origin: top right !important;
+  }
+
+  [dir="rtl"] [data-radix-tooltip-content] {
+    transform-origin: bottom right !important;
+  }
+
+  /* إصلاح مشكلة انعكاس الأيقونات في الأزرار */
+  [dir="rtl"] button svg,
+  [dir="rtl"] .button svg {
+    transform: scaleX(-1);
+  }
+
+  /* استثناءات للأيقونات التي لا تحتاج انعكاس */
+  [dir="rtl"] button svg.no-flip,
+  [dir="rtl"] .button svg.no-flip,
+  [dir="rtl"] svg.lucide-check,
+  [dir="rtl"] svg.lucide-x,
+  [dir="rtl"] svg.lucide-plus,
+  [dir="rtl"] svg.lucide-minus,
+  [dir="rtl"] svg.lucide-star,
+  [dir="rtl"] svg.lucide-heart,
+  [dir="rtl"] svg.lucide-circle,
+  [dir="rtl"] svg.lucide-square {
+    transform: none !important;
+  }
+}
+
