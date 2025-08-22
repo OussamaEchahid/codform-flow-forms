@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Crown, Star, Zap, Check, X } from "lucide-react";
 import SettingsLayout from "@/components/layout/SettingsLayout";
 import { useI18n } from "@/lib/i18n";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { getUserStores, getShopSubscription } from "@/lib/supabase-with-email";
 import { cn } from "@/lib/utils";
 
@@ -14,6 +14,9 @@ const PlansSettings = () => {
   const [stores, setStores] = useState<any[]>([]);
   const [currentSubscription, setCurrentSubscription] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  // تتبع حالة الترقية حتى نُظهر علامة واضحة ونمنع النقرات المكررة
+  const [upgradingTo, setUpgradingTo] = useState<string | null>(null);
+  const upgradePollRef = useRef<number | null>(null);
 
   const plans = [
     {
@@ -91,6 +94,13 @@ const PlansSettings = () => {
 
   useEffect(() => {
     loadData();
+    // تنظيف أي polling عند الخروج من الصفحة
+    return () => {
+      if (upgradePollRef.current) {
+        window.clearInterval(upgradePollRef.current);
+        upgradePollRef.current = null;
+      }
+    };
   }, []);
 
   const loadData = async () => {
@@ -134,6 +144,8 @@ const PlansSettings = () => {
         return;
       }
 
+      setUpgradingTo(planId);
+
       if (planId === 'free') {
         // تغيير الخطة إلى مجاني مباشرة
         const { supabase } = await import('@/integrations/supabase/client');
@@ -142,6 +154,7 @@ const PlansSettings = () => {
         if (error) throw error;
         console.log('✅ تم تحديث الخطة إلى مجاني');
         await loadData();
+        setUpgradingTo(null);
       } else {
         // إنشاء اشتراك عبر Shopify وإرجاع رابط التأكيد مع معالجة رسائل الأخطاء
         const { supabase } = await import('@/integrations/supabase/client');
@@ -170,11 +183,31 @@ const PlansSettings = () => {
           const { toast } = await import('@/hooks/use-toast');
           toast.info('سيتم فتح صفحة تأكيد الرسوم في Shopify. يرجى الموافقة لإكمال الترقية.');
           window.open(data.url, '_blank');
+
+          // تحديث فوري بعد عودة التركيز
           const onFocus = async () => {
             await loadData();
             window.removeEventListener('focus', onFocus);
           };
           window.addEventListener('focus', onFocus);
+
+          // ابدأ Polling للتحقق من تفعيل الخطة الجديدة وإظهار العلامة فوراً
+          if (upgradePollRef.current) {
+            window.clearInterval(upgradePollRef.current);
+            upgradePollRef.current = null;
+          }
+          const pollId = window.setInterval(async () => {
+            const { data: latest } = await getShopSubscription(activeStore);
+            if (latest?.plan_type === planId) {
+              setCurrentSubscription(latest);
+              setUpgradingTo(null);
+              window.clearInterval(pollId);
+              upgradePollRef.current = null;
+              const { toast } = await import('@/hooks/use-toast');
+              toast.success(language === 'ar' ? 'تم تفعيل الخطة بنجاح' : 'Plan activated successfully');
+            }
+          }, 4000);
+          upgradePollRef.current = pollId;
         } else if ((data as any)?.details?.length) {
           const messages = (data as any).details.map((d: any) => d.message).join(' — ');
           const { toast } = await import('@/hooks/use-toast');
@@ -278,6 +311,23 @@ const PlansSettings = () => {
                   </div>
                 )}
 
+                {/* شارة خضراء واضحة عند كون الخطة حالية */}
+                {status === 'current' && (
+                  <div className="absolute top-3 right-3 z-10">
+                    <Badge className="bg-green-600 text-white flex items-center gap-1">
+                      <Check className="h-4 w-4" /> {language === 'ar' ? 'مشترك' : 'Subscribed'}
+                    </Badge>
+                  </div>
+                )}
+                {/* شارة انتظار التأكيد أثناء الترقية */}
+                {upgradingTo === plan.id && status !== 'current' && (
+                  <div className="absolute top-3 right-3 z-10">
+                    <Badge className="bg-amber-500 text-white">
+                      {language === 'ar' ? 'بانتظار التأكيد' : 'Awaiting confirmation'}
+                    </Badge>
+                  </div>
+                )}
+
                 <CardHeader className="text-center pb-4">
                   <div className="flex items-center justify-center mb-2">
                     <IconComponent className="h-8 w-8 text-primary" />
@@ -316,10 +366,14 @@ const PlansSettings = () => {
                       status === 'current' ? "bg-muted text-muted-foreground" : ""
                     )}
                     variant={status === 'current' ? 'secondary' : 'default'}
-                    disabled={status === 'current'}
+                    disabled={status === 'current' || upgradingTo === plan.id}
                     onClick={() => handleUpgrade(plan.id)}
                   >
-                    {status === 'current' ? (language === 'ar' ? 'الخطة الحالية' : 'Current Plan') : plan.buttonText}
+                    {status === 'current'
+                      ? (language === 'ar' ? 'الخطة الحالية' : 'Current Plan')
+                      : upgradingTo === plan.id
+                        ? (language === 'ar' ? 'جاري الترقية...' : 'Upgrading...')
+                        : plan.buttonText}
                   </Button>
                 </CardContent>
               </Card>
