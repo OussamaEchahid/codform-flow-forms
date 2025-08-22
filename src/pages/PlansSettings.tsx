@@ -107,10 +107,12 @@ const PlansSettings = () => {
   }, []);
 
   const loadData = async () => {
+    console.log('🔄 loadData: Starting to load subscription data...');
     try {
       setLoading(true);
       // اجلب المتاجر (إن وجدت) لكن لا تربط جلب الاشتراك بوجودها
       const { data: storesData } = await getUserStores();
+      console.log('🏪 loadData: Stores data:', storesData);
       setStores(storesData || []);
 
       // جلب اشتراك المتجر النشط باستخدام النظام الموحد + مفاتيح محلية احتياطية
@@ -123,16 +125,21 @@ const PlansSettings = () => {
         (storesData && storesData[0]?.shop) ||
         stores[0]?.shop;
 
+      console.log('🎯 loadData: Active store:', activeStore);
+
       if (activeStore) {
         const { data: subscriptionData } = await getShopSubscription(activeStore);
+        console.log('📦 loadData: Subscription data received:', subscriptionData);
         setCurrentSubscription(subscriptionData);
       } else {
+        console.log('❌ loadData: No active store found');
         setCurrentSubscription(null);
       }
     } catch (error) {
       console.error('❌ Error loading subscription data:', error);
     } finally {
       setLoading(false);
+      console.log('✅ loadData: Finished loading');
     }
   };
 
@@ -199,9 +206,12 @@ const PlansSettings = () => {
           window.addEventListener('focus', onFocus);
 
           // استمع لرسائل من النافذة المنبثقة
+          let messageReceived = false;
           const onMessage = async (event: MessageEvent) => {
-            if (event.data?.type === 'SUBSCRIPTION_SUCCESS') {
-              console.log('✅ Received subscription success message:', event.data);
+            console.log('📨 Received message:', event.data);
+            if (event.data?.type === 'SUBSCRIPTION_SUCCESS' && !messageReceived) {
+              messageReceived = true;
+              console.log('✅ Processing subscription success message:', event.data);
 
               // إيقاف polling إذا كان يعمل
               if (upgradePollRef.current) {
@@ -209,28 +219,38 @@ const PlansSettings = () => {
                 upgradePollRef.current = null;
               }
 
-              // تحديث فوري للاشتراك الحالي إذا كانت الخطة معروفة
-              if (event.data.plan && event.data.plan !== 'unknown') {
-                setCurrentSubscription({
-                  id: 'temp',
-                  shop_domain: event.data.shop,
-                  plan_type: event.data.plan,
-                  status: 'active',
-                  created_at: new Date().toISOString(),
-                  updated_at: new Date().toISOString()
-                });
-              }
+              // تحديث فوري للاشتراك الحالي
+              const newSubscription = {
+                id: 'temp-' + Date.now(),
+                shop_domain: event.data.shop || activeStore,
+                plan_type: event.data.plan !== 'unknown' ? event.data.plan : planId,
+                status: 'active',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              };
 
+              console.log('🔄 Setting current subscription:', newSubscription);
+              setCurrentSubscription(newSubscription);
               setUpgradingTo(null);
+
+              // فرض إعادة رسم المكون
+              setTimeout(() => {
+                setCurrentSubscription((prev: any) => ({ ...prev, updated_at: new Date().toISOString() }));
+              }, 100);
 
               // تحديث البيانات من قاعدة البيانات
               setTimeout(async () => {
+                console.log('🔄 Reloading data from database...');
                 await loadData();
-              }, 500);
+              }, 1000);
 
-              window.removeEventListener('message', onMessage);
               const { toast } = await import('@/hooks/use-toast');
               toast.success(language === 'ar' ? 'تم تفعيل الخطة بنجاح' : 'Plan activated successfully');
+
+              // إزالة event listener بعد تأخير
+              setTimeout(() => {
+                window.removeEventListener('message', onMessage);
+              }, 2000);
             }
           };
           window.addEventListener('message', onMessage);
@@ -289,20 +309,34 @@ const PlansSettings = () => {
 
   const getCurrentPlan = () => {
     // لا تُرجِع Free كافتراض حتى لا تُعلم البطاقة مجانًا كخطة حالية بدون بيانات
-    return currentSubscription?.plan_type || null;
+    const plan = currentSubscription?.plan_type || null;
+    console.log('🔍 getCurrentPlan:', plan, 'from subscription:', currentSubscription);
+    return plan;
   };
 
   const getPlanStatus = (planId: string) => {
     const currentPlan = getCurrentPlan();
+    console.log(`🔍 getPlanStatus for ${planId}: currentPlan=${currentPlan}`);
+
     if (!currentPlan) return 'other'; // غير معروف حتى يتم جلب الاشتراك
-    if (currentPlan === planId) return 'current';
+    if (currentPlan === planId) {
+      console.log(`✅ Plan ${planId} is CURRENT`);
+      return 'current';
+    }
 
     const planOrder = ['free', 'basic', 'premium'];
     const currentIndex = planOrder.indexOf(currentPlan);
     const planIndex = planOrder.indexOf(planId);
 
-    return planIndex > currentIndex ? 'upgrade' : 'downgrade';
+    const status = planIndex > currentIndex ? 'upgrade' : 'downgrade';
+    console.log(`📊 Plan ${planId} status: ${status}`);
+    return status;
   };
+
+  // Log current state for debugging
+  console.log('🔍 PlansSettings render - Current subscription:', currentSubscription);
+  console.log('🔍 PlansSettings render - Loading:', loading);
+  console.log('🔍 PlansSettings render - Upgrading to:', upgradingTo);
 
   if (loading) {
     return (
@@ -361,6 +395,7 @@ const PlansSettings = () => {
           {plans.map((plan) => {
             const status = getPlanStatus(plan.id);
             const IconComponent = plan.icon;
+            console.log(`🎨 Rendering plan ${plan.id} with status: ${status}`);
 
             return (
               <Card
@@ -368,7 +403,11 @@ const PlansSettings = () => {
                 className={cn(
                   "relative transition-all duration-300 hover:shadow-xl",
                   plan.popular && "border-primary shadow-xl scale-105 bg-gradient-to-br from-background to-muted/30",
-                  status === 'current' && "ring-2 ring-primary"
+                  (() => {
+                    const isCurrent = status === 'current';
+                    console.log(`🔲 Ring border for plan ${plan.id}: ${isCurrent ? 'SHOWING' : 'HIDDEN'}`);
+                    return isCurrent && "ring-2 ring-primary";
+                  })()
                 )}
               >
                 {plan.popular && (
@@ -380,13 +419,17 @@ const PlansSettings = () => {
                 )}
 
                 {/* شارة خضراء واضحة عند كون الخطة حالية */}
-                {status === 'current' && (
-                  <div className="absolute top-3 right-3 z-10">
-                    <Badge className="bg-green-600 text-white flex items-center gap-1">
-                      <Check className="h-4 w-4" /> {language === 'ar' ? 'مشترك' : 'Subscribed'}
-                    </Badge>
-                  </div>
-                )}
+                {(() => {
+                  const isCurrent = status === 'current';
+                  console.log(`🏷️ Green badge for plan ${plan.id}: ${isCurrent ? 'SHOWING' : 'HIDDEN'}`);
+                  return isCurrent && (
+                    <div className="absolute top-3 right-3 z-10">
+                      <Badge className="bg-green-600 text-white flex items-center gap-1">
+                        <Check className="h-4 w-4" /> {language === 'ar' ? 'مشترك' : 'Subscribed'}
+                      </Badge>
+                    </div>
+                  );
+                })()}
                 {/* شارة انتظار التأكيد أثناء الترقية */}
                 {upgradingTo === plan.id && status !== 'current' && (
                   <div className="absolute top-3 right-3 z-10">
@@ -412,9 +455,13 @@ const PlansSettings = () => {
                   <p className="text-muted-foreground text-sm">
                     {plan.description}
                   </p>
-                  {status === 'current' && (
-                    <Badge variant="secondary" className="mt-2">{language === 'ar' ? 'الخطة الحالية' : 'Current Plan'}</Badge>
-                  )}
+                  {(() => {
+                    const isCurrent = status === 'current';
+                    console.log(`🏷️ Current plan badge for plan ${plan.id}: ${isCurrent ? 'SHOWING' : 'HIDDEN'}`);
+                    return isCurrent && (
+                      <Badge variant="secondary" className="mt-2">{language === 'ar' ? 'الخطة الحالية' : 'Current Plan'}</Badge>
+                    );
+                  })()}
                 </CardHeader>
 
                 <CardContent className="space-y-6">
@@ -435,13 +482,20 @@ const PlansSettings = () => {
                     )}
                     variant={status === 'current' ? 'secondary' : 'default'}
                     disabled={status === 'current' || upgradingTo === plan.id}
-                    onClick={() => handleUpgrade(plan.id)}
+                    onClick={() => {
+                      console.log(`🔘 Button clicked for plan ${plan.id}, status: ${status}`);
+                      handleUpgrade(plan.id);
+                    }}
                   >
-                    {status === 'current'
-                      ? (language === 'ar' ? 'الخطة الحالية' : 'Current Plan')
-                      : upgradingTo === plan.id
-                        ? (language === 'ar' ? 'جاري الترقية...' : 'Upgrading...')
-                        : plan.buttonText}
+                    {(() => {
+                      const buttonText = status === 'current'
+                        ? (language === 'ar' ? 'الخطة الحالية' : 'Current Plan')
+                        : upgradingTo === plan.id
+                          ? (language === 'ar' ? 'جاري الترقية...' : 'Upgrading...')
+                          : plan.buttonText;
+                      console.log(`🔘 Button text for plan ${plan.id}: ${buttonText}`);
+                      return buttonText;
+                    })()}
                   </Button>
                 </CardContent>
               </Card>

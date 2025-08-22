@@ -12,21 +12,34 @@ const SubscriptionSuccess: React.FC = () => {
   useEffect(() => {
     const shop = searchParams.get('shop');
     const plan = searchParams.get('plan');
-    
+
     console.log('✅ Subscription success callback:', { shop, plan });
 
-    // Send success message to parent window immediately
+    // Send success message to parent window with multiple attempts
     if (window.opener) {
-      window.opener.postMessage({ 
-        type: 'SUBSCRIPTION_SUCCESS', 
-        plan: plan || 'unknown',
-        shop: shop || 'unknown'
-      }, '*');
-      
-      // Close popup after short delay
+      const sendMessage = () => {
+        console.log('📤 Sending subscription success message:', { plan, shop });
+        window.opener.postMessage({
+          type: 'SUBSCRIPTION_SUCCESS',
+          plan: plan || 'unknown',
+          shop: shop || 'unknown'
+        }, '*');
+      };
+
+      // Send message immediately
+      sendMessage();
+
+      // Send message again after 500ms to ensure it's received
+      setTimeout(sendMessage, 500);
+
+      // Send message again after 1000ms as final attempt
+      setTimeout(sendMessage, 1000);
+
+      // Close popup after longer delay to ensure message is processed
       setTimeout(() => {
+        console.log('🔒 Closing popup window');
         window.close();
-      }, 1500);
+      }, 2500);
     } else {
       // If not in popup, redirect to plans page
       setTimeout(() => {
