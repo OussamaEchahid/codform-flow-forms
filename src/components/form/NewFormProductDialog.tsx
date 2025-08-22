@@ -1,329 +1,459 @@
+
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { useI18n } from '@/lib/i18n';
-import { useSimpleShopify } from '@/hooks/useSimpleShopify';
-import { ShopifyProduct } from '@/lib/shopify/types';
-import { Loader2, Package, AlertCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { v4 as uuidv4 } from 'uuid';
 import { toast } from 'sonner';
-import { Badge } from '@/components/ui/badge';
-import ShopifyReconnectButton from '@/components/shopify/ShopifyReconnectButton';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import { useI18n } from '@/lib/i18n';
+import { useShopify } from '@/hooks/useShopify';
+import ShopifyProductSelection from './ShopifyProductSelection';
+import { supabase } from '@/integrations/supabase/client';
+import { Loader2, Globe } from 'lucide-react';
+import { FormField } from '@/lib/form-utils';
+import { getFieldDefaults } from '@/lib/defaults/field-defaults';
+import { getDefaultCountryCurrencySettings } from '@/lib/constants/countries-currencies';
 
 interface NewFormProductDialogProps {
   open: boolean;
-  onSelect: (productIds: string[]) => void;
   onClose: () => void;
-  onSkip: () => void;
 }
 
-const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({
-  open,
-  onSelect,
-  onClose,
-  onSkip,
-}) => {
-  const { language } = useI18n();
-  const { activeStore: shop, loading: shopLoading } = useSimpleShopify();
-  const [products, setProducts] = useState<ShopifyProduct[]>([]);
-  const [isLoadingProducts, setIsLoadingProducts] = useState(false);
-  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [currentShop, setCurrentShop] = useState<string | null>(null);
+type SupportedLanguage = 'ar' | 'en' | 'fr' | 'es';
 
-  // Get current shop from multiple sources
+const languageOptions = [
+  { value: 'ar' as SupportedLanguage, label: 'العربية', flag: '🇸🇦' },
+  { value: 'en' as SupportedLanguage, label: 'English', flag: '🇺🇸' },
+  { value: 'fr' as SupportedLanguage, label: 'Français', flag: '🇫🇷' },
+  { value: 'es' as SupportedLanguage, label: 'Español', flag: '🇪🇸' },
+];
+
+const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClose }) => {
+  const { language } = useI18n();
+  const { shop } = useShopify();
+  const navigate = useNavigate();
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const [selectedLanguage, setSelectedLanguage] = useState<SupportedLanguage>('ar');
+  const [isCreating, setIsCreating] = useState(false);
+  
+  // Debug: Add console log for dialog state
   useEffect(() => {
-    const getActiveShop = () => {
-      return shop || 
-        localStorage.getItem('current_shopify_store') || 
-        localStorage.getItem('simple_active_store') ||
-        localStorage.getItem('shopify_store') ||
-        localStorage.getItem('active_shop') ||
-        localStorage.getItem('active_shopify_store');
+    console.log('🎯 NewFormProductDialog state changed - open:', open);
+  }, [open]);
+  
+  // Reset selections when dialog opens
+  useEffect(() => {
+    if (open) {
+      setSelectedProducts([]);
+      setSelectedLanguage(language as SupportedLanguage || 'ar');
+    }
+  }, [open, language]);
+  
+  // Generate default fields for new form based on selected language
+  const createDefaultFormFields = (lang: SupportedLanguage): FormField[] => {
+    const fields: FormField[] = [];
+    
+    // Language-specific text content
+    const texts = {
+      ar: {
+        title: 'اطلب الآن',
+        fullName: 'الاسم الكامل',
+        fullNamePlaceholder: 'أدخل الاسم الكامل',
+        phone: 'رقم الهاتف',
+        phonePlaceholder: 'أدخل رقم الهاتف',
+        city: 'المدينة',
+        cityPlaceholder: 'أدخل المدينة',
+        address: 'العنوان',
+        addressPlaceholder: 'أدخل العنوان الكامل',
+        cartSummary: 'ملخص الطلب',
+        submit: 'إرسال الطلب'
+      },
+      en: {
+        title: 'Order Now',
+        fullName: 'Full Name',
+        fullNamePlaceholder: 'Enter full name',
+        phone: 'Phone Number',
+        phonePlaceholder: 'Enter phone number',
+        city: 'City',
+        cityPlaceholder: 'Enter city',
+        address: 'Address',
+        addressPlaceholder: 'Enter full address',
+        cartSummary: 'Order Summary',
+        submit: 'Submit Order'
+      },
+      fr: {
+        title: 'Commander Maintenant',
+        fullName: 'Nom Complet',
+        fullNamePlaceholder: 'Entrez le nom complet',
+        phone: 'Numéro de Téléphone',
+        phonePlaceholder: 'Entrez le numéro de téléphone',
+        city: 'Ville',
+        cityPlaceholder: 'Entrez la ville',
+        address: 'Adresse',
+        addressPlaceholder: 'Entrez l\'adresse complète',
+        cartSummary: 'Résumé de Commande',
+        submit: 'Envoyer la Commande'
+      },
+      es: {
+        title: 'Ordenar Ahora',
+        fullName: 'Nombre Completo',
+        fullNamePlaceholder: 'Ingrese el nombre completo',
+        phone: 'Número de Teléfono',
+        phonePlaceholder: 'Ingrese el número de teléfono',
+        city: 'Ciudad',
+        cityPlaceholder: 'Ingrese la ciudad',
+        address: 'Dirección',
+        addressPlaceholder: 'Ingrese la dirección completa',
+        cartSummary: 'Resumen del Pedido',
+        submit: 'Enviar Pedido'
+      }
     };
 
-    const activeShop = getActiveShop();
-    if (activeShop && activeShop !== 'null' && activeShop.trim()) {
-      setCurrentShop(activeShop.trim());
-      console.log('🏪 Current shop detected:', activeShop.trim());
-    } else {
-      console.warn('⚠️ No active shop found');
-      setCurrentShop(null);
-    }
-  }, [shop]);
-
-  // Fetch products when dialog opens and shop is available
-  useEffect(() => {
-    if (open && currentShop) {
-      console.log('🚀 Dialog opened, fetching products for:', currentShop);
-      fetchProductsForShop(currentShop);
-    } else if (open && !currentShop) {
-      // Retry finding shop after a delay
-      const timer = setTimeout(() => {
-        const activeShop = localStorage.getItem('current_shopify_store') || 
-                          localStorage.getItem('simple_active_store') ||
-                          localStorage.getItem('shopify_store') ||
-                          localStorage.getItem('active_shop');
-        
-        if (activeShop && activeShop !== 'null' && activeShop.trim()) {
-          console.log('🔄 Shop found on retry:', activeShop.trim());
-          setCurrentShop(activeShop.trim());
-          fetchProductsForShop(activeShop.trim());
-        } else {
-          setError(language === 'ar' ? 'لم يتم العثور على متجر نشط' : 'No active store found');
+    const currentTexts = texts[lang];
+    
+    // إضافة حقل عنوان النموذج
+    fields.push({
+      type: 'form-title',
+      id: `form-title-${Date.now()}`,
+      label: currentTexts.title,
+      helpText: currentTexts.title,
+      style: {
+        color: '#000000',
+        textAlign: (lang === 'ar' ? 'right' : 'left') as 'right' | 'left',
+        fontWeight: 'bold',
+        fontSize: '24px',
+        descriptionColor: '#ffffff',
+        descriptionFontSize: '14px',
+        backgroundColor: '#9b87f5',
+      }
+    });
+    
+    // إضافة حقل الاسم الكامل
+    fields.push({
+      type: 'text',
+      id: `text-${Date.now()}-1`,
+      label: currentTexts.fullName,
+      placeholder: currentTexts.fullNamePlaceholder,
+      required: true,
+      icon: 'user',
+    });
+    
+    // إضافة حقل رقم الهاتف
+    fields.push({
+      type: 'phone',
+      id: `phone-${Date.now()}-2`,
+      label: currentTexts.phone,
+      placeholder: currentTexts.phonePlaceholder,
+      required: true,
+      icon: 'phone',
+    });
+    
+    // إضافة حقل المدينة بعد رقم الهاتف
+    fields.push({
+      type: 'text',
+      id: `city-${Date.now()}`,
+      label: currentTexts.city,
+      placeholder: currentTexts.cityPlaceholder,
+      required: true,
+      icon: 'map-pin',
+    });
+    
+    // إضافة حقل العنوان
+    fields.push({
+      type: 'textarea',
+      id: `textarea-${Date.now()}`,
+      label: currentTexts.address,
+      placeholder: currentTexts.addressPlaceholder,
+      required: true,
+    });
+    
+    // إضافة Cart Summary قبل زر الإرسال
+    if (currentTexts.cartSummary) {
+      fields.push({
+        type: 'cart-summary',
+        id: `cart-summary-${Date.now()}`,
+        label: currentTexts.cartSummary,
+        cartSummaryConfig: {
+          showSubtotal: true,
+          showDiscount: true,
+          showShipping: true,
+          showTotal: true,
+          subtotalText: lang === 'ar' ? 'المجموع الفرعي' : 'Subtotal',
+          discountText: lang === 'ar' ? 'الخصم' : 'Discount',
+          shippingText: lang === 'ar' ? 'الشحن' : 'Shipping',
+          totalText: lang === 'ar' ? 'الإجمالي' : 'Total',
+          freeShippingText: lang === 'ar' ? 'مجاني' : 'Free',
+          direction: lang === 'ar' ? 'rtl' : 'ltr',
+          currency: 'MAD'
         }
-      }, 500);
-      
-      return () => clearTimeout(timer);
+      });
     }
-  }, [open, currentShop, language]);
-
-  const fetchProducts = async () => {
-    if (!currentShop) {
-      setError(language === 'ar' ? 'لم يتم العثور على متجر نشط' : 'No active store found');
-      return;
-    }
-    await fetchProductsForShop(currentShop);
+    
+    // Update the submit button default styling in the dialog
+    const submitButton: FormField = {
+      id: `submit-button-${Date.now()}`,
+      type: 'submit',
+      label: currentTexts.submit,
+      icon: 'shopping-cart',
+      style: {
+        backgroundColor: '#9b87f5',
+        ...getFieldDefaults('submit', selectedLanguage).submit.style,
+        animationType: 'shake',
+      }
+    };
+    
+    // Add the submit button to the fields array
+    fields.push(submitButton);
+    
+    return fields;
   };
-
-  const fetchProductsForShop = async (shopDomain: string) => {
-    if (!shopDomain || shopDomain === 'null') {
-      setError(language === 'ar' ? 'لم يتم العثور على متجر نشط' : 'No active store found');
+  
+  // Handle creating a new form with the selected products
+  const handleCreateForm = async () => {
+    // منع الإنشاءات المتكررة
+    if (isCreating) {
+      console.log('Already creating a form, preventing duplicate creation');
       return;
     }
-
+    
+    setIsCreating(true);
+    
     try {
-      setIsLoadingProducts(true);
-      setError(null);
-      
-      console.log('🛍️ جلب المنتجات للمتجر:', shopDomain);
-      
-      // Try multiple edge functions for better reliability
-      const { supabase } = await import('@/integrations/supabase/client');
-      
-      let response;
-      
-      // Try primary function first
-      try {
-        response = await supabase.functions.invoke('shopify-products', {
-          body: {
-            shop: shopDomain,
-            refresh: false
-          }
-        });
-      } catch (primaryError) {
-        console.log('Primary function failed, trying backup:', primaryError);
-        // Fallback to fixed function
-        response = await supabase.functions.invoke('shopify-products-fixed', {
-          body: {
-            shop: shopDomain
-          }
-        });
-      }
-
-      if (response.error) {
-        throw new Error(response.error.message || 'فشل في الاتصال بخدمة المنتجات');
-      }
-
-      const result = response.data;
-      
-      if (result?.success && result?.products) {
-        setProducts(result.products);
-        console.log(`✅ تم جلب ${result.products.length} منتج من ${shopDomain}`);
-        
-        if (result.products.length === 0) {
-          setError(language === 'ar' ? 'لا توجد منتجات في هذا المتجر' : 'No products found in this store');
+      // Resolve active shop id
+      const getActiveShopId = (): string | null => {
+        const keys = [
+          'current_shopify_store',
+          'simple_active_store',
+          'shopify_store',
+          'active_shop',
+          'shopify_shop_domain',
+          'selected_store'
+        ];
+        for (const key of keys) {
+          const val = localStorage.getItem(key);
+          if (val && val.trim() && val !== 'null' && val !== 'undefined') return val.trim();
         }
-      } else {
-        throw new Error(result?.error || result?.message || 'فشل في جلب المنتجات');
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          const v = k ? localStorage.getItem(k) : null;
+          if (v && v.includes('.myshopify.com')) return v.trim();
+        }
+        return null;
+      };
+      const shopId = shop || getActiveShopId();
+      if (!shopId) {
+        toast.error(language === 'ar' ? 'لم يتم العثور على متجر نشط. يرجى التأكد من اتصال المتجر أولاً.' : 'No active shop found. Please ensure your store is connected first.');
+        setIsCreating(false);
+        return;
       }
+      
+      // Generate default form fields based on selected language
+      const defaultFields = createDefaultFormFields(selectedLanguage);
+      
+      // Get shop currency settings for default country/currency
+      const getShopCurrency = async (): Promise<string | undefined> => {
+        try {
+          const { data: storeData, error } = await supabase
+            .from('shopify_stores')
+            .select('*')
+            .eq('shop', shopId)
+            .maybeSingle();
+          
+          if (error) {
+            console.log('Error fetching shop data:', error);
+            return undefined;
+          }
+          
+          // Access currency from the data object
+          return (storeData as any)?.currency;
+        } catch (error) {
+          console.log('Could not fetch shop currency, using default');
+          return undefined;
+        }
+      };
+
+      const shopCurrency = await getShopCurrency();
+      
+      // Prepare default style
+      const defaultStyle = {
+        primaryColor: '#9b87f5',
+        borderRadius: '1.2rem',
+        fontSize: '1rem',
+        buttonStyle: 'rounded',
+        borderColor: '#9b87f5',
+        borderWidth: '2px',
+        backgroundColor: '#F9FAFB',
+        paddingTop: '20px',
+        paddingBottom: '20px',
+        paddingLeft: '20px',
+        paddingRight: '20px',
+        formGap: '5px',
+        formDirection: selectedLanguage === 'ar' ? 'rtl' : 'ltr',
+        floatingLabels: false
+      };
+      
+      // Localized form titles
+      const formTitles = {
+        ar: 'نموذج جديد',
+        en: 'New Form',
+        fr: 'Nouveau Formulaire',
+        es: 'Nuevo Formulario'
+      };
+      
+      // Get default country/currency settings based on shop currency
+      const defaultSettings = getDefaultCountryCurrencySettings(shopCurrency);
+      
+      // Create the form via SECURITY DEFINER RPC to satisfy RLS
+      const { data: createdFormId, error: createFormError } = await (supabase as any).rpc('create_form_for_shop', {
+        p_shop_id: shopId,
+        p_title: formTitles[selectedLanguage],
+        p_description: formTitles[selectedLanguage],
+        p_data: [{ id: '1', title: 'Main Step', fields: defaultFields }] as any,
+        p_style: defaultStyle as any,
+        p_is_published: true
+      });
+
+      // Update form with country/currency settings after creation  
+      if (createdFormId && !createFormError) {
+        try {
+          const { error: updateError } = await supabase
+            .from('forms')
+            .update({
+              country: defaultSettings.country,
+              currency: defaultSettings.currency,
+              phone_prefix: defaultSettings.phonePrefix
+            } as any)
+            .eq('id', createdFormId);
+            
+          if (updateError) {
+            console.error('Error updating form country/currency settings:', updateError);
+          } else {
+            console.log('✅ Updated form with country/currency settings:', defaultSettings);
+          }
+        } catch (error) {
+          console.error('Error in form update:', error);
+        }
+      }
+      
+      if (createFormError || !createdFormId) {
+        console.error('Error creating form via RPC:', createFormError);
+        toast.error(language === 'ar' ? 'خطأ في إنشاء النموذج' : 'Error creating form');
+        setIsCreating(false);
+        return;
+      }
+      
+      const newFormId = createdFormId as string;
+
+      // Create product associations only if products are selected
+      if (selectedProducts.length > 0) {
+        for (const productId of selectedProducts) {
+          const { error: assocErr } = await supabase.rpc('associate_product_with_form', {
+            p_shop_id: shopId,
+            p_product_id: productId,
+            p_form_id: newFormId,
+            p_block_id: null,
+            p_enabled: true
+          });
+          if (assocErr) {
+            console.warn(`⚠️ Failed to associate product ${productId}:`, assocErr);
+          }
+        }
+        console.log(`✅ Associated ${selectedProducts.length} products with form ${newFormId}`);
+      }
+      
+      // Navigate to the form editor and refresh forms list
+      toast.success(language === 'ar' ? 'تم إنشاء النموذج بنجاح' : 'Form created successfully');
+      onClose();
+      
+      // Navigate to form editor for the new form - small delay to ensure database is updated
+      setTimeout(() => {
+        navigate(`/form-builder/${newFormId}`);
+      }, 100);
     } catch (error) {
-      console.error('❌ خطأ في جلب المنتجات:', error);
-      const errorMessage = error instanceof Error ? error.message : 'خطأ في جلب المنتجات';
-      setError(errorMessage);
-      toast.error(`فشل في تحميل المنتجات: ${errorMessage}`);
+      console.error("Error in form creation process:", error);
+      toast.error(language === 'ar' ? 'خطأ في إنشاء النموذج' : 'Error creating form');
     } finally {
-      setIsLoadingProducts(false);
+      setIsCreating(false);
     }
   };
-
-  const handleProductToggle = (productId: string) => {
-    setSelectedProducts(prev => 
-      prev.includes(productId) 
-        ? prev.filter(id => id !== productId)
-        : [...prev, productId]
-    );
-  };
-
-  const handleContinue = () => {
-    onSelect(selectedProducts);
-  };
-
-  const handleSkip = () => {
-    onSkip();
-  };
-
-  if (!open) return null;
-
+  
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold">
-            {language === 'ar' ? 'اختيار المنتجات (اختياري)' : 'Select Products (Optional)'}
+          <DialogTitle>
+            {language === 'ar' ? 'إنشاء نموذج جديد' : 'Create New Form'}
           </DialogTitle>
-          <p className="text-muted-foreground">
+          <DialogDescription>
             {language === 'ar' 
-              ? 'يمكنك ربط هذا النموذج بمنتجات محددة أو تخطي هذه الخطوة لإنشاء نموذج عام'
-              : 'You can associate this form with specific products or skip this step to create a general form'}
-          </p>
+              ? 'اختر المنتجات التي تريد استخدام هذا النموذج معها. لا يمكن تغيير هذه الاختيارات بعد إنشاء النموذج.'
+              : 'Select which products should use this form. These associations cannot be changed after form creation.'}
+          </DialogDescription>
         </DialogHeader>
         
-        <div className="mt-4">
-          {/* Loading State */}
-          {(shopLoading || isLoadingProducts) && (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <span className="ml-2 text-muted-foreground">
-                {language === 'ar' ? 'جاري تحميل المنتجات...' : 'Loading products...'}
-              </span>
-            </div>
-          )}
-
-          {error && !isLoadingProducts && (
-            <div className="flex flex-col items-center justify-center py-8 text-red-600 space-y-3">
-              <div className="flex items-center">
-                <AlertCircle className="h-6 w-6 mr-2" />
-                <span>{error}</span>
-              </div>
-              {(error.includes('STORE_NOT_FOUND') || error.includes('401') || error.toLowerCase().includes('token')) && (
-                <div className="mt-2">
-                  <ShopifyReconnectButton shopDomain={currentShop || undefined} />
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* No Shop State */}
-          {!currentShop && !shopLoading && !isLoadingProducts && (
-            <div className="flex flex-col items-center justify-center py-8 text-amber-600">
-              <AlertCircle className="h-6 w-6 mb-2" />
-              <span className="text-center">
-                {language === 'ar' ? 'لا يوجد متجر متصل' : 'No connected store'}
-              </span>
-              <p className="text-sm text-muted-foreground mt-2 text-center">
-                {language === 'ar' 
-                  ? 'يرجى الاتصال بمتجر Shopify أولاً' 
-                  : 'Please connect a Shopify store first'}
-              </p>
-            </div>
-          )}
-
-          {/* Products Grid */}
-          {!isLoadingProducts && !error && products.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {products.map((product) => (
-                <div
-                  key={product.id}
-                  className={`border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md ${
-                    selectedProducts.includes(product.id)
-                      ? 'border-primary bg-primary/5'
-                      : 'border-gray-200'
-                  }`}
-                  onClick={() => handleProductToggle(product.id)}
-                >
-                  <div className="flex items-start space-x-3 rtl:space-x-reverse">
-                    {/* Product Image */}
-                    <div className="w-16 h-16 bg-gray-100 rounded-md flex-shrink-0 overflow-hidden">
-                      {product.image ? (
-                        <img
-                          src={typeof product.image === 'string' ? product.image : product.image.src}
-                          alt={product.title}
-                          loading="lazy"
-                          decoding="async"
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            e.currentTarget.src = '/placeholder.svg';
-                          }}
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Package className="h-6 w-6 text-gray-400" />
-                        </div>
-                      )}
+        <div className="py-4 space-y-6">
+          {/* Language Selection */}
+          <div className="space-y-3">
+            <Label className="text-sm font-medium flex items-center gap-2">
+              <Globe className="h-4 w-4" />
+              {language === 'ar' ? 'اختر لغة النموذج' : 'Select Form Language'}
+            </Label>
+            <Select value={selectedLanguage} onValueChange={(value: SupportedLanguage) => setSelectedLanguage(value)}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder={language === 'ar' ? 'اختر اللغة' : 'Select language'} />
+              </SelectTrigger>
+              <SelectContent>
+                {languageOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    <div className="flex items-center gap-2">
+                      <span>{option.flag}</span>
+                      <span>{option.label}</span>
                     </div>
-
-                    {/* Product Info */}
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-sm truncate" title={product.title}>
-                        {product.title}
-                      </h3>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        ID: {product.id}
-                      </p>
-                      {product.status && (
-                        <Badge 
-                          variant={product.status === 'active' ? 'default' : 'secondary'}
-                          className="text-xs mt-2"
-                        >
-                          {product.status}
-                        </Badge>
-                      )}
-                    </div>
-
-                    {/* Selection Indicator */}
-                    {selectedProducts.includes(product.id) && (
-                      <div className="w-5 h-5 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
-                        <span className="text-white text-xs">✓</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* No Products State */}
-          {!isLoadingProducts && !error && products.length === 0 && currentShop && (
-            <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-              <Package className="h-12 w-12 mb-4" />
-              <p className="text-center">
-                {language === 'ar' ? 'لا توجد منتجات في هذا المتجر' : 'No products found in this store'}
-              </p>
-              <p className="text-sm text-center mt-1">
-                {language === 'ar' 
-                  ? 'يمكنك المتابعة لإنشاء نموذج عام' 
-                  : 'You can continue to create a general form'}
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Selected Products Summary */}
-        {selectedProducts.length > 0 && (
-          <div className="mt-4 p-3 bg-primary/5 rounded-lg">
-            <p className="text-sm text-primary">
-              {language === 'ar' 
-                ? `تم اختيار ${selectedProducts.length} منتج`
-                : `Selected ${selectedProducts.length} product${selectedProducts.length > 1 ? 's' : ''}`}
-            </p>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        )}
 
-        {/* Action Buttons */}
-        <div className="flex justify-end space-x-2 rtl:space-x-reverse mt-6">
-          <Button variant="outline" onClick={onClose}>
+          <Separator />
+
+          {/* Product Selection - Optional */}
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">
+              {language === 'ar' ? 'اختر المنتجات (اختياري)' : 'Select Products (Optional)'}
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              {language === 'ar' 
+                ? 'يمكنك ربط هذا النموذج بمنتجات معينة أو تركه عام لجميع المنتجات'
+                : 'You can associate this form with specific products or leave it general for all products'}
+            </p>
+            <ShopifyProductSelection 
+              selectedProducts={selectedProducts}
+              onChange={setSelectedProducts}
+              formId="new"
+              readOnly={false}
+            />
+          </div>
+        </div>
+        
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={isCreating}>
             {language === 'ar' ? 'إلغاء' : 'Cancel'}
           </Button>
-          <Button variant="outline" onClick={handleSkip}>
-            {language === 'ar' ? 'تخطي وإنشاء نموذج عام' : 'Skip & Create General Form'}
+          <Button onClick={handleCreateForm} disabled={isCreating}>
+            {isCreating ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {language === 'ar' ? 'جارٍ الإنشاء...' : 'Creating...'}
+              </>
+            ) : (
+              language === 'ar' ? 'إنشاء النموذج' : 'Create Form'
+            )}
           </Button>
-          <Button 
-            onClick={handleContinue}
-            disabled={selectedProducts.length === 0}
-          >
-            {language === 'ar' ? 'متابعة مع المنتجات المختارة' : 'Continue with Selected Products'}
-          </Button>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

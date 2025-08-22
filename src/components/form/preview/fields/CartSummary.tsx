@@ -23,120 +23,93 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
   const [productData, setProductData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [linkedProductId, setLinkedProductId] = React.useState<string | null>(null);
-  
-  // تهيئة CurrencyService عند تحميل المكون
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  // تهيئة CurrencyService عند تحميل المكون - مرة واحدة فقط
   React.useEffect(() => {
+    if (isInitialized) return;
+
     const initializeService = async () => {
       try {
         await CurrencyService.initialize();
-        // إعادة حساب الأسعار بعد تحميل الإعدادات المخصصة
-        setProductData(prev => prev ? { ...prev } : null);
+        setIsInitialized(true);
+        console.log('✅ CartSummary: CurrencyService initialized');
       } catch (error) {
-        console.error('Error initializing CurrencyService:', error);
+        console.error('❌ CartSummary: Error initializing CurrencyService:', error);
+        setIsInitialized(true); // تجنب إعادة المحاولة اللانهائية
       }
     };
     initializeService();
-  }, []);
+  }, [isInitialized]);
 
   const fieldStyle = field.style || {};
   
   // الحصول على إعدادات محفوظة من المحرر - أولوية لـ config ثم cartSummaryConfig
   const config = field.config || field.cartSummaryConfig || {};
   
-  // النصوص الافتراضية حسب اتجاه النموذج أو المحتوى أو الاعدادات المحفوظة  
-  const getDefaultTexts = () => {
-    // أولاً نتحقق من النصوص المحفوظة
-    if (config.subtotalText || config.discountText || config.shippingText || config.totalText) {
-      return {
-        subtotalText: config.subtotalText || 'Subtotal',
-        discountText: config.discountText || 'Discount', 
-        shippingText: config.shippingText || 'Shipping',
-        totalText: config.totalText || 'Total'
-      };
-    }
-    
-    // إذا لم توجد نصوص محفوظة، نعتمد على اتجاه النموذج أولاً
-    if (formStyle && 'formDirection' in formStyle) {
-      const isArabic = formStyle.formDirection === 'rtl';
-      return isArabic ? {
-        subtotalText: 'المجموع الفرعي',
-        discountText: 'الخصم',
-        shippingText: 'الشحن', 
-        totalText: 'الإجمالي'
-      } : {
-        subtotalText: 'Subtotal',
-        discountText: 'Discount',
-        shippingText: 'Shipping',
-        totalText: 'Total'
-      };
-    }
-    
-    // كحل أخير، نحدد بناءً على محتوى النصوص الموجودة
-    const allTexts = [
-      config.subtotalText, config.discountText, 
-      config.shippingText, config.totalText,
-      field.label, field.placeholder
+  // تحديد اللغة مرة واحدة فقط بناءً على النصوص المحفوظة أو اتجاه النموذج
+  const [detectedLanguage] = useState(() => {
+    // أولاً: فحص النصوص المحفوظة
+    const savedTexts = [
+      config.subtotalText, config.discountText,
+      config.shippingText, config.totalText
     ].filter(Boolean).join(' ');
-    
-    const hasArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(allTexts);
-    
-    return hasArabic ? {
-      subtotalText: 'المجموع الفرعي',
-      discountText: 'الخصم',
-      shippingText: 'الشحن', 
-      totalText: 'الإجمالي'
-    } : {
-      subtotalText: 'Subtotal',
-      discountText: 'Discount',
-      shippingText: 'Shipping',
-      totalText: 'Total'
+
+    if (savedTexts) {
+      const hasArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(savedTexts);
+      return hasArabic ? 'ar' : 'en';
+    }
+
+    // ثانياً: فحص اتجاه النموذج
+    if (formStyle && 'formDirection' in formStyle) {
+      return formStyle.formDirection === 'rtl' ? 'ar' : 'en';
+    }
+
+    // ثالثاً: فحص محتوى الحقل
+    const fieldTexts = [field.label, field.placeholder].filter(Boolean).join(' ');
+    const hasArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(fieldTexts);
+    return hasArabic ? 'ar' : 'en';
+  });
+
+  // النصوص الافتراضية حسب اللغة المكتشفة - مرة واحدة فقط
+  const [defaultTexts] = useState(() => {
+    const isArabic = detectedLanguage === 'ar';
+    return {
+      subtotalText: isArabic ? 'المجموع الفرعي' : 'Subtotal',
+      discountText: isArabic ? 'الخصم' : 'Discount',
+      shippingText: isArabic ? 'الشحن' : 'Shipping',
+      totalText: isArabic ? 'الإجمالي' : 'Total'
     };
+  });
+
+  // النصوص النهائية - تعطي أولوية للنصوص المحفوظة
+  const finalTexts = {
+    subtotalText: config.subtotalText || defaultTexts.subtotalText,
+    discountText: config.discountText || defaultTexts.discountText,
+    shippingText: config.shippingText || defaultTexts.shippingText,
+    totalText: config.totalText || defaultTexts.totalText
   };
   
-  const defaultTexts = getDefaultTexts();
-  
   const finalConfig = {
+    autoCalculate: true,
     showDiscount: true,
     discountType: 'percentage',
     discountValue: 0,
     shippingType: 'manual',
     shippingValue: 0,
     currency: formCurrency || formStyle.currency || 'MAD', // استخدام عملة النموذج الصحيحة
-    subtotalText: config.subtotalText || defaultTexts.subtotalText,
-    discountText: config.discountText || defaultTexts.discountText,
-    shippingText: config.shippingText || defaultTexts.shippingText,
-    totalText: config.totalText || defaultTexts.totalText,
+    subtotalText: finalTexts.subtotalText,
+    discountText: finalTexts.discountText,
+    shippingText: finalTexts.shippingText,
+    totalText: finalTexts.totalText,
     ...config
   };
   
-  // تحديد اتجاه النص
-  const getTextDirection = () => {
-    if (finalConfig.direction && finalConfig.direction !== 'auto') {
-      return finalConfig.direction;
-    }
-    
-    // تحديد الاتجاه بناءً على النصوص المحفوظة
-    const texts = [
-      finalConfig.subtotalText,
-      finalConfig.discountText,
-      finalConfig.shippingText,
-      finalConfig.totalText
-    ].filter(Boolean).join(' ');
-    
-    const hasArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(texts);
-    return hasArabic ? 'rtl' : 'ltr';
-  };
+  // تحديد اتجاه النص بناءً على اللغة المكتشفة - ثابت ولا يتغير
+  const textDirection = detectedLanguage === 'ar' ? 'rtl' : 'ltr';
   
-  const textDirection = getTextDirection();
-  
-  // استخدام نصف قطر الحدود من نمط النموذج إذا كان متاحًا
-  const borderRadius = formStyle.borderRadius || '0.5rem';
-  
-  // Check if we should show the title (default to true if not explicitly set to false)
-  const showTitle = field.label !== '' && field.label !== undefined;
-
   // Helper function to calculate prices
-  const calculatePrices = (basePrice: number, productInfo: any, configSettings: any, currency: string) => {
+  const calculatePrices = (basePrice: number, configSettings: any) => {
     let subtotal = basePrice;
     let discount = 0;
     let shipping = 0;
@@ -179,6 +152,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
   const prices = useMemo(() => {
     console.log('🔍 Cart Summary Debug:', {
       productData,
+      autoCalculate: config.autoCalculate,
       productId,
       formCurrency,
       formStyleCurrency: formStyle.currency,
@@ -205,19 +179,19 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
         convertedPrice
       });
       
-      return calculatePrices(convertedPrice, productData, finalConfig, targetCurrency);
+      return calculatePrices(convertedPrice, finalConfig);
     }
     
     // Show placeholder prices instead of null to prevent white screen
-    if (loading) {
+    if (finalConfig.autoCalculate && loading) {
       console.log('⏳ Waiting for product data...');
       return { subtotal: null, discount: null, shipping: null, total: null };
     }
-
-    // Show demo prices when product data is not available
+    
+    // Show demo prices when not using auto calculation OR when auto calculation fails
     const demoPrice = 99.00;
     console.log('🎭 Using demo price:', demoPrice);
-    return calculatePrices(demoPrice, null, finalConfig, formCurrency || formStyle.currency || 'MAD');
+    return calculatePrices(demoPrice, finalConfig);
   }, [productData, finalConfig, formCurrency, formStyle.currency, loading]);
 
   // البحث عن المنتج المرتبط بالنموذج من قاعدة البيانات
@@ -253,13 +227,14 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
     const finalProductId = linkedProductId || productId;
     console.log('🔄 Cart Summary - useEffect triggered:', {
       finalProductId,
+      autoCalculate: config.autoCalculate,
       loading,
       hasProductData: !!productData,
       linkedProductId,
       productId
     });
-
-    if (finalProductId && finalProductId !== 'auto-detect' && !loading && !productData) {
+    
+    if (finalConfig.autoCalculate && finalProductId && finalProductId !== 'auto-detect' && !loading && !productData) {
       setLoading(true);
       console.log('📦 Cart Summary - Starting to load product:', finalProductId);
       
@@ -361,7 +336,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
           </span>
         </div>
         
-        {finalConfig.showDiscount && (
+        {finalConfig.showDiscount && prices.discount > 0 && (
           <div style={{
             display: 'flex',
             justifyContent: 'space-between',
