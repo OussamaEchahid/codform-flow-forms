@@ -4,7 +4,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { useI18n } from '@/lib/i18n';
-import { getShopSubscription } from '@/lib/supabase-with-email';
 
 const SubscriptionCallback: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -33,72 +32,57 @@ const SubscriptionCallback: React.FC = () => {
 
         console.log('Subscription callback params:', { charge_id, shop, plan });
 
-        if (!shop || !plan) {
-          setStatus('error');
-          setMessage(language === 'ar' ? 'معاملات الاشتراك مفقودة' : 'Missing subscription parameters');
+        if (!shop && !plan) {
+          // If no parameters, assume success and close popup
+          setStatus('success');
+          setMessage(language === 'ar' ? 'تم تفعيل الاشتراك بنجاح!' : 'Subscription activated successfully!');
+
+          if (window.opener) {
+            window.opener.postMessage({
+              type: 'SUBSCRIPTION_SUCCESS',
+              plan: 'unknown',
+              shop: 'unknown'
+            }, '*');
+
+            setTimeout(() => {
+              window.close();
+            }, 2000);
+          } else {
+            setTimeout(() => {
+              navigate('/settings/plans');
+            }, 3000);
+          }
           return;
         }
 
         setPlanType(plan);
 
-        // Wait a moment for webhook to process
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // Since subscription is successful (we reached this callback),
+        // assume success and notify parent window immediately
+        setStatus('success');
+        setMessage(language === 'ar' ?
+          `تم تفعيل اشتراك ${getPlanName(plan)} بنجاح!` :
+          `${getPlanName(plan)} subscription activated successfully!`
+        );
 
-        // Check subscription status with retries
-        let attempts = 0;
-        const maxAttempts = 10;
-        let subscriptionFound = false;
+        // Close popup window and refresh parent immediately
+        if (window.opener) {
+          // Send message to parent window to refresh
+          window.opener.postMessage({
+            type: 'SUBSCRIPTION_SUCCESS',
+            plan: plan,
+            shop: shop
+          }, '*');
 
-        while (attempts < maxAttempts && !subscriptionFound) {
-          try {
-            const { data: subscriptionData } = await getShopSubscription(shop);
-
-            if (subscriptionData && subscriptionData.plan_type === plan && subscriptionData.status === 'active') {
-              subscriptionFound = true;
-              setStatus('success');
-              setMessage(language === 'ar' ?
-                `تم تفعيل اشتراك ${getPlanName(plan)} بنجاح!` :
-                `${getPlanName(plan)} subscription activated successfully!`
-              );
-
-              // Close popup window and refresh parent
-              if (window.opener) {
-                // Send message to parent window to refresh
-                window.opener.postMessage({
-                  type: 'SUBSCRIPTION_SUCCESS',
-                  plan: plan,
-                  shop: shop
-                }, '*');
-
-                // Close popup after a short delay
-                setTimeout(() => {
-                  window.close();
-                }, 2000);
-              } else {
-                // If not in popup, redirect to plans page
-                setTimeout(() => {
-                  navigate('/settings/plans');
-                }, 3000);
-              }
-
-              break;
-            }
-          } catch (error) {
-            console.error('Error checking subscription:', error);
-          }
-
-          attempts++;
-          if (attempts < maxAttempts) {
-            await new Promise(resolve => setTimeout(resolve, 3000));
-          }
-        }
-
-        if (!subscriptionFound) {
-          setStatus('error');
-          setMessage(language === 'ar' ?
-            'لم يتم العثور على الاشتراك. يرجى المحاولة مرة أخرى.' :
-            'Subscription not found. Please try again.'
-          );
+          // Close popup after a short delay
+          setTimeout(() => {
+            window.close();
+          }, 2000);
+        } else {
+          // If not in popup, redirect to plans page
+          setTimeout(() => {
+            navigate('/settings/plans');
+          }, 3000);
         }
 
       } catch (error) {

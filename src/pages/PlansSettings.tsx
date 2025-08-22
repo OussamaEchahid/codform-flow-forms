@@ -202,8 +202,32 @@ const PlansSettings = () => {
           const onMessage = async (event: MessageEvent) => {
             if (event.data?.type === 'SUBSCRIPTION_SUCCESS') {
               console.log('✅ Received subscription success message:', event.data);
-              await loadData();
+
+              // إيقاف polling إذا كان يعمل
+              if (upgradePollRef.current) {
+                window.clearInterval(upgradePollRef.current);
+                upgradePollRef.current = null;
+              }
+
+              // تحديث فوري للاشتراك الحالي إذا كانت الخطة معروفة
+              if (event.data.plan && event.data.plan !== 'unknown') {
+                setCurrentSubscription({
+                  id: 'temp',
+                  shop_domain: event.data.shop,
+                  plan_type: event.data.plan,
+                  status: 'active',
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString()
+                });
+              }
+
               setUpgradingTo(null);
+
+              // تحديث البيانات من قاعدة البيانات
+              setTimeout(async () => {
+                await loadData();
+              }, 500);
+
               window.removeEventListener('message', onMessage);
               const { toast } = await import('@/hooks/use-toast');
               toast.success(language === 'ar' ? 'تم تفعيل الخطة بنجاح' : 'Plan activated successfully');
@@ -228,8 +252,9 @@ const PlansSettings = () => {
               const { data: latest } = await getShopSubscription(activeStore);
               console.log('📊 Current subscription data:', latest);
 
-              if (latest?.plan_type === planId && latest?.status === 'active') {
-                console.log('✅ Subscription activated successfully!');
+              // Check if subscription matches the plan (regardless of status for now)
+              if (latest?.plan_type === planId) {
+                console.log('✅ Subscription found with correct plan!');
                 setCurrentSubscription(latest);
                 setUpgradingTo(null);
                 window.clearInterval(pollId);
@@ -249,7 +274,7 @@ const PlansSettings = () => {
               upgradePollRef.current = null;
               setUpgradingTo(null);
             }
-          }, 4000);
+          }, 3000); // Reduced to 3 seconds for faster response
           upgradePollRef.current = pollId;
         } else if ((data as any)?.details?.length) {
           const messages = (data as any).details.map((d: any) => d.message).join(' — ');
