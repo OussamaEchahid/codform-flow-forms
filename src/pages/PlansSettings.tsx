@@ -1,22 +1,32 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Crown, Star, Zap, Check, X } from "lucide-react";
+import { Crown, Star, Zap, Check, X, RefreshCw } from "lucide-react";
 import SettingsLayout from "@/components/layout/SettingsLayout";
 import { useI18n } from "@/lib/i18n";
-import { useEffect, useState, useRef } from "react";
-import { getUserStores, getShopSubscription } from "@/lib/supabase-with-email";
+import React, { useState, useRef } from "react";
+import { getUserStores } from "@/lib/supabase-with-email";
 import { cn } from "@/lib/utils";
-
+import { useSubscription } from "@/hooks/useSubscription";
 import UnifiedStoreManager from "@/utils/unified-store-manager";
+
 const PlansSettings = () => {
   const { t, language } = useI18n();
   const [stores, setStores] = useState<any[]>([]);
-  const [currentSubscription, setCurrentSubscription] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  // تتبع حالة الترقية حتى نُظهر علامة واضحة ونمنع النقرات المكررة
+  const [loadingStores, setLoadingStores] = useState(true);
   const [upgradingTo, setUpgradingTo] = useState<string | null>(null);
   const upgradePollRef = useRef<number | null>(null);
+  
+  // استخدام hook الاشتراكات الجديد
+  const { 
+    subscription: currentSubscription, 
+    loading: subscriptionLoading, 
+    error: subscriptionError,
+    refreshSubscription,
+    forceRefresh,
+    isCurrentPlan,
+    getPlanStatus
+  } = useSubscription();
 
   const plans = [
     {
@@ -92,97 +102,33 @@ const PlansSettings = () => {
     }
   ];
 
-  useEffect(() => {
-    loadData();
-    // تنظيف أي polling عند الخروج من الصفحة
+  // تحميل بيانات المتاجر
+  const loadStores = async () => {
+    console.log('🏪 Loading stores data...');
+    try {
+      setLoadingStores(true);
+      const { data: storesData } = await getUserStores();
+      console.log('🏪 Stores data loaded:', storesData);
+      setStores(storesData || []);
+    } catch (error) {
+      console.error('❌ Error loading stores:', error);
+    } finally {
+      setLoadingStores(false);
+    }
+  };
+
+  // تحميل البيانات عند mount
+  React.useEffect(() => {
+    loadStores();
+    
+    // تنظيف عند unmount
     return () => {
       if (upgradePollRef.current) {
         window.clearInterval(upgradePollRef.current);
         upgradePollRef.current = null;
       }
-      // تنظيف event listeners
-      window.removeEventListener('focus', () => {});
-      window.removeEventListener('message', () => {});
     };
   }, []);
-
-  const loadData = async () => {
-    console.log('🔄 loadData: Starting to load subscription data...');
-    try {
-      setLoading(true);
-      
-      // الحصول على جميع معرفات المتجر المحتملة
-      const unifiedStore = UnifiedStoreManager.getActiveStore();
-      const diagnosticInfo = UnifiedStoreManager.getDiagnosticInfo();
-      
-      console.log('🔍 DIAGNOSTIC INFO:', JSON.stringify(diagnosticInfo, null, 2));
-      
-      // اجلب المتاجر أولاً
-      const { data: storesData } = await getUserStores();
-      console.log('🏪 loadData: Stores data:', storesData);
-      setStores(storesData || []);
-
-      // تجميع جميع معرفات المتجر المحتملة للتجربة
-      const possibleStores = [
-        unifiedStore,
-        'test-klawi.myshopify.com', // المتجر المحدد في المشكلة
-        localStorage.getItem('active_store'),
-        localStorage.getItem('active_shop'),
-        localStorage.getItem('active_shopify_store'),
-        localStorage.getItem('shopify_store'),
-        localStorage.getItem('current_shopify_store'),
-        localStorage.getItem('simple_active_store'),
-        (storesData && storesData[0]?.shop),
-        stores[0]?.shop
-      ].filter(Boolean);
-
-      console.log('🎯 loadData: Possible stores to test:', possibleStores);
-
-      let subscriptionData = null;
-      let workingStore = null;
-
-      // جرب كل معرف متجر محتمل
-      for (const testStore of possibleStores) {
-        if (!testStore) continue;
-        
-        try {
-          console.log(`🔍 Testing store: ${testStore}`);
-          const { data } = await getShopSubscription(testStore);
-          if (data) {
-            console.log(`✅ Found subscription for ${testStore}:`, data);
-            subscriptionData = data;
-            workingStore = testStore;
-            break;
-          }
-        } catch (error) {
-          console.log(`❌ No subscription found for ${testStore}:`, error);
-        }
-      }
-
-      if (subscriptionData) {
-        console.log('🎉 FINAL subscription data:', subscriptionData);
-        console.log('🎯 Working store:', workingStore);
-        
-        // تأكد من تطبيق البيانات مباشرة
-        const finalSubscription = Array.isArray(subscriptionData) ? subscriptionData[0] : subscriptionData;
-        console.log('📝 Final processed subscription:', finalSubscription);
-        setCurrentSubscription(finalSubscription);
-        
-        // فرض إعادة رسم المكون
-        setTimeout(() => {
-          setCurrentSubscription(prev => prev ? {...prev} : null);
-        }, 100);
-      } else {
-        console.log('❌ No subscription found for any store');
-        setCurrentSubscription(null);
-      }
-    } catch (error) {
-      console.error('❌ Error loading subscription data:', error);
-    } finally {
-      setLoading(false);
-      console.log('✅ loadData: Finished loading');
-    }
-  };
 
   const handleUpgrade = async (planId: string) => {
     try {
@@ -208,29 +154,18 @@ const PlansSettings = () => {
           .rpc('upgrade_shop_plan', { p_shop_domain: activeStore, p_new_plan: 'free' });
         if (error) throw error;
         console.log('✅ تم تحديث الخطة إلى مجاني');
-        await loadData();
+        await refreshSubscription();
         setUpgradingTo(null);
       } else {
-        // إنشاء اشتراك عبر Shopify وإرجاع رابط التأكيد مع معالجة رسائل الأخطاء
+        // إنشاء اشتراك عبر Shopify
         const { supabase } = await import('@/integrations/supabase/client');
         const { data, error } = await supabase.functions.invoke('change-plan', {
           body: { shop: activeStore, planId }
         });
 
         if (error) {
-          // حاول استخراج تفاصيل مفيدة من الخطأ القادم من Edge Function
-          const errMsg = (error as any)?.message || 'حدث خطأ أثناء إنشاء الاشتراك';
-          try {
-            const payload = JSON.parse(errMsg);
-            if (payload?.details?.length) {
-              const messages = payload.details.map((d: any) => d.message).join(' — ');
-              const { toast } = await import('@/hooks/use-toast');
-              toast.error(messages);
-            }
-          } catch {
-            const { toast } = await import('@/hooks/use-toast');
-            toast.error(errMsg);
-          }
+          const { toast } = await import('@/hooks/use-toast');
+          toast.error(error.message || 'حدث خطأ أثناء إنشاء الاشتراك');
           throw error;
         }
 
@@ -241,82 +176,25 @@ const PlansSettings = () => {
 
           // تحديث فوري بعد عودة التركيز
           const onFocus = async () => {
-            await loadData();
+            await forceRefresh();
             window.removeEventListener('focus', onFocus);
           };
           window.addEventListener('focus', onFocus);
 
-          // استمع لرسائل من النافذة المنبثقة
-          let messageReceived = false;
-          const onMessage = async (event: MessageEvent) => {
-            console.log('📨 Received message:', event.data);
-            if (event.data?.type === 'SUBSCRIPTION_SUCCESS' && !messageReceived) {
-              messageReceived = true;
-              console.log('✅ Processing subscription success message:', event.data);
-
-              // إيقاف polling إذا كان يعمل
-              if (upgradePollRef.current) {
-                window.clearInterval(upgradePollRef.current);
-                upgradePollRef.current = null;
-              }
-
-              // تحديث فوري للاشتراك الحالي
-              const newSubscription = {
-                id: 'temp-' + Date.now(),
-                shop_domain: event.data.shop || activeStore,
-                plan_type: event.data.plan !== 'unknown' ? event.data.plan : planId,
-                status: 'active',
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-              };
-
-              console.log('🔄 Setting current subscription:', newSubscription);
-              setCurrentSubscription(newSubscription);
-              setUpgradingTo(null);
-
-              // فرض إعادة رسم المكون
-              setTimeout(() => {
-                setCurrentSubscription((prev: any) => ({ ...prev, updated_at: new Date().toISOString() }));
-              }, 100);
-
-              // تحديث البيانات من قاعدة البيانات
-              setTimeout(async () => {
-                console.log('🔄 Reloading data from database...');
-                await loadData();
-              }, 1000);
-
-              const { toast } = await import('@/hooks/use-toast');
-              toast.success(language === 'ar' ? 'تم تفعيل الخطة بنجاح' : 'Plan activated successfully');
-
-              // إزالة event listener بعد تأخير
-              setTimeout(() => {
-                window.removeEventListener('message', onMessage);
-              }, 2000);
-            }
-          };
-          window.addEventListener('message', onMessage);
-
-          // ابدأ Polling للتحقق من تفعيل الخطة الجديدة وإظهار العلامة فوراً
-          if (upgradePollRef.current) {
-            window.clearInterval(upgradePollRef.current);
-            upgradePollRef.current = null;
-          }
-
+          // Polling للتحقق من تفعيل الخطة
           let pollAttempts = 0;
-          const maxPollAttempts = 30; // 30 attempts * 4 seconds = 2 minutes max
+          const maxPollAttempts = 30;
 
           const pollId = window.setInterval(async () => {
             pollAttempts++;
             console.log(`🔄 Polling attempt ${pollAttempts}/${maxPollAttempts} for plan ${planId}`);
 
             try {
-              const { data: latest } = await getShopSubscription(activeStore);
-              console.log('📊 Current subscription data:', latest);
-
-              // Check if subscription matches the plan (regardless of status for now)
-              if (latest?.plan_type === planId) {
-                console.log('✅ Subscription found with correct plan!');
-                setCurrentSubscription(latest);
+              await forceRefresh();
+              
+              // التحقق من نجاح الترقية
+              if (isCurrentPlan(planId)) {
+                console.log('✅ Subscription updated successfully!');
                 setUpgradingTo(null);
                 window.clearInterval(pollId);
                 upgradePollRef.current = null;
@@ -328,72 +206,29 @@ const PlansSettings = () => {
               console.error('❌ Error during polling:', error);
             }
 
-            // Stop polling after max attempts
             if (pollAttempts >= maxPollAttempts) {
               console.log('⏰ Polling timeout reached');
               window.clearInterval(pollId);
               upgradePollRef.current = null;
               setUpgradingTo(null);
             }
-          }, 3000); // Reduced to 3 seconds for faster response
+          }, 3000);
+          
           upgradePollRef.current = pollId;
-        } else if ((data as any)?.details?.length) {
-          const messages = (data as any).details.map((d: any) => d.message).join(' — ');
-          const { toast } = await import('@/hooks/use-toast');
-          toast.error(messages);
         }
       }
     } catch (e) {
       console.error('❌ خطأ في ترقية الخطة:', e);
+      setUpgradingTo(null);
     }
-  };
-
-  const getCurrentPlan = () => {
-    // Accept both active and pending subscriptions as current
-    const subscription = currentSubscription;
-    if (!subscription) return null;
-    
-    // Accept subscription if status is active, pending, or undefined/null
-    const acceptableStatuses = ['active', 'pending', null, undefined];
-    const status = subscription.status;
-    
-    if (acceptableStatuses.includes(status)) {
-      const plan = subscription.plan_type;
-      console.log('🔍 getCurrentPlan:', plan, 'status:', status, 'from subscription:', subscription);
-      return plan;
-    }
-    
-    console.log('🔍 getCurrentPlan: subscription status not acceptable:', status);
-    return null;
-  };
-
-  const getPlanStatus = (planId: string) => {
-    const currentPlan = getCurrentPlan();
-    const subscriptionStatus = currentSubscription?.status;
-    console.log(`🔍 getPlanStatus for ${planId}: currentPlan=${currentPlan}, status=${subscriptionStatus}`);
-
-    if (!currentPlan) return 'other';
-    
-    if (currentPlan === planId) {
-      console.log(`✅ Plan ${planId} is CURRENT (status: ${subscriptionStatus})`);
-      return 'current';
-    }
-
-    const planOrder = ['free', 'basic', 'premium'];
-    const currentIndex = planOrder.indexOf(currentPlan);
-    const planIndex = planOrder.indexOf(planId);
-
-    const status = planIndex > currentIndex ? 'upgrade' : 'downgrade';
-    console.log(`📊 Plan ${planId} status: ${status}`);
-    return status;
   };
 
   // Log current state for debugging
   console.log('🔍 PlansSettings render - Current subscription:', currentSubscription);
-  console.log('🔍 PlansSettings render - Loading:', loading);
+  console.log('🔍 PlansSettings render - Loading:', subscriptionLoading);
   console.log('🔍 PlansSettings render - Upgrading to:', upgradingTo);
 
-  if (loading) {
+  if (subscriptionLoading || loadingStores) {
     return (
       <SettingsLayout>
         <div className="container mx-auto p-6">
@@ -414,8 +249,45 @@ const PlansSettings = () => {
             </h1>
             <p className="text-muted-foreground">{language === 'ar' ? 'اختر الخطة المناسبة لمتجرك ومتطلباتك' : 'Choose the right plan for your store and requirements'}</p>
           </div>
+          
+          {/* زر التحديث */}
+          <Button 
+            variant="outline" 
+            onClick={forceRefresh}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            {language === 'ar' ? 'تحديث' : 'Refresh'}
+          </Button>
         </div>
 
+        {/* عرض حالة الاشتراك الحالي */}
+        {currentSubscription && (
+          <Card className="bg-gradient-to-r from-green-50 to-blue-50 border-green-200">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-green-800">
+                    {language === 'ar' ? 'اشتراكك الحالي' : 'Current Subscription'}
+                  </h3>
+                  <p className="text-green-700">
+                    {language === 'ar' ? 'الخطة:' : 'Plan:'} <span className="font-medium">{currentSubscription.plan_type}</span>
+                    {' • '}
+                    {language === 'ar' ? 'الحالة:' : 'Status:'} <span className="font-medium">{currentSubscription.status}</span>
+                  </p>
+                </div>
+                <Badge className="bg-green-600 text-white">
+                  <Check className="h-4 w-4 mr-1" />
+                  {currentSubscription.status === 'pending' 
+                    ? (language === 'ar' ? 'قيد التفعيل' : 'Activating')
+                    : (language === 'ar' ? 'نشط' : 'Active')
+                  }
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        
         {/* عرض المتاجر */}
         {stores.length > 0 && (
           <Card>
