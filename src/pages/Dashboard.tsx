@@ -11,10 +11,11 @@ import AppSidebar from '@/components/layout/AppSidebar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  Store as StoreIcon, 
-  FileText, 
-  ShoppingCart, 
+import StoreInfoCard from '@/components/ui/StoreInfoCard';
+import {
+  Store as StoreIcon,
+  FileText,
+  ShoppingCart,
   Plus,
   TrendingUp,
   Activity,
@@ -224,143 +225,57 @@ const Dashboard = () => {
       
       <div className="flex-1 p-6">
         <div className="max-w-7xl mx-auto">
-          {/* العنوان الرئيسي مع البروفايل */}
-          <div className="mb-8">
-            <div className="flex justify-between items-center mb-4">
-              <div>
-                <h1 className="text-3xl font-bold mb-2">
-                  {t('welcomeToDashboard')}
-                </h1>
-                <p className="text-muted-foreground">
-                  {t('manageYourStores')}
-                </p>
-              </div>
-              
-              {/* أيقونة البروفايل المحسنة */}
-              {(() => {
-                const activeStore = UnifiedStoreManager.getActiveStore();
-                const userEmail = localStorage.getItem('shopify_user_email');
-                const userName = localStorage.getItem('shopify_user_name');
-                
-                // التأكد من أن المتجر النشط صحيح وليس "en" أو "ar"
-                const isValidStore = activeStore && 
-                                   activeStore !== 'en' && 
-                                   activeStore !== 'ar' && 
-                                   activeStore.includes('.myshopify.com');
-                
-                console.log('👤 Dashboard - Profile info:', { activeStore, isValidStore, userEmail, userName, user: !!user });
-                
-                // إظهار البروفايل إذا كان هناك متجر نشط صحيح أو مستخدم مصادق تقليدياً
-                if (isShopifyAuthenticated && isValidStore) {
-                  return (
-                    <div className="flex items-center gap-3">
-                      <div className="text-right">
-                        {userName ? (
-                          <>
-                            <p className="font-medium text-sm">{userName}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {userEmail || t('notAvailable')}
-                            </p>
-                            <p className="text-xs text-muted-foreground/60">{activeStore}</p>
-                          </>
-                        ) : userEmail ? (
-                          <>
-                            <p className="font-medium text-sm">{userEmail}</p>
-                            <p className="text-xs text-muted-foreground">{activeStore || t('storeNotSpecified')}</p>
-                          </>
-                        ) : (
-                          <>
-                            <p className="font-medium text-sm">{activeStore}</p>
-                            <p className="text-xs text-muted-foreground">{t('noEmail')}</p>
-                          </>
-                        )}
-                      </div>
-                      <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center">
-                        <span className="text-white font-medium">
-                          {userName ? userName.charAt(0).toUpperCase() : 
-                           userEmail ? userEmail.charAt(0).toUpperCase() : 
-                           activeStore ? activeStore.charAt(0).toUpperCase() : 'U'}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                }
-                return null;
-              })()}
-            </div>
+          {/* العنوان الرئيسي */}
+          <div className="text-center mb-8">
+            <h1 className="text-4xl font-bold mb-2">
+              {t('welcomeToDashboard')}
+            </h1>
+            <p className="text-lg text-muted-foreground">
+              {t('manageYourStores')}
+            </p>
           </div>
 
-          {/* حالة الاتصال بالمتجر - إظهار واضح */}
+          {/* معلومات المتجر الأنيقة */}
+          {(() => {
+            const activeStore = UnifiedStoreManager.getActiveStore();
+            const userEmail = localStorage.getItem('shopify_user_email');
+            const userName = localStorage.getItem('shopify_user_name');
+
+            // التأكد من أن المتجر النشط صحيح وليس "en" أو "ar"
+            const isValidStore = activeStore &&
+                               activeStore !== 'en' &&
+                               activeStore !== 'ar' &&
+                               activeStore.includes('.myshopify.com');
+
+            if (isShopifyAuthenticated && isValidStore) {
+              return (
+                <StoreInfoCard
+                  storeName={activeStore}
+                  storeUrl={activeStore}
+                  userEmail={userEmail || undefined}
+                  planType={subscription?.plan_type || 'free'}
+                  planStatus={subscription?.status === 'active' ? 'active' : 'inactive'}
+                  isConnected={true}
+                  className="mb-8"
+                />
+              );
+            }
+            return null;
+          })()}
+
+          {/* رسالة عدم الاتصال فقط */}
           {(() => {
             const storeFromManager = UnifiedStoreManager.getActiveStore();
             const connectedStore = shop || storeFromManager;
-            
+
             // التأكد من أن المتجر المتصل ليس "en" أو أي قيمة غير صحيحة
-            const isValidStore = connectedStore && 
-                               connectedStore !== 'en' && 
-                               connectedStore !== 'ar' && 
+            const isValidStore = connectedStore &&
+                               connectedStore !== 'en' &&
+                               connectedStore !== 'ar' &&
                                connectedStore.includes('.myshopify.com');
-            
-            console.log('🔍 Dashboard - Store validation:', {
-              connectedStore,
-              isValidStore,
-              isShopifyAuthenticated,
-              hasUser: !!user
-            });
-            
-            // إظهار التحذير فقط إذا كان هناك مستخدم مصادق عليه أو اتصال Shopify صحيح
-            if (isShopifyAuthenticated && isValidStore) {
-              return (
-                <div className="mb-6">
-                  <Alert className="border-green-200 bg-green-50">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    <AlertDescription className="text-green-800">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <strong>✅ {t('connectedTo')}:</strong> {connectedStore}
-                          <br />
-                          <small className="text-green-600">{language === 'ar' ? 'الاتصال نشط ويعمل بشكل صحيح' : 'Connection is active and working properly'}</small>
-                          <br />
-                          <small className="text-green-600/70">
-                             {language === 'ar' ? 'البريد الإلكتروني: ' : 'Email: '}{(() => {
-                               const email = localStorage.getItem('shopify_user_email');
-                               return email && email !== 'مغربي• VIP' ? email : t('notAvailable');
-                             })()}
-                          </small>
-                          <br />
-                          <small className="text-green-600/70">
-                            {t('currentPlanText')}: <span className="font-medium">
-                              {subscription?.plan_type ? 
-                                subscription.plan_type.charAt(0).toUpperCase() + subscription.plan_type.slice(1) : 
-                                orderStats?.planType ? 
-                                orderStats.planType.charAt(0).toUpperCase() + orderStats.planType.slice(1) : 
-                                'Free'
-                              }
-                            </span>
-                            {subscription?.status === 'active' && (
-                              <span className="text-green-700 ml-1">• {t('active')}</span>
-                            )}
-                          </small>
-                        </div>
-                        <div className="flex flex-col gap-2">
-                          <div className="bg-green-100 px-3 py-1 rounded-full">
-                            <span className="text-green-800 font-medium">{t('active')}</span>
-                          </div>
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => navigate('/my-stores')}
-                            className="border-green-600 text-green-700 hover:bg-green-100"
-                          >
-                            {t('manageStores')}
-                          </Button>
-                        </div>
-                      </div>
-                    </AlertDescription>
-                  </Alert>
-                </div>
-              );
-            } else {
+
+            // إظهار رسالة عدم الاتصال فقط عندما لا يوجد اتصال صحيح
+            if (!isShopifyAuthenticated || !isValidStore) {
               // إظهار رسالة عدم الاتصال عندما لا يوجد اتصال Shopify
               return (
                 <div className="mb-6">
