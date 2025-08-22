@@ -6,7 +6,7 @@ import { CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getShopSubscription } from '@/lib/services/subscriptionService';
 
-const SubscriptionCallback = () => {
+const SubscriptionCallback: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { language } = useLanguage();
