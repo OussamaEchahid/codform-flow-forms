@@ -162,7 +162,16 @@ const PlansSettings = () => {
       if (subscriptionData) {
         console.log('🎉 FINAL subscription data:', subscriptionData);
         console.log('🎯 Working store:', workingStore);
-        setCurrentSubscription(subscriptionData);
+        
+        // تأكد من تطبيق البيانات مباشرة
+        const finalSubscription = Array.isArray(subscriptionData) ? subscriptionData[0] : subscriptionData;
+        console.log('📝 Final processed subscription:', finalSubscription);
+        setCurrentSubscription(finalSubscription);
+        
+        // فرض إعادة رسم المكون
+        setTimeout(() => {
+          setCurrentSubscription(prev => prev ? {...prev} : null);
+        }, 100);
       } else {
         console.log('❌ No subscription found for any store');
         setCurrentSubscription(null);
