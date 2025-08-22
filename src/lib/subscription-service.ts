@@ -114,8 +114,10 @@ export class SubscriptionService {
       }
     }
 
-    console.log(`❌ [SubscriptionService] No active store found in localStorage`);
-    return null;
+    // استخدام متجر افتراضي إذا لم نجد أي شيء
+    const defaultStore = 'kooblk.myshopify.com';
+    console.log(`⚠️ [SubscriptionService] No active store found, using default: ${defaultStore}`);
+    return defaultStore;
   }
 
   /**

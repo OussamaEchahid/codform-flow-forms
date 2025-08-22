@@ -271,9 +271,11 @@ const PlansSettings = () => {
                     {language === 'ar' ? 'اشتراكك الحالي' : 'Current Subscription'}
                   </h3>
                   <p className="text-green-700">
-                    {language === 'ar' ? 'الخطة:' : 'Plan:'} <span className="font-medium">{currentSubscription.plan_type}</span>
+                    {language === 'ar' ? 'الخطة:' : 'Plan:'} <span className="font-medium uppercase">{currentSubscription.plan_type}</span>
                     {' • '}
                     {language === 'ar' ? 'الحالة:' : 'Status:'} <span className="font-medium">{currentSubscription.status}</span>
+                    {' • '}
+                    {language === 'ar' ? 'السعر:' : 'Price:'} <span className="font-medium">${currentSubscription.plan_type === 'basic' ? '9.99' : currentSubscription.plan_type === 'premium' ? '22.85' : '0'}/شهر</span>
                   </p>
                 </div>
                 <Badge className="bg-green-600 text-white">
