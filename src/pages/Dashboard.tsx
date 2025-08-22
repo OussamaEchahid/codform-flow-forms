@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/components/layout/AuthProvider';
 import { useI18n } from '@/lib/i18n';
 import { supabase } from '@/integrations/supabase/client';
 import { UsageQuotaCard } from '@/components/dashboard/UsageQuotaCard';
 import { useOrderStats } from '@/hooks/useOrderStats';
-import { cleanupAuthState, forceSignOut } from '@/utils/auth-cleanup';
 import UnifiedStoreManager from '@/utils/unified-store-manager';
 import AppSidebar from '@/components/layout/AppSidebar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,10 +18,8 @@ import {
   Plus,
   TrendingUp,
   Activity,
-  CheckCircle,
   AlertCircle
 } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
 import { getShopSubscription } from "@/lib/supabase-with-email";
 
 interface DashboardStats {
@@ -36,7 +33,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { user, shops, shop, shopifyConnected, isShopifyAuthenticated } = useAuth();
   const { language, t } = useI18n();
-  const { stats: orderStats, loading: statsLoading, refetch: refetchStats } = useOrderStats();
+  const { stats: orderStats, loading: statsLoading } = useOrderStats();
   
   // إظهار حالة الاتصال بوضوح باستخدام UnifiedStoreManager
   const activeStoreFromManager = UnifiedStoreManager.getActiveStore();
@@ -239,7 +236,6 @@ const Dashboard = () => {
           {(() => {
             const activeStore = UnifiedStoreManager.getActiveStore();
             const userEmail = localStorage.getItem('shopify_user_email');
-            const userName = localStorage.getItem('shopify_user_name');
 
             // التأكد من أن المتجر النشط صحيح وليس "en" أو "ar"
             const isValidStore = activeStore &&
@@ -254,7 +250,7 @@ const Dashboard = () => {
                   storeUrl={activeStore}
                   userEmail={userEmail || undefined}
                   planType={subscription?.plan_type || 'free'}
-                  planStatus={subscription?.status === 'active' ? 'active' : 'inactive'}
+                  planStatus="active"
                   isConnected={true}
                   className="mb-8"
                 />

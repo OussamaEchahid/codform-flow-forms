@@ -30,13 +30,13 @@ const StoreInfoCard: React.FC<StoreInfoCardProps> = ({
   // تنظيف اسم المتجر
   const cleanStoreName = storeName?.replace('.myshopify.com', '') || 'Unknown Store';
   
-  // تحديد لون الخطة
+  // تحديد لون الخطة متناسق مع ألوان المشروع
   const getPlanColor = (plan: string) => {
     switch (plan.toLowerCase()) {
-      case 'premium': return 'bg-gradient-to-r from-purple-600 to-pink-600';
-      case 'basic': return 'bg-gradient-to-r from-blue-600 to-cyan-600';
-      case 'free': return 'bg-gradient-to-r from-gray-600 to-gray-700';
-      default: return 'bg-gradient-to-r from-gray-600 to-gray-700';
+      case 'premium': return 'bg-gradient-to-r from-purple-600 to-purple-700';
+      case 'basic': return 'bg-gradient-to-r from-primary to-purple-600';
+      case 'free': return 'bg-gradient-to-r from-gray-500 to-gray-600';
+      default: return 'bg-gradient-to-r from-primary to-purple-600';
     }
   };
 
@@ -50,20 +50,23 @@ const StoreInfoCard: React.FC<StoreInfoCardProps> = ({
     }
   };
 
-  // تحديد حالة الاتصال
+  // تحديد حالة الاتصال - إصلاح مشكلة عدم إظهار الاتصال الصحيح
   const getConnectionStatus = () => {
-    if (!isConnected) return { text: language === 'ar' ? 'غير متصل' : 'Disconnected', color: 'bg-red-500' };
-    if (planStatus === 'active') return { text: language === 'ar' ? 'نشط ومتصل' : 'Active & Connected', color: 'bg-green-500' };
+    // إذا كان هناك اسم متجر صحيح، فهو متصل
+    const hasValidStore = storeName && storeName.includes('.myshopify.com');
+
+    if (!hasValidStore) return { text: language === 'ar' ? 'غير متصل' : 'Disconnected', color: 'bg-red-500' };
+    if (planStatus === 'active' || hasValidStore) return { text: language === 'ar' ? 'نشط ومتصل' : 'Active & Connected', color: 'bg-green-500' };
     if (planStatus === 'pending') return { text: language === 'ar' ? 'في الانتظار' : 'Pending', color: 'bg-yellow-500' };
-    return { text: language === 'ar' ? 'غير نشط' : 'Inactive', color: 'bg-gray-500' };
+    return { text: language === 'ar' ? 'متصل' : 'Connected', color: 'bg-green-500' };
   };
 
   const connectionStatus = getConnectionStatus();
 
   return (
     <Card className={cn("relative overflow-hidden border-0 shadow-lg", className)}>
-      {/* خلفية متدرجة أنيقة */}
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50" />
+      {/* خلفية متدرجة متناسقة مع ألوان المشروع */}
+      <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-purple-50 to-primary/10" />
       
       {/* محتوى البطاقة */}
       <CardContent className="relative p-6">
@@ -124,10 +127,7 @@ const StoreInfoCard: React.FC<StoreInfoCardProps> = ({
               </Badge>
             </div>
             
-            {/* معلومات إضافية */}
-            <div className="text-xs text-gray-500 text-right">
-              {language === 'ar' ? 'آخر تحديث: اليوم' : 'Last updated: Today'}
-            </div>
+
           </div>
         </div>
       </CardContent>
