@@ -9,6 +9,7 @@ import { getUserStores } from "@/lib/supabase-with-email";
 import { cn } from "@/lib/utils";
 import { useSubscription } from "@/hooks/useSubscription";
 import UnifiedStoreManager from "@/utils/unified-store-manager";
+import { SubscriptionDebug } from "@/components/subscription-debug";
 
 const PlansSettings = () => {
   const { t, language } = useI18n();
@@ -224,9 +225,11 @@ const PlansSettings = () => {
   };
 
   // Log current state for debugging
-  console.log('🔍 PlansSettings render - Current subscription:', currentSubscription);
-  console.log('🔍 PlansSettings render - Loading:', subscriptionLoading);
-  console.log('🔍 PlansSettings render - Upgrading to:', upgradingTo);
+  console.log('🔥 [PlansSettings] RENDER STATE:');
+  console.log('🔥 [PlansSettings] currentSubscription:', currentSubscription);
+  console.log('🔥 [PlansSettings] subscriptionLoading:', subscriptionLoading);
+  console.log('🔥 [PlansSettings] subscriptionError:', subscriptionError);
+  console.log('🔥 [PlansSettings] upgradingTo:', upgradingTo);
 
   if (subscriptionLoading || loadingStores) {
     return (
@@ -240,6 +243,7 @@ const PlansSettings = () => {
 
   return (
     <SettingsLayout>
+      <SubscriptionDebug />
       <div className="container mx-auto p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>

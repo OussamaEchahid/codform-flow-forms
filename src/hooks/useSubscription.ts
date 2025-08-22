@@ -17,7 +17,7 @@ export const useSubscription = (shopDomain?: string): UseSubscriptionReturn => {
   const [error, setError] = useState<string | null>(null);
 
   const loadSubscription = useCallback(async (forceRefresh = false) => {
-    console.log(`🔄 [useSubscription] Loading subscription... (force: ${forceRefresh})`);
+    console.log(`🔥 [useSubscription] STARTING loadSubscription... (force: ${forceRefresh})`);
     
     try {
       setLoading(true);

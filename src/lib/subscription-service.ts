@@ -29,7 +29,7 @@ export class SubscriptionService {
    * جلب الاشتراك لمتجر محدد
    */
   async getSubscription(shopDomain: string): Promise<Subscription | null> {
-    console.log(`🔍 [SubscriptionService] Getting subscription for: ${shopDomain}`);
+    console.log(`🔥 [SubscriptionService] STARTING getSubscription for: ${shopDomain}`);
     
     // فحص الكاش أولاً
     const cached = this.cache.get(shopDomain);
