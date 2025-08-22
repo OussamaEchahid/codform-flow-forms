@@ -308,19 +308,33 @@ const PlansSettings = () => {
   };
 
   const getCurrentPlan = () => {
-    // لا تُرجِع Free كافتراض حتى لا تُعلم البطاقة مجانًا كخطة حالية بدون بيانات
-    const plan = currentSubscription?.plan_type || null;
-    console.log('🔍 getCurrentPlan:', plan, 'from subscription:', currentSubscription);
-    return plan;
+    // Accept both active and pending subscriptions as current
+    const subscription = currentSubscription;
+    if (!subscription) return null;
+    
+    // Accept subscription if status is active, pending, or undefined/null
+    const acceptableStatuses = ['active', 'pending', null, undefined];
+    const status = subscription.status;
+    
+    if (acceptableStatuses.includes(status)) {
+      const plan = subscription.plan_type;
+      console.log('🔍 getCurrentPlan:', plan, 'status:', status, 'from subscription:', subscription);
+      return plan;
+    }
+    
+    console.log('🔍 getCurrentPlan: subscription status not acceptable:', status);
+    return null;
   };
 
   const getPlanStatus = (planId: string) => {
     const currentPlan = getCurrentPlan();
-    console.log(`🔍 getPlanStatus for ${planId}: currentPlan=${currentPlan}`);
+    const subscriptionStatus = currentSubscription?.status;
+    console.log(`🔍 getPlanStatus for ${planId}: currentPlan=${currentPlan}, status=${subscriptionStatus}`);
 
-    if (!currentPlan) return 'other'; // غير معروف حتى يتم جلب الاشتراك
+    if (!currentPlan) return 'other';
+    
     if (currentPlan === planId) {
-      console.log(`✅ Plan ${planId} is CURRENT`);
+      console.log(`✅ Plan ${planId} is CURRENT (status: ${subscriptionStatus})`);
       return 'current';
     }
 
@@ -421,11 +435,21 @@ const PlansSettings = () => {
                 {/* شارة خضراء واضحة عند كون الخطة حالية */}
                 {(() => {
                   const isCurrent = status === 'current';
-                  console.log(`🏷️ Green badge for plan ${plan.id}: ${isCurrent ? 'SHOWING' : 'HIDDEN'}`);
-                  return isCurrent && (
+                  const subscriptionStatus = currentSubscription?.status;
+                  console.log(`🏷️ Green badge for plan ${plan.id}: ${isCurrent ? 'SHOWING' : 'HIDDEN'}, status: ${subscriptionStatus}`);
+                  
+                  if (!isCurrent) return null;
+                  
+                  const badgeText = subscriptionStatus === 'pending' 
+                    ? (language === 'ar' ? 'قيد التفعيل' : 'Activating')
+                    : (language === 'ar' ? 'مشترك' : 'Active');
+                    
+                  const badgeColor = subscriptionStatus === 'pending' ? 'bg-amber-500' : 'bg-green-600';
+                  
+                  return (
                     <div className="absolute top-3 right-3 z-10">
-                      <Badge className="bg-green-600 text-white flex items-center gap-1">
-                        <Check className="h-4 w-4" /> {language === 'ar' ? 'مشترك' : 'Subscribed'}
+                      <Badge className={`${badgeColor} text-white flex items-center gap-1 shadow-lg`}>
+                        <Check className="h-4 w-4" /> {badgeText}
                       </Badge>
                     </div>
                   );
@@ -457,9 +481,17 @@ const PlansSettings = () => {
                   </p>
                   {(() => {
                     const isCurrent = status === 'current';
-                    console.log(`🏷️ Current plan badge for plan ${plan.id}: ${isCurrent ? 'SHOWING' : 'HIDDEN'}`);
-                    return isCurrent && (
-                      <Badge variant="secondary" className="mt-2">{language === 'ar' ? 'الخطة الحالية' : 'Current Plan'}</Badge>
+                    const subscriptionStatus = currentSubscription?.status;
+                    console.log(`🏷️ Current plan badge for plan ${plan.id}: ${isCurrent ? 'SHOWING' : 'HIDDEN'}, status: ${subscriptionStatus}`);
+                    
+                    if (!isCurrent) return null;
+                    
+                    const badgeText = subscriptionStatus === 'pending'
+                      ? (language === 'ar' ? 'الخطة الحالية (قيد التفعيل)' : 'Current Plan (Activating)')
+                      : (language === 'ar' ? 'الخطة الحالية' : 'Current Plan');
+                      
+                    return (
+                      <Badge variant="secondary" className="mt-2 font-medium">{badgeText}</Badge>
                     );
                   })()}
                 </CardHeader>
@@ -488,12 +520,15 @@ const PlansSettings = () => {
                     }}
                   >
                     {(() => {
+                      const subscriptionStatus = currentSubscription?.status;
                       const buttonText = status === 'current'
-                        ? (language === 'ar' ? 'الخطة الحالية' : 'Current Plan')
+                        ? subscriptionStatus === 'pending'
+                          ? (language === 'ar' ? 'قيد التفعيل...' : 'Activating...')
+                          : (language === 'ar' ? 'الخطة الحالية' : 'Current Plan')
                         : upgradingTo === plan.id
                           ? (language === 'ar' ? 'جاري الترقية...' : 'Upgrading...')
                           : plan.buttonText;
-                      console.log(`🔘 Button text for plan ${plan.id}: ${buttonText}`);
+                      console.log(`🔘 Button text for plan ${plan.id}: ${buttonText}, status: ${subscriptionStatus}`);
                       return buttonText;
                     })()}
                   </Button>
