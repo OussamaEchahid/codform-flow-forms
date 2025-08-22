@@ -13,6 +13,10 @@ export const SubscriptionDebug = () => {
         const { supabase } = await import('@/integrations/supabase/client');
         console.log('🔥 DEBUG: Supabase client loaded');
         
+        // التحقق من حالة المصادقة
+        const { data: { user } } = await supabase.auth.getUser();
+        console.log('🔥 DEBUG: Current user:', user);
+        
         // استعلام مباشر لقاعدة البيانات
         const { data: directData, error: directError } = await supabase
           .from('shop_subscriptions')
@@ -23,14 +27,25 @@ export const SubscriptionDebug = () => {
         console.log('🔥 DEBUG: Direct DB query result:', { directData, directError });
         
         if (directError) {
-          setDebugInfo({ error: directError.message });
+          setDebugInfo({ error: `DB Error: ${directError.message}` });
           return;
         }
         
         if (directData && directData.length > 0) {
           setDebugInfo(directData[0]);
         } else {
-          setDebugInfo({ error: 'No subscription found' });
+          // جرب بدون filter
+          const { data: allData, error: allError } = await supabase
+            .from('shop_subscriptions')
+            .select('*')
+            .limit(5);
+            
+          console.log('🔥 DEBUG: All subscriptions:', { allData, allError });
+          setDebugInfo({ 
+            error: 'No subscription found for kooblk.myshopify.com', 
+            allSubscriptions: allData?.length || 0,
+            user: user?.id || 'anonymous'
+          });
         }
         
       } catch (error) {
@@ -59,13 +74,15 @@ export const SubscriptionDebug = () => {
         debugInfo.error ? (
           <div>
             <p style={{color: 'yellow'}}>ERROR: {debugInfo.error}</p>
+            {debugInfo.allSubscriptions && <p>Total subs: {debugInfo.allSubscriptions}</p>}
+            {debugInfo.user && <p>User: {debugInfo.user}</p>}
           </div>
         ) : (
           <div>
-            <p>Plan: {debugInfo.plan_type}</p>
-            <p>Status: {debugInfo.status}</p>
-            <p>Shop: {debugInfo.shop_domain}</p>
-            <p>Price: ${debugInfo.price_amount}</p>
+            <p>✅ Plan: {debugInfo.plan_type}</p>
+            <p>✅ Status: {debugInfo.status}</p>
+            <p>✅ Shop: {debugInfo.shop_domain}</p>
+            <p>✅ Price: ${debugInfo.price_amount}</p>
           </div>
         )
       ) : (
