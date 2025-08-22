@@ -117,6 +117,40 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ success: true, handled: 'shop/redact' }), { headers: { 'Content-Type': 'application/json', ...corsHeaders } })
     }
 
+
+    // Billing: app_subscriptions/update
+    if (topic === 'app_subscriptions/update') {
+      try {
+        const appSub: any = body?.app_subscription || body?.subscription || body
+        const status: string = (appSub?.status || '').toString().toLowerCase()
+        const lineItems: any[] = appSub?.line_items || appSub?.lineItems || []
+        const amountRaw = lineItems?.[0]?.plan?.pricing_details?.price?.amount ?? lineItems?.[0]?.plan?.pricingDetails?.price?.amount
+        const amount = Number(amountRaw)
+
+        let plan_type: 'free' | 'basic' | 'premium' | null = null
+        if (!isNaN(amount)) {
+          if (amount >= 22 && amount < 30) plan_type = 'premium'
+          else if (amount >= 11 && amount < 20) plan_type = 'basic'
+        }
+
+        if (shopDomain && plan_type) {
+          await supabase
+            .from('shop_subscriptions')
+            .upsert({
+              shop_domain: shopDomain,
+              plan_type: plan_type,
+              status: status || 'active',
+              updated_at: new Date().toISOString(),
+            }, { onConflict: 'shop_domain' })
+        }
+
+        return new Response(JSON.stringify({ success: true, handled: 'app_subscriptions/update', shop: shopDomain, plan_type, status }), { headers: { 'Content-Type': 'application/json', ...corsHeaders } })
+      } catch (e) {
+        console.error('❌ Error handling app_subscriptions/update', e)
+        return new Response(JSON.stringify({ success: false, error: 'BILLING_UPDATE_FAILED' }), { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } })
+      }
+    }
+
     // Fallback
     return new Response(JSON.stringify({ success: true, message: 'NOOP', topic }), { headers: { 'Content-Type': 'application/json', ...corsHeaders } })
   } catch (e: any) {

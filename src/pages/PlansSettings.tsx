@@ -110,11 +110,15 @@ const PlansSettings = () => {
       const { data: storesData } = await getUserStores();
       setStores(storesData || []);
 
-      // جلب اشتراك المتجر النشط باستخدام النظام الموحد
-      const activeStore = UnifiedStoreManager.getActiveStore()
-        || localStorage.getItem('active_store')
-        || localStorage.getItem('active_shopify_store')
-        || localStorage.getItem('shopify_store');
+      // جلب اشتراك المتجر النشط باستخدام النظام الموحد + مفاتيح محلية احتياطية
+      const activeStore =
+        UnifiedStoreManager.getActiveStore() ||
+        localStorage.getItem('active_store') ||
+        localStorage.getItem('active_shop') ||
+        localStorage.getItem('active_shopify_store') ||
+        localStorage.getItem('shopify_store') ||
+        (storesData && storesData[0]?.shop) ||
+        stores[0]?.shop;
 
       if (activeStore) {
         const { data: subscriptionData } = await getShopSubscription(activeStore);
