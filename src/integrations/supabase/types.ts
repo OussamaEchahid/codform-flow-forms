@@ -982,6 +982,14 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      confirm_subscription_upgrade: {
+        Args: {
+          p_plan_type: Database["public"]["Enums"]["subscription_plan"]
+          p_shop_domain: string
+          p_shopify_charge_id: string
+        }
+        Returns: Json
+      }
       create_abandoned_cart: {
         Args: {
           p_cart_items?: Json
@@ -1091,6 +1099,10 @@ export type Database = {
           updated_at: string
           user_id: string | null
         }[]
+      }
+      get_monthly_usage_stats: {
+        Args: { p_shop_id: string }
+        Returns: Json
       }
       get_order_settings: {
         Args: { p_shop_id: string }
