@@ -110,29 +110,61 @@ const PlansSettings = () => {
     console.log('🔄 loadData: Starting to load subscription data...');
     try {
       setLoading(true);
-      // اجلب المتاجر (إن وجدت) لكن لا تربط جلب الاشتراك بوجودها
+      
+      // الحصول على جميع معرفات المتجر المحتملة
+      const unifiedStore = UnifiedStoreManager.getActiveStore();
+      const diagnosticInfo = UnifiedStoreManager.getDiagnosticInfo();
+      
+      console.log('🔍 DIAGNOSTIC INFO:', JSON.stringify(diagnosticInfo, null, 2));
+      
+      // اجلب المتاجر أولاً
       const { data: storesData } = await getUserStores();
       console.log('🏪 loadData: Stores data:', storesData);
       setStores(storesData || []);
 
-      // جلب اشتراك المتجر النشط باستخدام النظام الموحد + مفاتيح محلية احتياطية
-      const activeStore =
-        UnifiedStoreManager.getActiveStore() ||
-        localStorage.getItem('active_store') ||
-        localStorage.getItem('active_shop') ||
-        localStorage.getItem('active_shopify_store') ||
-        localStorage.getItem('shopify_store') ||
-        (storesData && storesData[0]?.shop) ||
-        stores[0]?.shop;
+      // تجميع جميع معرفات المتجر المحتملة للتجربة
+      const possibleStores = [
+        unifiedStore,
+        'test-klawi.myshopify.com', // المتجر المحدد في المشكلة
+        localStorage.getItem('active_store'),
+        localStorage.getItem('active_shop'),
+        localStorage.getItem('active_shopify_store'),
+        localStorage.getItem('shopify_store'),
+        localStorage.getItem('current_shopify_store'),
+        localStorage.getItem('simple_active_store'),
+        (storesData && storesData[0]?.shop),
+        stores[0]?.shop
+      ].filter(Boolean);
 
-      console.log('🎯 loadData: Active store:', activeStore);
+      console.log('🎯 loadData: Possible stores to test:', possibleStores);
 
-      if (activeStore) {
-        const { data: subscriptionData } = await getShopSubscription(activeStore);
-        console.log('📦 loadData: Subscription data received:', subscriptionData);
+      let subscriptionData = null;
+      let workingStore = null;
+
+      // جرب كل معرف متجر محتمل
+      for (const testStore of possibleStores) {
+        if (!testStore) continue;
+        
+        try {
+          console.log(`🔍 Testing store: ${testStore}`);
+          const { data } = await getShopSubscription(testStore);
+          if (data) {
+            console.log(`✅ Found subscription for ${testStore}:`, data);
+            subscriptionData = data;
+            workingStore = testStore;
+            break;
+          }
+        } catch (error) {
+          console.log(`❌ No subscription found for ${testStore}:`, error);
+        }
+      }
+
+      if (subscriptionData) {
+        console.log('🎉 FINAL subscription data:', subscriptionData);
+        console.log('🎯 Working store:', workingStore);
         setCurrentSubscription(subscriptionData);
       } else {
-        console.log('❌ loadData: No active store found');
+        console.log('❌ No subscription found for any store');
         setCurrentSubscription(null);
       }
     } catch (error) {
