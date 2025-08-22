@@ -361,7 +361,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
           </span>
         </div>
         
-        {finalConfig.showDiscount && prices.discount > 0 && (
+        {finalConfig.showDiscount && (
           <div style={{
             display: 'flex',
             justifyContent: 'space-between',
