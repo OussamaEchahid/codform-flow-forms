@@ -224,12 +224,9 @@ const Dashboard = () => {
         <div className="max-w-7xl mx-auto">
           {/* العنوان الرئيسي */}
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold mb-2">
-              {t('welcomeToDashboard')}
+            <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+              Welcome to CODMagnet
             </h1>
-            <p className="text-lg text-muted-foreground">
-              {t('manageYourStores')}
-            </p>
           </div>
 
           {/* معلومات المتجر الأنيقة */}

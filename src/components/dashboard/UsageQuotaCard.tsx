@@ -39,120 +39,115 @@ export const UsageQuotaCard: React.FC<UsageQuotaCardProps> = ({
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <TrendingUp className="h-5 w-5" />
-          {t('usageStatistics')} - {planType}
+    <Card className="border-0 shadow-md bg-gradient-to-br from-slate-50 via-purple-50 to-primary/5">
+      <CardHeader className="pb-4">
+        <CardTitle className="flex items-center justify-between text-lg">
+          <div className="flex items-center gap-2">
+            <div className="p-2 rounded-lg bg-gradient-to-r from-primary to-purple-600">
+              <TrendingUp className="h-4 w-4 text-white" />
+            </div>
+            <span className="bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+              {t('usageStatistics')}
+            </span>
+          </div>
+          <div className="text-sm font-normal text-muted-foreground capitalize">
+            {planType}
+          </div>
         </CardTitle>
-        <CardDescription>
-          {t('currentMonthUsage')}
-        </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
-        {/* تحذيرات الحدود */}
+      <CardContent className="space-y-4 pt-0">
+        {/* تحذيرات مدمجة وأصغر */}
         {(isOrdersOverLimit || isAbandonedOverLimit) && (
-          <Alert className="border-red-200 bg-red-50">
-            <AlertTriangle className="h-4 w-4 text-red-600" />
-            <AlertDescription className="text-red-800">
-              <div className="font-medium mb-2">{t('limitExceeded')}</div>
-              <div className="text-sm space-y-1">
-                {isOrdersOverLimit && <div>• {t('monthlyOrdersExceeded')}</div>}
-                {isAbandonedOverLimit && <div>• {t('abandonedCartsExceeded')}</div>}
-                <div className="mt-2">
-                  <strong>{t('upgradeRequired')}</strong>
-                </div>
-              </div>
-            </AlertDescription>
-          </Alert>
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+            <div className="flex items-center gap-2 text-red-700 text-sm font-medium">
+              <AlertTriangle className="h-4 w-4" />
+              {t('limitExceeded')} - {t('upgradeRequired')}
+            </div>
+          </div>
         )}
 
         {(isOrdersNearLimit || isAbandonedNearLimit) && !isOrdersOverLimit && !isAbandonedOverLimit && (
-          <Alert className="border-yellow-200 bg-yellow-50">
-            <AlertTriangle className="h-4 w-4 text-yellow-600" />
-            <AlertDescription className="text-yellow-800">
-              <div className="font-medium mb-2">{t('nearingLimit')}</div>
-              <div className="text-sm">
-                {t('nearingLimitDesc')}
-              </div>
-            </AlertDescription>
-          </Alert>
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+            <div className="flex items-center gap-2 text-yellow-700 text-sm font-medium">
+              <AlertTriangle className="h-4 w-4" />
+              {t('nearingLimit')}
+            </div>
+          </div>
         )}
 
-        {/* إحصائيات الطلبات */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <ShoppingCart className="h-4 w-4 text-blue-500" />
-              <span className="font-medium">{t('monthlyOrders')}</span>
-            </div>
-            <div className="text-sm text-muted-foreground">
-              {ordersUsed} / {ordersLimit || "∞"}
-            </div>
-          </div>
-          {ordersLimit && (
-            <div className="space-y-2">
-              <Progress 
-                value={Math.min(ordersPercentage, 100)} 
-                className="h-2"
-              />
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>{Math.round(ordersPercentage)}% {t('used')}</span>
-                <span>{Math.max(0, ordersLimit - ordersUsed)} {t('remaining')}</span>
+        {/* إحصائيات مدمجة في شبكة */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* إحصائيات الطلبات */}
+          <div className="bg-white/50 rounded-lg p-4 border border-white/20">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-md bg-blue-100">
+                  <ShoppingCart className="h-3.5 w-3.5 text-blue-600" />
+                </div>
+                <span className="text-sm font-medium">{t('monthlyOrders')}</span>
+              </div>
+              <div className="text-lg font-bold text-blue-600">
+                {ordersUsed}
               </div>
             </div>
-          )}
-        </div>
-
-        {/* إحصائيات السلال المهجورة */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <ShoppingBag className="h-4 w-4 text-orange-500" />
-              <span className="font-medium">{t('abandonedCarts')}</span>
-            </div>
-            <div className="text-sm text-muted-foreground">
-              {abandonedUsed} / {abandonedLimit || "∞"}
-            </div>
+            {ordersLimit && (
+              <div className="space-y-1">
+                <Progress
+                  value={Math.min(ordersPercentage, 100)}
+                  className="h-1.5"
+                />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>{Math.round(ordersPercentage)}%</span>
+                  <span>/ {ordersLimit}</span>
+                </div>
+              </div>
+            )}
           </div>
-          {abandonedLimit && (
-            <div className="space-y-2">
-              <Progress 
-                value={Math.min(abandonedPercentage, 100)} 
-                className="h-2"
-              />
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>{Math.round(abandonedPercentage)}% {t('used')}</span>
-                <span>{Math.max(0, abandonedLimit - abandonedUsed)} {t('remaining')}</span>
+
+          {/* إحصائيات السلال المهجورة */}
+          <div className="bg-white/50 rounded-lg p-4 border border-white/20">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-md bg-orange-100">
+                  <ShoppingBag className="h-3.5 w-3.5 text-orange-600" />
+                </div>
+                <span className="text-sm font-medium">{t('abandonedCarts')}</span>
+              </div>
+              <div className="text-lg font-bold text-orange-600">
+                {abandonedUsed}
               </div>
             </div>
-          )}
+            {abandonedLimit && (
+              <div className="space-y-1">
+                <Progress
+                  value={Math.min(abandonedPercentage, 100)}
+                  className="h-1.5"
+                />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>{Math.round(abandonedPercentage)}%</span>
+                  <span>/ {abandonedLimit}</span>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* زر الترقية */}
+        {/* زر الترقية مدمج */}
         {planType === 'free' && (isOrdersNearLimit || isAbandonedNearLimit || isOrdersOverLimit || isAbandonedOverLimit) && (
-            <Button 
+          <div className="flex items-center justify-between bg-gradient-to-r from-primary/10 to-purple-600/10 rounded-lg p-3 border border-primary/20">
+            <div className="text-sm">
+              <div className="font-medium text-primary">{t('upgradeRequired')}</div>
+              <div className="text-xs text-muted-foreground">احصل على حدود أعلى</div>
+            </div>
+            <Button
               onClick={onUpgrade}
-              className="w-full"
-              variant={isOrdersOverLimit || isAbandonedOverLimit ? "default" : "outline"}
+              size="sm"
+              className="bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90"
             >
               {t('upgradeNow')}
             </Button>
+          </div>
         )}
-
-        {/* معلومات الخطة */}
-        <div className="text-xs text-muted-foreground space-y-1">
-          <div>{t('currentPlanText')}: <strong>{planType}</strong></div>
-          {planType === 'free' && (
-            <div>• 70 {t('monthlyOrdersShort')} • 30 {t('abandonedCartsShort')}</div>
-          )}
-          {planType === 'basic' && (
-            <div>• 1000 {t('monthlyOrdersShort')} • 30 {t('abandonedCartsShort')}</div>
-          )}
-          {(planType === 'premium' || planType === 'unlimited') && (
-            <div>• {t('unlimitedOrders')} • {t('unlimitedAbandoned')}</div>
-          )}
-        </div>
       </CardContent>
     </Card>
   );
