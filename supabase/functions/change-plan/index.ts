@@ -86,7 +86,7 @@ serve(async (req) => {
     }
 
     const origin = req.headers.get('origin') || 'https://codmagnet.com';
-    const returnUrl = `${origin}/settings/plans`;
+    const returnUrl = `${origin}/subscription-callback?shop=${encodeURIComponent(shop)}&plan=${encodeURIComponent(planId)}`;
 
     // Allow forcing test mode via environment variable for easier dev testing
     const forceTest = (typeof Deno !== 'undefined' && Deno.env.get('SHOPIFY_BILLING_FORCE_TEST') === 'true');

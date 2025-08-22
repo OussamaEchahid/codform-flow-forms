@@ -100,6 +100,9 @@ const PlansSettings = () => {
         window.clearInterval(upgradePollRef.current);
         upgradePollRef.current = null;
       }
+      // تنظيف event listeners
+      window.removeEventListener('focus', () => {});
+      window.removeEventListener('message', () => {});
     };
   }, []);
 
@@ -195,20 +198,56 @@ const PlansSettings = () => {
           };
           window.addEventListener('focus', onFocus);
 
+          // استمع لرسائل من النافذة المنبثقة
+          const onMessage = async (event: MessageEvent) => {
+            if (event.data?.type === 'SUBSCRIPTION_SUCCESS') {
+              console.log('✅ Received subscription success message:', event.data);
+              await loadData();
+              setUpgradingTo(null);
+              window.removeEventListener('message', onMessage);
+              const { toast } = await import('@/hooks/use-toast');
+              toast.success(language === 'ar' ? 'تم تفعيل الخطة بنجاح' : 'Plan activated successfully');
+            }
+          };
+          window.addEventListener('message', onMessage);
+
           // ابدأ Polling للتحقق من تفعيل الخطة الجديدة وإظهار العلامة فوراً
           if (upgradePollRef.current) {
             window.clearInterval(upgradePollRef.current);
             upgradePollRef.current = null;
           }
+
+          let pollAttempts = 0;
+          const maxPollAttempts = 30; // 30 attempts * 4 seconds = 2 minutes max
+
           const pollId = window.setInterval(async () => {
-            const { data: latest } = await getShopSubscription(activeStore);
-            if (latest?.plan_type === planId) {
-              setCurrentSubscription(latest);
-              setUpgradingTo(null);
+            pollAttempts++;
+            console.log(`🔄 Polling attempt ${pollAttempts}/${maxPollAttempts} for plan ${planId}`);
+
+            try {
+              const { data: latest } = await getShopSubscription(activeStore);
+              console.log('📊 Current subscription data:', latest);
+
+              if (latest?.plan_type === planId && latest?.status === 'active') {
+                console.log('✅ Subscription activated successfully!');
+                setCurrentSubscription(latest);
+                setUpgradingTo(null);
+                window.clearInterval(pollId);
+                upgradePollRef.current = null;
+                const { toast } = await import('@/hooks/use-toast');
+                toast.success(language === 'ar' ? 'تم تفعيل الخطة بنجاح' : 'Plan activated successfully');
+                return;
+              }
+            } catch (error) {
+              console.error('❌ Error during polling:', error);
+            }
+
+            // Stop polling after max attempts
+            if (pollAttempts >= maxPollAttempts) {
+              console.log('⏰ Polling timeout reached');
               window.clearInterval(pollId);
               upgradePollRef.current = null;
-              const { toast } = await import('@/hooks/use-toast');
-              toast.success(language === 'ar' ? 'تم تفعيل الخطة بنجاح' : 'Plan activated successfully');
+              setUpgradingTo(null);
             }
           }, 4000);
           upgradePollRef.current = pollId;

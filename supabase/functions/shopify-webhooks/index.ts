@@ -133,15 +133,34 @@ Deno.serve(async (req) => {
           else if (amount >= 11 && amount < 20) plan_type = 'basic'
         }
 
+        console.log(`📋 Billing update: shop=${shopDomain}, status=${status}, amount=${amount}, plan=${plan_type}`)
+        console.log(`📋 Full webhook data:`, JSON.stringify(body, null, 2))
+
         if (shopDomain && plan_type) {
-          await supabase
+          const subscriptionData = {
+            shop_domain: shopDomain,
+            plan_type: plan_type,
+            status: status === 'active' ? 'active' : status || 'active',
+            price_amount: amount,
+            currency: 'USD',
+            shopify_charge_id: appSub?.id || null,
+            subscription_started_at: status === 'active' ? new Date().toISOString() : null,
+            updated_at: new Date().toISOString(),
+          };
+
+          console.log(`📋 Upserting subscription data:`, subscriptionData);
+
+          const { data, error } = await supabase
             .from('shop_subscriptions')
-            .upsert({
-              shop_domain: shopDomain,
-              plan_type: plan_type,
-              status: status || 'active',
-              updated_at: new Date().toISOString(),
-            }, { onConflict: 'shop_domain' })
+            .upsert(subscriptionData, { onConflict: 'shop_domain' })
+            .select();
+
+          if (error) {
+            console.error('❌ Database error:', error);
+            throw error;
+          }
+
+          console.log('✅ Subscription updated successfully:', data);
         }
 
         return new Response(JSON.stringify({ success: true, handled: 'app_subscriptions/update', shop: shopDomain, plan_type, status }), { headers: { 'Content-Type': 'application/json', ...corsHeaders } })

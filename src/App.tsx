@@ -23,6 +23,7 @@ import OAuthGoogleCallback from "@/pages/OAuthGoogleCallback";
 import LandingPages from "@/pages/LandingPages";
 
 import ShopifyCallback from "@/pages/ShopifyCallback";
+import SubscriptionCallback from "@/pages/SubscriptionCallback";
 import Settings from "@/pages/Settings";
 import OrderSettings from "@/pages/OrderSettings";
 import GeneralSettings from "@/pages/GeneralSettings";
@@ -145,6 +146,7 @@ function AppRoutes() {
       <Route path="/shopify" element={<Shopify />} />
       <Route path="/shopify-connect" element={<Shopify />} />
       <Route path="/shopify-callback" element={<ShopifyCallback />} />
+      <Route path="/subscription-callback" element={<SubscriptionCallback />} />
       <Route path="/oauth/google-callback" element={<OAuthGoogleCallback />} />
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/forms" element={<Forms />} />
