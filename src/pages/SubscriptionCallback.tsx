@@ -3,13 +3,13 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, XCircle, Loader2 } from "lucide-react";
-import { useLanguage } from '@/contexts/LanguageContext';
-import { getShopSubscription } from '@/lib/services/subscriptionService';
+import { useI18n } from '@/lib/i18n';
+import { getShopSubscription } from '@/lib/supabase-with-email';
 
 const SubscriptionCallback: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { language } = useLanguage();
+  const { language } = useI18n();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('');
   const [planType, setPlanType] = useState<string>('');
