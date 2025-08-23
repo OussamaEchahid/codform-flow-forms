@@ -85,8 +85,8 @@ serve(async (req) => {
       console.warn(`⚠️ Failed to detect shop plan (HTTP ${planResp.status}). Proceeding with defaults.`);
     }
 
-    const origin = req.headers.get('origin') || 'https://codmagnet.com';
-    const returnUrl = `${origin}/subscription-success?shop=${encodeURIComponent(shop)}&plan=${encodeURIComponent(planId)}`;
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const returnUrl = `${supabaseUrl}/functions/v1/subscription-success?shop=${encodeURIComponent(shop)}&plan=${encodeURIComponent(planId)}`;
 
     // Allow forcing test mode via environment variable for easier dev testing
     const forceTest = (typeof Deno !== 'undefined' && Deno.env.get('SHOPIFY_BILLING_FORCE_TEST') === 'true');

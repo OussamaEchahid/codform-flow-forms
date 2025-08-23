@@ -279,7 +279,7 @@ const PlansSettings = () => {
                     {' • '}
                     {language === 'ar' ? 'الحالة:' : 'Status:'} <span className="font-medium">{currentSubscription.status}</span>
                     {' • '}
-                    {language === 'ar' ? 'السعر:' : 'Price:'} <span className="font-medium">${currentSubscription.plan_type === 'basic' ? '9.99' : currentSubscription.plan_type === 'premium' ? '22.85' : '0'}/شهر</span>
+                    {language === 'ar' ? 'السعر:' : 'Price:'} <span className="font-medium">${currentSubscription.plan_type === 'basic' ? '11.85' : currentSubscription.plan_type === 'premium' ? '22.85' : '0'}/شهرياً</span>
                   </p>
                 </div>
                 <Badge className="bg-green-600 text-white">

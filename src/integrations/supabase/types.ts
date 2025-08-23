@@ -982,6 +982,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      confirm_subscription_payment: {
+        Args: { p_shop_domain: string; p_shopify_charge_id: string }
+        Returns: Json
+      }
       confirm_subscription_upgrade: {
         Args: {
           p_plan_type: Database["public"]["Enums"]["subscription_plan"]

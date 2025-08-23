@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useI18n } from '@/lib/i18n';
 import { useShopify } from '@/hooks/useShopify';
-import ShopifyProductSelection from './ShopifyProductSelection';
+// import ShopifyProductSelection from './ShopifyProductSelection'; // تم تعطيل هذا المكون مؤقتاً
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Globe } from 'lucide-react';
 import { FormField } from '@/lib/form-utils';
@@ -430,12 +430,11 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
                 ? 'يمكنك ربط هذا النموذج بمنتجات معينة أو تركه عام لجميع المنتجات'
                 : 'You can associate this form with specific products or leave it general for all products'}
             </p>
-            <ShopifyProductSelection 
-              selectedProducts={selectedProducts}
-              onChange={setSelectedProducts}
-              formId="new"
-              readOnly={false}
-            />
+            <div className="text-sm text-muted-foreground p-4 border rounded-md bg-muted/50">
+              {language === 'ar' 
+                ? 'سيتم ربط النموذج تلقائياً بالمنتجات المختارة عند الإنشاء'
+                : 'The form will be automatically associated with selected products upon creation'}
+            </div>
           </div>
         </div>
         
