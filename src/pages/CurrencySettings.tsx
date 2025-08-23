@@ -77,7 +77,7 @@ const CurrencySettings = () => {
       console.log('✅ Currency settings loaded successfully');
     } catch (error) {
       console.error('❌ Error loading currency settings:', error);
-      toast.error('فشل في تحميل إعدادات العملة');
+      toast.error(t('failedToLoadCurrency'));
     }
   };
 
@@ -134,7 +134,7 @@ const CurrencySettings = () => {
 
   const addNewRate = async () => {
     if (!newRate.currency || !newRate.rate) {
-      toast.error('يرجى إدخال العملة والمعدل');
+      toast.error(t('pleaseEnterCurrencyAndRate'));
       return;
     }
 
@@ -149,17 +149,17 @@ const CurrencySettings = () => {
   };
 
   const resetToDefaults = async () => {
-    if (!confirm('هل أنت متأكد من إعادة تعيين جميع المعدلات إلى القيم الافتراضية؟')) {
+    if (!confirm(t('confirmResetRates'))) {
       return;
     }
 
     try {
       await CurrencyService.resetToDefaults();
       setCustomRates(new Map());
-      toast.success('تم إعادة تعيين جميع المعدلات إلى القيم الافتراضية');
+      toast.success(t('ratesResetSuccessfully'));
     } catch (error) {
       console.error('Error resetting rates:', error);
-      toast.error('فشل في إعادة تعيين المعدلات');
+      toast.error(t('failedToResetRates'));
     }
   };
 
@@ -427,18 +427,18 @@ const CurrencySettings = () => {
         {/* إدارة معدلات التحويل */}
         <Card>
           <CardHeader>
-            <CardTitle>معدلات التحويل المخصصة</CardTitle>
-            <CardDescription>تخصيص معدلات تحويل العملات (جميع المعدلات مقابل الدولار الأمريكي)</CardDescription>
+            <CardTitle>{t('customExchangeRates')}</CardTitle>
+            <CardDescription>{t('currencySettingsDescription')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               {/* إضافة معدل جديد */}
               <div className="flex flex-col sm:flex-row gap-4 p-4 bg-gray-50 rounded-lg">
                 <div className="flex-1">
-                  <Label className="text-sm">العملة</Label>
+                  <Label className="text-sm">{t('currency')}</Label>
                   <Select value={newRate.currency} onValueChange={(value) => setNewRate(prev => ({ ...prev, currency: value }))}>
                     <SelectTrigger>
-                      <SelectValue placeholder="اختر العملة" />
+                      <SelectValue placeholder={t('chooseCurrency')} />
                     </SelectTrigger>
                     <SelectContent>
                       {CURRENCIES.filter(c => !customRates.has(c.code)).map(currency => (
@@ -450,7 +450,7 @@ const CurrencySettings = () => {
                   </Select>
                 </div>
                 <div className="flex-1">
-                  <Label className="text-sm">المعدل (مقابل 1 USD)</Label>
+                  <Label className="text-sm">{t('rateAgainstUSD')}</Label>
                   <Input
                     type="number"
                     step="0.0001"
@@ -471,12 +471,12 @@ const CurrencySettings = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>العملة</TableHead>
-                    <TableHead>الاسم</TableHead>
-                    <TableHead>المعدل الافتراضي</TableHead>
-                    <TableHead>المعدل المخصص</TableHead>
-                    <TableHead>آخر تحديث</TableHead>
-                    <TableHead>الإجراءات</TableHead>
+                    <TableHead>{t('currencyCode')}</TableHead>
+                    <TableHead>{t('currencyName')}</TableHead>
+                    <TableHead>{t('defaultRate')}</TableHead>
+                    <TableHead>{t('customRateColumn')}</TableHead>
+                    <TableHead>{t('lastUpdated')}</TableHead>
+                    <TableHead>{t('actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

@@ -78,9 +78,9 @@ const OrderSettings = () => {
                     <SelectValue placeholder={t('postOrderAction')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="redirect">إعادة التوجيه</SelectItem>
-                    <SelectItem value="popup">نافذة منبثقة</SelectItem>
-                    <SelectItem value="stay">البقاء في الصفحة</SelectItem>
+                    <SelectItem value="redirect">{t('redirectToPage')}</SelectItem>
+                    <SelectItem value="popup">{t('showPopup')}</SelectItem>
+                    <SelectItem value="stay">{t('stayOnPage')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -127,7 +127,7 @@ const OrderSettings = () => {
                 <Label htmlFor="popup-title">{t('popupTitle')}</Label>
                 <Input
                   id="popup-title"
-                  placeholder="تم إنشاء طلبك بنجاح!"
+                  placeholder={t('popupTitlePlaceholder')}
                   value={settings.popup_title || ''}
                   onChange={(e) => handleFieldChange('popup_title', e.target.value)}
                 />
@@ -137,7 +137,7 @@ const OrderSettings = () => {
                 <Label htmlFor="popup-message">{t('popupMessage')}</Label>
                 <Textarea
                   id="popup-message"
-                  placeholder="شكراً لك على طلبك. سنتواصل معك قريباً..."
+                  placeholder={t('popupMessagePlaceholder')}
                   value={settings.popup_message || ''}
                   onChange={(e) => handleFieldChange('popup_message', e.target.value)}
                   rows={4}

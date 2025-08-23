@@ -186,7 +186,7 @@ const SecuritySettings = () => {
           user_id: AuthHelper.getCurrentUserId(),
           shop_id: shop,
           ip_address: trimmedIP,
-          reason: newIPReason.trim() || 'غير محدد',
+          reason: newIPReason.trim() || t('unspecified'),
           redirect_url: newIPRedirect.trim() || '/blocked',
           is_active: true
         })
@@ -294,7 +294,7 @@ const SecuritySettings = () => {
         shop_id: shop,
         country_code: selectedCountry.toUpperCase(),
         country_name: countryInfo.name,
-        reason: newCountryReason.trim() || 'غير محدد',
+        reason: newCountryReason.trim() || t('unspecified'),
         redirect_url: newCountryRedirect.trim() || '/blocked',
         is_active: true
       };
@@ -977,7 +977,7 @@ const SecuritySettings = () => {
                       <DialogHeader>
                         <DialogTitle>{t('import')} {t('ipAddress')}</DialogTitle>
                         <DialogDescription>
-                          الصق بيانات CSV مع رأس "IP Address,Reason,Redirect URL"
+                          {t('csvImportDescription')}
                         </DialogDescription>
                       </DialogHeader>
                       <Textarea
@@ -1030,7 +1030,7 @@ const SecuritySettings = () => {
                           <Label htmlFor="new-ip-reason">{t('reason')}</Label>
                           <Input
                             id="new-ip-reason"
-                            placeholder="نشاط مشبوه"
+                            placeholder={t('suspiciousActivity')}
                             value={newIPReason}
                             onChange={(e) => setNewIPReason(e.target.value)}
                           />
@@ -1065,7 +1065,7 @@ const SecuritySettings = () => {
                 </div>
               ) : blockedIPs.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-muted-foreground">لا توجد عناوين IP محظورة</p>
+                  <p className="text-muted-foreground">{t('noBlockedIPs')}</p>
                 </div>
               ) : (
                 <Table>
@@ -1088,7 +1088,7 @@ const SecuritySettings = () => {
                         <TableCell>{new Date(ip.created_at).toLocaleDateString()}</TableCell>
                         <TableCell>
                           <Badge variant={ip.is_active ? "destructive" : "secondary"}>
-                            {ip.is_active ? "محظور" : "معطل"}
+                            {ip.is_active ? t('blockedStatus') : t('disabledStatus')}
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -1143,16 +1143,16 @@ const SecuritySettings = () => {
                         />
                       </div>
                       <div>
-                        <Label htmlFor="new-country-reason">السبب</Label>
+                        <Label htmlFor="new-country-reason">{t('reason')}</Label>
                         <Input
                           id="new-country-reason"
-                          placeholder="قيود جغرافية"
+                          placeholder={t('geographicRestrictions')}
                           value={newCountryReason}
                           onChange={(e) => setNewCountryReason(e.target.value)}
                         />
                       </div>
                       <div>
-                        <Label htmlFor="new-country-redirect">رابط إعادة التوجيه (اختياري)</Label>
+                        <Label htmlFor="new-country-redirect">{t('redirectUrl')} ({t('optional')})</Label>
                         <Input
                           id="new-country-redirect"
                           placeholder="/blocked"
@@ -1180,7 +1180,7 @@ const SecuritySettings = () => {
                 </div>
               ) : blockedCountries.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-muted-foreground">لا توجد دول محظورة</p>
+                  <p className="text-muted-foreground">{t('noBlockedCountries')}</p>
                 </div>
               ) : (
                 <Table>
@@ -1212,7 +1212,7 @@ const SecuritySettings = () => {
                         <TableCell>{new Date(country.created_at).toLocaleDateString()}</TableCell>
                         <TableCell>
                           <Badge variant={country.is_active ? "destructive" : "secondary"}>
-                            {country.is_active ? "محظورة" : "معطلة"}
+                            {country.is_active ? t('blockedCountryFemale') : t('disabledCountryFemale')}
                           </Badge>
                         </TableCell>
                         <TableCell>

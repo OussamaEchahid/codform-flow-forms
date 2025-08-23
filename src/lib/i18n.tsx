@@ -197,7 +197,77 @@ const translations = {
     yes: 'Yes',
     no: 'No',
 
-    
+    // Additional Order Settings
+    showPopup: 'Show Popup',
+    stayOnPage: 'Stay on Page',
+    popupTitlePlaceholder: 'Order created successfully!',
+    popupMessagePlaceholder: 'Thank you for your order. We will contact you soon...',
+
+    // Form Management
+    formManagement: 'Form Management',
+    formManagementDescription: 'Create and manage forms for your website',
+    manageTemplates: 'Manage Templates',
+    templateSelection: 'Template Selection',
+    chooseTemplate: 'Choose a template to get started',
+    giftCard: 'Gift Card',
+    inventory: 'The Inventory',
+    useTemplate: 'Use Template',
+
+    // Advertising Tracking
+    advertisingTracking: 'Advertising Tracking',
+    advertisingTrackingDescription: 'Manage tracking pixels for advertising platforms',
+    pixelSettings: 'Pixel Settings',
+    allPixels: 'All Pixels',
+    noPixelsFound: 'No pixels found',
+    addPixelHere: 'Add your first pixel here',
+    addNew: 'Add New',
+    createPixel: 'Create pixel',
+    pixelName: 'Pixel Name',
+    pixelType: 'Pixel Type',
+    facebookPixel: 'Facebook Pixel',
+    googleAnalytics: 'Google Analytics',
+    tiktokPixel: 'TikTok Pixel',
+    snapchatPixel: 'Snapchat Pixel',
+    typeEvent: 'Type event',
+    lead: 'Lead',
+    purchase: 'Purchase',
+    target: 'Target',
+    all: 'All',
+    collection: 'Collection',
+    product: 'Product',
+    conversionApiStatus: 'Conversion API status (optional)',
+
+    // Additional translations
+    blocked: 'Blocked',
+    supportedCurrencies: 'Supported Currencies',
+    customExchangeRates: 'Custom Exchange Rates',
+    addCustomRate: 'Add Custom Rate',
+
+    // Currency specific
+    chooseCurrency: 'Choose Currency',
+    rateAgainstUSD: 'Rate (against 1 USD)',
+    defaultRate: 'Default Rate',
+    customRateColumn: 'Custom Rate',
+    currencyTable: 'Currency Table',
+    failedToLoadCurrency: 'Failed to load currency settings',
+    pleaseEnterCurrencyAndRate: 'Please enter currency and rate',
+    confirmResetRates: 'Are you sure you want to reset all rates to default values?',
+    ratesResetSuccessfully: 'All rates have been reset to default values',
+    failedToResetRates: 'Failed to reset rates',
+
+    // Security placeholders
+    suspiciousActivity: 'Suspicious activity',
+    geographicRestrictions: 'Geographic restrictions',
+    unspecified: 'Unspecified',
+    csvImportDescription: 'Paste CSV data with header "IP Address,Reason,Redirect URL"',
+    noBlockedIPs: 'No blocked IP addresses',
+    noBlockedCountries: 'No blocked countries',
+    blockedStatus: 'Blocked',
+    disabledStatus: 'Disabled',
+    blockedCountryFemale: 'Blocked',
+    disabledCountryFemale: 'Disabled',
+
+
     // Plans Settings
     currentPlan: 'Current',
     mostPopular: 'Most Popular',
@@ -539,6 +609,76 @@ const translations = {
     confirmDelete: 'هل أنت متأكد من حذف هذا العنصر؟',
     yes: 'نعم',
     no: 'لا',
+
+    // Additional Order Settings
+    showPopup: 'إظهار نافذة منبثقة',
+    stayOnPage: 'البقاء في الصفحة',
+    popupTitlePlaceholder: 'تم إنشاء طلبك بنجاح!',
+    popupMessagePlaceholder: 'شكراً لك على طلبك. سنتواصل معك قريباً...',
+
+    // Form Management
+    formManagement: 'إدارة النماذج',
+    formManagementDescription: 'إنشاء وإدارة النماذج لموقعك الإلكتروني',
+    manageTemplates: 'إدارة القوالب',
+    templateSelection: 'اختيار القالب',
+    chooseTemplate: 'اختر قالباً للبدء',
+    giftCard: 'بطاقة هدية',
+    inventory: 'المخزون',
+    useTemplate: 'استخدام القالب',
+
+    // Advertising Tracking
+    advertisingTracking: 'تتبع الإعلانات',
+    advertisingTrackingDescription: 'إدارة بكسلات التتبع لمنصات الإعلان',
+    pixelSettings: 'إعدادات البكسل',
+    allPixels: 'جميع البكسلات',
+    noPixelsFound: 'لم يتم العثور على بكسلات',
+    addPixelHere: 'أضف أول بكسل هنا',
+    addNew: 'إضافة جديد',
+    createPixel: 'إنشاء بكسل',
+    pixelName: 'اسم البكسل',
+    pixelType: 'نوع البكسل',
+    facebookPixel: 'بكسل فيسبوك',
+    googleAnalytics: 'جوجل أناليتكس',
+    tiktokPixel: 'بكسل تيك توك',
+    snapchatPixel: 'بكسل سناب شات',
+    typeEvent: 'نوع الحدث',
+    lead: 'عميل محتمل',
+    purchase: 'شراء',
+    target: 'الهدف',
+    all: 'الكل',
+    collection: 'مجموعة',
+    product: 'منتج',
+    conversionApiStatus: 'حالة API التحويل (اختياري)',
+
+    // Additional translations
+    blocked: 'محظور',
+    supportedCurrencies: 'العملات المدعومة',
+    customExchangeRates: 'أسعار الصرف المخصصة',
+    addCustomRate: 'إضافة سعر مخصص',
+
+    // Currency specific
+    chooseCurrency: 'اختر العملة',
+    rateAgainstUSD: 'المعدل (مقابل 1 USD)',
+    defaultRate: 'المعدل الافتراضي',
+    customRateColumn: 'المعدل المخصص',
+    currencyTable: 'جدول العملات',
+    failedToLoadCurrency: 'فشل في تحميل إعدادات العملة',
+    pleaseEnterCurrencyAndRate: 'يرجى إدخال العملة والمعدل',
+    confirmResetRates: 'هل أنت متأكد من إعادة تعيين جميع المعدلات إلى القيم الافتراضية؟',
+    ratesResetSuccessfully: 'تم إعادة تعيين جميع المعدلات إلى القيم الافتراضية',
+    failedToResetRates: 'فشل في إعادة تعيين المعدلات',
+
+    // Security placeholders
+    suspiciousActivity: 'نشاط مشبوه',
+    geographicRestrictions: 'قيود جغرافية',
+    unspecified: 'غير محدد',
+    csvImportDescription: 'الصق بيانات CSV مع رأس "IP Address,Reason,Redirect URL"',
+    noBlockedIPs: 'لا توجد عناوين IP محظورة',
+    noBlockedCountries: 'لا توجد دول محظورة',
+    blockedStatus: 'محظور',
+    disabledStatus: 'معطل',
+    blockedCountryFemale: 'محظورة',
+    disabledCountryFemale: 'معطلة',
 
     // Plans Settings
     currentPlan: 'الحالية',

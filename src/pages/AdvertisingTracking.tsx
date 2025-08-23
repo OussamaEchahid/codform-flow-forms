@@ -257,12 +257,10 @@ const AdvertisingTracking = () => {
           {/* العنوان الرئيسي */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold mb-2">
-              {language === 'ar' ? 'تتبع الإعلانات' : 'Advertising Tracking'}
+              {t('advertisingTracking')}
             </h1>
             <p className="text-muted-foreground">
-              {language === 'ar' 
-                ? 'إدارة بيكسلات التتبع للمنصات الإعلانية' 
-                : 'Manage tracking pixels for advertising platforms'}
+              {t('advertisingTrackingDescription')}
             </p>
           </div>
 
@@ -334,15 +332,15 @@ const AdvertisingTracking = () => {
               {/* Header with Add Button */}
               <div className="flex justify-between items-center">
                 <div>
-                  <h2 className="text-2xl font-bold">بيكسلات التتبع</h2>
-                  <p className="text-muted-foreground">إدارة بيكسلات Facebook و TikTok و Snapchat</p>
+                  <h2 className="text-2xl font-bold">{t('pixelSettings')}</h2>
+                  <p className="text-muted-foreground">{t('advertisingTrackingDescription')}</p>
                 </div>
                 <Button 
                   onClick={() => setIsCreateDialogOpen(true)}
                   className="bg-orange-600 hover:bg-orange-700 text-white px-6"
                 >
                   <Plus className="h-4 w-4 mr-2" />
-                  Add New
+                  {t('addNew')}
                 </Button>
               </div>
 
@@ -432,14 +430,14 @@ const AdvertisingTracking = () => {
                       <Target className="h-5 w-5 text-white" />
                     </div>
                     <div>
-                      <DialogTitle className="text-xl">Create pixel</DialogTitle>
+                      <DialogTitle className="text-xl">{t('createPixel')}</DialogTitle>
                     </div>
                   </DialogHeader>
                   
                   <div className="space-y-6">
                     {/* Platform Selection */}
                     <div className="space-y-3">
-                      <Label className="text-sm font-medium">المنصة</Label>
+                      <Label className="text-sm font-medium">{t('pixelType')}</Label>
                       <div className="grid grid-cols-3 gap-2">
                         <Button
                           type="button"
@@ -447,7 +445,7 @@ const AdvertisingTracking = () => {
                           onClick={() => setNewPixel({...newPixel, platform: 'Facebook'})}
                           className="h-10 text-xs"
                         >
-                          Facebook
+                          {t('facebookPixel')}
                         </Button>
                         <Button
                           type="button"
@@ -455,7 +453,7 @@ const AdvertisingTracking = () => {
                           onClick={() => setNewPixel({...newPixel, platform: 'TikTok'})}
                           className="h-10 text-xs"
                         >
-                          TikTok
+                          {t('tiktokPixel')}
                         </Button>
                         <Button
                           type="button"
@@ -463,14 +461,14 @@ const AdvertisingTracking = () => {
                           onClick={() => setNewPixel({...newPixel, platform: 'Snapchat'})}
                           className="h-10 text-xs"
                         >
-                          Snapchat
+                          {t('snapchatPixel')}
                         </Button>
                       </div>
                     </div>
 
                     {/* Name Field */}
                     <div className="space-y-2">
-                      <Label htmlFor="name" className="text-sm font-medium">اسم البيكسل</Label>
+                      <Label htmlFor="name" className="text-sm font-medium">{t('pixelName')}</Label>
                       <Input
                         id="name"
                         value={newPixel.name}
@@ -500,7 +498,7 @@ const AdvertisingTracking = () => {
 
                     {/* Type Event */}
                     <div className="space-y-3">
-                      <Label className="text-sm font-medium">Type event</Label>
+                      <Label className="text-sm font-medium">{t('typeEvent')}</Label>
                       <div className="flex gap-2">
                         <Button
                           type="button"
@@ -508,7 +506,7 @@ const AdvertisingTracking = () => {
                           onClick={() => setNewPixel({...newPixel, event_type: 'Lead'})}
                           className="flex-1 h-10"
                         >
-                          Lead
+                          {t('lead')}
                         </Button>
                         <Button
                           type="button"
@@ -516,7 +514,7 @@ const AdvertisingTracking = () => {
                           onClick={() => setNewPixel({...newPixel, event_type: 'Purchase'})}
                           className="flex-1 h-10"
                         >
-                          Purchase
+                          {t('purchase')}
                         </Button>
                       </div>
                     </div>
