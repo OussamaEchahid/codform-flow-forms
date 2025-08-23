@@ -154,3 +154,9 @@ verify_jwt = false
 
 [functions.shopify-protection-script]
 verify_jwt = false
+
+[functions.subscription-success]
+verify_jwt = false
+
+[functions.change-plan]
+verify_jwt = false

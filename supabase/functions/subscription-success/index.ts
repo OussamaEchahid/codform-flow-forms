@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { corsHeaders } from "../_shared/cors.ts";
+import { buildCorsHeaders } from "../_shared/cors.ts";
 
 interface SuccessParams {
   shop: string;
@@ -9,6 +9,8 @@ interface SuccessParams {
 }
 
 serve(async (req) => {
+  const corsHeaders = buildCorsHeaders(req.headers.get('origin'));
+  
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -33,9 +35,9 @@ serve(async (req) => {
     console.log(`✅ Confirming subscription for shop: ${shop}, plan: ${plan}, charge: ${chargeId}`);
 
     // تأكيد الاشتراك وتحديث الحالة إلى نشط
-    const { data, error } = await supabase.rpc('confirm_subscription_upgrade', {
+    const { data, error } = await supabase.rpc('upgrade_shop_plan', {
       p_shop_domain: shop,
-      p_plan_type: plan,
+      p_new_plan: plan as any,
       p_shopify_charge_id: chargeId || null
     });
 
