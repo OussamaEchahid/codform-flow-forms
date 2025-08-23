@@ -143,8 +143,10 @@ const FormSlideshow: React.FC = () => {
 
   return (
     <div className="w-full">
-      {/* التخطيط الجديد - الصورة والوصف جنباً إلى جنب */}
-      <div className="flex flex-col lg:flex-row items-center gap-8 max-w-6xl mx-auto">
+      {/* التخطيط المحسن - يتغير حسب اللغة */}
+      <div className={`flex flex-col lg:flex-row items-center gap-8 max-w-6xl mx-auto ${
+        language === 'ar' ? 'lg:flex-row-reverse' : ''
+      }`}>
 
         {/* قسم الصورة */}
         <div className="relative w-full lg:w-1/2 max-w-md mx-auto">
@@ -203,7 +205,9 @@ const FormSlideshow: React.FC = () => {
         </div>
 
         {/* قسم المعلومات والوصف */}
-        <div className="w-full lg:w-1/2 text-center lg:text-right space-y-6">
+        <div className={`w-full lg:w-1/2 text-center space-y-6 ${
+          language === 'ar' ? 'lg:text-right' : 'lg:text-left'
+        }`}>
           {/* العنوان الرئيسي المحسن */}
           <div className="space-y-4">
             <h2 className="text-4xl lg:text-5xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 bg-clip-text text-transparent leading-tight">
@@ -212,7 +216,9 @@ const FormSlideshow: React.FC = () => {
             <h3 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-green-500 to-emerald-600 bg-clip-text text-transparent">
               {language === 'ar' ? 'نقداً عند الاستلام' : 'Cash on Delivery'}
             </h3>
-            <p className="text-xl text-gray-600 leading-relaxed max-w-lg mx-auto lg:mx-0">
+            <p className={`text-xl text-gray-600 leading-relaxed max-w-lg mx-auto ${
+              language === 'ar' ? 'lg:mx-0' : 'lg:mx-0'
+            }`}>
               {language === 'ar'
                 ? 'منصة شاملة لبناء نماذج دفع مخصصة تتكامل بسلاسة مع متجرك الإلكتروني'
                 : 'An all-in-one platform to build custom payment forms that integrate seamlessly with your online store'
@@ -221,7 +227,9 @@ const FormSlideshow: React.FC = () => {
           </div>
 
           {/* الأزرار المحسنة */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+          <div className={`flex flex-col sm:flex-row gap-4 justify-center ${
+            language === 'ar' ? 'lg:justify-start' : 'lg:justify-start'
+          }`}>
             <button className="group relative px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
               <span className="relative z-10 flex items-center justify-center gap-2">
                 <span>{language === 'ar' ? 'ابدأ مجاناً' : 'Start Free'}</span>
@@ -247,7 +255,9 @@ const FormSlideshow: React.FC = () => {
             </p>
 
             {/* ميزات النموذج */}
-            <div className="flex flex-wrap gap-2 mb-4 justify-center lg:justify-start">
+            <div className={`flex flex-wrap gap-2 mb-4 justify-center ${
+              language === 'ar' ? 'lg:justify-start' : 'lg:justify-start'
+            }`}>
               {currentTemplate.features[language].map((feature, index) => (
                 <span key={index} className="bg-white text-purple-700 text-sm px-4 py-2 rounded-full shadow-sm border border-purple-200 hover:shadow-md transition-shadow">
                   {feature}
@@ -255,7 +265,9 @@ const FormSlideshow: React.FC = () => {
               ))}
             </div>
 
-            <div className="flex flex-wrap gap-4 text-sm text-gray-500 justify-center lg:justify-start">
+            <div className={`flex flex-wrap gap-4 text-sm text-gray-500 justify-center ${
+              language === 'ar' ? 'lg:justify-start' : 'lg:justify-start'
+            }`}>
               <span className="flex items-center gap-1">
                 <span>✨</span>
                 <span>{language === 'ar' ? 'تصميم متجاوب' : 'Responsive'}</span>
