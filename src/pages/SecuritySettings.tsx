@@ -17,6 +17,8 @@ import { CountrySelector } from '@/components/ui/country-selector';
 import { COUNTRIES_ALL } from '@/lib/constants/countries-all';
 import { BlockedIP, BlockedCountry } from '@/lib/shopify/types';
 import { AuthHelper } from '@/utils/auth-helper';
+import { useI18n } from '@/lib/i18n';
+import SettingsLayout from '@/components/layout/SettingsLayout';
 
 interface SecurityStats {
   blocked_ips_count: number;
@@ -26,6 +28,7 @@ interface SecurityStats {
 
 const SecuritySettings = () => {
   const { shop } = useAuth();
+  const { t } = useI18n();
 
   // تشخيص قيمة shop
   console.log('🏪 SecuritySettings - shop value:', shop);
@@ -124,8 +127,8 @@ const SecuritySettings = () => {
     } catch (error) {
       console.error('Error loading security data:', error);
       toast({
-        title: "خطأ",
-        description: "فشل في تحميل بيانات الأمان",
+        title: t('error'),
+        description: t('operationFailed'),
         variant: "destructive",
       });
     } finally {
@@ -136,8 +139,8 @@ const SecuritySettings = () => {
   const handleAddIP = async () => {
     if (!shop || !newIP.trim()) {
       toast({
-        title: "خطأ",
-        description: "يرجى إدخال عنوان IP صحيح",
+        title: t('error'),
+        description: t('invalidInput'),
         variant: "destructive",
       });
       return;
@@ -150,8 +153,8 @@ const SecuritySettings = () => {
 
       if (!ipRegex.test(trimmedIP)) {
         toast({
-          title: "خطأ",
-          description: "صيغة عنوان IP غير صحيحة. مثال: 192.168.1.1",
+          title: t('error'),
+          description: t('invalidInput'),
           variant: "destructive",
         });
         return;
@@ -198,8 +201,8 @@ const SecuritySettings = () => {
       console.log('✅ IP added successfully:', newIPData);
 
       toast({
-        title: "تم بنجاح",
-        description: "تم إضافة عنوان IP إلى قائمة الحظر",
+        title: t('success'),
+        description: t('operationSuccessful'),
       });
 
       // إعادة تعيين النموذج وتحديث البيانات
@@ -212,8 +215,8 @@ const SecuritySettings = () => {
     } catch (error) {
       console.error('Error adding blocked IP:', error);
       toast({
-        title: "خطأ",
-        description: "فشل في إضافة عنوان IP",
+        title: t('error'),
+        description: t('operationFailed'),
         variant: "destructive",
       });
     }
@@ -237,8 +240,8 @@ const SecuritySettings = () => {
       console.log('✅ IP removed successfully:', ipId);
 
       toast({
-        title: "تم بنجاح",
-        description: "تم إزالة عنوان IP من قائمة الحظر",
+        title: t('success'),
+        description: t('operationSuccessful'),
       });
 
       loadSecurityData();
@@ -246,8 +249,8 @@ const SecuritySettings = () => {
     } catch (error) {
       console.error('Error removing blocked IP:', error);
       toast({
-        title: "خطأ",
-        description: "فشل في إزالة عنوان IP",
+        title: t('error'),
+        description: t('operationFailed'),
         variant: "destructive",
       });
     }
@@ -257,8 +260,8 @@ const SecuritySettings = () => {
     if (!shop || !selectedCountry) {
       console.error('❌ Missing shop or selectedCountry:', { shop, selectedCountry });
       toast({
-        title: "خطأ",
-        description: "يجب ربط متجر Shopify أولاً",
+        title: t('error'),
+        description: t('invalidInput'),
         variant: "destructive",
       });
       return;
@@ -312,8 +315,8 @@ const SecuritySettings = () => {
       console.log('✅ Country added successfully:', newCountry);
 
       toast({
-        title: "تم بنجاح",
-        description: `تم إضافة ${countryInfo.name} إلى قائمة الحظر`,
+        title: t('success'),
+        description: t('operationSuccessful'),
       });
 
       // إعادة تعيين النموذج وتحديث البيانات
@@ -326,8 +329,8 @@ const SecuritySettings = () => {
     } catch (error) {
       console.error('Error adding blocked country:', error);
       toast({
-        title: "خطأ",
-        description: "فشل في إضافة الدولة",
+        title: t('error'),
+        description: t('operationFailed'),
         variant: "destructive",
       });
     }
@@ -351,8 +354,8 @@ const SecuritySettings = () => {
       console.log('✅ Country removed successfully:', countryId);
 
       toast({
-        title: "تم بنجاح",
-        description: "تم إزالة الدولة من قائمة الحظر",
+        title: t('success'),
+        description: t('operationSuccessful'),
       });
 
       loadSecurityData();
@@ -360,8 +363,8 @@ const SecuritySettings = () => {
     } catch (error) {
       console.error('Error removing blocked country:', error);
       toast({
-        title: "خطأ",
-        description: "فشل في إزالة الدولة",
+        title: t('error'),
+        description: t('operationFailed'),
         variant: "destructive",
       });
     }
@@ -402,8 +405,8 @@ const SecuritySettings = () => {
 
       // يمكن إضافة منطق لإضافة عناوين IP بشكل جماعي
       toast({
-        title: "تحديث",
-        description: "ميزة الاستيراد الجماعي ستكون متوفرة قريباً",
+        title: t('info'),
+        description: t('operationSuccessful'),
       });
 
       setShowImportDialog(false);
@@ -411,8 +414,8 @@ const SecuritySettings = () => {
 
     } catch (error) {
       toast({
-        title: "خطأ",
-        description: "فشل في قراءة ملف CSV",
+        title: t('error'),
+        description: t('operationFailed'),
         variant: "destructive",
       });
     }
@@ -422,8 +425,8 @@ const SecuritySettings = () => {
   const generateProtectionScript = async () => {
     if (!shop) {
       toast({
-        title: 'خطأ',
-        description: 'لا يوجد متجر مرتبط',
+        title: t('error'),
+        description: t('invalidInput'),
         variant: 'destructive'
       });
       return;
@@ -436,14 +439,14 @@ const SecuritySettings = () => {
       setProtectionScript(script);
 
       toast({
-        title: 'تم بنجاح',
-        description: 'تم إنتاج سكريپت الحماية'
+        title: t('success'),
+        description: t('operationSuccessful')
       });
     } catch (error) {
       console.error('Error generating script:', error);
       toast({
-        title: 'خطأ',
-        description: 'فشل في إنتاج سكريپت الحماية',
+        title: t('error'),
+        description: t('operationFailed'),
         variant: 'destructive'
       });
     } finally {
@@ -706,8 +709,8 @@ const SecuritySettings = () => {
   const copyProtectionScript = async () => {
     if (!protectionScript) {
       toast({
-        title: 'خطأ',
-        description: 'يجب إنتاج السكريپت أولاً',
+        title: t('error'),
+        description: t('invalidInput'),
         variant: 'destructive'
       });
       return;
@@ -716,13 +719,13 @@ const SecuritySettings = () => {
     try {
       await navigator.clipboard.writeText(protectionScript);
       toast({
-        title: 'تم النسخ',
-        description: 'تم نسخ السكريپت إلى الحافظة'
+        title: t('success'),
+        description: t('operationSuccessful')
       });
     } catch (error) {
       toast({
-        title: 'خطأ',
-        description: 'فشل في نسخ السكريپت',
+        title: t('error'),
+        description: t('operationFailed'),
         variant: 'destructive'
       });
     }
@@ -732,8 +735,8 @@ const SecuritySettings = () => {
   const downloadProtectionScript = () => {
     if (!protectionScript || !shop) {
       toast({
-        title: 'خطأ',
-        description: 'يجب إنتاج السكريپت أولاً',
+        title: t('error'),
+        description: t('invalidInput'),
         variant: 'destructive'
       });
       return;
@@ -752,26 +755,29 @@ const SecuritySettings = () => {
 
   if (!shop) {
     return (
-      <div className="container mx-auto p-6">
-        <Card>
-          <CardContent className="p-6 text-center">
-            <AlertTriangle className="mx-auto h-12 w-12 text-warning mb-4" />
-            <h3 className="text-lg font-semibold mb-2">يجب ربط متجر Shopify</h3>
-            <p className="text-muted-foreground">يجب ربط متجر Shopify أولاً للوصول إلى إعدادات الأمان</p>
-          </CardContent>
-        </Card>
-      </div>
+      <SettingsLayout>
+        <div className="container mx-auto p-6">
+          <Card>
+            <CardContent className="p-6 text-center">
+              <AlertTriangle className="mx-auto h-12 w-12 text-warning mb-4" />
+              <h3 className="text-lg font-semibold mb-2">{t('error')}</h3>
+              <p className="text-muted-foreground">{t('invalidInput')}</p>
+            </CardContent>
+          </Card>
+        </div>
+      </SettingsLayout>
     );
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <SettingsLayout>
+      <div className="container mx-auto p-6 space-y-6">
       {/* رأس الصفحة */}
       <div className="flex items-center gap-3">
         <Shield className="h-8 w-8 text-primary" />
         <div>
-          <h1 className="text-3xl font-bold">الأمان والتحكم في الوصول</h1>
-          <p className="text-muted-foreground">إدارة حظر عناوين IP والدول لحماية متجرك</p>
+          <h1 className="text-3xl font-bold">{t('securitySettings')}</h1>
+          <p className="text-muted-foreground">{t('securitySettingsDescription')}</p>
         </div>
       </div>
 
@@ -797,17 +803,17 @@ const SecuritySettings = () => {
                       className="bg-blue-600 hover:bg-blue-700 text-white"
                     >
                       <Shield className="h-4 w-4 mr-2" />
-                      إنتاج سكريپت الحماية
+                      {t('generateProtectionScript')}
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="max-w-4xl max-h-[80vh]">
                     <DialogHeader>
                       <DialogTitle className="flex items-center gap-2">
                         <Shield className="h-5 w-5" />
-                        سكريپت حماية متجر Shopify
+                        {t('protectionScript')}
                       </DialogTitle>
                       <DialogDescription>
-                        قم بإنتاج ونسخ السكريپت لتفعيل الحماية على متجر {shop}
+                        {t('securitySettingsDescription')}
                       </DialogDescription>
                     </DialogHeader>
                     
@@ -824,7 +830,7 @@ const SecuritySettings = () => {
                             disabled={scriptLoading}
                             size="lg"
                           >
-                            {scriptLoading ? 'جاري الإنتاج...' : 'إنتاج السكريپت'}
+                            {scriptLoading ? t('loading') : t('generateProtectionScript')}
                             <Code className="ml-2 h-4 w-4" />
                           </Button>
                         </div>
@@ -843,11 +849,11 @@ const SecuritySettings = () => {
                           <div className="flex gap-2 mb-4">
                             <Button onClick={copyProtectionScript} variant="default">
                               <Copy className="h-4 w-4 mr-2" />
-                              نسخ السكريپت
+                              {t('copyScript')}
                             </Button>
                             <Button onClick={downloadProtectionScript} variant="outline">
                               <Download className="h-4 w-4 mr-2" />
-                              تحميل كملف
+                              {t('downloadScript')}
                             </Button>
                           </div>
                           
@@ -882,7 +888,7 @@ const SecuritySettings = () => {
                         setShowProtectionDialog(false);
                         setProtectionScript('');
                       }}>
-                        إغلاق
+                        {t('close')}
                       </Button>
                     </DialogFooter>
                   </DialogContent>
@@ -910,7 +916,7 @@ const SecuritySettings = () => {
               <MapPin className="h-8 w-8 text-primary" />
               <div>
                 <p className="text-2xl font-bold">{securityStats.blocked_ips_count}</p>
-                <p className="text-sm text-muted-foreground">عناوين IP محظورة</p>
+                <p className="text-sm text-muted-foreground">{t('blockedIPs')}</p>
               </div>
             </div>
           </CardContent>
@@ -922,7 +928,7 @@ const SecuritySettings = () => {
               <Globe className="h-8 w-8 text-primary" />
               <div>
                 <p className="text-2xl font-bold">{securityStats.blocked_countries_count}</p>
-                <p className="text-sm text-muted-foreground">دول محظورة</p>
+                <p className="text-sm text-muted-foreground">{t('blockedCountries')}</p>
               </div>
             </div>
           </CardContent>
@@ -944,8 +950,8 @@ const SecuritySettings = () => {
       {/* التبويبات الرئيسية */}
       <Tabs defaultValue="ip-blocking" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="ip-blocking">حظر عناوين IP</TabsTrigger>
-          <TabsTrigger value="country-blocking">حظر الدول</TabsTrigger>
+          <TabsTrigger value="ip-blocking">{t('blockedIPs')}</TabsTrigger>
+          <TabsTrigger value="country-blocking">{t('blockedCountries')}</TabsTrigger>
         </TabsList>
 
         {/* تبويب حظر عناوين IP */}
@@ -954,9 +960,9 @@ const SecuritySettings = () => {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>إدارة عناوين IP المحظورة</CardTitle>
+                  <CardTitle>{t('blockedIPs')}</CardTitle>
                   <CardDescription>
-                    أضف أو احذف عناوين IP المحددة لمنع الوصول إلى متجرك
+                    {t('securitySettingsDescription')}
                   </CardDescription>
                 </div>
                 <div className="flex gap-2">
@@ -964,12 +970,12 @@ const SecuritySettings = () => {
                     <DialogTrigger asChild>
                       <Button variant="outline" size="sm">
                         <Upload className="h-4 w-4 mr-2" />
-                        استيراد
+                        {t('import')}
                       </Button>
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
-                        <DialogTitle>استيراد عناوين IP</DialogTitle>
+                        <DialogTitle>{t('import')} {t('ipAddress')}</DialogTitle>
                         <DialogDescription>
                           الصق بيانات CSV مع رأس "IP Address,Reason,Redirect URL"
                         </DialogDescription>
@@ -993,26 +999,26 @@ const SecuritySettings = () => {
 
                   <Button variant="outline" size="sm" onClick={handleExportIPs}>
                     <Download className="h-4 w-4 mr-2" />
-                    تصدير
+                    {t('export')}
                   </Button>
 
                   <Dialog open={showAddIPDialog} onOpenChange={setShowAddIPDialog}>
                     <DialogTrigger asChild>
                       <Button size="sm">
                         <Plus className="h-4 w-4 mr-2" />
-                        إضافة IP
+                        {t('addNewIP')}
                       </Button>
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
-                        <DialogTitle>إضافة عنوان IP إلى قائمة الحظر</DialogTitle>
+                        <DialogTitle>{t('addNewIP')}</DialogTitle>
                         <DialogDescription>
-                          أدخل عنوان IP والسبب ورابط إعادة التوجيه (اختياري)
+                          {t('securitySettingsDescription')}
                         </DialogDescription>
                       </DialogHeader>
                       <div className="space-y-4">
                         <div>
-                          <Label htmlFor="new-ip">عنوان IP</Label>
+                          <Label htmlFor="new-ip">{t('ipAddress')}</Label>
                           <Input
                             id="new-ip"
                             placeholder="192.168.1.1"
@@ -1021,7 +1027,7 @@ const SecuritySettings = () => {
                           />
                         </div>
                         <div>
-                          <Label htmlFor="new-ip-reason">السبب</Label>
+                          <Label htmlFor="new-ip-reason">{t('reason')}</Label>
                           <Input
                             id="new-ip-reason"
                             placeholder="نشاط مشبوه"
@@ -1030,7 +1036,7 @@ const SecuritySettings = () => {
                           />
                         </div>
                         <div>
-                          <Label htmlFor="new-ip-redirect">رابط إعادة التوجيه (اختياري)</Label>
+                          <Label htmlFor="new-ip-redirect">{t('redirectUrl')} ({t('optional')})</Label>
                           <Input
                             id="new-ip-redirect"
                             placeholder="/blocked"
@@ -1041,10 +1047,10 @@ const SecuritySettings = () => {
                       </div>
                       <DialogFooter>
                         <Button variant="outline" onClick={() => setShowAddIPDialog(false)}>
-                          إلغاء
+                          {t('cancel')}
                         </Button>
                         <Button onClick={handleAddIP}>
-                          إضافة
+                          {t('add')}
                         </Button>
                       </DialogFooter>
                     </DialogContent>
@@ -1228,6 +1234,7 @@ const SecuritySettings = () => {
         </TabsContent>
       </Tabs>
     </div>
+    </SettingsLayout>
   );
 };
 

@@ -201,19 +201,19 @@ const CurrencySettings = () => {
 
         {!currentStore && !localStorage.getItem('current_shopify_store') && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <p className="text-yellow-800">⚠️ لا يوجد متجر محدد. يرجى اختيار متجر من قائمة المتاجر.</p>
+            <p className="text-yellow-800">⚠️ {t('invalidInput')}</p>
           </div>
         )}
 
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">إدارة العملات</h1>
-            <p className="text-muted-foreground">تخصيص معدلات التحويل وإعدادات عرض العملات</p>
+            <h1 className="text-3xl font-bold">{t('currencySettings')}</h1>
+            <p className="text-muted-foreground">{t('currencySettingsDescription')}</p>
           </div>
           <div className="flex gap-2">
             <Button onClick={resetToDefaults} variant="outline" className="flex items-center gap-2">
               <RotateCcw className="h-4 w-4" />
-              إعادة تعيين
+              {t('resetToDefault')}
             </Button>
             <Button 
               onClick={saveDisplaySettings} 
@@ -221,7 +221,7 @@ const CurrencySettings = () => {
               className="flex items-center gap-2"
             >
               <Save className="h-4 w-4" />
-              حفظ الإعدادات
+              {t('save')}
             </Button>
           </div>
         </div>
@@ -229,13 +229,13 @@ const CurrencySettings = () => {
         {/* إعدادات عرض العملة */}
         <Card>
           <CardHeader>
-            <CardTitle>إعدادات العرض</CardTitle>
-            <CardDescription>تخصيص كيفية عرض العملات في النماذج والمعاينة</CardDescription>
+            <CardTitle>{t('displaySettings')}</CardTitle>
+            <CardDescription>{t('currencySettingsDescription')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-2">
-                <Label>نوع العرض</Label>
+                <Label>{t('displayType')}</Label>
                 <div className="flex items-center space-x-2">
                   <Switch 
                     checked={displaySettings.showSymbol}
@@ -244,13 +244,13 @@ const CurrencySettings = () => {
                     }
                   />
                   <Label className="text-sm">
-                    {displaySettings.showSymbol ? 'رمز العملة (د.م)' : 'كود العملة (MAD)'}
+                    {displaySettings.showSymbol ? t('showSymbol') : t('showCode')}
                   </Label>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label>موضع الرمز</Label>
+                <Label>{t('symbolPosition')}</Label>
                 <Select 
                   value={displaySettings.symbolPosition} 
                   onValueChange={(value: 'before' | 'after') => 
@@ -261,14 +261,14 @@ const CurrencySettings = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="before">قبل المبلغ</SelectItem>
-                    <SelectItem value="after">بعد المبلغ</SelectItem>
+                    <SelectItem value="before">{t('before')}</SelectItem>
+                    <SelectItem value="after">{t('after')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <Label>المنازل العشرية</Label>
+                <Label>{t('decimalPlaces')}</Label>
                 <Select 
                   value={displaySettings.decimalPlaces.toString()} 
                   onValueChange={(value) => 

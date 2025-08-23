@@ -90,16 +90,16 @@ const GeneralSettings = () => {
       if (error) {
         console.error('❌ Error saving settings:', error);
         console.error('❌ Error details:', { code: error.code, message: error.message, details: error.details });
-        alert('خطأ في حفظ الإعدادات: ' + error.message);
+        alert(t('error') + ': ' + error.message);
       } else {
         console.log('✅ Settings saved successfully');
-        alert('تم حفظ الإعدادات بنجاح');
+        alert(t('operationSuccessful'));
         // إعادة تحميل الإعدادات للتأكد من الحفظ
         await loadSettings();
       }
     } catch (error) {
       console.error('❌ Exception saving settings:', error);
-      alert('خطأ غير متوقع: ' + error.message);
+      alert(t('error') + ': ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -110,20 +110,20 @@ const GeneralSettings = () => {
       <div className="container mx-auto p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">الإعدادات العامة</h1>
-            <p className="text-muted-foreground">إدارة إعدادات إنشاء الطلبات</p>
+            <h1 className="text-3xl font-bold">{t('generalSettings')}</h1>
+            <p className="text-muted-foreground">{t('generalSettingsDescription')}</p>
           </div>
           <Button onClick={handleSave} disabled={loading} className="flex items-center gap-2">
             <Save className="h-4 w-4" />
-            {loading ? 'جاري الحفظ...' : 'حفظ الإعدادات'}
+            {loading ? t('loading') : t('save')}
           </Button>
         </div>
 
         <div className="grid gap-6">
           <Card>
             <CardHeader>
-              <CardTitle>إدارة إعدادات إنشاء الطلب</CardTitle>
-              <CardDescription>تخصيص إعدادات الطلبات والرسائل</CardDescription>
+              <CardTitle>{t('generalSettings')}</CardTitle>
+              <CardDescription>{t('generalSettingsDescription')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Payment Status Settings */}
@@ -134,12 +134,12 @@ const GeneralSettings = () => {
                     checked={paymentStatusEnabled}
                     onCheckedChange={setPaymentStatusEnabled}
                   />
-                  <Label htmlFor="payment-status-enabled" className="font-medium">تفعيل حالة الدفع للطلب</Label>
+                  <Label htmlFor="payment-status-enabled" className="font-medium">{t('orderPaymentStatus')}</Label>
                 </div>
 
                 {paymentStatusEnabled && (
                   <div className="space-y-2 ml-6">
-                    <Label htmlFor="payment-status">حالة الدفع الافتراضية</Label>
+                    <Label htmlFor="payment-status">{t('orderPaymentStatus')}</Label>
                     <Select value={paymentStatus} onValueChange={setPaymentStatus}>
                       <SelectTrigger>
                         <SelectValue placeholder="اختر حالة الدفع" />
