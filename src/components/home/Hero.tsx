@@ -1,6 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/lib/i18n';
+import FormSlideshow from './FormSlideshow';
 const getPreviewHtml = (lang: 'en' | 'ar') => {
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
   const t = {
@@ -170,12 +171,8 @@ const Hero = () => {
           </div>
 
           <div className="md:w-1/2">
-            <div className="rounded-lg p-0 bg-transparent w-full md:flex md:justify-start py-0 px-0 my-[35px] mx-[100px]">
-              <div className="inline-block transform origin-top-left scale-[0.92] md:scale-[0.95]">
-                <div dangerouslySetInnerHTML={{
-                __html: getPreviewHtml(language)
-              }} />
-              </div>
+            <div className="rounded-lg p-0 bg-transparent w-full md:flex md:justify-center py-0 px-0 my-[35px] mx-[50px]">
+              <FormSlideshow />
             </div>
           </div>
         </div>
