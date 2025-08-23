@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,7 +18,7 @@ const CurrencySettings = () => {
   const { t, language } = useI18n();
   const { shop: currentStore, shops: userStores, isShopifyAuthenticated } = useAuth();
   
-  // إعدادات العرض
+  // {t('displaySettingsComment')}
   const [displaySettings, setDisplaySettings] = useState<CurrencyDisplaySettings>({
     showSymbol: true,
     symbolPosition: 'before',
@@ -32,11 +32,11 @@ const CurrencySettings = () => {
   const [newRate, setNewRate] = useState({ currency: '', rate: '' });
   const [loading, setLoading] = useState(false);
 
-  // تحميل الإعدادات عند بدء التشغيل
+  // {t('loadSettingsOnStartup')}
   useEffect(() => {
     console.log('🔄 CurrencySettings useEffect triggered:', { currentStore, userStoresLength: userStores?.length || 0, isShopifyAuthenticated });
-    
-    // استخدام قيمة مباشرة من localStorage مع التحقق من useAuth
+
+    // {t('useDirectValueFromLocalStorage')}
     const storeFromStorage = localStorage.getItem('current_shopify_store');
     const activeStore = currentStore || storeFromStorage;
     
@@ -100,10 +100,10 @@ const CurrencySettings = () => {
       });
       
       await CurrencyService.saveDisplaySettings(displaySettings);
-      toast.success('تم حفظ إعدادات العرض بنجاح');
+      toast.success(t('displaySettingsSavedSuccessfully'));
     } catch (error) {
       console.error('❌ Error saving display settings:', error);
-      toast.error('فشل في حفظ إعدادات العرض');
+      toast.error(t('failedToSaveDisplaySettings'));
     } finally {
       setLoading(false);
     }
@@ -114,10 +114,10 @@ const CurrencySettings = () => {
       await CurrencyService.saveCustomRate(currencyCode, rate);
       setCustomRates(CurrencyService.getCustomRates());
       setEditingRate(null);
-      toast.success(`تم حفظ معدل تحويل ${currencyCode} بنجاح`);
+      toast.success(t('customRateSavedSuccessfully').replace('{currency}', currencyCode));
     } catch (error) {
       console.error('Error saving custom rate:', error);
-      toast.error('فشل في حفظ معدل التحويل');
+      toast.error(t('failedToSaveCustomRate'));
     }
   };
 
@@ -125,10 +125,10 @@ const CurrencySettings = () => {
     try {
       await CurrencyService.deleteCustomRate(currencyCode);
       setCustomRates(CurrencyService.getCustomRates());
-      toast.success(`تم حذف معدل تحويل ${currencyCode} بنجاح`);
+      toast.success(t('customRateDeletedSuccessfully').replace('{currency}', currencyCode));
     } catch (error) {
       console.error('Error deleting custom rate:', error);
-      toast.error('فشل في حذف معدل التحويل');
+      toast.error(t('failedToDeleteCustomRate'));
     }
   };
 
@@ -140,7 +140,7 @@ const CurrencySettings = () => {
 
     const rate = parseFloat(newRate.rate);
     if (isNaN(rate) || rate <= 0) {
-      toast.error('يرجى إدخال معدل تحويل صحيح');
+      toast.error(t('pleaseEnterValidRate'));
       return;
     }
 
@@ -163,14 +163,14 @@ const CurrencySettings = () => {
     }
   };
 
-  // معاينة تنسيق العملة
+  // {t('currencyFormatPreview')}
   const previewFormat = (amount: number, currency: string) => {
     const currencyData = CURRENCIES.find(c => c.code === currency);
     if (!currencyData) return `${amount.toFixed(displaySettings.decimalPlaces)} ${currency}`;
 
     const formattedAmount = amount.toFixed(displaySettings.decimalPlaces);
-    
-    // استخدام الرمز المخصص إذا كان متوفراً
+
+    // {t('useCustomSymbolIfAvailable')}
     let displayText: string;
     if (displaySettings.customSymbols[currency]) {
       displayText = displaySettings.customSymbols[currency];
@@ -189,14 +189,14 @@ const CurrencySettings = () => {
     <SettingsLayout>
       <div className="container mx-auto p-6 space-y-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>
         
-        {/* Debug info - إظهار حالة المتجر الحالي */}
+        {/* Debug info - {t('showCurrentStoreStatus')} */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm mb-4">
-          <strong>Debug Info:</strong><br/>
-          useAuth Current Store: {currentStore || 'غير محدد'}<br/>
-          LocalStorage Store: {localStorage.getItem('current_shopify_store') || 'غير محدد'}<br/>
-          User Stores: {userStores?.length || 0}<br/>
-          Service Shop ID: {(CurrencyService as any).currentShopId || 'غير محدد'}<br/>
-          Is Shopify Authenticated: {isShopifyAuthenticated ? 'نعم' : 'لا'}
+          <strong>{t('debugInfo')}</strong><br/>
+          {t('useAuthCurrentStore')} {currentStore || t('notSpecified')}<br/>
+          {t('localStorageStore')} {localStorage.getItem('current_shopify_store') || t('notSpecified')}<br/>
+          {t('userStores')} {userStores?.length || 0}<br/>
+          {t('serviceShopId')} {(CurrencyService as any).currentShopId || t('notSpecified')}<br/>
+          {t('isShopifyAuthenticated')} {isShopifyAuthenticated ? t('yes') : t('no')}
         </div>
 
         {!currentStore && !localStorage.getItem('current_shopify_store') && (
@@ -226,7 +226,7 @@ const CurrencySettings = () => {
           </div>
         </div>
 
-        {/* إعدادات عرض العملة */}
+        {/* {t('currencyDisplaySettings')} */}
         <Card>
           <CardHeader>
             <CardTitle>{t('displaySettings')}</CardTitle>
@@ -279,19 +279,19 @@ const CurrencySettings = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="0">0 منازل</SelectItem>
-                    <SelectItem value="1">1 منزلة</SelectItem>
-                    <SelectItem value="2">2 منزلة</SelectItem>
-                    <SelectItem value="3">3 منازل</SelectItem>
-                    <SelectItem value="4">4 منازل</SelectItem>
+                    <SelectItem value="0">{t('decimalPlaces0')}</SelectItem>
+                    <SelectItem value="1">{t('decimalPlaces1')}</SelectItem>
+                    <SelectItem value="2">{t('decimalPlaces2')}</SelectItem>
+                    <SelectItem value="3">{t('decimalPlaces3')}</SelectItem>
+                    <SelectItem value="4">{t('decimalPlaces4')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
 
-            {/* معاينة التنسيق */}
+            {/* {t('formatPreview')} */}
             <div className="p-4 bg-gray-50 rounded-lg">
-              <Label className="text-sm font-medium mb-2 block">معاينة التنسيق:</Label>
+              <Label className="text-sm font-medium mb-2 block">{t('formatPreview')}</Label>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                 <div>
                   <span className="text-gray-600">USD:</span> {previewFormat(29.99, 'USD')}
@@ -310,18 +310,18 @@ const CurrencySettings = () => {
           </CardContent>
         </Card>
 
-        {/* رموز العرض المخصصة */}
+        {/* {t('customDisplaySymbols')} */}
         <Card>
           <CardHeader>
-            <CardTitle>رموز العرض المخصصة</CardTitle>
+            <CardTitle>{t('customDisplaySymbols')}</CardTitle>
             <CardDescription>
-              تخصيص كيفية عرض رموز العملات. مثال: عرض "CFA" بدلاً من "XOF" أو "XAF"
+              {t('customizeSymbolsDescription')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* اختصارات سريعة للفرنك الأفريقي */}
+            {/* {t('quickShortcutsAfricanFranc')} */}
             <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-              <Label className="text-sm font-medium mb-3 block">اختصارات سريعة للفرنك الأفريقي:</Label>
+              <Label className="text-sm font-medium mb-3 block">{t('quickShortcutsAfricanFranc')}</Label>
               <div className="flex flex-wrap gap-2">
                 <Button
                   variant="outline"
@@ -337,7 +337,7 @@ const CurrencySettings = () => {
                     }));
                   }}
                 >
-                  استخدام "CFA" للفرنك الأفريقي
+                  {t('useCFAForAfricanFranc')}
                 </Button>
                 <Button
                   variant="outline"
@@ -352,17 +352,17 @@ const CurrencySettings = () => {
                     }));
                   }}
                 >
-                  إزالة تخصيص الفرنك
+                  {t('removeCustomization')}
                 </Button>
               </div>
             </div>
 
-            {/* إدارة الرموز المخصصة */}
+            {/* {t('manageCustomSymbols')} */}
             <div className="space-y-4">
-              <Label className="text-sm font-medium">الرموز المخصصة الحالية:</Label>
-              
+              <Label className="text-sm font-medium">{t('currentCustomSymbols')}</Label>
+
               {Object.keys(displaySettings.customSymbols).length === 0 ? (
-                <p className="text-gray-500 text-sm">لا توجد رموز مخصصة حالياً</p>
+                <p className="text-gray-500 text-sm">{t('noCustomSymbols')}</p>
               ) : (
                 <div className="space-y-2">
                   {Object.entries(displaySettings.customSymbols).map(([currency, symbol]) => (
@@ -392,12 +392,12 @@ const CurrencySettings = () => {
               )}
             </div>
 
-            {/* إضافة رمز مخصص جديد */}
+            {/* {t('addNewCustomSymbol')} */}
             <div className="flex gap-2">
               <Select
                 value=""
                 onValueChange={(currency) => {
-                  const symbol = prompt(`أدخل الرمز المخصص للعملة ${currency}:`);
+                  const symbol = prompt(`${t('enterCustomSymbol')} ${currency}:`);
                   if (symbol && symbol.trim()) {
                     setDisplaySettings(prev => ({
                       ...prev,
@@ -410,7 +410,7 @@ const CurrencySettings = () => {
                 }}
               >
                 <SelectTrigger className="w-48">
-                  <SelectValue placeholder="إضافة رمز مخصص..." />
+                  <SelectValue placeholder={t('addCustomSymbol')} />
                 </SelectTrigger>
                 <SelectContent>
                   {CURRENCIES.filter(c => !displaySettings.customSymbols[c.code]).map(currency => (
@@ -424,7 +424,7 @@ const CurrencySettings = () => {
           </CardContent>
         </Card>
 
-        {/* إدارة معدلات التحويل */}
+        {/* {t('manageExchangeRates')} */}
         <Card>
           <CardHeader>
             <CardTitle>{t('customExchangeRates')}</CardTitle>
@@ -432,7 +432,7 @@ const CurrencySettings = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {/* إضافة معدل جديد */}
+              {/* {t('addNewRate')} */}
               <div className="flex flex-col sm:flex-row gap-4 p-4 bg-gray-50 rounded-lg">
                 <div className="flex-1">
                   <Label className="text-sm">{t('currency')}</Label>
@@ -462,12 +462,12 @@ const CurrencySettings = () => {
                 <div className="flex items-end">
                   <Button onClick={addNewRate} className="w-full sm:w-auto">
                     <Plus className="h-4 w-4 mr-2" />
-                    إضافة
+                    {t('add')}
                   </Button>
                 </div>
               </div>
 
-              {/* جدول المعدلات */}
+              {/* {t('ratesTable')} */}
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -524,7 +524,7 @@ const CurrencySettings = () => {
                           )}
                         </TableCell>
                         <TableCell>
-                          {customRate ? new Date(customRate.updatedAt).toLocaleDateString('ar') : '—'}
+                          {customRate ? new Date(customRate.updatedAt).toLocaleDateString(language === 'ar' ? 'ar' : 'en') : '—'}
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-1">

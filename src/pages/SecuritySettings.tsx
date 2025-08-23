@@ -787,12 +787,12 @@ const SecuritySettings = () => {
           <div className="flex items-start gap-4">
             <Shield className="h-8 w-8 text-blue-600 mt-1" />
             <div className="flex-1">
-              <h3 className="font-bold text-blue-900 text-xl mb-2">🔒 كيفية تفعيل الحماية على متجر Shopify</h3>
+              <h3 className="font-bold text-blue-900 text-xl mb-2">{t('howToActivateProtection')}</h3>
               <div className="text-blue-800 text-sm space-y-2 mb-4">
-                <p><strong>الخطوة 1:</strong> {t('step1AddIPs')}</p>
-                <p><strong>الخطوة 2:</strong> {t('step2GenerateScript')}</p>
-                <p><strong>الخطوة 3:</strong> {t('step3CopyScript')}</p>
-                <p><strong>النتيجة:</strong> {t('resultBlockVisitors')}</p>
+                <p><strong>{t('step1')}</strong> {t('step1AddIPs')}</p>
+                <p><strong>{t('step2')}</strong> {t('step2GenerateScript')}</p>
+                <p><strong>{t('step3')}</strong> {t('step3CopyScript')}</p>
+                <p><strong>{t('result')}</strong> {t('resultBlockVisitors')}</p>
               </div>
               <div className="flex gap-3">
                 <Dialog open={showProtectionDialog} onOpenChange={setShowProtectionDialog}>
@@ -870,13 +870,13 @@ const SecuritySettings = () => {
                           </div>
                           
                           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                            <h4 className="font-medium text-yellow-800 mb-2">خطوات التطبيق:</h4>
+                            <h4 className="font-medium text-yellow-800 mb-2">{t('applicationSteps')}</h4>
                             <ol className="list-decimal list-inside space-y-1 text-sm text-yellow-700">
-                              <li>انسخ السكريپت أعلاه</li>
-                              <li>اذهب إلى إعدادات الثيم في شوبيفاي</li>
-                              <li>افتح ملف theme.liquid للتحرير</li>
-                              <li>الصق السكريپت قبل إغلاق &lt;/head&gt;</li>
-                              <li>احفظ التغييرات</li>
+                              <li>{t('copyScriptAbove')}</li>
+                              <li>{t('goToThemeSettings')}</li>
+                              <li>{t('openThemeLiquid')}</li>
+                              <li>{t('pasteBeforeHead')}</li>
+                              <li>{t('saveChanges')}</li>
                             </ol>
                           </div>
                         </div>
