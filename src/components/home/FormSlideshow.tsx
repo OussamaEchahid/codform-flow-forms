@@ -88,16 +88,10 @@ const FormPreview = ({ template }: { template: typeof formTemplates[0] }) => {
         <img
           src={template.imageSrc}
           alt={template.title[language]}
-          className="w-full h-auto rounded-3xl shadow-lg border-4 border-opacity-20"
-          style={{
-            borderColor: template.theme === 'purple' ? '#9b87f5' :
-                        template.theme === 'blue' ? '#3b82f6' :
-                        template.theme === 'monochrome' ? '#333' :
-                        '#9b59b6'
-          }}
+          className="w-full h-auto object-contain"
         />
         {/* طبقة تفاعلية شفافة */}
-        <div className="absolute inset-0 bg-transparent hover:bg-black hover:bg-opacity-5 transition-all duration-300 rounded-3xl cursor-pointer" />
+        <div className="absolute inset-0 bg-transparent hover:bg-black hover:bg-opacity-5 transition-all duration-300 cursor-pointer" />
       </div>
     </div>
   );
@@ -150,13 +144,10 @@ const FormSlideshow: React.FC = () => {
   return (
     <div className="relative w-full max-w-md mx-auto">
       {/* الحاوية الرئيسية للعرض */}
-      <div className="relative bg-white rounded-2xl shadow-2xl overflow-hidden border-4 border-purple-200">
+      <div className="relative overflow-hidden">
         {/* النموذج الحالي */}
-        <div className="relative aspect-[3/4] overflow-hidden">
+        <div className="relative">
           {renderCurrentForm()}
-
-          {/* تأثير الإضاءة */}
-          <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-white/10 via-transparent to-transparent pointer-events-none" />
         </div>
 
         {/* أزرار التنقل */}
