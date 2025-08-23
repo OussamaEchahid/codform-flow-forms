@@ -189,15 +189,7 @@ const CurrencySettings = () => {
     <SettingsLayout>
       <div className="container mx-auto p-6 space-y-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>
         
-        {/* Debug info - {t('showCurrentStoreStatus')} */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm mb-4">
-          <strong>{t('debugInfo')}</strong><br/>
-          {t('useAuthCurrentStore')} {currentStore || t('notSpecified')}<br/>
-          {t('localStorageStore')} {localStorage.getItem('current_shopify_store') || t('notSpecified')}<br/>
-          {t('userStores')} {userStores?.length || 0}<br/>
-          {t('serviceShopId')} {(CurrencyService as any).currentShopId || t('notSpecified')}<br/>
-          {t('isShopifyAuthenticated')} {isShopifyAuthenticated ? t('yes') : t('no')}
-        </div>
+
 
         {!currentStore && !localStorage.getItem('current_shopify_store') && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">

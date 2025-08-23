@@ -65,16 +65,7 @@ const Forms = () => {
                                  activeStore !== 'ar' && 
                                  activeStore.includes('.myshopify.com');
               
-              if (isValidStore) {
-                return (
-                  <Alert className="border-green-200 bg-green-50">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    <AlertDescription className="text-green-800">
-                      <strong>متصل بالمتجر:</strong> {activeStore}
-                    </AlertDescription>
-                  </Alert>
-                );
-              } else {
+              if (!isValidStore) {
                 return (
                   <Alert className="border-amber-200 bg-amber-50">
                     <AlertCircle className="h-4 w-4 text-amber-600" />

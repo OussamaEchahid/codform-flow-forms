@@ -36,10 +36,9 @@ import {
   Target, 
   Plus, 
   Trash2, 
-  Edit, 
-  Copy, 
+  Edit,
+  Copy,
   ExternalLink,
-  CheckCircle,
   AlertCircle,
   Store
 } from 'lucide-react';
@@ -49,7 +48,7 @@ import ShopifyReconnectButton from '@/components/shopify/ShopifyReconnectButton'
 const AdvertisingTracking = () => {
   const navigate = useNavigate();
   const { language, t } = useI18n();
-  const { shop, shopifyConnected, loading } = useAuth();
+  const { shop, loading } = useAuth();
   
   // State for pixel management
   const [pixels, setPixels] = useState<AdvertisingPixel[]>([]);
@@ -266,14 +265,7 @@ const AdvertisingTracking = () => {
 
           {/* حالة المتجر */}
           <div className="mb-6">
-            {isValidStore ? (
-              <Alert className="border-green-200 bg-green-50">
-                <CheckCircle className="h-4 w-4 text-green-600" />
-                <AlertDescription className="text-green-800">
-                  <strong>متصل بالمتجر:</strong> {activeStore}
-                </AlertDescription>
-              </Alert>
-            ) : (
+            {!isValidStore && (
               <Alert className="border-amber-200 bg-amber-50">
                 <AlertCircle className="h-4 w-4 text-amber-600" />
                 <AlertDescription className="text-amber-800 flex items-center justify-between">

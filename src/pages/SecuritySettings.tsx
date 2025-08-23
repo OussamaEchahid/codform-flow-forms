@@ -789,10 +789,10 @@ const SecuritySettings = () => {
             <div className="flex-1">
               <h3 className="font-bold text-blue-900 text-xl mb-2">{t('howToActivateProtection')}</h3>
               <div className="text-blue-800 text-sm space-y-2 mb-4">
-                <p><strong>{t('step1')}</strong> {t('step1AddIPs')}</p>
-                <p><strong>{t('step2')}</strong> {t('step2GenerateScript')}</p>
-                <p><strong>{t('step3')}</strong> {t('step3CopyScript')}</p>
-                <p><strong>{t('result')}</strong> {t('resultBlockVisitors')}</p>
+                <p><strong>{t('step1')}</strong></p>
+                <p><strong>{t('step2')}</strong></p>
+                <p><strong>{t('step3')}</strong></p>
+                <p><strong>{t('result')}</strong></p>
               </div>
               <div className="flex gap-3">
                 <Dialog open={showProtectionDialog} onOpenChange={setShowProtectionDialog}>
