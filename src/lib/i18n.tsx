@@ -160,9 +160,6 @@ const translations = {
     protectionScript: 'Protection Script',
     copyScript: 'Copy Script',
     downloadScript: 'Download Script',
-    close: 'Close',
-    add: 'Add',
-    cancel: 'Cancel',
     optional: 'Optional',
 
     // Currency Settings
@@ -181,9 +178,6 @@ const translations = {
     lastUpdated: 'Last Updated',
     updateRates: 'Update Rates',
     resetToDefault: 'Reset to Default',
-    save: 'Save',
-    before: 'Before',
-    after: 'After',
     showSymbol: 'Show Symbol',
     showCode: 'Show Code',
 
@@ -509,9 +503,6 @@ const translations = {
     protectionScript: 'سكريپت الحماية',
     copyScript: 'نسخ السكريپت',
     downloadScript: 'تحميل السكريپت',
-    close: 'إغلاق',
-    add: 'إضافة',
-    cancel: 'إلغاء',
     optional: 'اختياري',
 
     // Currency Settings
@@ -530,9 +521,6 @@ const translations = {
     lastUpdated: 'آخر تحديث',
     updateRates: 'تحديث الأسعار',
     resetToDefault: 'إعادة تعيين للافتراضي',
-    save: 'حفظ',
-    before: 'قبل',
-    after: 'بعد',
     showSymbol: 'إظهار الرمز',
     showCode: 'إظهار الرمز',
 
@@ -551,11 +539,7 @@ const translations = {
     confirmDelete: 'هل أنت متأكد من حذف هذا العنصر؟',
     yes: 'نعم',
     no: 'لا',
-    outOfStockMessage: 'رسالة عند نفاد المخزون',
-    shippingByTotal: 'الشحن حسب السعر الإجمالي للطلب',
-    shippingRatesDescription: 'إعداد أسعار الشحن حسب نطاقات الأسعار',
 
-    
     // Plans Settings
     currentPlan: 'الحالية',
     mostPopular: 'الأكثر شعبية',
