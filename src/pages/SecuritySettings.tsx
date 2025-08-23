@@ -789,10 +789,10 @@ const SecuritySettings = () => {
             <div className="flex-1">
               <h3 className="font-bold text-blue-900 text-xl mb-2">🔒 كيفية تفعيل الحماية على متجر Shopify</h3>
               <div className="text-blue-800 text-sm space-y-2 mb-4">
-                <p><strong>الخطوة 1:</strong> أضف عناوين IP أو الدول المحظورة أدناه</p>
-                <p><strong>الخطوة 2:</strong> اضغط على الزر لإنتاج سكريپت الحماية</p>
-                <p><strong>الخطوة 3:</strong> انسخ السكريپت والصقه في ثيم شوبيفاي</p>
-                <p><strong>النتيجة:</strong> سيتم حظر الزوار فوراً عند دخولهم للمتجر</p>
+                <p><strong>الخطوة 1:</strong> {t('step1AddIPs')}</p>
+                <p><strong>الخطوة 2:</strong> {t('step2GenerateScript')}</p>
+                <p><strong>الخطوة 3:</strong> {t('step3CopyScript')}</p>
+                <p><strong>النتيجة:</strong> {t('resultBlockVisitors')}</p>
               </div>
               <div className="flex gap-3">
                 <Dialog open={showProtectionDialog} onOpenChange={setShowProtectionDialog}>
@@ -821,9 +821,9 @@ const SecuritySettings = () => {
                       {!protectionScript ? (
                         <div className="text-center py-8">
                           <Code className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                          <p className="text-lg font-medium mb-2">إنتاج سكريپت الحماية</p>
+                          <p className="text-lg font-medium mb-2">{t('generateProtectionScriptTitle')}</p>
                           <p className="text-sm text-muted-foreground mb-4">
-                            سيتم إنتاج سكريپت مخصص لمتجرك يحتوي على نظام الحماية الكامل
+                            {t('customScriptDescription')}
                           </p>
                           <Button 
                             onClick={generateProtectionScript}
@@ -839,10 +839,10 @@ const SecuritySettings = () => {
                           <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                             <div className="flex items-center gap-2 text-green-800 mb-2">
                               <Shield className="h-4 w-4" />
-                              <span className="font-medium">تم إنتاج السكريپت بنجاح!</span>
+                              <span className="font-medium">{t('scriptGeneratedSuccessfully')}</span>
                             </div>
                             <p className="text-sm text-green-700">
-                              يمكنك الآن نسخ السكريپت أدناه ولصقه في ملف theme.liquid في شوبيفاي قبل إغلاق &lt;/head&gt;
+                              {t('copyScriptInstructions')}
                             </p>
                           </div>
                           
@@ -900,7 +900,7 @@ const SecuritySettings = () => {
                   onClick={() => window.open('https://www.youtube.com/watch?v=example', '_blank')}
                   className="border-blue-300 text-blue-800 hover:bg-blue-100"
                 >
-                  📺 شرح فيديو
+                  {t('videoTutorial')}
                 </Button>
               </div>
             </div>
@@ -940,7 +940,7 @@ const SecuritySettings = () => {
               <Shield className="h-8 w-8 text-primary" />
               <div>
                 <p className="text-2xl font-bold">{securityStats.total_blocks_today}</p>
-                <p className="text-sm text-muted-foreground">محاولات حظر اليوم</p>
+                <p className="text-sm text-muted-foreground">{t('blockAttemptsToday')}</p>
               </div>
             </div>
           </CardContent>
@@ -988,10 +988,10 @@ const SecuritySettings = () => {
                       />
                       <DialogFooter>
                         <Button variant="outline" onClick={() => setShowImportDialog(false)}>
-                          إلغاء
+                          {t('cancel')}
                         </Button>
                         <Button onClick={handleImportIPs}>
-                          استيراد
+                          {t('import')}
                         </Button>
                       </DialogFooter>
                     </DialogContent>
@@ -1115,28 +1115,28 @@ const SecuritySettings = () => {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>إدارة الدول المحظورة</CardTitle>
+                  <CardTitle>{t('manageBlockedCountries')}</CardTitle>
                   <CardDescription>
-                    أضف أو احذف دول محددة لمنع الوصول من مناطق جغرافية معينة
+                    {t('addOrRemoveCountries')}
                   </CardDescription>
                 </div>
                 <Dialog open={showAddCountryDialog} onOpenChange={setShowAddCountryDialog}>
                   <DialogTrigger asChild>
                     <Button size="sm">
                       <Plus className="h-4 w-4 mr-2" />
-                      إضافة دولة
+                      {t('addCountry')}
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>إضافة دولة إلى قائمة الحظر</DialogTitle>
+                      <DialogTitle>{t('addCountryToBlockList')}</DialogTitle>
                       <DialogDescription>
-                        اختر الدولة والسبب ورابط إعادة التوجيه (اختياري)
+                        {t('chooseCountryAndReason')}
                       </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
                       <div>
-                        <Label htmlFor="country-selector">الدولة</Label>
+                        <Label htmlFor="country-selector">{t('country')}</Label>
                         <CountrySelector
                           value={selectedCountry}
                           onValueChange={setSelectedCountry}
@@ -1163,10 +1163,10 @@ const SecuritySettings = () => {
                     </div>
                     <DialogFooter>
                       <Button variant="outline" onClick={() => setShowAddCountryDialog(false)}>
-                        إلغاء
+                        {t('cancel')}
                       </Button>
                       <Button onClick={handleAddCountry}>
-                        إضافة
+                        {t('add')}
                       </Button>
                     </DialogFooter>
                   </DialogContent>
@@ -1186,13 +1186,13 @@ const SecuritySettings = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>الدولة</TableHead>
-                      <TableHead>رمز الدولة</TableHead>
-                      <TableHead>السبب</TableHead>
-                      <TableHead>رابط إعادة التوجيه</TableHead>
-                      <TableHead>تاريخ الإضافة</TableHead>
-                      <TableHead>الحالة</TableHead>
-                      <TableHead>الإجراءات</TableHead>
+                      <TableHead>{t('country')}</TableHead>
+                      <TableHead>{t('countryCode')}</TableHead>
+                      <TableHead>{t('reason')}</TableHead>
+                      <TableHead>{t('redirectUrl')}</TableHead>
+                      <TableHead>{t('dateAdded')}</TableHead>
+                      <TableHead>{t('status')}</TableHead>
+                      <TableHead>{t('actions')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
