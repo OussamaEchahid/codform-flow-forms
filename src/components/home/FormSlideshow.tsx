@@ -7,7 +7,44 @@ const formTemplates = [
   {
     id: 1,
     type: 'arabic-quantity',
-    imageSrc: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjYwMCIgdmlld0JveD0iMCAwIDQwMCA2MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iNjAwIiBmaWxsPSIjRjlGQUZCIiBzdHJva2U9IiM5Yjg3ZjUiIHN0cm9rZS13aWR0aD0iNCIgcng9IjIwIi8+Cjx0ZXh0IHg9IjIwMCIgeT0iNTAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIyMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMzNzM3MzciIHRleHQtYW5jaG9yPSJtaWRkbGUiPtin2LfZhNioINin2YTYotmGPC90ZXh0Pgo8cmVjdCB4PSIyMCIgeT0iODAiIHdpZHRoPSIzNjAiIGhlaWdodD0iNjAiIGZpbGw9IiNGMEZERjQiIHN0cm9rZT0iIzIyYzU1ZSIgc3Ryb2tlLXdpZHRoPSIyIiByeD0iMTAiLz4KPHR5cGUgeD0iMzgwIiB5PSIxMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzM3MzczNyIgdGV4dC1hbmNob3I9ImVuZCIgZGlyZWN0aW9uPSJydGwiPtin2LTYqtixIDMg2YjYp9it2LXZhCDYudmE2YkgMSDZhdis2KfZhtin2YvYpzwvdGV4dD4KPHR5cGUgeD0iMzgwIiB5PSIxMjAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMwNTk2NjkiIHRleHQtYW5jaG9yPSJlbmQiPk1BRCAzMDAwPC90ZXh0Pgo8cmVjdCB4PSIzMDAiIHk9IjEwNSIgd2lkdGg9IjYwIiBoZWlnaHQ9IjIwIiBmaWxsPSIjMjJjNTVlIiByeD0iMTAiLz4KPHR5cGUgeD0iMzMwIiB5PSIxMTciIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+2YfYr9mK2Kkg2YXYrNin2YbZitipPC90ZXh0Pgo8cmVjdCB4PSIyMCIgeT0iMTYwIiB3aWR0aD0iMzYwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjZmZmIiBzdHJva2U9IiNkZGQiIHN0cm9rZS13aWR0aD0iMSIgcng9IjUiLz4KPHR5cGUgeD0iMzgwIiB5PSIxODAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9ImVuZCIgZGlyZWN0aW9uPSJydGwiPtin2YTYp9iz2YUg2KfZhNmD2KfZhdmEPC90ZXh0Pgo8cmVjdCB4PSIyMCIgeT0iMjIwIiB3aWR0aD0iMzYwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjZmZmIiBzdHJva2U9IiNkZGQiIHN0cm9rZS13aWR0aD0iMSIgcng9IjUiLz4KPHR5cGUgeD0iMzgwIiB5PSIyNDAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9ImVuZCIgZGlyZWN0aW9uPSJydGwiPtix2YLZhSDYp9mE2YfYp9iq2YE8L3RleHQ+CjxyZWN0IHg9IjIwIiB5PSIyODAiIHdpZHRoPSIzNjAiIGhlaWdodD0iNDAiIGZpbGw9IiNmZmYiIHN0cm9rZT0iI2RkZCIgc3Ryb2tlLXdpZHRoPSIxIiByeD0iNSIvPgo8dGV4dCB4PSIzODAiIHk9IjMwMCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0IiBmaWxsPSIjOTk5IiB0ZXh0LWFuY2hvcj0iZW5kIiBkaXJlY3Rpb249InJ0bCI+2KfZhNmF2K/ZitmG2Kk8L3RleHQ+CjxyZWN0IHg9IjIwIiB5PSIzNDAiIHdpZHRoPSIzNjAiIGhlaWdodD0iODAiIGZpbGw9IiNmZmYiIHN0cm9rZT0iI2RkZCIgc3Ryb2tlLXdpZHRoPSIxIiByeD0iNSIvPgo8dGV4dCB4PSIzODAiIHk9IjM2MCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0IiBmaWxsPSIjOTk5IiB0ZXh0LWFuY2hvcj0iZW5kIiBkaXJlY3Rpb249InJ0bCI+2KfZhNi52YbZiNin2YYg2KfZhNmD2KfZhdmEPC90ZXh0Pgo8dGV4dCB4PSIyMCIgeT0iNDYwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiMzNzM3MzciPtmF2KzYp9mG2YrYjDwvdGV4dD4KPHR5cGUgeD0iMzgwIiB5PSI0NjAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzM3MzczNyIgdGV4dC1hbmNob3I9ImVuZCI+TUFEIDUwMDA8L3RleHQ+Cjx0ZXh0IHg9IjIwIiB5PSI0ODAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzM3MzczNyI+2KfZhNi02K3ZhjwvdGV4dD4KPHR5cGUgeD0iMzgwIiB5PSI0ODAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzIyYzU1ZSIgdGV4dC1hbmNob3I9ImVuZCI+2YXYrNin2YbZijwvdGV4dD4KPHR5cGUgeD0iMjAiIHk9IjUwNSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE2IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzA1OTY2OSI+2KfZhNmF2KzZhdmI2Lkg2KfZhNmD2YTZijwvdGV4dD4KPHR5cGUgeD0iMzgwIiB5PSI1MDUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMwNTk2NjkiIHRleHQtYW5jaG9yPSJlbmQiPk1BRCA1MDAwPC90ZXh0Pgo8cmVjdCB4PSIyMCIgeT0iNTMwIiB3aWR0aD0iMzYwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjOWI4N2Y1IiByeD0iMTAiLz4KPHR5cGUgeD0iMjAwIiB5PSI1NTgiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPtil2LHYs9in2YQg2KfZhNi32YTYqDwvdGV4dD4KPC9zdmc+',
+    imageSrc: `data:image/svg+xml,${encodeURIComponent(`
+      <svg width="400" height="600" viewBox="0 0 400 600" xmlns="http://www.w3.org/2000/svg">
+        <rect width="400" height="600" fill="#F9FAFB" stroke="#9b87f5" stroke-width="4" rx="20"/>
+        <text x="200" y="50" font-family="Arial" font-size="20" font-weight="bold" fill="#374151" text-anchor="middle">اطلب الآن</text>
+
+        <!-- عرض الكمية الأول -->
+        <rect x="20" y="80" width="360" height="60" fill="#F0FDF4" stroke="#22c55e" stroke-width="2" rx="10"/>
+        <text x="380" y="100" font-family="Arial" font-size="14" fill="#374151" text-anchor="end" direction="rtl">اشتر 3 واحصل على 1 مجاناً</text>
+        <text x="380" y="120" font-family="Arial" font-size="18" font-weight="bold" fill="#059669" text-anchor="end">MAD 3000</text>
+        <rect x="300" y="105" width="60" height="20" fill="#22c55e" rx="10"/>
+        <text x="330" y="117" font-family="Arial" font-size="10" fill="#fff" text-anchor="middle">هدية مجانية</text>
+
+        <!-- حقول الإدخال -->
+        <rect x="20" y="160" width="360" height="40" fill="#fff" stroke="#ddd" stroke-width="1" rx="5"/>
+        <text x="380" y="180" font-family="Arial" font-size="14" fill="#999" text-anchor="end" direction="rtl">الاسم الكامل</text>
+
+        <rect x="20" y="220" width="360" height="40" fill="#fff" stroke="#ddd" stroke-width="1" rx="5"/>
+        <text x="380" y="240" font-family="Arial" font-size="14" fill="#999" text-anchor="end" direction="rtl">رقم الهاتف</text>
+
+        <rect x="20" y="280" width="360" height="40" fill="#fff" stroke="#ddd" stroke-width="1" rx="5"/>
+        <text x="380" y="300" font-family="Arial" font-size="14" fill="#999" text-anchor="end" direction="rtl">المدينة</text>
+
+        <rect x="20" y="340" width="360" height="80" fill="#fff" stroke="#ddd" stroke-width="1" rx="5"/>
+        <text x="380" y="360" font-family="Arial" font-size="14" fill="#999" text-anchor="end" direction="rtl">العنوان الكامل</text>
+
+        <!-- المجموع -->
+        <text x="20" y="460" font-family="Arial" font-size="14" fill="#374151">مجاني</text>
+        <text x="380" y="460" font-family="Arial" font-size="14" fill="#374151" text-anchor="end">MAD 5000</text>
+        <text x="20" y="480" font-family="Arial" font-size="14" fill="#374151">الشحن</text>
+        <text x="380" y="480" font-family="Arial" font-size="14" fill="#22c55e" text-anchor="end">مجاني</text>
+        <text x="20" y="505" font-family="Arial" font-size="16" font-weight="bold" fill="#059669">المجموع الكلي</text>
+        <text x="380" y="505" font-family="Arial" font-size="16" font-weight="bold" fill="#059669" text-anchor="end">MAD 5000</text>
+
+        <!-- زر الطلب -->
+        <rect x="20" y="530" width="360" height="50" fill="#9b87f5" rx="10"/>
+        <text x="200" y="558" font-family="Arial" font-size="16" font-weight="bold" fill="#fff" text-anchor="middle">إرسال الطلب</text>
+      </svg>
+    `)}`,
     title: {
       ar: 'نموذج عربي مع عروض الكمية',
       en: 'Arabic Form with Quantity Offers'
@@ -25,7 +62,47 @@ const formTemplates = [
   {
     id: 2,
     type: 'blue-modern',
-    imageSrc: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjYwMCIgdmlld0JveD0iMCAwIDQwMCA2MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iNjAwIiBmaWxsPSIjZjBmOWZmIiBzdHJva2U9IiMzYjgyZjYiIHN0cm9rZS13aWR0aD0iNCIgcng9IjIwIi8+Cjx0ZXh0IHg9IjIwMCIgeT0iNDAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIyMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMzNzM3MzciIHRleHQtYW5jaG9yPSJtaWRkbGUiPlVQTE9BRDwvdGV4dD4KPHR5cGUgeD0iMjAwIiB5PSI2MCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjIwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzM3MzczNyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TE9HTzwvdGV4dD4KPHJlY3QgeD0iMjAiIHk9IjEwMCIgd2lkdGg9IjM2MCIgaGVpZ2h0PSI0NSIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjM2I4MmY2IiBzdHJva2Utd2lkdGg9IjIiIHJ4PSI4Ii8+Cjx0ZXh0IHg9IjMwIiB5PSIxMjAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSI+RnVsbCBOYW1lICo8L3RleHQ+Cjx0ZXh0IHg9IjMwIiB5PSIxMzUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzNiODJmNiI+8J+RpDwvdGV4dD4KPHJlY3QgeD0iMjAiIHk9IjE2MCIgd2lkdGg9IjM2MCIgaGVpZ2h0PSI0NSIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjM2I4MmY2IiBzdHJva2Utd2lkdGg9IjIiIHJ4PSI4Ii8+Cjx0ZXh0IHg9IjMwIiB5PSIxODAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSI+UGhvbmUgTnVtYmVyICo8L3RleHQ+Cjx0ZXh0IHg9IjMwIiB5PSIxOTUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzNiODJmNiI+8J+TnjwvdGV4dD4KPHJlY3QgeD0iMjAiIHk9IjIyMCIgd2lkdGg9IjM2MCIgaGVpZ2h0PSI0NSIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjM2I4MmY2IiBzdHJva2Utd2lkdGg9IjIiIHJ4PSI4Ii8+Cjx0ZXh0IHg9IjMwIiB5PSIyNDAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSI+Q2l0eSAqPC90ZXh0Pgo8dGV4dCB4PSIzMCIgeT0iMjU1IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IiMzYjgyZjYiPvCfk408L3RleHQ+CjxyZWN0IHg9IjIwIiB5PSIyODAiIHdpZHRoPSIzNjAiIGhlaWdodD0iODAiIGZpbGw9IiNmZmYiIHN0cm9rZT0iIzNiODJmNiIgc3Ryb2tlLXdpZHRoPSIyIiByeD0iOCIvPgo8dGV4dCB4PSIzMCIgeT0iMzAwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiPkFkZHJlc3MgKjwvdGV4dD4KPHR5cGUgeD0iMjAiIHk9IjM5MCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0IiBmaWxsPSIjMzczNzM3Ij5TdWJ0b3RhbDwvdGV4dD4KPHR5cGUgeD0iMzgwIiB5PSIzOTAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzM3MzczNyIgdGV4dC1hbmNob3I9ImVuZCI+MTAwIFVTRDwvdGV4dD4KPHR5cGUgeD0iMjAiIHk9IjQxMCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0IiBmaWxsPSIjMzczNzM3Ij5TaGlwcGluZzwvdGV4dD4KPHR5cGUgeD0iMzgwIiB5PSI0MTAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzIyYzU1ZSIgdGV4dC1hbmNob3I9ImVuZCI+RnJlZTwvdGV4dD4KPHR5cGUgeD0iMjAiIHk9IjQzNSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE2IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzIyYzU1ZSI+VG90YWw8L3RleHQ+Cjx0ZXh0IHg9IjM4MCIgeT0iNDM1IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTYiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMjJjNTVlIiB0ZXh0LWFuY2hvcj0iZW5kIj4xMDAgVVNEPC90ZXh0Pgo8cmVjdCB4PSIyMCIgeT0iNDYwIiB3aWR0aD0iMzYwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjM2I4MmY2IiByeD0iMTAiLz4KPHR5cGUgeD0iMjAwIiB5PSI0ODgiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPvCfm5IgU3VibWl0IE9yZGVyPC90ZXh0Pgo8Y2lyY2xlIGN4PSI2MCIgY3k9IjU0MCIgcj0iMjAiIGZpbGw9IiNlZmY2ZmYiIHN0cm9rZT0iIzNiODJmNiIgc3Ryb2tlLXdpZHRoPSIyIi8+Cjx0ZXh0IHg9IjYwIiB5PSI1NDUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgZmlsbD0iIzNiODJmNiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+8J+aujwvdGV4dD4KPGNpcmNsZSBjeD0iMTQwIiBjeT0iNTQwIiByPSIyMCIgZmlsbD0iI2VmZjZmZiIgc3Ryb2tlPSIjM2I4MmY2IiBzdHJva2Utd2lkdGg9IjIiLz4KPHR5cGUgeD0iMTQwIiB5PSI1NDUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgZmlsbD0iIzNiODJmNiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+8J+boDwvdGV4dD4KPC9zdmc+',
+    imageSrc: `data:image/svg+xml,${encodeURIComponent(`
+      <svg width="400" height="600" viewBox="0 0 400 600" xmlns="http://www.w3.org/2000/svg">
+        <rect width="400" height="600" fill="#f0f9ff" stroke="#3b82f6" stroke-width="4" rx="20"/>
+        <text x="200" y="40" font-family="Arial" font-size="20" font-weight="bold" fill="#374151" text-anchor="middle">UPLOAD</text>
+        <text x="200" y="60" font-family="Arial" font-size="20" font-weight="bold" fill="#374151" text-anchor="middle">LOGO</text>
+
+        <!-- حقول الإدخال -->
+        <rect x="20" y="100" width="360" height="45" fill="#fff" stroke="#3b82f6" stroke-width="2" rx="8"/>
+        <text x="30" y="120" font-family="Arial" font-size="14" fill="#999">Full Name *</text>
+        <text x="30" y="135" font-family="Arial" font-size="12" fill="#3b82f6">👤</text>
+
+        <rect x="20" y="160" width="360" height="45" fill="#fff" stroke="#3b82f6" stroke-width="2" rx="8"/>
+        <text x="30" y="180" font-family="Arial" font-size="14" fill="#999">Phone Number *</text>
+        <text x="30" y="195" font-family="Arial" font-size="12" fill="#3b82f6">📞</text>
+
+        <rect x="20" y="220" width="360" height="45" fill="#fff" stroke="#3b82f6" stroke-width="2" rx="8"/>
+        <text x="30" y="240" font-family="Arial" font-size="14" fill="#999">City *</text>
+        <text x="30" y="255" font-family="Arial" font-size="12" fill="#3b82f6">📍</text>
+
+        <rect x="20" y="280" width="360" height="80" fill="#fff" stroke="#3b82f6" stroke-width="2" rx="8"/>
+        <text x="30" y="300" font-family="Arial" font-size="14" fill="#999">Address *</text>
+
+        <!-- المجموع -->
+        <text x="20" y="390" font-family="Arial" font-size="14" fill="#374151">Subtotal</text>
+        <text x="380" y="390" font-family="Arial" font-size="14" fill="#374151" text-anchor="end">100 USD</text>
+        <text x="20" y="410" font-family="Arial" font-size="14" fill="#374151">Shipping</text>
+        <text x="380" y="410" font-family="Arial" font-size="14" fill="#22c55e" text-anchor="end">Free</text>
+        <text x="20" y="435" font-family="Arial" font-size="16" font-weight="bold" fill="#22c55e">Total</text>
+        <text x="380" y="435" font-family="Arial" font-size="16" font-weight="bold" fill="#22c55e" text-anchor="end">100 USD</text>
+
+        <!-- زر الطلب -->
+        <rect x="20" y="460" width="360" height="50" fill="#3b82f6" rx="10"/>
+        <text x="200" y="488" font-family="Arial" font-size="16" font-weight="bold" fill="#fff" text-anchor="middle">🛒 Submit Order</text>
+
+        <!-- شارات الثقة -->
+        <circle cx="60" cy="540" r="20" fill="#eff6ff" stroke="#3b82f6" stroke-width="2"/>
+        <text x="60" y="545" font-family="Arial" font-size="16" fill="#3b82f6" text-anchor="middle">🚚</text>
+        <circle cx="140" cy="540" r="20" fill="#eff6ff" stroke="#3b82f6" stroke-width="2"/>
+        <text x="140" y="545" font-family="Arial" font-size="16" fill="#3b82f6" text-anchor="middle">🛡</text>
+      </svg>
+    `)}`,
     title: {
       ar: 'نموذج أزرق عصري',
       en: 'Blue Modern Form'
@@ -42,8 +119,105 @@ const formTemplates = [
   },
   {
     id: 3,
+    type: 'green-minimal',
+    imageSrc: `data:image/svg+xml,${encodeURIComponent(`
+      <svg width="400" height="600" viewBox="0 0 400 600" xmlns="http://www.w3.org/2000/svg">
+        <rect width="400" height="600" fill="#f0fdf4" stroke="#22c55e" stroke-width="4" rx="20"/>
+        <text x="200" y="40" font-family="Arial" font-size="24" font-weight="bold" fill="#059669" text-anchor="middle">Fast Order</text>
+        <text x="200" y="65" font-family="Arial" font-size="14" fill="#666666" text-anchor="middle">Simple &amp; Secure</text>
+
+        <!-- حقول الإدخال -->
+        <rect x="20" y="100" width="360" height="50" fill="#fff" stroke="#ddd" stroke-width="1" rx="10"/>
+        <text x="30" y="120" font-family="Arial" font-size="14" fill="#999">Name</text>
+        <text x="350" y="135" font-family="Arial" font-size="18" fill="#22c55e" text-anchor="end">👤</text>
+
+        <rect x="20" y="170" width="360" height="50" fill="#fff" stroke="#ddd" stroke-width="1" rx="10"/>
+        <text x="30" y="190" font-family="Arial" font-size="14" fill="#999">Phone</text>
+        <text x="350" y="205" font-family="Arial" font-size="18" fill="#22c55e" text-anchor="end">📞</text>
+
+        <rect x="20" y="240" width="360" height="50" fill="#fff" stroke="#ddd" stroke-width="1" rx="10"/>
+        <text x="30" y="260" font-family="Arial" font-size="14" fill="#999">City</text>
+        <text x="350" y="275" font-family="Arial" font-size="18" fill="#22c55e" text-anchor="end">📍</text>
+
+        <rect x="20" y="310" width="360" height="80" fill="#fff" stroke="#ddd" stroke-width="1" rx="10"/>
+        <text x="30" y="330" font-family="Arial" font-size="14" fill="#999">Address</text>
+        <text x="350" y="345" font-family="Arial" font-size="18" fill="#22c55e" text-anchor="end">📍</text>
+
+        <!-- المجموع -->
+        <rect x="20" y="420" width="360" height="60" fill="#f0fdf4" stroke="#22c55e" stroke-width="2" rx="10"/>
+        <text x="30" y="440" font-family="Arial" font-size="14" fill="#059669">Total Price</text>
+        <text x="350" y="440" font-family="Arial" font-size="18" font-weight="bold" fill="#059669" text-anchor="end">75 USD</text>
+        <text x="30" y="460" font-family="Arial" font-size="12" fill="#22c55e">Free Shipping</text>
+
+        <!-- زر الطلب -->
+        <rect x="20" y="500" width="360" height="50" fill="#22c55e" rx="10"/>
+        <text x="200" y="528" font-family="Arial" font-size="16" font-weight="bold" fill="#fff" text-anchor="middle">Order Now</text>
+
+        <!-- شارات الثقة -->
+        <circle cx="100" cy="570" r="15" fill="#22c55e"/>
+        <text x="100" y="575" font-family="Arial" font-size="12" fill="#fff" text-anchor="middle">✓</text>
+        <text x="125" y="575" font-family="Arial" font-size="12" fill="#059669">Secure Payment</text>
+        <circle cx="300" cy="570" r="15" fill="#22c55e"/>
+        <text x="300" y="575" font-family="Arial" font-size="12" fill="#fff" text-anchor="middle">😊</text>
+        <text x="325" y="575" font-family="Arial" font-size="12" fill="#059669">Fast Delivery</text>
+      </svg>
+    `)}`,
+    title: {
+      ar: 'نموذج أخضر بسيط',
+      en: 'Green Minimal Form'
+    },
+    description: {
+      ar: 'تصميم بسيط وأنيق باللون الأخضر',
+      en: 'Simple and elegant green design'
+    },
+    theme: 'green',
+    features: {
+      ar: ['تصميم بسيط', 'سهولة الاستخدام', 'ألوان هادئة'],
+      en: ['Simple Design', 'Easy to Use', 'Calm Colors']
+    }
+  },
+  {
+    id: 4,
     type: 'black-white',
-    imageSrc: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjYwMCIgdmlld0JveD0iMCAwIDQwMCA2MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iNjAwIiBmaWxsPSIjZmZmIiBzdHJva2U9IiMzMzMiIHN0cm9rZS13aWR0aD0iNCIgcng9IjIwIi8+Cjx0ZXh0IHg9IjIwMCIgeT0iNDAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIyMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMzMzMiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlVQTE9BRDwvdGV4dD4KPHR5cGUgeD0iMjAwIiB5PSI2MCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjIwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TE9HTzwvdGV4dD4KPHJlY3QgeD0iMjAiIHk9IjEwMCIgd2lkdGg9IjM2MCIgaGVpZ2h0PSI0NSIgZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjY2NjIiBzdHJva2Utd2lkdGg9IjEiIHJ4PSI4Ii8+Cjx0ZXh0IHg9IjMwIiB5PSIxMjAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzMzMyI+RnVsbCBOYW1lICo8L3RleHQ+Cjx0ZXh0IHg9IjMwIiB5PSIxMzUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzk5OSI+8J+RpCBFbnRlciBmdWxsIG5hbWU8L3RleHQ+CjxyZWN0IHg9IjIwIiB5PSIxNjAiIHdpZHRoPSIzNjAiIGhlaWdodD0iNDUiIGZpbGw9IiNmZmYiIHN0cm9rZT0iI2NjYyIgc3Ryb2tlLXdpZHRoPSIxIiByeD0iOCIvPgo8dGV4dCB4PSIzMCIgeT0iMTgwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiMzMzMiPlBob25lIE51bWJlciAqPC90ZXh0Pgo8dGV4dCB4PSIzMCIgeT0iMTk1IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IiM5OTkiPvCfk54gRW50ZXIgcGhvbmUgbnVtYmVyPC90ZXh0Pgo8cmVjdCB4PSIyMCIgeT0iMjIwIiB3aWR0aD0iMzYwIiBoZWlnaHQ9IjQ1IiBmaWxsPSIjZmZmIiBzdHJva2U9IiNjY2MiIHN0cm9rZS13aWR0aD0iMSIgcng9IjgiLz4KPHR5cGUgeD0iMzAiIHk9IjI0MCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0IiBmaWxsPSIjMzMzIj5DaXR5ICo8L3RleHQ+Cjx0ZXh0IHg9IjMwIiB5PSIyNTUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzk5OSI+8J+TjSBFbnRlciBjaXR5PC90ZXh0Pgo8cmVjdCB4PSIyMCIgeT0iMjgwIiB3aWR0aD0iMzYwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjZmZmIiBzdHJva2U9IiNjY2MiIHN0cm9rZS13aWR0aD0iMSIgcng9IjgiLz4KPHR5cGUgeD0iMzAiIHk9IjMwMCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0IiBmaWxsPSIjMzMzIj5BZGRyZXNzICo8L3RleHQ+Cjx0ZXh0IHg9IjMwIiB5PSIzMTUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzk5OSI+RW50ZXIgZnVsbCBhZGRyZXNzPC90ZXh0Pgo8dGV4dCB4PSIyMCIgeT0iMzkwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiMzMzMiPlN1YnRvdGFsPC90ZXh0Pgo8dGV4dCB4PSIzODAiIHk9IjM5MCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0IiBmaWxsPSIjMzMzIiB0ZXh0LWFuY2hvcj0iZW5kIj4xMDAgVVNEPC90ZXh0Pgo8dGV4dCB4PSIyMCIgeT0iNDEwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiMzMzMiPlNoaXBwaW5nPC90ZXh0Pgo8dGV4dCB4PSIzODAiIHk9IjQxMCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0IiBmaWxsPSIjMjJjNTVlIiB0ZXh0LWFuY2hvcj0iZW5kIj5GcmVlPC90ZXh0Pgo8dGV4dCB4PSIyMCIgeT0iNDM1IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTYiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMjJjNTVlIj5Ub3RhbDwvdGV4dD4KPHR5cGUgeD0iMzgwIiB5PSI0MzUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMyMmM1NWUiIHRleHQtYW5jaG9yPSJlbmQiPjEwMCBVU0Q8L3RleHQ+CjxyZWN0IHg9IjIwIiB5PSI0NjAiIHdpZHRoPSIzNjAiIGhlaWdodD0iNTAiIGZpbGw9IiMwMDAiIHJ4PSIxMCIvPgo8dGV4dCB4PSIyMDAiIHk9IjQ4OCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE2IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+8J+bkiBTdWJtaXQgT3JkZXI8L3RleHQ+CjxyZWN0IHg9IjIwIiB5PSI1MjAiIHdpZHRoPSIzNjAiIGhlaWdodD0iNTAiIGZpbGw9IiMyMmM1NWUiIHJ4PSIxMCIvPgo8dGV4dCB4PSIyMDAiIHk9IjU0OCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE2IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+8J+SrCBPcmRlciBieSBXaGF0c0FwcDwvdGV4dD4KPC9zdmc+',
+    imageSrc: `data:image/svg+xml,${encodeURIComponent(`
+      <svg width="400" height="600" viewBox="0 0 400 600" xmlns="http://www.w3.org/2000/svg">
+        <rect width="400" height="600" fill="#fff" stroke="#333" stroke-width="4" rx="20"/>
+        <text x="200" y="40" font-family="Arial" font-size="20" font-weight="bold" fill="#333" text-anchor="middle">UPLOAD</text>
+        <text x="200" y="60" font-family="Arial" font-size="20" font-weight="bold" fill="#333" text-anchor="middle">LOGO</text>
+
+        <!-- حقول الإدخال -->
+        <rect x="20" y="100" width="360" height="45" fill="#fff" stroke="#ccc" stroke-width="1" rx="8"/>
+        <text x="30" y="120" font-family="Arial" font-size="14" fill="#333">Full Name *</text>
+        <text x="30" y="135" font-family="Arial" font-size="12" fill="#999">👤 Enter full name</text>
+
+        <rect x="20" y="160" width="360" height="45" fill="#fff" stroke="#ccc" stroke-width="1" rx="8"/>
+        <text x="30" y="180" font-family="Arial" font-size="14" fill="#333">Phone Number *</text>
+        <text x="30" y="195" font-family="Arial" font-size="12" fill="#999">📞 Enter phone number</text>
+
+        <rect x="20" y="220" width="360" height="45" fill="#fff" stroke="#ccc" stroke-width="1" rx="8"/>
+        <text x="30" y="240" font-family="Arial" font-size="14" fill="#333">City *</text>
+        <text x="30" y="255" font-family="Arial" font-size="12" fill="#999">📍 Enter city</text>
+
+        <rect x="20" y="280" width="360" height="80" fill="#fff" stroke="#ccc" stroke-width="1" rx="8"/>
+        <text x="30" y="300" font-family="Arial" font-size="14" fill="#333">Address *</text>
+        <text x="30" y="315" font-family="Arial" font-size="12" fill="#999">Enter full address</text>
+
+        <!-- المجموع -->
+        <text x="20" y="390" font-family="Arial" font-size="14" fill="#333">Subtotal</text>
+        <text x="380" y="390" font-family="Arial" font-size="14" fill="#333" text-anchor="end">100 USD</text>
+        <text x="20" y="410" font-family="Arial" font-size="14" fill="#333">Shipping</text>
+        <text x="380" y="410" font-family="Arial" font-size="14" fill="#22c55e" text-anchor="end">Free</text>
+        <text x="20" y="435" font-family="Arial" font-size="16" font-weight="bold" fill="#22c55e">Total</text>
+        <text x="380" y="435" font-family="Arial" font-size="16" font-weight="bold" fill="#22c55e" text-anchor="end">100 USD</text>
+
+        <!-- أزرار الطلب -->
+        <rect x="20" y="460" width="360" height="50" fill="#000" rx="10"/>
+        <text x="200" y="488" font-family="Arial" font-size="16" font-weight="bold" fill="#fff" text-anchor="middle">🛒 Submit Order</text>
+
+        <rect x="20" y="520" width="360" height="50" fill="#22c55e" rx="10"/>
+        <text x="200" y="548" font-family="Arial" font-size="16" font-weight="bold" fill="#fff" text-anchor="middle">💬 Order by WhatsApp</text>
+      </svg>
+    `)}`,
     title: {
       ar: 'نموذج احترافي أبيض وأسود',
       en: 'Black & White Professional Form'
@@ -59,9 +233,69 @@ const formTemplates = [
     }
   },
   {
-    id: 4,
+    id: 5,
     type: 'purple-timer',
-    imageSrc: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjYwMCIgdmlld0JveD0iMCAwIDQwMCA2MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iNjAwIiBmaWxsPSIjZmFmNWZmIiBzdHJva2U9IiM5YjU5YjYiIHN0cm9rZS13aWR0aD0iNCIgcng9IjIwIi8+Cjx0ZXh0IHg9IjIwMCIgeT0iNDAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiM3YzNhZWQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkZpbGwgb3V0IHRoZSBmb3JtIHRvIGFwcGx5PC90ZXh0Pgo8cmVjdCB4PSIyMCIgeT0iNzAiIHdpZHRoPSIzNjAiIGhlaWdodD0iNDUiIGZpbGw9IiNmZmYiIHN0cm9rZT0iIzliNTliNiIgc3Ryb2tlLXdpZHRoPSIyIiByeD0iOCIvPgo8dGV4dCB4PSIzMCIgeT0iOTAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzMzMyI+RnVsbCBOYW1lICo8L3RleHQ+Cjx0ZXh0IHg9IjMwIiB5PSIxMDUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzliNTliNiI+8J+RpCBFbnRlciBmdWxsIG5hbWU8L3RleHQ+CjxyZWN0IHg9IjIwIiB5PSIxMzAiIHdpZHRoPSIzNjAiIGhlaWdodD0iNDUiIGZpbGw9IiNmZmYiIHN0cm9rZT0iIzliNTliNiIgc3Ryb2tlLXdpZHRoPSIyIiByeD0iOCIvPgo8dGV4dCB4PSIzMCIgeT0iMTUwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiMzMzMiPlBob25lIE51bWJlciAqPC90ZXh0Pgo8dGV4dCB4PSIzMCIgeT0iMTY1IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IiM5YjU5YjYiPvCfk54gRW50ZXIgcGhvbmUgbnVtYmVyPC90ZXh0Pgo8cmVjdCB4PSIyMCIgeT0iMTkwIiB3aWR0aD0iMzYwIiBoZWlnaHQ9IjQ1IiBmaWxsPSIjZmZmIiBzdHJva2U9IiM5YjU5YjYiIHN0cm9rZS13aWR0aD0iMiIgcng9IjgiLz4KPHR5cGUgeD0iMzAiIHk9IjIxMCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0IiBmaWxsPSIjMzMzIj5DaXR5ICo8L3RleHQ+Cjx0ZXh0IHg9IjMwIiB5PSIyMjUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzliNTliNiI+8J+TjSBFbnRlciBjaXR5PC90ZXh0Pgo8cmVjdCB4PSIyMCIgeT0iMjUwIiB3aWR0aD0iMzYwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjZmZmIiBzdHJva2U9IiM5YjU5YjYiIHN0cm9rZS13aWR0aD0iMiIgcng9IjgiLz4KPHR5cGUgeD0iMzAiIHk9IjI3MCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0IiBmaWxsPSIjMzMzIj5BZGRyZXNzICo8L3RleHQ+Cjx0ZXh0IHg9IjMwIiB5PSIyODUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzliNTliNiI+RW50ZXIgZnVsbCBhZGRyZXNzPC90ZXh0Pgo8dGV4dCB4PSIyMCIgeT0iMzYwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiMzMzMiPlN1YnRvdGFsPC90ZXh0Pgo8dGV4dCB4PSIzODAiIHk9IjM2MCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0IiBmaWxsPSIjMzMzIiB0ZXh0LWFuY2hvcj0iZW5kIj4xMDAgVVNEPC90ZXh0Pgo8dGV4dCB4PSIyMCIgeT0iMzgwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiMzMzMiPlNoaXBwaW5nPC90ZXh0Pgo8dGV4dCB4PSIzODAiIHk9IjM4MCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0IiBmaWxsPSIjMjJjNTVlIiB0ZXh0LWFuY2hvcj0iZW5kIj5GcmVlPC90ZXh0Pgo8dGV4dCB4PSIyMCIgeT0iNDA1IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTYiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjMjJjNTVlIj5Ub3RhbDwvdGV4dD4KPHR5cGUgeD0iMzgwIiB5PSI0MDUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMyMmM1NWUiIHRleHQtYW5jaG9yPSJlbmQiPjEwMCBVU0Q8L3RleHQ+CjxyZWN0IHg9IjIwIiB5PSI0MzAiIHdpZHRoPSIzNjAiIGhlaWdodD0iNTAiIGZpbGw9IiM5YjU5YjYiIHJ4PSIxMCIvPgo8dGV4dCB4PSIyMDAiIHk9IjQ1OCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE2IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U3VibWl0IE9yZGVyPC90ZXh0Pgo8cmVjdCB4PSIyMCIgeT0iNDkwIiB3aWR0aD0iMzYwIiBoZWlnaHQ9IjkwIiBmaWxsPSIjOWI1OWI2IiByeD0iMTAiLz4KPHR5cGUgeD0iMjAwIiB5PSI1MTAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UmVtYWluaW5nIG9uIG9mZmVyIPCfkqU8L3RleHQ+CjxyZWN0IHg9IjQwIiB5PSI1MjUiIHdpZHRoPSI2MCIgaGVpZ2h0PSI0MCIgZmlsbD0iI2ZmZiIgcng9IjUiLz4KPHR5cGUgeD0iNzAiIHk9IjU0OCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE4IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzliNTliNiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+MDE8L3RleHQ+Cjx0ZXh0IHg9IjExNSIgeT0iNTQ4IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTgiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj46PC90ZXh0Pgo8cmVjdCB4PSIxMzAiIHk9IjUyNSIgd2lkdGg9IjYwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjZmZmIiByeD0iNSIvPgo8dGV4dCB4PSIxNjAiIHk9IjU0OCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE4IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzliNTliNiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+MjM8L3RleHQ+Cjx0ZXh0IHg9IjIwNSIgeT0iNTQ4IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTgiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj46PC90ZXh0Pgo8cmVjdCB4PSIyMjAiIHk9IjUyNSIgd2lkdGg9IjYwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjZmZmIiByeD0iNSIvPgo8dGV4dCB4PSIyNTAiIHk9IjU0OCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE4IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzliNTliNiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+NTk8L3RleHQ+Cjx0ZXh0IHg9IjI5NSIgeT0iNTQ4IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTgiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj46PC90ZXh0Pgo8cmVjdCB4PSIzMTAiIHk9IjUyNSIgd2lkdGg9IjYwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjZmZmIiByeD0iNSIvPgo8dGV4dCB4PSIzNDAiIHk9IjU0OCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE4IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzliNTliNiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+NDA8L3RleHQ+Cjx0ZXh0IHg9IjcwIiB5PSI1NzUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RGF5czwvdGV4dD4KPHR5cGUgeD0iMTYwIiB5PSI1NzUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SHJzPC90ZXh0Pgo8dGV4dCB4PSIyNTAiIHk9IjU3NSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjEwIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5NaW5zPC90ZXh0Pgo8dGV4dCB4PSIzNDAiIHk9IjU3NSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjEwIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TZWM8L3RleHQ+Cjwvc3ZnPg==',
+    imageSrc: `data:image/svg+xml,${encodeURIComponent(`
+      <svg width="400" height="600" viewBox="0 0 400 600" xmlns="http://www.w3.org/2000/svg">
+        <rect width="400" height="600" fill="#faf5ff" stroke="#9b59b6" stroke-width="4" rx="20"/>
+        <text x="200" y="40" font-family="Arial" font-size="18" font-weight="bold" fill="#7c3aed" text-anchor="middle">Fill out the form to apply</text>
+
+        <!-- حقول الإدخال -->
+        <rect x="20" y="70" width="360" height="45" fill="#fff" stroke="#9b59b6" stroke-width="2" rx="8"/>
+        <text x="30" y="90" font-family="Arial" font-size="14" fill="#333">Full Name *</text>
+        <text x="30" y="105" font-family="Arial" font-size="12" fill="#9b59b6">👤 Enter full name</text>
+
+        <rect x="20" y="130" width="360" height="45" fill="#fff" stroke="#9b59b6" stroke-width="2" rx="8"/>
+        <text x="30" y="150" font-family="Arial" font-size="14" fill="#333">Phone Number *</text>
+        <text x="30" y="165" font-family="Arial" font-size="12" fill="#9b59b6">📞 Enter phone number</text>
+
+        <rect x="20" y="190" width="360" height="45" fill="#fff" stroke="#9b59b6" stroke-width="2" rx="8"/>
+        <text x="30" y="210" font-family="Arial" font-size="14" fill="#333">City *</text>
+        <text x="30" y="225" font-family="Arial" font-size="12" fill="#9b59b6">📍 Enter city</text>
+
+        <rect x="20" y="250" width="360" height="80" fill="#fff" stroke="#9b59b6" stroke-width="2" rx="8"/>
+        <text x="30" y="270" font-family="Arial" font-size="14" fill="#333">Address *</text>
+        <text x="30" y="285" font-family="Arial" font-size="12" fill="#9b59b6">Enter full address</text>
+
+        <!-- المجموع -->
+        <text x="20" y="360" font-family="Arial" font-size="14" fill="#333">Subtotal</text>
+        <text x="380" y="360" font-family="Arial" font-size="14" fill="#333" text-anchor="end">100 USD</text>
+        <text x="20" y="380" font-family="Arial" font-size="14" fill="#333">Shipping</text>
+        <text x="380" y="380" font-family="Arial" font-size="14" fill="#22c55e" text-anchor="end">Free</text>
+        <text x="20" y="405" font-family="Arial" font-size="16" font-weight="bold" fill="#22c55e">Total</text>
+        <text x="380" y="405" font-family="Arial" font-size="16" font-weight="bold" fill="#22c55e" text-anchor="end">100 USD</text>
+
+        <!-- زر الطلب -->
+        <rect x="20" y="430" width="360" height="50" fill="#9b59b6" rx="10"/>
+        <text x="200" y="458" font-family="Arial" font-size="16" font-weight="bold" fill="#fff" text-anchor="middle">Submit Order</text>
+
+        <!-- مؤقت العرض -->
+        <rect x="20" y="490" width="360" height="90" fill="#9b59b6" rx="10"/>
+        <text x="200" y="510" font-family="Arial" font-size="14" fill="#fff" text-anchor="middle">Remaining on offer ⏰</text>
+
+        <!-- صناديق المؤقت -->
+        <rect x="40" y="525" width="60" height="40" fill="#fff" rx="5"/>
+        <text x="70" y="548" font-family="Arial" font-size="18" font-weight="bold" fill="#9b59b6" text-anchor="middle">01</text>
+        <text x="115" y="548" font-family="Arial" font-size="18" font-weight="bold" fill="#fff" text-anchor="middle">:</text>
+
+        <rect x="130" y="525" width="60" height="40" fill="#fff" rx="5"/>
+        <text x="160" y="548" font-family="Arial" font-size="18" font-weight="bold" fill="#9b59b6" text-anchor="middle">23</text>
+        <text x="205" y="548" font-family="Arial" font-size="18" font-weight="bold" fill="#fff" text-anchor="middle">:</text>
+
+        <rect x="220" y="525" width="60" height="40" fill="#fff" rx="5"/>
+        <text x="250" y="548" font-family="Arial" font-size="18" font-weight="bold" fill="#9b59b6" text-anchor="middle">59</text>
+        <text x="295" y="548" font-family="Arial" font-size="18" font-weight="bold" fill="#fff" text-anchor="middle">:</text>
+
+        <rect x="310" y="525" width="60" height="40" fill="#fff" rx="5"/>
+        <text x="340" y="548" font-family="Arial" font-size="18" font-weight="bold" fill="#9b59b6" text-anchor="middle">40</text>
+
+        <!-- تسميات المؤقت -->
+        <text x="70" y="575" font-family="Arial" font-size="10" fill="#fff" text-anchor="middle">Days</text>
+        <text x="160" y="575" font-family="Arial" font-size="10" fill="#fff" text-anchor="middle">Hrs</text>
+        <text x="250" y="575" font-family="Arial" font-size="10" fill="#fff" text-anchor="middle">Mins</text>
+        <text x="340" y="575" font-family="Arial" font-size="10" fill="#fff" text-anchor="middle">Sec</text>
+      </svg>
+    `)}`,
     title: {
       ar: 'نموذج بنفسجي مع مؤقت',
       en: 'Purple Form with Timer'
