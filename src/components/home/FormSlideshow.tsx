@@ -142,83 +142,134 @@ const FormSlideshow: React.FC = () => {
   };
 
   return (
-    <div className="relative w-full max-w-md mx-auto">
-      {/* الحاوية الرئيسية للعرض */}
-      <div className="relative overflow-hidden">
-        {/* النموذج الحالي */}
-        <div className="relative">
-          {renderCurrentForm()}
-        </div>
+    <div className="w-full">
+      {/* التخطيط الجديد - الصورة والوصف جنباً إلى جنب */}
+      <div className="flex flex-col lg:flex-row items-center gap-8 max-w-6xl mx-auto">
 
-        {/* أزرار التنقل */}
-        <button
-          onClick={goToPrevious}
-          className="absolute left-3 top-1/2 -translate-y-1/2 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white rounded-full p-3 shadow-xl transition-all duration-300 hover:scale-110 z-20"
-          aria-label={language === 'ar' ? 'السابق' : 'Previous'}
-        >
-          <ChevronLeft className="w-5 h-5" />
-        </button>
+        {/* قسم الصورة */}
+        <div className="relative w-full lg:w-1/2 max-w-md mx-auto">
+          <div className="relative overflow-hidden">
+            {/* النموذج الحالي */}
+            <div className="relative">
+              {renderCurrentForm()}
+            </div>
 
-        <button
-          onClick={goToNext}
-          className="absolute right-3 top-1/2 -translate-y-1/2 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white rounded-full p-3 shadow-xl transition-all duration-300 hover:scale-110 z-20"
-          aria-label={language === 'ar' ? 'التالي' : 'Next'}
-        >
-          <ChevronRight className="w-5 h-5" />
-        </button>
-
-        {/* مؤشرات الشرائح */}
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2 bg-black/20 backdrop-blur-sm rounded-full px-4 py-2">
-          {formTemplates.map((_, index) => (
+            {/* أزرار التنقل */}
             <button
-              key={index}
-              onClick={() => goToSlide(index)}
-              className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                index === currentSlide
-                  ? 'bg-white scale-125 shadow-lg'
-                  : 'bg-white/50 hover:bg-white/75'
-              }`}
-              aria-label={`${language === 'ar' ? 'الانتقال للشريحة' : 'Go to slide'} ${index + 1}`}
-            />
-          ))}
-        </div>
+              onClick={goToPrevious}
+              className="absolute left-3 top-1/2 -translate-y-1/2 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white rounded-full p-3 shadow-xl transition-all duration-300 hover:scale-110 z-20"
+              aria-label={language === 'ar' ? 'السابق' : 'Previous'}
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
 
-        {/* شارة "مباشر" للتبديل التلقائي */}
-        {isAutoPlaying && (
-          <div className="absolute top-4 right-4 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs px-3 py-1 rounded-full flex items-center space-x-1 shadow-lg">
-            <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
-            <span className="font-medium">{language === 'ar' ? 'مباشر' : 'LIVE'}</span>
+            <button
+              onClick={goToNext}
+              className="absolute right-3 top-1/2 -translate-y-1/2 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white rounded-full p-3 shadow-xl transition-all duration-300 hover:scale-110 z-20"
+              aria-label={language === 'ar' ? 'التالي' : 'Next'}
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+
+            {/* مؤشرات الشرائح */}
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2 bg-black/20 backdrop-blur-sm rounded-full px-4 py-2">
+              {formTemplates.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => goToSlide(index)}
+                  className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                    index === currentSlide
+                      ? 'bg-white scale-125 shadow-lg'
+                      : 'bg-white/50 hover:bg-white/75'
+                  }`}
+                  aria-label={`${language === 'ar' ? 'الانتقال للشريحة' : 'Go to slide'} ${index + 1}`}
+                />
+              ))}
+            </div>
+
+            {/* شارة "مباشر" للتبديل التلقائي */}
+            {isAutoPlaying && (
+              <div className="absolute top-4 right-4 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs px-3 py-1 rounded-full flex items-center space-x-1 shadow-lg">
+                <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                <span className="font-medium">{language === 'ar' ? 'مباشر' : 'LIVE'}</span>
+              </div>
+            )}
+
+            {/* رقم الشريحة */}
+            <div className="absolute top-4 left-4 bg-black/20 backdrop-blur-sm text-white text-sm px-3 py-1 rounded-full">
+              {currentSlide + 1} / {formTemplates.length}
+            </div>
           </div>
-        )}
-
-        {/* رقم الشريحة */}
-        <div className="absolute top-4 left-4 bg-black/20 backdrop-blur-sm text-white text-sm px-3 py-1 rounded-full">
-          {currentSlide + 1} / {formTemplates.length}
-        </div>
-      </div>
-
-      {/* معلومات النموذج الحالي */}
-      <div className="mt-6 text-center">
-        <h4 className="text-lg font-bold text-gray-800 mb-2">
-          {currentTemplate.title[language]}
-        </h4>
-        <p className="text-sm text-gray-600 mb-4">
-          {currentTemplate.description[language]}
-        </p>
-
-        {/* ميزات النموذج */}
-        <div className="flex justify-center flex-wrap gap-2 mb-4">
-          {currentTemplate.features[language].map((feature, index) => (
-            <span key={index} className="bg-purple-100 text-purple-700 text-xs px-3 py-1 rounded-full">
-              {feature}
-            </span>
-          ))}
         </div>
 
-        <div className="flex justify-center space-x-4 text-xs text-gray-500">
-          <span>✨ {language === 'ar' ? 'تصميم متجاوب' : 'Responsive'}</span>
-          <span>🎨 {language === 'ar' ? 'قابل للتخصيص' : 'Customizable'}</span>
-          <span>⚡ {language === 'ar' ? 'سريع التحميل' : 'Fast Loading'}</span>
+        {/* قسم المعلومات والوصف */}
+        <div className="w-full lg:w-1/2 text-center lg:text-right space-y-6">
+          {/* العنوان الرئيسي المحسن */}
+          <div className="space-y-4">
+            <h2 className="text-4xl lg:text-5xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 bg-clip-text text-transparent leading-tight">
+              {language === 'ar' ? 'إنشاء نماذج الدفع' : 'Build Payment Forms'}
+            </h2>
+            <h3 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-green-500 to-emerald-600 bg-clip-text text-transparent">
+              {language === 'ar' ? 'نقداً عند الاستلام' : 'Cash on Delivery'}
+            </h3>
+            <p className="text-xl text-gray-600 leading-relaxed max-w-lg mx-auto lg:mx-0">
+              {language === 'ar'
+                ? 'منصة شاملة لبناء نماذج دفع مخصصة تتكامل بسلاسة مع متجرك الإلكتروني'
+                : 'An all-in-one platform to build custom payment forms that integrate seamlessly with your online store'
+              }
+            </p>
+          </div>
+
+          {/* الأزرار المحسنة */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+            <button className="group relative px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+              <span className="relative z-10 flex items-center justify-center gap-2">
+                <span>{language === 'ar' ? 'ابدأ مجاناً' : 'Start Free'}</span>
+                <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </span>
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-blue-400 rounded-2xl blur opacity-30 group-hover:opacity-50 transition-opacity"></div>
+            </button>
+
+            <button className="px-8 py-4 border-2 border-gray-300 hover:border-purple-500 text-gray-700 hover:text-purple-600 font-semibold rounded-2xl transition-all duration-300 hover:bg-purple-50">
+              {language === 'ar' ? 'تعلم المزيد' : 'Learn More'}
+            </button>
+          </div>
+
+          {/* معلومات النموذج الحالي */}
+          <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-2xl p-6 border border-purple-100">
+            <h4 className="text-xl font-bold text-gray-800 mb-3">
+              {currentTemplate.title[language]}
+            </h4>
+            <p className="text-gray-600 mb-4 leading-relaxed">
+              {currentTemplate.description[language]}
+            </p>
+
+            {/* ميزات النموذج */}
+            <div className="flex flex-wrap gap-2 mb-4 justify-center lg:justify-start">
+              {currentTemplate.features[language].map((feature, index) => (
+                <span key={index} className="bg-white text-purple-700 text-sm px-4 py-2 rounded-full shadow-sm border border-purple-200 hover:shadow-md transition-shadow">
+                  {feature}
+                </span>
+              ))}
+            </div>
+
+            <div className="flex flex-wrap gap-4 text-sm text-gray-500 justify-center lg:justify-start">
+              <span className="flex items-center gap-1">
+                <span>✨</span>
+                <span>{language === 'ar' ? 'تصميم متجاوب' : 'Responsive'}</span>
+              </span>
+              <span className="flex items-center gap-1">
+                <span>🎨</span>
+                <span>{language === 'ar' ? 'قابل للتخصيص' : 'Customizable'}</span>
+              </span>
+              <span className="flex items-center gap-1">
+                <span>⚡</span>
+                <span>{language === 'ar' ? 'سريع التحميل' : 'Fast Loading'}</span>
+              </span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
