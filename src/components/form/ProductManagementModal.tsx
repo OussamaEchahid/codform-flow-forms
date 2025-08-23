@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { ShopifyProduct } from '@/lib/shopify/types';
 import { getActiveShopId, cleanShopId } from '@/utils/shop-utils';
+import { useI18n } from '@/lib/i18n';
 
 interface ProductManagementModalProps {
   isOpen: boolean;
@@ -28,6 +29,7 @@ const ProductManagementModal: React.FC<ProductManagementModalProps> = ({
   formId,
   formTitle,
 }) => {
+  const { language, t } = useI18n();
   const [products, setProducts] = useState<ShopifyProduct[]>([]);
   const [linkedProducts, setLinkedProducts] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
@@ -128,7 +130,7 @@ const ProductManagementModal: React.FC<ProductManagementModalProps> = ({
     try {
       const rawShopId = getActiveShopId();
       if (!rawShopId) {
-        toast.error('لم يتم العثور على معرف المتجر');
+        toast.error(t('storeIdNotFound'));
         return;
       }
       
@@ -158,17 +160,17 @@ const ProductManagementModal: React.FC<ProductManagementModalProps> = ({
           toast.error('هذا المنتج مرتبط بالفعل بنموذج آخر');
           setLinkedProducts(prev => new Set([...prev, productId]));
         } else {
-          toast.error('فشل في ربط المنتج: ' + error.message);
+          toast.error(t('failedToLinkProduct') + ': ' + error.message);
         }
         return;
       }
 
       console.log('✅ تم ربط المنتج بنجاح');
       setLinkedProducts(prev => new Set([...prev, productId]));
-      toast.success('تم ربط المنتج بالنموذج بنجاح');
+      toast.success(t('productLinkedSuccessfully'));
     } catch (error) {
       console.error('❌ خطأ في ربط المنتج:', error);
-      toast.error('فشل في ربط المنتج بالنموذج');
+      toast.error(t('failedToLinkProduct'));
     } finally {
       setIsOperating(null);
     }
@@ -179,7 +181,7 @@ const ProductManagementModal: React.FC<ProductManagementModalProps> = ({
     try {
       const rawShopId = getActiveShopId();
       if (!rawShopId) {
-        toast.error('لم يتم العثور على معرف المتجر');
+        toast.error(t('storeIdNotFound'));
         return;
       }
       
@@ -195,7 +197,7 @@ const ProductManagementModal: React.FC<ProductManagementModalProps> = ({
 
       if (error) {
         console.error('خطأ في إلغاء ربط المنتج:', error);
-        toast.error('فشل في إلغاء ربط المنتج من النموذج');
+        toast.error(t('failedToUnlinkProduct'));
         return;
       }
 
@@ -204,10 +206,10 @@ const ProductManagementModal: React.FC<ProductManagementModalProps> = ({
         newSet.delete(productId);
         return newSet;
       });
-      toast.success('تم إلغاء ربط المنتج من النموذج بنجاح');
+      toast.success(t('productUnlinkedSuccessfully'));
     } catch (error) {
       console.error('خطأ في إلغاء ربط المنتج:', error);
-      toast.error('فشل في إلغاء ربط المنتج من النموذج');
+      toast.error(t('failedToUnlinkProduct'));
     } finally {
       setIsOperating(null);
     }
@@ -215,33 +217,33 @@ const ProductManagementModal: React.FC<ProductManagementModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto" dir={language === 'ar' ? 'rtl' : 'ltr'}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ShoppingBag className="h-5 w-5" />
-            إدارة المنتجات المرتبطة
+            {t('manageLinkedProducts')}
           </DialogTitle>
           <DialogDescription>
-            إدارة المنتجات المرتبطة بالنموذج: {formTitle}
+            {t('manageProductsForForm')}: {formTitle}
           </DialogDescription>
         </DialogHeader>
 
         {isLoading ? (
           <div className="flex justify-center items-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <span className="ml-2">جاري تحميل المنتجات...</span>
+            <span className={language === 'ar' ? "mr-2" : "ml-2"}>{t('loadingProductsModal')}</span>
           </div>
         ) : (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <p className="text-sm text-gray-600">
-                إجمالي المنتجات: {products.length} | المرتبطة: {linkedProducts.size}
+                {t('totalProducts')}: {products.length} | {t('linkedProductsCount')}: {linkedProducts.size}
               </p>
             </div>
 
             {products.length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-gray-500">لا توجد منتجات متاحة</p>
+                <p className="text-gray-500">{t('noProductsAvailable')}</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -300,7 +302,7 @@ const ProductManagementModal: React.FC<ProductManagementModalProps> = ({
                               ) : (
                                 <Unlink className="h-3 w-3" />
                               )}
-                              إلغاء الربط
+                              {t('unlinkProduct')}
                             </Button>
                           ) : (
                             <Button
@@ -315,7 +317,7 @@ const ProductManagementModal: React.FC<ProductManagementModalProps> = ({
                               ) : (
                                 <Link className="h-3 w-3" />
                               )}
-                              ربط
+                              {t('linkProduct')}
                             </Button>
                           )}
                         </div>
