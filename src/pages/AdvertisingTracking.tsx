@@ -48,7 +48,7 @@ import ShopifyReconnectButton from '@/components/shopify/ShopifyReconnectButton'
 
 const AdvertisingTracking = () => {
   const navigate = useNavigate();
-  const { language } = useI18n();
+  const { language, t } = useI18n();
   const { shop, shopifyConnected, loading } = useAuth();
   
   // State for pixel management
@@ -98,7 +98,7 @@ const AdvertisingTracking = () => {
 
       if (error) {
         console.error('❌ Error loading pixels (edge):', error);
-        toast.error('خطأ في تحميل البيكسلات');
+        toast.error(t('errorLoadingPixels'));
         return;
       }
 
@@ -107,7 +107,7 @@ const AdvertisingTracking = () => {
       setPixels(rows);
     } catch (error) {
       console.error('❌ Error in loadPixels:', error);
-      toast.error('خطأ في تحميل البيكسلات');
+      toast.error(t('errorLoadingPixels'));
     }
   };
 
@@ -140,7 +140,7 @@ const AdvertisingTracking = () => {
       }
     } catch (error) {
       console.error('Error loading Shopify products:', error);
-      toast.error('خطأ في تحميل المنتجات من Shopify');
+      toast.error(t('errorLoadingProducts'));
     } finally {
       setIsLoadingProducts(false);
     }
@@ -154,7 +154,7 @@ const AdvertisingTracking = () => {
 
     if (!newPixel.name || !newPixel.pixel_id) {
       console.error('❌ Missing required fields:', { name: newPixel.name, pixel_id: newPixel.pixel_id });
-      toast.error('يرجى ملء اسم البيكسل ومعرف البيكسل');
+      toast.error(t('pleaseFillPixelNameAndId'));
       return;
     }
 
@@ -352,7 +352,7 @@ const AdvertisingTracking = () => {
                       <div className="h-8 w-8 bg-blue-600 rounded-lg flex items-center justify-center">
                         <Target className="h-4 w-4 text-white" />
                       </div>
-                      <span className="font-semibold">جميع بيكسلات التتبع</span>
+                      <span className="font-semibold">{t('allPixelsTitle')}</span>
                     </div>
                   </div>
                 </CardHeader>
@@ -394,7 +394,7 @@ const AdvertisingTracking = () => {
                               <td className="py-3">{pixel.event_type}</td>
                               <td className="py-3">
                                 <Badge variant="outline">
-                                  {pixel.target_type === 'All' ? 'All Products' : 'Specific Products'}
+                                  {pixel.target_type === 'All' ? t('allProducts') : t('specificProducts')}
                                 </Badge>
                               </td>
                               <td className="py-3">
@@ -415,8 +415,8 @@ const AdvertisingTracking = () => {
                   ) : (
                     <div className="text-center py-12 text-muted-foreground">
                       <Target className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p className="text-lg font-medium mb-2">لا توجد بيكسلات</p>
-                      <p>ابدأ بإنشاء بيكسل تتبع أول</p>
+                      <p className="text-lg font-medium mb-2">{t('noPixelsFound')}</p>
+                      <p>{t('startByCreatingFirstPixel')}</p>
                     </div>
                   )}
                 </CardContent>
@@ -445,7 +445,7 @@ const AdvertisingTracking = () => {
                           onClick={() => setNewPixel({...newPixel, platform: 'Facebook'})}
                           className="h-10 text-xs"
                         >
-                          {t('facebookPixel')}
+                          Facebook
                         </Button>
                         <Button
                           type="button"
@@ -453,7 +453,7 @@ const AdvertisingTracking = () => {
                           onClick={() => setNewPixel({...newPixel, platform: 'TikTok'})}
                           className="h-10 text-xs"
                         >
-                          {t('tiktokPixel')}
+                          TikTok
                         </Button>
                         <Button
                           type="button"
@@ -461,7 +461,7 @@ const AdvertisingTracking = () => {
                           onClick={() => setNewPixel({...newPixel, platform: 'Snapchat'})}
                           className="h-10 text-xs"
                         >
-                          {t('snapchatPixel')}
+                          Snapchat
                         </Button>
                       </div>
                     </div>
@@ -473,7 +473,7 @@ const AdvertisingTracking = () => {
                         id="name"
                         value={newPixel.name}
                         onChange={(e) => setNewPixel({...newPixel, name: e.target.value})}
-                        placeholder="اسم يساعدك على تذكر هذا البيكسل"
+                        placeholder={t('pixelNamePlaceholder')}
                         className="h-10"
                       />
                     </div>
@@ -481,16 +481,16 @@ const AdvertisingTracking = () => {
                     {/* Pixel ID */}
                     <div className="space-y-2">
                       <Label htmlFor="pixel_id" className="text-sm font-medium">
-                        معرف البيكسل {newPixel.platform}
+                        {t('pixelIdLabel')} {newPixel.platform}
                       </Label>
                       <Input
                         id="pixel_id"
                         value={newPixel.pixel_id}
                         onChange={(e) => setNewPixel({...newPixel, pixel_id: e.target.value})}
                         placeholder={
-                          newPixel.platform === 'Facebook' ? 'أدخل معرف Facebook Pixel' :
-                          newPixel.platform === 'TikTok' ? 'أدخل معرف TikTok Pixel' :
-                          'أدخل معرف Snapchat Pixel'
+                          newPixel.platform === 'Facebook' ? t('enterFacebookPixelId') :
+                          newPixel.platform === 'TikTok' ? t('enterTikTokPixelId') :
+                          t('enterSnapchatPixelId')
                         }
                         className="h-10"
                       />
@@ -506,7 +506,7 @@ const AdvertisingTracking = () => {
                           onClick={() => setNewPixel({...newPixel, event_type: 'Lead'})}
                           className="flex-1 h-10"
                         >
-                          {t('lead')}
+                          Lead
                         </Button>
                         <Button
                           type="button"
@@ -514,14 +514,14 @@ const AdvertisingTracking = () => {
                           onClick={() => setNewPixel({...newPixel, event_type: 'Purchase'})}
                           className="flex-1 h-10"
                         >
-                          {t('purchase')}
+                          Purchase
                         </Button>
                       </div>
                     </div>
 
                     {/* Target */}
                     <div className="space-y-3">
-                      <Label className="text-sm font-medium">Target</Label>
+                      <Label className="text-sm font-medium">{t('target')}</Label>
                       <div className="flex gap-2">
                         <Button
                           type="button"
@@ -529,7 +529,7 @@ const AdvertisingTracking = () => {
                           onClick={() => setNewPixel({...newPixel, target_type: 'All'})}
                           className="flex-1 h-10"
                         >
-                          All
+                          {t('all')}
                         </Button>
                         <Button
                           type="button"
@@ -537,7 +537,7 @@ const AdvertisingTracking = () => {
                           onClick={() => setNewPixel({...newPixel, target_type: 'Collection'})}
                           className="flex-1 h-10"
                         >
-                          Collection
+                          {t('collection')}
                         </Button>
                         <Button
                           type="button"
@@ -545,7 +545,7 @@ const AdvertisingTracking = () => {
                           onClick={() => setNewPixel({...newPixel, target_type: 'Product'})}
                           className="flex-1 h-10"
                         >
-                          Product
+                          {t('product')}
                         </Button>
                       </div>
                     </div>
@@ -553,11 +553,11 @@ const AdvertisingTracking = () => {
                     {/* Product Selection */}
                     {newPixel.target_type === 'Product' && (
                       <div className="space-y-3">
-                        <Label className="text-sm font-medium">اختيار المنتجات</Label>
+                        <Label className="text-sm font-medium">{t('selectProducts')}</Label>
                         {isLoadingProducts ? (
                           <div className="text-center py-6">
                             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
-                            <p className="text-sm text-muted-foreground mt-2">جاري تحميل المنتجات...</p>
+                            <p className="text-sm text-muted-foreground mt-2">{t('loadingProductsPixels')}</p>
                           </div>
                         ) : (
                           <div className="max-h-40 overflow-y-auto border rounded-lg p-3 space-y-3">
@@ -598,14 +598,14 @@ const AdvertisingTracking = () => {
                               ))
                             ) : (
                               <div className="text-center py-6 text-muted-foreground">
-                                <p className="text-sm">لا توجد منتجات متاحة</p>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
+                                <p className="text-sm">{t('noProductsAvailable')}</p>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
                                   onClick={loadShopifyProducts}
                                   className="mt-2"
                                 >
-                                  إعادة التحميل
+                                  {t('reloadPixelProducts')}
                                 </Button>
                               </div>
                             )}
@@ -658,7 +658,7 @@ const AdvertisingTracking = () => {
                         }}
                         className="flex-1 h-10"
                       >
-                        Cancel
+                        {t('cancelDialog')}
                       </Button>
                     </div>
                   </div>
