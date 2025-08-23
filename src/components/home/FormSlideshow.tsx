@@ -7,44 +7,7 @@ const formTemplates = [
   {
     id: 1,
     type: 'arabic-quantity',
-    imageSrc: `data:image/svg+xml,${encodeURIComponent(`
-      <svg width="400" height="600" viewBox="0 0 400 600" xmlns="http://www.w3.org/2000/svg">
-        <rect width="400" height="600" fill="#F9FAFB" stroke="#9b87f5" stroke-width="4" rx="20"/>
-        <text x="200" y="50" font-family="Arial" font-size="20" font-weight="bold" fill="#374151" text-anchor="middle">اطلب الآن</text>
-
-        <!-- عرض الكمية الأول -->
-        <rect x="20" y="80" width="360" height="60" fill="#F0FDF4" stroke="#22c55e" stroke-width="2" rx="10"/>
-        <text x="380" y="100" font-family="Arial" font-size="14" fill="#374151" text-anchor="end" direction="rtl">اشتر 3 واحصل على 1 مجاناً</text>
-        <text x="380" y="120" font-family="Arial" font-size="18" font-weight="bold" fill="#059669" text-anchor="end">MAD 3000</text>
-        <rect x="300" y="105" width="60" height="20" fill="#22c55e" rx="10"/>
-        <text x="330" y="117" font-family="Arial" font-size="10" fill="#fff" text-anchor="middle">هدية مجانية</text>
-
-        <!-- حقول الإدخال -->
-        <rect x="20" y="160" width="360" height="40" fill="#fff" stroke="#ddd" stroke-width="1" rx="5"/>
-        <text x="380" y="180" font-family="Arial" font-size="14" fill="#999" text-anchor="end" direction="rtl">الاسم الكامل</text>
-
-        <rect x="20" y="220" width="360" height="40" fill="#fff" stroke="#ddd" stroke-width="1" rx="5"/>
-        <text x="380" y="240" font-family="Arial" font-size="14" fill="#999" text-anchor="end" direction="rtl">رقم الهاتف</text>
-
-        <rect x="20" y="280" width="360" height="40" fill="#fff" stroke="#ddd" stroke-width="1" rx="5"/>
-        <text x="380" y="300" font-family="Arial" font-size="14" fill="#999" text-anchor="end" direction="rtl">المدينة</text>
-
-        <rect x="20" y="340" width="360" height="80" fill="#fff" stroke="#ddd" stroke-width="1" rx="5"/>
-        <text x="380" y="360" font-family="Arial" font-size="14" fill="#999" text-anchor="end" direction="rtl">العنوان الكامل</text>
-
-        <!-- المجموع -->
-        <text x="20" y="460" font-family="Arial" font-size="14" fill="#374151">مجاني</text>
-        <text x="380" y="460" font-family="Arial" font-size="14" fill="#374151" text-anchor="end">MAD 5000</text>
-        <text x="20" y="480" font-family="Arial" font-size="14" fill="#374151">الشحن</text>
-        <text x="380" y="480" font-family="Arial" font-size="14" fill="#22c55e" text-anchor="end">مجاني</text>
-        <text x="20" y="505" font-family="Arial" font-size="16" font-weight="bold" fill="#059669">المجموع الكلي</text>
-        <text x="380" y="505" font-family="Arial" font-size="16" font-weight="bold" fill="#059669" text-anchor="end">MAD 5000</text>
-
-        <!-- زر الطلب -->
-        <rect x="20" y="530" width="360" height="50" fill="#9b87f5" rx="10"/>
-        <text x="200" y="558" font-family="Arial" font-size="16" font-weight="bold" fill="#fff" text-anchor="middle">إرسال الطلب</text>
-      </svg>
-    `)}`,
+    imageSrc: 'https://i.imgur.com/7uMpC6X.png',
     title: {
       ar: 'نموذج عربي مع عروض الكمية',
       en: 'Arabic Form with Quantity Offers'
@@ -62,47 +25,7 @@ const formTemplates = [
   {
     id: 2,
     type: 'blue-modern',
-    imageSrc: `data:image/svg+xml,${encodeURIComponent(`
-      <svg width="400" height="600" viewBox="0 0 400 600" xmlns="http://www.w3.org/2000/svg">
-        <rect width="400" height="600" fill="#f0f9ff" stroke="#3b82f6" stroke-width="4" rx="20"/>
-        <text x="200" y="40" font-family="Arial" font-size="20" font-weight="bold" fill="#374151" text-anchor="middle">UPLOAD</text>
-        <text x="200" y="60" font-family="Arial" font-size="20" font-weight="bold" fill="#374151" text-anchor="middle">LOGO</text>
-
-        <!-- حقول الإدخال -->
-        <rect x="20" y="100" width="360" height="45" fill="#fff" stroke="#3b82f6" stroke-width="2" rx="8"/>
-        <text x="30" y="120" font-family="Arial" font-size="14" fill="#999">Full Name *</text>
-        <text x="30" y="135" font-family="Arial" font-size="12" fill="#3b82f6">👤</text>
-
-        <rect x="20" y="160" width="360" height="45" fill="#fff" stroke="#3b82f6" stroke-width="2" rx="8"/>
-        <text x="30" y="180" font-family="Arial" font-size="14" fill="#999">Phone Number *</text>
-        <text x="30" y="195" font-family="Arial" font-size="12" fill="#3b82f6">📞</text>
-
-        <rect x="20" y="220" width="360" height="45" fill="#fff" stroke="#3b82f6" stroke-width="2" rx="8"/>
-        <text x="30" y="240" font-family="Arial" font-size="14" fill="#999">City *</text>
-        <text x="30" y="255" font-family="Arial" font-size="12" fill="#3b82f6">📍</text>
-
-        <rect x="20" y="280" width="360" height="80" fill="#fff" stroke="#3b82f6" stroke-width="2" rx="8"/>
-        <text x="30" y="300" font-family="Arial" font-size="14" fill="#999">Address *</text>
-
-        <!-- المجموع -->
-        <text x="20" y="390" font-family="Arial" font-size="14" fill="#374151">Subtotal</text>
-        <text x="380" y="390" font-family="Arial" font-size="14" fill="#374151" text-anchor="end">100 USD</text>
-        <text x="20" y="410" font-family="Arial" font-size="14" fill="#374151">Shipping</text>
-        <text x="380" y="410" font-family="Arial" font-size="14" fill="#22c55e" text-anchor="end">Free</text>
-        <text x="20" y="435" font-family="Arial" font-size="16" font-weight="bold" fill="#22c55e">Total</text>
-        <text x="380" y="435" font-family="Arial" font-size="16" font-weight="bold" fill="#22c55e" text-anchor="end">100 USD</text>
-
-        <!-- زر الطلب -->
-        <rect x="20" y="460" width="360" height="50" fill="#3b82f6" rx="10"/>
-        <text x="200" y="488" font-family="Arial" font-size="16" font-weight="bold" fill="#fff" text-anchor="middle">🛒 Submit Order</text>
-
-        <!-- شارات الثقة -->
-        <circle cx="60" cy="540" r="20" fill="#eff6ff" stroke="#3b82f6" stroke-width="2"/>
-        <text x="60" y="545" font-family="Arial" font-size="16" fill="#3b82f6" text-anchor="middle">🚚</text>
-        <circle cx="140" cy="540" r="20" fill="#eff6ff" stroke="#3b82f6" stroke-width="2"/>
-        <text x="140" y="545" font-family="Arial" font-size="16" fill="#3b82f6" text-anchor="middle">🛡</text>
-      </svg>
-    `)}`,
+    imageSrc: 'https://i.imgur.com/ZD12sUC.png',
     title: {
       ar: 'نموذج أزرق عصري',
       en: 'Blue Modern Form'
@@ -119,105 +42,8 @@ const formTemplates = [
   },
   {
     id: 3,
-    type: 'green-minimal',
-    imageSrc: `data:image/svg+xml,${encodeURIComponent(`
-      <svg width="400" height="600" viewBox="0 0 400 600" xmlns="http://www.w3.org/2000/svg">
-        <rect width="400" height="600" fill="#f0fdf4" stroke="#22c55e" stroke-width="4" rx="20"/>
-        <text x="200" y="40" font-family="Arial" font-size="24" font-weight="bold" fill="#059669" text-anchor="middle">Fast Order</text>
-        <text x="200" y="65" font-family="Arial" font-size="14" fill="#666666" text-anchor="middle">Simple &amp; Secure</text>
-
-        <!-- حقول الإدخال -->
-        <rect x="20" y="100" width="360" height="50" fill="#fff" stroke="#ddd" stroke-width="1" rx="10"/>
-        <text x="30" y="120" font-family="Arial" font-size="14" fill="#999">Name</text>
-        <text x="350" y="135" font-family="Arial" font-size="18" fill="#22c55e" text-anchor="end">👤</text>
-
-        <rect x="20" y="170" width="360" height="50" fill="#fff" stroke="#ddd" stroke-width="1" rx="10"/>
-        <text x="30" y="190" font-family="Arial" font-size="14" fill="#999">Phone</text>
-        <text x="350" y="205" font-family="Arial" font-size="18" fill="#22c55e" text-anchor="end">📞</text>
-
-        <rect x="20" y="240" width="360" height="50" fill="#fff" stroke="#ddd" stroke-width="1" rx="10"/>
-        <text x="30" y="260" font-family="Arial" font-size="14" fill="#999">City</text>
-        <text x="350" y="275" font-family="Arial" font-size="18" fill="#22c55e" text-anchor="end">📍</text>
-
-        <rect x="20" y="310" width="360" height="80" fill="#fff" stroke="#ddd" stroke-width="1" rx="10"/>
-        <text x="30" y="330" font-family="Arial" font-size="14" fill="#999">Address</text>
-        <text x="350" y="345" font-family="Arial" font-size="18" fill="#22c55e" text-anchor="end">📍</text>
-
-        <!-- المجموع -->
-        <rect x="20" y="420" width="360" height="60" fill="#f0fdf4" stroke="#22c55e" stroke-width="2" rx="10"/>
-        <text x="30" y="440" font-family="Arial" font-size="14" fill="#059669">Total Price</text>
-        <text x="350" y="440" font-family="Arial" font-size="18" font-weight="bold" fill="#059669" text-anchor="end">75 USD</text>
-        <text x="30" y="460" font-family="Arial" font-size="12" fill="#22c55e">Free Shipping</text>
-
-        <!-- زر الطلب -->
-        <rect x="20" y="500" width="360" height="50" fill="#22c55e" rx="10"/>
-        <text x="200" y="528" font-family="Arial" font-size="16" font-weight="bold" fill="#fff" text-anchor="middle">Order Now</text>
-
-        <!-- شارات الثقة -->
-        <circle cx="100" cy="570" r="15" fill="#22c55e"/>
-        <text x="100" y="575" font-family="Arial" font-size="12" fill="#fff" text-anchor="middle">✓</text>
-        <text x="125" y="575" font-family="Arial" font-size="12" fill="#059669">Secure Payment</text>
-        <circle cx="300" cy="570" r="15" fill="#22c55e"/>
-        <text x="300" y="575" font-family="Arial" font-size="12" fill="#fff" text-anchor="middle">😊</text>
-        <text x="325" y="575" font-family="Arial" font-size="12" fill="#059669">Fast Delivery</text>
-      </svg>
-    `)}`,
-    title: {
-      ar: 'نموذج أخضر بسيط',
-      en: 'Green Minimal Form'
-    },
-    description: {
-      ar: 'تصميم بسيط وأنيق باللون الأخضر',
-      en: 'Simple and elegant green design'
-    },
-    theme: 'green',
-    features: {
-      ar: ['تصميم بسيط', 'سهولة الاستخدام', 'ألوان هادئة'],
-      en: ['Simple Design', 'Easy to Use', 'Calm Colors']
-    }
-  },
-  {
-    id: 4,
-    type: 'black-white',
-    imageSrc: `data:image/svg+xml,${encodeURIComponent(`
-      <svg width="400" height="600" viewBox="0 0 400 600" xmlns="http://www.w3.org/2000/svg">
-        <rect width="400" height="600" fill="#fff" stroke="#333" stroke-width="4" rx="20"/>
-        <text x="200" y="40" font-family="Arial" font-size="20" font-weight="bold" fill="#333" text-anchor="middle">UPLOAD</text>
-        <text x="200" y="60" font-family="Arial" font-size="20" font-weight="bold" fill="#333" text-anchor="middle">LOGO</text>
-
-        <!-- حقول الإدخال -->
-        <rect x="20" y="100" width="360" height="45" fill="#fff" stroke="#ccc" stroke-width="1" rx="8"/>
-        <text x="30" y="120" font-family="Arial" font-size="14" fill="#333">Full Name *</text>
-        <text x="30" y="135" font-family="Arial" font-size="12" fill="#999">👤 Enter full name</text>
-
-        <rect x="20" y="160" width="360" height="45" fill="#fff" stroke="#ccc" stroke-width="1" rx="8"/>
-        <text x="30" y="180" font-family="Arial" font-size="14" fill="#333">Phone Number *</text>
-        <text x="30" y="195" font-family="Arial" font-size="12" fill="#999">📞 Enter phone number</text>
-
-        <rect x="20" y="220" width="360" height="45" fill="#fff" stroke="#ccc" stroke-width="1" rx="8"/>
-        <text x="30" y="240" font-family="Arial" font-size="14" fill="#333">City *</text>
-        <text x="30" y="255" font-family="Arial" font-size="12" fill="#999">📍 Enter city</text>
-
-        <rect x="20" y="280" width="360" height="80" fill="#fff" stroke="#ccc" stroke-width="1" rx="8"/>
-        <text x="30" y="300" font-family="Arial" font-size="14" fill="#333">Address *</text>
-        <text x="30" y="315" font-family="Arial" font-size="12" fill="#999">Enter full address</text>
-
-        <!-- المجموع -->
-        <text x="20" y="390" font-family="Arial" font-size="14" fill="#333">Subtotal</text>
-        <text x="380" y="390" font-family="Arial" font-size="14" fill="#333" text-anchor="end">100 USD</text>
-        <text x="20" y="410" font-family="Arial" font-size="14" fill="#333">Shipping</text>
-        <text x="380" y="410" font-family="Arial" font-size="14" fill="#22c55e" text-anchor="end">Free</text>
-        <text x="20" y="435" font-family="Arial" font-size="16" font-weight="bold" fill="#22c55e">Total</text>
-        <text x="380" y="435" font-family="Arial" font-size="16" font-weight="bold" fill="#22c55e" text-anchor="end">100 USD</text>
-
-        <!-- أزرار الطلب -->
-        <rect x="20" y="460" width="360" height="50" fill="#000" rx="10"/>
-        <text x="200" y="488" font-family="Arial" font-size="16" font-weight="bold" fill="#fff" text-anchor="middle">🛒 Submit Order</text>
-
-        <rect x="20" y="520" width="360" height="50" fill="#22c55e" rx="10"/>
-        <text x="200" y="548" font-family="Arial" font-size="16" font-weight="bold" fill="#fff" text-anchor="middle">💬 Order by WhatsApp</text>
-      </svg>
-    `)}`,
+    type: 'black-white-professional',
+    imageSrc: 'https://i.imgur.com/VUPLrpu.png',
     title: {
       ar: 'نموذج احترافي أبيض وأسود',
       en: 'Black & White Professional Form'
@@ -233,69 +59,9 @@ const formTemplates = [
     }
   },
   {
-    id: 5,
+    id: 4,
     type: 'purple-timer',
-    imageSrc: `data:image/svg+xml,${encodeURIComponent(`
-      <svg width="400" height="600" viewBox="0 0 400 600" xmlns="http://www.w3.org/2000/svg">
-        <rect width="400" height="600" fill="#faf5ff" stroke="#9b59b6" stroke-width="4" rx="20"/>
-        <text x="200" y="40" font-family="Arial" font-size="18" font-weight="bold" fill="#7c3aed" text-anchor="middle">Fill out the form to apply</text>
-
-        <!-- حقول الإدخال -->
-        <rect x="20" y="70" width="360" height="45" fill="#fff" stroke="#9b59b6" stroke-width="2" rx="8"/>
-        <text x="30" y="90" font-family="Arial" font-size="14" fill="#333">Full Name *</text>
-        <text x="30" y="105" font-family="Arial" font-size="12" fill="#9b59b6">👤 Enter full name</text>
-
-        <rect x="20" y="130" width="360" height="45" fill="#fff" stroke="#9b59b6" stroke-width="2" rx="8"/>
-        <text x="30" y="150" font-family="Arial" font-size="14" fill="#333">Phone Number *</text>
-        <text x="30" y="165" font-family="Arial" font-size="12" fill="#9b59b6">📞 Enter phone number</text>
-
-        <rect x="20" y="190" width="360" height="45" fill="#fff" stroke="#9b59b6" stroke-width="2" rx="8"/>
-        <text x="30" y="210" font-family="Arial" font-size="14" fill="#333">City *</text>
-        <text x="30" y="225" font-family="Arial" font-size="12" fill="#9b59b6">📍 Enter city</text>
-
-        <rect x="20" y="250" width="360" height="80" fill="#fff" stroke="#9b59b6" stroke-width="2" rx="8"/>
-        <text x="30" y="270" font-family="Arial" font-size="14" fill="#333">Address *</text>
-        <text x="30" y="285" font-family="Arial" font-size="12" fill="#9b59b6">Enter full address</text>
-
-        <!-- المجموع -->
-        <text x="20" y="360" font-family="Arial" font-size="14" fill="#333">Subtotal</text>
-        <text x="380" y="360" font-family="Arial" font-size="14" fill="#333" text-anchor="end">100 USD</text>
-        <text x="20" y="380" font-family="Arial" font-size="14" fill="#333">Shipping</text>
-        <text x="380" y="380" font-family="Arial" font-size="14" fill="#22c55e" text-anchor="end">Free</text>
-        <text x="20" y="405" font-family="Arial" font-size="16" font-weight="bold" fill="#22c55e">Total</text>
-        <text x="380" y="405" font-family="Arial" font-size="16" font-weight="bold" fill="#22c55e" text-anchor="end">100 USD</text>
-
-        <!-- زر الطلب -->
-        <rect x="20" y="430" width="360" height="50" fill="#9b59b6" rx="10"/>
-        <text x="200" y="458" font-family="Arial" font-size="16" font-weight="bold" fill="#fff" text-anchor="middle">Submit Order</text>
-
-        <!-- مؤقت العرض -->
-        <rect x="20" y="490" width="360" height="90" fill="#9b59b6" rx="10"/>
-        <text x="200" y="510" font-family="Arial" font-size="14" fill="#fff" text-anchor="middle">Remaining on offer ⏰</text>
-
-        <!-- صناديق المؤقت -->
-        <rect x="40" y="525" width="60" height="40" fill="#fff" rx="5"/>
-        <text x="70" y="548" font-family="Arial" font-size="18" font-weight="bold" fill="#9b59b6" text-anchor="middle">01</text>
-        <text x="115" y="548" font-family="Arial" font-size="18" font-weight="bold" fill="#fff" text-anchor="middle">:</text>
-
-        <rect x="130" y="525" width="60" height="40" fill="#fff" rx="5"/>
-        <text x="160" y="548" font-family="Arial" font-size="18" font-weight="bold" fill="#9b59b6" text-anchor="middle">23</text>
-        <text x="205" y="548" font-family="Arial" font-size="18" font-weight="bold" fill="#fff" text-anchor="middle">:</text>
-
-        <rect x="220" y="525" width="60" height="40" fill="#fff" rx="5"/>
-        <text x="250" y="548" font-family="Arial" font-size="18" font-weight="bold" fill="#9b59b6" text-anchor="middle">59</text>
-        <text x="295" y="548" font-family="Arial" font-size="18" font-weight="bold" fill="#fff" text-anchor="middle">:</text>
-
-        <rect x="310" y="525" width="60" height="40" fill="#fff" rx="5"/>
-        <text x="340" y="548" font-family="Arial" font-size="18" font-weight="bold" fill="#9b59b6" text-anchor="middle">40</text>
-
-        <!-- تسميات المؤقت -->
-        <text x="70" y="575" font-family="Arial" font-size="10" fill="#fff" text-anchor="middle">Days</text>
-        <text x="160" y="575" font-family="Arial" font-size="10" fill="#fff" text-anchor="middle">Hrs</text>
-        <text x="250" y="575" font-family="Arial" font-size="10" fill="#fff" text-anchor="middle">Mins</text>
-        <text x="340" y="575" font-family="Arial" font-size="10" fill="#fff" text-anchor="middle">Sec</text>
-      </svg>
-    `)}`,
+    imageSrc: 'https://i.imgur.com/axtzGlM.png',
     title: {
       ar: 'نموذج بنفسجي مع مؤقت',
       en: 'Purple Form with Timer'
