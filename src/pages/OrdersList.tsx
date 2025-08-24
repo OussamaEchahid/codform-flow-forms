@@ -402,33 +402,40 @@ const OrdersList = () => {
     }
   };
 
-  // Extract real price from order data
+  // Extract real price from order data and convert to USD
   const extractOrderPrice = (order) => {
+    let amount = 0;
+
     // First priority: use total_amount (this is the final price after discounts)
     if (order.total_amount && parseFloat(order.total_amount) > 0) {
-      return parseFloat(order.total_amount).toFixed(2);
+      amount = parseFloat(order.total_amount);
     }
-
-    // Second priority: try to get price from items (but don't multiply by quantity for display)
-    if (order.items && Array.isArray(order.items) && order.items.length > 0) {
-      // For display purposes, use the stored price in items (which should be the final total)
+    // Second priority: try to get price from items
+    else if (order.items && Array.isArray(order.items) && order.items.length > 0) {
       const firstItem = order.items[0];
       if (firstItem.price && parseFloat(firstItem.price) > 0) {
-        return parseFloat(firstItem.price).toFixed(2);
+        amount = parseFloat(firstItem.price);
       }
     }
-
     // Last fallback - check if there's form data with converted price
-    if (order.form_data) {
+    else if (order.form_data) {
       const formData = typeof order.form_data === 'string' ?
         JSON.parse(order.form_data) : order.form_data;
 
       if (formData.extractedPrice && parseFloat(formData.extractedPrice) > 0) {
-        return parseFloat(formData.extractedPrice).toFixed(2);
+        amount = parseFloat(formData.extractedPrice);
       }
     }
 
-    return "0.00";
+    // ✅ تحويل إلى USD إذا كانت العملة المحفوظة ليست USD
+    const orderCurrency = order.currency || 'USD';
+    if (orderCurrency !== 'USD' && amount > 0) {
+      const rates = { 'USD': 1.0, 'SAR': 3.75, 'AED': 3.67, 'MAD': 10.0, 'EUR': 0.85 };
+      const fromRate = rates[orderCurrency] || 1;
+      amount = amount / fromRate; // تحويل إلى USD
+    }
+
+    return amount > 0 ? amount.toFixed(2) : "0.00";
   };
 
   // Handle saving order changes
@@ -719,7 +726,7 @@ const OrdersList = () => {
                       <TableCell>{new Date(order.created_at || order.date).toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US')}</TableCell>
                       <TableCell className="text-center">{Array.isArray(order.items) ? order.items.length : order.items || 0}</TableCell>
                       <TableCell className="font-medium">
-                        {extractOrderPrice(order)} {order.currency || 'USD'}
+                        ${extractOrderPrice(order)}
                       </TableCell>
                       <TableCell>{getStatusBadge(order.status)}</TableCell>
                       <TableCell>
