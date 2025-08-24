@@ -216,7 +216,7 @@ const FormSlideshow: React.FC = () => {
             <h3 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-green-500 to-emerald-600 bg-clip-text text-transparent">
               {language === 'ar' ? 'نقداً عند الاستلام' : 'Cash on Delivery'}
             </h3>
-            <p className="text-xl text-gray-600 leading-relaxed max-w-lg">
+            <p className="text-xl text-gray-600 leading-relaxed">
               {language === 'ar'
                 ? 'منصة شاملة لبناء نماذج دفع مخصصة تتكامل بسلاسة مع متجرك الإلكتروني'
                 : 'An all-in-one platform to build custom payment forms that integrate seamlessly with your online store'
