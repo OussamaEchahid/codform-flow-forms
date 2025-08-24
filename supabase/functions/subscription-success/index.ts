@@ -139,15 +139,15 @@ serve(async (req) => {
                 <p>يمكنك الآن الاستفادة من جميع مميزات خطتك الجديدة.</p>
             </div>
             
-            <p>سيتم توجيهك إلى لوحة التحكم خلال ثوانٍ قليلة.</p>
-            <a href="https://codmagnet.com/dashboard" class="btn">الذهاب إلى لوحة التحكم</a>
+            <p>سيتم توجيهك إلى صفحة الخطط خلال ثوانٍ قليلة.</p>
+            <a href="https://codmagnet.com/plans" class="btn">الذهاب إلى صفحة الخطط</a>
         </div>
 
         <script>
-            // التوجيه التلقائي بعد 5 ثوان
+            // التوجيه التلقائي بعد 3 ثوان إلى صفحة الخطط
             setTimeout(() => {
-                window.location.href = 'https://codmagnet.com/dashboard';
-            }, 5000);
+                window.location.href = 'https://codmagnet.com/plans';
+            }, 3000);
         </script>
     </body>
     </html>
