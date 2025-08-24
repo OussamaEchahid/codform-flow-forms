@@ -48,198 +48,26 @@ serve(async (req) => {
 
     console.log('✅ Subscription confirmed successfully:', data);
 
-    // إنشاء صفحة HTML للنجاح
-    const successPage = `
-    <!DOCTYPE html>
-    <html lang="ar" dir="rtl">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>تم تفعيل الاشتراك بنجاح</title>
-        <style>
-            body {
-                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                margin: 0;
-                padding: 20px;
-                min-height: 100vh;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-            .success-container {
-                background: white;
-                border-radius: 15px;
-                padding: 40px;
-                text-align: center;
-                box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-                max-width: 500px;
-                width: 100%;
-            }
-            .checkmark {
-                width: 80px;
-                height: 80px;
-                border-radius: 50%;
-                background: #22c55e;
-                margin: 0 auto 20px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                color: white;
-                font-size: 40px;
-            }
-            h1 {
-                color: #1f2937;
-                margin: 20px 0;
-                font-size: 28px;
-            }
-            p {
-                color: #6b7280;
-                line-height: 1.6;
-                font-size: 16px;
-                margin: 15px 0;
-            }
-            .plan-info {
-                background: #f8fafc;
-                border-radius: 10px;
-                padding: 20px;
-                margin: 20px 0;
-                border-left: 4px solid #22c55e;
-            }
-            .plan-name {
-                font-weight: bold;
-                color: #1f2937;
-                font-size: 18px;
-            }
-            .btn {
-                background: #667eea;
-                color: white;
-                border: none;
-                padding: 12px 30px;
-                border-radius: 8px;
-                text-decoration: none;
-                display: inline-block;
-                margin-top: 20px;
-                font-size: 16px;
-                transition: background 0.3s;
-            }
-            .btn:hover {
-                background: #5a67d8;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="success-container">
-            <div class="checkmark">✓</div>
-            <h1>تم تفعيل الاشتراك بنجاح!</h1>
-            <p>تهانينا! لقد تم تفعيل اشتراكك في CODMagnet بنجاح.</p>
-            
-            <div class="plan-info">
-                <div class="plan-name">خطة ${plan === 'basic' ? 'الأساسية' : plan === 'premium' ? 'المتقدمة' : plan}</div>
-                <p>يمكنك الآن الاستفادة من جميع مميزات خطتك الجديدة.</p>
-            </div>
-            
-            <p>سيتم توجيهك إلى صفحة الخطط خلال ثوانٍ قليلة.</p>
-            <a href="https://codmagnet.com/plans" class="btn">الذهاب إلى صفحة الخطط</a>
-        </div>
-
-        <script>
-            // التوجيه التلقائي بعد 3 ثوان إلى صفحة الخطط
-            setTimeout(() => {
-                window.location.href = 'https://codmagnet.com/plans';
-            }, 3000);
-        </script>
-    </body>
-    </html>
-    `;
-
-    return new Response(successPage, {
-      headers: { ...corsHeaders, 'Content-Type': 'text/html; charset=utf-8' },
-      status: 200,
+    // إعادة توجيه مباشرة إلى صفحة الخطط
+    return new Response(null, {
+      headers: { 
+        ...corsHeaders, 
+        'Location': 'https://codmagnet.com/plans?success=true&plan=' + plan 
+      },
+      status: 302,
     });
 
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error('subscription-success error:', message);
     
-    // صفحة خطأ
-    const errorPage = `
-    <!DOCTYPE html>
-    <html lang="ar" dir="rtl">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>خطأ في تفعيل الاشتراك</title>
-        <style>
-            body {
-                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-                margin: 0;
-                padding: 20px;
-                min-height: 100vh;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-            .error-container {
-                background: white;
-                border-radius: 15px;
-                padding: 40px;
-                text-align: center;
-                box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-                max-width: 500px;
-                width: 100%;
-            }
-            .error-icon {
-                width: 80px;
-                height: 80px;
-                border-radius: 50%;
-                background: #ef4444;
-                margin: 0 auto 20px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                color: white;
-                font-size: 40px;
-            }
-            h1 {
-                color: #1f2937;
-                margin: 20px 0;
-                font-size: 28px;
-            }
-            p {
-                color: #6b7280;
-                line-height: 1.6;
-                font-size: 16px;
-                margin: 15px 0;
-            }
-            .btn {
-                background: #667eea;
-                color: white;
-                border: none;
-                padding: 12px 30px;
-                border-radius: 8px;
-                text-decoration: none;
-                display: inline-block;
-                margin-top: 20px;
-                font-size: 16px;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="error-container">
-            <div class="error-icon">✗</div>
-            <h1>حدث خطأ أثناء تفعيل الاشتراك</h1>
-            <p>عذراً، حدث خطأ أثناء تفعيل اشتراكك. يرجى المحاولة مرة أخرى أو التواصل مع الدعم الفني.</p>
-            <a href="https://codmagnet.com/plans" class="btn">العودة إلى الخطط</a>
-        </div>
-    </body>
-    </html>
-    `;
-
-    return new Response(errorPage, {
-      headers: { ...corsHeaders, 'Content-Type': 'text/html; charset=utf-8' },
-      status: 500,
+    // إعادة توجيه إلى الخطط مع رسالة خطأ
+    return new Response(null, {
+      headers: { 
+        ...corsHeaders, 
+        'Location': 'https://codmagnet.com/plans?error=true' 
+      },
+      status: 302,
     });
   }
 });
