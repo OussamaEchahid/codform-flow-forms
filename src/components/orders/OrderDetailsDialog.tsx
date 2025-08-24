@@ -178,7 +178,16 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
 
   // Get actual quantity from form submission data or quantity offers
   const getActualQuantity = () => {
-    // First check if quantity is already stored in order items (this is the most reliable)
+    // ✅ للطلبات العادية (بدون عروض كمية)، الكمية دائماً 1
+    // تحقق أولاً إذا كان هناك عروض كمية مفعلة
+    const hasQuantityOffers = quantityOfferData && quantityOfferData.enabled && quantityOfferData.offers && quantityOfferData.offers.length > 0;
+
+    if (!hasQuantityOffers) {
+      console.log('📦 No quantity offers enabled, using standard quantity: 1');
+      return 1;
+    }
+
+    // إذا كانت هناك عروض كمية، تحقق من الكمية المخزنة
     if (orderItems.length > 0 && orderItems[0].quantity) {
       const storedQuantity = parseInt(orderItems[0].quantity);
 
@@ -191,15 +200,15 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
         }
       }
 
-      // For other cases, trust the stored quantity if it's reasonable
-      if (storedQuantity > 0 && storedQuantity <= 10) {
+      // For quantity offers, trust the stored quantity if it's reasonable
+      if (storedQuantity > 1 && storedQuantity <= 10) {
+        console.log('🎯 Using stored quantity from quantity offer:', storedQuantity);
         return storedQuantity;
       }
     }
 
-    // ✅ الكمية دائماً 1 للطلبات العادية (بدون عروض كمية)
-    // النموذج لا يدعم كميات متعددة، فقط طلب واحد
-    console.log('� Setting quantity to 1 (standard form order)');
+    // ✅ الكمية الافتراضية 1 للطلبات العادية
+    console.log('📦 Setting default quantity to 1 (standard form order)');
     return 1;
   };
 

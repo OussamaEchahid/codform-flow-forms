@@ -323,13 +323,9 @@ function calculateQuantityFromPrice(totalPrice: number, formData: any, productDa
           return calculatedQty;
         }
       } else {
-        // احتياطي: استخدام الحساب التقليدي
-        console.log('⚠️ No product data available, using fallback calculation');
-        const calculatedQty = Math.round(extractedPrice / 1.0); // افتراض 1 USD للوحدة
-        if (calculatedQty > 0 && calculatedQty <= 20) {
-          console.log('📊 Fallback calculated quantity:', calculatedQty);
-          return calculatedQty;
-        }
+        // احتياطي: للطلبات العادية (بدون عروض كمية) الكمية دائماً 1
+        console.log('⚠️ No product data available, using default quantity 1 for standard orders');
+        return 1; // الطلبات العادية دائماً كمية واحدة
       }
     }
   }
