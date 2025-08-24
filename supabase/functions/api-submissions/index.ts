@@ -176,6 +176,33 @@ function extractCustomerData(formData: any, formSettings: any = {}): {
   return { name, email, phone, city, address };
 }
 
+// معدلات التحويل الافتراضية (نفس المعدلات في الإكستنشن)
+const EXCHANGE_RATES = {
+  'USD': 1.0,
+  'SAR': 3.75,
+  'AED': 3.67,
+  'EGP': 30.85,
+  'MAD': 10.0,  // 10 درهم مغربي = 1 دولار
+  'EUR': 0.85,
+  'GBP': 0.75,
+  'CAD': 1.35
+};
+
+// دالة تحويل العملة
+function convertCurrency(amount: number, fromCurrency: string, toCurrency: string): number {
+  if (fromCurrency === toCurrency) return amount;
+
+  const fromRate = EXCHANGE_RATES[fromCurrency as keyof typeof EXCHANGE_RATES] || 1;
+  const toRate = EXCHANGE_RATES[toCurrency as keyof typeof EXCHANGE_RATES] || 1;
+
+  // تحويل إلى USD أولاً، ثم إلى العملة المطلوبة
+  const usdAmount = amount / fromRate;
+  const convertedAmount = usdAmount * toRate;
+
+  console.log(`🔄 Currency conversion: ${amount} ${fromCurrency} -> ${convertedAmount.toFixed(2)} ${toCurrency} (rates: ${fromRate} -> ${toRate})`);
+  return convertedAmount;
+}
+
 // دالة استخراج السعر المحول من بيانات النموذج - محسنة
 function extractConvertedPrice(formData: any): { price: number; currency: string } {
   console.log('💰 Extracting converted price from form data:', formData);
@@ -183,8 +210,10 @@ function extractConvertedPrice(formData: any): { price: number; currency: string
   // الأولوية الأولى: السعر المحول المحفوظ في البيانات المرسلة مباشرة من الفرونت إند
   if (formData.extractedPrice && parseFloat(formData.extractedPrice) > 0) {
     const price = parseFloat(formData.extractedPrice);
-    const currency = formData.extractedCurrency || 'SAR';
-    console.log('🎯 Using saved converted price from frontend:', price, currency);
+    const currency = formData.extractedCurrency || 'USD'; // العملة المحولة بالفعل
+
+    // ⚠️ هذا السعر مُحوَّل بالفعل من Cart Summary - لا نحوله مرة أخرى!
+    console.log('🎯 Using ALREADY CONVERTED price from frontend:', price, currency);
     return { price, currency };
   }
   
@@ -192,8 +221,10 @@ function extractConvertedPrice(formData: any): { price: number; currency: string
   if (formData.data && typeof formData.data === 'object') {
     if (formData.data.extractedPrice && parseFloat(formData.data.extractedPrice) > 0) {
       const price = parseFloat(formData.data.extractedPrice);
-      const currency = formData.data.extractedCurrency || 'SAR';
-      console.log('🎯 Using saved converted price from nested data:', price, currency);
+      const currency = formData.data.extractedCurrency || 'USD';
+
+      // ⚠️ هذا السعر مُحوَّل بالفعل من Cart Summary - لا نحوله مرة أخرى!
+      console.log('🎯 Using ALREADY CONVERTED price from nested data:', price, currency);
       return { price, currency };
     }
   }
@@ -202,10 +233,13 @@ function extractConvertedPrice(formData: any): { price: number; currency: string
   if (formData.selectedOffer || formData.quantityOffer) {
     const offer = formData.selectedOffer || formData.quantityOffer;
     if (offer && typeof offer === 'object') {
-      const price = parseFloat(offer.price || offer.total || offer.amount);
-      const currency = offer.currency || formData.currency || 'SAR';
+      // البحث في الحقول المختلفة لعروض الكمية
+      const price = parseFloat(offer.finalPrice || offer.price || offer.total || offer.amount);
+      const currency = offer.currency || formData.currency || 'USD';
+
       if (price && price > 0) {
-        console.log('💰 Found price from selected offer:', price, currency);
+        // ⚠️ هذا السعر مُحوَّل بالفعل من عروض الكمية - لا نحوله مرة أخرى!
+        console.log('💰 Found ALREADY CONVERTED price from selected offer:', price, currency, 'offer:', offer);
         return { price, currency };
       }
     }
@@ -294,7 +328,7 @@ function calculateQuantityFromPrice(totalPrice: number, formData: any): number {
       if (offer && typeof offer === 'object') {
         const qty = parseInt(offer.quantity || offer.qty);
         if (!isNaN(qty) && qty > 0) {
-          console.log('✅ Found quantity from selected offer:', qty);
+          console.log('✅ Found quantity from selected offer:', qty, 'offer:', offer);
           return qty;
         }
       }
