@@ -162,7 +162,7 @@ const FormSlideshow: React.FC = () => {
               className="absolute left-3 top-1/2 -translate-y-1/2 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white rounded-full p-3 shadow-xl transition-all duration-300 hover:scale-110 z-20"
               aria-label={language === 'ar' ? 'السابق' : 'Previous'}
             >
-              <ChevronLeft className="w-5 h-5" />
+              {language === 'ar' ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
             </button>
 
             <button
@@ -170,7 +170,7 @@ const FormSlideshow: React.FC = () => {
               className="absolute right-3 top-1/2 -translate-y-1/2 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white rounded-full p-3 shadow-xl transition-all duration-300 hover:scale-110 z-20"
               aria-label={language === 'ar' ? 'التالي' : 'Next'}
             >
-              <ChevronRight className="w-5 h-5" />
+              {language === 'ar' ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
             </button>
 
             {/* مؤشرات الشرائح */}
@@ -229,7 +229,11 @@ const FormSlideshow: React.FC = () => {
             <button className="group relative px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
               <span className="relative z-10 flex items-center gap-2">
                 <span>{language === 'ar' ? 'ابدأ مجاناً' : 'Start Free'}</span>
-                <svg className={`w-5 h-5 group-hover:translate-x-1 transition-transform ${language === 'ar' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className={`w-5 h-5 transition-transform ${
+                  language === 'ar'
+                    ? 'scale-x-[-1] group-hover:-translate-x-1'
+                    : 'group-hover:translate-x-1'
+                }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>
               </span>
