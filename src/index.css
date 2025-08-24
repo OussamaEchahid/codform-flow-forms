@@ -311,11 +311,7 @@
   [dir="rtl"] svg.lucide-star,
   [dir="rtl"] svg.lucide-heart,
   [dir="rtl"] svg.lucide-circle,
-  [dir="rtl"] svg.lucide-square,
-  [dir="rtl"] svg.lucide-chevron-left,
-  [dir="rtl"] svg.lucide-chevron-right,
-  [dir="rtl"] svg.lucide-arrow-left,
-  [dir="rtl"] svg.lucide-arrow-right {
+  [dir="rtl"] svg.lucide-square {
     transform: none !important;
   }
 }
