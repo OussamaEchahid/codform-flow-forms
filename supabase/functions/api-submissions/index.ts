@@ -266,6 +266,7 @@ function calculateQuantityFromPrice(totalPrice: number, formData: any, productDa
     // الأولوية الأولى: البحث عن بيانات عرض الكمية المختار
     if (formData.selectedOffer || formData.quantityOffer) {
       const offer = formData.selectedOffer || formData.quantityOffer;
+      console.log('🎯 Found offer data:', offer);
       if (offer && typeof offer === 'object') {
         const qty = parseInt(offer.quantity || offer.qty);
         if (!isNaN(qty) && qty > 0) {
