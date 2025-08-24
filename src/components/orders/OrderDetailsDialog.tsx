@@ -48,22 +48,20 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
   const { language } = useI18n();
   const { toast } = useToast();
 
-  // State for editable fields
-  const [orderStatus, setOrderStatus] = useState('');
-  const [orderNotes, setOrderNotes] = useState('');
+  const [orderStatus, setOrderStatus] = useState(order?.status || 'pending');
+  const [orderNotes, setOrderNotes] = useState(order?.notes || '');
   const [isLoading, setIsLoading] = useState(false);
-  const [originalOrder, setOriginalOrder] = useState(null);
-  const [productInfo, setProductInfo] = useState(null);
-  const [quantityOfferData, setQuantityOfferData] = useState(null);
-  const [formCountry, setFormCountry] = useState('');
+  const [originalOrder, setOriginalOrder] = useState(order);
+  const [productInfo, setProductInfo] = useState<any>(null);
+  const [quantityOfferData, setQuantityOfferData] = useState<any>(null);
+  const [formCountry, setFormCountry] = useState<string>('');
 
-  // Initialize state when order changes
   useEffect(() => {
     if (order) {
       setOrderStatus(order.status || 'pending');
       setOrderNotes(order.notes || '');
-      setOriginalOrder({ ...order });
-
+      setOriginalOrder(order);
+      
       // Load additional product and quantity data
       loadProductAndQuantityData();
     }
@@ -75,7 +73,7 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
 
     try {
       // Get form data to get the country setting
-      const { data: formData } = await (supabase as any)
+      const { data: formData } = await supabase
         .from('forms')
         .select('country')
         .eq('id', order.form_id)
@@ -85,8 +83,8 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
         setFormCountry(formData.country);
       }
 
-      // Get quantity offers for this form to find the correct quantity
-      const { data: quantityOffers } = await (supabase as any)
+      // Get quantity offers for this form
+      const { data: quantityOffers } = await supabase
         .from('quantity_offers')
         .select('*')
         .eq('form_id', order.form_id);
@@ -100,53 +98,61 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
           try {
             const { data: productData } = await supabase.functions.invoke('shopify-products-fixed', {
               body: {
-                shop: order.shop_id,
-                productId: productId
+                shop_id: order.shop_id,
+                product_id: productId
               }
             });
 
-            if (productData?.success && productData?.product) {
+            if (productData?.product) {
               setProductInfo(productData.product);
             }
           } catch (error) {
-            console.error('Error loading product data:', error);
+            console.error('Error fetching product info:', error);
           }
         }
       }
     } catch (error) {
-      console.error('Error loading quantity offers:', error);
+      console.error('Error loading product and quantity data:', error);
     }
   };
-
-  if (!order) return null;
 
   const handleSave = async () => {
     setIsLoading(true);
     try {
-      // Update order in database using RPC function
-      const { error } = await (supabase as any).rpc('update_order_details', {
-        p_order_id: order.id,
-        p_status: orderStatus,
-        p_notes: orderNotes
-      });
+      const { error } = await supabase
+        .from('orders')
+        .update({
+          status: orderStatus,
+          notes: orderNotes,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', order.id);
 
       if (error) throw error;
 
-      toast({
-        title: language === 'ar' ? 'تم الحفظ بنجاح' : 'Saved Successfully',
-        description: language === 'ar' ? 'تم حفظ تغييرات الطلب' : 'Order changes have been saved',
-      });
+      // Update the order object with new values
+      const updatedOrder = {
+        ...order,
+        status: orderStatus,
+        notes: orderNotes,
+        updated_at: new Date().toISOString()
+      };
 
-      // Call parent onSave callback
+      // Call the onSave callback if provided
       if (onSave) {
-        onSave({ ...order, status: orderStatus, notes: orderNotes });
+        onSave(updatedOrder);
       }
+
+      toast({
+        title: language === 'ar' ? 'تم الحفظ' : 'Saved Successfully',
+        description: language === 'ar' ? 'تم حفظ التغييرات بنجاح' : 'Changes have been saved successfully',
+      });
 
       onClose();
     } catch (error) {
       console.error('Error saving order:', error);
       toast({
-        title: language === 'ar' ? 'خطأ في الحفظ' : 'Save Error',
+        title: language === 'ar' ? 'خطأ' : 'Error',
         description: language === 'ar' ? 'حدث خطأ أثناء حفظ التغييرات' : 'An error occurred while saving changes',
         variant: "destructive"
       });
@@ -250,41 +256,34 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
     return 1;
   };
 
-
-
   // ✅ نظام ذكي للحصول على معلومات المنتج
   const getSmartProductInfo = () => {
-    // الأولوية الأولى: بيانات المنتج من productInfo
-    if (productInfo) {
+    // إذا كانت بيانات المنتج متاحة من Shopify، استخدمها
+    if (productInfo && productInfo.title) {
       return {
-        name: productInfo.title || 'منتج',
-        image: productInfo.featuredImage || productInfo.images?.[0] || null,
-        price: parseFloat(productInfo.price || '0') || 1.0,
-        currency: productInfo.currency || 'USD'
+        name: productInfo.title,
+        price: parseFloat(productInfo.price || '1.0'),
+        currency: productInfo.currency || 'USD',
+        image: productInfo.image
       };
     }
 
-    // الأولوية الثانية: استخراج من order items
-    if (orderItems && orderItems.length > 0) {
-      const item = orderItems[0];
+    // إذا كانت بيانات عروض الكمية متاحة، استخدمها
+    if (quantityOfferData && quantityOfferData.product_title) {
       return {
-        name: item.title?.replace('طلب من النموذج - Form Order', '') || 'منتج',
-        image: item.image || null,
-        price: parseFloat(item.price || '0') || 1.0,
-        currency: order.currency || 'USD'
+        name: quantityOfferData.product_title,
+        price: parseFloat(quantityOfferData.product_price || '1.0'),
+        currency: quantityOfferData.product_currency || 'USD',
+        image: quantityOfferData.product_image
       };
     }
 
-    // الأولوية الثالثة: حساب ذكي من إجمالي الطلب
-    const totalAmount = parseFloat(order.total_amount || '0');
-    const estimatedQuantity = getActualQuantity();
-    const estimatedUnitPrice = estimatedQuantity > 0 ? totalAmount / estimatedQuantity : totalAmount;
-
+    // استخدام بيانات افتراضية
     return {
-      name: 'منتج',
-      image: null,
-      price: estimatedUnitPrice,
-      currency: order.currency || 'USD'
+      name: language === 'ar' ? 'منتج من النموذج' : 'Product from Form',
+      price: 1.0,
+      currency: 'USD',
+      image: null
     };
   };
 
@@ -293,32 +292,32 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
   // ✅ إصلاح نهائي: تحديد العملة المناسبة للعرض
   const orderCurrency = order.currency || 'USD';
   const productCurrency = productDetails.currency || 'USD';
-
+  
   // ✅ منطق جديد: إذا كان هناك عروض كمية، استخدم عملة المنتج، وإلا استخدم عملة المنتج أيضاً
   const actualQuantity = getActualQuantity();
   const hasQuantityOffers = actualQuantity > 1;
-
+  
   // ✅ استخدام عملة المنتج دائماً للعرض (USD في معظم الحالات)
   const displayCurrency = productCurrency;
-
+  
   // دالة لعرض العملة بالشكل الصحيح
-  const formatCurrency = (amount) => {
+  const formatCurrency = (amount: number) => {
     if (displayCurrency === 'USD') return `$${amount.toFixed(2)}`;
     return `${displayCurrency} ${amount.toFixed(2)}`;
   };
-
+  
   let unitPrice = productDetails.price;
   let finalTotal = parseFloat(order.total_amount || 0);
-
+  
   // ✅ إصلاح: تحويل المبلغ الإجمالي إلى عملة المنتج للعرض
   if (orderCurrency !== displayCurrency) {
     const rates = { 'USD': 1.0, 'SAR': 3.75, 'AED': 3.67, 'MAD': 10.0, 'EUR': 0.85 };
     const fromRate = rates[orderCurrency] || 1;
     const toRate = rates[displayCurrency] || 1;
-
+    
     // تحويل المبلغ الإجمالي إلى عملة المنتج
     finalTotal = (finalTotal / fromRate) * toRate;
-
+    
     console.log('💱 Total amount conversion to product currency:', {
       originalTotal: parseFloat(order.total_amount || 0),
       orderCurrency: orderCurrency,
@@ -336,6 +335,19 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
   const discount = 0; // لا يوجد خصم - السعر النهائي من النموذج صحيح
 
   const total = finalTotal;
+
+  // ✅ Debug: طباعة القيم للتأكد من التحديث
+  console.log('🔍 OrderDetailsDialog Debug Values:', {
+    orderCurrency,
+    displayCurrency,
+    productCurrency,
+    unitPrice,
+    actualQuantity,
+    subtotal,
+    total,
+    originalTotal: order.total_amount,
+    hasQuantityOffers
+  });
 
   // Get country from form settings
   const getActualCountry = () => {
@@ -380,11 +392,11 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
               <DialogTitle className="text-2xl font-bold">
                 {language === 'ar' ? 'تفاصيل الطلب' : 'Order Details'}
               </DialogTitle>
-              <Badge className={`${getStatusColor(orderStatus)} border`}>
+              <Badge className={`px-3 py-1 text-sm font-medium border ${getStatusColor(orderStatus)}`}>
                 {language === 'ar' ?
                   (orderStatus === 'pending' ? 'قيد الانتظار' :
                    orderStatus === 'processing' ? 'قيد المعالجة' :
-                   orderStatus === 'delivered' ? 'تم التوصيل' :
+                   orderStatus === 'delivered' ? 'تم التسليم' :
                    orderStatus === 'cancelled' ? 'ملغي' : orderStatus) :
                   orderStatus.charAt(0).toUpperCase() + orderStatus.slice(1)
                 }
@@ -392,9 +404,9 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
             </div>
             <Button
               variant="ghost"
-              size="sm"
+              size="icon"
               onClick={onClose}
-              className="h-8 w-8 p-0"
+              className="h-8 w-8 rounded-full"
             >
               <X className="h-4 w-4" />
             </Button>
@@ -449,55 +461,49 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label className="text-sm font-medium flex items-center gap-1">
+                      <Label className="text-sm font-medium flex items-center gap-2">
                         <User className="h-4 w-4" />
                         {language === 'ar' ? 'الاسم' : 'Name'}
                       </Label>
-                      <Input
-                        value={order.customer_name || ''}
-                        className="mt-1 bg-gray-50"
-                        readOnly
-                      />
+                      <div className="mt-1 p-2 bg-gray-50 rounded border text-sm">
+                        {order.customer_name || (language === 'ar' ? 'غير محدد' : 'Not specified')}
+                      </div>
                     </div>
+
                     <div>
-                      <Label className="text-sm font-medium flex items-center gap-1">
+                      <Label className="text-sm font-medium flex items-center gap-2">
                         <Phone className="h-4 w-4" />
                         {language === 'ar' ? 'الهاتف' : 'Phone'}
                       </Label>
-                      <Input
-                        value={order.customer_phone || ''}
-                        className="mt-1 bg-gray-50"
-                        readOnly
-                      />
+                      <div className="mt-1 p-2 bg-gray-50 rounded border text-sm font-mono">
+                        {order.customer_phone || (language === 'ar' ? 'غير محدد' : 'Not specified')}
+                      </div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-sm font-medium flex items-center gap-1">
-                        <Mail className="h-4 w-4" />
-                        {language === 'ar' ? 'الإيميل' : 'Email'}
-                      </Label>
-                      <Input
-                        value={order.customer_email || ''}
-                        className="mt-1 bg-gray-50"
-                        readOnly
-                      />
+                  <div>
+                    <Label className="text-sm font-medium flex items-center gap-2">
+                      <Mail className="h-4 w-4" />
+                      {language === 'ar' ? 'البريد الإلكتروني' : 'Email'}
+                    </Label>
+                    <div className="mt-1 p-2 bg-gray-50 rounded border text-sm">
+                      {order.customer_email || (language === 'ar' ? 'غير محدد' : 'Not specified')}
                     </div>
-                    <div>
-                      <Label className="text-sm font-medium">{language === 'ar' ? 'الحالة' : 'Status'}</Label>
-                      <Select value={orderStatus} onValueChange={setOrderStatus}>
-                        <SelectTrigger className="mt-1">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="pending">{language === 'ar' ? 'قيد الانتظار' : 'Pending'}</SelectItem>
-                          <SelectItem value="processing">{language === 'ar' ? 'قيد المعالجة' : 'Processing'}</SelectItem>
-                          <SelectItem value="delivered">{language === 'ar' ? 'تم التوصيل' : 'Delivered'}</SelectItem>
-                          <SelectItem value="cancelled">{language === 'ar' ? 'ملغي' : 'Cancelled'}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                  </div>
+
+                  <div>
+                    <Label className="text-sm font-medium">{language === 'ar' ? 'الحالة' : 'Status'}</Label>
+                    <Select value={orderStatus} onValueChange={setOrderStatus}>
+                      <SelectTrigger className="mt-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pending">{language === 'ar' ? 'قيد الانتظار' : 'Pending'}</SelectItem>
+                        <SelectItem value="processing">{language === 'ar' ? 'قيد المعالجة' : 'Processing'}</SelectItem>
+                        <SelectItem value="delivered">{language === 'ar' ? 'تم التسليم' : 'Delivered'}</SelectItem>
+                        <SelectItem value="cancelled">{language === 'ar' ? 'ملغي' : 'Cancelled'}</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </CardContent>
               </Card>
@@ -514,34 +520,27 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <Label className="text-sm font-medium">{language === 'ar' ? 'المدينة' : 'City'}</Label>
-                      <Input
-                        value={shippingAddress.city || order.customer_city || ''}
-                        className="mt-1 bg-gray-50"
-                        readOnly
-                      />
+                      <div className="mt-1 p-2 bg-gray-50 rounded border text-sm">
+                        {shippingAddress.city || (language === 'ar' ? 'غير محدد' : 'Not specified')}
+                      </div>
                     </div>
+
                     <div>
-                      <Label className="text-sm font-medium">{language === 'ar' ? 'البلد' : 'Country'}</Label>
-                      <Input
-                        value={actualCountry}
-                        className="mt-1 bg-gray-50"
-                        readOnly
-                      />
+                      <Label className="text-sm font-medium flex items-center gap-2">
+                        <Globe className="h-4 w-4" />
+                        {language === 'ar' ? 'الدولة' : 'Country'}
+                      </Label>
+                      <div className="mt-1 p-2 bg-gray-50 rounded border text-sm">
+                        {actualCountry}
+                      </div>
                     </div>
                   </div>
 
                   <div>
                     <Label className="text-sm font-medium">{language === 'ar' ? 'العنوان الكامل' : 'Full Address'}</Label>
-                    <Textarea
-                      value={
-                        shippingAddress.address ||
-                        order.customer_address ||
-                        `${shippingAddress.address1 || ''} ${shippingAddress.address2 || ''}`.trim() ||
-                        (language === 'ar' ? 'لم يتم توفير العنوان' : 'Address not provided')
-                      }
-                      className="mt-1 bg-gray-50 min-h-[80px]"
-                      readOnly
-                    />
+                    <div className="mt-1 p-3 bg-gray-50 rounded border text-sm min-h-[60px]">
+                      {shippingAddress.address || (language === 'ar' ? 'غير محدد' : 'Not specified')}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -687,79 +686,53 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
                         {displayCurrency === 'USD' ? `$${total.toFixed(2)}` : `${displayCurrency} ${total.toFixed(2)}`}
                       </span>
                     </div>
-
-                    {/* Show offer details if discount applied */}
-                    {discount > 0 && quantityOfferData && (
-                      <div className="mt-3 p-3 bg-green-50 rounded-lg border border-green-200">
-                        <div className="text-sm text-green-800">
-                          <strong>{language === 'ar' ? '🎉 تم تطبيق العرض!' : '🎉 Offer Applied!'}</strong>
-                          <div className="mt-1">
-                            {language === 'ar' ? 'وفرت' : 'You saved'} <strong>${discount.toFixed(2)}</strong>
-                          </div>
-                        </div>
-                      </div>
-                    )}
                   </div>
+                </CardContent>
+              </Card>
+
+              {/* Notes */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <FileText className="h-5 w-5 text-gray-600" />
+                    {language === 'ar' ? 'ملاحظات' : 'Notes'}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Textarea
+                    value={orderNotes}
+                    onChange={(e) => setOrderNotes(e.target.value)}
+                    placeholder={language === 'ar' ? 'أضف ملاحظات حول الطلب...' : 'Add notes about the order...'}
+                    className="min-h-[100px] resize-none"
+                  />
                 </CardContent>
               </Card>
             </div>
           </div>
-
-          {/* Notes Section - Full Width */}
-          <div className="px-6 pb-4">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <FileText className="h-5 w-5 text-orange-600" />
-                  {language === 'ar' ? 'ملاحظات الطلب' : 'Order Notes'}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Textarea
-                  placeholder={language === 'ar' ? 'اكتب ملاحظاتك حول هذا الطلب...' : 'Write your notes about this order...'}
-                  className="min-h-[120px] resize-none"
-                  value={orderNotes}
-                  onChange={(e) => setOrderNotes(e.target.value)}
-                />
-              </CardContent>
-            </Card>
-          </div>
         </div>
 
-        {/* Action Buttons - Fixed at bottom */}
-        <div className="border-t bg-gray-50 px-6 py-4 flex justify-between items-center flex-shrink-0">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Globe className="h-4 w-4" />
-            <span>{language === 'ar' ? 'آخر تحديث:' : 'Last updated:'} {new Date(order.updated_at || order.created_at).toLocaleString(language === 'ar' ? 'ar-SA' : 'en-US')}</span>
+        {/* Footer with action buttons */}
+        <div className="border-t p-4 flex justify-between items-center flex-shrink-0">
+          <div className="text-sm text-muted-foreground">
+            {language === 'ar' ? 'آخر تحديث:' : 'Last updated:'} {new Date(order.updated_at || order.created_at).toLocaleString(language === 'ar' ? 'ar-SA' : 'en-US')}
           </div>
-
           <div className="flex gap-3">
             <Button
               variant="outline"
               onClick={handleReset}
-              className="flex items-center gap-2"
               disabled={isLoading}
+              className="flex items-center gap-2"
             >
               <RotateCcw className="h-4 w-4" />
               {language === 'ar' ? 'إعادة تعيين' : 'Reset'}
             </Button>
-
             <Button
               onClick={handleSave}
-              className="bg-orange-500 hover:bg-orange-600 text-white flex items-center gap-2 min-w-[120px]"
               disabled={isLoading}
+              className="flex items-center gap-2"
             >
-              {isLoading ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  {language === 'ar' ? 'جاري الحفظ...' : 'Saving...'}
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4" />
-                  {language === 'ar' ? 'حفظ التغييرات' : 'Save Changes'}
-                </>
-              )}
+              <Save className="h-4 w-4" />
+              {isLoading ? (language === 'ar' ? 'جاري الحفظ...' : 'Saving...') : (language === 'ar' ? 'حفظ التغييرات' : 'Save Changes')}
             </Button>
           </div>
         </div>
