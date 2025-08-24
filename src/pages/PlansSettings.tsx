@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Crown, Star, Zap, Check, X, RefreshCw } from "lucide-react";
+import { Crown, Star, Zap, Check, X } from "lucide-react";
 import SettingsLayout from "@/components/layout/SettingsLayout";
 import { useI18n } from "@/lib/i18n";
 import React, { useState, useRef } from "react";
@@ -9,7 +9,6 @@ import { getUserStores } from "@/lib/supabase-with-email";
 import { cn } from "@/lib/utils";
 import { useSubscription } from "@/hooks/useSubscription";
 import UnifiedStoreManager from "@/utils/unified-store-manager";
-import { SubscriptionDebug } from "@/components/subscription-debug";
 
 const PlansSettings = () => {
   const { t, language } = useI18n();
@@ -243,7 +242,6 @@ const PlansSettings = () => {
 
   return (
     <SettingsLayout>
-      <SubscriptionDebug />
       <div className="container mx-auto p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
@@ -253,16 +251,6 @@ const PlansSettings = () => {
             </h1>
             <p className="text-muted-foreground">{language === 'ar' ? 'اختر الخطة المناسبة لمتجرك ومتطلباتك' : 'Choose the right plan for your store and requirements'}</p>
           </div>
-          
-          {/* زر التحديث */}
-          <Button 
-            variant="outline" 
-            onClick={forceRefresh}
-            className="flex items-center gap-2"
-          >
-            <RefreshCw className="h-4 w-4" />
-            {language === 'ar' ? 'تحديث' : 'Refresh'}
-          </Button>
         </div>
 
         {/* عرض حالة الاشتراك الحالي */}
