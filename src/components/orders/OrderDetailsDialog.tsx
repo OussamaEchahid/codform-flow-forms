@@ -69,11 +69,6 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
     }
   }, [order]);
 
-  // Safe check for order existence
-  if (!order) {
-    return null;
-  }
-
   // Load product information and quantity offers data
   const loadProductAndQuantityData = async () => {
     if (!order?.form_id) return;
@@ -171,19 +166,15 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
     }
   };
 
-  // Parse items if it's a string - with safe checks
-  const orderItems = order?.items ? (
-    typeof order.items === 'string'
-      ? JSON.parse(order.items || '[]')
-      : (Array.isArray(order.items) ? order.items : [])
-  ) : [];
+  // Parse items if it's a string
+  const orderItems = typeof order.items === 'string'
+    ? JSON.parse(order.items || '[]')
+    : (Array.isArray(order.items) ? order.items : []);
 
-  // Parse addresses if they're strings - with safe checks
-  const shippingAddress = order?.shipping_address ? (
-    typeof order.shipping_address === 'string'
-      ? JSON.parse(order.shipping_address || '{}')
-      : (order.shipping_address || {})
-  ) : {};
+  // Parse addresses if they're strings
+  const shippingAddress = typeof order.shipping_address === 'string'
+    ? JSON.parse(order.shipping_address || '{}')
+    : (order.shipping_address || {});
 
   // Get actual quantity from form submission data or quantity offers
   const getActualQuantity = () => {
@@ -207,9 +198,9 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
     }
 
     // ✅ نظام ذكي لحساب الكمية - إصلاح مشكلة عدم وجود عروض
-    if (order?.total_amount) {
+    if (order.total_amount) {
       const totalAmount = parseFloat(order.total_amount);
-      const orderCurrency = order?.currency || 'USD';
+      const orderCurrency = order.currency || 'USD';
 
       // إذا كانت بيانات المنتج متاحة، استخدمها
       if (productInfo && productInfo.price) {
@@ -259,8 +250,6 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
     return 1;
   };
 
-
-
   // ✅ نظام ذكي للحصول على معلومات المنتج
   const getSmartProductInfo = () => {
     // الأولوية الأولى: بيانات المنتج من productInfo
@@ -298,39 +287,23 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
   };
 
   const productDetails = getSmartProductInfo();
-
-  // ✅ إصلاح نهائي: تحديد العملة المناسبة للعرض
-  const orderCurrency = order?.currency || 'USD';
-  const productCurrency = productDetails?.currency || 'USD';
-
   const actualQuantity = getActualQuantity();
 
-  // ✅ استخدام عملة المنتج دائماً للعرض (USD في معظم الحالات)
-  const displayCurrency = productCurrency;
+  // ✅ الحل النهائي: استخدام السعر والعملة كما هما محفوظان في الطلب مباشرة (بدون تحويل)
+  const displayCurrency = order?.currency || 'USD';
+  const finalTotal = parseFloat(order?.total_amount || 0);
+  const unitPrice = actualQuantity > 0 ? (finalTotal / actualQuantity) : finalTotal;
 
+  console.log('� OrderDetailsDialog - Using order data directly (NO CONVERSION):', {
+    orderCurrency: order?.currency,
+    displayCurrency,
+    totalAmount: order?.total_amount,
+    finalTotal,
+    actualQuantity,
+    unitPrice
+  });
 
-
-  let unitPrice = productDetails?.price || 1.0;
-  let finalTotal = parseFloat(order?.total_amount || 0);
-
-  // ✅ إصلاح: تحويل المبلغ الإجمالي إلى عملة المنتج للعرض
-  if (orderCurrency !== displayCurrency) {
-    const rates = { 'USD': 1.0, 'SAR': 3.75, 'AED': 3.67, 'MAD': 10.0, 'EUR': 0.85 };
-    const fromRate = rates[orderCurrency as keyof typeof rates] || 1;
-    const toRate = rates[displayCurrency as keyof typeof rates] || 1;
-
-    // تحويل المبلغ الإجمالي إلى عملة المنتج
-    finalTotal = (finalTotal / fromRate) * toRate;
-
-    console.log('💱 Total amount conversion to product currency:', {
-      originalTotal: parseFloat(order?.total_amount || 0),
-      orderCurrency: orderCurrency,
-      convertedTotal: finalTotal,
-      displayCurrency: displayCurrency
-    });
-  }
-
-  const subtotal = finalTotal; // المجموع الفرعي بعملة النموذج
+  const subtotal = finalTotal;
   const shippingCost = parseFloat(order?.shipping_cost || 0);
   const extras = parseFloat(order?.extras || 0);
 
@@ -338,8 +311,6 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
   const discount = 0; // لا يوجد خصم - السعر النهائي من النموذج صحيح
 
   const total = finalTotal;
-
-
 
   // Get country from form settings
   const getActualCountry = () => {
@@ -349,12 +320,12 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
     }
 
     // Try from customer_country field in order
-    if (order?.customer_country) {
+    if (order.customer_country) {
       return order.customer_country;
     }
 
     // Try from shipping address
-    if (shippingAddress?.country && shippingAddress.country !== 'السعودية') {
+    if (shippingAddress.country && shippingAddress.country !== 'السعودية') {
       return shippingAddress.country;
     }
 
@@ -408,21 +379,21 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mt-4 p-4 bg-gray-50 rounded-lg">
             <div className="text-center">
               <div className="text-sm text-muted-foreground">{language === 'ar' ? 'رقم الطلب' : 'Order ID'}</div>
-              <div className="font-mono font-bold text-lg">#{order?.order_number || order?.id?.slice(-8)}</div>
+              <div className="font-mono font-bold text-lg">#{order.order_number || order.id?.slice(-8)}</div>
             </div>
             <div className="text-center">
               <div className="text-sm text-muted-foreground">{language === 'ar' ? 'تاريخ الإنشاء' : 'Created At'}</div>
               <div className="font-medium">
-                {order?.created_at ? new Date(order.created_at).toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US') : 'N/A'}
+                {new Date(order.created_at).toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US')}
               </div>
               <div className="text-sm text-muted-foreground">
-                {order?.created_at ? new Date(order.created_at).toLocaleTimeString(language === 'ar' ? 'ar-SA' : 'en-US', { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
+                {new Date(order.created_at).toLocaleTimeString(language === 'ar' ? 'ar-SA' : 'en-US', { hour: '2-digit', minute: '2-digit' })}
               </div>
             </div>
             <div className="text-center">
               <div className="text-sm text-muted-foreground">{language === 'ar' ? 'إجمالي المبلغ' : 'Total Amount'}</div>
               <div className="font-bold text-xl text-green-600">
-                {displayCurrency === 'USD' ? `$${total.toFixed(2)}` : `${displayCurrency} ${total.toFixed(2)}`}
+                ${total.toFixed(2)}
               </div>
             </div>
             <div className="text-center">
@@ -432,7 +403,7 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
             <div className="text-center">
               <div className="text-sm text-muted-foreground">IP {language === 'ar' ? 'العنوان' : 'Address'}</div>
               <div className="font-mono text-sm bg-white px-2 py-1 rounded border">
-                {order?.ip_address ? order.ip_address.split(',')[0].trim() : '192.168.1.1'}
+                {order.ip_address ? order.ip_address.split(',')[0].trim() : '192.168.1.1'}
               </div>
             </div>
           </div>
@@ -458,7 +429,7 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
                         {language === 'ar' ? 'الاسم' : 'Name'}
                       </Label>
                       <Input
-                        value={order?.customer_name || ''}
+                        value={order.customer_name || ''}
                         className="mt-1 bg-gray-50"
                         readOnly
                       />
@@ -469,7 +440,7 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
                         {language === 'ar' ? 'الهاتف' : 'Phone'}
                       </Label>
                       <Input
-                        value={order?.customer_phone || ''}
+                        value={order.customer_phone || ''}
                         className="mt-1 bg-gray-50"
                         readOnly
                       />
@@ -483,7 +454,7 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
                         {language === 'ar' ? 'الإيميل' : 'Email'}
                       </Label>
                       <Input
-                        value={order?.customer_email || ''}
+                        value={order.customer_email || ''}
                         className="mt-1 bg-gray-50"
                         readOnly
                       />
@@ -519,7 +490,7 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
                     <div>
                       <Label className="text-sm font-medium">{language === 'ar' ? 'المدينة' : 'City'}</Label>
                       <Input
-                        value={shippingAddress?.city || order?.customer_city || ''}
+                        value={shippingAddress.city || order.customer_city || ''}
                         className="mt-1 bg-gray-50"
                         readOnly
                       />
@@ -538,9 +509,9 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
                     <Label className="text-sm font-medium">{language === 'ar' ? 'العنوان الكامل' : 'Full Address'}</Label>
                     <Textarea
                       value={
-                        shippingAddress?.address ||
-                        order?.customer_address ||
-                        `${shippingAddress?.address1 || ''} ${shippingAddress?.address2 || ''}`.trim() ||
+                        shippingAddress.address ||
+                        order.customer_address ||
+                        `${shippingAddress.address1 || ''} ${shippingAddress.address2 || ''}`.trim() ||
                         (language === 'ar' ? 'لم يتم توفير العنوان' : 'Address not provided')
                       }
                       className="mt-1 bg-gray-50 min-h-[80px]"
@@ -565,10 +536,10 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
                   <div className="space-y-4">
                     <div className="flex items-center gap-4 p-4 border rounded-lg bg-gray-50">
                       <div className="w-16 h-16 bg-gradient-to-br from-purple-400 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                        {productDetails?.image ? (
+                        {productDetails.image ? (
                           <img
                             src={productDetails.image}
-                            alt={productDetails?.name || 'Product'}
+                            alt={productDetails.name}
                             loading="lazy"
                             decoding="async"
                             className="w-full h-full object-cover rounded-lg"
@@ -579,18 +550,18 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
                             }}
                           />
                         ) : null}
-                        <Package className={`w-8 h-8 text-white ${productDetails?.image ? 'hidden' : ''}`} />
+                        <Package className={`w-8 h-8 text-white ${productDetails.image ? 'hidden' : ''}`} />
                       </div>
 
                       <div className="flex-1">
                         <h4 className="font-medium text-sm mb-2">
-                          {productDetails?.name || (language === 'ar' ? 'منتج من النموذج' : 'Product from Form')}
+                          {productDetails.name || (language === 'ar' ? 'منتج من النموذج' : 'Product from Form')}
                         </h4>
                         <div className="grid grid-cols-3 gap-4 text-sm">
                           <div>
                             <div className="text-muted-foreground">{language === 'ar' ? 'سعر الوحدة' : 'Unit Price'}</div>
                             <div className="font-medium">
-                              {displayCurrency === 'USD' ? `$${unitPrice.toFixed(2)}` : `${displayCurrency} ${unitPrice.toFixed(2)}`}
+                              ${unitPrice.toFixed(2)}
                             </div>
                           </div>
 
@@ -602,7 +573,7 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
                           <div>
                             <div className="text-muted-foreground">{language === 'ar' ? 'المجموع الفرعي' : 'Subtotal'}</div>
                             <div className="font-medium text-green-600">
-                              {displayCurrency === 'USD' ? `$${subtotal.toFixed(2)}` : `${displayCurrency} ${subtotal.toFixed(2)}`}
+                              ${subtotal.toFixed(2)}
                             </div>
                           </div>
                         </div>
@@ -639,7 +610,7 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
                     <div className="flex justify-between items-center">
                       <span className="text-sm">{language === 'ar' ? 'سعر الوحدة' : 'Unit Price'}</span>
                       <span className="font-medium">
-                        {displayCurrency === 'USD' ? `$${unitPrice.toFixed(2)}` : `${displayCurrency} ${unitPrice.toFixed(2)}`}
+                        ${unitPrice.toFixed(2)}
                       </span>
                     </div>
 
@@ -651,7 +622,7 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
                     <div className="flex justify-between items-center">
                       <span className="text-sm">{language === 'ar' ? 'المجموع الفرعي' : 'Subtotal'}</span>
                       <span className="font-medium">
-                        {displayCurrency === 'USD' ? `$${subtotal.toFixed(2)}` : `${displayCurrency} ${subtotal.toFixed(2)}`}
+                        ${subtotal.toFixed(2)}
                       </span>
                     </div>
 
@@ -659,7 +630,7 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
                       <div className="flex justify-between items-center">
                         <span className="text-sm">{language === 'ar' ? 'إضافي' : 'Extra'}</span>
                         <span className="font-medium">
-                          {displayCurrency === 'USD' ? `$${extras.toFixed(2)}` : `${displayCurrency} ${extras.toFixed(2)}`}
+                          ${extras.toFixed(2)}
                         </span>
                       </div>
                     )}
@@ -668,7 +639,7 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
                       <span className="text-sm">{language === 'ar' ? 'الشحن' : 'Shipping'}</span>
                       <span className="font-medium text-blue-600">
                         {shippingCost > 0 ?
-                          (displayCurrency === 'USD' ? `$${shippingCost.toFixed(2)}` : `${displayCurrency} ${shippingCost.toFixed(2)}`) :
+                          `$${shippingCost.toFixed(2)}` :
                           (language === 'ar' ? 'مجاني' : 'Free')
                         }
                       </span>
@@ -678,7 +649,7 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-red-600">{language === 'ar' ? 'خصم العرض' : 'Offer Discount'}</span>
                         <span className="font-medium text-red-600">
-                          -{displayCurrency === 'USD' ? `$${discount.toFixed(2)}` : `${displayCurrency} ${discount.toFixed(2)}`}
+                          -${discount.toFixed(2)}
                         </span>
                       </div>
                     )}
@@ -688,7 +659,7 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
                     <div className="flex justify-between items-center">
                       <span className="font-semibold text-lg">{language === 'ar' ? 'المجموع النهائي' : 'Final Total'}</span>
                       <span className="font-bold text-xl text-green-600">
-                        {displayCurrency === 'USD' ? `$${total.toFixed(2)}` : `${displayCurrency} ${total.toFixed(2)}`}
+                        ${total.toFixed(2)}
                       </span>
                     </div>
 
@@ -734,7 +705,7 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
         <div className="border-t bg-gray-50 px-6 py-4 flex justify-between items-center flex-shrink-0">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Globe className="h-4 w-4" />
-            <span>{language === 'ar' ? 'آخر تحديث:' : 'Last updated:'} {order?.updated_at || order?.created_at ? new Date(order.updated_at || order.created_at).toLocaleString(language === 'ar' ? 'ar-SA' : 'en-US') : 'N/A'}</span>
+            <span>{language === 'ar' ? 'آخر تحديث:' : 'Last updated:'} {new Date(order.updated_at || order.created_at).toLocaleString(language === 'ar' ? 'ar-SA' : 'en-US')}</span>
           </div>
 
           <div className="flex gap-3">
