@@ -12,46 +12,40 @@ import { Link } from 'react-router-dom';
 import { fixShopifyConnectionState } from '@/utils/fix-shopify-state';
 import ShopifyAutoConnector from '@/components/shopify/ShopifyAutoConnector';
 import { parseShopifyParams } from '@/utils/shopify-helpers';
-
 import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
 import { shopifyStores } from '@/lib/shopify/supabase-client';
 import { toast } from '@/hooks/use-toast';
-
 const Index = () => {
   const navigate = useNavigate();
   const [isProcessingShopify, setIsProcessingShopify] = useState(false);
-
-
-
   useEffect(() => {
     console.log('🏠 Index page loaded - Homepage should display');
-
     const handleShopifyConnection = async () => {
-      const { shopDomain, isShopifyRequest } = parseShopifyParams();
-
-      console.log('🔍 Index page - Shopify params:', { shopDomain, isShopifyRequest });
+      const {
+        shopDomain,
+        isShopifyRequest
+      } = parseShopifyParams();
+      console.log('🔍 Index page - Shopify params:', {
+        shopDomain,
+        isShopifyRequest
+      });
 
       // فقط إذا كان هناك طلب Shopify صريح
       if (shopDomain && isShopifyRequest) {
         console.log('🔔 Shopify request detected, processing...');
         setIsProcessingShopify(true);
-
         try {
           // فحص إذا كان المتجر موجود مسبقاً
-          const { data: existingStore } = await shopifyStores()
-            .select('*')
-            .eq('shop', shopDomain)
-            .maybeSingle();
-
+          const {
+            data: existingStore
+          } = await shopifyStores().select('*').eq('shop', shopDomain).maybeSingle();
           if (existingStore && existingStore.access_token) {
             // المتجر موجود ومتصل - اذهب مباشرة للوحة التحكم
             console.log('✅ Store already connected, going to dashboard');
-
             shopifyConnectionManager.setActiveStore(shopDomain);
-
             toast({
               title: "تم الاتصال بنجاح",
-              description: `تم الاتصال بمتجر ${shopDomain}`,
+              description: `تم الاتصال بمتجر ${shopDomain}`
             });
 
             // تنظيف URL ثم الانتقال للوحة التحكم
@@ -62,7 +56,6 @@ const Index = () => {
 
           // المتجر جديد أو غير متصل - سيعرض ShopifyAutoConnector نافذة الحوار
           console.log('🔔 New store detected, will show dialog');
-
         } catch (error) {
           console.error('❌ Error checking store:', error);
           toast({
@@ -77,31 +70,25 @@ const Index = () => {
         console.log('🏠 No Shopify request - showing homepage');
       }
     };
-
     handleShopifyConnection();
   }, [navigate]);
-
   const handleShopifyConnected = (shop: string) => {
     console.log('🎉 Shop connected:', shop);
     toast({
       title: "تم الاتصال بنجاح",
-      description: `تم الاتصال بمتجر ${shop}`,
+      description: `تم الاتصال بمتجر ${shop}`
     });
     navigate('/dashboard');
   };
-
-  return (
-    <div dir="rtl" className="min-h-screen">
+  return <div dir="rtl" className="min-h-screen">
       {/* Shopify Auto Connector - يعرض نافذة للمتاجر الجديدة فقط */}
       <ShopifyAutoConnector onConnected={handleShopifyConnected} />
 
       <Navbar />
       
-      {isProcessingShopify && (
-        <div className="fixed top-0 left-0 right-0 bg-blue-500 text-white text-center py-2 z-50">
+      {isProcessingShopify && <div className="fixed top-0 left-0 right-0 bg-blue-500 text-white text-center py-2 z-50">
           جاري التحقق من اتصال المتجر...
-        </div>
-      )}
+        </div>}
       
       <Hero />
       <Features />
@@ -121,22 +108,12 @@ const Index = () => {
                   </Button>
                   
                   {/* زر إصلاح مشكلة الاتصال */}
-                  <Button 
-                    variant="outline"
-                    onClick={fixShopifyConnectionState}
-                    className="text-sm"
-                  >
-                    🔧 إصلاح مشكلة اتصال Shopify
-                  </Button>
+                  
                 </div>
               </div>
               <div className="lg:w-1/2 lg:pl-10">
                 <div className="bg-white rounded-lg shadow-lg p-4">
-                  <img 
-                    src="https://images.unsplash.com/photo-1499951360447-b19be8fe80f5?auto=format&fit=crop&w=800&q=80" 
-                    alt="منشئ النماذج" 
-                    className="rounded-lg"
-                  />
+                  <img src="https://images.unsplash.com/photo-1499951360447-b19be8fe80f5?auto=format&fit=crop&w=800&q=80" alt="منشئ النماذج" className="rounded-lg" />
                 </div>
               </div>
             </div>
@@ -146,8 +123,6 @@ const Index = () => {
       <Pricing />
       <CTA />
       <Footer />
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
