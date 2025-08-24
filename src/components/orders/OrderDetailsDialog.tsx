@@ -48,13 +48,14 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
   const { language } = useI18n();
   const { toast } = useToast();
 
-  const [orderStatus, setOrderStatus] = useState(order?.status || 'pending');
-  const [orderNotes, setOrderNotes] = useState(order?.notes || '');
+  // State for editable fields
+  const [orderStatus, setOrderStatus] = useState('');
+  const [orderNotes, setOrderNotes] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [originalOrder, setOriginalOrder] = useState(order);
-  const [productInfo, setProductInfo] = useState<any>(null);
-  const [quantityOfferData, setQuantityOfferData] = useState<any>(null);
-  const [formCountry, setFormCountry] = useState<string>('');
+  const [originalOrder, setOriginalOrder] = useState(null);
+  const [productInfo, setProductInfo] = useState(null);
+  const [quantityOfferData, setQuantityOfferData] = useState(null);
+  const [formCountry, setFormCountry] = useState('');
 
   useEffect(() => {
     if (order) {
@@ -73,7 +74,7 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
 
     try {
       // Get form data to get the country setting
-      const { data: formData } = await supabase
+      const { data: formData } = await (supabase as any)
         .from('forms')
         .select('country')
         .eq('id', order.form_id)
@@ -83,8 +84,8 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
         setFormCountry(formData.country);
       }
 
-      // Get quantity offers for this form
-      const { data: quantityOffers } = await supabase
+      // Get quantity offers for this form to find the correct quantity
+      const { data: quantityOffers } = await (supabase as any)
         .from('quantity_offers')
         .select('*')
         .eq('form_id', order.form_id);
@@ -96,7 +97,7 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
         const productId = quantityOffers[0].product_id;
         if (productId && order.shop_id) {
           try {
-            const { data: productData } = await supabase.functions.invoke('shopify-products-fixed', {
+            const { data: productData } = await (supabase as any).functions.invoke('shopify-products-fixed', {
               body: {
                 shop_id: order.shop_id,
                 product_id: productId
@@ -119,34 +120,24 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
   const handleSave = async () => {
     setIsLoading(true);
     try {
-      const { error } = await supabase
-        .from('orders')
-        .update({
-          status: orderStatus,
-          notes: orderNotes,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', order.id);
+      // Update order in database using RPC function
+      const { error } = await (supabase as any).rpc('update_order_details', {
+        p_order_id: order.id,
+        p_status: orderStatus,
+        p_notes: orderNotes
+      });
 
       if (error) throw error;
 
-      // Update the order object with new values
-      const updatedOrder = {
-        ...order,
-        status: orderStatus,
-        notes: orderNotes,
-        updated_at: new Date().toISOString()
-      };
-
-      // Call the onSave callback if provided
-      if (onSave) {
-        onSave(updatedOrder);
-      }
-
       toast({
-        title: language === 'ar' ? 'تم الحفظ' : 'Saved Successfully',
-        description: language === 'ar' ? 'تم حفظ التغييرات بنجاح' : 'Changes have been saved successfully',
+        title: language === 'ar' ? 'تم الحفظ بنجاح' : 'Saved Successfully',
+        description: language === 'ar' ? 'تم حفظ تغييرات الطلب' : 'Order changes have been saved',
       });
+
+      // Call parent onSave callback
+      if (onSave) {
+        onSave({ ...order, status: orderStatus, notes: orderNotes });
+      }
 
       onClose();
     } catch (error) {
@@ -173,13 +164,13 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
   };
 
   // Parse items if it's a string
-  const orderItems = typeof order.items === 'string'
-    ? JSON.parse(order.items || '[]')
+  const orderItems = typeof order.items === 'string' 
+    ? JSON.parse(order.items || '[]') 
     : (Array.isArray(order.items) ? order.items : []);
 
   // Parse addresses if they're strings
-  const shippingAddress = typeof order.shipping_address === 'string'
-    ? JSON.parse(order.shipping_address || '{}')
+  const shippingAddress = typeof order.shipping_address === 'string' 
+    ? JSON.parse(order.shipping_address || '{}') 
     : (order.shipping_address || {});
 
   // Get actual quantity from form submission data or quantity offers
@@ -187,7 +178,7 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
     // First check if quantity is already stored in order items (this is the most reliable)
     if (orderItems.length > 0 && orderItems[0].quantity) {
       const storedQuantity = parseInt(orderItems[0].quantity);
-
+      
       // If the stored quantity seems wrong (like 9 instead of 5), try to correct it
       if (storedQuantity === 9 && order.total_amount) {
         const totalAmount = parseFloat(order.total_amount);
@@ -196,7 +187,7 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
           return 5; // Correct quantity for "Buy 5 get 2 free"
         }
       }
-
+      
       // For other cases, trust the stored quantity if it's reasonable
       if (storedQuantity > 0 && storedQuantity <= 10) {
         return storedQuantity;
@@ -213,13 +204,6 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
         const productPrice = parseFloat(productInfo.price);
         const productCurrency = productInfo.currency || 'USD';
 
-        console.log('🔍 Quantity calculation data:', {
-          totalAmount,
-          orderCurrency,
-          productPrice,
-          productCurrency
-        });
-
         // ✅ إصلاح: تحويل سعر الطلب إلى عملة المنتج للمقارنة الصحيحة
         let convertedTotalAmount = totalAmount;
         if (orderCurrency !== productCurrency) {
@@ -227,26 +211,12 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
           const fromRate = rates[orderCurrency] || 1;
           const toRate = rates[productCurrency] || 1;
           convertedTotalAmount = (totalAmount / fromRate) * toRate;
-
-          console.log('💱 Currency conversion for quantity:', {
-            originalAmount: totalAmount,
-            originalCurrency: orderCurrency,
-            convertedAmount: convertedTotalAmount,
-            targetCurrency: productCurrency
-          });
         }
 
         // حساب الكمية بناءً على السعر المحول
         const calculatedQty = Math.round(convertedTotalAmount / productPrice);
 
-        console.log('🧮 Quantity calculation:', {
-          convertedTotalAmount,
-          productPrice,
-          calculatedQty
-        });
-
         if (calculatedQty > 0 && calculatedQty <= 50) {
-          console.log('✅ Smart calculated quantity:', calculatedQty);
           return calculatedQty;
         }
       }
@@ -287,24 +257,15 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
     };
   };
 
+  const actualQuantity = getActualQuantity();
   const productDetails = getSmartProductInfo();
 
-  // ✅ إصلاح نهائي: تحديد العملة المناسبة للعرض
+  // ✅ الإصلاح البسيط: تحديد العملة المناسبة للعرض
   const orderCurrency = order.currency || 'USD';
   const productCurrency = productDetails.currency || 'USD';
   
-  // ✅ منطق جديد: إذا كان هناك عروض كمية، استخدم عملة المنتج، وإلا استخدم عملة المنتج أيضاً
-  const actualQuantity = getActualQuantity();
-  const hasQuantityOffers = actualQuantity > 1;
-  
   // ✅ استخدام عملة المنتج دائماً للعرض (USD في معظم الحالات)
   const displayCurrency = productCurrency;
-  
-  // دالة لعرض العملة بالشكل الصحيح
-  const formatCurrency = (amount: number) => {
-    if (displayCurrency === 'USD') return `$${amount.toFixed(2)}`;
-    return `${displayCurrency} ${amount.toFixed(2)}`;
-  };
   
   let unitPrice = productDetails.price;
   let finalTotal = parseFloat(order.total_amount || 0);
@@ -317,37 +278,13 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
     
     // تحويل المبلغ الإجمالي إلى عملة المنتج
     finalTotal = (finalTotal / fromRate) * toRate;
-    
-    console.log('💱 Total amount conversion to product currency:', {
-      originalTotal: parseFloat(order.total_amount || 0),
-      orderCurrency: orderCurrency,
-      convertedTotal: finalTotal,
-      displayCurrency: displayCurrency,
-      hasQuantityOffers
-    });
   }
 
-  const subtotal = finalTotal; // المجموع الفرعي بعملة النموذج
+  const subtotal = finalTotal;
   const shippingCost = parseFloat(order.shipping_cost || 0);
   const extras = parseFloat(order.extras || 0);
-
-  // ✅ إصلاح: لا يوجد خصم في عروض الكمية - السعر النهائي هو المجموع الصحيح
-  const discount = 0; // لا يوجد خصم - السعر النهائي من النموذج صحيح
-
+  const discount = 0;
   const total = finalTotal;
-
-  // ✅ Debug: طباعة القيم للتأكد من التحديث
-  console.log('🔍 OrderDetailsDialog Debug Values:', {
-    orderCurrency,
-    displayCurrency,
-    productCurrency,
-    unitPrice,
-    actualQuantity,
-    subtotal,
-    total,
-    originalTotal: order.total_amount,
-    hasQuantityOffers
-  });
 
   // Get country from form settings
   const getActualCountry = () => {
@@ -392,11 +329,11 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
               <DialogTitle className="text-2xl font-bold">
                 {language === 'ar' ? 'تفاصيل الطلب' : 'Order Details'}
               </DialogTitle>
-              <Badge className={`px-3 py-1 text-sm font-medium border ${getStatusColor(orderStatus)}`}>
+              <Badge className={`${getStatusColor(orderStatus)} border`}>
                 {language === 'ar' ?
                   (orderStatus === 'pending' ? 'قيد الانتظار' :
                    orderStatus === 'processing' ? 'قيد المعالجة' :
-                   orderStatus === 'delivered' ? 'تم التسليم' :
+                   orderStatus === 'delivered' ? 'تم التوصيل' :
                    orderStatus === 'cancelled' ? 'ملغي' : orderStatus) :
                   orderStatus.charAt(0).toUpperCase() + orderStatus.slice(1)
                 }
