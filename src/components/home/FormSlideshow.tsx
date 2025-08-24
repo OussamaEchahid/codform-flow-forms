@@ -225,7 +225,9 @@ const FormSlideshow: React.FC = () => {
           </div>
 
           {/* الأزرار المحسنة */}
-          <div className="flex flex-col sm:flex-row gap-4 items-start">
+          <div className={`flex flex-col sm:flex-row gap-4 ${
+            language === 'ar' ? 'items-start' : 'items-start sm:items-center'
+          } ${language === 'ar' ? '' : 'justify-start'}`}>
             <button className="group relative px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
               <span className="relative z-10 flex items-center gap-2">
                 <span>{language === 'ar' ? 'ابدأ مجاناً' : 'Start Free'}</span>
