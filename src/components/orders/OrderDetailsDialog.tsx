@@ -281,16 +281,15 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
 
   const productDetails = getSmartProductInfo();
 
-  // ✅ إصلاح: حساب المجاميع بالسعر الأساسي الصحيح
-  const unitPrice = productDetails.price; // $1.00 per unit
-  const subtotal = unitPrice * actualQuantity; // e.g., 3 × $1 = $3
+  // ✅ إصلاح: استخدام السعر الأساسي والمجموع النهائي من النموذج
+  const unitPrice = productDetails.price; // السعر الأساسي للوحدة (1 USD)
+  const finalTotal = parseFloat(order.total_amount || 0); // السعر النهائي من النموذج (3 USD)
+  const subtotal = finalTotal; // المجموع الفرعي = السعر النهائي (لا يوجد خصم)
   const shippingCost = parseFloat(order.shipping_cost || 0);
   const extras = parseFloat(order.extras || 0);
 
-  // Calculate discount based on the difference between subtotal and final total
-  const finalTotal = parseFloat(order.total_amount || 0);
-  const calculatedDiscount = Math.max(0, subtotal + shippingCost + extras - finalTotal);
-  const discount = calculatedDiscount > 0 ? calculatedDiscount : parseFloat(order.discount || 0);
+  // ✅ إصلاح: لا يوجد خصم في عروض الكمية - السعر النهائي هو المجموع الصحيح
+  const discount = 0; // لا يوجد خصم - السعر النهائي من النموذج صحيح
 
   const total = finalTotal;
 
@@ -318,7 +317,7 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
   const actualCountry = getActualCountry();
 
   // Get status badge color
-  const getStatusColor = (status) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'processing': return 'bg-blue-100 text-blue-800 border-blue-200';
