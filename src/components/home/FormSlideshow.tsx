@@ -231,7 +231,7 @@ const FormSlideshow: React.FC = () => {
                 <span>{language === 'ar' ? 'ابدأ مجاناً' : 'Start Free'}</span>
                 <svg className={`w-5 h-5 transition-transform ${
                   language === 'ar'
-                    ? 'scale-x-[-1] group-hover:-translate-x-1'
+                    ? 'group-hover:-translate-x-1'
                     : 'group-hover:translate-x-1'
                 }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />

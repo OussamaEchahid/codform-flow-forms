@@ -1,8 +1,9 @@
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
-import { ChevronRight, MoreHorizontal } from "lucide-react"
+import { ChevronRight, ChevronLeft, MoreHorizontal } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { useI18n } from "@/lib/i18n"
 
 const Breadcrumb = React.forwardRef<
   HTMLElement,
@@ -76,16 +77,20 @@ const BreadcrumbSeparator = ({
   children,
   className,
   ...props
-}: React.ComponentProps<"li">) => (
-  <li
-    role="presentation"
-    aria-hidden="true"
-    className={cn("[&>svg]:size-3.5", className)}
-    {...props}
-  >
-    {children ?? <ChevronRight />}
-  </li>
-)
+}: React.ComponentProps<"li">) => {
+  const { language } = useI18n();
+
+  return (
+    <li
+      role="presentation"
+      aria-hidden="true"
+      className={cn("[&>svg]:size-3.5", className)}
+      {...props}
+    >
+      {children ?? (language === 'ar' ? <ChevronLeft /> : <ChevronRight />)}
+    </li>
+  );
+};
 BreadcrumbSeparator.displayName = "BreadcrumbSeparator"
 
 const BreadcrumbEllipsis = ({

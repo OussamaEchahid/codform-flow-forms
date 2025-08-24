@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { FormField } from '@/lib/form-utils';
-import { GripVertical, Copy, Trash, ChevronDown, ChevronUp, User, Phone, Mail, MapPin, MessageSquare, CheckSquare, Image, FileText, CreditCard, DollarSign, Truck, ShoppingCart, ArrowRight, Check, Send, Users, IdCard, Smartphone, PhoneCall, Home, Building, Map, StickyNote, Edit, Package, Banknote, Handshake, ShoppingBag, Heart, Star, Target, Gift, Crown, Zap, Sparkles, Award, Diamond, Gem, Facebook, Instagram, Twitter, Youtube, Linkedin, AtSign, Inbox, MessageCircle, PenTool, Badge, Contact, Calendar, Clock, Tag, ThumbsUp, Bookmark, Flag, Globe, Headphones, Type, Upload } from 'lucide-react';
+import { GripVertical, Copy, Trash, ChevronDown, ChevronUp, User, Phone, Mail, MapPin, MessageSquare, CheckSquare, Image, FileText, CreditCard, DollarSign, Truck, ShoppingCart, ArrowRight, ArrowLeft, Check, Send, Users, IdCard, Smartphone, PhoneCall, Home, Building, Map, StickyNote, Edit, Package, Banknote, Handshake, ShoppingBag, Heart, Star, Target, Gift, Crown, Zap, Sparkles, Award, Diamond, Gem, Facebook, Instagram, Twitter, Youtube, Linkedin, AtSign, Inbox, MessageCircle, PenTool, Badge, Contact, Calendar, Clock, Tag, ThumbsUp, Bookmark, Flag, Globe, Headphones, Type, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -400,12 +400,12 @@ const SortableField: React.FC<SortableFieldProps> = ({
                   </div>
                   
                   <div className="pt-2 border-t">
-                    <Button 
+                    <Button
                       onClick={() => setShowFieldEditor(true)}
                       className="w-full flex items-center gap-2"
                       variant="outline"
                     >
-                      <ArrowRight size={16} />
+                      {language === 'ar' ? <ArrowLeft size={16} /> : <ArrowRight size={16} />}
                       {language === 'ar' ? 'الإعدادات المتقدمة' : 'Advanced Settings'}
                     </Button>
                   </div>
@@ -1150,7 +1150,17 @@ const SortableField: React.FC<SortableFieldProps> = ({
                            {language === 'ar' ? 'إعدادات الحساب' : 'Calculation Settings'}
                          </h3>
                          
-
+                         {/* Auto Calculate */}
+                         <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                           <Switch 
+                             checked={editedField.cartSummaryConfig?.autoCalculate || false}
+                             onCheckedChange={(checked) => {
+                               const config = { ...editedField.cartSummaryConfig, autoCalculate: checked };
+                               handleFieldChange('cartSummaryConfig', config);
+                             }}
+                           />
+                           <Label>{language === 'ar' ? 'حساب تلقائي من المنتج' : 'Auto Calculate from Product'}</Label>
+                         </div>
                          
                          {/* Show Discount */}
                          <div className="flex items-center space-x-2 rtl:space-x-reverse">
