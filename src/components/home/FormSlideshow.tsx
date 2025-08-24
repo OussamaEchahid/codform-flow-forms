@@ -205,8 +205,8 @@ const FormSlideshow: React.FC = () => {
         </div>
 
         {/* قسم المعلومات والوصف */}
-        <div className={`w-full lg:w-1/2 text-center space-y-6 ${
-          language === 'ar' ? 'lg:text-right' : 'lg:text-left'
+        <div className={`w-full lg:w-1/2 space-y-6 ${
+          language === 'ar' ? 'text-right' : 'text-left'
         }`}>
           {/* العنوان الرئيسي المحسن */}
           <div className="space-y-4">
@@ -216,8 +216,8 @@ const FormSlideshow: React.FC = () => {
             <h3 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-green-500 to-emerald-600 bg-clip-text text-transparent">
               {language === 'ar' ? 'نقداً عند الاستلام' : 'Cash on Delivery'}
             </h3>
-            <p className={`text-xl text-gray-600 leading-relaxed max-w-lg mx-auto ${
-              language === 'ar' ? 'lg:mx-0' : 'lg:mx-0'
+            <p className={`text-xl text-gray-600 leading-relaxed max-w-lg ${
+              language === 'ar' ? 'mx-0' : 'mx-0'
             }`}>
               {language === 'ar'
                 ? 'منصة شاملة لبناء نماذج دفع مخصصة تتكامل بسلاسة مع متجرك الإلكتروني'
@@ -227,8 +227,8 @@ const FormSlideshow: React.FC = () => {
           </div>
 
           {/* الأزرار المحسنة */}
-          <div className={`flex flex-col sm:flex-row gap-4 justify-center ${
-            language === 'ar' ? 'lg:justify-start' : 'lg:justify-start'
+          <div className={`flex flex-col sm:flex-row gap-4 ${
+            language === 'ar' ? 'justify-start' : 'justify-start'
           }`}>
             <button className="group relative px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
               <span className="relative z-10 flex items-center justify-center gap-2">
@@ -255,8 +255,8 @@ const FormSlideshow: React.FC = () => {
             </p>
 
             {/* ميزات النموذج */}
-            <div className={`flex flex-wrap gap-2 mb-4 justify-center ${
-              language === 'ar' ? 'lg:justify-start' : 'lg:justify-start'
+            <div className={`flex flex-wrap gap-2 mb-4 ${
+              language === 'ar' ? 'justify-start' : 'justify-start'
             }`}>
               {currentTemplate.features[language].map((feature, index) => (
                 <span key={index} className="bg-white text-purple-700 text-sm px-4 py-2 rounded-full shadow-sm border border-purple-200 hover:shadow-md transition-shadow">
@@ -265,8 +265,8 @@ const FormSlideshow: React.FC = () => {
               ))}
             </div>
 
-            <div className={`flex flex-wrap gap-4 text-sm text-gray-500 justify-center ${
-              language === 'ar' ? 'lg:justify-start' : 'lg:justify-start'
+            <div className={`flex flex-wrap gap-4 text-sm text-gray-500 ${
+              language === 'ar' ? 'justify-start' : 'justify-start'
             }`}>
               <span className="flex items-center gap-1">
                 <span>✨</span>
