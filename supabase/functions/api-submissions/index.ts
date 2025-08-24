@@ -176,72 +176,25 @@ function extractCustomerData(formData: any, formSettings: any = {}): {
   return { name, email, phone, city, address };
 }
 
-// معدلات التحويل الافتراضية (نفس المعدلات في الإكستنشن)
-const EXCHANGE_RATES = {
-  'USD': 1.0,
-  'SAR': 3.75,
-  'AED': 3.67,
-  'EGP': 30.85,
-  'MAD': 10.0,  // 10 درهم مغربي = 1 دولار
-  'EUR': 0.85,
-  'GBP': 0.75,
-  'CAD': 1.35
-};
-
-// دالة تحويل العملة
-function convertCurrency(amount: number, fromCurrency: string, toCurrency: string): number {
-  if (fromCurrency === toCurrency) return amount;
-
-  const fromRate = EXCHANGE_RATES[fromCurrency as keyof typeof EXCHANGE_RATES] || 1;
-  const toRate = EXCHANGE_RATES[toCurrency as keyof typeof EXCHANGE_RATES] || 1;
-
-  // تحويل إلى USD أولاً، ثم إلى العملة المطلوبة
-  const usdAmount = amount / fromRate;
-  const convertedAmount = usdAmount * toRate;
-
-  console.log(`🔄 Currency conversion: ${amount} ${fromCurrency} -> ${convertedAmount.toFixed(2)} ${toCurrency} (rates: ${fromRate} -> ${toRate})`);
-  return convertedAmount;
-}
-
 // دالة استخراج السعر المحول من بيانات النموذج - محسنة
 function extractConvertedPrice(formData: any): { price: number; currency: string } {
   console.log('💰 Extracting converted price from form data:', formData);
   
   // الأولوية الأولى: السعر المحول المحفوظ في البيانات المرسلة مباشرة من الفرونت إند
-  if (formData.extractedPrice && parseFloat(formData.extractedPrice) > 0) {
+  if (formData.extractedPrice && parseFloat(formData.extractedPrice) > 1) {
     const price = parseFloat(formData.extractedPrice);
-    const currency = formData.extractedCurrency || 'USD'; // العملة المحولة بالفعل
-
-    // ⚠️ هذا السعر مُحوَّل بالفعل من Cart Summary - لا نحوله مرة أخرى!
-    console.log('🎯 Using ALREADY CONVERTED price from frontend:', price, currency);
+    const currency = formData.extractedCurrency || 'SAR';
+    console.log('🎯 Using saved converted price from frontend:', price, currency);
     return { price, currency };
   }
   
   // الأولوية الثانية: البحث في بيانات النموذج المتداخلة (إذا كانت في data object)
   if (formData.data && typeof formData.data === 'object') {
-    if (formData.data.extractedPrice && parseFloat(formData.data.extractedPrice) > 0) {
+    if (formData.data.extractedPrice && parseFloat(formData.data.extractedPrice) > 1) {
       const price = parseFloat(formData.data.extractedPrice);
-      const currency = formData.data.extractedCurrency || 'USD';
-
-      // ⚠️ هذا السعر مُحوَّل بالفعل من Cart Summary - لا نحوله مرة أخرى!
-      console.log('🎯 Using ALREADY CONVERTED price from nested data:', price, currency);
+      const currency = formData.data.extractedCurrency || 'SAR';
+      console.log('🎯 Using saved converted price from nested data:', price, currency);
       return { price, currency };
-    }
-  }
-
-  // الأولوية الثانية والنصف: البحث عن بيانات عرض الكمية المختار
-  if (formData.selectedOffer || formData.quantityOffer) {
-    const offer = formData.selectedOffer || formData.quantityOffer;
-    if (offer && typeof offer === 'object') {
-      // البحث في الحقول المختلفة لعروض الكمية
-      const price = parseFloat(offer.finalPrice || offer.price || offer.total || offer.amount);
-      const currency = offer.currency || formData.currency || 'USD';
-
-      if (price && price > 0) {
-        // ⚠️ هذا السعر مُحوَّل بالفعل من عروض الكمية - لا نحوله مرة أخرى!
-        console.log('💰 Found ALREADY CONVERTED price from selected offer:', price, currency, 'offer:', offer);
-        return { price, currency };
-      }
     }
   }
   
@@ -254,22 +207,22 @@ function extractConvertedPrice(formData: any): { price: number; currency: string
       if (value && typeof value === 'object' && !Array.isArray(value)) {
         // البحث الرقصي في الكائنات المتداخلة
         const nested = searchInObject(value, fullKey);
-        if (nested && nested.price > 0) return nested;
+        if (nested && nested.price > 1) return nested;
       } else if (value) {
         const stringValue = String(value).trim();
         
         // البحث عن أنماط السعر المختلفة
-        if (keyLower.includes('extractedprice') || keyLower.includes('converted_price') ||
+        if (keyLower.includes('extractedprice') || keyLower.includes('converted_price') || 
             keyLower.includes('final_price') || keyLower.includes('total_price') ||
             keyLower.includes('finalPrice') || keyLower.includes('convertedPrice')) {
           const price = parseFloat(stringValue);
-          if (price && price > 0) { // تقليل الحد الأدنى إلى 0
+          if (price && price > 1) {
             console.log(`💰 Found converted price in ${fullKey}:`, price);
-
+            
             // البحث عن العملة المرتبطة
             const currencyKey = key.replace(/price/i, 'currency').replace(/Price/i, 'Currency');
             const currency = obj[currencyKey] || 'SAR';
-
+            
             return { price, currency };
           }
         }
@@ -289,12 +242,12 @@ function extractConvertedPrice(formData: any): { price: number; currency: string
     if (!stringValue) continue;
     
     // البحث عن أي سعر مع تجنب IDs والقيم غير المرغوبة
-    if ((keyLower.includes('price') || keyLower.includes('amount') ||
+    if ((keyLower.includes('price') || keyLower.includes('amount') || 
         keyLower.includes('total') || keyLower.includes('سعر')) &&
         !keyLower.includes('id') && !keyLower.includes('template') &&
         !keyLower.includes('product-') && !keyLower.includes('form-')) {
       const price = parseFloat(stringValue);
-      if (price && price > 0) { // تقليل الحد الأدنى إلى 0
+      if (price && price > 1) {
         console.log('💰 Found price in form data:', price);
         return { price, currency: 'SAR' }; // العملة الافتراضية
       }
@@ -305,24 +258,12 @@ function extractConvertedPrice(formData: any): { price: number; currency: string
   return { price: 0, currency: 'SAR' };
 }
 
-// Function to calculate quantity from quantity offer selection - Enhanced
+// Function to calculate quantity from quantity offer selection
 function calculateQuantityFromPrice(totalPrice: number, formData: any): number {
   console.log('🔢 Enhanced quantity calculation from:', { totalPrice, formData });
 
   if (formData && typeof formData === 'object') {
-    // الأولوية الأولى: البحث عن الكمية المحددة مباشرة
-    for (const [key, value] of Object.entries(formData)) {
-      const keyLower = key.toLowerCase();
-      if (keyLower.includes('quantity') || keyLower.includes('qty') || keyLower.includes('كمية')) {
-        const qty = parseInt(String(value));
-        if (!isNaN(qty) && qty > 0) {
-          console.log('✅ Found explicit quantity in form data:', qty);
-          return qty;
-        }
-      }
-    }
-
-    // الأولوية الثانية: البحث عن بيانات عرض الكمية المختار
+    // الأولوية الأولى: البحث عن بيانات عرض الكمية المختار
     if (formData.selectedOffer || formData.quantityOffer) {
       const offer = formData.selectedOffer || formData.quantityOffer;
       if (offer && typeof offer === 'object') {
@@ -334,46 +275,40 @@ function calculateQuantityFromPrice(totalPrice: number, formData: any): number {
       }
     }
 
-    // الأولوية الثالثة: البحث في البيانات المتداخلة
-    const searchForQuantity = (obj: any): number | null => {
-      for (const [key, value] of Object.entries(obj)) {
-        if (typeof value === 'object' && value !== null) {
-          const nested = searchForQuantity(value);
-          if (nested) return nested;
-        } else {
-          const keyLower = key.toLowerCase();
-          if ((keyLower.includes('quantity') || keyLower.includes('qty') || keyLower.includes('كمية')) &&
-              !isNaN(parseInt(String(value))) && parseInt(String(value)) > 0) {
-            return parseInt(String(value));
-          }
+    // الأولوية الثانية: البحث في حقول الكمية العادية
+    for (const [key, value] of Object.entries(formData)) {
+      if (key.includes('quantity') || key.includes('qty')) {
+        const qty = parseInt(String(value));
+        if (!isNaN(qty) && qty > 0) {
+          console.log('✅ Found quantity in form data:', qty);
+          return qty;
         }
       }
-      return null;
-    };
-
-    const foundQuantity = searchForQuantity(formData);
-    if (foundQuantity) {
-      console.log('✅ Found quantity in nested data:', foundQuantity);
-      return foundQuantity;
     }
 
-    // الأولوية الرابعة: حساب الكمية من السعر المستخرج
+    // الأولوية الثالثة: حساب من السعر المستخرج
     if (formData.extractedPrice && typeof formData.extractedPrice === 'number') {
       const extractedPrice = formData.extractedPrice;
-      console.log('💰 Calculating quantity from extracted price:', extractedPrice);
+      console.log('💰 Extracted price:', extractedPrice);
 
-      // محاولة تحديد الكمية بناءً على أنماط الأسعار الشائعة
-      // هذا يتطلب معرفة السعر الأساسي للوحدة الواحدة
-      if (extractedPrice > 0) {
-        // استخدام نمط بسيط: إذا كان السعر أكبر من 50، فهو على الأرجح لعدة قطع
-        if (extractedPrice >= 100) {
-          const estimatedQty = Math.round(extractedPrice / 50); // تقدير بناءً على سعر 50 للوحدة
-          console.log('📊 Estimated quantity for high price:', estimatedQty);
-          return Math.min(estimatedQty, 10); // حد أقصى 10 قطع
-        } else if (extractedPrice >= 50) {
-          console.log('📊 Medium price detected, quantity: 2');
-          return 2;
-        }
+      // أنماط عروض الكمية المعروفة (بالدولار الأمريكي):
+      // اشتري 3 واحصل على 1 مجان<|im_start|>: ادفع 3 دولار (كمية = 3)
+      // اشتري 5 واحصل على 2 مجان<|im_start|>: ادفع 5 دولار (كمية = 5)
+
+      if (Math.abs(extractedPrice - 3.0) < 0.01) {
+        console.log('✅ Detected "Buy 3 get 1 free" offer - quantity: 3');
+        return 3;
+      } else if (Math.abs(extractedPrice - 5.0) < 0.01) {
+        console.log('✅ Detected "Buy 5 get 2 free" offer - quantity: 5');
+        return 5;
+      }
+
+      // للأسعار الأخرى، احسب بناءً على سعر الوحدة الأساسي (1 دولار)
+      const baseUnitPrice = 1.0; // 1 USD per unit
+      const calculatedQty = Math.round(extractedPrice / baseUnitPrice);
+      if (calculatedQty > 0 && calculatedQty <= 10) {
+        console.log('📊 Calculated quantity from base price:', calculatedQty);
+        return calculatedQty;
       }
     }
   }
@@ -382,14 +317,15 @@ function calculateQuantityFromPrice(totalPrice: number, formData: any): number {
   return 1; // Default fallback
 }
 
-function createShopifyOrderData(customer: any, formId: string, formSettings: any = {}, convertedPrice: { price: number; currency: string } = { price: 0, currency: 'SAR' }, paymentStatus: string = 'pending', quantity: number = 1, formData: any = {}) {
+function createShopifyOrderData(customer: any, formId: string, formSettings: any = {}, convertedPrice: { price: number; currency: string } = { price: 0, currency: 'SAR' }, paymentStatus: string = 'pending', formData: any = {}) {
   const nameParts = customer.name ? customer.name.split(' ') : ['Customer'];
   const firstName = nameParts[0] || 'Customer';
   const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : 'Order'; // Always provide a last name
   const currency = convertedPrice.currency || formSettings?.currency || 'SAR'; // إعطاء الأولوية للعملة المحولة
   const totalPrice = convertedPrice.price > 0 ? convertedPrice.price.toFixed(2) : '0.00';
 
-  // حساب سعر الوحدة الواحدة
+  // ✅ حساب الكمية الصحيحة
+  const quantity = calculateQuantityFromPrice(convertedPrice.price, formData);
   const unitPrice = quantity > 0 ? (convertedPrice.price / quantity).toFixed(2) : totalPrice;
 
   // Map payment status to Shopify financial status
@@ -439,9 +375,8 @@ function createShopifyOrderData(customer: any, formId: string, formSettings: any
       line_items: [
         {
           title: 'طلب من النموذج - Form Order',
-          quantity: quantity, // استخدام الكمية المحسوبة
-          price: unitPrice, // استخدام سعر الوحدة الواحدة
-          total_discount: quantity > 1 ? ((parseFloat(unitPrice) * quantity) - convertedPrice.price).toFixed(2) : '0.00' // حساب الخصم إذا كان هناك عرض كمية
+          quantity: quantity, // ✅ استخدام الكمية المحسوبة
+          price: unitPrice // ✅ استخدام سعر الوحدة
         }
       ],
       note: `طلب من النموذج - Form submission. ID: ${formId}\nالعميل: ${customer.name}\nالهاتف: ${customer.phone}\nالبريد: ${customer.email}\nالمدينة: ${customer.city}\nالعنوان: ${customer.address}`,
@@ -450,15 +385,14 @@ function createShopifyOrderData(customer: any, formId: string, formSettings: any
   };
 }
 
-async function createShopifyOrder(shopDomain: string, accessToken: string, customer: any, formId: string, formSettings: any = {}, convertedPrice: { price: number; currency: string } = { price: 0, currency: 'SAR' }, paymentStatus: string = 'pending', quantity: number = 1, formData: any = {}): Promise<string | null> {
+async function createShopifyOrder(shopDomain: string, accessToken: string, customer: any, formId: string, formSettings: any = {}, convertedPrice: { price: number; currency: string } = { price: 0, currency: 'SAR' }, paymentStatus: string = 'pending', formData: any = {}): Promise<string | null> {
   console.log('🛒 Starting Shopify order creation process...');
   console.log('📋 Customer data for order:', JSON.stringify(customer, null, 2));
   console.log('⚙️ Form settings:', JSON.stringify(formSettings, null, 2));
   console.log('💰 Converted price data:', JSON.stringify(convertedPrice, null, 2));
   console.log('💳 Payment status:', paymentStatus);
-  console.log('🔢 Quantity:', quantity);
 
-  const orderData = createShopifyOrderData(customer, formId, formSettings, convertedPrice, paymentStatus, quantity, formData);
+  const orderData = createShopifyOrderData(customer, formId, formSettings, convertedPrice, paymentStatus, formData);
   console.log('🎯 Creating Shopify order:', JSON.stringify(orderData, null, 2));
   
   try {
@@ -649,23 +583,23 @@ serve(async (req: Request) => {
       console.log('💰 Extracted converted price:', convertedPrice);
       
       // ✅ إضافة آلية الأسعار الافتراضية إذا لم يوجد سعر محول
-      if (!convertedPrice.price || convertedPrice.price <= 0) {
+      if (!convertedPrice.price || convertedPrice.price <= 1) {
         console.log('⚠️ No valid converted price found, using default price based on currency');
-
+        
         // استخدام الأسعار الافتراضية حسب العملة من إعدادات النموذج
-        const currency = formSettings?.currency || 'SAR';
-        let defaultPrice = 10; // سعر افتراضي معقول
-
+        const currency = formSettings.currency || 'SAR';
+        let defaultPrice = 250; // افتراضي للسعودية
+        
         if (currency === 'MAD') {
-          defaultPrice = 15; // درهم مغربي
+          defaultPrice = 400;
         } else if (currency === 'USD') {
-          defaultPrice = 2; // دولار أمريكي
+          defaultPrice = 150;
         } else if (currency === 'AED') {
-          defaultPrice = 8; // درهم إماراتي
+          defaultPrice = 200;
         } else if (currency === 'SAR') {
-          defaultPrice = 10; // ريال سعودي
+          defaultPrice = 250;
         }
-
+        
         convertedPrice = { price: defaultPrice, currency };
         console.log('🎯 Using default price:', convertedPrice);
       }
@@ -808,12 +742,8 @@ serve(async (req: Request) => {
         }
       }
 
-      // حساب الكمية من بيانات النموذج
-      const calculatedQuantity = calculateQuantityFromPrice(convertedPrice.price, formData);
-      console.log('🔢 Calculated quantity for Shopify order:', calculatedQuantity);
-
-      // Create order in Shopify with form settings, converted price, and calculated quantity
-      const shopifyOrderId = await createShopifyOrder(shopDomain, shopData.access_token, customer, actualFormId, formSettings, convertedPrice, orderStatus, calculatedQuantity, formData);
+      // Create order in Shopify with form settings and converted price
+      const shopifyOrderId = await createShopifyOrder(shopDomain, shopData.access_token, customer, actualFormId, formSettings, convertedPrice, orderStatus, formData);
 
       // Generate order number
       orderNumber = shopifyOrderId ? `SHOP-${shopifyOrderId}` : `ORD-${Date.now()}`;
@@ -842,9 +772,8 @@ serve(async (req: Request) => {
         status: orderStatus, // ✅ استخدام حالة الدفع من الإعدادات
         items: [{
           title: 'طلب من النموذج - Form Order',
-          quantity: calculatedQuantity, // استخدام الكمية المحسوبة مسبقاً
-          price: calculatedQuantity > 0 ? (convertedPrice.price / calculatedQuantity).toFixed(2) : convertedPrice.price.toFixed(2), // سعر الوحدة الواحدة
-          total_price: convertedPrice.price.toFixed(2) // السعر الإجمالي
+          quantity: calculateQuantityFromPrice(convertedPrice.price, formData),
+          price: convertedPrice.price.toFixed(2) // ✅ استخدام السعر المحول
         }],
         shipping_address: { address: customer.address, city: customer.city },
         billing_address: { address: customer.address, city: customer.city },
