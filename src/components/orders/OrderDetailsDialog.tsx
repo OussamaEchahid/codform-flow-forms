@@ -197,56 +197,9 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
       }
     }
 
-    // ✅ نظام ذكي لحساب الكمية - إصلاح مشكلة عدم وجود عروض
-    if (order.total_amount) {
-      const totalAmount = parseFloat(order.total_amount);
-      const orderCurrency = order.currency || 'USD';
-
-      // إذا كانت بيانات المنتج متاحة، استخدمها
-      if (productInfo && productInfo.price) {
-        const productPrice = parseFloat(productInfo.price);
-        const productCurrency = productInfo.currency || 'USD';
-
-        console.log('🔍 Quantity calculation data:', {
-          totalAmount,
-          orderCurrency,
-          productPrice,
-          productCurrency
-        });
-
-        // ✅ إصلاح: تحويل سعر الطلب إلى عملة المنتج للمقارنة الصحيحة
-        let convertedTotalAmount = totalAmount;
-        if (orderCurrency !== productCurrency) {
-          const rates = { 'USD': 1.0, 'SAR': 3.75, 'AED': 3.67, 'MAD': 10.0, 'EUR': 0.85 };
-          const fromRate = rates[orderCurrency] || 1;
-          const toRate = rates[productCurrency] || 1;
-          convertedTotalAmount = (totalAmount / fromRate) * toRate;
-
-          console.log('💱 Currency conversion for quantity:', {
-            originalAmount: totalAmount,
-            originalCurrency: orderCurrency,
-            convertedAmount: convertedTotalAmount,
-            targetCurrency: productCurrency
-          });
-        }
-
-        // حساب الكمية بناءً على السعر المحول
-        const calculatedQty = Math.round(convertedTotalAmount / productPrice);
-
-        console.log('🧮 Quantity calculation:', {
-          convertedTotalAmount,
-          productPrice,
-          calculatedQty
-        });
-
-        if (calculatedQty > 0 && calculatedQty <= 50) {
-          console.log('✅ Smart calculated quantity:', calculatedQty);
-          return calculatedQty;
-        }
-      }
-    }
-
-    // Final fallback
+    // ✅ الكمية دائماً 1 للطلبات العادية (بدون عروض كمية)
+    // النموذج لا يدعم كميات متعددة، فقط طلب واحد
+    console.log('� Setting quantity to 1 (standard form order)');
     return 1;
   };
 
