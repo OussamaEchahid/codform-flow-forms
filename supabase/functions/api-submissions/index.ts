@@ -259,8 +259,8 @@ function extractConvertedPrice(formData: any): { price: number; currency: string
 }
 
 // Function to calculate quantity from quantity offer selection
-function calculateQuantityFromPrice(totalPrice: number, formData: any): number {
-  console.log('🔢 Enhanced quantity calculation from:', { totalPrice, formData });
+function calculateQuantityFromPrice(totalPrice: number, formData: any, productData?: any): number {
+  console.log('🔢 Smart quantity calculation from:', { totalPrice, formData, productData });
 
   if (formData && typeof formData === 'object') {
     // الأولوية الأولى: البحث عن بيانات عرض الكمية المختار
@@ -286,29 +286,50 @@ function calculateQuantityFromPrice(totalPrice: number, formData: any): number {
       }
     }
 
-    // الأولوية الثالثة: حساب من السعر المستخرج
+    // الأولوية الثالثة: حساب ذكي من السعر المستخرج وبيانات المنتج
     if (formData.extractedPrice && typeof formData.extractedPrice === 'number') {
       const extractedPrice = formData.extractedPrice;
-      console.log('💰 Extracted price:', extractedPrice);
+      console.log('💰 Extracted price for smart calculation:', extractedPrice);
 
-      // أنماط عروض الكمية المعروفة (بالدولار الأمريكي):
-      // اشتري 3 واحصل على 1 مجان<|im_start|>: ادفع 3 دولار (كمية = 3)
-      // اشتري 5 واحصل على 2 مجان<|im_start|>: ادفع 5 دولار (كمية = 5)
+      // ✅ استخدام بيانات المنتج الحقيقية إذا كانت متاحة
+      if (productData && productData.price && productData.currency) {
+        console.log('🎯 Using real product data for calculation:', productData);
 
-      if (Math.abs(extractedPrice - 3.0) < 0.01) {
-        console.log('✅ Detected "Buy 3 get 1 free" offer - quantity: 3');
-        return 3;
-      } else if (Math.abs(extractedPrice - 5.0) < 0.01) {
-        console.log('✅ Detected "Buy 5 get 2 free" offer - quantity: 5');
-        return 5;
-      }
+        // تحويل سعر المنتج إلى نفس عملة السعر المستخرج
+        const targetCurrency = formData.extractedCurrency || formData.currency || 'USD';
+        let convertedUnitPrice = productData.price;
 
-      // للأسعار الأخرى، احسب بناءً على سعر الوحدة الأساسي (1 دولار)
-      const baseUnitPrice = 1.0; // 1 USD per unit
-      const calculatedQty = Math.round(extractedPrice / baseUnitPrice);
-      if (calculatedQty > 0 && calculatedQty <= 10) {
-        console.log('📊 Calculated quantity from base price:', calculatedQty);
-        return calculatedQty;
+        // تحويل العملة إذا كانت مختلفة
+        if (productData.currency !== targetCurrency) {
+          // استخدام معدلات التحويل الأساسية
+          const rates = { 'USD': 1.0, 'SAR': 3.75, 'AED': 3.67, 'MAD': 10.0, 'EUR': 0.85 };
+          const fromRate = rates[productData.currency] || 1;
+          const toRate = rates[targetCurrency] || 1;
+          convertedUnitPrice = (productData.price / fromRate) * toRate;
+        }
+
+        console.log('💱 Currency conversion for quantity calculation:', {
+          originalPrice: productData.price,
+          originalCurrency: productData.currency,
+          convertedPrice: convertedUnitPrice,
+          targetCurrency,
+          extractedPrice
+        });
+
+        // حساب الكمية بناءً على السعر الحقيقي
+        const calculatedQty = Math.round(extractedPrice / convertedUnitPrice);
+        if (calculatedQty > 0 && calculatedQty <= 50) {
+          console.log('✅ Smart calculated quantity from real product data:', calculatedQty);
+          return calculatedQty;
+        }
+      } else {
+        // احتياطي: استخدام الحساب التقليدي
+        console.log('⚠️ No product data available, using fallback calculation');
+        const calculatedQty = Math.round(extractedPrice / 1.0); // افتراض 1 USD للوحدة
+        if (calculatedQty > 0 && calculatedQty <= 20) {
+          console.log('📊 Fallback calculated quantity:', calculatedQty);
+          return calculatedQty;
+        }
       }
     }
   }
@@ -324,8 +345,8 @@ function createShopifyOrderData(customer: any, formId: string, formSettings: any
   const currency = convertedPrice.currency || formSettings?.currency || 'SAR'; // إعطاء الأولوية للعملة المحولة
   const totalPrice = convertedPrice.price > 0 ? convertedPrice.price.toFixed(2) : '0.00';
 
-  // ✅ حساب الكمية الصحيحة
-  const quantity = calculateQuantityFromPrice(convertedPrice.price, formData);
+  // ✅ حساب الكمية الصحيحة باستخدام بيانات المنتج
+  const quantity = calculateQuantityFromPrice(convertedPrice.price, formData, formData?.productData);
   const unitPrice = quantity > 0 ? (convertedPrice.price / quantity).toFixed(2) : totalPrice;
 
   // Map payment status to Shopify financial status
@@ -772,7 +793,7 @@ serve(async (req: Request) => {
         status: orderStatus, // ✅ استخدام حالة الدفع من الإعدادات
         items: [{
           title: 'طلب من النموذج - Form Order',
-          quantity: calculateQuantityFromPrice(convertedPrice.price, formData),
+          quantity: calculateQuantityFromPrice(convertedPrice.price, formData, formData?.productData),
           price: convertedPrice.price.toFixed(2) // ✅ استخدام السعر المحول
         }],
         shipping_address: { address: customer.address, city: customer.city },

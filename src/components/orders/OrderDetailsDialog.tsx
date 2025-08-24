@@ -197,31 +197,43 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
       }
     }
 
-    // Try to determine from quantity offers and total amount
-    if (quantityOfferData?.offers && order.total_amount) {
+    // ✅ نظام ذكي لحساب الكمية بناءً على بيانات المنتج الحقيقية
+    if (order.total_amount) {
       const totalAmount = parseFloat(order.total_amount);
 
-      // Check for known quantity offer patterns based on final price
-      if (Math.abs(totalAmount - 5.4) < 0.01) {
-        // This could be either offer with discount applied
-        // Check the original price in items to determine which offer
-        if (orderItems.length > 0) {
-          const itemPrice = parseFloat(orderItems[0].price || 0);
-          if (Math.abs(itemPrice - 5.4) < 0.01) {
-            // If item price equals total, it's likely the 3-item offer
-            return 3;
-          }
+      // محاولة الحصول على سعر الوحدة الحقيقي
+      let estimatedUnitPrice = 1.0; // افتراضي
+
+      // إذا كانت بيانات المنتج متاحة، استخدمها
+      if (productInfo && productInfo.price) {
+        const productPrice = parseFloat(productInfo.price);
+        const productCurrency = productInfo.currency || 'USD';
+        const orderCurrency = order.currency || 'USD';
+
+        // تحويل العملة إذا كانت مختلفة
+        if (productCurrency !== orderCurrency) {
+          const rates = { 'USD': 1.0, 'SAR': 3.75, 'AED': 3.67, 'MAD': 10.0, 'EUR': 0.85 };
+          const fromRate = rates[productCurrency] || 1;
+          const toRate = rates[orderCurrency] || 1;
+          estimatedUnitPrice = (productPrice / fromRate) * toRate;
+        } else {
+          estimatedUnitPrice = productPrice;
         }
+
+        console.log('🎯 Using real product data for quantity calculation:', {
+          productPrice,
+          productCurrency,
+          orderCurrency,
+          estimatedUnitPrice,
+          totalAmount
+        });
       }
 
-      // Check for $9-10 range (Buy 5 get 2 free)
-      if (totalAmount >= 9.0 && totalAmount <= 10.0) {
-        return 5;
-      }
-
-      // Check for $6 range (Buy 3 get 1 free)
-      if (totalAmount >= 5.4 && totalAmount <= 6.0) {
-        return 3;
+      // حساب الكمية بناءً على السعر الحقيقي
+      const calculatedQty = Math.round(totalAmount / estimatedUnitPrice);
+      if (calculatedQty > 0 && calculatedQty <= 50) {
+        console.log('✅ Smart calculated quantity:', calculatedQty);
+        return calculatedQty;
       }
     }
 
@@ -231,29 +243,47 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
 
   const actualQuantity = getActualQuantity();
 
-  // Get product name and image
-  const getProductInfo = () => {
+  // ✅ نظام ذكي للحصول على معلومات المنتج
+  const getSmartProductInfo = () => {
+    // الأولوية الأولى: بيانات المنتج من productInfo
     if (productInfo) {
       return {
         name: productInfo.title || 'منتج',
         image: productInfo.featuredImage || productInfo.images?.[0] || null,
-        price: 2.0 // Base unit price is $2.00
+        price: parseFloat(productInfo.price || '0') || 1.0,
+        currency: productInfo.currency || 'USD'
       };
     }
 
-    // Fallback to order items
+    // الأولوية الثانية: استخراج من order items
+    if (orderItems && orderItems.length > 0) {
+      const item = orderItems[0];
+      return {
+        name: item.title?.replace('طلب من النموذج - Form Order', '') || 'منتج',
+        image: item.image || null,
+        price: parseFloat(item.price || '0') || 1.0,
+        currency: order.currency || 'USD'
+      };
+    }
+
+    // الأولوية الثالثة: حساب ذكي من إجمالي الطلب
+    const totalAmount = parseFloat(order.total_amount || '0');
+    const estimatedQuantity = getActualQuantity();
+    const estimatedUnitPrice = estimatedQuantity > 0 ? totalAmount / estimatedQuantity : totalAmount;
+
     return {
-      name: orderItems[0]?.title?.replace('طلب من النموذج - Form Order', '') || 'منتج',
-      image: orderItems[0]?.image || null,
-      price: 2.0 // Base unit price is $2.00
+      name: 'منتج',
+      image: null,
+      price: estimatedUnitPrice,
+      currency: order.currency || 'USD'
     };
   };
 
-  const productDetails = getProductInfo();
+  const productDetails = getSmartProductInfo();
 
-  // Calculate totals with actual quantity and proper discount
-  const unitPrice = productDetails.price; // $2.00 per unit
-  const subtotal = unitPrice * actualQuantity; // e.g., 3 × $2 = $6
+  // ✅ إصلاح: حساب المجاميع بالسعر الأساسي الصحيح
+  const unitPrice = productDetails.price; // $1.00 per unit
+  const subtotal = unitPrice * actualQuantity; // e.g., 3 × $1 = $3
   const shippingCost = parseFloat(order.shipping_cost || 0);
   const extras = parseFloat(order.extras || 0);
 
