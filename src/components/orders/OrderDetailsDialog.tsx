@@ -250,7 +250,7 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
     return 1;
   };
 
-  const actualQuantity = getActualQuantity();
+
 
   // ✅ نظام ذكي للحصول على معلومات المنتج
   const getSmartProductInfo = () => {
@@ -290,33 +290,41 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
 
   const productDetails = getSmartProductInfo();
 
-  // ✅ إصلاح صحيح: استخدام عملة النموذج الأصلية
+  // ✅ إصلاح نهائي: تحديد العملة المناسبة للعرض
   const orderCurrency = order.currency || 'USD';
-  const displayCurrency = orderCurrency; // استخدام عملة النموذج الأصلية
+  const productCurrency = productDetails.currency || 'USD';
+
+  // ✅ منطق جديد: إذا كان هناك عروض كمية، استخدم عملة المنتج، وإلا استخدم عملة المنتج أيضاً
+  const actualQuantity = getActualQuantity();
+  const hasQuantityOffers = actualQuantity > 1;
+
+  // ✅ استخدام عملة المنتج دائماً للعرض (USD في معظم الحالات)
+  const displayCurrency = productCurrency;
 
   // دالة لعرض العملة بالشكل الصحيح
   const formatCurrency = (amount) => {
     if (displayCurrency === 'USD') return `$${amount.toFixed(2)}`;
     return `${displayCurrency} ${amount.toFixed(2)}`;
   };
+
   let unitPrice = productDetails.price;
   let finalTotal = parseFloat(order.total_amount || 0);
 
-  // ✅ إصلاح: تحويل سعر المنتج إلى عملة النموذج إذا كانت مختلفة
-  const productCurrency = productDetails.currency;
-  if (productCurrency !== orderCurrency) {
+  // ✅ إصلاح: تحويل المبلغ الإجمالي إلى عملة المنتج للعرض
+  if (orderCurrency !== displayCurrency) {
     const rates = { 'USD': 1.0, 'SAR': 3.75, 'AED': 3.67, 'MAD': 10.0, 'EUR': 0.85 };
-    const fromRate = rates[productCurrency] || 1;
-    const toRate = rates[orderCurrency] || 1;
+    const fromRate = rates[orderCurrency] || 1;
+    const toRate = rates[displayCurrency] || 1;
 
-    // تحويل سعر الوحدة إلى عملة النموذج
-    unitPrice = (unitPrice / fromRate) * toRate;
+    // تحويل المبلغ الإجمالي إلى عملة المنتج
+    finalTotal = (finalTotal / fromRate) * toRate;
 
-    console.log('💱 Product price conversion to form currency:', {
-      originalUnitPrice: productDetails.price,
-      productCurrency: productCurrency,
-      convertedUnitPrice: unitPrice,
-      formCurrency: orderCurrency
+    console.log('💱 Total amount conversion to product currency:', {
+      originalTotal: parseFloat(order.total_amount || 0),
+      orderCurrency: orderCurrency,
+      convertedTotal: finalTotal,
+      displayCurrency: displayCurrency,
+      hasQuantityOffers
     });
   }
 
