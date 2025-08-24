@@ -261,19 +261,39 @@ function extractConvertedPrice(formData: any): { price: number; currency: string
 // Function to calculate quantity from quantity offer selection
 function calculateQuantityFromPrice(totalPrice: number, formData: any, productData?: any): number {
   console.log('🔢 Smart quantity calculation from:', { totalPrice, formData, productData });
+  console.log('🔍 Detailed formData inspection:', JSON.stringify(formData, null, 2));
 
   if (formData && typeof formData === 'object') {
-    // الأولوية الأولى: البحث عن بيانات عرض الكمية المختار
+    // ✅ CRITICAL FIX: الأولوية الأولى للكمية المرسلة مباشرة
+    console.log('🔍 Checking for direct quantity field...');
+    console.log('formData.quantity:', formData.quantity);
+
+    if (formData.quantity && !isNaN(parseInt(formData.quantity))) {
+      const directQty = parseInt(formData.quantity);
+      if (directQty > 0) {
+        console.log('✅ Found direct quantity field:', directQty);
+        return directQty;
+      }
+    }
+
+    // الأولوية الثانية: البحث عن بيانات عرض الكمية المختار
+    console.log('🔍 Checking for selectedOffer or quantityOffer...');
+    console.log('formData.selectedOffer:', formData.selectedOffer);
+    console.log('formData.quantityOffer:', formData.quantityOffer);
+
     if (formData.selectedOffer || formData.quantityOffer) {
       const offer = formData.selectedOffer || formData.quantityOffer;
       console.log('🎯 Found offer data:', offer);
       if (offer && typeof offer === 'object') {
         const qty = parseInt(offer.quantity || offer.qty);
+        console.log('🔢 Parsed quantity from offer:', qty);
         if (!isNaN(qty) && qty > 0) {
           console.log('✅ Found quantity from selected offer:', qty, 'offer:', offer);
           return qty;
         }
       }
+    } else {
+      console.log('❌ No selectedOffer or quantityOffer found in formData');
     }
 
     // الأولوية الثانية: البحث في حقول الكمية العادية
@@ -462,6 +482,19 @@ serve(async (req: Request) => {
 
     console.log('🏪 Shop domain:', shopDomain);
     console.log('📋 Form ID:', formId);
+    console.log('📊 Form data received:', JSON.stringify(formData, null, 2));
+
+    // ✅ CRITICAL DEBUG: تسجيل تفصيلي للكمية المرسلة
+    console.log('🔍 QUANTITY DEBUG - Checking all quantity sources:');
+    console.log('  - formData.quantity:', formData.quantity);
+    console.log('  - formData.selectedOffer:', formData.selectedOffer);
+    console.log('  - formData.quantityOffer:', formData.quantityOffer);
+    if (formData.selectedOffer) {
+      console.log('  - selectedOffer.quantity:', formData.selectedOffer.quantity);
+    }
+    if (formData.quantityOffer) {
+      console.log('  - quantityOffer.quantity:', formData.quantityOffer.quantity);
+    }
 
     if (!formId || !shopDomain) {
       return new Response(
@@ -513,12 +546,12 @@ serve(async (req: Request) => {
             productSettingData = {
               form_id: productAssociation[0].form_id,
               forms: formData
-            };
+            } as any;
           }
         }
-          
-        if (!productError && productSettingData?.forms) {
-          formData = productSettingData.forms as any;
+
+        if (!productError && productSettingData && (productSettingData as any)?.forms) {
+          formData = (productSettingData as any).forms;
           actualFormId = formData.id;
           console.log('✅ Found form associated with product:', actualFormId);
         } else {
@@ -605,7 +638,7 @@ serve(async (req: Request) => {
         console.log('⚠️ No valid converted price found, using default price based on currency');
         
         // استخدام الأسعار الافتراضية حسب العملة من إعدادات النموذج
-        const currency = formSettings.currency || 'SAR';
+        const currency = (formSettings as any)?.currency || 'SAR';
         let defaultPrice = 250; // افتراضي للسعودية
         
         if (currency === 'MAD') {
@@ -784,9 +817,9 @@ serve(async (req: Request) => {
         customer_phone: customer.phone,
         customer_address: customer.address,
         customer_city: customer.city,
-        customer_country: formSettings?.country || 'SA',
+        customer_country: (formSettings as any)?.country || 'SA',
         total_amount: convertedPrice.price, // ✅ استخدام السعر المحول
-        currency: convertedPrice.currency || formSettings?.currency || 'USD', // ✅ استخدام العملة المحولة
+        currency: convertedPrice.currency || (formSettings as any)?.currency || 'USD', // ✅ استخدام العملة المحولة
         status: orderStatus, // ✅ استخدام حالة الدفع من الإعدادات
         items: [{
           title: 'طلب من النموذج - Form Order',
@@ -964,20 +997,20 @@ serve(async (req: Request) => {
     let redirectUrl;
     
     console.log('🎯 Order settings for redirect:', {
-      post_order_action: orderSettings?.post_order_action,
-      redirect_enabled: orderSettings?.redirect_enabled,
-      thank_you_page_url: orderSettings?.thank_you_page_url
+      post_order_action: (orderSettings as any)?.post_order_action,
+      redirect_enabled: (orderSettings as any)?.redirect_enabled,
+      thank_you_page_url: (orderSettings as any)?.thank_you_page_url
     });
     
     // Check if redirect is enabled and has a custom URL
-    if (orderSettings?.redirect_enabled && orderSettings?.thank_you_page_url && orderSettings.thank_you_page_url.trim() !== '') {
+    if ((orderSettings as any)?.redirect_enabled && (orderSettings as any)?.thank_you_page_url && (orderSettings as any).thank_you_page_url.trim() !== '') {
       // Use custom thank you page URL from settings
-      redirectUrl = orderSettings.thank_you_page_url.trim();
+      redirectUrl = (orderSettings as any).thank_you_page_url.trim();
       // Add order parameter
       const separator = redirectUrl.includes('?') ? '&' : '?';
       redirectUrl += `${separator}order=${orderNumber}&success=true`;
       console.log('✅ Using custom redirect URL from settings:', redirectUrl);
-    } else if (orderSettings?.post_order_action === 'redirect' && orderSettings?.redirect_enabled) {
+    } else if ((orderSettings as any)?.post_order_action === 'redirect' && (orderSettings as any)?.redirect_enabled) {
       // Use default Shopify checkout page if no custom URL set
       redirectUrl = `https://${shopDomain}/checkout/thank_you?order=${orderNumber}&success=true`;
       console.log('📄 Using default checkout page (redirect enabled but no custom URL)');
