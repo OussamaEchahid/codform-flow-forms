@@ -306,11 +306,18 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
   const subtotal = finalTotal;
   const shippingCost = parseFloat(order?.shipping_cost || 0);
   const extras = parseFloat(order?.extras || 0);
-
-  // ✅ إصلاح: لا يوجد خصم في عروض الكمية - السعر النهائي هو المجموع الصحيح
-  const discount = 0; // لا يوجد خصم - السعر النهائي من النموذج صحيح
-
+  const discount = 0;
   const total = finalTotal;
+
+  // ✅ دالة تنسيق العملة حسب نوع العملة المحفوظة في الطلب
+  const formatCurrency = (amount: number) => {
+    if (displayCurrency === 'USD') return `$${amount.toFixed(2)}`;
+    if (displayCurrency === 'SAR') return `${amount.toFixed(2)} ر.س`;
+    if (displayCurrency === 'AED') return `${amount.toFixed(2)} د.إ`;
+    if (displayCurrency === 'MAD') return `${amount.toFixed(2)} د.م`;
+    if (displayCurrency === 'EUR') return `€${amount.toFixed(2)}`;
+    return `${displayCurrency} ${amount.toFixed(2)}`;
+  };
 
   // Get country from form settings
   const getActualCountry = () => {
@@ -393,7 +400,7 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
             <div className="text-center">
               <div className="text-sm text-muted-foreground">{language === 'ar' ? 'إجمالي المبلغ' : 'Total Amount'}</div>
               <div className="font-bold text-xl text-green-600">
-                ${total.toFixed(2)}
+                {formatCurrency(total)}
               </div>
             </div>
             <div className="text-center">
@@ -561,7 +568,7 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
                           <div>
                             <div className="text-muted-foreground">{language === 'ar' ? 'سعر الوحدة' : 'Unit Price'}</div>
                             <div className="font-medium">
-                              ${unitPrice.toFixed(2)}
+                              {formatCurrency(unitPrice)}
                             </div>
                           </div>
 
@@ -573,7 +580,7 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
                           <div>
                             <div className="text-muted-foreground">{language === 'ar' ? 'المجموع الفرعي' : 'Subtotal'}</div>
                             <div className="font-medium text-green-600">
-                              ${subtotal.toFixed(2)}
+                              {formatCurrency(subtotal)}
                             </div>
                           </div>
                         </div>
@@ -610,7 +617,7 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
                     <div className="flex justify-between items-center">
                       <span className="text-sm">{language === 'ar' ? 'سعر الوحدة' : 'Unit Price'}</span>
                       <span className="font-medium">
-                        ${unitPrice.toFixed(2)}
+                        {formatCurrency(unitPrice)}
                       </span>
                     </div>
 
@@ -622,7 +629,7 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
                     <div className="flex justify-between items-center">
                       <span className="text-sm">{language === 'ar' ? 'المجموع الفرعي' : 'Subtotal'}</span>
                       <span className="font-medium">
-                        ${subtotal.toFixed(2)}
+                        {formatCurrency(subtotal)}
                       </span>
                     </div>
 
@@ -630,7 +637,7 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
                       <div className="flex justify-between items-center">
                         <span className="text-sm">{language === 'ar' ? 'إضافي' : 'Extra'}</span>
                         <span className="font-medium">
-                          ${extras.toFixed(2)}
+                          {formatCurrency(extras)}
                         </span>
                       </div>
                     )}
@@ -639,7 +646,7 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
                       <span className="text-sm">{language === 'ar' ? 'الشحن' : 'Shipping'}</span>
                       <span className="font-medium text-blue-600">
                         {shippingCost > 0 ?
-                          `$${shippingCost.toFixed(2)}` :
+                          formatCurrency(shippingCost) :
                           (language === 'ar' ? 'مجاني' : 'Free')
                         }
                       </span>
@@ -649,7 +656,7 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-red-600">{language === 'ar' ? 'خصم العرض' : 'Offer Discount'}</span>
                         <span className="font-medium text-red-600">
-                          -${discount.toFixed(2)}
+                          -{formatCurrency(discount)}
                         </span>
                       </div>
                     )}
@@ -659,7 +666,7 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
                     <div className="flex justify-between items-center">
                       <span className="font-semibold text-lg">{language === 'ar' ? 'المجموع النهائي' : 'Final Total'}</span>
                       <span className="font-bold text-xl text-green-600">
-                        ${total.toFixed(2)}
+                        {formatCurrency(total)}
                       </span>
                     </div>
 
@@ -669,7 +676,7 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
                         <div className="text-sm text-green-800">
                           <strong>{language === 'ar' ? '🎉 تم تطبيق العرض!' : '🎉 Offer Applied!'}</strong>
                           <div className="mt-1">
-                            {language === 'ar' ? 'وفرت' : 'You saved'} <strong>${discount.toFixed(2)}</strong>
+                            {language === 'ar' ? 'وفرت' : 'You saved'} <strong>{formatCurrency(discount)}</strong>
                           </div>
                         </div>
                       </div>
