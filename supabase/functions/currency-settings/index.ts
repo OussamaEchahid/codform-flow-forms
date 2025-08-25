@@ -6,41 +6,31 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS, PUT, DELETE',
 }
 
-// معدلات تحويل محدثة مع العملات الجديدة
-const EXCHANGE_RATES = {
-  'USD': 1.0,
-  'EUR': 0.85,
-  'GBP': 0.79,
-  'SAR': 3.75,
-  'MAD': 10.0,
-  'AED': 3.67,
-  'EGP': 30.85,
-  'CAD': 1.35,
-  'AUD': 1.52,
-  'JPY': 110.0,
-  'CHF': 0.92,
-  'CNY': 6.45,
-  'INR': 74.5,
-  'BRL': 5.2,
-  'RUB': 75.0,
-  'TRY': 8.5,
-  'KRW': 1180.0,
-  'SGD': 1.35,
-  'HKD': 7.8,
-  'NOK': 8.6,
-  'SEK': 8.9,
-  'DKK': 6.3,
-  'PLN': 3.9,
-  'CZK': 21.5,
-  'HUF': 295.0,
-  'ILS': 3.2,
-  'ZAR': 14.8,
-  'MXN': 20.1,
-  'THB': 33.2,
-  'MYR': 4.15,
-  'IDR': 14250.0,
-  'PHP': 50.5,
-  'VND': 22800.0
+// معدلات تحويل موحدة - مطابقة للنظام الموحد
+const UNIFIED_EXCHANGE_RATES = {
+  // العملات الرئيسية
+  'USD': 1.0000, 'EUR': 0.9200, 'GBP': 0.7900, 'JPY': 149.0000, 'CNY': 7.2400,
+  'INR': 83.0000, 'RUB': 92.5000, 'AUD': 1.5700, 'CAD': 1.4300, 'CHF': 0.8900,
+  'HKD': 7.8000, 'SGD': 1.3500, 'KRW': 1345.0000, 'NZD': 1.6900,
+
+  // عملات الشرق الأوسط
+  'SAR': 3.7500, 'AED': 3.6700, 'QAR': 3.6400, 'KWD': 0.3100, 'BHD': 0.3800,
+  'OMR': 0.3800, 'EGP': 30.8500, 'JOD': 0.7100, 'ILS': 3.6700, 'IRR': 42100.0000,
+  'IQD': 1310.0000, 'TRY': 34.1500, 'LBP': 89500.0000, 'SYP': 13000.0000, 'YER': 250.0000,
+
+  // عملات أفريقيا
+  'MAD': 10.5000, 'XOF': 655.9600, 'XAF': 655.9600, 'NGN': 1675.0000, 'ZAR': 18.4500,
+  'KES': 130.5000, 'GHS': 15.8500, 'ETB': 125.5000, 'TZS': 2515.0000, 'UGX': 3785.0000,
+  'ZMW': 27.8500, 'RWF': 1385.0000,
+
+  // عملات آسيا
+  'IDR': 15850.0000, 'PKR': 280.0000, 'BDT': 110.0000, 'LKR': 300.0000, 'NPR': 133.0000,
+  'BTN': 83.0000, 'MMK': 2100.0000, 'KHR': 4100.0000, 'LAK': 20000.0000, 'VND': 24000.0000,
+  'THB': 36.0000, 'MYR': 4.7000, 'PHP': 56.0000,
+
+  // عملات أمريكا اللاتينية
+  'MXN': 20.1500, 'BRL': 6.0500, 'ARS': 1005.5000, 'CLP': 975.2000, 'COP': 4285.5000,
+  'PEN': 3.7500, 'VES': 36500000.0000, 'UYU': 40.2500
 };
 
 interface CurrencySettings {
@@ -83,40 +73,42 @@ Deno.serve(async (req) => {
 
     console.log(`🔍 Getting currency settings for shop: ${shopId}`);
 
-    // استدعاء الدالة لجلب إعدادات العملة
-    const { data, error } = await supabase.rpc('get_shop_currency_settings', {
+    // استخدام دالة قاعدة البيانات المحدثة للحصول على المعدلات الموحدة
+    const { data: dbResult, error: dbError } = await supabase.rpc('get_currency_settings', {
       p_shop_id: shopId
     });
 
-    if (error) {
-      console.error('❌ Error fetching currency settings:', error);
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: error.message 
-        }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
+    if (dbError) {
+      console.error('❌ Error calling get_currency_settings:', dbError);
+
+      // Fallback: استخدام المعدلات الموحدة مباشرة
+      const result = {
+        shop_id: shopId,
+        success: true,
+        custom_rates: {},
+        custom_symbols: {},
+        display_settings: {
+          show_symbol: true,
+          decimal_places: 2,
+          symbol_position: 'before'
+        },
+        default_rates: UNIFIED_EXCHANGE_RATES,
+        all_rates: UNIFIED_EXCHANGE_RATES
+      };
+
+      return new Response(JSON.stringify(result), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
-    // إضافة معدلات التحويل الافتراضية إلى النتيجة
-    const result = {
-      ...data,
-      default_rates: EXCHANGE_RATES,
-      // دمج المعدلات المخصصة مع الافتراضية
-      all_rates: { ...EXCHANGE_RATES, ...data.custom_rates }
-    };
-
-    console.log('✅ Currency settings fetched:', JSON.stringify(result));
+    console.log('✅ Database result with unified rates:', JSON.stringify(dbResult));
 
     return new Response(
-      JSON.stringify(result),
-      { 
-        status: 200, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      JSON.stringify(dbResult),
+      {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
 

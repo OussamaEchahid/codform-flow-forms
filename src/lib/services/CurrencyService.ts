@@ -1,5 +1,12 @@
 import { CURRENCIES } from '@/lib/constants/countries-currencies';
 import { supabase } from '@/integrations/supabase/client';
+import {
+  UNIFIED_EXCHANGE_RATES,
+  convertCurrency as unifiedConvertCurrency,
+  getExchangeRate as unifiedGetExchangeRate,
+  formatCurrency as unifiedFormatCurrency,
+  getCurrencyInfo
+} from '@/lib/constants/unified-exchange-rates';
 
 export interface CustomCurrencyRate {
   code: string;
@@ -158,7 +165,7 @@ class CurrencyServiceClass {
   }
 
   /**
-   * الحصول على معدل التحويل لعملة معينة
+   * الحصول على معدل التحويل لعملة معينة - استخدام النظام الموحد
    */
   getExchangeRate(currencyCode: string): number {
     // أولاً: البحث في المعدلات المخصصة
@@ -168,37 +175,28 @@ class CurrencyServiceClass {
       return customRate.rate;
     }
 
-    // ثانياً: البحث في المعدلات الافتراضية
-    const defaultCurrency = CURRENCIES.find(c => c.code === currencyCode);
-    if (defaultCurrency) {
-      console.log(`💰 Using default rate for ${currencyCode}: ${defaultCurrency.exchangeRate}`);
-      return defaultCurrency.exchangeRate;
-    }
-
-    // إذا لم توجد العملة، استخدم 1.0
-    console.warn(`⚠️ Currency ${currencyCode} not found, using rate 1.0`);
-    return 1.0;
+    // ثانياً: استخدام النظام الموحد للمعدلات الافتراضية
+    const unifiedRate = unifiedGetExchangeRate(currencyCode);
+    console.log(`💰 Using unified rate for ${currencyCode}: ${unifiedRate}`);
+    return unifiedRate;
   }
 
   /**
-   * تحويل مبلغ من عملة إلى أخرى
+   * تحويل مبلغ من عملة إلى أخرى - استخدام النظام الموحد
    */
   convertCurrency(amount: number, fromCurrency: string, toCurrency: string): number {
-    if (fromCurrency === toCurrency) return amount;
+    // استخدام النظام الموحد مع المعدلات المخصصة
+    const customRatesObject = Object.fromEntries(
+      Array.from(this.customRates.entries()).map(([code, data]) => [code, data.rate])
+    );
 
-    const fromRate = this.getExchangeRate(fromCurrency);
-    const toRate = this.getExchangeRate(toCurrency);
-
-    // تحويل إلى USD أولاً، ثم إلى العملة المستهدفة
-    const usdAmount = amount / fromRate;
-    const convertedAmount = usdAmount * toRate;
-
-    console.log(`🔄 Currency conversion: ${amount} ${fromCurrency} → ${convertedAmount.toFixed(2)} ${toCurrency}`);
-    return convertedAmount;
+    const result = unifiedConvertCurrency(amount, fromCurrency, toCurrency, customRatesObject);
+    console.log(`🔄 Currency conversion: ${amount} ${fromCurrency} → ${result.toFixed(2)} ${toCurrency}`);
+    return result;
   }
 
   /**
-   * تنسيق مبلغ مع رمز العملة
+   * تنسيق مبلغ مع رمز العملة - استخدام النظام الموحد
    */
   formatCurrency(amount: number, currencyCode: string, language: 'en' | 'ar' = 'en'): string {
     console.log('🔧 CurrencyService.formatCurrency called:', {
@@ -208,30 +206,21 @@ class CurrencyServiceClass {
       displaySettings: this.displaySettings,
       customSymbols: this.displaySettings.customSymbols
     });
-    
-    const currency = CURRENCIES.find(c => c.code === currencyCode);
-    
-    if (!currency) {
-      console.log('❌ Currency not found:', currencyCode);
-      return `${amount.toFixed(this.displaySettings.decimalPlaces)} ${currencyCode}`;
+
+    // استخدام النظام الموحد مع الرموز المخصصة
+    const result = unifiedFormatCurrency(amount, currencyCode, this.displaySettings.customSymbols);
+
+    // تطبيق إعدادات العرض المخصصة
+    if (this.displaySettings.symbolPosition === 'after') {
+      // إعادة ترتيب الرمز إذا كان المطلوب وضعه بعد المبلغ
+      const parts = result.match(/^([^\d]*)([\d.,]+)(.*)$/);
+      if (parts) {
+        const [, prefix, amount, suffix] = parts;
+        return `${amount}${this.displaySettings.decimalPlaces !== 2 ?
+          parseFloat(amount).toFixed(this.displaySettings.decimalPlaces) : amount} ${prefix}${suffix}`.trim();
+      }
     }
 
-    const formattedAmount = amount.toFixed(this.displaySettings.decimalPlaces);
-    
-    // استخدام الرمز المخصص إذا كان متوفراً
-    let displayText: string;
-    if (this.displaySettings.customSymbols[currencyCode]) {
-      displayText = this.displaySettings.customSymbols[currencyCode];
-      console.log('✅ Using custom symbol:', displayText, 'for currency:', currencyCode);
-    } else {
-      displayText = this.displaySettings.showSymbol ? currency.symbol : currency.code;
-      console.log('💡 Using default symbol:', displayText, 'for currency:', currencyCode);
-    }
-
-    const result = this.displaySettings.symbolPosition === 'before' 
-      ? `${displayText}${formattedAmount}`
-      : `${formattedAmount} ${displayText}`;
-      
     console.log('✅ Final formatted currency:', result);
     return result;
   }
