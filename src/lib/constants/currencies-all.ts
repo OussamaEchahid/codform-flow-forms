@@ -28,7 +28,7 @@ export const CURRENCIES_ALL: CurrencyAll[] = [
   { code: 'NZD', name: 'New Zealand Dollar', symbol: 'NZ$', exchangeRate: 1.69 },
 
   // MENA & Gulf
-  { code: 'MAD', name: 'Moroccan Dirham', symbol: 'د.م.', exchangeRate: 10.5 },
+  { code: 'MAD', name: 'Moroccan Dirham', symbol: 'د.م.', exchangeRate: 10.0 },
   { code: 'SAR', name: 'Saudi Riyal', symbol: '﷼', exchangeRate: 3.75 },
   { code: 'AED', name: 'UAE Dirham', symbol: 'د.إ', exchangeRate: 3.67 },
   { code: 'QAR', name: 'Qatari Riyal', symbol: 'ر.ق', exchangeRate: 3.64 },

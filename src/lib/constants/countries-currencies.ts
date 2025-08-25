@@ -509,7 +509,7 @@ const CURRENCIES_BASE: Currency[] = [
     name: 'Moroccan Dirham',
     nameAr: 'درهم مغربي',
     symbol: 'د.م.',
-    exchangeRate: 10.50
+    exchangeRate: 10.00
   },
   {
     code: 'USD',
