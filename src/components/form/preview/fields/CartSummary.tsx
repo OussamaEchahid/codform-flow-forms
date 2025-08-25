@@ -255,7 +255,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
     }
     
     // Show demo prices when not using auto calculation OR when auto calculation fails
-    const demoPrice = 1.00; // ✅ تغيير السعر التجريبي إلى 1.00 لسهولة الاختبار
+    const demoPrice = 10.00; // ✅ السعر الحقيقي للمنتج: 10 درهم مغربي
     console.log('🎭 Using demo price:', demoPrice);
     return calculatePrices(demoPrice, finalConfig);
   }, [productData, finalConfig, formCurrency, formStyle.currency, loading]);
