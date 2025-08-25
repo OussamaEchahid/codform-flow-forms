@@ -144,6 +144,14 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
     // استخدام الخدمة الموحدة للعملات
     const result = CurrencyService.convertCurrency(amount, fromCurrency, toCurrency);
 
+    // 🚨 عرض نتيجة التحويل مباشرة
+    alert(`🔄 CURRENCY CONVERSION RESULT:
+Input: ${amount} ${fromCurrency}
+Output: ${result} ${toCurrency}
+Service: CurrencyService
+MAD Rate: ${CurrencyService.getExchangeRate('MAD')}
+GBP Rate: ${CurrencyService.getExchangeRate('GBP')}`);
+
     console.log('💰 CartSummary conversion result:', {
       input: `${amount} ${fromCurrency}`,
       output: `${result} ${toCurrency}`,
@@ -221,14 +229,12 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
       const rawPrice = productData.variants[0].price;
       const originalPrice = parseFloat(rawPrice) || 0;
 
-      // 🚨 CRITICAL DEBUG: تسجيل السعر الخام لفهم المشكلة
-      console.log('🚨 PRICE DEBUG - Raw data from Shopify:', {
-        rawPrice,
-        originalPrice,
-        priceType: typeof rawPrice,
-        fullVariant: productData.variants[0],
-        allVariants: productData.variants
-      });
+      // 🚨 CRITICAL DEBUG: عرض البيانات مباشرة في المتصفح
+      alert(`🚨 SHOPIFY PRICE DEBUG:
+Raw Price: ${rawPrice}
+Parsed Price: ${originalPrice}
+Price Type: ${typeof rawPrice}
+Full Variant: ${JSON.stringify(productData.variants[0], null, 2)}`);
 
       // قراءة العملة من المنتج أو من المتجر أو من المتغير
       const productCurrency = productData.variants[0].currency_code ||
@@ -239,6 +245,13 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
 
       // تحويل السعر قبل الحسابات
       const convertedPrice = convertCurrency(originalPrice, productCurrency, targetCurrency);
+
+      // 🚨 عرض نتيجة التحويل مباشرة
+      alert(`💰 CURRENCY CONVERSION:
+Original: ${originalPrice} ${productCurrency}
+Target: ${targetCurrency}
+Converted: ${convertedPrice}
+Expected for 10 MAD: ~0.76 GBP`);
 
       console.log('💰 Currency conversion applied:', {
         originalPrice,
@@ -258,6 +271,13 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
     
     // Show demo prices when not using auto calculation OR when auto calculation fails
     const demoPrice = 10.00; // ✅ السعر الحقيقي للمنتج: 10 درهم مغربي
+
+    // 🚨 عرض استخدام demo price مباشرة
+    alert(`🎭 USING DEMO PRICE:
+Demo Price: ${demoPrice} MAD
+This should convert to: ~0.76 GBP
+If you see 0.06 GBP, there's a problem!`);
+
     console.log('🎭 Using demo price:', demoPrice);
     return calculatePrices(demoPrice, finalConfig);
   }, [productData, finalConfig, formCurrency, formStyle.currency, loading]);
