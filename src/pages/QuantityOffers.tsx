@@ -17,19 +17,7 @@ import { toast } from 'sonner';
 import QuantityOffersPreview from '@/components/quantity-offers/QuantityOffersPreview';
 import { CurrencyService } from '@/lib/services/CurrencyService';
 
-// استيراد النظام الموحد لمعدلات التحويل
-import { UNIFIED_EXCHANGE_RATES, convertCurrency } from '@/lib/constants/unified-exchange-rates';
 
-// Function to convert price between currencies
-const convertCurrency = (amount: number, fromCurrency: string, toCurrency: string): number => {
-  if (fromCurrency === toCurrency) return amount;
-  
-  // Convert to USD first, then to target currency
-  const usdAmount = amount / (CURRENCY_RATES[fromCurrency] || 1);
-  const convertedAmount = usdAmount * (CURRENCY_RATES[toCurrency] || 1);
-  
-  return Math.round(convertedAmount * 100) / 100; // Round to 2 decimal places
-};
 
 interface Product {
   id: string;
