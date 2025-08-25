@@ -207,11 +207,11 @@ class CurrencyServiceClass {
       customSymbols: this.displaySettings.customSymbols
     });
 
-    // ✅ تطبيق التقريب على المبلغ الأصلي أولاً
-    const roundedAmount = Math.round(amount * Math.pow(10, this.displaySettings.decimalPlaces)) / Math.pow(10, this.displaySettings.decimalPlaces);
+    // ✅ CRITICAL FIX: فصل السعر الحقيقي عن طريقة العرض
+    // لا نقوم بتقريب السعر الحقيقي، فقط نغير طريقة العرض
 
-    // استخدام النظام الموحد مع الرموز المخصصة والمبلغ المقرب
-    const result = unifiedFormatCurrency(roundedAmount, currencyCode, this.displaySettings.customSymbols);
+    // استخدام النظام الموحد مع الرموز المخصصة والمبلغ الأصلي
+    const result = unifiedFormatCurrency(amount, currencyCode, this.displaySettings.customSymbols);
 
     // تطبيق إعدادات العرض المخصصة
     if (this.displaySettings.symbolPosition === 'after') {
@@ -219,7 +219,7 @@ class CurrencyServiceClass {
       const parts = result.match(/^([^\d]*)([\d.,]+)(.*)$/);
       if (parts) {
         const [, prefix, , suffix] = parts;
-        const formattedAmount = roundedAmount.toFixed(this.displaySettings.decimalPlaces);
+        const formattedAmount = amount.toFixed(this.displaySettings.decimalPlaces);
         return `${formattedAmount} ${prefix}${suffix}`.trim();
       }
     }
@@ -229,7 +229,7 @@ class CurrencyServiceClass {
       const parts = result.match(/^([^\d]*)([\d.,]+)(.*)$/);
       if (parts) {
         const [, prefix, , suffix] = parts;
-        const formattedAmount = roundedAmount.toFixed(this.displaySettings.decimalPlaces);
+        const formattedAmount = amount.toFixed(this.displaySettings.decimalPlaces);
         return `${prefix}${formattedAmount}${suffix}`;
       }
     }
