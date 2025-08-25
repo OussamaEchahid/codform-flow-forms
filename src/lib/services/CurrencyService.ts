@@ -221,17 +221,25 @@ class CurrencyServiceClass {
 
     // نوع العرض = كود (showSymbol = false)
     if (showSymbol === false) {
-      return symbolPosition === 'before'
+      const codeResult = symbolPosition === 'before'
         ? `${currencyCode} ${formattedAmount}`
         : `${formattedAmount} ${currencyCode}`;
+      const isRTLcode = language === 'ar' || (typeof document !== 'undefined' && (document.documentElement.dir === 'rtl'));
+      return isRTLcode ? `\u2066${codeResult}\u2069` : codeResult;
     }
 
     // نوع العرض = رمز
+    let result: string;
     if (symbolPosition === 'before') {
-      return `${symbol} ${formattedAmount}`;
+      result = `${symbol} ${formattedAmount}`;
     } else {
-      return `${formattedAmount} ${symbol}`;
+      result = `${formattedAmount} ${symbol}`;
     }
+
+    // ✅ إصلاح اتجاه النص في الواجهات العربية: نستخدم LTR isolate لضمان عدم انقلاب الترتيب
+    // U+2066 (LRI) ... U+2069 (PDI)
+    const isRTL = language === 'ar' || (typeof document !== 'undefined' && (document.documentElement.dir === 'rtl'));
+    return isRTL ? `\u2066${result}\u2069` : result;
   }
 
   /**
