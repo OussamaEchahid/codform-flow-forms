@@ -1,482 +1,155 @@
+/**
+ * UNIFIED EXCHANGE RATES SYSTEM
+ * نظام معدلات التحويل الموحد - مصدر واحد للحقيقة
+ * جميع المعدلات محسوبة بالنسبة للدولار الأمريكي (USD = 1.0)
+ */
 
-import React, { useEffect, useState, useMemo } from 'react';
-import { FormField } from '@/lib/form-utils';
-import { useShopifyProducts } from '@/hooks/useShopifyProducts';
-import { supabase } from '@/integrations/supabase/client';
-import { CurrencyService } from '@/lib/services/CurrencyService';
-
-interface CartSummaryProps {
-  field: FormField;
-  formStyle: {
-    primaryColor?: string;
-    borderRadius?: string;
-    fontSize?: string;
-    currency?: string;
-    formDirection?: string;
-  };
-  productId?: string;
-  formCurrency?: string;
+export interface UnifiedExchangeRate {
+  code: string;
+  name: string;
+  symbol: string;
+  rate: number; // معدل التحويل مقابل USD
+  lastUpdated?: string;
 }
 
-const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, formCurrency }) => {
-  const { getProductById } = useShopifyProducts();
-  const [productData, setProductData] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-  const [linkedProductId, setLinkedProductId] = React.useState<string | null>(null);
-  const [isInitialized, setIsInitialized] = useState(false);
+// ✅ المعدلات الافتراضية الموحدة - مصدر واحد للحقيقة
+export const UNIFIED_EXCHANGE_RATES: Record<string, UnifiedExchangeRate> = {
+  // العملات الرئيسية
+  'USD': { code: 'USD', name: 'US Dollar', symbol: '$', rate: 1.0000 },
+  'EUR': { code: 'EUR', name: 'Euro', symbol: '€', rate: 0.9200 },
+  'GBP': { code: 'GBP', name: 'British Pound', symbol: '£', rate: 0.7900 },
+  'JPY': { code: 'JPY', name: 'Japanese Yen', symbol: '¥', rate: 149.0000 },
+  'CNY': { code: 'CNY', name: 'Chinese Yuan', symbol: '¥', rate: 7.2400 },
+  'INR': { code: 'INR', name: 'Indian Rupee', symbol: '₹', rate: 83.0000 },
+  'RUB': { code: 'RUB', name: 'Russian Ruble', symbol: '₽', rate: 92.5000 },
+  'AUD': { code: 'AUD', name: 'Australian Dollar', symbol: 'A$', rate: 1.5700 },
+  'CAD': { code: 'CAD', name: 'Canadian Dollar', symbol: 'C$', rate: 1.4300 },
+  'CHF': { code: 'CHF', name: 'Swiss Franc', symbol: 'CHF', rate: 0.8900 },
+  'HKD': { code: 'HKD', name: 'Hong Kong Dollar', symbol: 'HK$', rate: 7.8000 },
+  'SGD': { code: 'SGD', name: 'Singapore Dollar', symbol: 'S$', rate: 1.3500 },
+  'KRW': { code: 'KRW', name: 'South Korean Won', symbol: '₩', rate: 1345.0000 },
+  'NZD': { code: 'NZD', name: 'New Zealand Dollar', symbol: 'NZ$', rate: 1.6900 },
 
-  // تهيئة CurrencyService عند تحميل المكون - مرة واحدة فقط
-  React.useEffect(() => {
-    if (isInitialized) return;
+  // عملات الشرق الأوسط
+  'SAR': { code: 'SAR', name: 'Saudi Riyal', symbol: 'ر.س', rate: 3.7500 },
+  'AED': { code: 'AED', name: 'UAE Dirham', symbol: 'د.إ', rate: 3.6700 },
+  'QAR': { code: 'QAR', name: 'Qatari Riyal', symbol: 'ر.ق', rate: 3.6400 },
+  'KWD': { code: 'KWD', name: 'Kuwaiti Dinar', symbol: 'د.ك', rate: 0.3100 },
+  'BHD': { code: 'BHD', name: 'Bahraini Dinar', symbol: 'د.ب', rate: 0.3800 },
+  'OMR': { code: 'OMR', name: 'Omani Rial', symbol: 'ر.ع', rate: 0.3800 },
+  'EGP': { code: 'EGP', name: 'Egyptian Pound', symbol: 'ج.م', rate: 30.8500 },
+  'JOD': { code: 'JOD', name: 'Jordanian Dinar', symbol: 'د.أ', rate: 0.7100 },
+  'ILS': { code: 'ILS', name: 'Israeli Shekel', symbol: '₪', rate: 3.6700 },
+  'IRR': { code: 'IRR', name: 'Iranian Rial', symbol: '﷼', rate: 42100.0000 },
+  'IQD': { code: 'IQD', name: 'Iraqi Dinar', symbol: 'د.ع', rate: 1310.0000 },
+  'TRY': { code: 'TRY', name: 'Turkish Lira', symbol: '₺', rate: 34.1500 },
+  'LBP': { code: 'LBP', name: 'Lebanese Pound', symbol: 'ل.ل', rate: 89500.0000 },
+  'SYP': { code: 'SYP', name: 'Syrian Pound', symbol: 'ل.س', rate: 13000.0000 },
+  'YER': { code: 'YER', name: 'Yemeni Rial', symbol: '﷼', rate: 250.0000 },
 
-    const initializeService = async () => {
-      try {
-        await CurrencyService.initialize();
-        setIsInitialized(true);
-        console.log('✅ CartSummary: CurrencyService initialized');
-      } catch (error) {
-        console.error('❌ CartSummary: Error initializing CurrencyService:', error);
-        setIsInitialized(true); // تجنب إعادة المحاولة اللانهائية
-      }
-    };
-    initializeService();
-  }, [isInitialized]);
+  // عملات أفريقيا
+  'MAD': { code: 'MAD', name: 'Moroccan Dirham', symbol: 'د.م', rate: 10.0000 },
+  'XOF': { code: 'XOF', name: 'West African CFA Franc', symbol: 'CFA', rate: 655.9600 },
+  'XAF': { code: 'XAF', name: 'Central African CFA Franc', symbol: 'FCFA', rate: 655.9600 },
+  'NGN': { code: 'NGN', name: 'Nigerian Naira', symbol: '₦', rate: 1675.0000 },
+  'ZAR': { code: 'ZAR', name: 'South African Rand', symbol: 'R', rate: 18.4500 },
+  'KES': { code: 'KES', name: 'Kenyan Shilling', symbol: 'KSh', rate: 130.5000 },
+  'GHS': { code: 'GHS', name: 'Ghanaian Cedi', symbol: '₵', rate: 15.8500 },
+  'ETB': { code: 'ETB', name: 'Ethiopian Birr', symbol: 'Br', rate: 125.5000 },
+  'TZS': { code: 'TZS', name: 'Tanzanian Shilling', symbol: 'TSh', rate: 2515.0000 },
+  'UGX': { code: 'UGX', name: 'Ugandan Shilling', symbol: 'USh', rate: 3785.0000 },
+  'ZMW': { code: 'ZMW', name: 'Zambian Kwacha', symbol: 'ZK', rate: 27.8500 },
+  'RWF': { code: 'RWF', name: 'Rwandan Franc', symbol: 'RF', rate: 1385.0000 },
 
-  const fieldStyle = field.style || {};
-  
-  // الحصول على إعدادات محفوظة من المحرر - أولوية لـ config ثم cartSummaryConfig
-  const config = field.config || field.cartSummaryConfig || {};
-  
-  // تحديد اللغة مرة واحدة فقط بناءً على النصوص المحفوظة أو اتجاه النموذج
-  const [detectedLanguage] = useState(() => {
-    // أولاً: فحص النصوص المحفوظة
-    const savedTexts = [
-      config.subtotalText, config.discountText,
-      config.shippingText, config.totalText
-    ].filter(Boolean).join(' ');
+  // عملات آسيا
+  'IDR': { code: 'IDR', name: 'Indonesian Rupiah', symbol: 'Rp', rate: 15850.0000 },
+  'PKR': { code: 'PKR', name: 'Pakistani Rupee', symbol: '₨', rate: 280.0000 },
+  'BDT': { code: 'BDT', name: 'Bangladeshi Taka', symbol: '৳', rate: 110.0000 },
+  'LKR': { code: 'LKR', name: 'Sri Lankan Rupee', symbol: 'Rs', rate: 300.0000 },
+  'NPR': { code: 'NPR', name: 'Nepalese Rupee', symbol: 'Rs', rate: 133.0000 },
+  'BTN': { code: 'BTN', name: 'Bhutanese Ngultrum', symbol: 'Nu', rate: 83.0000 },
+  'MMK': { code: 'MMK', name: 'Burmese Kyat', symbol: 'K', rate: 2100.0000 },
+  'KHR': { code: 'KHR', name: 'Cambodian Riel', symbol: '៛', rate: 4100.0000 },
+  'LAK': { code: 'LAK', name: 'Lao Kip', symbol: '₭', rate: 20000.0000 },
+  'VND': { code: 'VND', name: 'Vietnamese Dong', symbol: '₫', rate: 24000.0000 },
+  'THB': { code: 'THB', name: 'Thai Baht', symbol: '฿', rate: 36.0000 },
+  'MYR': { code: 'MYR', name: 'Malaysian Ringgit', symbol: 'RM', rate: 4.7000 },
+  'PHP': { code: 'PHP', name: 'Philippine Peso', symbol: '₱', rate: 56.0000 },
 
-    if (savedTexts) {
-      const hasArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(savedTexts);
-      return hasArabic ? 'ar' : 'en';
-    }
-
-    // ثانياً: فحص اتجاه النموذج
-    if (formStyle && 'formDirection' in formStyle) {
-      return formStyle.formDirection === 'rtl' ? 'ar' : 'en';
-    }
-
-    // ثالثاً: فحص محتوى الحقل
-    const fieldTexts = [field.label, field.placeholder].filter(Boolean).join(' ');
-    const hasArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(fieldTexts);
-    return hasArabic ? 'ar' : 'en';
-  });
-
-  // النصوص الافتراضية حسب اللغة المكتشفة - مرة واحدة فقط
-  const [defaultTexts] = useState(() => {
-    const isArabic = detectedLanguage === 'ar';
-    return {
-      subtotalText: isArabic ? 'المجموع الفرعي' : 'Subtotal',
-      discountText: isArabic ? 'الخصم' : 'Discount',
-      shippingText: isArabic ? 'الشحن' : 'Shipping',
-      totalText: isArabic ? 'الإجمالي' : 'Total'
-    };
-  });
-
-  // النصوص النهائية - تعطي أولوية للنصوص المحفوظة
-  const finalTexts = {
-    subtotalText: config.subtotalText || defaultTexts.subtotalText,
-    discountText: config.discountText || defaultTexts.discountText,
-    shippingText: config.shippingText || defaultTexts.shippingText,
-    totalText: config.totalText || defaultTexts.totalText
-  };
-  
-  const finalConfig = useMemo(() => ({
-    autoCalculate: true,
-    showDiscount: true,
-    discountType: 'percentage',
-    discountValue: 0,
-    shippingType: 'manual',
-    shippingValue: 0,
-    currency: formCurrency || formStyle.currency || 'MAD', // استخدام عملة النموذج الصحيحة
-    subtotalText: finalTexts.subtotalText,
-    discountText: finalTexts.discountText,
-    shippingText: finalTexts.shippingText,
-    totalText: finalTexts.totalText,
-    ...config
-  }), [formCurrency, formStyle.currency, finalTexts, config]);
-  
-  // تحديد اتجاه النص بناءً على اللغة المكتشفة - ثابت ولا يتغير
-  const textDirection = detectedLanguage === 'ar' ? 'rtl' : 'ltr';
-
-  // وظيفة تحويل العملة
-  const convertCurrency = (amount: number, fromCurrency: string, toCurrency: string) => {
-    if (fromCurrency === toCurrency) return amount;
-
-
-
-    console.log('🔄 CartSummary convertCurrency called:', {
-      amount,
-      fromCurrency,
-      toCurrency,
-      CurrencyServiceExists: !!CurrencyService
-    });
-
-    // ✅ DEBUG: فحص localStorage مباشرة
-    try {
-      const savedRates = localStorage.getItem('codform_custom_currency_rates');
-      console.log('🔍 localStorage custom rates:', savedRates);
-
-      if (savedRates) {
-        const rates = JSON.parse(savedRates);
-        console.log('� Parsed custom rates:', rates);
-      }
-    } catch (error) {
-      console.error('❌ Error reading localStorage:', error);
-    }
-
-    // ✅ DEBUG: فحص معدلات CurrencyService
-    console.log('🔍 CurrencyService rates check:', {
-      madRate: CurrencyService.getExchangeRate('MAD'),
-      gbpRate: CurrencyService.getExchangeRate('GBP'),
-      customRatesCount: 'checking...'
-    });
-
-    // استخدام الخدمة الموحدة للعملات
-    const result = CurrencyService.convertCurrency(amount, fromCurrency, toCurrency);
-
-    console.log('💰 CartSummary conversion result:', {
-      input: `${amount} ${fromCurrency}`,
-      output: `${result} ${toCurrency}`,
-      service: 'CurrencyService (unified)'
-    });
-
-    return result;
-  };
-
-  // Helper function to calculate prices
-  const calculatePrices = (basePrice: number, configSettings: any) => {
-    // ✅ CRITICAL FIX: تطبيق تحويل العملة على السعر الأساسي أولاً
-    const baseCurrency = 'MAD'; // العملة الأساسية للأسعار
-    const targetCurrency = formCurrency || formStyle.currency || 'MAD';
-
-    // تحويل السعر الأساسي إلى العملة المطلوبة
-    const convertedBasePrice = convertCurrency(basePrice, baseCurrency, targetCurrency);
-
-    let subtotal = convertedBasePrice;
-    let discount = 0;
-    let shipping = 0;
-
-    // Calculate discount
-    if (configSettings.showDiscount && configSettings.discountValue > 0) {
-      if (configSettings.discountType === 'percentage') {
-        discount = (subtotal * configSettings.discountValue) / 100;
-      } else {
-        // تحويل قيمة الخصم الثابتة أيضاً
-        discount = convertCurrency(configSettings.discountValue, baseCurrency, targetCurrency);
-      }
-    }
-
-    // Calculate shipping
-    if (configSettings.shippingType === 'manual') {
-      // تحويل قيمة الشحن أيضاً
-      shipping = convertCurrency(configSettings.shippingValue || 0, baseCurrency, targetCurrency);
-    } else {
-      shipping = 0; // Free shipping
-    }
-
-    const total = subtotal - discount + shipping;
-
-    console.log('💰 Price calculation with currency conversion:', {
-      originalBasePrice: basePrice,
-      baseCurrency,
-      targetCurrency,
-      convertedBasePrice,
-      subtotal,
-      discount,
-      shipping,
-      total
-    });
-
-    return {
-      subtotal,
-      discount,
-      shipping,
-      total: Math.max(0, total) // Ensure total is not negative
-    };
-  };
-
-  // Calculate prices using useMemo to prevent infinite loops
-  const prices = useMemo(() => {
-    console.log('🔍 Cart Summary Debug:', {
-      productData,
-      autoCalculate: config.autoCalculate,
-      productId,
-      formCurrency,
-      formStyleCurrency: formStyle.currency,
-      productCurrency: productData?.currency,
-      variants: productData?.variants
-    });
-    
-    if (productData && productData.variants && productData.variants.length > 0) {
-      const rawPrice = productData.variants[0].price;
-      const originalPrice = parseFloat(rawPrice) || 0;
-
-      // قراءة العملة من المنتج أو من المتجر أو من المتغير
-      const productCurrency = productData.variants[0].currency_code ||
-                             productData.currency ||
-                             productData.shop?.currency ||
-                             'USD';
-      const targetCurrency = formCurrency || formStyle.currency || 'MAD';
-
-      // ✅ FIX: لا نحتاج تحويل إضافي - السعر محول مسبقاً في السطر 163
-      console.log('✅ Using already converted price:', {
-        originalPrice,
-        productCurrency,
-        targetCurrency,
-        note: 'Price already converted in line 163 - no double conversion needed'
-      });
-
-      // استخدام السعر المحول مسبقاً بدلاً من التحويل مرة أخرى
-      const convertedPrice = originalPrice; // السعر محول مسبقاً!
-      
-      return calculatePrices(convertedPrice, finalConfig);
-    }
-    
-    // Show placeholder prices instead of null to prevent white screen
-    if (finalConfig.autoCalculate && loading) {
-      console.log('⏳ Waiting for product data...');
-      return { subtotal: null, discount: null, shipping: null, total: null };
-    }
-    
-    // Show demo prices when not using auto calculation OR when auto calculation fails
-    const demoPrice = 10.00; // ✅ السعر الحقيقي للمنتج: 10 درهم مغربي
-
-    // 🚨 عرض استخدام demo price مباشرة
-    alert(`🎭 USING DEMO PRICE:
-Demo Price: ${demoPrice} MAD
-This should convert to: ~0.76 GBP
-If you see 0.06 GBP, there's a problem!`);
-
-    console.log('🎭 Using demo price:', demoPrice);
-    return calculatePrices(demoPrice, finalConfig);
-  }, [productData, finalConfig, formCurrency, formStyle.currency, loading]);
-
-  // البحث عن المنتج المرتبط بالنموذج من قاعدة البيانات
-  React.useEffect(() => {
-    const fetchLinkedProduct = async () => {
-      try {
-        // الحصول على form ID من URL أو context
-        const pathParts = window.location.pathname.split('/');
-        const formId = pathParts[pathParts.length - 1];
-        
-        if (formId && formId !== 'form-builder') {
-          const { data, error } = await supabase
-            .from('shopify_product_settings')
-            .select('product_id')
-            .eq('form_id', formId)
-            .single();
-          
-          if (data && !error) {
-            console.log('✅ Cart Summary - Found linked product:', data.product_id);
-            setLinkedProductId(data.product_id);
-          }
-        }
-      } catch (error) {
-        console.error('❌ Cart Summary - Error fetching linked product:', error);
-      }
-    };
-
-    fetchLinkedProduct();
-  }, []);
-
-  // Load product data
-  useEffect(() => {
-    const finalProductId = linkedProductId || productId;
-    console.log('🔄 Cart Summary - useEffect triggered:', {
-      finalProductId,
-      autoCalculate: config.autoCalculate,
-      loading,
-      hasProductData: !!productData,
-      linkedProductId,
-      productId
-    });
-    
-    if (finalConfig.autoCalculate && finalProductId && finalProductId !== 'auto-detect' && !loading && !productData) {
-      setLoading(true);
-      console.log('📦 Cart Summary - Starting to load product:', finalProductId);
-      
-      getProductById(finalProductId)
-        .then(product => {
-          console.log('✅ Cart Summary - Product loaded successfully:', {
-            product,
-            hasVariants: product?.variants?.length,
-            firstVariantPrice: product?.variants?.[0]?.price
-          });
-          
-          if (product && product.variants && product.variants.length > 0) {
-            console.log('💾 Cart Summary - Setting product data...');
-            setProductData(product);
-            console.log('✅ Cart Summary - Product data set successfully');
-          } else {
-            console.warn('⚠️ Cart Summary - Product has no variants:', product);
-            // Set empty product data to avoid infinite loading
-            setProductData({});
-          }
-        })
-        .catch(error => {
-          console.error('❌ Cart Summary - Error loading product data:', {
-            error: error.message,
-            productId: finalProductId,
-            fullError: error
-          });
-          // Set empty product data to avoid infinite loading
-          setProductData({});
-        })
-        .finally(() => {
-          console.log('🔄 Cart Summary - Loading finished');
-          setLoading(false);
-        });
-    } else {
-      console.log('⏭️ Cart Summary - Skipping product load:', {
-        autoCalculate: finalConfig.autoCalculate,
-        finalProductId,
-        loading,
-        hasProductData: !!productData
-      });
-    }
-  }, [linkedProductId, productId, finalConfig.autoCalculate]); // Remove loading and productData dependencies
-
-  // Load shipping rates from Shopify if auto shipping is enabled
-  useEffect(() => {
-    if (finalConfig.shippingType === 'auto' && productData && productData.shop) {
-      // This would call Shopify shipping API - placeholder for now
-      console.log('Loading shipping rates from Shopify...');
-    }
-  }, [finalConfig.shippingType, productData]);
-
-  const formatPrice = (amount: number | null) => {
-    if (amount === null) return '...';
-    
-    const currency = formCurrency || formStyle.currency || finalConfig.currency || 'MAD';
-    
-    // استخدام CurrencyService للتنسيق مع الإعدادات المخصصة
-    return CurrencyService.formatCurrency(amount, currency, 'ar');
-  };
-  
-  return (
-    <div className="cart-summary-field codform-cart-summary" style={{
-      width: '100%',
-      margin: '16px 0',
-      direction: textDirection as 'ltr' | 'rtl',
-      fontFamily: textDirection === 'rtl' ? 'Cairo, Tajawal, Arial, sans-serif' : 'Inter, Arial, sans-serif'
-    }}>
-      <div
-        style={{ 
-          backgroundColor: fieldStyle.backgroundColor || '#f9fafb',
-          border: `1px solid ${fieldStyle.borderColor || '#e5e7eb'}`,
-          borderRadius: fieldStyle.borderRadius || '8px',
-          padding: '16px',
-          direction: textDirection as 'ltr' | 'rtl',
-          fontFamily: fieldStyle.fontFamily || (textDirection === 'rtl' ? 'Cairo, Tajawal, Arial, sans-serif' : 'Inter, Arial, sans-serif')
-        }}
-      >
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '8px'
-        }}>
-          <span style={{ 
-            color: fieldStyle.labelColor || '#374151',
-            fontSize: fieldStyle.labelFontSize || '16px',
-            fontWeight: fieldStyle.labelWeight || '500'
-          }}>
-            {finalConfig.subtotalText}
-          </span>
-          <span style={{
-            color: fieldStyle.valueColor || '#111827',
-            fontSize: fieldStyle.valueFontSize || '16px',
-            fontWeight: '600',
-            visibility: loading ? 'hidden' : 'visible'
-          }} className="subtotal-value">
-            {formatPrice(prices.subtotal)}
-          </span>
-        </div>
-        
-        {finalConfig.showDiscount && prices.discount > 0 && (
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '8px'
-          }}>
-            <span style={{ 
-              color: fieldStyle.labelColor || '#374151',
-              fontSize: fieldStyle.labelFontSize || '16px',
-              fontWeight: fieldStyle.labelWeight || '500'
-            }}>
-              {finalConfig.discountText}
-            </span>
-            <span style={{
-              color: '#dc2626',
-              fontSize: fieldStyle.valueFontSize || '16px',
-              fontWeight: '600',
-              visibility: loading ? 'hidden' : 'visible'
-            }} className="discount-value">
-              -{formatPrice(prices.discount)}
-            </span>
-          </div>
-        )}
-        
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '12px',
-          borderBottom: `1px solid ${fieldStyle.borderColor || '#e5e7eb'}`,
-          paddingBottom: '8px'
-        }}>
-          <span style={{ 
-            color: fieldStyle.labelColor || '#374151',
-            fontSize: fieldStyle.labelFontSize || '16px',
-            fontWeight: fieldStyle.labelWeight || '500'
-          }}>
-            {finalConfig.shippingText}
-          </span>
-          <span style={{
-            color: fieldStyle.valueColor || '#111827',
-            fontSize: fieldStyle.valueFontSize || '16px',
-            fontWeight: '600',
-            visibility: loading ? 'hidden' : 'visible'
-          }} className="shipping-value">
-            {prices.shipping === 0 ? (textDirection === 'rtl' ? 'مجاني' : 'Free') : formatPrice(prices.shipping)}
-          </span>
-        </div>
-        
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <span style={{
-            color: fieldStyle.totalLabelColor || '#111827',
-            fontSize: fieldStyle.totalLabelFontSize || '18px',
-            fontWeight: '700'
-          }}>
-            {finalConfig.totalText}
-          </span>
-          <span style={{
-            color: fieldStyle.totalValueColor || '#059669',
-            fontSize: fieldStyle.totalValueFontSize || '18px',
-            fontWeight: '700',
-            visibility: loading ? 'hidden' : 'visible'
-          }} className="total-value">
-            {formatPrice(prices.total)}
-          </span>
-        </div>
-      </div>
-    </div>
-  );
+  // عملات أمريكا اللاتينية
+  'MXN': { code: 'MXN', name: 'Mexican Peso', symbol: '$', rate: 20.1500 },
+  'BRL': { code: 'BRL', name: 'Brazilian Real', symbol: 'R$', rate: 6.0500 },
+  'ARS': { code: 'ARS', name: 'Argentine Peso', symbol: '$', rate: 1005.5000 },
+  'CLP': { code: 'CLP', name: 'Chilean Peso', symbol: '$', rate: 975.2000 },
+  'COP': { code: 'COP', name: 'Colombian Peso', symbol: '$', rate: 4285.5000 },
+  'PEN': { code: 'PEN', name: 'Peruvian Sol', symbol: 'S/', rate: 3.7500 },
+  'VES': { code: 'VES', name: 'Venezuelan Bolívar', symbol: 'Bs', rate: 36500000.0000 },
+  'UYU': { code: 'UYU', name: 'Uruguayan Peso', symbol: '$', rate: 40.2500 },
 };
 
-export default CartSummary;
+/**
+ * دالة تحويل العملة الموحدة
+ */
+export function convertCurrency(
+  amount: number,
+  fromCurrency: string,
+  toCurrency: string,
+  customRates?: Record<string, number>
+): number {
+  if (fromCurrency === toCurrency) return amount;
+
+  // استخدام المعدلات المخصصة أولاً، ثم الافتراضية
+  const allRates = { ...UNIFIED_EXCHANGE_RATES, ...customRates };
+
+  const fromRate = customRates?.[fromCurrency] || UNIFIED_EXCHANGE_RATES[fromCurrency]?.rate || 1;
+  const toRate = customRates?.[toCurrency] || UNIFIED_EXCHANGE_RATES[toCurrency]?.rate || 1;
+
+  // التحويل عبر USD كعملة أساسية
+  const usdAmount = amount / fromRate;
+  const convertedAmount = usdAmount * toRate;
+
+  return convertedAmount;
+}
+
+/**
+ * الحصول على معدل التحويل لعملة معينة
+ */
+export function getExchangeRate(
+  currencyCode: string,
+  customRates?: Record<string, number>
+): number {
+  return customRates?.[currencyCode] || UNIFIED_EXCHANGE_RATES[currencyCode]?.rate || 1;
+}
+
+/**
+ * الحصول على معلومات العملة
+ */
+export function getCurrencyInfo(currencyCode: string): UnifiedExchangeRate | null {
+  return UNIFIED_EXCHANGE_RATES[currencyCode] || null;
+}
+
+/**
+ * الحصول على جميع العملات المدعومة
+ */
+export function getAllSupportedCurrencies(): UnifiedExchangeRate[] {
+  return Object.values(UNIFIED_EXCHANGE_RATES);
+}
+
+/**
+ * تنسيق العملة مع الرمز المناسب
+ */
+export function formatCurrency(
+  amount: number, 
+  currencyCode: string, 
+  customSymbols?: Record<string, string>
+): string {
+  const currencyInfo = UNIFIED_EXCHANGE_RATES[currencyCode];
+  const symbol = customSymbols?.[currencyCode] || currencyInfo?.symbol || currencyCode;
+  
+  // تنسيق خاص لبعض العملات
+  if (currencyCode === 'JPY' || currencyCode === 'KRW' || currencyCode === 'VND') {
+    return `${symbol}${Math.round(amount).toLocaleString()}`;
+  }
+  
+  return `${symbol}${amount.toFixed(2)}`;
+}
