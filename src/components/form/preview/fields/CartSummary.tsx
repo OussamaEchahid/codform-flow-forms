@@ -144,14 +144,6 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
     // استخدام الخدمة الموحدة للعملات
     const result = CurrencyService.convertCurrency(amount, fromCurrency, toCurrency);
 
-    // 🚨 عرض نتيجة التحويل مباشرة
-    alert(`🔄 CURRENCY CONVERSION RESULT:
-Input: ${amount} ${fromCurrency}
-Output: ${result} ${toCurrency}
-Service: CurrencyService
-MAD Rate: ${CurrencyService.getExchangeRate('MAD')}
-GBP Rate: ${CurrencyService.getExchangeRate('GBP')}`);
-
     console.log('💰 CartSummary conversion result:', {
       input: `${amount} ${fromCurrency}`,
       output: `${result} ${toCurrency}`,
@@ -229,13 +221,6 @@ GBP Rate: ${CurrencyService.getExchangeRate('GBP')}`);
       const rawPrice = productData.variants[0].price;
       const originalPrice = parseFloat(rawPrice) || 0;
 
-      // 🚨 CRITICAL DEBUG: عرض البيانات مباشرة في المتصفح
-      alert(`🚨 SHOPIFY PRICE DEBUG:
-Raw Price: ${rawPrice}
-Parsed Price: ${originalPrice}
-Price Type: ${typeof rawPrice}
-Full Variant: ${JSON.stringify(productData.variants[0], null, 2)}`);
-
       // قراءة العملة من المنتج أو من المتجر أو من المتغير
       const productCurrency = productData.variants[0].currency_code ||
                              productData.currency ||
@@ -243,21 +228,31 @@ Full Variant: ${JSON.stringify(productData.variants[0], null, 2)}`);
                              'USD';
       const targetCurrency = formCurrency || formStyle.currency || 'MAD';
 
+      // 🚨 DEBUG: تفاصيل التحويل خطوة بخطوة
+      console.log('🔍 BEFORE CONVERSION:', {
+        originalPrice,
+        productCurrency,
+        targetCurrency,
+        'Expected Result': '~0.76 GBP for 10 MAD'
+      });
+
       // تحويل السعر قبل الحسابات
       const convertedPrice = convertCurrency(originalPrice, productCurrency, targetCurrency);
 
-      // 🚨 عرض نتيجة التحويل مباشرة
-      alert(`💰 CURRENCY CONVERSION:
-Original: ${originalPrice} ${productCurrency}
+      // 🚨 عرض النتيجة مباشرة
+      alert(`🔍 DETAILED CONVERSION DEBUG:
+Input: ${originalPrice} ${productCurrency}
 Target: ${targetCurrency}
-Converted: ${convertedPrice}
-Expected for 10 MAD: ~0.76 GBP`);
+Output: ${convertedPrice}
+Expected: ~0.76 GBP
+Actual vs Expected: ${convertedPrice} vs 0.76`);
 
       console.log('💰 Currency conversion applied:', {
         originalPrice,
         productCurrency,
         targetCurrency,
-        convertedPrice
+        convertedPrice,
+        'Conversion Factor': convertedPrice / originalPrice
       });
       
       return calculatePrices(convertedPrice, finalConfig);

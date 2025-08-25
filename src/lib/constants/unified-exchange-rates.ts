@@ -17,7 +17,7 @@ export const UNIFIED_EXCHANGE_RATES: Record<string, UnifiedExchangeRate> = {
   // العملات الرئيسية
   'USD': { code: 'USD', name: 'US Dollar', symbol: '$', rate: 1.0000 },
   'EUR': { code: 'EUR', name: 'Euro', symbol: '€', rate: 0.9200 },
-  'GBP': { code: 'GBP', name: 'British Pound', symbol: '£', rate: 0.7900 },
+  'GBP': { code: 'GBP', name: 'British Pound', symbol: '£', rate: 0.8000 },
   'JPY': { code: 'JPY', name: 'Japanese Yen', symbol: '¥', rate: 149.0000 },
   'CNY': { code: 'CNY', name: 'Chinese Yuan', symbol: '¥', rate: 7.2400 },
   'INR': { code: 'INR', name: 'Indian Rupee', symbol: '₹', rate: 83.0000 },
@@ -48,7 +48,7 @@ export const UNIFIED_EXCHANGE_RATES: Record<string, UnifiedExchangeRate> = {
   'YER': { code: 'YER', name: 'Yemeni Rial', symbol: '﷼', rate: 250.0000 },
 
   // عملات أفريقيا
-  'MAD': { code: 'MAD', name: 'Moroccan Dirham', symbol: 'د.م', rate: 10.5000 },
+  'MAD': { code: 'MAD', name: 'Moroccan Dirham', symbol: 'د.م', rate: 10.0000 },
   'XOF': { code: 'XOF', name: 'West African CFA Franc', symbol: 'CFA', rate: 655.9600 },
   'XAF': { code: 'XAF', name: 'Central African CFA Franc', symbol: 'FCFA', rate: 655.9600 },
   'NGN': { code: 'NGN', name: 'Nigerian Naira', symbol: '₦', rate: 1675.0000 },
@@ -91,8 +91,8 @@ export const UNIFIED_EXCHANGE_RATES: Record<string, UnifiedExchangeRate> = {
  * دالة تحويل العملة الموحدة
  */
 export function convertCurrency(
-  amount: number, 
-  fromCurrency: string, 
+  amount: number,
+  fromCurrency: string,
   toCurrency: string,
   customRates?: Record<string, number>
 ): number {
@@ -100,13 +100,25 @@ export function convertCurrency(
 
   // استخدام المعدلات المخصصة أولاً، ثم الافتراضية
   const allRates = { ...UNIFIED_EXCHANGE_RATES, ...customRates };
-  
+
   const fromRate = customRates?.[fromCurrency] || UNIFIED_EXCHANGE_RATES[fromCurrency]?.rate || 1;
   const toRate = customRates?.[toCurrency] || UNIFIED_EXCHANGE_RATES[toCurrency]?.rate || 1;
 
   // التحويل عبر USD كعملة أساسية
   const usdAmount = amount / fromRate;
   const convertedAmount = usdAmount * toRate;
+
+  // 🚨 DEBUG: تفاصيل التحويل
+  console.log('🔄 CONVERSION DETAILS:', {
+    amount,
+    fromCurrency,
+    toCurrency,
+    fromRate,
+    toRate,
+    usdAmount,
+    convertedAmount,
+    calculation: `${amount} ÷ ${fromRate} × ${toRate} = ${convertedAmount}`
+  });
 
   return convertedAmount;
 }
