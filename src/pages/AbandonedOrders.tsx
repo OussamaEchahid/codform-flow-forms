@@ -431,7 +431,11 @@ const AbandonedOrders = () => {
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell>{Array.isArray(cart.cart_items) ? cart.cart_items.length : 1}</TableCell>
+                      <TableCell>
+                        {Array.isArray(cart.cart_items)
+                          ? cart.cart_items.reduce((total, item) => total + (item.quantity || 1), 0)
+                          : 1}
+                      </TableCell>
                       <TableCell>
                         <span className="font-medium">
                           {cart.total_value || 0} {cart.currency || 'SAR'}

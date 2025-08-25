@@ -724,7 +724,11 @@ const OrdersList = () => {
                       <TableCell>{order.customer_name || order.customerName}</TableCell>
                       <TableCell>{order.customer_phone || order.phone}</TableCell>
                       <TableCell>{new Date(order.created_at || order.date).toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US')}</TableCell>
-                      <TableCell className="text-center">{Array.isArray(order.items) ? order.items.length : order.items || 0}</TableCell>
+                      <TableCell className="text-center">
+                        {Array.isArray(order.items)
+                          ? order.items.reduce((total, item) => total + (item.quantity || 1), 0)
+                          : order.items || 0}
+                      </TableCell>
                       <TableCell className="font-medium">
                         ${extractOrderPrice(order)}
                       </TableCell>
