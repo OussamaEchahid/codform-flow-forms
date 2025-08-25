@@ -362,8 +362,31 @@ function createShopifyOrderData(customer: any, formId: string, formSettings: any
   const currency = convertedPrice.currency || formSettings?.currency || 'SAR'; // إعطاء الأولوية للعملة المحولة
   const totalPrice = convertedPrice.price > 0 ? convertedPrice.price.toFixed(2) : '0.00';
 
-  // ✅ حساب الكمية الصحيحة باستخدام بيانات المنتج
-  const quantity = calculateQuantityFromPrice(convertedPrice.price, formData, formData?.productData);
+  // ✅ CRITICAL FIX: حساب الكمية الصحيحة مع الأولوية للعروض
+  let quantity = 1; // القيمة الافتراضية
+
+  // الأولوية الأولى: الكمية المرسلة مباشرة
+  if (formData.quantity && !isNaN(parseInt(formData.quantity))) {
+    quantity = parseInt(formData.quantity);
+    console.log('✅ Using direct quantity from formData:', quantity);
+  }
+  // الأولوية الثانية: الكمية من العرض المحدد
+  else if (formData.selectedOffer && formData.selectedOffer.quantity) {
+    quantity = parseInt(formData.selectedOffer.quantity);
+    console.log('✅ Using quantity from selectedOffer:', quantity);
+  }
+  // الأولوية الثالثة: الكمية من quantityOffer
+  else if (formData.quantityOffer && formData.quantityOffer.quantity) {
+    quantity = parseInt(formData.quantityOffer.quantity);
+    console.log('✅ Using quantity from quantityOffer:', quantity);
+  }
+  // الأولوية الرابعة: الحساب الذكي من السعر
+  else {
+    quantity = calculateQuantityFromPrice(convertedPrice.price, formData, formData?.productData);
+    console.log('✅ Using calculated quantity from price:', quantity);
+  }
+
+  console.log('🎯 Final quantity determined:', quantity);
   const unitPrice = quantity > 0 ? (convertedPrice.price / quantity).toFixed(2) : totalPrice;
 
   // Map payment status to Shopify financial status
@@ -495,6 +518,13 @@ serve(async (req: Request) => {
     if (formData.quantityOffer) {
       console.log('  - quantityOffer.quantity:', formData.quantityOffer.quantity);
     }
+
+    // ✅ CRITICAL DEBUG: فحص البيانات الكاملة المرسلة
+    console.log('🔍 COMPLETE REQUEST DATA DEBUG:');
+    console.log('  - Full requestData:', JSON.stringify(requestData, null, 2));
+    console.log('  - Full formData keys:', Object.keys(formData));
+    console.log('  - formData type:', typeof formData);
+    console.log('  - formData constructor:', formData.constructor.name);
 
     if (!formId || !shopDomain) {
       return new Response(
