@@ -112,8 +112,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
   const convertCurrency = (amount: number, fromCurrency: string, toCurrency: string) => {
     if (fromCurrency === toCurrency) return amount;
 
-    // ✅ ALERT للتأكد من أن الكود يعمل
-    alert(`🔄 Converting ${amount} ${fromCurrency} to ${toCurrency}`);
+
 
     console.log('🔄 CartSummary convertCurrency called:', {
       amount,
