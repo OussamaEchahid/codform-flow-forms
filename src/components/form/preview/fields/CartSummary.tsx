@@ -132,14 +132,29 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
       console.error('❌ Error reading localStorage:', error);
     }
 
+    // ✅ DEBUG: فحص معدلات CurrencyService
+    console.log('🔍 CurrencyService rates check:', {
+      madRate: CurrencyService.getExchangeRate('MAD'),
+      gbpRate: CurrencyService.getExchangeRate('GBP'),
+      customRatesCount: 'checking...'
+    });
+
     // استخدام الخدمة الموحدة للعملات
     const result = CurrencyService.convertCurrency(amount, fromCurrency, toCurrency);
+
+    // ✅ MANUAL CALCULATION للتأكد من الصحة
+    let expectedResult = 'unknown';
+    if (fromCurrency === 'MAD' && toCurrency === 'GBP') {
+      // الحساب اليدوي: amount × (0.8000 ÷ 10.5000)
+      expectedResult = (amount * (0.8000 / 10.5000)).toFixed(4);
+    }
 
     console.log('💰 CartSummary conversion result:', {
       input: `${amount} ${fromCurrency}`,
       output: `${result} ${toCurrency}`,
-      expectedFor0_08: 0.08,
-      actualVsExpected: result === 0.08 ? '✅ CORRECT' : '❌ WRONG'
+      expectedManualCalc: expectedResult,
+      actualVsExpected: Math.abs(result - parseFloat(expectedResult)) < 0.001 ? '✅ CORRECT' : '❌ WRONG',
+      difference: result - parseFloat(expectedResult)
     });
 
     return result;
