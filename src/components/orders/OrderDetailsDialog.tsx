@@ -252,19 +252,13 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
   const productDetails = getSmartProductInfo();
   const actualQuantity = getActualQuantity();
 
-  // ✅ الحل الصحيح: النموذج يحفظ الطلب بعملة USD بعد التحويل
-  // لكن قاعدة البيانات تحفظ العملة الخاطئة، لذا نحتاج لعرض USD دائماً
+  // ✅ عرض العملة الصحيحة بناءً على العملة المحفوظة في الطلب
   const orderCurrency = order?.currency || 'USD';
-  const displayCurrency = 'USD'; // النموذج يحول إلى USD دائماً
+  const displayCurrency = orderCurrency; // استخدام العملة المحفوظة في الطلب
 
   let finalTotal = parseFloat(order?.total_amount || 0);
 
-  // إذا كانت العملة المحفوظة ليست USD، نحولها إلى USD
-  if (orderCurrency !== 'USD') {
-    const rates = { 'USD': 1.0, 'SAR': 3.75, 'AED': 3.67, 'MAD': 10.0, 'EUR': 0.85 };
-    const fromRate = rates[orderCurrency] || 1;
-    finalTotal = finalTotal / fromRate; // تحويل إلى USD
-  }
+  // لا نحتاج لتحويل العملة - نعرض السعر والعملة كما هما محفوظان
 
   const unitPrice = actualQuantity > 0 ? (finalTotal / actualQuantity) : finalTotal;
 
@@ -290,6 +284,7 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
     if (displayCurrency === 'AED') return `${amount.toFixed(2)} د.إ`;
     if (displayCurrency === 'MAD') return `${amount.toFixed(2)} د.م`;
     if (displayCurrency === 'EUR') return `€${amount.toFixed(2)}`;
+    if (displayCurrency === 'GBP') return `£${amount.toFixed(2)}`;
     return `${displayCurrency} ${amount.toFixed(2)}`;
   };
 
