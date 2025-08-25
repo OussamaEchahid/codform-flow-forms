@@ -387,7 +387,15 @@ function createShopifyOrderData(customer: any, formId: string, formSettings: any
   }
 
   console.log('🎯 Final quantity determined:', quantity);
-  const unitPrice = quantity > 0 ? (convertedPrice.price / quantity).toFixed(2) : totalPrice;
+
+  // ✅ CRITICAL FIX: السعر المرسل هو سعر الوحدة الواحدة، ليس السعر الإجمالي
+  // لذلك نستخدمه مباشرة كسعر وحدة
+  const unitPrice = convertedPrice.price.toFixed(2);
+  const calculatedTotalPrice = (convertedPrice.price * quantity).toFixed(2);
+
+  console.log(`💰 Unit price: ${unitPrice} ${currency}`);
+  console.log(`💰 Calculated total price: ${calculatedTotalPrice} ${currency} (${unitPrice} × ${quantity})`);
+  console.log(`💰 Original total price: ${totalPrice} ${currency}`);
 
   // Map payment status to Shopify financial status
   let financialStatus = 'pending';
@@ -407,7 +415,7 @@ function createShopifyOrderData(customer: any, formId: string, formSettings: any
       financial_status: financialStatus, // ✅ استخدام حالة الدفع من الإعدادات
       fulfillment_status: null,
       currency: currency,
-      total_price: totalPrice,
+      total_price: calculatedTotalPrice,
       email: customer.email || undefined,
       phone: customer.phone || undefined,
       // Remove customer object to avoid "phone already taken" error
