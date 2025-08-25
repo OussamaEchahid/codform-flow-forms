@@ -218,17 +218,28 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
     });
     
     if (productData && productData.variants && productData.variants.length > 0) {
-      const originalPrice = parseFloat(productData.variants[0].price) || 0;
+      const rawPrice = productData.variants[0].price;
+      const originalPrice = parseFloat(rawPrice) || 0;
+
+      // 🚨 CRITICAL DEBUG: تسجيل السعر الخام لفهم المشكلة
+      console.log('🚨 PRICE DEBUG - Raw data from Shopify:', {
+        rawPrice,
+        originalPrice,
+        priceType: typeof rawPrice,
+        fullVariant: productData.variants[0],
+        allVariants: productData.variants
+      });
+
       // قراءة العملة من المنتج أو من المتجر أو من المتغير
-      const productCurrency = productData.variants[0].currency_code || 
-                             productData.currency || 
-                             productData.shop?.currency || 
+      const productCurrency = productData.variants[0].currency_code ||
+                             productData.currency ||
+                             productData.shop?.currency ||
                              'USD';
       const targetCurrency = formCurrency || formStyle.currency || 'MAD';
-      
+
       // تحويل السعر قبل الحسابات
       const convertedPrice = convertCurrency(originalPrice, productCurrency, targetCurrency);
-      
+
       console.log('💰 Currency conversion applied:', {
         originalPrice,
         productCurrency,
