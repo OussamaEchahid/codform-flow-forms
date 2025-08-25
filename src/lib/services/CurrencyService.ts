@@ -202,46 +202,36 @@ class CurrencyServiceClass {
   }
 
   /**
-   * تنسيق مبلغ مع رمز العملة - استخدام النظام الموحد
+   * تنسيق مبلغ مع رمز العملة - يحترم نوع العرض وموضع الرمز والمنازل العشرية
    */
   formatCurrency(amount: number, currencyCode: string, language: 'en' | 'ar' = 'en'): string {
+    const { showSymbol, symbolPosition, decimalPlaces, customSymbols } = this.displaySettings;
     console.log('🔧 CurrencyService.formatCurrency called:', {
       amount,
       currencyCode,
       language,
-      displaySettings: this.displaySettings,
-      customSymbols: this.displaySettings.customSymbols
+      displaySettings: this.displaySettings
     });
 
-    // ✅ CRITICAL FIX: فصل السعر الحقيقي عن طريقة العرض
-    // لا نقوم بتقريب السعر الحقيقي، فقط نغير طريقة العرض
+    const info = getCurrencyInfo(currencyCode);
+    const symbol = customSymbols[currencyCode] || info?.symbol || currencyCode;
+    const formattedAmount = Number.isFinite(amount)
+      ? amount.toFixed(decimalPlaces)
+      : (0).toFixed(decimalPlaces);
 
-    // استخدام النظام الموحد مع الرموز المخصصة والمبلغ الأصلي
-    const result = unifiedFormatCurrency(amount, currencyCode, this.displaySettings.customSymbols);
-
-    // تطبيق إعدادات العرض المخصصة
-    if (this.displaySettings.symbolPosition === 'after') {
-      // إعادة ترتيب الرمز إذا كان المطلوب وضعه بعد المبلغ
-      const parts = result.match(/^([^\d]*)([\d.,]+)(.*)$/);
-      if (parts) {
-        const [, prefix, , suffix] = parts;
-        const formattedAmount = amount.toFixed(this.displaySettings.decimalPlaces);
-        return `${formattedAmount} ${prefix}${suffix}`.trim();
-      }
+    // نوع العرض = كود (showSymbol = false)
+    if (showSymbol === false) {
+      return symbolPosition === 'before'
+        ? `${currencyCode} ${formattedAmount}`
+        : `${formattedAmount} ${currencyCode}`;
     }
 
-    // ✅ للموضع الافتراضي، تأكد من استخدام المنازل العشرية الصحيحة
-    if (this.displaySettings.decimalPlaces !== 2) {
-      const parts = result.match(/^([^\d]*)([\d.,]+)(.*)$/);
-      if (parts) {
-        const [, prefix, , suffix] = parts;
-        const formattedAmount = amount.toFixed(this.displaySettings.decimalPlaces);
-        return `${prefix}${formattedAmount}${suffix}`;
-      }
+    // نوع العرض = رمز
+    if (symbolPosition === 'before') {
+      return `${symbol} ${formattedAmount}`;
+    } else {
+      return `${formattedAmount} ${symbol}`;
     }
-
-    console.log('✅ Final formatted currency:', result);
-    return result;
   }
 
   /**
