@@ -119,44 +119,27 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
       CurrencyServiceExists: !!CurrencyService
     });
 
-    // ✅ TEMPORARY FIX: استخدام المعدل المخصص مباشرة للاختبار
-    if (fromCurrency === 'MAD' && toCurrency === 'GBP') {
-      // قراءة المعدل المخصص من localStorage
-      try {
-        const savedRates = localStorage.getItem('codform_custom_currency_rates');
-        if (savedRates) {
-          const rates = JSON.parse(savedRates);
-          if (rates.GBP && typeof rates.GBP === 'object' && rates.GBP.rate) {
-            const customRate = rates.GBP.rate;
-            const result = amount * customRate;
-            console.log('💰 Using CUSTOM rate from localStorage:', {
-              input: `${amount} ${fromCurrency}`,
-              customGBPRate: customRate,
-              output: `${result} ${toCurrency}`
-            });
-            return result;
-          } else if (rates.GBP && typeof rates.GBP === 'number') {
-            const customRate = rates.GBP;
-            const result = amount * customRate;
-            console.log('💰 Using CUSTOM rate (simple) from localStorage:', {
-              input: `${amount} ${fromCurrency}`,
-              customGBPRate: customRate,
-              output: `${result} ${toCurrency}`
-            });
-            return result;
-          }
-        }
-      } catch (error) {
-        console.error('❌ Error reading custom rates:', error);
+    // ✅ DEBUG: فحص localStorage مباشرة
+    try {
+      const savedRates = localStorage.getItem('codform_custom_currency_rates');
+      console.log('🔍 localStorage custom rates:', savedRates);
+
+      if (savedRates) {
+        const rates = JSON.parse(savedRates);
+        console.log('� Parsed custom rates:', rates);
       }
+    } catch (error) {
+      console.error('❌ Error reading localStorage:', error);
     }
 
-    // استخدام الخدمة الموحدة للعملات كـ fallback
+    // استخدام الخدمة الموحدة للعملات
     const result = CurrencyService.convertCurrency(amount, fromCurrency, toCurrency);
 
-    console.log('💰 CartSummary conversion result (fallback):', {
+    console.log('💰 CartSummary conversion result:', {
       input: `${amount} ${fromCurrency}`,
-      output: `${result} ${toCurrency}`
+      output: `${result} ${toCurrency}`,
+      expectedFor0_08: 0.08,
+      actualVsExpected: result === 0.08 ? '✅ CORRECT' : '❌ WRONG'
     });
 
     return result;
