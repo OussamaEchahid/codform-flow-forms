@@ -207,17 +207,30 @@ class CurrencyServiceClass {
       customSymbols: this.displaySettings.customSymbols
     });
 
-    // استخدام النظام الموحد مع الرموز المخصصة
-    const result = unifiedFormatCurrency(amount, currencyCode, this.displaySettings.customSymbols);
+    // ✅ تطبيق التقريب على المبلغ الأصلي أولاً
+    const roundedAmount = Math.round(amount * Math.pow(10, this.displaySettings.decimalPlaces)) / Math.pow(10, this.displaySettings.decimalPlaces);
+
+    // استخدام النظام الموحد مع الرموز المخصصة والمبلغ المقرب
+    const result = unifiedFormatCurrency(roundedAmount, currencyCode, this.displaySettings.customSymbols);
 
     // تطبيق إعدادات العرض المخصصة
     if (this.displaySettings.symbolPosition === 'after') {
       // إعادة ترتيب الرمز إذا كان المطلوب وضعه بعد المبلغ
       const parts = result.match(/^([^\d]*)([\d.,]+)(.*)$/);
       if (parts) {
-        const [, prefix, amount, suffix] = parts;
-        return `${amount}${this.displaySettings.decimalPlaces !== 2 ?
-          parseFloat(amount).toFixed(this.displaySettings.decimalPlaces) : amount} ${prefix}${suffix}`.trim();
+        const [, prefix, , suffix] = parts;
+        const formattedAmount = roundedAmount.toFixed(this.displaySettings.decimalPlaces);
+        return `${formattedAmount} ${prefix}${suffix}`.trim();
+      }
+    }
+
+    // ✅ للموضع الافتراضي، تأكد من استخدام المنازل العشرية الصحيحة
+    if (this.displaySettings.decimalPlaces !== 2) {
+      const parts = result.match(/^([^\d]*)([\d.,]+)(.*)$/);
+      if (parts) {
+        const [, prefix, , suffix] = parts;
+        const formattedAmount = roundedAmount.toFixed(this.displaySettings.decimalPlaces);
+        return `${prefix}${formattedAmount}${suffix}`;
       }
     }
 
