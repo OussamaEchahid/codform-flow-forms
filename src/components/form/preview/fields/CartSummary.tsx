@@ -228,32 +228,16 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
                              'USD';
       const targetCurrency = formCurrency || formStyle.currency || 'MAD';
 
-      // 🚨 DEBUG: تفاصيل التحويل خطوة بخطوة
-      console.log('🔍 BEFORE CONVERSION:', {
+      // ✅ FIX: لا نحتاج تحويل إضافي - السعر محول مسبقاً في السطر 163
+      console.log('✅ Using already converted price:', {
         originalPrice,
         productCurrency,
         targetCurrency,
-        'Expected Result': '~0.76 GBP for 10 MAD'
+        note: 'Price already converted in line 163 - no double conversion needed'
       });
 
-      // تحويل السعر قبل الحسابات
-      const convertedPrice = convertCurrency(originalPrice, productCurrency, targetCurrency);
-
-      // 🚨 عرض النتيجة مباشرة
-      alert(`🔍 DETAILED CONVERSION DEBUG:
-Input: ${originalPrice} ${productCurrency}
-Target: ${targetCurrency}
-Output: ${convertedPrice}
-Expected: ~0.76 GBP
-Actual vs Expected: ${convertedPrice} vs 0.76`);
-
-      console.log('💰 Currency conversion applied:', {
-        originalPrice,
-        productCurrency,
-        targetCurrency,
-        convertedPrice,
-        'Conversion Factor': convertedPrice / originalPrice
-      });
+      // استخدام السعر المحول مسبقاً بدلاً من التحويل مرة أخرى
+      const convertedPrice = originalPrice; // السعر محول مسبقاً!
       
       return calculatePrices(convertedPrice, finalConfig);
     }
