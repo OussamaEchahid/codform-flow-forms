@@ -11,6 +11,7 @@ import SettingsLayout from "@/components/layout/SettingsLayout";
 import { useI18n } from "@/lib/i18n";
 import { CurrencyService, CurrencyDisplaySettings } from "@/lib/services/CurrencyService";
 import { CURRENCIES } from "@/lib/constants/countries-currencies";
+import { UNIFIED_EXCHANGE_RATES } from "@/lib/constants/unified-exchange-rates";
 import { toast } from "sonner";
 import { useAuth } from '@/components/layout/AuthProvider';
 
@@ -480,7 +481,7 @@ const CurrencySettings = () => {
                       <TableRow key={currency.code}>
                         <TableCell className="font-medium">{currency.code}</TableCell>
                         <TableCell>{language === 'ar' ? currency.nameAr : currency.name}</TableCell>
-                        <TableCell>{currency.exchangeRate.toFixed(4)}</TableCell>
+                        <TableCell>{(UNIFIED_EXCHANGE_RATES[currency.code]?.rate ?? currency.exchangeRate).toFixed(4)}</TableCell>
                         <TableCell>
                           {isEditing ? (
                             <div className="flex gap-2">
