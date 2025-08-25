@@ -95,9 +95,11 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
   };
 
   const calculatePrices = (basePrice: number, configSettings: any) => {
-    const baseCurrency = 'MAD';
+    // استخدم عملة المنتج الفعلية، لا تفترض MAD
+    const productCurrency = (productData?.variants?.[0]?.currency_code || productData?.currency || productData?.shop?.currency || 'USD') as string;
     const targetCurrency = formCurrency || formStyle.currency || 'MAD';
-    const convertedBasePrice = convertCurrency(basePrice, baseCurrency, targetCurrency);
+    // تحويل صحيح عبر USD من عملة المنتج إلى عملة النموذج
+    const convertedBasePrice = convertCurrency(basePrice, productCurrency, targetCurrency);
     let subtotal = convertedBasePrice;
     let discount = 0;
     let shipping = 0;
@@ -106,12 +108,14 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
       if (configSettings.discountType === 'percentage') {
         discount = (subtotal * configSettings.discountValue) / 100;
       } else {
-        discount = convertCurrency(configSettings.discountValue, baseCurrency, targetCurrency);
+        // خصم ثابت معبر عنه بعملة المنتج — نحوله لعملة العرض
+        discount = convertCurrency(configSettings.discountValue, productCurrency, targetCurrency);
       }
     }
 
     if (configSettings.shippingType === 'manual') {
-      shipping = convertCurrency(configSettings.shippingValue || 0, baseCurrency, targetCurrency);
+      // الشحن مُدخل بعملة المنتج — نحوله لعملة العرض
+      shipping = convertCurrency(configSettings.shippingValue || 0, productCurrency, targetCurrency);
     } else {
       shipping = 0;
     }

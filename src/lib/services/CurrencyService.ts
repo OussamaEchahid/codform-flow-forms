@@ -77,24 +77,30 @@ class CurrencyServiceClass {
 
     try {
       console.log('🚀 Initializing CurrencyService for shop:', this.currentShopId);
-      
+
       // تحميل جميع البيانات من قاعدة البيانات
       await this.loadAllSettingsFromDatabase();
-      
+
+
+
       this.initialized = true;
       console.log('✅ CurrencyService initialized successfully with settings:', {
         customRatesCount: this.customRates.size,
-        displaySettings: this.displaySettings
+        displaySettings: this.displaySettings,
+        gbpRate: this.customRates.get('GBP')?.rate
       });
-      
+
       // تطبيق البيانات فوراً
       this.notifyStoreOfCurrencyChanges();
-      
+
     } catch (error) {
       console.error('❌ Error initializing CurrencyService:', error);
       // Fallback to localStorage if database fails
       await this.loadCustomRates();
       await this.loadDisplaySettings();
+
+
+
       this.initialized = true;
     }
   }
@@ -482,14 +488,16 @@ class CurrencyServiceClass {
     try {
       const savedRates = this.getCustomRatesFromStorage();
       this.customRates.clear();
-      
+
       Object.values(savedRates).forEach(rate => {
+
+
         this.customRates.set(rate.code, {
           ...rate,
           updatedAt: new Date(rate.updatedAt)
         });
       });
-      
+
       console.log(`📥 Loaded ${this.customRates.size} custom rates from localStorage`);
     } catch (error) {
       console.error('❌ Error loading custom rates:', error);
