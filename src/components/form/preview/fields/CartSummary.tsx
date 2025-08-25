@@ -144,19 +144,10 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
     // استخدام الخدمة الموحدة للعملات
     const result = CurrencyService.convertCurrency(amount, fromCurrency, toCurrency);
 
-    // ✅ MANUAL CALCULATION للتأكد من الصحة
-    let expectedResult = 'unknown';
-    if (fromCurrency === 'MAD' && toCurrency === 'GBP') {
-      // الحساب اليدوي: amount × (0.7900 ÷ 10.0000)
-      expectedResult = (amount * (0.7900 / 10.0000)).toFixed(4);
-    }
-
     console.log('💰 CartSummary conversion result:', {
       input: `${amount} ${fromCurrency}`,
       output: `${result} ${toCurrency}`,
-      expectedManualCalc: expectedResult,
-      actualVsExpected: Math.abs(result - parseFloat(expectedResult)) < 0.001 ? '✅ CORRECT' : '❌ WRONG',
-      difference: result - parseFloat(expectedResult)
+      service: 'CurrencyService (unified)'
     });
 
     return result;
