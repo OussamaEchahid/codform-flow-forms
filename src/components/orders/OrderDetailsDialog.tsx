@@ -178,37 +178,38 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
 
   // Get actual quantity from form submission data or quantity offers
   const getActualQuantity = () => {
-    // ✅ للطلبات العادية (بدون عروض كمية)، الكمية دائماً 1
-    // تحقق أولاً إذا كان هناك عروض كمية مفعلة
-    const hasQuantityOffers = quantityOfferData && quantityOfferData.enabled && quantityOfferData.offers && quantityOfferData.offers.length > 0;
-
-    if (!hasQuantityOffers) {
-      console.log('📦 No quantity offers enabled, using standard quantity: 1');
-      return 1;
-    }
-
-    // إذا كانت هناك عروض كمية، تحقق من الكمية المخزنة
+    // ✅ CRITICAL FIX: أولاً، تحقق من الكمية المحفوظة في بيانات الطلب
     if (orderItems.length > 0 && orderItems[0].quantity) {
       const storedQuantity = parseInt(orderItems[0].quantity);
 
-      // If the stored quantity seems wrong (like 9 instead of 5), try to correct it
-      if (storedQuantity === 9 && order.total_amount) {
-        const totalAmount = parseFloat(order.total_amount);
-        // If total is around $9-10, it's likely "Buy 5 get 2 free" offer
-        if (Math.abs(totalAmount - 9.0) < 1.0 || Math.abs(totalAmount - 10.0) < 1.0) {
-          return 5; // Correct quantity for "Buy 5 get 2 free"
-        }
-      }
-
-      // For quantity offers, trust the stored quantity if it's reasonable
-      if (storedQuantity > 1 && storedQuantity <= 10) {
-        console.log('🎯 Using stored quantity from quantity offer:', storedQuantity);
+      // إذا كانت الكمية معقولة، استخدمها مباشرة
+      if (storedQuantity > 0 && storedQuantity <= 100) {
+        console.log('🎯 Using stored quantity from order items:', storedQuantity);
         return storedQuantity;
       }
     }
 
+    // ثانياً، تحقق من وجود عروض كمية مفعلة
+    const hasQuantityOffers = quantityOfferData && quantityOfferData.enabled && quantityOfferData.offers && quantityOfferData.offers.length > 0;
+
+    if (hasQuantityOffers) {
+      // إذا كانت هناك عروض كمية، ابحث عن الكمية المناسبة
+      if (order.total_amount && quantityOfferData.offers) {
+        const totalAmount = parseFloat(order.total_amount);
+
+        // ابحث عن العرض المطابق للمبلغ الإجمالي
+        for (const offer of quantityOfferData.offers) {
+          const offerPrice = offer.finalPrice || (offer.quantity * (productInfo?.price || 1));
+          if (Math.abs(totalAmount - offerPrice) < 1.0) {
+            console.log('🎯 Found matching quantity offer:', offer.quantity);
+            return offer.quantity;
+          }
+        }
+      }
+    }
+
     // ✅ الكمية الافتراضية 1 للطلبات العادية
-    console.log('📦 Setting default quantity to 1 (standard form order)');
+    console.log('📦 Using default quantity: 1');
     return 1;
   };
 
