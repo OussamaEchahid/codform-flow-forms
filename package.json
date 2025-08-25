@@ -4,11 +4,15 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host",
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "currency:update": "node scripts/update-unified-rates.js",
+    "currency:validate": "node scripts/update-unified-rates.js --validate",
+    "currency:info": "node scripts/update-unified-rates.js --info",
+    "test:currency": "jest src/tests/unified-currency-system.test.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

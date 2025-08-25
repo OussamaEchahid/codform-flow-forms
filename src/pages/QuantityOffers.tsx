@@ -17,15 +17,8 @@ import { toast } from 'sonner';
 import QuantityOffersPreview from '@/components/quantity-offers/QuantityOffersPreview';
 import { CurrencyService } from '@/lib/services/CurrencyService';
 
-// Simple currency conversion rates (you can replace with real API)
-const CURRENCY_RATES: { [key: string]: number } = {
-  'USD': 1,
-  'SAR': 3.75,
-  'AED': 3.67,
-  'MAD': 10.24,
-  'EUR': 0.85,
-  'GBP': 0.76
-};
+// استيراد النظام الموحد لمعدلات التحويل
+import { UNIFIED_EXCHANGE_RATES, convertCurrency } from '@/lib/constants/unified-exchange-rates';
 
 // Function to convert price between currencies
 const convertCurrency = (amount: number, fromCurrency: string, toCurrency: string): number => {

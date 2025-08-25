@@ -6,45 +6,53 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Default exchange rates (can be updated from external API)
-const DEFAULT_RATES = {
-  'USD': 1.0,
-  'EUR': 0.85,
-  'GBP': 0.79,
-  'SAR': 3.75,
-  'MAD': 10.0,
-  'AED': 3.67,
-  'EGP': 30.85,
-  'CAD': 1.35,
-  'AUD': 1.52,
-  'JPY': 110.0,
-  'CHF': 0.92,
-  'CNY': 6.45,
-  'INR': 74.5,
-  'BRL': 5.2,
-  'RUB': 75.0,
-  'TRY': 8.5,
-  'KRW': 1180.0
+// معدلات تحويل موحدة - مطابقة للنظام الموحد
+const UNIFIED_DEFAULT_RATES = {
+  // العملات الرئيسية
+  'USD': 1.0000, 'EUR': 0.9200, 'GBP': 0.7900, 'JPY': 149.0000, 'CNY': 7.2400,
+  'INR': 83.0000, 'RUB': 92.5000, 'AUD': 1.5700, 'CAD': 1.4300, 'CHF': 0.8900,
+  'HKD': 7.8000, 'SGD': 1.3500, 'KRW': 1345.0000, 'NZD': 1.6900,
+
+  // عملات الشرق الأوسط
+  'SAR': 3.7500, 'AED': 3.6700, 'QAR': 3.6400, 'KWD': 0.3100, 'BHD': 0.3800,
+  'OMR': 0.3800, 'EGP': 30.8500, 'JOD': 0.7100, 'ILS': 3.6700, 'IRR': 42100.0000,
+  'IQD': 1310.0000, 'TRY': 34.1500, 'LBP': 89500.0000, 'SYP': 13000.0000, 'YER': 250.0000,
+
+  // عملات أفريقيا
+  'MAD': 10.5000, 'XOF': 655.9600, 'XAF': 655.9600, 'NGN': 1675.0000, 'ZAR': 18.4500,
+  'KES': 130.5000, 'GHS': 15.8500, 'ETB': 125.5000, 'TZS': 2515.0000, 'UGX': 3785.0000,
+  'ZMW': 27.8500, 'RWF': 1385.0000,
+
+  // عملات آسيا
+  'IDR': 15850.0000, 'PKR': 280.0000, 'BDT': 110.0000, 'LKR': 300.0000, 'NPR': 133.0000,
+  'BTN': 83.0000, 'MMK': 2100.0000, 'KHR': 4100.0000, 'LAK': 20000.0000, 'VND': 24000.0000,
+  'THB': 36.0000, 'MYR': 4.7000, 'PHP': 56.0000,
+
+  // عملات أمريكا اللاتينية
+  'MXN': 20.1500, 'BRL': 6.0500, 'ARS': 1005.5000, 'CLP': 975.2000, 'COP': 4285.5000,
+  'PEN': 3.7500, 'VES': 36500000.0000, 'UYU': 40.2500
 };
 
-const DEFAULT_SYMBOLS = {
-  'USD': '$',
-  'EUR': '€',
-  'GBP': '£',
-  'SAR': 'ر.س',
-  'MAD': 'د.م',
-  'AED': 'د.إ',
-  'EGP': 'ج.م',
-  'CAD': 'C$',
-  'AUD': 'A$',
-  'JPY': '¥',
-  'CHF': 'CHF',
-  'CNY': '¥',
-  'INR': '₹',
-  'BRL': 'R$',
-  'RUB': '₽',
-  'TRY': '₺',
-  'KRW': '₩'
+const UNIFIED_DEFAULT_SYMBOLS = {
+  // العملات الرئيسية
+  'USD': '$', 'EUR': '€', 'GBP': '£', 'JPY': '¥', 'CNY': '¥', 'INR': '₹', 'RUB': '₽',
+  'AUD': 'A$', 'CAD': 'C$', 'CHF': 'CHF', 'HKD': 'HK$', 'SGD': 'S$', 'KRW': '₩', 'NZD': 'NZ$',
+
+  // عملات الشرق الأوسط
+  'SAR': 'ر.س', 'AED': 'د.إ', 'QAR': 'ر.ق', 'KWD': 'د.ك', 'BHD': 'د.ب', 'OMR': 'ر.ع',
+  'EGP': 'ج.م', 'JOD': 'د.أ', 'ILS': '₪', 'IRR': '﷼', 'IQD': 'د.ع', 'TRY': '₺',
+  'LBP': 'ل.ل', 'SYP': 'ل.س', 'YER': '﷼',
+
+  // عملات أفريقيا
+  'MAD': 'د.م', 'XOF': 'CFA', 'XAF': 'FCFA', 'NGN': '₦', 'ZAR': 'R', 'KES': 'KSh',
+  'GHS': '₵', 'ETB': 'Br', 'TZS': 'TSh', 'UGX': 'USh', 'ZMW': 'ZK', 'RWF': 'RF',
+
+  // عملات آسيا
+  'IDR': 'Rp', 'PKR': '₨', 'BDT': '৳', 'LKR': 'Rs', 'NPR': 'Rs', 'BTN': 'Nu',
+  'MMK': 'K', 'KHR': '៛', 'LAK': '₭', 'VND': '₫', 'THB': '฿', 'MYR': 'RM', 'PHP': '₱',
+
+  // عملات أمريكا اللاتينية
+  'MXN': '$', 'BRL': 'R$', 'ARS': '$', 'CLP': '$', 'COP': '$', 'PEN': 'S/', 'VES': 'Bs', 'UYU': '$'
 };
 
 serve(async (req: Request) => {
@@ -185,8 +193,8 @@ async function getSettings(supabase: any, shopId: string | null) {
       },
       custom_symbols: symbols,
       custom_rates: rates,
-      all_rates: { ...DEFAULT_RATES, ...rates },
-      all_symbols: { ...DEFAULT_SYMBOLS, ...symbols },
+      all_rates: { ...UNIFIED_DEFAULT_RATES, ...rates },
+      all_symbols: { ...UNIFIED_DEFAULT_SYMBOLS, ...symbols },
       timestamp: new Date().toISOString()
     };
 
@@ -352,8 +360,8 @@ async function getExchangeRates() {
   return new Response(
     JSON.stringify({ 
       success: true, 
-      rates: DEFAULT_RATES,
-      symbols: DEFAULT_SYMBOLS,
+      rates: UNIFIED_DEFAULT_RATES,
+      symbols: UNIFIED_DEFAULT_SYMBOLS,
       lastUpdated: new Date().toISOString(),
       source: 'default'
     }),
