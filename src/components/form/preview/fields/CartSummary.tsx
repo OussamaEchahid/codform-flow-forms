@@ -112,8 +112,54 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
   const convertCurrency = (amount: number, fromCurrency: string, toCurrency: string) => {
     if (fromCurrency === toCurrency) return amount;
 
-    // استخدام الخدمة الموحدة للعملات
-    return CurrencyService.convertCurrency(amount, fromCurrency, toCurrency);
+    console.log('🔄 CartSummary convertCurrency called:', {
+      amount,
+      fromCurrency,
+      toCurrency,
+      CurrencyServiceExists: !!CurrencyService
+    });
+
+    // ✅ TEMPORARY FIX: استخدام المعدل المخصص مباشرة للاختبار
+    if (fromCurrency === 'MAD' && toCurrency === 'GBP') {
+      // قراءة المعدل المخصص من localStorage
+      try {
+        const savedRates = localStorage.getItem('codform_custom_currency_rates');
+        if (savedRates) {
+          const rates = JSON.parse(savedRates);
+          if (rates.GBP && typeof rates.GBP === 'object' && rates.GBP.rate) {
+            const customRate = rates.GBP.rate;
+            const result = amount * customRate;
+            console.log('💰 Using CUSTOM rate from localStorage:', {
+              input: `${amount} ${fromCurrency}`,
+              customGBPRate: customRate,
+              output: `${result} ${toCurrency}`
+            });
+            return result;
+          } else if (rates.GBP && typeof rates.GBP === 'number') {
+            const customRate = rates.GBP;
+            const result = amount * customRate;
+            console.log('💰 Using CUSTOM rate (simple) from localStorage:', {
+              input: `${amount} ${fromCurrency}`,
+              customGBPRate: customRate,
+              output: `${result} ${toCurrency}`
+            });
+            return result;
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error reading custom rates:', error);
+      }
+    }
+
+    // استخدام الخدمة الموحدة للعملات كـ fallback
+    const result = CurrencyService.convertCurrency(amount, fromCurrency, toCurrency);
+
+    console.log('💰 CartSummary conversion result (fallback):', {
+      input: `${amount} ${fromCurrency}`,
+      output: `${result} ${toCurrency}`
+    });
+
+    return result;
   };
 
   // Helper function to calculate prices
