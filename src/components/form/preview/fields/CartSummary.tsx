@@ -107,10 +107,25 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
   
   // تحديد اتجاه النص بناءً على اللغة المكتشفة - ثابت ولا يتغير
   const textDirection = detectedLanguage === 'ar' ? 'rtl' : 'ltr';
-  
+
+  // وظيفة تحويل العملة
+  const convertCurrency = (amount: number, fromCurrency: string, toCurrency: string) => {
+    if (fromCurrency === toCurrency) return amount;
+
+    // استخدام الخدمة الموحدة للعملات
+    return CurrencyService.convertCurrency(amount, fromCurrency, toCurrency);
+  };
+
   // Helper function to calculate prices
   const calculatePrices = (basePrice: number, configSettings: any) => {
-    let subtotal = basePrice;
+    // ✅ CRITICAL FIX: تطبيق تحويل العملة على السعر الأساسي أولاً
+    const baseCurrency = 'MAD'; // العملة الأساسية للأسعار
+    const targetCurrency = formCurrency || formStyle.currency || 'MAD';
+
+    // تحويل السعر الأساسي إلى العملة المطلوبة
+    const convertedBasePrice = convertCurrency(basePrice, baseCurrency, targetCurrency);
+
+    let subtotal = convertedBasePrice;
     let discount = 0;
     let shipping = 0;
 
@@ -119,18 +134,31 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
       if (configSettings.discountType === 'percentage') {
         discount = (subtotal * configSettings.discountValue) / 100;
       } else {
-        discount = configSettings.discountValue;
+        // تحويل قيمة الخصم الثابتة أيضاً
+        discount = convertCurrency(configSettings.discountValue, baseCurrency, targetCurrency);
       }
     }
 
     // Calculate shipping
     if (configSettings.shippingType === 'manual') {
-      shipping = configSettings.shippingValue || 0;
+      // تحويل قيمة الشحن أيضاً
+      shipping = convertCurrency(configSettings.shippingValue || 0, baseCurrency, targetCurrency);
     } else {
       shipping = 0; // Free shipping
     }
 
     const total = subtotal - discount + shipping;
+
+    console.log('💰 Price calculation with currency conversion:', {
+      originalBasePrice: basePrice,
+      baseCurrency,
+      targetCurrency,
+      convertedBasePrice,
+      subtotal,
+      discount,
+      shipping,
+      total
+    });
 
     return {
       subtotal,
@@ -138,14 +166,6 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
       shipping,
       total: Math.max(0, total) // Ensure total is not negative
     };
-  };
-
-  // وظيفة تحويل العملة
-  const convertCurrency = (amount: number, fromCurrency: string, toCurrency: string) => {
-    if (fromCurrency === toCurrency) return amount;
-    
-    // استخدام الخدمة الموحدة للعملات
-    return CurrencyService.convertCurrency(amount, fromCurrency, toCurrency);
   };
 
   // Calculate prices using useMemo to prevent infinite loops
@@ -189,7 +209,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
     }
     
     // Show demo prices when not using auto calculation OR when auto calculation fails
-    const demoPrice = 99.00;
+    const demoPrice = 1.00; // ✅ تغيير السعر التجريبي إلى 1.00 لسهولة الاختبار
     console.log('🎭 Using demo price:', demoPrice);
     return calculatePrices(demoPrice, finalConfig);
   }, [productData, finalConfig, formCurrency, formStyle.currency, loading]);
