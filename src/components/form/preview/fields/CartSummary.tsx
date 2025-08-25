@@ -90,7 +90,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
     totalText: config.totalText || defaultTexts.totalText
   };
   
-  const finalConfig = {
+  const finalConfig = useMemo(() => ({
     autoCalculate: true,
     showDiscount: true,
     discountType: 'percentage',
@@ -103,7 +103,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
     shippingText: finalTexts.shippingText,
     totalText: finalTexts.totalText,
     ...config
-  };
+  }), [formCurrency, formStyle.currency, finalTexts, config]);
   
   // تحديد اتجاه النص بناءً على اللغة المكتشفة - ثابت ولا يتغير
   const textDirection = detectedLanguage === 'ar' ? 'rtl' : 'ltr';
