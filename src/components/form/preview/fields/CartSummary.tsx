@@ -147,8 +147,8 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
     // ✅ MANUAL CALCULATION للتأكد من الصحة
     let expectedResult = 'unknown';
     if (fromCurrency === 'MAD' && toCurrency === 'GBP') {
-      // الحساب اليدوي: amount × (0.8000 ÷ 10.5000)
-      expectedResult = (amount * (0.8000 / 10.5000)).toFixed(4);
+      // الحساب اليدوي: amount × (0.7900 ÷ 10.0000)
+      expectedResult = (amount * (0.7900 / 10.0000)).toFixed(4);
     }
 
     console.log('💰 CartSummary conversion result:', {
