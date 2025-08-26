@@ -449,6 +449,22 @@ const translations = {
     noOffersCreated: 'No offers created yet',
     selectProductFromForm: 'Select a product from this form',
     productAlreadyHasOffer: 'Product already has a quantity offer for this form',
+    
+    // CTA Section
+    ctaTitle: 'Start Creating Cash on Delivery Forms Now',
+    ctaDescription: 'Join thousands of stores using CODMagnet to simplify the cash on delivery process for their customers',
+    ctaStartFree: 'Start Free',
+    
+    // Footer
+    footerDescription: 'A specialized form platform for Cash on Delivery designed specifically for Shopify store integration.',
+    quickLinks: 'Quick Links',
+    features: 'Features',
+    templates: 'Templates',
+    pricing: 'Pricing',
+    support: 'Support',
+    privacyPolicy: 'Privacy Policy',
+    termsAndConditions: 'Terms and Conditions',
+    allRightsReserved: 'All rights reserved.',
     editExistingOffer: 'You can edit the existing offer or choose another product',
     addAtLeastOneOffer: 'Must add at least one offer',
     offerSavedSuccessfully: 'Offer saved successfully',
@@ -902,6 +918,22 @@ const translations = {
     welcomeToFormBuilder: 'أهلاً بك في منشئ النماذج',
     noFormsFound: 'لم يتم العثور على أي نماذج. ابدأ بإنشاء نموذجك الأول لجمع بيانات العملاء وزيادة المبيعات.',
     createNewForm: 'إنشاء نموذج جديد',
+    
+    // قسم الحث على العمل
+    ctaTitle: 'ابدأ في إنشاء نماذج الدفع عند الاستلام الآن',
+    ctaDescription: 'انضم إلى آلاف المتاجر التي تستخدم CODMagnet لتسهيل عملية الدفع عند الاستلام لعملائها',
+    ctaStartFree: 'ابدأ مجانًا',
+    
+    // الفوتر
+    footerDescription: 'منصة نماذج متخصصة للدفع عند الاستلام (Cash on Delivery) مصممة خصيصًا للتكامل مع متاجر Shopify.',
+    quickLinks: 'روابط سريعة',
+    features: 'المميزات',
+    templates: 'القوالب',
+    pricing: 'الأسعار',
+    support: 'الدعم',
+    privacyPolicy: 'سياسة الخصوصية',
+    termsAndConditions: 'الشروط والأحكام',
+    allRightsReserved: 'جميع الحقوق محفوظة.',
     defaultFormDescription: 'سيتم إنشاء نموذج افتراضي يحتوي على الحقول الأساسية التي يمكنك تخصيصها لاحقاً',
     
     // No Store Connected
