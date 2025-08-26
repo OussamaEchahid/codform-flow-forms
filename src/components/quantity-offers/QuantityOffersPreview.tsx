@@ -61,8 +61,8 @@ const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
       }
     } catch {}
   }, []);
-  // Default demo price for preview when no real product data is available
-  const realPrice = (typeof productData?.price === 'number' && !isNaN(productData.price)) ? productData.price : 100.00;
+  // Use real product price when available; otherwise fall back to 0 instead of a hardcoded demo value
+  const realPrice = (typeof productData?.price === 'number' && !isNaN(productData.price)) ? productData.price : 0;
   const productTitle = productData?.title || 'المنتج';
   const productImage = productData?.image || productData?.featuredImage;
   // عرض الأسعار يجب أن يكون بعملة النموذج
