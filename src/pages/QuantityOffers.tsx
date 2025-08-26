@@ -16,6 +16,7 @@ import { useSimpleShopify } from '@/hooks/useSimpleShopify';
 import { toast } from 'sonner';
 import QuantityOffersPreview from '@/components/quantity-offers/QuantityOffersPreview';
 import { CurrencyService } from '@/lib/services/CurrencyService';
+import UnifiedStoreManager from '@/utils/unified-store-manager';
 
 
 
@@ -72,16 +73,21 @@ interface QuantityOfferData {
 const QuantityOffers = () => {
   const { t } = useI18n();
   const { shop: currentStore, isShopifyAuthenticated } = useAuth();
-  const { products: shopifyProducts, loadProducts, loading: shopifyLoading, isConnected, activeStore } = useSimpleShopify();
-  
-  // Use the same store detection logic as other pages
-  const storeFromStorage = localStorage.getItem('current_shopify_store');
-  const effectiveStore = currentStore || activeStore || storeFromStorage;
-  
+  const { products: shopifyProducts, loadProducts, loading: shopifyLoading, isConnected, activeStore, switchToStore } = useSimpleShopify();
+
+  // Robust active store detection (unified + legacy keys)
+  const unifiedStore = (typeof window !== 'undefined' && (UnifiedStoreManager?.getActiveStore?.())) || null;
+  const legacyCandidates = [
+    'active_shopify_store', 'shopify_store', 'simple_active_store', 'active_shop', 'current_shopify_store'
+  ];
+  const legacyStore = (typeof window !== 'undefined') ? (legacyCandidates.map(k => localStorage.getItem(k)).find(v => v && v !== 'null') || null) : null;
+  const effectiveStore = currentStore || activeStore || unifiedStore || legacyStore;
+
   console.log('🔍 QuantityOffers - Store state:', {
     currentStore,
     activeStore,
-    storeFromStorage,
+    unifiedStore,
+    legacyStore,
     effectiveStore,
     isShopifyAuthenticated,
     isConnected
@@ -94,6 +100,15 @@ const QuantityOffers = () => {
       CurrencyService.initialize();
     }
   }, [effectiveStore]);
+
+
+  // Ensure hook activeStore follows effectiveStore (auto-switch)
+  useEffect(() => {
+    if (effectiveStore && activeStore !== effectiveStore && typeof switchToStore === 'function') {
+      console.log('🔄 Auto-switching hook activeStore to effectiveStore:', { activeStore, effectiveStore });
+      switchToStore(effectiveStore);
+    }
+  }, [effectiveStore, activeStore, switchToStore]);
 
   const [currentStep, setCurrentStep] = useState<'form' | 'product' | 'settings'>('form');
   const [forms, setForms] = useState<Form[]>([]);
@@ -145,10 +160,10 @@ const QuantityOffers = () => {
       });
 
       const data = await response.json();
-      
+
       // Extract currency from shop info or first product
       let currency = 'MAD'; // default
-      
+
       if (data.currency) {
         currency = data.currency;
         console.log('✅ Got currency from Shopify API response:', currency);
@@ -160,10 +175,10 @@ const QuantityOffers = () => {
           console.log('✅ Got currency from first product:', currency);
         }
       }
-      
+
       setStoreCurrency(currency);
       console.log('✅ Store currency set to:', currency, 'for shop:', effectiveStore);
-      
+
     } catch (error) {
       console.warn('Could not fetch store currency, using default MAD:', error);
       // استخدام MAD كقيمة افتراضية
@@ -215,9 +230,9 @@ const QuantityOffers = () => {
       }
 
       console.log(`📋 Loading forms for active store: ${effectiveStore}`);
-      
+
       await ensureOwnership();
-      
+
       const { data, error } = await supabase
         .from('forms')
         .select('*')
@@ -228,7 +243,7 @@ const QuantityOffers = () => {
         console.error('❌ Error loading forms:', error);
         throw error;
       }
-      
+
       console.log(`✅ Loaded ${data?.length || 0} forms for store: ${effectiveStore}`);
       setForms((data || []).map(form => ({
         id: form.id,
@@ -248,9 +263,9 @@ const QuantityOffers = () => {
       if (!effectiveStore) return;
 
       console.log('🔍 Loading existing offers for store:', effectiveStore);
-      
+
       await ensureOwnership();
-      
+
       const { data, error } = await (supabase as any)
         .rpc('get_form_quantity_offers', {
           p_shop_id: effectiveStore
@@ -279,7 +294,7 @@ const QuantityOffers = () => {
   }));
 
   // Get products associated with the selected form only
-  const products = selectedForm && associatedProductIds.length > 0 ? allProducts.filter(product => 
+  const products = selectedForm && associatedProductIds.length > 0 ? allProducts.filter(product =>
     associatedProductIds.includes(product.id)
   ) : [];
 
@@ -287,9 +302,9 @@ const QuantityOffers = () => {
   const loadFormProducts = async (formId: string) => {
     try {
       console.log(`🔍 Loading products associated with form: ${formId}`);
-      
+
       await ensureOwnership();
-      
+
       const { data, error } = await supabase
         .from('shopify_product_settings')
         .select('product_id')
@@ -301,7 +316,7 @@ const QuantityOffers = () => {
         setAssociatedProductIds([]);
         return;
       }
-      
+
       const productIds = (data || []).map((setting: any) => setting.product_id);
       console.log(`📦 Found ${productIds.length} products associated with form:`, productIds);
       setAssociatedProductIds(productIds);
@@ -314,9 +329,9 @@ const QuantityOffers = () => {
   const loadAssociatedProducts = async (formId: string) => {
     try {
       console.log(`🔍 Loading existing quantity offers for form: ${formId}`);
-      
+
       await ensureOwnership();
-      
+
       const { data, error } = await (supabase as any)
         .rpc('get_form_quantity_offers', {
           p_shop_id: effectiveStore || '',
@@ -328,7 +343,7 @@ const QuantityOffers = () => {
         setAssociatedProducts([]);
         return;
       }
-      
+
       // Map the data to include product information
       const associatedProductsList: AssociatedProduct[] = (data || []).map((offer: any) => {
         const product = allProducts.find(p => p.id === offer.product_id);
@@ -339,7 +354,7 @@ const QuantityOffers = () => {
           offerId: offer.id
         };
       });
-      
+
       console.log(`📦 Found ${associatedProductsList.length} existing quantity offers:`, associatedProductsList);
       setAssociatedProducts(associatedProductsList);
     } catch (error) {
@@ -352,7 +367,7 @@ const QuantityOffers = () => {
     console.log('📋 Form selected:', form.title);
     setSelectedForm(form);
     setQuantityOffer(prev => ({ ...prev, form_id: form.id }));
-    
+
     // Load products associated with this form from shopify_product_settings
     await loadFormProducts(form.id);
     // Load existing quantity offers for this form
@@ -367,7 +382,7 @@ const QuantityOffers = () => {
       toast.error(`${t('productAlreadyHasOffer')}. ${t('editExistingOffer')}.`);
       return;
     }
-    
+
     console.log('📦 Product selected:', product.title);
     setSelectedProduct(product);
     setQuantityOffer(prev => ({ ...prev, product_id: product.id }));
@@ -378,19 +393,19 @@ const QuantityOffers = () => {
       toast.error('Please select both product and form');
       return;
     }
-    
+
     console.log('⚙️ Proceeding to settings step');
-    
+
     // إضافة العروض الافتراضية إذا لم تكن موجودة
     if (quantityOffer.offers.length === 0) {
       // تحديد لغة النموذج من البيانات
-      const isArabic = selectedForm.data?.some((step: any) => 
-        step.fields?.some((field: any) => 
-          field.label?.includes('اسم') || field.label?.includes('هاتف') || 
+      const isArabic = selectedForm.data?.some((step: any) =>
+        step.fields?.some((field: any) =>
+          field.label?.includes('اسم') || field.label?.includes('هاتف') ||
           field.placeholder?.includes('اسم') || field.placeholder?.includes('هاتف')
         )
       ) || selectedForm.title?.match(/[\u0600-\u06FF]/);
-      
+
       const defaultOffers = isArabic ? [
         {
           id: Date.now().toString(),
@@ -426,13 +441,13 @@ const QuantityOffers = () => {
           discountValue: 0
         }
       ];
-      
+
       setQuantityOffer(prev => ({
         ...prev,
         offers: defaultOffers
       }));
     }
-    
+
     setCurrentStep('settings');
   };
 
@@ -525,17 +540,17 @@ const QuantityOffers = () => {
         console.error('❌ RPC upsert_quantity_offer error:', upsertError);
         throw upsertError;
       }
-      
+
       console.log('✅ Quantity offer saved successfully:', upsertId);
       toast.success(quantityOffer.id ? t('offerUpdatedSuccessfully') : t('offerSavedSuccessfully'));
-      
+
       // Reset or refresh views
       await loadExistingOffers();
       if (selectedForm) {
         await loadAssociatedProducts(selectedForm.id);
         setCurrentStep('product');
       }
-      
+
     } catch (error) {
       console.error('❌ Error saving quantity offer:', error);
       toast.error(`${t('failedToSaveOffer')}: ` + (error as any)?.message || t('unknownError'));
@@ -572,7 +587,7 @@ const QuantityOffers = () => {
       setSelectedForm(form);
       await loadAssociatedProducts(form.id);
     }
-    
+
     // Find the product
     const product = allProducts.find(p => p.id === offer.product_id);
     if (product) {
@@ -584,7 +599,7 @@ const QuantityOffers = () => {
         images: product.images
       });
     }
-    
+
     // Set the offer data
     setQuantityOffer({
       ...offer,
@@ -602,7 +617,7 @@ const QuantityOffers = () => {
 
 
       if (error) throw error;
-      
+
       toast.success('تم حذف العرض بنجاح');
       await loadExistingOffers();
     } catch (error) {
@@ -670,8 +685,8 @@ const QuantityOffers = () => {
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
                           {product?.images?.[0] && (
-                            <img 
-                              src={product.images[0].url} 
+                            <img
+                              src={product.images[0].url}
                               alt={product.title}
                               loading="lazy"
                               decoding="async"
@@ -693,7 +708,7 @@ const QuantityOffers = () => {
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
                            <span>{offer.offers?.length || 0} {t('offersConfigured')}</span>
                            <span>{t('positionPrefix')} {
-                             offer.position === 'before_form' ? t('beforeForm') : 
+                             offer.position === 'before_form' ? t('beforeForm') :
                              offer.position === 'after_form' ? t('afterForm') : t('insideForm')
                            }</span>
                         </div>
@@ -766,7 +781,7 @@ const QuantityOffers = () => {
                       <CardContent className="p-4">
                         <h3 className="font-medium mb-2">{form.title}</h3>
                         <p className="text-sm text-muted-foreground">
-                          {Array.isArray(form.data) && form.data[0]?.fields ? 
+                          {Array.isArray(form.data) && form.data[0]?.fields ?
                             `${form.data[0].fields.length} حقل` : 'نموذج فارغ'}
                         </p>
                       </CardContent>
@@ -828,8 +843,8 @@ const QuantityOffers = () => {
                  <div className="text-center py-8 text-muted-foreground">
                    <Package className="mx-auto h-12 w-12 mb-4 opacity-50" />
                    <p>
-                      {selectedForm ? 
-                        t('noProductsLinkedToForm') : 
+                      {selectedForm ?
+                        t('noProductsLinkedToForm') :
                         t('noProductsInShopify')
                       }
                    </p>
@@ -851,7 +866,7 @@ const QuantityOffers = () => {
                       <Card
                         key={product.id}
                         className={`transition-all border-2 ${
-                          isAssociated 
+                          isAssociated
                             ? 'opacity-50 cursor-not-allowed bg-gray-50 border-gray-200'
                             : selectedProduct?.id === product.id
                               ? 'ring-2 ring-primary cursor-pointer border-primary'
@@ -877,7 +892,7 @@ const QuantityOffers = () => {
                   })}
                 </div>
               )}
-              
+
               <div className="mt-6 flex justify-between">
                  <Button onClick={() => setCurrentStep('form')} variant="outline">
                    {t('back')}
@@ -1003,7 +1018,7 @@ const QuantityOffers = () => {
                   </Card>
                 </TabsContent>
 
-                
+
                 <TabsContent value="styling" className="space-y-4">
                   <Card>
                     <CardHeader>

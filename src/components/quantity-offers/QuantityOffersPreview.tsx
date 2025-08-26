@@ -51,6 +51,16 @@ const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
   React.useEffect(() => {
     CurrencyService.initialize();
   }, []);
+
+  // Ensure currency service uses the same shop context if available
+  React.useEffect(() => {
+    try {
+      const unifiedStore = (window as any).UnifiedStoreManager?.getActiveStore?.();
+      if (unifiedStore) {
+        CurrencyService.setShopContext(unifiedStore, null);
+      }
+    } catch {}
+  }, []);
   const realPrice = productData?.price || 5000; // سعر المنتج من بيانات Shopify
   const productTitle = productData?.title || 'المنتج';
   const productImage = productData?.image || productData?.featuredImage;

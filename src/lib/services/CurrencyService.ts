@@ -202,44 +202,55 @@ class CurrencyServiceClass {
   }
 
   /**
-   * تنسيق مبلغ مع رمز العملة - يحترم نوع العرض وموضع الرمز والمنازل العشرية
+   * تنسيق مبلغ مع رمز/كود العملة مع دعم كامل للـ RTL وموضع الرمز
    */
   formatCurrency(amount: number, currencyCode: string, language: 'en' | 'ar' = 'en'): string {
     const { showSymbol, symbolPosition, decimalPlaces, customSymbols } = this.displaySettings;
-    console.log('🔧 CurrencyService.formatCurrency called:', {
-      amount,
-      currencyCode,
-      language,
-      displaySettings: this.displaySettings
-    });
+    console.log('🔧 CurrencyService.formatCurrency called:', { amount, currencyCode, language, displaySettings: this.displaySettings });
 
     const info = getCurrencyInfo(currencyCode);
+    const formattedAmount = Number.isFinite(amount) ? amount.toFixed(decimalPlaces) : (0).toFixed(decimalPlaces);
+
+    // اختر نص العرض (رمز أو كود مخصص)
+    const codeOrCustom = customSymbols[currencyCode] || currencyCode;
     const symbol = customSymbols[currencyCode] || info?.symbol || currencyCode;
-    const formattedAmount = Number.isFinite(amount)
-      ? amount.toFixed(decimalPlaces)
-      : (0).toFixed(decimalPlaces);
 
-    // نوع العرض = كود (showSymbol = false)
+    // بيئة RTL أو وجود محارف RTL داخل الرمز/الكود (عربي/عبري...)
+    const doc: any = typeof document !== 'undefined' ? document : null;
+    const isRTLContext = language === 'ar' || doc?.documentElement?.dir === 'rtl' || doc?.body?.dir === 'rtl';
+    const hasRTLChars = /[\u0590-\u08FF]/.test(showSymbol ? symbol : codeOrCustom);
+
+    const LRM = '\u200E'; // Left-to-Right Mark
+    const LRI = '\u2066'; // Left-to-Right Isolate
+    const PDI = '\u2069'; // Pop Directional Isolate
+
+    // عرض بالكود (showSymbol = false)
     if (showSymbol === false) {
-      const codeResult = symbolPosition === 'before'
-        ? `${currencyCode} ${formattedAmount}`
-        : `${formattedAmount} ${currencyCode}`;
-      const isRTLcode = language === 'ar' || (typeof document !== 'undefined' && (document.documentElement.dir === 'rtl'));
-      return isRTLcode ? `\u2066${codeResult}\u2069` : codeResult;
+      // إذا كنا في سياق RTL أو الكود نفسه RTL، نعزل المقطع ونضمن بقاء الرقم LTR
+      if (isRTLContext || hasRTLChars) {
+        const inner = symbolPosition === 'before'
+          ? `${codeOrCustom} ${LRM}${formattedAmount}`
+          : `${LRM}${formattedAmount}${LRM} ${codeOrCustom}`;
+        return `${LRI}${inner}${PDI}`;
+      }
+      // LTR عادي
+      return symbolPosition === 'before'
+        ? `${codeOrCustom} ${formattedAmount}`
+        : `${formattedAmount} ${codeOrCustom}`;
     }
 
-    // نوع العرض = رمز
-    let result: string;
-    if (symbolPosition === 'before') {
-      result = `${symbol} ${formattedAmount}`;
-    } else {
-      result = `${formattedAmount} ${symbol}`;
+    // عرض بالرمز
+    if (isRTLContext || hasRTLChars) {
+      const inner = symbolPosition === 'before'
+        ? `${symbol} ${LRM}${formattedAmount}`
+        : `${LRM}${formattedAmount}${LRM} ${symbol}`;
+      return `${LRI}${inner}${PDI}`;
     }
 
-    // ✅ إصلاح اتجاه النص في الواجهات العربية: نستخدم LTR isolate لضمان عدم انقلاب الترتيب
-    // U+2066 (LRI) ... U+2069 (PDI)
-    const isRTL = language === 'ar' || (typeof document !== 'undefined' && (document.documentElement.dir === 'rtl'));
-    return isRTL ? `\u2066${result}\u2069` : result;
+    // LTR عادي
+    return symbolPosition === 'before'
+      ? `${symbol} ${formattedAmount}`
+      : `${formattedAmount} ${symbol}`;
   }
 
   /**
