@@ -10,9 +10,6 @@ const CTA = () => {
             <Button className="bg-white text-codform-dark-purple hover:bg-gray-100">
               ابدأ مجانًا
             </Button>
-            <Button variant="outline" className="border-white text-white hover:bg-white/20">
-              طلب عرض توضيحي
-            </Button>
           </div>
         </div>
       </div>
