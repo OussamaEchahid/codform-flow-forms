@@ -61,7 +61,8 @@ const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
       }
     } catch {}
   }, []);
-  const realPrice = productData?.price || 5000; // سعر المنتج من بيانات Shopify
+  // Default demo price for preview when no real product data is available
+  const realPrice = (typeof productData?.price === 'number' && !isNaN(productData.price)) ? productData.price : 100.00;
   const productTitle = productData?.title || 'المنتج';
   const productImage = productData?.image || productData?.featuredImage;
   // عرض الأسعار يجب أن يكون بعملة النموذج
