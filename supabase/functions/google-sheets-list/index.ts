@@ -67,13 +67,28 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'not_connected' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 });
     }
 
+    // Get account info (email, picture) for UI display
+    let account: { email?: string; picture?: string } | null = null;
+    try {
+      const infoRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (infoRes.ok) {
+        const info = await infoRes.json();
+        account = { email: info.email, picture: info.picture };
+      }
+    } catch (_) {}
+
     if (!spreadsheetId) {
       // List spreadsheets via Drive API
       const driveRes = await fetch('https://www.googleapis.com/drive/v3/files?q=mimeType%3D%22application%2Fvnd.google-apps.spreadsheet%22&fields=files(id%2Cname)', {
         headers: { Authorization: `Bearer ${token}` }
       });
       const files = await driveRes.json();
-      return new Response(JSON.stringify({ spreadsheets: files.files || [] }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
+      return new Response(
+        JSON.stringify({ spreadsheets: files.files || [], account }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
     } else {
       // List sheets (tabs) via Sheets API
       const sheetsRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`, {
@@ -81,10 +96,12 @@ serve(async (req) => {
       });
       const sheets = await sheetsRes.json();
       const tabs = (sheets.sheets || []).map((s: any) => ({ id: s.properties.sheetId, title: s.properties.title }));
-      return new Response(JSON.stringify({ sheets: tabs }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
+      return new Response(
+        JSON.stringify({ sheets: tabs, account }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
     }
   } catch (e) {
     return new Response(JSON.stringify({ error: e?.message || 'failed' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 });
   }
 });
-

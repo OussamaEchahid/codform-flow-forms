@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Globe, ShoppingBag, Settings, Sheet, Plus, Edit } from 'lucide-react';
+import { Globe, ShoppingBag, Settings, Sheet, Plus, Edit, CheckCircle, MoreVertical, RefreshCcw, LogOut, User } from 'lucide-react';
 import AppSidebar from '@/components/layout/AppSidebar';
 import { useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
@@ -9,6 +9,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -24,6 +26,7 @@ const OrdersChannels = () => {
   const [googleConnected, setGoogleConnected] = useState(false);
   const [spreadsheets, setSpreadsheets] = useState<any[]>([]);
   const [sheets, setSheets] = useState<any[]>([]);
+  const [googleAccount, setGoogleAccount] = useState<{ email?: string; picture?: string } | null>(null);
   const [selectedSpreadsheet, setSelectedSpreadsheet] = useState<string>('');
   const [selectedSheet, setSelectedSheet] = useState<string>('');
   const [enableAutoImport, setEnableAutoImport] = useState<boolean>(true);
@@ -191,8 +194,10 @@ const OrdersChannels = () => {
       if (json?.spreadsheets) {
         setSpreadsheets(json.spreadsheets);
         setGoogleConnected(true);
+        if (json.account) setGoogleAccount(json.account);
       } else if (json?.error === 'not_connected') {
         setGoogleConnected(false);
+        setGoogleAccount(null);
       }
     } catch (e) {
       console.error('Failed to list spreadsheets', e);
@@ -209,6 +214,7 @@ const OrdersChannels = () => {
       const json = data as any;
       if (json?.sheets) {
         setSheets(json.sheets);
+        if (json.account) setGoogleAccount(json.account);
       }
     } catch (e) {
       console.error('Failed to list sheets', e);
@@ -539,34 +545,72 @@ const OrdersChannels = () => {
                     {/* 1) Connection */}
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-2 h-2 rounded-full ${googleConnected ? 'bg-green-500' : 'bg-gray-400'}`} />
-                          <span className="text-sm text-muted-foreground">
-                            {googleConnected
-                              ? (language === 'ar' ? 'متصل بـ Google' : 'Connected to Google')
-                              : (language === 'ar' ? 'غير متصل بـ Google' : 'Not connected to Google')}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button onClick={handleGoogleConnect} variant={googleConnected ? 'secondary' : 'default'}>
-                            {googleConnected ? (language === 'ar' ? 'إعادة الاتصال بـ Google' : 'Reconnect Google') : (language === 'ar' ? 'اتصل بحساب Google' : 'Connect Google account')}
-                          </Button>
+                        <div className="flex items-center gap-3">
+                          {/* Connection badge + account */}
+                          <div className="flex items-center gap-2">
+                            <div className={`w-2 h-2 rounded-full ${googleConnected ? 'bg-green-500' : 'bg-gray-400'}`} />
+                            <span className="text-sm text-muted-foreground">
+                              {googleConnected
+                                ? (language === 'ar' ? 'متصل بـ Google' : 'Connected to Google')
+                                : (language === 'ar' ? 'غير متصل بـ Google' : 'Not connected to Google')}
+                            </span>
+                          </div>
                           {googleConnected && (
-                            <Button variant="outline" onClick={async () => {
-                              const shopId = (actualShop as string) || localStorage.getItem('active_shopify_store') || '';
-                              try {
-                                const { error } = await supabase.functions.invoke('google-oauth-disconnect', { body: { shop_id: shopId } });
-                                if (error) throw error;
-                                setGoogleConnected(false);
-                                toast({ title: language === 'ar' ? 'تم الفصل' : 'Disconnected', description: language === 'ar' ? 'تم قطع الاتصال بحساب Google' : 'Disconnected from Google' });
-                              } catch (e) {
-                                console.error('Disconnect failed', e);
-                                toast({ title: language === 'ar' ? 'خطأ' : 'Error', description: language === 'ar' ? 'فشل قطع الاتصال' : 'Failed to disconnect', variant: 'destructive' });
-                              }
-                            }}>{language === 'ar' ? 'قطع الاتصال' : 'Disconnect'}</Button>
+                            <div className="flex items-center gap-2">
+                              <Avatar className="h-7 w-7">
+                                {googleAccount?.picture ? (
+                                  <AvatarImage src={googleAccount.picture} alt={googleAccount.email || 'Google account'} />
+                                ) : (
+                                  <AvatarFallback>{(googleAccount?.email || '?').charAt(0).toUpperCase()}</AvatarFallback>
+                                )}
+                              </Avatar>
+                              <span className="text-sm font-medium truncate max-w-[160px]" title={googleAccount?.email || ''}>
+                                {googleAccount?.email || (language === 'ar' ? 'حساب غير معروف' : 'Unknown account')}
+                              </span>
+                            </div>
                           )}
-                          <Button variant="outline" onClick={refreshSpreadsheets}>{language === 'ar' ? 'تحديث' : 'Refresh'}</Button>
                         </div>
+
+                        {/* Actions as a compact menu */}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="sm" className="px-2">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-56">
+                            {!googleConnected ? (
+                              <DropdownMenuItem onClick={handleGoogleConnect} className="cursor-pointer">
+                                <CheckCircle className="h-4 w-4 mr-2" /> {language === 'ar' ? 'الاتصال بـ Google' : 'Connect Google'}
+                              </DropdownMenuItem>
+                            ) : (
+                              <>
+                                <DropdownMenuItem onClick={handleGoogleConnect} className="cursor-pointer">
+                                  <RefreshCcw className="h-4 w-4 mr-2" /> {language === 'ar' ? 'إعادة الاتصال' : 'Reconnect'}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={refreshSpreadsheets} className="cursor-pointer">
+                                  <RefreshCcw className="h-4 w-4 mr-2" /> {language === 'ar' ? 'تحديث الملفات' : 'Refresh files'}
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem className="cursor-pointer text-destructive" onClick={async () => {
+                                  const shopId = (actualShop as string) || localStorage.getItem('active_shopify_store') || '';
+                                  try {
+                                    const { error } = await supabase.functions.invoke('google-oauth-disconnect', { body: { shop_id: shopId } });
+                                    if (error) throw error;
+                                    setGoogleConnected(false);
+                                    setGoogleAccount(null);
+                                    toast({ title: language === 'ar' ? 'تم الفصل' : 'Disconnected', description: language === 'ar' ? 'تم قطع الاتصال بحساب Google' : 'Disconnected from Google' });
+                                  } catch (e) {
+                                    console.error('Disconnect failed', e);
+                                    toast({ title: language === 'ar' ? 'خطأ' : 'Error', description: language === 'ar' ? 'فشل قطع الاتصال' : 'Failed to disconnect', variant: 'destructive' });
+                                  }
+                                }}>
+                                  <LogOut className="h-4 w-4 mr-2" /> {language === 'ar' ? 'قطع الاتصال' : 'Disconnect'}
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                       <div className="flex items-center gap-3">
                         <Switch id="enable_auto_import" checked={enableAutoImport} onCheckedChange={setEnableAutoImport} />
