@@ -81,7 +81,9 @@ const QuantityOffers = () => {
     'active_shopify_store', 'shopify_store', 'simple_active_store', 'active_shop', 'current_shopify_store'
   ];
   const legacyStore = (typeof window !== 'undefined') ? (legacyCandidates.map(k => localStorage.getItem(k)).find(v => v && v !== 'null') || null) : null;
-  const effectiveStore = currentStore || activeStore || unifiedStore || legacyStore;
+  const queryShop = (typeof window !== 'undefined') ? (new URLSearchParams(window.location.search).get('shop') || null) : null;
+  const hostShop = (typeof window !== 'undefined' && window.location.hostname.includes('myshopify.com')) ? window.location.hostname : null;
+  const effectiveStore = currentStore || activeStore || unifiedStore || queryShop || hostShop || legacyStore;
 
   console.log('🔍 QuantityOffers - Store state:', {
     currentStore,
