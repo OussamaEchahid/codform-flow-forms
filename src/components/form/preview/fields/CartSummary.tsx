@@ -95,10 +95,11 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
   };
 
   const calculatePrices = (basePrice: number, configSettings: any) => {
-    // استخدم عملة المنتج الفعلية، لا تفترض MAD
-    const productCurrency = (productData?.variants?.[0]?.currency_code || productData?.currency || productData?.shop?.currency || 'USD') as string;
+    // حدد عملة العرض أولاً
     const targetCurrency = formCurrency || formStyle.currency || 'MAD';
-    // تحويل صحيح عبر USD من عملة المنتج إلى عملة النموذج
+    // استخدم عملة المنتج إن توفرت، وإلا فلتكن نفس عملة العرض لتجنب تضخيم افتراضي (مثل 100 → 1000)
+    const productCurrency = (productData?.variants?.[0]?.currency_code || productData?.currency || productData?.shop?.currency || targetCurrency) as string;
+    // تحويل من عملة المنتج إلى عملة العرض
     const convertedBasePrice = convertCurrency(basePrice, productCurrency, targetCurrency);
     let subtotal = convertedBasePrice;
     let discount = 0;
