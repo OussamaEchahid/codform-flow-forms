@@ -141,12 +141,20 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
     const fetchLinkedProduct = async () => {
       try {
         const pathParts = window.location.pathname.split('/');
-        const formId = pathParts[pathParts.length - 1];
-        if (formId && formId !== 'form-builder') {
-          const { data, error } = await supabase.from('shopify_product_settings').select('product_id').eq('form_id', formId).single();
+        const lastPart = pathParts[pathParts.length - 1];
+        // Only query Supabase if the URL last segment is a valid UUID (actual form ID)
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (uuidRegex.test(lastPart)) {
+          const shopId = localStorage.getItem('current_shopify_store') || localStorage.getItem('active_shop') || undefined;
+          let query = supabase.from('shopify_product_settings').select('product_id').eq('form_id', lastPart);
+          if (shopId) query = query.eq('shop_id', shopId);
+          const { data, error } = await query.maybeSingle();
           if (data && !error) {
-            setLinkedProductId(data.product_id);
+            setLinkedProductId((data as any).product_id);
           }
+        } else {
+          // Not a real form preview route (e.g., /quantity-offers) → skip lookup
+          // This avoids unauthenticated REST calls like form_id=eq.quantity-offers
         }
       } catch (error) {
         // Silent error handling
