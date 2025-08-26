@@ -106,87 +106,106 @@ export default function Privacy() {
   }, [language]);
 
   return (
-    <main className="container mx-auto px-4 py-10" dir={isRTL ? 'rtl' : 'ltr'}>
-      <div className="max-w-3xl mx-auto mb-6 flex items-center justify-end gap-2">
-        <button
-          onClick={() => setLanguage('en')}
-          className={`px-3 py-1 rounded border ${language==='en' ? 'bg-black text-white' : 'bg-white text-gray-800'} hover:bg-gray-100`}
-        >EN</button>
-        <button
-          onClick={() => setLanguage('ar')}
-          className={`px-3 py-1 rounded border ${language==='ar' ? 'bg-black text-white' : 'bg-white text-gray-800'} hover:bg-gray-100`}
-        >AR</button>
+    <main className="min-h-screen" dir={isRTL ? 'rtl' : 'ltr'}>
+      {/* Language Toggle */}
+      <div className="container mx-auto px-4 pt-6 flex justify-end">
+        <div className="inline-flex rounded-full border bg-white shadow-sm overflow-hidden">
+          <button
+            onClick={() => setLanguage('en')}
+            className={`px-4 py-1.5 text-sm transition ${language==='en' ? 'bg-codform-purple text-white' : 'text-gray-700 hover:bg-codform-light-purple/60'}`}
+          >EN</button>
+          <button
+            onClick={() => setLanguage('ar')}
+            className={`px-4 py-1.5 text-sm transition border-l ${language==='ar' ? 'bg-codform-purple text-white' : 'text-gray-700 hover:bg-codform-light-purple/60'}`}
+          >AR</button>
+        </div>
       </div>
 
-      <article className="prose max-w-3xl mx-auto">
-        <h1>{text.title}</h1>
-        <p className="text-gray-600 text-sm">{text.updated}</p>
-        <p>{text.intro}</p>
+      {/* Hero */}
+      <section className="bg-gradient-to-b from-codform-light-purple/50 to-white">
+        <div className="container mx-auto px-4 py-10 sm:py-14">
+          <div className="max-w-3xl mx-auto text-center">
+            <div className="mb-2">
+              <span className="inline-block text-2xl font-extrabold tracking-widest bg-gradient-to-r from-codform-purple to-codform-dark-purple bg-clip-text text-transparent">CODMAGNET</span>
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-bold text-codform-dark-gray">{text.title}</h1>
+            <p className="text-xs sm:text-sm text-gray-500 mt-2">{text.updated}</p>
+          </div>
+        </div>
+      </section>
 
-        <section>
-          <h2>{text.collectTitle}</h2>
-          <ul>
-            {text.collectItems.map((item, i) => (<li key={i}>{item}</li>))}
-          </ul>
-        </section>
+      {/* Content Card */}
+      <section className="container mx-auto px-4 pb-16">
+        <div className="max-w-3xl mx-auto bg-white border rounded-2xl shadow-sm p-6 sm:p-8">
+          <article className="space-y-8 text-gray-700">
+            <p className="leading-7">{text.intro}</p>
 
-        <section>
-          <h2>{text.useTitle}</h2>
-          <ul>
-            {text.useItems.map((item, i) => (<li key={i}>{item}</li>))}
-          </ul>
-        </section>
+            <section>
+              <h2 className="text-xl font-semibold text-codform-dark-purple mb-3">{text.collectTitle}</h2>
+              <ul className="list-disc pl-6 space-y-1">
+                {text.collectItems.map((item, i) => (<li key={i}>{item}</li>))}
+              </ul>
+            </section>
 
-        <section>
-          <h2>{text.legalTitle}</h2>
-          <p>{text.legalText}</p>
-        </section>
+            <section>
+              <h2 className="text-xl font-semibold text-codform-dark-purple mb-3">{text.useTitle}</h2>
+              <ul className="list-disc pl-6 space-y-1">
+                {text.useItems.map((item, i) => (<li key={i}>{item}</li>))}
+              </ul>
+            </section>
 
-        <section>
-          <h2>{text.cookiesTitle}</h2>
-          <p>{text.cookiesText}</p>
-        </section>
+            <section>
+              <h2 className="text-xl font-semibold text-codform-dark-purple mb-2">{text.legalTitle}</h2>
+              <p>{text.legalText}</p>
+            </section>
 
-        <section>
-          <h2>{text.shareTitle}</h2>
-          <p>{text.shareText}</p>
-        </section>
+            <section>
+              <h2 className="text-xl font-semibold text-codform-dark-purple mb-2">{text.cookiesTitle}</h2>
+              <p>{text.cookiesText}</p>
+            </section>
 
-        <section>
-          <h2>{text.retentionTitle}</h2>
-          <p>{text.retentionText}</p>
-        </section>
+            <section>
+              <h2 className="text-xl font-semibold text-codform-dark-purple mb-2">{text.shareTitle}</h2>
+              <p>{text.shareText}</p>
+            </section>
 
-        <section>
-          <h2>{text.securityTitle}</h2>
-          <p>{text.securityText}</p>
-        </section>
+            <section>
+              <h2 className="text-xl font-semibold text-codform-dark-purple mb-2">{text.retentionTitle}</h2>
+              <p>{text.retentionText}</p>
+            </section>
 
-        <section>
-          <h2>{text.rightsTitle}</h2>
-          <p>{text.rightsText}</p>
-        </section>
+            <section>
+              <h2 className="text-xl font-semibold text-codform-dark-purple mb-2">{text.securityTitle}</h2>
+              <p>{text.securityText}</p>
+            </section>
 
-        <section>
-          <h2>{text.transfersTitle}</h2>
-          <p>{text.transfersText}</p>
-        </section>
+            <section>
+              <h2 className="text-xl font-semibold text-codform-dark-purple mb-2">{text.rightsTitle}</h2>
+              <p>{text.rightsText}</p>
+            </section>
 
-        <section>
-          <h2>{text.childrenTitle}</h2>
-          <p>{text.childrenText}</p>
-        </section>
+            <section>
+              <h2 className="text-xl font-semibold text-codform-dark-purple mb-2">{text.transfersTitle}</h2>
+              <p>{text.transfersText}</p>
+            </section>
 
-        <section>
-          <h2>{text.changesTitle}</h2>
-          <p>{text.changesText}</p>
-        </section>
+            <section>
+              <h2 className="text-xl font-semibold text-codform-dark-purple mb-2">{text.childrenTitle}</h2>
+              <p>{text.childrenText}</p>
+            </section>
 
-        <section>
-          <h2>{text.contactTitle}</h2>
-          <p>{text.contactText}</p>
-        </section>
-      </article>
+            <section>
+              <h2 className="text-xl font-semibold text-codform-dark-purple mb-2">{text.changesTitle}</h2>
+              <p>{text.changesText}</p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-semibold text-codform-dark-purple mb-2">{text.contactTitle}</h2>
+              <p>{text.contactText}</p>
+            </section>
+          </article>
+        </div>
+      </section>
     </main>
   );
 }
