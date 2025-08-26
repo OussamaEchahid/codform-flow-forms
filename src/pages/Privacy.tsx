@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { useI18n } from '@/lib/i18n';
 
 const setSeo = (title: string, description: string, canonical: string) => {
   document.title = title;
@@ -14,27 +15,176 @@ const setSeo = (title: string, description: string, canonical: string) => {
 };
 
 export default function Privacy() {
+  const { language, setLanguage, isRTL } = useI18n();
+
+  const text = language === 'ar' ? {
+    title: 'سياسة الخصوصية',
+    seoTitle: 'سياسة الخصوصية | COD Magnet',
+    seoDesc: 'سياسة الخصوصية لتطبيق CODMagnet - إدارة نماذج الدفع عند الاستلام والـ Upsells مع حماية بيانات العملاء.',
+    updated: 'آخر تحديث: 26 أغسطس 2025',
+    intro: 'في CODMagnet نحترم خصوصيتك ونلتزم بحماية بياناتك. تم تصميم تطبيقنا لمساعدة تجار Shopify على إنشاء نماذج الدفع عند الاستلام (COD) وإضافة العروض (Upsells) واسترجاع السلات المهجورة وتتبع الأحداث — مع جمع أقل قدر ممكن من البيانات اللازمة لتشغيل الخدمة.',
+    collectTitle: 'البيانات التي نجمعها',
+    collectItems: [
+      'بيانات الطلب الأساسية: الاسم، رقم الهاتف، العنوان، تفاصيل المنتج والكمية — بحسب الحقول التي يحددها التاجر في النموذج.',
+      'بيانات المتجر والمنتجات المرتبطة بالنماذج لتفعيل الميزات مثل عروض الكمية وUpsells.',
+      'معلومات تقنية واستخدامية أساسية لتحسين الأداء ومنع إساءة الاستخدام (مثل عنوان IP العام، نوع المتصفح، صفحات الزيارة).',
+      'أحداث القياس والتسويق عند تفعيل التتبع (Google Analytics, Facebook, TikTok).',
+      'بيانات السلات المهجورة إذا فعّل التاجر هذه الميزة لاسترجاع الطلبات.'
+    ],
+    useTitle: 'كيفية استخدامنا للبيانات',
+    useItems: [
+      'إنشاء وإدارة طلبات الدفع عند الاستلام وربطها بمنتجات Shopify.',
+      'تخصيص النماذج والعروض وتتبّع الأداء والتقارير.',
+      'استرجاع السلات المهجورة وتحسين تجربة الشراء.',
+      'الامتثال للالتزامات القانونية والاستجابة لطلبات الدعم.'
+    ],
+    legalTitle: 'الأساس القانوني للمعالجة',
+    legalText: 'نعالج البيانات وفق أحد الأسس القانونية التالية: تنفيذ العقد مع التاجر؛ المصلحة المشروعة لتحسين الخدمة ومنع الاحتيال؛ أو الموافقة الصريحة عندما يتطلب ذلك (مثل التتبّع التسويقي في بعض المناطق).',
+    cookiesTitle: 'ملفات تعريف الارتباط والتتبّع',
+    cookiesText: 'قد نستخدم ملفات تعريف الارتباط وتقنيات مشابهة لتشغيل الميزات الأساسية وتحليلات الاستخدام. وعند تفعيل المقتطفات (Google/Meta/TikTok)، قد تُعالج هذه الجهات بيانات وفق سياساتها. يمكنك إدارة التتبع من إعدادات التطبيق أو متصفحك.',
+    shareTitle: 'مشاركة البيانات',
+    shareText: 'لا نبيع بياناتك. قد نشارك بيانات محدودة مع مزودي خدمة بالنيابة عنّا (الاستضافة، قواعد البيانات، التحليلات) بما يقتضيه تشغيل التطبيق، مع التزامهم باتفاقيات حماية البيانات.',
+    retentionTitle: 'الاحتفاظ بالبيانات',
+    retentionText: 'نحتفظ بالبيانات طالما كان ذلك ضرورياً لتقديم الخدمة ولأغراض قانونية/محاسبية. يمكن للتاجر طلب حذف أو تصدير البيانات وفق القوانين المعمول بها.',
+    securityTitle: 'الأمان',
+    securityText: 'نعتمد ممارسات أمان مناسبة لحماية البيانات، بما في ذلك التشفير أثناء النقل. رغم ذلك لا توجد وسيلة نقل/تخزين إلكتروني آمنة تماماً.',
+    rightsTitle: 'حقوقك',
+    rightsText: 'بحسب ولايتك القانونية، قد تملك حقوق الوصول، التصحيح، الحذف، الاعتراض، تقييد المعالجة، وقابلية النقل. لطلب ذلك يُرجى التواصل معنا أو عبر التاجر إن كنت عميلاً لمتجر.',
+    transfersTitle: 'النقل عبر الحدود',
+    transfersText: 'قد تُنقل البيانات إلى خوادم خارج بلدك. نتخذ إجراءات مناسبة لضمان حماية البيانات عند هذا النقل.',
+    childrenTitle: 'خصوصية الأطفال',
+    childrenText: 'لا يستهدف التطبيق الأطفال دون 13/16 عاماً (حسب الولاية).',
+    changesTitle: 'تغييرات على هذه السياسة',
+    changesText: 'قد نُحدّث هذه السياسة من وقت لآخر. سننشر النسخة المحدثة مع تاريخ السريان.',
+    contactTitle: 'التواصل',
+    contactText: 'للاستفسارات أو طلبات الخصوصية: support@codmagnet.com'
+  } : {
+    title: 'Privacy Policy',
+    seoTitle: 'Privacy Policy | COD Magnet',
+    seoDesc: 'CODMagnet Privacy Policy — COD forms, Upsells, Abandoned carts, and analytics with customer data protection.',
+    updated: 'Last updated: Aug 26, 2025',
+    intro: 'At CODMagnet, we respect your privacy and are committed to protecting your data. Our app helps Shopify merchants create cash‑on‑delivery (COD) forms, add Upsells & Quantity Offers, recover abandoned carts, and track events — while collecting only the minimum data necessary to operate the service.',
+    collectTitle: 'Data We Collect',
+    collectItems: [
+      'Order basics: name, phone, address, product details and quantities — based on the fields the merchant configures in the form.',
+      'Store and product metadata linked to forms to enable features like quantity offers and upsells.',
+      'Basic technical and usage information to improve performance and prevent abuse (e.g., public IP, browser type, visited pages).',
+      'Marketing and analytics events when tracking is enabled (Google Analytics, Facebook, TikTok).',
+      'Abandoned cart data if the merchant enables recovery features.'
+    ],
+    useTitle: 'How We Use Data',
+    useItems: [
+      'Create and manage COD orders and link them to Shopify products.',
+      'Customize forms and offers, track performance, and generate reports.',
+      'Recover abandoned carts and improve the buying experience.',
+      'Comply with legal obligations and respond to support requests.'
+    ],
+    legalTitle: 'Legal Basis',
+    legalText: 'We process data under one or more legal bases: contract performance with the merchant; legitimate interests to improve the service and prevent fraud; or explicit consent where required (e.g., marketing trackers in certain regions).',
+    cookiesTitle: 'Cookies and Tracking',
+    cookiesText: 'We may use cookies and similar technologies for essential features and usage analytics. When Google/Meta/TikTok snippets are enabled, those providers may process data under their own policies. You can manage tracking from the app settings or your browser.',
+    shareTitle: 'Data Sharing',
+    shareText: 'We do not sell your data. We may share limited data with service providers acting on our behalf (hosting, database, analytics) as needed to run the app, under data protection agreements.',
+    retentionTitle: 'Data Retention',
+    retentionText: 'We retain data as long as necessary to provide the service and for legal/accounting obligations. Merchants can request deletion or export in accordance with applicable laws.',
+    securityTitle: 'Security',
+    securityText: 'We apply appropriate security practices to protect data, including encryption in transit. However, no method of electronic transmission or storage is 100% secure.',
+    rightsTitle: 'Your Rights',
+    rightsText: 'Depending on your jurisdiction, you may have rights to access, rectify, delete, object, restrict processing, and data portability. To exercise these rights, contact us or the merchant if you are a store customer.',
+    transfersTitle: 'International Transfers',
+    transfersText: 'Data may be transferred to servers outside your country. We take appropriate measures to protect data during such transfers.',
+    childrenTitle: "Children's Privacy",
+    childrenText: 'Our app is not directed to children under 13/16 (depending on jurisdiction).',
+    changesTitle: 'Changes to this Policy',
+    changesText: 'We may update this policy from time to time. We will post the updated version with its effective date.',
+    contactTitle: 'Contact',
+    contactText: 'For privacy inquiries or requests: support@codmagnet.com'
+  };
+
   useEffect(() => {
-    setSeo('سياسة الخصوصية | COD Magnet', 'سياسة الخصوصية لتطبيق COD Magnet وطرق حماية بيانات العملاء', window.location.href);
-  }, []);
+    setSeo(text.seoTitle, text.seoDesc, window.location.href);
+  }, [language]);
 
   return (
-    <main className="container mx-auto px-4 py-12">
+    <main className="container mx-auto px-4 py-10" dir={isRTL ? 'rtl' : 'ltr'}>
+      <div className="max-w-3xl mx-auto mb-6 flex items-center justify-end gap-2">
+        <button
+          onClick={() => setLanguage('en')}
+          className={`px-3 py-1 rounded border ${language==='en' ? 'bg-black text-white' : 'bg-white text-gray-800'} hover:bg-gray-100`}
+        >EN</button>
+        <button
+          onClick={() => setLanguage('ar')}
+          className={`px-3 py-1 rounded border ${language==='ar' ? 'bg-black text-white' : 'bg-white text-gray-800'} hover:bg-gray-100`}
+        >AR</button>
+      </div>
+
       <article className="prose max-w-3xl mx-auto">
-        <h1>سياسة الخصوصية</h1>
+        <h1>{text.title}</h1>
+        <p className="text-gray-600 text-sm">{text.updated}</p>
+        <p>{text.intro}</p>
+
         <section>
-          <p>
-            نلتزم بحماية خصوصيتك. لا نقوم بتخزين أي بيانات حساسة دون موافقتك، ويتم تشفير جميع الاتصالات.
-            يمكن طلب حذف البيانات أو تصديرها وفق سياسة GDPR.
-          </p>
+          <h2>{text.collectTitle}</h2>
+          <ul>
+            {text.collectItems.map((item, i) => (<li key={i}>{item}</li>))}
+          </ul>
         </section>
+
         <section>
-          <h2>البيانات التي نجمعها</h2>
-          <p>بيانات الطلب الأساسية اللازمة لإتمام عملية الدفع عند الاستلام فقط.</p>
+          <h2>{text.useTitle}</h2>
+          <ul>
+            {text.useItems.map((item, i) => (<li key={i}>{item}</li>))}
+          </ul>
         </section>
+
         <section>
-          <h2>كيفية الاستخدام</h2>
-          <p>تُستخدم البيانات لتحسين تجربة الطلب وإدارة الطلبات، ولا تُباع لأي طرف ثالث.</p>
+          <h2>{text.legalTitle}</h2>
+          <p>{text.legalText}</p>
+        </section>
+
+        <section>
+          <h2>{text.cookiesTitle}</h2>
+          <p>{text.cookiesText}</p>
+        </section>
+
+        <section>
+          <h2>{text.shareTitle}</h2>
+          <p>{text.shareText}</p>
+        </section>
+
+        <section>
+          <h2>{text.retentionTitle}</h2>
+          <p>{text.retentionText}</p>
+        </section>
+
+        <section>
+          <h2>{text.securityTitle}</h2>
+          <p>{text.securityText}</p>
+        </section>
+
+        <section>
+          <h2>{text.rightsTitle}</h2>
+          <p>{text.rightsText}</p>
+        </section>
+
+        <section>
+          <h2>{text.transfersTitle}</h2>
+          <p>{text.transfersText}</p>
+        </section>
+
+        <section>
+          <h2>{text.childrenTitle}</h2>
+          <p>{text.childrenText}</p>
+        </section>
+
+        <section>
+          <h2>{text.changesTitle}</h2>
+          <p>{text.changesText}</p>
+        </section>
+
+        <section>
+          <h2>{text.contactTitle}</h2>
+          <p>{text.contactText}</p>
         </section>
       </article>
     </main>
