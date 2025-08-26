@@ -35,6 +35,9 @@ import CurrencySettings from "@/pages/CurrencySettings";
 import QuantityOffers from "@/pages/QuantityOffers";
 import AdvertisingTracking from "@/pages/AdvertisingTracking";
 import EnhancedMyStores from "@/pages/EnhancedMyStores";
+import Privacy from "@/pages/Privacy";
+import Terms from "@/pages/Terms";
+import Support from "@/pages/Support";
 
 
 // Components
@@ -163,11 +166,14 @@ function AppRoutes() {
       <Route path="/settings/orders" element={<OrderSettings />} />
       <Route path="/settings/general" element={<GeneralSettings />} />
       <Route path="/settings/security" element={<SecuritySettings />} />
-      
+
 
       <Route path="/settings/plans" element={<PlansSettings />} />
       <Route path="/plans" element={<PlansSettings />} />
       <Route path="/settings/currency" element={<CurrencySettings />} />
+      <Route path="/privacy" element={<Privacy />} />
+      <Route path="/terms" element={<Terms />} />
+      <Route path="/support" element={<Support />} />
       <Route path="/quantity-offers" element={<QuantityOffers />} />
       <Route path="/settings/quantity-offers" element={<QuantityOffers />} />
       <Route path="/advertising-tracking" element={<AdvertisingTracking />} />

@@ -19,7 +19,10 @@ const AppWrapper = ({ children }: AppWrapperProps) => {
     '/shopify-connect',
     '/shopify-callback',
     '/shopify-redirect',
-    '/oauth/google-callback'
+    '/oauth/google-callback',
+    '/privacy',
+    '/terms',
+    '/support'
   ];
   
   // التحقق من أن المسار الحالي صفحة عامة
