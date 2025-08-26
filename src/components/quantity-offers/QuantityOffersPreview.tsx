@@ -263,6 +263,7 @@ const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
                     value=""
                     onChange={() => {}}
                     formStyle={formStyle}
+                    formCurrency={displayCurrency}
                   />
                 </div>
               </div>
@@ -276,6 +277,7 @@ const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
               value=""
               onChange={() => {}}
               formStyle={formStyle}
+              formCurrency={displayCurrency}
             />
           );
         })}
