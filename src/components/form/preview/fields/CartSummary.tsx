@@ -134,8 +134,8 @@ const CartSummary: React.FC<CartSummaryProps> = ({ field, formStyle, productId, 
     if (finalConfig.autoCalculate && loading) {
       return { subtotal: null, discount: null, shipping: null, total: null };
     }
-    // Default demo price shown in Quantity Offers preview when no product is linked
-    const demoPrice = 100.00;
+    // Fallback price when no product is linked (show 0 instead of 100 to avoid confusion)
+    const demoPrice = 0.00;
     return calculatePrices(demoPrice, finalConfig);
   }, [productData, finalConfig, formCurrency, formStyle.currency, loading]);
 

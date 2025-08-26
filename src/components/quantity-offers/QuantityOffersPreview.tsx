@@ -20,6 +20,7 @@ interface Styling {
 }
 
 interface ProductData {
+  id?: string;
   price?: number;
   compareAtPrice?: number;
   title?: string;
@@ -264,6 +265,7 @@ const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
                     onChange={() => {}}
                     formStyle={formStyle}
                     formCurrency={displayCurrency}
+                    productId={productData?.id}
                   />
                 </div>
               </div>
@@ -278,6 +280,7 @@ const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
               onChange={() => {}}
               formStyle={formStyle}
               formCurrency={displayCurrency}
+              productId={productData?.id}
             />
           );
         })}

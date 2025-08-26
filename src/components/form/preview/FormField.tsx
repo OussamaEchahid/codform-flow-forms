@@ -32,6 +32,7 @@ interface FormFieldProps {
   onClick?: () => void;
   disabled?: boolean;
   productId?: string;
+  productData?: { price?: number; currency?: string };
 }
 
 const FormField: React.FC<FormFieldProps> = ({ 
@@ -83,7 +84,7 @@ const FormField: React.FC<FormFieldProps> = ({
     
     case 'cart-summary':
       return <CartSummary field={enhancedField} formStyle={formStyle} productId={productId} formCurrency={formCurrency} />;
-    
+
     case 'checkbox':
       return <CheckboxGroup field={enhancedField} formStyle={formStyle} />;
     

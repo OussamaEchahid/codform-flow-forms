@@ -1129,6 +1129,7 @@ const QuantityOffers = () => {
                     position={quantityOffer.position}
                     enabled={quantityOffer.enabled}
                     productData={selectedProduct ? {
+                      id: selectedProduct.id,
                       price: parseFloat(selectedProduct.price) || 0,
                       title: selectedProduct.title,
                       image: selectedProduct.images?.[0]?.url,
