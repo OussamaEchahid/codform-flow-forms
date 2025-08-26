@@ -48,6 +48,9 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
 
     const scope = encodeURIComponent([
+      'openid',
+      'email',
+      'profile',
       'https://www.googleapis.com/auth/drive.readonly',
       'https://www.googleapis.com/auth/spreadsheets'
     ].join(' '));

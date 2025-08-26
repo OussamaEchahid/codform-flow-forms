@@ -6,7 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-async function getValidAccessToken(supabase: any, shopId: string) {
+async function getValidAccessToken(supabase: any, shopId: string): Promise<{ token: string | null; tokenRow: any | null }> {
   const { data: tokenRow } = await supabase
     .from('google_oauth_tokens')
     .select('*')
@@ -15,7 +15,7 @@ async function getValidAccessToken(supabase: any, shopId: string) {
     .limit(1)
     .single();
 
-  if (!tokenRow) return null;
+  if (!tokenRow) return { token: null, tokenRow: null };
 
   // Refresh if expired
   if (tokenRow.expiry && new Date(tokenRow.expiry).getTime() < Date.now() - 60_000 && tokenRow.refresh_token) {
@@ -38,10 +38,10 @@ async function getValidAccessToken(supabase: any, shopId: string) {
         access_token: refreshed.access_token,
         expiry: refreshed.expires_in ? new Date(Date.now() + refreshed.expires_in * 1000).toISOString() : tokenRow.expiry
       }).eq('id', tokenRow.id);
-      return refreshed.access_token;
+      return { token: refreshed.access_token, tokenRow };
     }
   }
-  return tokenRow.access_token;
+  return { token: tokenRow.access_token, tokenRow };
 }
 
 serve(async (req) => {
@@ -62,20 +62,20 @@ serve(async (req) => {
     const shopId = url.searchParams.get('shop_id') || body?.shop_id || body?.shopId || '';
     const spreadsheetId = url.searchParams.get('spreadsheet_id') || body?.spreadsheet_id || body?.spreadsheetId;
 
-    const token = await getValidAccessToken(supabase, shopId);
+    const { token, tokenRow } = await getValidAccessToken(supabase, shopId);
     if (!token) {
       return new Response(JSON.stringify({ error: 'not_connected' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 });
     }
 
-    // Get account info (email, picture) for UI display
-    let account: { email?: string; picture?: string } | null = null;
+    // Get account info (email, picture) for UI display (with DB fallback)
+    let account: { email?: string; picture?: string } | null = tokenRow ? { email: tokenRow.email || undefined, picture: undefined } : null;
     try {
       const infoRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (infoRes.ok) {
         const info = await infoRes.json();
-        account = { email: info.email, picture: info.picture };
+        account = { email: info.email || account?.email, picture: info.picture };
       }
     } catch (_) {}
 

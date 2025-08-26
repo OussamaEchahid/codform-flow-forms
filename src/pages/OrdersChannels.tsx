@@ -571,46 +571,44 @@ const OrdersChannels = () => {
                           )}
                         </div>
 
-                        {/* Actions as a compact menu */}
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="outline" size="sm" className="px-2">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-56">
-                            {!googleConnected ? (
+                        {/* Primary action visible button */}
+                        {!googleConnected ? (
+                          <Button onClick={handleGoogleConnect}>
+                            {language === 'ar' ? 'اتصل بحساب Google' : 'Connect Google account'}
+                          </Button>
+                        ) : (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" size="sm" className="px-2">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-56">
                               <DropdownMenuItem onClick={handleGoogleConnect} className="cursor-pointer">
-                                <CheckCircle className="h-4 w-4 mr-2" /> {language === 'ar' ? 'الاتصال بـ Google' : 'Connect Google'}
+                                <RefreshCcw className="h-4 w-4 mr-2" /> {language === 'ar' ? 'تبديل/إعادة الاتصال' : 'Switch/Reconnect'}
                               </DropdownMenuItem>
-                            ) : (
-                              <>
-                                <DropdownMenuItem onClick={handleGoogleConnect} className="cursor-pointer">
-                                  <RefreshCcw className="h-4 w-4 mr-2" /> {language === 'ar' ? 'إعادة الاتصال' : 'Reconnect'}
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={refreshSpreadsheets} className="cursor-pointer">
-                                  <RefreshCcw className="h-4 w-4 mr-2" /> {language === 'ar' ? 'تحديث الملفات' : 'Refresh files'}
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem className="cursor-pointer text-destructive" onClick={async () => {
-                                  const shopId = (actualShop as string) || localStorage.getItem('active_shopify_store') || '';
-                                  try {
-                                    const { error } = await supabase.functions.invoke('google-oauth-disconnect', { body: { shop_id: shopId } });
-                                    if (error) throw error;
-                                    setGoogleConnected(false);
-                                    setGoogleAccount(null);
-                                    toast({ title: language === 'ar' ? 'تم الفصل' : 'Disconnected', description: language === 'ar' ? 'تم قطع الاتصال بحساب Google' : 'Disconnected from Google' });
-                                  } catch (e) {
-                                    console.error('Disconnect failed', e);
-                                    toast({ title: language === 'ar' ? 'خطأ' : 'Error', description: language === 'ar' ? 'فشل قطع الاتصال' : 'Failed to disconnect', variant: 'destructive' });
-                                  }
-                                }}>
-                                  <LogOut className="h-4 w-4 mr-2" /> {language === 'ar' ? 'قطع الاتصال' : 'Disconnect'}
-                                </DropdownMenuItem>
-                              </>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                              <DropdownMenuItem onClick={refreshSpreadsheets} className="cursor-pointer">
+                                <RefreshCcw className="h-4 w-4 mr-2" /> {language === 'ar' ? 'تحديث الملفات' : 'Refresh files'}
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem className="cursor-pointer text-destructive" onClick={async () => {
+                                const shopId = (actualShop as string) || localStorage.getItem('active_shopify_store') || '';
+                                try {
+                                  const { error } = await supabase.functions.invoke('google-oauth-disconnect', { body: { shop_id: shopId } });
+                                  if (error) throw error;
+                                  setGoogleConnected(false);
+                                  setGoogleAccount(null);
+                                  toast({ title: language === 'ar' ? 'تم الفصل' : 'Disconnected', description: language === 'ar' ? 'تم قطع الاتصال بحساب Google' : 'Disconnected from Google' });
+                                } catch (e) {
+                                  console.error('Disconnect failed', e);
+                                  toast({ title: language === 'ar' ? 'خطأ' : 'Error', description: language === 'ar' ? 'فشل قطع الاتصال' : 'Failed to disconnect', variant: 'destructive' });
+                                }
+                              }}>
+                                <LogOut className="h-4 w-4 mr-2" /> {language === 'ar' ? 'قطع الاتصال' : 'Disconnect'}
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
                       </div>
                       <div className="flex items-center gap-3">
                         <Switch id="enable_auto_import" checked={enableAutoImport} onCheckedChange={setEnableAutoImport} />
