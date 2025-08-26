@@ -345,6 +345,28 @@ serve(async (req) => {
         console.warn('⚠️ Failed to ensure APP_SUBSCRIPTIONS_UPDATE webhook:', e);
       }
 
+      // تأكيد وجود صف اشتراك افتراضي (مجاني) للمتجر الجديد حتى تظهر الخطة محددة في الواجهة
+      try {
+        const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+        const { data: existingSub } = await sb
+          .from('shop_subscriptions')
+          .select('id, plan_type')
+          .eq('shop_domain', cleanedShop)
+          .maybeSingle();
+
+        if (!existingSub) {
+          await sb.from('shop_subscriptions').insert({
+            shop_domain: cleanedShop,
+            plan_type: 'free',
+            status: 'active'
+          });
+          console.log('✅ Default FREE subscription row created for', cleanedShop);
+        } else {
+          console.log('ℹ️ Subscription row already exists for', cleanedShop, '->', existingSub.plan_type);
+        }
+      } catch (e) {
+        console.warn('⚠️ Could not ensure default subscription row:', e);
+      }
 
       // إعادة توجيه للـ Dashboard مباشرة بدلاً من الصفحة الرئيسية
       const appUrl = req.headers.get('origin') || 'https://codmagnet.com';

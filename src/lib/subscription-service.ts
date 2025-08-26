@@ -54,12 +54,26 @@ export class SubscriptionService {
 
       console.log(`✅ [SubscriptionService] Raw data from DB for ${shopDomain}:`, data);
 
-      // معالجة البيانات
-      const subscription = data ? this.normalizeSubscription(data) : null;
-      
+      let subscription: Subscription | null;
+
+      if (!data) {
+        console.log(`ℹ️ [SubscriptionService] No subscription row found for ${shopDomain}. Falling back to FREE plan by default.`);
+        subscription = {
+          id: `local-default-${shopDomain}`,
+          shop_domain: shopDomain,
+          plan_type: 'free',
+          status: 'active',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+      } else {
+        // معالجة البيانات
+        subscription = this.normalizeSubscription(data);
+      }
+
       // حفظ في الكاش
       this.cache.set(shopDomain, { data: subscription, timestamp: Date.now() });
-      
+
       console.log(`📝 [SubscriptionService] Final processed subscription for ${shopDomain}:`, subscription);
       return subscription;
     } catch (error) {

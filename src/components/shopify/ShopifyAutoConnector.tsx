@@ -7,12 +7,14 @@ import { toast } from '@/hooks/use-toast';
 import { shopifyStores } from '@/lib/shopify/supabase-client';
 import { supabase } from '@/integrations/supabase/client';
 import UnifiedStoreManager from '@/utils/unified-store-manager';
+import { useI18n } from '@/lib/i18n';
 
 interface ShopifyAutoConnectorProps {
   onConnected?: (shop: string) => void;
 }
 
 const ShopifyAutoConnector: React.FC<ShopifyAutoConnectorProps> = ({ onConnected }) => {
+  const { language, t } = useI18n();
   const [detectedShop, setDetectedShop] = useState<string | null>(null);
   const [showDialog, setShowDialog] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
@@ -208,17 +210,17 @@ const ShopifyAutoConnector: React.FC<ShopifyAutoConnectorProps> = ({ onConnected
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Store className="h-5 w-5 text-blue-600" />
-            اتصال جديد بمتجر Shopify
+            {language === 'ar' ? 'اتصال جديد بمتجر Shopify' : 'New Shopify Store Connection'}
           </DialogTitle>
           <DialogDescription>
-            تم اكتشاف متجر. هل تريد الاتصال به؟
+            {language === 'ar' ? 'تم اكتشاف متجر. هل تريد الاتصال به؟' : 'A store was detected. Do you want to connect to it?'}
           </DialogDescription>
         </DialogHeader>
 
         <Alert className="border-blue-200 bg-blue-50">
           <Store className="h-4 w-4 text-blue-600" />
           <AlertDescription className="text-blue-800">
-            <strong>المتجر المكتشف:</strong><br />
+            <strong>{language === 'ar' ? 'المتجر المكتشف:' : 'Detected store:'}</strong><br />
             <code className="text-sm">{detectedShop}</code>
           </AlertDescription>
         </Alert>
@@ -227,7 +229,7 @@ const ShopifyAutoConnector: React.FC<ShopifyAutoConnectorProps> = ({ onConnected
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              فشل في الاتصال. يرجى المحاولة مرة أخرى.
+              {language === 'ar' ? 'فشل في الاتصال. يرجى المحاولة مرة أخرى.' : 'Connection failed. Please try again.'}
             </AlertDescription>
           </Alert>
         )}
@@ -238,7 +240,7 @@ const ShopifyAutoConnector: React.FC<ShopifyAutoConnectorProps> = ({ onConnected
             onClick={handleCancel}
             disabled={isConnecting}
           >
-            إلغاء
+            {language === 'ar' ? 'إلغاء' : 'Cancel'}
           </Button>
           <Button
             onClick={handleConnect}
@@ -248,12 +250,12 @@ const ShopifyAutoConnector: React.FC<ShopifyAutoConnectorProps> = ({ onConnected
             {isConnecting ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                جاري الاتصال...
+                {language === 'ar' ? 'جاري الاتصال...' : 'Connecting...'}
               </>
             ) : (
               <>
                 <CheckCircle className="h-4 w-4 mr-2" />
-                اتصال الآن
+                {language === 'ar' ? 'اتصال الآن' : 'Connect now'}
               </>
             )}
           </Button>
