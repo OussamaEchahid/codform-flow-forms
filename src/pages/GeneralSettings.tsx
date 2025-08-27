@@ -34,6 +34,11 @@ const GeneralSettings = () => {
       const userId = await (AuthHelper.getCurrentUserIdAsync?.() || Promise.resolve(AuthHelper.getCurrentUserId()));
       console.log('🔍 Loading settings for user:', userId);
 
+      if (!userId) {
+        console.warn('⚠️ No authenticated user; skipping settings load.');
+        return;
+      }
+
       const { data, error } = await (supabase as any)
         .from('order_settings')
         .select('*')
@@ -68,6 +73,11 @@ const GeneralSettings = () => {
       // استخدام AuthHelper للحصول على user_id (محاولة async مع fallback)
       const userId = await (AuthHelper.getCurrentUserIdAsync?.() || Promise.resolve(AuthHelper.getCurrentUserId()));
       console.log('💾 Saving settings for user:', userId);
+
+      if (!userId) {
+        alert(t('error') + ': Please sign in to save settings');
+        return;
+      }
 
       const settings = {
         user_id: userId,

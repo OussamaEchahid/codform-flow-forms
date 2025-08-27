@@ -84,13 +84,17 @@ const SecuritySettings = () => {
     setLoading(true);
     try {
       // تحميل الدول المحظورة من قاعدة البيانات
-      const { data: countriesData, error: countriesError } = await (supabase as any)
+      const uidForQuery = await (AuthHelper.getCurrentUserIdAsync?.() || Promise.resolve(AuthHelper.getCurrentUserId()));
+      if (!uidForQuery) {
+        console.warn('⚠️ No authenticated user; skipping blocked countries load.');
+      }
+      const { data: countriesData, error: countriesError } = uidForQuery ? await (supabase as any)
         .from('blocked_countries')
         .select('*')
-        .eq('user_id', await (AuthHelper.getCurrentUserIdAsync?.() || Promise.resolve(AuthHelper.getCurrentUserId())))
+        .eq('user_id', uidForQuery)
         .eq('shop_id', shop)
         .eq('is_active', true)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false }) : { data: [], error: null } as any;
 
       if (countriesError) {
         console.error('Error loading countries:', countriesError);
@@ -101,13 +105,14 @@ const SecuritySettings = () => {
       }
 
       // تحميل عناوين IP المحظورة من قاعدة البيانات
-      const { data: ipsData, error: ipsError } = await (supabase as any)
+      const uidForIPs = uidForQuery || await (AuthHelper.getCurrentUserIdAsync?.() || Promise.resolve(AuthHelper.getCurrentUserId()));
+      const { data: ipsData, error: ipsError } = uidForIPs ? await (supabase as any)
         .from('blocked_ips')
         .select('*')
-        .eq('user_id', await (AuthHelper.getCurrentUserIdAsync?.() || Promise.resolve(AuthHelper.getCurrentUserId())))
+        .eq('user_id', uidForIPs)
         .eq('shop_id', shop)
         .eq('is_active', true)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false }) : { data: [], error: null } as any;
 
       if (ipsError) {
         console.error('Error loading IPs:', ipsError);
