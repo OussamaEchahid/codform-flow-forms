@@ -20,7 +20,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Plus, Trash2, Edit, FileCheck, ShoppingCart, Package, RefreshCw, CloudOff, ShoppingBag } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { ar } from 'date-fns/locale';
+import { ar } from 'date-fns/locale/ar';
 import { supabase } from '@/integrations/supabase/client';
 // تمت إزالة استيراد UnifiedStoreManager لحل مشكلة require
 import NewFormProductDialog from './NewFormProductDialog';
