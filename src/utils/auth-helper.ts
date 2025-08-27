@@ -7,13 +7,17 @@ export class AuthHelper {
   private static readonly CACHE_KEY = 'last_authenticated_user_id';
   private static isStrictEnabled() {
     try {
-      // Vite client env
+      // Prefer explicit env flag if provided
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const v: any = (typeof import.meta !== 'undefined' ? (import.meta as any).env : undefined);
-      const val = v?.VITE_STRICT_AUTH_HELPER || (typeof process !== 'undefined' ? process.env?.VITE_STRICT_AUTH_HELPER : undefined);
-      return String(val).toLowerCase() === 'true';
+      const raw = v?.VITE_STRICT_AUTH_HELPER ?? (typeof process !== 'undefined' ? process.env?.VITE_STRICT_AUTH_HELPER : undefined);
+      if (typeof raw !== 'undefined') return String(raw).toLowerCase() === 'true';
+      // Default behavior: STRICT in non-development builds
+      const mode = v?.MODE ?? (typeof process !== 'undefined' ? process.env?.NODE_ENV : 'production');
+      return String(mode).toLowerCase() !== 'development';
     } catch {
-      return false;
+      // Fail closed (strict) on any error
+      return true;
     }
   }
 
@@ -22,24 +26,15 @@ export class AuthHelper {
    * ثم fallback إلى DEFAULT_USER_ID إذا لم يتوفر.
    */
   static getCurrentUserId(): string {
-    // وضع صارم اختياري: لا fallback عند غياب جلسة
-    if (this.isStrictEnabled()) {
-      try {
-        const cached = localStorage.getItem(this.CACHE_KEY);
-        if (cached && cached !== 'null' && cached.length > 10) return cached;
-        return '' as unknown as string; // سيُعامل كـ null من المستهلكين
-      } catch {
-        return '' as unknown as string;
-      }
-    }
     try {
       const cached = localStorage.getItem(this.CACHE_KEY);
-      if (cached && cached !== 'null' && cached.length > 10) {
-        return cached;
-      }
+      if (cached && cached !== 'null' && cached.length > 10) return cached;
+      // في الوضع الصارم (الافتراضي خارج التطوير)، لا نُرجع fallback ID
+      if (this.isStrictEnabled()) return '' as unknown as string;
+      // للسماح بالتشغيل المحلي فقط أثناء التطوير يمكن استخدام fallback
       return this.DEFAULT_USER_ID;
-    } catch (_) {
-      return this.DEFAULT_USER_ID;
+    } catch {
+      return this.isStrictEnabled() ? '' as unknown as string : this.DEFAULT_USER_ID;
     }
   }
 
@@ -47,21 +42,6 @@ export class AuthHelper {
    * النسخة الموثوقة (مفضلة): تجلب session من Supabase بشكل صحيح وتحدّث الكاش.
    */
   static async getCurrentUserIdAsync(): Promise<string> {
-    if (this.isStrictEnabled()) {
-      try {
-        const { data } = await supabase.auth.getUser();
-        const userId = data?.user?.id;
-        if (userId) {
-          try { localStorage.setItem(this.CACHE_KEY, userId); } catch (_) {}
-          return userId;
-        }
-        const cached = localStorage.getItem(this.CACHE_KEY);
-        return (cached && cached !== 'null' && cached.length > 10) ? cached : '' as unknown as string;
-      } catch {
-        const cached = localStorage.getItem(this.CACHE_KEY);
-        return (cached && cached !== 'null' && cached.length > 10) ? cached : '' as unknown as string;
-      }
-    }
     try {
       const { data } = await supabase.auth.getUser();
       const userId = data?.user?.id;
@@ -69,14 +49,15 @@ export class AuthHelper {
         try { localStorage.setItem(this.CACHE_KEY, userId); } catch (_) {}
         return userId;
       }
-      // fallback إلى آخر قيمة مخزنة
       const cached = localStorage.getItem(this.CACHE_KEY);
       if (cached && cached !== 'null' && cached.length > 10) return cached;
+      // في الوضع الصارم لا نستخدم fallback إطلاقاً
+      if (this.isStrictEnabled()) return '' as unknown as string;
       return this.DEFAULT_USER_ID;
-    } catch (error) {
+    } catch {
       const cached = localStorage.getItem(this.CACHE_KEY);
       if (cached && cached !== 'null' && cached.length > 10) return cached;
-      return this.DEFAULT_USER_ID;
+      return this.isStrictEnabled() ? '' as unknown as string : this.DEFAULT_USER_ID;
     }
   }
 
@@ -110,11 +91,15 @@ export class AuthHelper {
    */
   static getDiagnosticInfo() {
     const cached = (() => { try { return localStorage.getItem(this.CACHE_KEY); } catch(_) { return null; } })();
+    const strict = this.isStrictEnabled();
+    const current = (cached && cached !== 'null' && cached.length > 10)
+      ? cached
+      : (strict ? null : this.DEFAULT_USER_ID);
     return {
-      currentUserId: cached || this.DEFAULT_USER_ID,
-      defaultUserId: this.DEFAULT_USER_ID,
+      currentUserId: current,
+      defaultUserId: strict ? null : this.DEFAULT_USER_ID,
       userEmail: ((): string | null => { try { return localStorage.getItem('shopify_user_email'); } catch(_) { return null; } })(),
-      isUsingDefault: (cached || this.DEFAULT_USER_ID) === this.DEFAULT_USER_ID
+      isUsingDefault: !strict && current === this.DEFAULT_USER_ID
     };
   }
 }
