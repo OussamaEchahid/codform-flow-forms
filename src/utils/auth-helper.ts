@@ -79,6 +79,5 @@ export class AuthHelper {
   }
 }
 
-// دعم الاستيراد بالاسم وبشكل افتراضي
-export { AuthHelper };
+// دعم التصدير الافتراضي مع بقاء التصدير المسمّى من تعريف الصنف أعلاه
 export default AuthHelper;

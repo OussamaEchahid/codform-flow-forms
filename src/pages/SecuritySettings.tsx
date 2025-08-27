@@ -229,7 +229,7 @@ const SecuritySettings = () => {
         .from('blocked_ips')
         .delete()
         .eq('id', ipId)
-        .eq('user_id', AuthHelper.getCurrentUserId())
+        .eq('user_id', await (AuthHelper.getCurrentUserIdAsync?.() || Promise.resolve(AuthHelper.getCurrentUserId())))
         .eq('shop_id', shop);
 
       if (error) {
