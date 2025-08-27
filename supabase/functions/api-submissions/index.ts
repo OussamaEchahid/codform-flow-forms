@@ -1056,6 +1056,8 @@ serve(async (req: Request) => {
       return `https://${shopDomain}${cleaned}`;
     };
 
+    let finalAction: 'redirect' | 'popup' | 'stay' = postOrderAction;
+
     if (postOrderAction === 'redirect' && redirectEnabled) {
       if (thankYouSetting) {
         redirectUrl = toAbsoluteUrl(thankYouSetting);
@@ -1063,9 +1065,14 @@ serve(async (req: Request) => {
         redirectUrl += `${separator}order=${orderNumber}&success=true`;
         console.log('✅ Using custom redirect URL from settings:', redirectUrl);
       } else {
-        // Fallback default thank you page when none configured
-        redirectUrl = `https://${shopDomain}/checkout/thank_you?order=${orderNumber}&success=true`;
-        console.log('📄 Using default checkout thank you page');
+        // No URL configured: do NOT send users to Shopify checkout/thank_you (404)
+        // Switch to popup as a safe fallback
+        finalAction = 'popup';
+        popup = {
+          title: (orderSettings as any)?.popup_title || 'تم إنشاء طلبك بنجاح!',
+          message: (orderSettings as any)?.popup_message || 'شكراً لك على طلبك. سنتواصل معك قريباً...'
+        };
+        console.log('🧯 No thank you URL configured. Falling back to popup.');
       }
     } else if (postOrderAction === 'popup') {
       popup = {
@@ -1077,7 +1084,7 @@ serve(async (req: Request) => {
       console.log('⏹️ Stay on page after order; no redirect or popup');
     }
 
-    const action = postOrderAction;
+    const action = finalAction;
     const thankYouUrl = redirectUrl || undefined;
 
     return new Response(
