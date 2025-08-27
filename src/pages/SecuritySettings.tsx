@@ -184,19 +184,15 @@ const SecuritySettings = () => {
         throw new Error('لم يتم العثور على معلومات المتجر');
       }
 
-      // إضافة IP إلى قاعدة البيانات
-      const { data: newIPData, error: insertError } = await (supabase as any)
-        .from('blocked_ips')
-        .insert({
-          user_id: await (AuthHelper.getCurrentUserIdAsync?.() || Promise.resolve(AuthHelper.getCurrentUserId())),
-          shop_id: shop,
-          ip_address: trimmedIP,
-          reason: newIPReason.trim() || t('unspecified'),
-          redirect_url: newIPRedirect.trim() || '/blocked',
-          is_active: true
-        })
-        .select()
-        .single();
+      // استخدام دالة RPC الآمنة لتجاوز قيود RLS بطريقة صحيحة
+      const { data: rpcIpId, error: insertError } = await supabase.rpc('add_blocked_ip', {
+        p_shop_id: shop,
+        p_ip_address: trimmedIP,
+        p_reason: newIPReason.trim() || t('unspecified'),
+        p_redirect_url: newIPRedirect.trim() || '/blocked'
+      });
+
+      const newIPData = rpcIpId ? { id: rpcIpId, shop_id: shop, ip_address: trimmedIP } : null;
 
       if (insertError) {
         console.error('Error inserting IP:', insertError);
@@ -230,12 +226,9 @@ const SecuritySettings = () => {
   const handleRemoveIP = async (ipId: string) => {
     try {
       // حذف IP من قاعدة البيانات
-      const { error } = await (supabase as any)
-        .from('blocked_ips')
-        .delete()
-        .eq('id', ipId)
-        .eq('user_id', await (AuthHelper.getCurrentUserIdAsync?.() || Promise.resolve(AuthHelper.getCurrentUserId())))
-        .eq('shop_id', shop);
+      const { data: removed, error } = await supabase.rpc('remove_blocked_ip', {
+        p_ip_id: ipId
+      });
 
       if (error) {
         console.error('Error deleting IP:', error);
@@ -293,24 +286,16 @@ const SecuritySettings = () => {
         throw new Error('لم يتم العثور على معلومات المتجر');
       }
 
-      // إضافة الدولة إلى قاعدة البيانات
-      const insertData = {
-        user_id: await (AuthHelper.getCurrentUserIdAsync?.() || Promise.resolve(AuthHelper.getCurrentUserId())),
-        shop_id: shop,
-        country_code: selectedCountry.toUpperCase(),
-        country_name: countryInfo.name,
-        reason: newCountryReason.trim() || t('unspecified'),
-        redirect_url: newCountryRedirect.trim() || '/blocked',
-        is_active: true
-      };
+      // استخدام دالة RPC الآمنة لتجاوز قيود RLS بطريقة صحيحة
+      const { data: rpcCountryId, error: insertError } = await supabase.rpc('add_blocked_country', {
+        p_shop_id: shop,
+        p_country_code: selectedCountry.toUpperCase(),
+        p_country_name: countryInfo.name,
+        p_reason: newCountryReason.trim() || t('unspecified'),
+        p_redirect_url: newCountryRedirect.trim() || '/blocked'
+      });
 
-      console.log('🔍 Inserting country data:', insertData);
-
-      const { data: newCountry, error: insertError } = await (supabase as any)
-        .from('blocked_countries')
-        .insert(insertData)
-        .select()
-        .single();
+      const newCountry = rpcCountryId ? { id: rpcCountryId, shop_id: shop, country_code: selectedCountry.toUpperCase() } : null;
 
       if (insertError) {
         console.error('Error inserting country:', insertError);
@@ -343,13 +328,10 @@ const SecuritySettings = () => {
 
   const handleRemoveCountry = async (countryId: string) => {
     try {
-      // حذف الدولة من قاعدة البيانات
-      const { error } = await (supabase as any)
-        .from('blocked_countries')
-        .delete()
-        .eq('id', countryId)
-        .eq('user_id', await (AuthHelper.getCurrentUserIdAsync?.() || Promise.resolve(AuthHelper.getCurrentUserId())))
-        .eq('shop_id', shop);
+      // استخدام دالة RPC الآمنة لإزالة الدولة
+      const { data: removed, error } = await supabase.rpc('remove_blocked_country', {
+        p_blocked_id: countryId
+      });
 
       if (error) {
         console.error('Error deleting country:', error);
@@ -403,7 +385,8 @@ const SecuritySettings = () => {
         throw new Error('CSV file must include "IP Address" column');
       }
 
-      const ipAddresses = lines.slice(1).map(line => {
+      // استخراج عناوين IP من CSV (لاحقاً يمكن استخدامها في إدراج جماعي)
+      const _ipAddresses = lines.slice(1).map(line => {
         const values = line.split(',');
         return values[0].replace(/"/g, '').trim();
       });
