@@ -95,7 +95,7 @@ export class UnifiedStoreManager {
       
       // التحقق من صحة تنسيق المتجر
       if (!this.isValidStoreFormat(cleanStore)) {
-        console.error('❌ Invalid store format:', cleanStore);
+        console.debug('❌ Invalid store format:', cleanStore);
         return false;
       }
 

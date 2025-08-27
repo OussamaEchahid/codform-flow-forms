@@ -147,7 +147,6 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<Index />} />
-      <Route path="/shopify" element={<Shopify />} />
       <Route path="/shopify-connect" element={<Shopify />} />
       <Route path="/shopify-callback" element={<ShopifyCallback />} />
       <Route path="/subscription-callback" element={<SubscriptionCallback />} />

@@ -114,8 +114,18 @@ const Navbar = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Button asChild>
-                <Link to="/shopify">{language === 'ar' ? 'ربط متجر' : 'Connect Store'}</Link>
+              <Button 
+                onClick={() => {
+                  // إذا كان المستخدم مصادق عليه، اذهب إلى الداشبورد مباشرة
+                  if (isShopifyAuthenticated) {
+                    window.location.href = '/dashboard';
+                  } else {
+                    // إذا لم يكن مصادق عليه، اعرض صفحة الاتصال
+                    window.location.href = '/dashboard';
+                  }
+                }}
+              >
+                {language === 'ar' ? 'ربط متجر' : 'Connect Store'}
               </Button>
             )}
           </div>
