@@ -35,7 +35,7 @@ const GeneralSettings = () => {
       console.log('🔍 Loading settings for user:', userId);
 
       if (!userId) {
-        console.warn('⚠️ No authenticated user; skipping settings load.');
+        console.debug('⚠️ No authenticated user found, using default settings');
         return;
       }
 
