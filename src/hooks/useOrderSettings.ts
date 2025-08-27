@@ -126,32 +126,50 @@ export const useOrderSettings = () => {
 
       console.log('💾 Saving settings to database:', settingsToSave);
 
-      // Save to Supabase database using REST API with UPSERT
+      // Save to Supabase database with proper UPSERT (create row if missing)
       try {
-        const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/rest/v1/order_settings?shop_id=eq.${currentShop}`, {
-          method: 'PATCH',
+        const payload = {
+          shop_id: currentShop,
+          post_order_action: settingsToSave.post_order_action,
+          redirect_enabled: settingsToSave.redirect_enabled,
+          thank_you_page_url: settingsToSave.thank_you_page_url || '',
+          popup_title: settingsToSave.popup_title || 'تم إنشاء طلبك بنجاح!',
+          popup_message: settingsToSave.popup_message || 'شكراً لك على طلبك. سنتواصل معك قريباً...'
+        };
+
+        // Primary attempt: POST with upsert using on_conflict=shop_id
+        let response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/rest/v1/order_settings?on_conflict=shop_id`, {
+          method: 'POST',
           headers: {
             'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
             'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
             'Content-Type': 'application/json',
             'Prefer': 'resolution=merge-duplicates'
           },
-          body: JSON.stringify({
-            shop_id: currentShop,
-            post_order_action: settingsToSave.post_order_action,
-            redirect_enabled: settingsToSave.redirect_enabled,
-            thank_you_page_url: settingsToSave.thank_you_page_url || '',
-            popup_title: settingsToSave.popup_title || 'تم إنشاء طلبك بنجاح!',
-            popup_message: settingsToSave.popup_message || 'شكراً لك على طلبك. سنتواصل معك قريباً...'
-          })
+          body: JSON.stringify(payload)
         });
+
+        // Fallback: if POST upsert is not allowed, PATCH the specific row
+        if (!response.ok) {
+          console.warn('⚠️ POST upsert failed with', response.status, '-> trying PATCH');
+          response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/rest/v1/order_settings?shop_id=eq.${currentShop}`, {
+            method: 'PATCH',
+            headers: {
+              'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
+              'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9zZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
+              'Content-Type': 'application/json',
+              'Prefer': 'resolution=merge-duplicates'
+            },
+            body: JSON.stringify(payload)
+          });
+        }
 
         if (!response.ok) {
           const errorData = await response.text();
           console.error('❌ Database save error:', errorData);
           throw new Error(`Database save failed: ${response.status} ${errorData}`);
         }
-        
+
         console.log('✅ Settings saved to database successfully');
       } catch (dbError) {
         console.error('❌ Database save failed, settings saved to localStorage only:', dbError);
