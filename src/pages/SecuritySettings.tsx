@@ -87,7 +87,7 @@ const SecuritySettings = () => {
       const { data: countriesData, error: countriesError } = await (supabase as any)
         .from('blocked_countries')
         .select('*')
-        .eq('user_id', AuthHelper.getCurrentUserId())
+        .eq('user_id', await (AuthHelper.getCurrentUserIdAsync?.() || Promise.resolve(AuthHelper.getCurrentUserId())))
         .eq('shop_id', shop)
         .eq('is_active', true)
         .order('created_at', { ascending: false });
@@ -104,7 +104,7 @@ const SecuritySettings = () => {
       const { data: ipsData, error: ipsError } = await (supabase as any)
         .from('blocked_ips')
         .select('*')
-        .eq('user_id', AuthHelper.getCurrentUserId())
+        .eq('user_id', await (AuthHelper.getCurrentUserIdAsync?.() || Promise.resolve(AuthHelper.getCurrentUserId())))
         .eq('shop_id', shop)
         .eq('is_active', true)
         .order('created_at', { ascending: false });
@@ -183,7 +183,7 @@ const SecuritySettings = () => {
       const { data: newIPData, error: insertError } = await (supabase as any)
         .from('blocked_ips')
         .insert({
-          user_id: AuthHelper.getCurrentUserId(),
+          user_id: await (AuthHelper.getCurrentUserIdAsync?.() || Promise.resolve(AuthHelper.getCurrentUserId())),
           shop_id: shop,
           ip_address: trimmedIP,
           reason: newIPReason.trim() || t('unspecified'),
@@ -290,7 +290,7 @@ const SecuritySettings = () => {
 
       // إضافة الدولة إلى قاعدة البيانات
       const insertData = {
-        user_id: AuthHelper.getCurrentUserId(),
+        user_id: await (AuthHelper.getCurrentUserIdAsync?.() || Promise.resolve(AuthHelper.getCurrentUserId())),
         shop_id: shop,
         country_code: selectedCountry.toUpperCase(),
         country_name: countryInfo.name,
@@ -343,7 +343,7 @@ const SecuritySettings = () => {
         .from('blocked_countries')
         .delete()
         .eq('id', countryId)
-        .eq('user_id', AuthHelper.getCurrentUserId())
+        .eq('user_id', await (AuthHelper.getCurrentUserIdAsync?.() || Promise.resolve(AuthHelper.getCurrentUserId())))
         .eq('shop_id', shop);
 
       if (error) {

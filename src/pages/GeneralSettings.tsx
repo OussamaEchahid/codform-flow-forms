@@ -30,8 +30,8 @@ const GeneralSettings = () => {
 
   const loadSettings = async () => {
     try {
-      // استخدام AuthHelper للحصول على user_id
-      const userId = AuthHelper.getCurrentUserId();
+      // استخدام AuthHelper للحصول على user_id (محاولة async مع fallback)
+      const userId = await (AuthHelper.getCurrentUserIdAsync?.() || Promise.resolve(AuthHelper.getCurrentUserId()));
       console.log('🔍 Loading settings for user:', userId);
 
       const { data, error } = await (supabase as any)
@@ -65,8 +65,8 @@ const GeneralSettings = () => {
     try {
       setLoading(true);
 
-      // استخدام AuthHelper للحصول على user_id
-      const userId = AuthHelper.getCurrentUserId();
+      // استخدام AuthHelper للحصول على user_id (محاولة async مع fallback)
+      const userId = await (AuthHelper.getCurrentUserIdAsync?.() || Promise.resolve(AuthHelper.getCurrentUserId()));
       console.log('💾 Saving settings for user:', userId);
 
       const settings = {
