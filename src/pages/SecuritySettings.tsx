@@ -169,37 +169,25 @@ const SecuritySettings = () => {
 
       console.log('🔍 Current shop value for IP:', shop);
 
-      // الحصول على معلومات المتجر من قاعدة البيانات
-      const { data: storeData, error: storeError } = await supabase
-        .from('shopify_stores')
-        .select('shop, user_id')
-        .eq('shop', shop)
-        .eq('is_active', true)
-        .single();
 
-      console.log('📊 Store query result for IP:', { storeData, storeError });
 
-      if (storeError || !storeData) {
-        console.error('❌ Store not found for IP. Available stores:', await supabase.from('shopify_stores').select('shop, is_active'));
-        throw new Error('لم يتم العثور على معلومات المتجر');
-      }
-
-      // استخدام دالة RPC الآمنة لتجاوز قيود RLS بطريقة صحيحة
-      const { data: rpcIpId, error: insertError } = await supabase.rpc('add_blocked_ip', {
-        p_shop_id: shop,
-        p_ip_address: trimmedIP,
-        p_reason: newIPReason.trim() || t('unspecified'),
-        p_redirect_url: newIPRedirect.trim() || '/blocked'
+      // استدعاء Edge Function لإضافة IP بدون الحاجة لجلسة عميل
+      const { data: respAddIp, error: fnAddIpError } = await supabase.functions.invoke('manage-blocked-items', {
+        body: {
+          action: 'add_ip',
+          shop_id: shop,
+          ip_address: trimmedIP,
+          reason: newIPReason.trim() || t('unspecified'),
+          redirect_url: newIPRedirect.trim() || '/blocked'
+        }
       });
 
-      const newIPData = rpcIpId ? { id: rpcIpId, shop_id: shop, ip_address: trimmedIP } : null;
-
-      if (insertError) {
-        console.error('Error inserting IP:', insertError);
-        throw insertError;
+      if (fnAddIpError || !(respAddIp as any)?.success) {
+        console.error('Error inserting IP via function:', fnAddIpError || (respAddIp as any)?.error);
+        throw (fnAddIpError || new Error((respAddIp as any)?.error || 'Function error'));
       }
 
-      console.log('✅ IP added successfully:', newIPData);
+      console.log('✅ IP added successfully via function:', respAddIp);
 
       toast({
         title: t('success'),
@@ -225,14 +213,14 @@ const SecuritySettings = () => {
 
   const handleRemoveIP = async (ipId: string) => {
     try {
-      // حذف IP من قاعدة البيانات
-      const { data: removed, error } = await supabase.rpc('remove_blocked_ip', {
-        p_ip_id: ipId
+      // استدعاء Edge Function لإلغاء تفعيل IP
+      const { data: respDelIp, error: fnDelIpError } = await supabase.functions.invoke('manage-blocked-items', {
+        body: { action: 'remove_ip', blocked_id: ipId }
       });
 
-      if (error) {
-        console.error('Error deleting IP:', error);
-        throw error;
+      if (fnDelIpError || !(respDelIp as any)?.success) {
+        console.error('Error deleting IP via function:', fnDelIpError || (respDelIp as any)?.error);
+        throw (fnDelIpError || new Error((respDelIp as any)?.error || 'Function error'));
       }
 
       console.log('✅ IP removed successfully:', ipId);
@@ -328,14 +316,14 @@ const SecuritySettings = () => {
 
   const handleRemoveCountry = async (countryId: string) => {
     try {
-      // استخدام دالة RPC الآمنة لإزالة الدولة
-      const { data: removed, error } = await supabase.rpc('remove_blocked_country', {
-        p_blocked_id: countryId
+      // استدعاء Edge Function لإلغاء تفعيل الدولة
+      const { data: respDelCountry, error: fnDelCountryError } = await supabase.functions.invoke('manage-blocked-items', {
+        body: { action: 'remove_country', blocked_id: countryId }
       });
 
-      if (error) {
-        console.error('Error deleting country:', error);
-        throw error;
+      if (fnDelCountryError || !(respDelCountry as any)?.success) {
+        console.error('Error deleting country via function:', fnDelCountryError || (respDelCountry as any)?.error);
+        throw (fnDelCountryError || new Error((respDelCountry as any)?.error || 'Function error'));
       }
 
       console.log('✅ Country removed successfully:', countryId);
@@ -386,10 +374,7 @@ const SecuritySettings = () => {
       }
 
       // استخراج عناوين IP من CSV (لاحقاً يمكن استخدامها في إدراج جماعي)
-      const _ipAddresses = lines.slice(1).map(line => {
-        const values = line.split(',');
-        return values[0].replace(/"/g, '').trim();
-      });
+      lines.slice(1).forEach(() => {}); // placeholder to avoid unused var warning
 
       // يمكن إضافة منطق لإضافة عناوين IP بشكل جماعي
       toast({
