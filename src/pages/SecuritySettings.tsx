@@ -16,7 +16,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { CountrySelector } from '@/components/ui/country-selector';
 import { COUNTRIES_ALL } from '@/lib/constants/countries-all';
 import { BlockedIP, BlockedCountry } from '@/lib/shopify/types';
-import { AuthHelper } from '@/utils/auth-helper';
 import { useI18n } from '@/lib/i18n';
 import SettingsLayout from '@/components/layout/SettingsLayout';
 
@@ -83,49 +82,34 @@ const SecuritySettings = () => {
     console.log('🔍 Loading security data for shop:', shop);
     setLoading(true);
     try {
-      // تحميل الدول المحظورة من قاعدة البيانات
-      const uidForQuery = await (AuthHelper.getCurrentUserIdAsync?.() || Promise.resolve(AuthHelper.getCurrentUserId()));
-      if (!uidForQuery) {
-        console.warn('⚠️ No authenticated user; skipping blocked countries load.');
-      }
-      const { data: countriesData, error: countriesError } = uidForQuery ? await (supabase as any)
-        .from('blocked_countries')
-        .select('*')
-        .eq('user_id', uidForQuery)
-        .eq('shop_id', shop)
-        .eq('is_active', true)
-        .order('created_at', { ascending: false }) : { data: [], error: null } as any;
+      // جلب البيانات عبر Edge Functions لتجاوز RLS بدون جلسة عميل
+      const [ { data: ipsFnData, error: ipsFnErr }, { data: countriesFnData, error: countriesFnErr } ] = await Promise.all([
+        supabase.functions.invoke('get-blocked-items', { body: { type: 'ips', shop_id: shop } }),
+        supabase.functions.invoke('get-blocked-items', { body: { type: 'countries', shop_id: shop } }),
+      ]);
 
-      if (countriesError) {
-        console.error('Error loading countries:', countriesError);
-        setBlockedCountries([]);
-      } else {
-        setBlockedCountries(countriesData || []);
-        console.log('🌍 Loaded countries from database:', countriesData);
-      }
-
-      // تحميل عناوين IP المحظورة من قاعدة البيانات
-      const uidForIPs = uidForQuery || await (AuthHelper.getCurrentUserIdAsync?.() || Promise.resolve(AuthHelper.getCurrentUserId()));
-      const { data: ipsData, error: ipsError } = uidForIPs ? await (supabase as any)
-        .from('blocked_ips')
-        .select('*')
-        .eq('user_id', uidForIPs)
-        .eq('shop_id', shop)
-        .eq('is_active', true)
-        .order('created_at', { ascending: false }) : { data: [], error: null } as any;
-
-      if (ipsError) {
-        console.error('Error loading IPs:', ipsError);
+      if (ipsFnErr || !(ipsFnData as any)?.success) {
+        console.error('Error loading IPs via function:', ipsFnErr || (ipsFnData as any)?.error);
         setBlockedIPs([]);
       } else {
-        setBlockedIPs(ipsData || []);
-        console.log('🔒 Loaded IPs from database:', ipsData);
+        const ips = (ipsFnData as any)?.data || [];
+        setBlockedIPs(ips);
+        console.log('🔒 Loaded IPs via function:', ips);
+      }
+
+      if (countriesFnErr || !(countriesFnData as any)?.success) {
+        console.error('Error loading countries via function:', countriesFnErr || (countriesFnData as any)?.error);
+        setBlockedCountries([]);
+      } else {
+        const countries = (countriesFnData as any)?.data || [];
+        setBlockedCountries(countries);
+        console.log('🌍 Loaded countries via function:', countries);
       }
 
       // إحصائيات الأمان
       setSecurityStats({
-        blocked_ips_count: ipsData?.length || 0,
-        blocked_countries_count: countriesData?.length || 0,
+        blocked_ips_count: ((ipsFnData as any)?.data || []).length || 0,
+        blocked_countries_count: ((countriesFnData as any)?.data || []).length || 0,
         total_blocks_today: 0
       });
 
@@ -259,38 +243,24 @@ const SecuritySettings = () => {
     try {
       console.log('🔍 Current shop value:', shop);
 
-      // الحصول على معلومات المتجر من قاعدة البيانات
-      const { data: storeData, error: storeError } = await supabase
-        .from('shopify_stores')
-        .select('shop, user_id')
-        .eq('shop', shop)
-        .eq('is_active', true)
-        .single();
-
-      console.log('📊 Store query result:', { storeData, storeError });
-
-      if (storeError || !storeData) {
-        console.error('❌ Store not found. Available stores:', await supabase.from('shopify_stores').select('shop, is_active'));
-        throw new Error('لم يتم العثور على معلومات المتجر');
-      }
-
-      // استخدام دالة RPC الآمنة لتجاوز قيود RLS بطريقة صحيحة
-      const { data: rpcCountryId, error: insertError } = await supabase.rpc('add_blocked_country', {
-        p_shop_id: shop,
-        p_country_code: selectedCountry.toUpperCase(),
-        p_country_name: countryInfo.name,
-        p_reason: newCountryReason.trim() || t('unspecified'),
-        p_redirect_url: newCountryRedirect.trim() || '/blocked'
+      // استدعاء Edge Function لإضافة دولة بدون الحاجة لجلسة عميل
+      const { data: respAddCountry, error: fnAddCountryError } = await supabase.functions.invoke('manage-blocked-items', {
+        body: {
+          action: 'add_country',
+          shop_id: shop,
+          country_code: selectedCountry.toUpperCase(),
+          country_name: countryInfo.name,
+          reason: newCountryReason.trim() || t('unspecified'),
+          redirect_url: newCountryRedirect.trim() || '/blocked'
+        }
       });
 
-      const newCountry = rpcCountryId ? { id: rpcCountryId, shop_id: shop, country_code: selectedCountry.toUpperCase() } : null;
-
-      if (insertError) {
-        console.error('Error inserting country:', insertError);
-        throw insertError;
+      if (fnAddCountryError || !(respAddCountry as any)?.success) {
+        console.error('Error inserting country via function:', fnAddCountryError || (respAddCountry as any)?.error);
+        throw (fnAddCountryError || new Error((respAddCountry as any)?.error || 'Function error'));
       }
 
-      console.log('✅ Country added successfully:', newCountry);
+      console.log('✅ Country added successfully via function:', respAddCountry);
 
       toast({
         title: t('success'),
