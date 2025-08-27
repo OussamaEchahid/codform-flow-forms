@@ -1031,44 +1031,65 @@ serve(async (req: Request) => {
       console.log('⚠️ Could not fetch order settings, using defaults:', error);
     }
 
-    // Determine redirect URL based on settings
-    let redirectUrl;
-    
-    console.log('🎯 Order settings for redirect:', {
-      post_order_action: (orderSettings as any)?.post_order_action,
-      redirect_enabled: (orderSettings as any)?.redirect_enabled,
-      thank_you_page_url: (orderSettings as any)?.thank_you_page_url
+    // Determine post-order behavior and optional redirect URL based on settings
+    // IMPORTANT: Provide safe defaults when no DB settings exist so that redirect works out of the box
+    let redirectUrl: string | null = null;
+    let popup: { title?: string; message?: string } | undefined = undefined;
+
+    // Normalize settings with sensible defaults
+    const postOrderAction: 'redirect' | 'popup' | 'stay' = ((orderSettings as any)?.post_order_action as any) || 'redirect';
+    const redirectEnabled: boolean = (orderSettings as any)?.redirect_enabled ?? true; // default to true when missing
+    const thankYouSetting: string = (((orderSettings as any)?.thank_you_page_url || '') as string).trim();
+
+    console.log('🎯 Order settings for post-order behavior (normalized):', {
+      post_order_action: postOrderAction,
+      redirect_enabled: redirectEnabled,
+      thank_you_page_url: thankYouSetting || '(empty)'
     });
-    
-    // Check if redirect is enabled and has a custom URL
-    if ((orderSettings as any)?.redirect_enabled && (orderSettings as any)?.thank_you_page_url && (orderSettings as any).thank_you_page_url.trim() !== '') {
-      // Use custom thank you page URL from settings
-      redirectUrl = (orderSettings as any).thank_you_page_url.trim();
-      // Add order parameter
-      const separator = redirectUrl.includes('?') ? '&' : '?';
-      redirectUrl += `${separator}order=${orderNumber}&success=true`;
-      console.log('✅ Using custom redirect URL from settings:', redirectUrl);
-    } else if ((orderSettings as any)?.post_order_action === 'redirect' && (orderSettings as any)?.redirect_enabled) {
-      // Use default Shopify checkout page if no custom URL set
-      redirectUrl = `https://${shopDomain}/checkout/thank_you?order=${orderNumber}&success=true`;
-      console.log('📄 Using default checkout page (redirect enabled but no custom URL)');
+
+    // Helper to make absolute URL when user sets a relative path like "/pages/thank-you"
+    const toAbsoluteUrl = (url: string): string => {
+      if (!url) return '';
+      if (url.startsWith('http://') || url.startsWith('https://')) return url;
+      // Treat as relative path
+      const cleaned = url.startsWith('/') ? url : `/${url}`;
+      return `https://${shopDomain}${cleaned}`;
+    };
+
+    if (postOrderAction === 'redirect' && redirectEnabled) {
+      if (thankYouSetting) {
+        redirectUrl = toAbsoluteUrl(thankYouSetting);
+        const separator = redirectUrl.includes('?') ? '&' : '?';
+        redirectUrl += `${separator}order=${orderNumber}&success=true`;
+        console.log('✅ Using custom redirect URL from settings:', redirectUrl);
+      } else {
+        // Fallback default thank you page when none configured
+        redirectUrl = `https://${shopDomain}/checkout/thank_you?order=${orderNumber}&success=true`;
+        console.log('📄 Using default checkout thank you page');
+      }
+    } else if (postOrderAction === 'popup') {
+      popup = {
+        title: (orderSettings as any)?.popup_title || 'تم إنشاء طلبك بنجاح!',
+        message: (orderSettings as any)?.popup_message || 'شكراً لك على طلبك. سنتواصل معك قريباً...'
+      };
+      console.log('🪟 Popup will be shown after order');
     } else {
-      // Default fallback
-      redirectUrl = `https://${shopDomain}/?order=${orderNumber}&success=true`;
-      console.log('🏠 Using homepage redirect (redirect disabled or other action)');
+      console.log('⏹️ Stay on page after order; no redirect or popup');
     }
 
-    console.log('🔄 Redirect URL determined:', redirectUrl);
-    const thankYouUrl = redirectUrl;
-    
+    const action = postOrderAction;
+    const thankYouUrl = redirectUrl || undefined;
+
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         message: 'تم إرسال طلبكم بنجاح',
         submissionId: submissionData.id,
         orderNumber: orderNumber || 'unknown',
-        thankYouUrl: thankYouUrl,
+        thankYouUrl,
         redirect: thankYouUrl,
+        action,
+        popup,
         trackConversion: true // Flag to trigger advertising tracking
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
