@@ -25,23 +25,20 @@ export class AuthHelper {
    * نسخة متوافقة متزامنة - تحاول استخدام آخر معرف مستخدم معروف من localStorage
    * ثم fallback إلى DEFAULT_USER_ID إذا لم يتوفر.
    */
-  static getCurrentUserId(): string {
+  static getCurrentUserId(): string | null {
     try {
       const cached = localStorage.getItem(this.CACHE_KEY);
       if (cached && cached !== 'null' && cached.length > 10) return cached;
-      // في الوضع الصارم (الافتراضي خارج التطوير)، لا نُرجع fallback ID
-      if (this.isStrictEnabled()) return '' as unknown as string;
-      // للسماح بالتشغيل المحلي فقط أثناء التطوير يمكن استخدام fallback
-      return this.DEFAULT_USER_ID;
+      return null;
     } catch {
-      return this.isStrictEnabled() ? '' as unknown as string : this.DEFAULT_USER_ID;
+      return null;
     }
   }
 
   /**
    * النسخة الموثوقة (مفضلة): تجلب session من Supabase بشكل صحيح وتحدّث الكاش.
    */
-  static async getCurrentUserIdAsync(): Promise<string> {
+  static async getCurrentUserIdAsync(): Promise<string | null> {
     try {
       const { data } = await supabase.auth.getUser();
       const userId = data?.user?.id;
@@ -49,15 +46,9 @@ export class AuthHelper {
         try { localStorage.setItem(this.CACHE_KEY, userId); } catch (_) {}
         return userId;
       }
-      const cached = localStorage.getItem(this.CACHE_KEY);
-      if (cached && cached !== 'null' && cached.length > 10) return cached;
-      // في الوضع الصارم لا نستخدم fallback إطلاقاً
-      if (this.isStrictEnabled()) return '' as unknown as string;
-      return this.DEFAULT_USER_ID;
+      return null;
     } catch {
-      const cached = localStorage.getItem(this.CACHE_KEY);
-      if (cached && cached !== 'null' && cached.length > 10) return cached;
-      return this.isStrictEnabled() ? '' as unknown as string : this.DEFAULT_USER_ID;
+      return null;
     }
   }
 
@@ -78,10 +69,6 @@ export class AuthHelper {
    * الحصول على معايير الاستعلام
    */
   static getQueryFilters() {
-    if (this.isStrictEnabled()) {
-      const uid = localStorage.getItem(this.CACHE_KEY);
-      return { user_id: (uid && uid !== 'null' && uid.length > 10) ? uid : null } as any;
-    }
     const userId = this.getCurrentUserId();
     return { user_id: userId };
   }
@@ -91,15 +78,11 @@ export class AuthHelper {
    */
   static getDiagnosticInfo() {
     const cached = (() => { try { return localStorage.getItem(this.CACHE_KEY); } catch(_) { return null; } })();
-    const strict = this.isStrictEnabled();
-    const current = (cached && cached !== 'null' && cached.length > 10)
-      ? cached
-      : (strict ? null : this.DEFAULT_USER_ID);
+    const current = (cached && cached !== 'null' && cached.length > 10) ? cached : null;
     return {
       currentUserId: current,
-      defaultUserId: strict ? null : this.DEFAULT_USER_ID,
       userEmail: ((): string | null => { try { return localStorage.getItem('shopify_user_email'); } catch(_) { return null; } })(),
-      isUsingDefault: !strict && current === this.DEFAULT_USER_ID
+      isUsingDefault: false
     };
   }
 }
