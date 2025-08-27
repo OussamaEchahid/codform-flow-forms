@@ -62,61 +62,60 @@ const OrderSettings = () => {
         </div>
 
         <div className="grid gap-6">
+          {/* Action selection */}
           <Card>
             <CardHeader>
               <CardTitle>{t('postOrderAction')}</CardTitle>
               <CardDescription>{t('postOrderActionDescription')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="post-order-action">{t('postOrderAction')}</Label>
-                <Select 
-                  value={settings.post_order_action} 
-                  onValueChange={(value) => handleFieldChange('post_order_action', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={t('postOrderAction')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="redirect">{t('redirectToPage')}</SelectItem>
-                    <SelectItem value="popup">{t('showPopup')}</SelectItem>
-                    <SelectItem value="stay">{t('stayOnPage')}</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Button variant={settings.post_order_action === 'redirect' ? 'default' : 'outline'} onClick={() => handleFieldChange('post_order_action','redirect')}>
+                  {t('redirectToPage')}
+                </Button>
+                <Button variant={settings.post_order_action === 'popup' ? 'default' : 'outline'} onClick={() => handleFieldChange('post_order_action','popup')}>
+                  {t('showPopup')}
+                </Button>
+                <Button variant={settings.post_order_action === 'stay' ? 'default' : 'outline'} onClick={() => handleFieldChange('post_order_action','stay')}>
+                  {t('stayOnPage')}
+                </Button>
               </div>
             </CardContent>
           </Card>
 
+          {/* Redirect config */}
           <Card>
             <CardHeader>
               <CardTitle>{t('redirectToPage')}</CardTitle>
               <CardDescription>{t('redirectToPage')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <Switch 
-                  id="redirect-enabled" 
-                  checked={settings.redirect_enabled} 
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="redirect-enabled"
+                  checked={settings.redirect_enabled}
                   onCheckedChange={(checked) => handleFieldChange('redirect_enabled', checked)}
                 />
                 <Label htmlFor="redirect-enabled">{t('redirectEnabled')}</Label>
               </div>
-              
+
               {settings.redirect_enabled && (
                 <div className="space-y-2">
                   <Label htmlFor="thank-you-url">{t('thankYouPageUrl')}</Label>
                   <Input
                     id="thank-you-url"
-                    type="url"
-                    placeholder="https://example.com/thank-you"
+                    type="text"
+                    placeholder="/pages/thank-you أو https://yourdomain/pages/thank-you"
                     value={settings.thank_you_page_url || ''}
                     onChange={(e) => handleFieldChange('thank_you_page_url', e.target.value)}
                   />
+                  <p className="text-xs text-muted-foreground">يمكنك إدخال رابط نسبي داخل المتجر (مُفضّل) أو رابط كامل.</p>
                 </div>
               )}
             </CardContent>
           </Card>
 
+          {/* Popup config */}
           <Card>
             <CardHeader>
               <CardTitle>{t('popupSettings')}</CardTitle>
@@ -132,7 +131,7 @@ const OrderSettings = () => {
                   onChange={(e) => handleFieldChange('popup_title', e.target.value)}
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="popup-message">{t('popupMessage')}</Label>
                 <Textarea
@@ -142,6 +141,25 @@ const OrderSettings = () => {
                   onChange={(e) => handleFieldChange('popup_message', e.target.value)}
                   rows={4}
                 />
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div>
+                  <Label>Accent</Label>
+                  <Input type="color" onChange={(e)=>{/* future style save */}} defaultValue="#9b87f5" />
+                </div>
+                <div>
+                  <Label>Title</Label>
+                  <Input type="color" onChange={(e)=>{}} defaultValue="#111827" />
+                </div>
+                <div>
+                  <Label>Message</Label>
+                  <Input type="color" onChange={(e)=>{}} defaultValue="#374151" />
+                </div>
+                <div>
+                  <Label>Icon</Label>
+                  <Input type="text" placeholder="مثال: ✅" defaultValue="✅" />
+                </div>
               </div>
             </CardContent>
           </Card>
