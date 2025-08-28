@@ -134,13 +134,14 @@ const ShopifyAutoConnector: React.FC<ShopifyAutoConnectorProps> = ({ onConnected
         console.log('✅ Store activated:', detectedShop);
       } else {
         await shopifyStores()
-          .insert({
+          .upsert({
             shop: detectedShop,
             is_active: true,
             access_token: null,
             scope: null,
-            token_type: 'Bearer'
-          });
+            token_type: 'Bearer',
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'shop' });
         console.log('✅ Store saved:', detectedShop);
       }
 

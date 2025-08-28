@@ -56,13 +56,14 @@ const ShopifyConnection = () => {
           if (!existing) {
             // إضافة المتجر الجديد
             const { data, error } = await shopifyStores()
-              .insert({
+              .upsert({
                 shop: normalizedShop,
                 is_active: true,
                 access_token: null, // سيتم تحديثه بعد OAuth
                 scope: null,
-                token_type: 'Bearer'
-              });
+                token_type: 'Bearer',
+                updated_at: new Date().toISOString(),
+              }, { onConflict: 'shop' });
               
             if (error) {
               console.error('❌ Error saving detected shop:', error);
