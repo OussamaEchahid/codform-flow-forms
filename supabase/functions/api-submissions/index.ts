@@ -831,10 +831,17 @@ serve(async (req: Request) => {
         }
       }
 
-      // Create order in Shopify with form settings and converted price
-      const shopifyOrderId = await createShopifyOrder(shopDomain, shopData.access_token, customer, actualFormId, formSettings, convertedPrice, orderStatus, formData);
+      // Compliance: Do NOT create Shopify Admin orders from offsite/public forms
+      const allowOffsiteOrderCreation = ((Deno.env.get('ALLOW_OFFSITE_ORDER_CREATION') || 'false') as string).toLowerCase() === 'true';
+      let shopifyOrderId: string | null = null;
+      if (allowOffsiteOrderCreation) {
+        console.log('⚠️ ALLOW_OFFSITE_ORDER_CREATION=true -> creating Shopify order (dev/testing only)');
+        shopifyOrderId = await createShopifyOrder(shopDomain, shopData.access_token, customer, actualFormId, formSettings, convertedPrice, orderStatus, formData);
+      } else {
+        console.log('🚫 Compliance: Skipping Shopify Admin order creation for offsite submissions');
+      }
 
-      // Generate order number
+      // Generate order number (local when no Shopify order exists)
       orderNumber = shopifyOrderId ? `SHOP-${shopifyOrderId}` : `ORD-${Date.now()}`;
 
       console.log('📋 Creating order with data:', {
