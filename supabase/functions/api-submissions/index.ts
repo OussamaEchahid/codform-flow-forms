@@ -26,19 +26,19 @@ console.error = (...args: any[]) => _error(...args.map(mask));
 // تحسين دالة تنسيق رقم الهاتف لدعم دول مختلفة
 function validateAndFormatPhone(phone: string, formPhonePrefix: string = '+212'): string {
   console.log(`📞 تنسيق رقم الهاتف: ${phone} مع المفتاح: ${formPhonePrefix}`);
-  
+
   if (!phone) {
     const defaultPhone = formPhonePrefix + '600000000';
     console.log(`📞 استخدام رقم افتراضي: ${defaultPhone}`);
     return defaultPhone;
   }
-  
+
   // تنظيف رقم الهاتف
   let cleanPhone = phone.toString().replace(/[\s\-\(\)\.]/g, '');
   cleanPhone = cleanPhone.replace(/[^\d+]/g, '');
-  
+
   console.log(`📞 رقم منظف: ${cleanPhone}`);
-  
+
   // معالجة الأرقام بناءً على كود الدولة المحدد
   if (formPhonePrefix === '+212') {
     // معالجة الأرقام المغربية
@@ -99,12 +99,12 @@ function validateAndFormatPhone(phone: string, formPhonePrefix: string = '+212')
       cleanPhone = formPhonePrefix + cleanPhone;
     }
   }
-  
+
   // التأكد من أن الرقم يبدأ بالمفتاح الصحيح
   if (!cleanPhone.startsWith(formPhonePrefix)) {
     cleanPhone = formPhonePrefix + '600000000'; // رقم افتراضي للمغرب
   }
-  
+
   console.log(`📞 رقم نهائي: ${cleanPhone}`);
   return cleanPhone;
 }
@@ -118,22 +118,22 @@ function extractCustomerData(formData: any, formSettings: any = {}): {
 } {
   console.log('🔍 Extracting customer data from:', JSON.stringify(formData, null, 2));
   console.log('📋 Form settings:', JSON.stringify(formSettings, null, 2));
-  
+
   let name = 'عميل غير محدد';
   let email = '';
   let phone = '';
   let city = '';
   let address = '';
-  
+
   // Enhanced extraction logic with Arabic and English support
   for (const [key, value] of Object.entries(formData)) {
     const keyLower = key.toLowerCase();
     const stringValue = String(value || '').trim();
-    
+
     if (!stringValue) continue;
-    
+
     // Name extraction - more patterns
-    if (keyLower.includes('name') || keyLower.includes('اسم') || 
+    if (keyLower.includes('name') || keyLower.includes('اسم') ||
         keyLower.includes('text') && !keyLower.includes('area') ||
         keyLower.includes('customer') || keyLower.includes('عميل')) {
       if (stringValue.length > 2) { // Avoid single characters
@@ -141,24 +141,24 @@ function extractCustomerData(formData: any, formSettings: any = {}): {
       }
     }
     // Email extraction
-    else if (keyLower.includes('email') || keyLower.includes('بريد') || 
+    else if (keyLower.includes('email') || keyLower.includes('بريد') ||
              keyLower.includes('mail') || stringValue.includes('@')) {
       email = stringValue;
     }
     // Phone extraction - enhanced patterns
-    else if (keyLower.includes('phone') || keyLower.includes('هاتف') || 
+    else if (keyLower.includes('phone') || keyLower.includes('هاتف') ||
              keyLower.includes('تليفون') || keyLower.includes('جوال') ||
              keyLower.includes('mobile') || keyLower.includes('tel') ||
              /^\+?[\d\s\-\(\)]{8,}$/.test(stringValue)) {
       phone = stringValue;
     }
     // City extraction
-    else if (keyLower.includes('city') || keyLower.includes('مدينة') || 
+    else if (keyLower.includes('city') || keyLower.includes('مدينة') ||
              keyLower.includes('المدينة') || keyLower.includes('محافظة')) {
       city = stringValue;
     }
     // Address extraction - enhanced patterns
-    else if (keyLower.includes('address') || keyLower.includes('عنوان') || 
+    else if (keyLower.includes('address') || keyLower.includes('عنوان') ||
              keyLower.includes('العنوان') || keyLower.includes('textarea') ||
              keyLower.includes('location') || keyLower.includes('موقع')) {
       if (stringValue.length > city.length) { // Prefer longer address
@@ -166,12 +166,12 @@ function extractCustomerData(formData: any, formSettings: any = {}): {
       }
     }
   }
-  
+
   // استخدام كود الدولة من إعدادات النموذج
   const formPhonePrefix = formSettings.phone_prefix || '+966';
   console.log(`📞 استخدام مفتاح من النموذج: ${formPhonePrefix}`);
   phone = validateAndFormatPhone(phone, formPhonePrefix);
-  
+
   console.log('✅ Extracted customer data:', { name, email, phone, city, address });
   return { name, email, phone, city, address };
 }
@@ -179,7 +179,7 @@ function extractCustomerData(formData: any, formSettings: any = {}): {
 // دالة استخراج السعر المحول من بيانات النموذج - محسنة
 function extractConvertedPrice(formData: any): { price: number; currency: string } {
   console.log('💰 Extracting converted price from form data:', formData);
-  
+
   // الأولوية الأولى: السعر المحول المحفوظ في البيانات المرسلة مباشرة من الفرونت إند
   if (formData.extractedPrice && parseFloat(formData.extractedPrice) > 1) {
     const price = parseFloat(formData.extractedPrice);
@@ -187,7 +187,7 @@ function extractConvertedPrice(formData: any): { price: number; currency: string
     console.log('🎯 Using saved converted price from frontend:', price, currency);
     return { price, currency };
   }
-  
+
   // الأولوية الثانية: البحث في بيانات النموذج المتداخلة (إذا كانت في data object)
   if (formData.data && typeof formData.data === 'object') {
     if (formData.data.extractedPrice && parseFloat(formData.data.extractedPrice) > 1) {
@@ -197,32 +197,32 @@ function extractConvertedPrice(formData: any): { price: number; currency: string
       return { price, currency };
     }
   }
-  
+
   // الأولوية الثالثة: البحث الشامل في جميع مستويات البيانات
   function searchInObject(obj: any, prefix: string = ''): { price: number; currency: string } | null {
     for (const [key, value] of Object.entries(obj)) {
       const keyLower = key.toLowerCase();
       const fullKey = prefix ? `${prefix}.${key}` : key;
-      
+
       if (value && typeof value === 'object' && !Array.isArray(value)) {
         // البحث الرقصي في الكائنات المتداخلة
         const nested = searchInObject(value, fullKey);
         if (nested && nested.price > 1) return nested;
       } else if (value) {
         const stringValue = String(value).trim();
-        
+
         // البحث عن أنماط السعر المختلفة
-        if (keyLower.includes('extractedprice') || keyLower.includes('converted_price') || 
+        if (keyLower.includes('extractedprice') || keyLower.includes('converted_price') ||
             keyLower.includes('final_price') || keyLower.includes('total_price') ||
             keyLower.includes('finalPrice') || keyLower.includes('convertedPrice')) {
           const price = parseFloat(stringValue);
           if (price && price > 1) {
             console.log(`💰 Found converted price in ${fullKey}:`, price);
-            
+
             // البحث عن العملة المرتبطة
             const currencyKey = key.replace(/price/i, 'currency').replace(/Price/i, 'Currency');
             const currency = obj[currencyKey] || 'SAR';
-            
+
             return { price, currency };
           }
         }
@@ -230,19 +230,19 @@ function extractConvertedPrice(formData: any): { price: number; currency: string
     }
     return null;
   }
-  
+
   const foundPrice = searchInObject(formData);
   if (foundPrice) return foundPrice;
-  
+
   // الأولوية الرابعة: البحث عن أي سعر في البيانات
   for (const [key, value] of Object.entries(formData)) {
     const keyLower = key.toLowerCase();
     const stringValue = String(value || '').trim();
-    
+
     if (!stringValue) continue;
-    
+
     // البحث عن أي سعر مع تجنب IDs والقيم غير المرغوبة
-    if ((keyLower.includes('price') || keyLower.includes('amount') || 
+    if ((keyLower.includes('price') || keyLower.includes('amount') ||
         keyLower.includes('total') || keyLower.includes('سعر')) &&
         !keyLower.includes('id') && !keyLower.includes('template') &&
         !keyLower.includes('product-') && !keyLower.includes('form-')) {
@@ -253,7 +253,7 @@ function extractConvertedPrice(formData: any): { price: number; currency: string
       }
     }
   }
-  
+
   console.log('⚠️ No converted price found, using default 0');
   return { price: 0, currency: 'SAR' };
 }
@@ -463,7 +463,7 @@ async function createShopifyOrder(shopDomain: string, accessToken: string, custo
 
   const orderData = createShopifyOrderData(customer, formId, formSettings, convertedPrice, paymentStatus, formData);
   console.log('🎯 Creating Shopify order:', JSON.stringify(orderData, null, 2));
-  
+
   try {
     const response = await fetch(`https://${shopDomain}/admin/api/2025-04/orders.json`, {
       method: 'POST',
@@ -490,6 +490,95 @@ async function createShopifyOrder(shopDomain: string, accessToken: string, custo
     return null;
   }
 }
+
+// Create a Shopify Draft Order (compliant: no checkout bypass, no auto-invoice)
+async function createShopifyDraftOrder(
+  shopDomain: string,
+  accessToken: string,
+  customer: any,
+  formId: string,
+  formSettings: any = {},
+  convertedPrice: { price: number; currency: string } = { price: 0, currency: 'SAR' },
+  formData: any = {}
+): Promise<string | null> {
+  try {
+    console.log('📝 Starting Shopify draft order creation (compliance mode)...');
+
+    // Derive customer names safely
+    const nameParts = customer.name ? customer.name.split(' ') : ['Customer'];
+    const firstName = nameParts[0] || 'Customer';
+    const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : 'Lead';
+
+    // Determine quantity (reuse existing logic)
+    const quantity = calculateQuantityFromPrice(convertedPrice.price, formData, formData?.productData);
+    const unitPrice = (convertedPrice.price || 0).toFixed(2);
+
+    // Build draft order payload using a custom line item (no variant required)
+    const draftPayload = {
+      draft_order: {
+        email: customer.email || undefined,
+        note: `Draft from offsite form. Submission: ${formId}`,
+        tags: 'COD,OFFSITE_FORM',
+        shipping_address: (customer.city || customer.address) ? {
+          first_name: firstName,
+          last_name: lastName,
+          address1: customer.address || customer.city,
+          city: customer.city || 'المدينة',
+          country: formSettings.country || 'SA',
+          phone: customer.phone || undefined
+        } : undefined,
+        billing_address: (customer.city || customer.address) ? {
+          first_name: firstName,
+          last_name: lastName,
+          address1: customer.address || customer.city,
+          city: customer.city || 'المدينة',
+          country: formSettings.country || 'SA',
+          phone: customer.phone || undefined
+        } : undefined,
+        customer: (customer.email || customer.phone) ? {
+          first_name: firstName,
+          last_name: lastName,
+          email: customer.email || undefined,
+          phone: customer.phone || undefined
+        } : undefined,
+        line_items: [
+          {
+            title: 'طلب من النموذج - Form Order (Draft)',
+            quantity: quantity > 0 ? quantity : 1,
+            price: unitPrice
+          }
+        ]
+      }
+    };
+
+    console.log('🧾 Draft order payload:', JSON.stringify(draftPayload, null, 2));
+
+    const response = await fetch(`https://${shopDomain}/admin/api/2025-04/draft_orders.json`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Shopify-Access-Token': accessToken
+      },
+      body: JSON.stringify(draftPayload)
+    });
+
+    const result = await response.json();
+    console.log('📦 Shopify draft order response:', JSON.stringify(result, null, 2));
+    console.log('🔍 Draft response status:', response.status);
+
+    if (response.ok && result.draft_order) {
+      console.log('✅ Shopify draft order created successfully:', result.draft_order.id);
+      return String(result.draft_order.id);
+    } else {
+      console.error('❌ Draft order creation failed:', JSON.stringify(result, null, 2));
+      return null;
+    }
+  } catch (error) {
+    console.error('❌ Error creating Shopify draft order:', error);
+    return null;
+  }
+}
+
 
 serve(async (req: Request) => {
   // Handle CORS preflight requests
@@ -548,28 +637,28 @@ serve(async (req: Request) => {
     // Get form settings from database with fallback
     let formSettings = {};
     let actualFormId = formId;
-    
+
     try {
       console.log('🔍 Looking up form settings for ID:', formId);
-      
+
       // First try to get form by exact ID (UUID format)
       let { data: formData, error: formError } = await supabase
         .from('forms')
         .select('id, country, currency, phone_prefix')
         .eq('id', formId)
         .single();
-        
+
       // If not found by ID, try to find form associated with this product
       if (formError || !formData) {
         console.log('⚠️ Form not found by ID, trying to find form associated with product:', formId);
-        
+
         // Use secure function to get product-form association
         const { data: productAssociation, error: productError } = await supabase
           .rpc('get_product_form_association', {
             p_shop_id: shopDomain,
             p_product_id: formId
           });
-          
+
         let productSettingData = null;
         if (!productError && productAssociation && productAssociation.length > 0) {
           // Get the form data using the returned form_id
@@ -579,7 +668,7 @@ serve(async (req: Request) => {
             .eq('id', productAssociation[0].form_id)
             .eq('is_published', true)
             .single();
-            
+
           if (!formError && formData) {
             productSettingData = {
               form_id: productAssociation[0].form_id,
@@ -594,7 +683,7 @@ serve(async (req: Request) => {
           console.log('✅ Found form associated with product:', actualFormId);
         } else {
           console.log('⚠️ No product-specific form found, trying latest form for shop:', shopDomain);
-          
+
           // Final fallback: get the most recent form for this shop
           const { data: fallbackFormData, error: fallbackError } = await supabase
             .from('forms')
@@ -603,7 +692,7 @@ serve(async (req: Request) => {
             .order('updated_at', { ascending: false })
             .limit(1)
             .single();
-            
+
           if (!fallbackError && fallbackFormData) {
             formData = fallbackFormData;
             actualFormId = fallbackFormData.id;
@@ -613,11 +702,11 @@ serve(async (req: Request) => {
           }
         }
       }
-      
+
       if (formData) {
         formSettings = {
           country: formData.country || 'MA', // استخدام إعدادات النموذج الفعلية
-          currency: formData.currency || 'MAD', // استخدام إعدادات النموذج الفعلية  
+          currency: formData.currency || 'MAD', // استخدام إعدادات النموذج الفعلية
           phone_prefix: formData.phone_prefix || '+212' // استخدام إعدادات النموذج الفعلية
         };
         console.log('📋 Retrieved form settings:', JSON.stringify(formSettings, null, 2));
@@ -631,10 +720,10 @@ serve(async (req: Request) => {
         phone_prefix: '+212'
       };
     }
-    
+
     // Store submission in database
     console.log('💾 Storing submission with formId:', actualFormId, 'shopDomain:', shopDomain);
-    
+
     const submissionRecord = {
       form_id: actualFormId,
       shop_id: shopDomain,
@@ -644,9 +733,9 @@ serve(async (req: Request) => {
         data: formData
       }
     };
-    
+
     console.log('📋 Submission record:', JSON.stringify(submissionRecord, null, 2));
-    
+
     const { data: submissionData, error: submissionError } = await supabase
       .from('form_submissions')
       .insert(submissionRecord)
@@ -663,22 +752,22 @@ serve(async (req: Request) => {
 
     // Create order from form submission and sync with Shopify
     let orderNumber = `ORD-${Date.now()}`; // Default order number
-    
+
     try {
       console.log('📝 Processing form data:', JSON.stringify(formData, null, 2));
-      
+
       // ✅ Extract converted price from form data (same logic as abandoned-tracking)
       let convertedPrice = extractConvertedPrice(formData);
       console.log('💰 Extracted converted price:', convertedPrice);
-      
+
       // ✅ إضافة آلية الأسعار الافتراضية إذا لم يوجد سعر محول
       if (!convertedPrice.price || convertedPrice.price <= 1) {
         console.log('⚠️ No valid converted price found, using default price based on currency');
-        
+
         // استخدام الأسعار الافتراضية حسب العملة من إعدادات النموذج
         const currency = (formSettings as any)?.currency || 'SAR';
         let defaultPrice = 250; // افتراضي للسعودية
-        
+
         if (currency === 'MAD') {
           defaultPrice = 400;
         } else if (currency === 'USD') {
@@ -688,14 +777,14 @@ serve(async (req: Request) => {
         } else if (currency === 'SAR') {
           defaultPrice = 250;
         }
-        
+
         convertedPrice = { price: defaultPrice, currency };
         console.log('🎯 Using default price:', convertedPrice);
       }
-      
+
       // Extract customer information using form settings
       const customer = extractCustomerData(formData, formSettings);
-      
+
       // Get shopify access token
       const { data: shopData, error: shopError } = await supabase
         .from('shopify_stores')
@@ -831,18 +920,31 @@ serve(async (req: Request) => {
         }
       }
 
-      // Compliance: Do NOT create Shopify Admin orders from offsite/public forms
+      // Compliance: Always create a Draft Order; never auto-create a final Admin order from offsite forms
       const allowOffsiteOrderCreation = ((Deno.env.get('ALLOW_OFFSITE_ORDER_CREATION') || 'false') as string).toLowerCase() === 'true';
       let shopifyOrderId: string | null = null;
+      let shopifyDraftOrderId: string | null = null;
+
+      // Create draft order for merchant review (compliant)
+      shopifyDraftOrderId = await createShopifyDraftOrder(
+        shopDomain,
+        shopData.access_token,
+        customer,
+        actualFormId,
+        formSettings,
+        convertedPrice,
+        formData
+      );
+
       if (allowOffsiteOrderCreation) {
-        console.log('⚠️ ALLOW_OFFSITE_ORDER_CREATION=true -> creating Shopify order (dev/testing only)');
+        console.log('⚠️ ALLOW_OFFSITE_ORDER_CREATION=true -> creating Shopify final order (dev/testing only)');
         shopifyOrderId = await createShopifyOrder(shopDomain, shopData.access_token, customer, actualFormId, formSettings, convertedPrice, orderStatus, formData);
       } else {
-        console.log('🚫 Compliance: Skipping Shopify Admin order creation for offsite submissions');
+        console.log('🚫 Compliance: Skipping final Shopify Admin order creation for offsite submissions (draft created instead)');
       }
 
-      // Generate order number (local when no Shopify order exists)
-      orderNumber = shopifyOrderId ? `SHOP-${shopifyOrderId}` : `ORD-${Date.now()}`;
+      // Generate order number: prefer draft ID, else final order ID, else local
+      orderNumber = shopifyDraftOrderId ? `DRAFT-${shopifyDraftOrderId}` : (shopifyOrderId ? `SHOP-${shopifyOrderId}` : `ORD-${Date.now()}`);
 
       console.log('📋 Creating order with data:', {
         orderNumber,
@@ -851,7 +953,7 @@ serve(async (req: Request) => {
         customerPhone: customer.phone,
         shopifyOrderId,
         submissionId: submissionData.id,
-        currency: formSettings?.currency || 'USD'
+        currency: (formSettings as any)?.currency || 'USD'
       });
 
       // Create order in our database with converted price and currency
@@ -875,12 +977,12 @@ serve(async (req: Request) => {
         billing_address: { address: customer.address, city: customer.city },
         form_id: actualFormId,
         shop_id: shopDomain,
-        shopify_order_id: shopifyOrderId?.toString(),
+        shopify_order_id: (shopifyOrderId?.toString() || (shopifyDraftOrderId ? `draft:${shopifyDraftOrderId}` : undefined)),
         ip_address: clientIP
       };
-      
+
       console.log('📝 Order insert data:', JSON.stringify(orderInsertData, null, 2));
-      
+
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
         .insert(orderInsertData)
@@ -1024,7 +1126,7 @@ serve(async (req: Request) => {
         .select('*')
         .eq('shop_id', shopDomain)
         .maybeSingle();
-      
+
       if (!settingsError && settingsData) {
         orderSettings = settingsData;
         console.log('✅ Found order settings:', orderSettings);
