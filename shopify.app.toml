@@ -1,7 +1,7 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "753bee28b4a0b12f2d87c79b56c86641"
-name = "CodMagnet - COD Form"
+name = "CodMagnet - COD Form & Upsells"
 handle = "codform-cod-forms"
 application_url = "https://codmagnet.com"
 embedded = false
@@ -21,21 +21,13 @@ api_version = "2025-04"
   uri = "/webhooks/app/uninstalled"
 
   [[webhooks.subscriptions]]
-  topics = [ "customers/data_request" ]
-  uri = "/webhooks/customers/data_request"
-
-  [[webhooks.subscriptions]]
-  topics = [ "customers/redact" ]
-  uri = "/webhooks/customers/redact"
-
-  [[webhooks.subscriptions]]
-  topics = [ "shop/redact" ]
-  uri = "/webhooks/shop/redact"
+  compliance_topics = [ "customers/data_request", "customers/redact", "shop/redact" ]
+  uri = "https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-webhooks"
 
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "write_products,read_products,read_orders,write_orders,read_themes,read_content,write_content,write_pixels,read_customer_events,read_draft_orders,write_draft_orders"
+scopes = "read_products,write_draft_orders,write_pixels,read_customer_events"
 
 [auth]
 redirect_urls = [
