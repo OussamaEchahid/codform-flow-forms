@@ -13,7 +13,7 @@ console.log("🚀 Shopify Auth Edge Function initialized");
 const SHOPIFY_API_KEY = Deno.env.get("SHOPIFY_API_KEY")!;
 
 // صلاحيات التطبيق
-const scopes = "write_products,read_products,read_orders,write_orders,read_themes,read_content,write_content";
+const scopes = "read_products,write_draft_orders,write_pixels,read_customer_events";
 
 // عنوان URL لرد المصادقة - يشير مباشرة إلى Edge Function
 const CALLBACK_URL = `${SUPABASE_URL}/functions/v1/shopify-auth-callback`;
