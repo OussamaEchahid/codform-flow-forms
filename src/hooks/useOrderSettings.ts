@@ -40,21 +40,24 @@ export const useOrderSettings = () => {
       
       // Try to load from Supabase database first
       try {
-        const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/rest/v1/order_settings?shop_id=eq.${currentShop}`, {
+        /* Replaced direct REST call with Edge Function invocation to avoid hard-coded keys */
+        const response = null as any; /* placeholder to keep structure; actual fetch removed */
+        const { data: fnData, error: fnError } = await supabase.functions.invoke('order-settings', {
+          body: { shop_id: currentShop, method: 'GET' }
+        });
           headers: {
             'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
             'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
             'Content-Type': 'application/json'
           }
         });
-        
-        if (response.ok) {
-          const dbSettings = await response.json();
-          if (dbSettings && dbSettings.length > 0) {
+
+        if (!fnError) {
+          const dbRecord = (fnData as any)?.data || (fnData as any)?.record || null;
+          if (dbRecord) {
             console.log('✅ Found existing settings in database');
-            const orderSettings = dbSettings[0] as OrderSettings;
+            const orderSettings = dbRecord as OrderSettings;
             setSettings(orderSettings);
-            // Also save to localStorage as backup
             const storageKey = getStorageKey(currentShop);
             localStorage.setItem(storageKey, JSON.stringify(orderSettings));
             return;

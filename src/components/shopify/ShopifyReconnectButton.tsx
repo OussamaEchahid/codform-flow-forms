@@ -31,16 +31,16 @@ const ShopifyReconnectButton: React.FC<ShopifyReconnectButtonProps> = ({
       shopifyConnectionManager.clearAllStores();
       toast.info('تم مسح بيانات الاتصال القديمة، سيتم إعادة التوجيه...');
 
-      // Redirect to Shopify connection
-      const baseUrl = window.location.origin;
-      const shopifyAuthUrl = shopDomain ? `https://7e4608874bbcc38afa1953948da28407.shopifypreview.com/admin/oauth/authorize?client_id=7e4608874bbcc38afa1953948da28407&scope=read_products,read_orders,write_products,write_orders&redirect_uri=${encodeURIComponent(baseUrl + '/api/shopify-callback')}&state=${Date.now()}&shop=${shopDomain}` : '/shopify-connect';
-      setTimeout(() => {
-        if (shopDomain && shopDomain.includes('myshopify.com')) {
-          window.location.href = shopifyAuthUrl;
-        } else {
-          window.location.href = '/shopify-connect';
-        }
-      }, 1000);
+      // Use Edge Function to generate OAuth URL and redirect
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data, error } = await supabase.functions.invoke('shopify-auth', {
+        body: { shop: shopDomain, userId: user?.id }
+      });
+      if (error || !data?.redirect) {
+        throw new Error(error?.message || 'Failed to start Shopify OAuth');
+      }
+      setTimeout(() => { window.location.href = data.redirect; }, 800);
     } catch (error) {
       console.error('Error during reconnection:', error);
       toast.error('حدث خطأ أثناء إعادة الربط');

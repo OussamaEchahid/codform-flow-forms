@@ -119,13 +119,11 @@ class CurrencyServiceClass {
 
       console.log('📥 Loading ALL currency settings using edge function for shop:', this.currentShopId);
       
-      const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/get-shop-currency-settings?shop_id=${encodeURIComponent(this.currentShopId)}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M`
-        }
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { data: settingsData, error: settingsErr } = await supabase.functions.invoke('get-shop-currency-settings', {
+        body: { shop_id: this.currentShopId }
       });
+      const response = { ok: !settingsErr, json: async () => settingsData } as any;
 
       if (!response.ok) {
         console.error('❌ Edge function error:', response.statusText);
@@ -352,7 +350,10 @@ class CurrencyServiceClass {
 
       console.log('📤 Sending data to edge function:', requestData);
 
-      const response = await fetch('https://trlklwixfeaexhydzaue.supabase.co/functions/v1/save-currency-settings', {
+      const { data: saveResp, error: saveErr } = await supabase.functions.invoke('save-currency-settings', {
+        body: requestData
+      });
+      const response = { ok: !saveErr, json: async () => saveResp } as any;
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
