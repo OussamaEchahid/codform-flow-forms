@@ -28,7 +28,7 @@ export const useOrderSettings = () => {
   const loadSettings = async () => {
     const storeFromStorage = localStorage.getItem('current_shopify_store');
     const currentShop = activeStore || storeFromStorage;
-    
+
     if (!currentShop) {
       setLoading(false);
       return;
@@ -37,7 +37,7 @@ export const useOrderSettings = () => {
     try {
       setLoading(true);
       console.log('🔍 Loading order settings for shop:', currentShop);
-      
+
       // Try to load from Supabase database first
       try {
         /* Replaced direct REST call with Edge Function invocation to avoid hard-coded keys */
@@ -45,12 +45,18 @@ export const useOrderSettings = () => {
         const { data: fnData, error: fnError } = await supabase.functions.invoke('order-settings', {
           body: { shop_id: currentShop, method: 'GET' }
         });
-          headers: {
+
+
+
+/*
             'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
             'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
-            'Content-Type': 'application/json'
-          }
-        });
+*/
+
+
+
+
+
 
         if (!fnError) {
           const dbRecord = (fnData as any)?.data || (fnData as any)?.record || null;
@@ -66,11 +72,11 @@ export const useOrderSettings = () => {
       } catch (dbError) {
         console.log('⚠️ Database query failed, falling back to localStorage:', dbError);
       }
-      
+
       // Fallback to localStorage if database fails
       const storageKey = getStorageKey(currentShop);
       const storedSettings = localStorage.getItem(storageKey);
-      
+
       if (storedSettings) {
         console.log('✅ Found existing settings in localStorage');
         const parsedSettings = JSON.parse(storedSettings) as OrderSettings;
@@ -107,7 +113,7 @@ export const useOrderSettings = () => {
   const saveSettings = async (newSettings: Partial<OrderSettings>) => {
     const storeFromStorage = localStorage.getItem('current_shopify_store');
     const currentShop = activeStore || storeFromStorage;
-    
+
     if (!currentShop) {
       toast({
         title: "خطأ",
@@ -159,7 +165,7 @@ export const useOrderSettings = () => {
             method: 'PATCH',
             headers: {
               'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
-              'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9zZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
+
               'Content-Type': 'application/json',
               'Prefer': 'resolution=merge-duplicates'
             },
