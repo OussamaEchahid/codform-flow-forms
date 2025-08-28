@@ -41,17 +41,16 @@ export const useOrderSettings = () => {
       // Try to load from Supabase database first
       try {
         /* Replaced direct REST call with Edge Function invocation to avoid hard-coded keys */
-        const response = null as any; /* placeholder to keep structure; actual fetch removed */
+
         const { data: fnData, error: fnError } = await supabase.functions.invoke('order-settings', {
           body: { shop_id: currentShop, method: 'GET' }
         });
 
 
 
-/*
-            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
-            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
-*/
+
+
+
 
 
 
