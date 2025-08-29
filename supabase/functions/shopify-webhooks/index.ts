@@ -137,16 +137,38 @@ Deno.serve(async (req) => {
         console.log(`📋 Full webhook data:`, JSON.stringify(body, null, 2))
 
         if (shopDomain && plan_type) {
-          const subscriptionData = {
+          // تطبيع الحالة: لا نقوم أبداً بتعيين active إلا عند وصول active فعلياً من Shopify
+          // الحالات المحتملة من Shopify: pending, accepted, active, cancelled, declined
+          let normalizedStatus: 'pending' | 'active' | 'cancelled' = 'pending'
+          if (status === 'active') normalizedStatus = 'active'
+          else if (status === 'cancelled' || status === 'declined') normalizedStatus = 'cancelled'
+
+          const subscriptionData: any = {
             shop_domain: shopDomain,
-            plan_type: plan_type,
-            status: status === 'active' ? 'active' : status || 'active',
             price_amount: amount,
             currency: 'USD',
             shopify_charge_id: appSub?.id || null,
-            subscription_started_at: status === 'active' ? new Date().toISOString() : null,
             updated_at: new Date().toISOString(),
           };
+
+          if (normalizedStatus === 'active') {
+            // Activate: commit plan_type and clear any requested state
+            subscriptionData.plan_type = plan_type;
+            subscriptionData.status = 'active';
+            subscriptionData.subscription_started_at = new Date().toISOString();
+            subscriptionData.requested_plan_type = null;
+            subscriptionData.requested_at = null;
+          } else if (normalizedStatus === 'pending') {
+            // Pending: keep current active plan intact and store requested plan
+            subscriptionData.status = 'pending';
+            subscriptionData.requested_plan_type = plan_type;
+            subscriptionData.requested_at = new Date().toISOString();
+          } else {
+            // Cancelled/declined: clear requested state but do not change active plan
+            subscriptionData.status = 'cancelled';
+            subscriptionData.requested_plan_type = null;
+            subscriptionData.requested_at = null;
+          }
 
           console.log(`📋 Upserting subscription data:`, subscriptionData);
 

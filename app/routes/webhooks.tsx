@@ -31,14 +31,27 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
         // Persist to DB if we detected plan, otherwise just ack
         if (shop && plan_type) {
-          await prisma.$executeRawUnsafe(
-            `insert into shop_subscriptions (shop_domain, plan_type, status, updated_at)
-             values ($1, $2, $3, now())
-             on conflict (shop_domain) do update set plan_type = excluded.plan_type, status = excluded.status, updated_at = now()`,
-            shop,
-            plan_type,
-            status || 'active'
-          );
+          // لا نعين active إلا إذا كانت من Shopify فعلاً
+          const normalized = status === 'active' ? 'active' : (status === 'cancelled' || status === 'declined') ? 'cancelled' : 'pending';
+          if (normalized === 'active') {
+            // Activate: commit plan_type and clear any requested state
+            await prisma.$executeRawUnsafe(
+              `insert into shop_subscriptions (shop_domain, plan_type, status, updated_at, requested_plan_type, requested_at)
+               values ($1, $2, 'active', now(), null, null)
+               on conflict (shop_domain) do update set plan_type = excluded.plan_type, status = 'active', requested_plan_type = null, requested_at = null, updated_at = now()`,
+              shop,
+              plan_type
+            );
+          } else {
+            // Pending/cancelled: do NOT change active plan, only record requested plan and status
+            await prisma.$executeRawUnsafe(
+              `insert into shop_subscriptions (shop_domain, status, requested_plan_type, requested_at, updated_at)
+               values ($1, 'pending', $2, now(), now())
+               on conflict (shop_domain) do update set status = 'pending', requested_plan_type = excluded.requested_plan_type, requested_at = now(), updated_at = now()`,
+              shop,
+              plan_type
+            );
+          }
         }
       } catch (err) {
         console.error('APP_SUBSCRIPTIONS_UPDATE webhook error', err);

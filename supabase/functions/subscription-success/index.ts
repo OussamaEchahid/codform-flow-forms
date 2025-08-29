@@ -34,19 +34,45 @@ serve(async (req) => {
 
     console.log(`✅ Confirming subscription for shop: ${shop}, plan: ${plan}, charge: ${chargeId}`);
 
-    // تأكيد الاشتراك وتحديث الحالة إلى نشط
-    const { data, error } = await supabase.rpc('upgrade_shop_plan', {
-      p_shop_domain: shop,
-      p_new_plan: plan as any,
-      p_shopify_charge_id: chargeId || null
-    });
-
-    if (error) {
-      console.error('❌ Error confirming subscription:', error);
-      throw error;
+    // تحقق من حالة الاشتراك من Shopify قبل التفعيل النهائي
+    try {
+      const tokenResp = await supabase.rpc('get_store_access_token', { p_shop: shop })
+      if (tokenResp.error || !tokenResp.data) {
+        console.warn('⚠️ Cannot fetch shop token, marking as pending.');
+        await supabase.from('shop_subscriptions').upsert({
+          shop_domain: shop,
+          plan_type: plan as any,
+          status: 'pending',
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'shop_domain' })
+      } else {
+        const token = tokenResp.data as string
+        const GRAPHQL_API_VERSION = '2025-07'
+        const query = `#graphql
+          query { appInstallation { activeSubscriptions { id status } } }
+        `
+        const resp = await fetch(`https://${shop}/admin/api/${GRAPHQL_API_VERSION}/graphql.json`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Shopify-Access-Token': token },
+          body: JSON.stringify({ query })
+        })
+        const json = await resp.json().catch(() => ({}))
+        const subs = json?.data?.appInstallation?.activeSubscriptions || []
+        const hasActive = Array.isArray(subs) && subs.some((s: any) => (s?.status || '').toString().toLowerCase() === 'active')
+        if (!hasActive) {
+          console.log('ℹ️ No ACTIVE subscription detected yet. Marking as pending.')
+          await supabase.from('shop_subscriptions').upsert({ shop_domain: shop, plan_type: plan as any, status: 'pending', updated_at: new Date().toISOString() }, { onConflict: 'shop_domain' })
+        } else {
+          // تفعيل الخطة في قاعدة البيانات فقط عند التأكيد الفعلي
+          const { error } = await supabase.rpc('confirm_subscription_payment', { p_shop_domain: shop, p_shopify_charge_id: chargeId || null })
+          if (error) throw error
+          console.log('✅ Subscription confirmed and activated')
+        }
+      }
+    } catch (e) {
+      console.error('❌ Error verifying subscription status, keeping pending:', e)
+      await supabase.from('shop_subscriptions').upsert({ shop_domain: shop, plan_type: plan as any, status: 'pending', updated_at: new Date().toISOString() }, { onConflict: 'shop_domain' })
     }
-
-    console.log('✅ Subscription confirmed successfully:', data);
 
     // إعادة توجيه مباشرة إلى صفحة الخطط
     return new Response(null, {

@@ -2,8 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 
 export class AuthHelper {
-  // المستخدم الافتراضي للنظام (fallback فقط)
-  private static readonly DEFAULT_USER_ID = 'a7a96524-0208-441b-845b-5e30640d003d';
+  // تم إزالة المستخدم الافتراضي لأسباب أمنية
   private static readonly CACHE_KEY = 'last_authenticated_user_id';
   private static isStrictEnabled() {
     try {
@@ -23,7 +22,7 @@ export class AuthHelper {
 
   /**
    * نسخة متوافقة متزامنة - تحاول استخدام آخر معرف مستخدم معروف من localStorage
-   * ثم fallback إلى DEFAULT_USER_ID إذا لم يتوفر.
+   * ترجع null إذا لم يكن هناك مستخدم مصادق عليه.
    */
   static getCurrentUserId(): string | null {
     try {

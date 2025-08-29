@@ -762,6 +762,8 @@ export type Database = {
           trial_started_at: string | null
           updated_at: string
           user_id: string | null
+          requested_plan_type?: Database["public"]["Enums"]["subscription_plan"] | null
+          requested_at?: string | null
         }
         Insert: {
           billing_cycle?: string | null
@@ -779,6 +781,8 @@ export type Database = {
           trial_started_at?: string | null
           updated_at?: string
           user_id?: string | null
+          requested_plan_type?: Database["public"]["Enums"]["subscription_plan"] | null
+          requested_at?: string | null
         }
         Update: {
           billing_cycle?: string | null
@@ -796,6 +800,8 @@ export type Database = {
           trial_started_at?: string | null
           updated_at?: string
           user_id?: string | null
+          requested_plan_type?: Database["public"]["Enums"]["subscription_plan"] | null
+          requested_at?: string | null
         }
         Relationships: []
       }

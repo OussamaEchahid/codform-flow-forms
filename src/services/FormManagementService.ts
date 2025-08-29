@@ -233,7 +233,12 @@ export class FormManagementService {
           (supabase as any).rpc('auto_link_store_to_current_user'),
           (supabase as any).rpc('link_active_store_to_user')
         ]);
-        await (supabase as any).rpc('fix_form_store_links');
+        // Call maintenance edge function instead of direct REST RPC to avoid auth header issues
+        try {
+          await supabase.functions.invoke('forms-maintenance', { body: { action: 'fix_form_links' } });
+        } catch (_) {
+          // non-blocking
+        }
       } catch (e) {
         console.warn('Ownership alignment RPCs failed (non-blocking):', e);
       }
@@ -296,7 +301,11 @@ export class FormManagementService {
           (supabase as any).rpc('auto_link_store_to_current_user'),
           (supabase as any).rpc('link_active_store_to_user')
         ]);
-        await (supabase as any).rpc('fix_form_store_links');
+        try {
+          await supabase.functions.invoke('forms-maintenance', { body: { action: 'fix_form_links' } });
+        } catch (_) {
+          // non-blocking
+        }
       } catch (e) {
         console.warn('Ownership alignment before delete failed (ignored):', e);
       }

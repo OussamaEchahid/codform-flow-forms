@@ -11,6 +11,8 @@ export interface Subscription {
   trial_days_remaining?: number;
   next_billing_date?: string;
   user_id?: string;
+  requested_plan_type?: 'free' | 'basic' | 'premium' | null;
+  requested_at?: string | null;
 }
 
 export class SubscriptionService {
@@ -147,7 +149,9 @@ export class SubscriptionService {
       updated_at: data.updated_at,
       trial_days_remaining: data.trial_days_remaining,
       next_billing_date: data.next_billing_date,
-      user_id: data.user_id
+      user_id: data.user_id,
+      requested_plan_type: data.requested_plan_type ?? null,
+      requested_at: data.requested_at ?? null,
     };
   }
 

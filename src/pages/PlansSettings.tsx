@@ -147,16 +147,23 @@ const PlansSettings = () => {
 
       setUpgradingTo(planId);
 
+      // منع الرجوع إلى الخطة المجانية إذا كان الاشتراك الحالي غير مجاني
       if (planId === 'free') {
-        // تغيير الخطة إلى مجاني مباشرة
-        const { supabase } = await import('@/integrations/supabase/client');
-        const { error } = await (supabase as any)
-          .rpc('upgrade_shop_plan', { p_shop_domain: activeStore, p_new_plan: 'free' });
-        if (error) throw error;
-        console.log('✅ تم تحديث الخطة إلى مجاني');
-        await refreshSubscription();
+        const currentPlan = currentSubscription?.plan_type || 'free';
+        if (currentPlan !== 'free') {
+          const { toast } = await import('@/hooks/use-toast');
+          toast.error(language === 'ar' ? 'لا يمكن الرجوع إلى الخطة المجانية بعد الترقية' : 'You cannot downgrade back to Free after upgrading.');
+          setUpgradingTo(null);
+          return;
+        }
+        // السماح باختيار المجاني فقط إذا كان المستخدم على المجاني أصلاً (بدء الاستخدام)
+        const { toast } = await import('@/hooks/use-toast');
+        toast.info(language === 'ar' ? 'أنت على الخطة المجانية بالفعل' : 'You are already on the Free plan.');
         setUpgradingTo(null);
-      } else {
+        return;
+      }
+
+      {
         // إنشاء اشتراك عبر Shopify
         const { supabase } = await import('@/integrations/supabase/client');
         const { data, error } = await supabase.functions.invoke('change-plan', {
@@ -339,20 +346,20 @@ const PlansSettings = () => {
                   </div>
                 )}
 
-                {/* شارة خضراء واضحة عند كون الخطة حالية */}
+                {/* شارات حالة الخطة */}
                 {(() => {
                   const isCurrent = status === 'current';
                   const subscriptionStatus = currentSubscription?.status;
-                  console.log(`🏷️ Green badge for plan ${plan.id}: ${isCurrent ? 'SHOWING' : 'HIDDEN'}, status: ${subscriptionStatus}`);
-                  
-                  if (!isCurrent) return null;
-                  
-                  const badgeText = subscriptionStatus === 'pending' 
+                  const isPendingRequested = subscriptionStatus === 'pending' && currentSubscription?.requested_plan_type === plan.id;
+
+                  if (!isCurrent && !isPendingRequested) return null;
+
+                  const isPending = isPendingRequested;
+                  const badgeText = isPending
                     ? (language === 'ar' ? 'قيد التفعيل' : 'Activating')
                     : (language === 'ar' ? 'مشترك' : 'Active');
-                    
-                  const badgeColor = subscriptionStatus === 'pending' ? 'bg-amber-500' : 'bg-green-600';
-                  
+                  const badgeColor = isPending ? 'bg-amber-500' : 'bg-green-600';
+
                   return (
                     <div className="absolute top-3 right-3 z-10">
                       <Badge className={`${badgeColor} text-white flex items-center gap-1 shadow-lg`}>
@@ -390,13 +397,10 @@ const PlansSettings = () => {
                     const isCurrent = status === 'current';
                     const subscriptionStatus = currentSubscription?.status;
                     console.log(`🏷️ Current plan badge for plan ${plan.id}: ${isCurrent ? 'SHOWING' : 'HIDDEN'}, status: ${subscriptionStatus}`);
-                    
+
                     if (!isCurrent) return null;
-                    
-                    const badgeText = subscriptionStatus === 'pending'
-                      ? (language === 'ar' ? 'الخطة الحالية (قيد التفعيل)' : 'Current Plan (Activating)')
-                      : (language === 'ar' ? 'الخطة الحالية' : 'Current Plan');
-                      
+
+                    const badgeText = (language === 'ar' ? 'الخطة الحالية' : 'Current Plan');
                     return (
                       <Badge variant="secondary" className="mt-2 font-medium">{badgeText}</Badge>
                     );
@@ -420,7 +424,12 @@ const PlansSettings = () => {
                       status === 'current' ? "bg-muted text-muted-foreground" : ""
                     )}
                     variant={status === 'current' ? 'secondary' : 'default'}
-                    disabled={status === 'current' || upgradingTo === plan.id}
+                    disabled={
+                      status === 'current' ||
+                      upgradingTo === plan.id ||
+                      // منع اختيار الخطة المجانية إذا كانت الخطة الحالية ليست مجانية
+                      (plan.id === 'free' && currentSubscription?.plan_type !== 'free')
+                    }
                     onClick={() => {
                       console.log(`🔘 Button clicked for plan ${plan.id}, status: ${status}`);
                       handleUpgrade(plan.id);
