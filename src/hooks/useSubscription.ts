@@ -103,15 +103,25 @@ export const useSubscription = (shopDomain?: string): UseSubscriptionReturn => {
   }, [subscription, isCurrentPlan]);
 
   // تحميل البيانات عند mount + محاولة مصالحة تلقائية إذا كانت الحالة pending
+  // أو كان هناك طلب ترقية (requested_plan_type) يختلف عن الخطة الحالية
   useEffect(() => {
     (async () => {
       await loadSubscription();
       try {
-        if (subscription?.status === 'pending') {
+        const hasRequestedUpgrade = !!(
+          subscription?.requested_plan_type &&
+          subscription?.plan_type?.toLowerCase?.() !== subscription?.requested_plan_type?.toLowerCase?.()
+        );
+
+        if (subscription?.status === 'pending' || hasRequestedUpgrade) {
           const { edgeGet } = await import('@/lib/supabase-edge');
           const shop = shopDomain || (await subscriptionService.getCurrentSubscription())?.shop_domain;
           if (shop) {
-            console.log('🧩 Reconciling pending subscription for', shop);
+            console.log('🧩 Reconciling subscription for', shop, {
+              status: subscription?.status,
+              plan: subscription?.plan_type,
+              requested: subscription?.requested_plan_type,
+            });
             await edgeGet('reconcile-subscriptions', { shop });
             // بعد المصالحة، أعد التحميل
             await loadSubscription(true);
