@@ -64,9 +64,9 @@ serve(async (req) => {
           await supabase.from('shop_subscriptions').upsert({ shop_domain: shop, plan_type: plan as any, status: 'pending', updated_at: new Date().toISOString() }, { onConflict: 'shop_domain' })
         } else {
           // تفعيل الخطة في قاعدة البيانات فقط عند التأكيد الفعلي
-          const { error } = await supabase.rpc('upgrade_shop_plan', { p_shop_domain: shop, p_new_plan: plan as any, p_shopify_charge_id: chargeId || null })
+          const { error } = await supabase.rpc('confirm_subscription_payment', { p_shop_domain: shop, p_shopify_charge_id: chargeId || null })
           if (error) throw error
-          console.log('✅ Subscription confirmed and activated via DB function')
+          console.log('✅ Subscription confirmed and activated')
         }
       }
     } catch (e) {
