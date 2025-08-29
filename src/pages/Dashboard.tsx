@@ -247,7 +247,7 @@ const Dashboard = () => {
                   storeUrl={activeStore}
                   userEmail={userEmail || undefined}
                   planType={subscription?.plan_type || 'free'}
-                  planStatus="active"
+                  planStatus={(subscription?.status === 'pending') ? 'pending' : 'active'}
                   isConnected={true}
                   className="mb-8"
                 />

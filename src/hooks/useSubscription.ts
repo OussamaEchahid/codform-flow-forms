@@ -78,8 +78,12 @@ export const useSubscription = (shopDomain?: string): UseSubscriptionReturn => {
     }
 
     // إذا الاشتراك قيد الانتظار لأي خطة غير الخطة الحالية، نعرض الحالة pending بدل current
-    if (subscription.status === 'pending' && subscription.plan_type === planId.toLowerCase()) {
-      console.log(`🔍 [useSubscription] getPlanStatus(${planId}): pending`);
+    // في حال وجود طلب ترقية معلق لخطة مختلفة عن الخطة الحالية
+    if (
+      subscription.status === 'pending' &&
+      (subscription.requested_plan_type?.toLowerCase?.() === planId.toLowerCase())
+    ) {
+      console.log(`🔍 [useSubscription] getPlanStatus(${planId}): pending (requested ${subscription.requested_plan_type})`);
       return 'pending';
     }
 

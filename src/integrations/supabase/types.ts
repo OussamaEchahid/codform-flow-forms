@@ -762,6 +762,8 @@ export type Database = {
           trial_started_at: string | null
           updated_at: string
           user_id: string | null
+          requested_plan_type?: Database["public"]["Enums"]["subscription_plan"] | null
+          requested_at?: string | null
         }
         Insert: {
           billing_cycle?: string | null
@@ -779,6 +781,8 @@ export type Database = {
           trial_started_at?: string | null
           updated_at?: string
           user_id?: string | null
+          requested_plan_type?: Database["public"]["Enums"]["subscription_plan"] | null
+          requested_at?: string | null
         }
         Update: {
           billing_cycle?: string | null
@@ -796,6 +800,8 @@ export type Database = {
           trial_started_at?: string | null
           updated_at?: string
           user_id?: string | null
+          requested_plan_type?: Database["public"]["Enums"]["subscription_plan"] | null
+          requested_at?: string | null
         }
         Relationships: []
       }
@@ -944,39 +950,6 @@ export type Database = {
         }
         Relationships: []
       }
-      unified_default_rates: {
-        Row: {
-          created_at: string
-          currency_code: string
-          currency_name: string
-          currency_symbol: string
-          exchange_rate: number
-          id: string
-          region: string | null
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          currency_code: string
-          currency_name: string
-          currency_symbol: string
-          exchange_rate: number
-          id?: string
-          region?: string | null
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          currency_code?: string
-          currency_name?: string
-          currency_symbol?: string
-          exchange_rate?: number
-          id?: string
-          region?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
     }
     Views: {
       [_ in never]: never
@@ -1016,7 +989,7 @@ export type Database = {
         Returns: undefined
       }
       confirm_subscription_payment: {
-        Args: { p_shop_domain: string; p_shopify_charge_id?: string }
+        Args: { p_shop_domain: string; p_shopify_charge_id: string }
         Returns: Json
       }
       confirm_subscription_upgrade: {
@@ -1087,16 +1060,6 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
-      get_all_unified_default_rates: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          currency_code: string
-          currency_name: string
-          currency_symbol: string
-          exchange_rate: number
-          region: string
-        }[]
-      }
       get_blocked_countries: {
         Args: { p_shop_id: string }
         Returns: {
@@ -1125,10 +1088,6 @@ export type Database = {
           updated_at: string | null
           user_id: string | null
         }[]
-      }
-      get_currency_settings: {
-        Args: { p_shop_id: string }
-        Returns: Json
       }
       get_current_user_email: {
         Args: Record<PropertyKey, never>
@@ -1238,10 +1197,6 @@ export type Database = {
           shop: string
           updated_at: string
         }[]
-      }
-      get_unified_default_rate: {
-        Args: { p_currency_code: string }
-        Returns: number
       }
       get_user_stores: {
         Args: { p_user_id: string }

@@ -159,10 +159,11 @@ serve(async (req) => {
       });
     }
 
-    // Optionally mark subscription as pending in DB
+    // Mark subscription request as pending in DB WITHOUT changing active plan
     await supabase.from('shop_subscriptions').upsert({
       shop_domain: shop,
-      plan_type: planId,
+      requested_plan_type: planId,
+      requested_at: new Date().toISOString(),
       status: 'pending',
       updated_at: new Date().toISOString(),
     }, { onConflict: 'shop_domain' });
