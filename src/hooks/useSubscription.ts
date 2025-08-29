@@ -102,9 +102,25 @@ export const useSubscription = (shopDomain?: string): UseSubscriptionReturn => {
     return status;
   }, [subscription, isCurrentPlan]);
 
-  // تحميل البيانات عند mount
+  // تحميل البيانات عند mount + محاولة مصالحة تلقائية إذا كانت الحالة pending
   useEffect(() => {
-    loadSubscription();
+    (async () => {
+      await loadSubscription();
+      try {
+        if (subscription?.status === 'pending') {
+          const { edgeGet } = await import('@/lib/supabase-edge');
+          const shop = shopDomain || (await subscriptionService.getCurrentSubscription())?.shop_domain;
+          if (shop) {
+            console.log('🧩 Reconciling pending subscription for', shop);
+            await edgeGet('reconcile-subscriptions', { shop });
+            // بعد المصالحة، أعد التحميل
+            await loadSubscription(true);
+          }
+        }
+      } catch (e) {
+        console.warn('Reconcile attempt skipped/failed:', e);
+      }
+    })();
   }, [loadSubscription]);
 
   // الاستماع لتغييرات المتجر النشط
