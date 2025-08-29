@@ -30,7 +30,7 @@ import OrderSettings from "@/pages/OrderSettings";
 import GeneralSettings from "@/pages/GeneralSettings";
 import SecuritySettings from "@/pages/SecuritySettings";
 
-import PlansSettings from "@/pages/PlansSettings";
+import BillingCenter from "@/pages/BillingCenter";
 import CurrencySettings from "@/pages/CurrencySettings";
 import QuantityOffers from "@/pages/QuantityOffers";
 import AdvertisingTracking from "@/pages/AdvertisingTracking";
@@ -147,6 +147,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<Index />} />
+      <Route path="/shopify" element={<Shopify />} />
       <Route path="/shopify-connect" element={<Shopify />} />
       <Route path="/shopify-callback" element={<ShopifyCallback />} />
       <Route path="/subscription-callback" element={<SubscriptionCallback />} />
@@ -167,8 +168,8 @@ function AppRoutes() {
       <Route path="/settings/security" element={<SecuritySettings />} />
 
 
-      <Route path="/settings/plans" element={<PlansSettings />} />
-      <Route path="/plans" element={<PlansSettings />} />
+      <Route path="/settings/plans" element={<BillingCenter />} />
+      <Route path="/plans" element={<BillingCenter />} />
       <Route path="/settings/currency" element={<CurrencySettings />} />
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/terms" element={<Terms />} />

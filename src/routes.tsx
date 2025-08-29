@@ -4,7 +4,7 @@ import Settings from '@/pages/Settings';
 import OrderSettings from '@/pages/OrderSettings';
 import GeneralSettings from '@/pages/GeneralSettings';
 import SecuritySettings from '@/pages/SecuritySettings';
-import PlansSettings from '@/pages/PlansSettings';
+import BillingCenter from '@/pages/BillingCenter';
 import CurrencySettings from '@/pages/CurrencySettings';
 import CurrencyManagement from '@/pages/CurrencyManagement';
 import QuantityOffers from '@/pages/QuantityOffers';
@@ -92,7 +92,7 @@ export const routes: RouteObject[] = [
   },
   {
     path: '/settings/plans',
-    Component: PlansSettings
+    Component: BillingCenter
   },
   {
     path: '/settings/currency',
