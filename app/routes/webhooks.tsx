@@ -31,13 +31,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
         // Persist to DB if we detected plan, otherwise just ack
         if (shop && plan_type) {
+          // لا نعين active إلا إذا كانت من Shopify فعلاً
+          const normalized = status === 'active' ? 'active' : (status === 'cancelled' || status === 'declined') ? 'cancelled' : 'pending';
           await prisma.$executeRawUnsafe(
             `insert into shop_subscriptions (shop_domain, plan_type, status, updated_at)
              values ($1, $2, $3, now())
              on conflict (shop_domain) do update set plan_type = excluded.plan_type, status = excluded.status, updated_at = now()`,
             shop,
             plan_type,
-            status || 'active'
+            normalized
           );
         }
       } catch (err) {

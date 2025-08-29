@@ -137,14 +137,20 @@ Deno.serve(async (req) => {
         console.log(`📋 Full webhook data:`, JSON.stringify(body, null, 2))
 
         if (shopDomain && plan_type) {
+          // تطبيع الحالة: لا نقوم أبداً بتعيين active إلا عند وصول active فعلياً من Shopify
+          // الحالات المحتملة من Shopify: pending, accepted, active, cancelled, declined
+          let normalizedStatus: 'pending' | 'active' | 'cancelled' = 'pending'
+          if (status === 'active') normalizedStatus = 'active'
+          else if (status === 'cancelled' || status === 'declined') normalizedStatus = 'cancelled'
+
           const subscriptionData = {
             shop_domain: shopDomain,
             plan_type: plan_type,
-            status: status === 'active' ? 'active' : status || 'active',
+            status: normalizedStatus,
             price_amount: amount,
             currency: 'USD',
             shopify_charge_id: appSub?.id || null,
-            subscription_started_at: status === 'active' ? new Date().toISOString() : null,
+            subscription_started_at: normalizedStatus === 'active' ? new Date().toISOString() : null,
             updated_at: new Date().toISOString(),
           };
 

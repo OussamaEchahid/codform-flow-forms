@@ -8,7 +8,7 @@ export interface UseSubscriptionReturn {
   refreshSubscription: () => Promise<void>;
   forceRefresh: () => Promise<void>;
   isCurrentPlan: (planId: string) => boolean;
-  getPlanStatus: (planId: string) => 'current' | 'upgrade' | 'downgrade' | 'other';
+  getPlanStatus: (planId: string) => 'current' | 'pending' | 'upgrade' | 'downgrade' | 'other';
 }
 
 export const useSubscription = (shopDomain?: string): UseSubscriptionReturn => {
@@ -56,18 +56,17 @@ export const useSubscription = (shopDomain?: string): UseSubscriptionReturn => {
   const isCurrentPlan = useCallback((planId: string): boolean => {
     if (!subscription) return false;
     
-    // قبول الاشتراكات النشطة والمعلقة كخطط حالية
-    const acceptableStatuses = ['active', 'pending'];
-    const hasAcceptableStatus = acceptableStatuses.includes(subscription.status);
+    // الخطة الحالية تُعتبر فقط عند تفعيل الاشتراك (active)
+    const isActive = subscription.status === 'active';
     const planMatches = subscription.plan_type === planId.toLowerCase();
-    
-    const result = hasAcceptableStatus && planMatches;
+
+    const result = isActive && planMatches;
     console.log(`🔍 [useSubscription] isCurrentPlan(${planId}): ${result} (plan: ${subscription.plan_type}, status: ${subscription.status})`);
     
     return result;
   }, [subscription]);
 
-  const getPlanStatus = useCallback((planId: string): 'current' | 'upgrade' | 'downgrade' | 'other' => {
+  const getPlanStatus = useCallback((planId: string): 'current' | 'pending' | 'upgrade' | 'downgrade' | 'other' => {
     if (!subscription) {
       console.log(`🔍 [useSubscription] getPlanStatus(${planId}): other (no subscription)`);
       return 'other';
@@ -76,6 +75,12 @@ export const useSubscription = (shopDomain?: string): UseSubscriptionReturn => {
     if (isCurrentPlan(planId)) {
       console.log(`🔍 [useSubscription] getPlanStatus(${planId}): current`);
       return 'current';
+    }
+
+    // إذا الاشتراك قيد الانتظار لأي خطة غير الخطة الحالية، نعرض الحالة pending بدل current
+    if (subscription.status === 'pending' && subscription.plan_type === planId.toLowerCase()) {
+      console.log(`🔍 [useSubscription] getPlanStatus(${planId}): pending`);
+      return 'pending';
     }
 
     const planOrder = ['free', 'basic', 'premium'];
@@ -89,7 +94,7 @@ export const useSubscription = (shopDomain?: string): UseSubscriptionReturn => {
 
     const status = targetIndex > currentIndex ? 'upgrade' : 'downgrade';
     console.log(`🔍 [useSubscription] getPlanStatus(${planId}): ${status} (current: ${currentIndex}, target: ${targetIndex})`);
-    
+
     return status;
   }, [subscription, isCurrentPlan]);
 
