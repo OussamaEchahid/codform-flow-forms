@@ -47,6 +47,7 @@ const BillingCenter: React.FC = () => {
 
         let attempts = 0;
         const maxAttempts = 30;
+        let reconcileTriggered = false; // نتجنب تكرار المصالحة
         const id = window.setInterval(async () => {
           attempts++;
           await forceRefresh();
@@ -54,7 +55,28 @@ const BillingCenter: React.FC = () => {
             window.clearInterval(id);
             if (upgradePollRef.current) upgradePollRef.current = null;
             setUpgradingTo(null);
+            return;
           }
+
+          // إذا لم تتفعّل بعد لكن يوجد طلب ترقية للخطة المطلوبة، شغّل المصالحة مرة واحدة
+          try {
+            const { subscriptionService } = await import('@/lib/subscription-service');
+            const sub = activeStore ? await subscriptionService.getSubscription(activeStore) : null;
+            if (
+              sub &&
+              sub.requested_plan_type?.toLowerCase?.() === planId.toLowerCase() &&
+              sub.plan_type?.toLowerCase?.() !== planId.toLowerCase() &&
+              !reconcileTriggered
+            ) {
+              const { edgeGet } = await import('@/lib/supabase-edge');
+              console.log('🧩 [BillingCenter] Triggering reconcile-subscriptions from polling...');
+              await edgeGet('reconcile-subscriptions', { shop: activeStore });
+              reconcileTriggered = true;
+            }
+          } catch (e) {
+            console.warn('Reconcile check failed during polling (BillingCenter):', e);
+          }
+
           if (attempts >= maxAttempts) {
             window.clearInterval(id);
             if (upgradePollRef.current) upgradePollRef.current = null;
