@@ -18,15 +18,27 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!
     const supabase = createClient(supabaseUrl, supabaseKey)
 
-    if (req.method !== 'GET') {
+    // Support both GET (query param) and POST (JSON body) to be compatible with callers
+    if (req.method !== 'GET' && req.method !== 'POST') {
       return new Response(
         JSON.stringify({ success: false, error: 'Method not allowed' }),
         { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    const url = new URL(req.url)
-    const shop_id = url.searchParams.get('shop_id')
+    let shop_id: string | null = null
+
+    if (req.method === 'GET') {
+      const url = new URL(req.url)
+      shop_id = url.searchParams.get('shop_id') || url.searchParams.get('shop')
+    } else {
+      try {
+        const body = await req.json()
+        shop_id = body?.shop_id || body?.shop || body?.shopId || null
+      } catch (_) {
+        shop_id = null
+      }
+    }
 
     if (!shop_id) {
       return new Response(
