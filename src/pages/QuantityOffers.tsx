@@ -214,7 +214,11 @@ const QuantityOffers = () => {
           (supabase as any).rpc('auto_link_store_to_current_user'),
           (supabase as any).rpc('link_active_store_to_user')
         ]);
-        await (supabase as any).rpc('fix_form_store_links');
+        try {
+          await supabase.functions.invoke('forms-maintenance', { body: { action: 'fix_form_links' } });
+        } catch (_) {
+          // ignore
+        }
       } catch (e) {
         console.warn('Link RPCs failed (non-blocking):', e);
       }
