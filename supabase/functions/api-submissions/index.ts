@@ -513,34 +513,14 @@ async function createShopifyDraftOrder(
     const quantity = calculateQuantityFromPrice(convertedPrice.price, formData, formData?.productData);
     const unitPrice = (convertedPrice.price || 0).toFixed(2);
 
+    // If PCD not approved, only send non-PII fields to try avoiding the gate
+    const pcdApproved = ((Deno.env.get('SHOPIFY_PCD_APPROVED') || 'false') as string).toLowerCase() === 'true';
+
     // Build draft order payload using a custom line item (no variant required)
-    const draftPayload = {
+    const draftPayload: any = {
       draft_order: {
-        email: customer.email || undefined,
         note: `Draft from offsite form. Submission: ${formId}`,
         tags: 'COD,OFFSITE_FORM',
-        shipping_address: (customer.city || customer.address) ? {
-          first_name: firstName,
-          last_name: lastName,
-          address1: customer.address || customer.city,
-          city: customer.city || 'المدينة',
-          country: formSettings.country || 'SA',
-          phone: customer.phone || undefined
-        } : undefined,
-        billing_address: (customer.city || customer.address) ? {
-          first_name: firstName,
-          last_name: lastName,
-          address1: customer.address || customer.city,
-          city: customer.city || 'المدينة',
-          country: formSettings.country || 'SA',
-          phone: customer.phone || undefined
-        } : undefined,
-        customer: (customer.email || customer.phone) ? {
-          first_name: firstName,
-          last_name: lastName,
-          email: customer.email || undefined,
-          phone: customer.phone || undefined
-        } : undefined,
         line_items: [
           {
             title: 'طلب من النموذج - Form Order (Draft)',
@@ -550,6 +530,30 @@ async function createShopifyDraftOrder(
         ]
       }
     };
+
+    // Only include PII if PCD is approved
+    if (pcdApproved) {
+      draftPayload.draft_order.email = customer.email || undefined;
+      if (customer.city || customer.address) {
+        draftPayload.draft_order.shipping_address = {
+          first_name: firstName,
+          last_name: lastName,
+          address1: customer.address || customer.city,
+          city: customer.city || 'المدينة',
+          country: formSettings.country || 'SA',
+          phone: customer.phone || undefined
+        };
+        draftPayload.draft_order.billing_address = { ...draftPayload.draft_order.shipping_address };
+      }
+      if (customer.email || customer.phone) {
+        draftPayload.draft_order.customer = {
+          first_name: firstName,
+          last_name: lastName,
+          email: customer.email || undefined,
+          phone: customer.phone || undefined
+        };
+      }
+    }
 
     console.log('🧾 Draft order payload:', JSON.stringify(draftPayload, null, 2));
 
