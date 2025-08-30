@@ -16,18 +16,9 @@
 
     --primary: 262 83% 74%;
     --primary-foreground: 210 40% 98%;
-    --primary-light: 262 83% 85%;
-    --primary-glow: 262 83% 88%;
 
     --secondary: 260 29% 61%;
     --secondary-foreground: 210 40% 98%;
-
-    --gradient-primary: linear-gradient(135deg, hsl(262 83% 74%), hsl(262 83% 85%));
-    --gradient-premium: linear-gradient(135deg, hsl(262 83% 74%), hsl(280 83% 74%));
-    --gradient-basic: linear-gradient(135deg, hsl(262 50% 70%), hsl(262 50% 80%));
-    
-    --shadow-glow: 0 10px 40px -10px hsl(262 83% 74% / 0.3);
-    --shadow-premium: 0 20px 60px -10px hsl(262 83% 74% / 0.4);
 
     --muted: 260 33% 96%;
     --muted-foreground: 215.4 16.3% 46.9%;
