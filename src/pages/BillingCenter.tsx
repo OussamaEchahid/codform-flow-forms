@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,13 @@ const BillingCenter: React.FC = () => {
   const { subscription, loading, forceRefresh, isCurrentPlan } = useSubscription();
   const [upgradingTo, setUpgradingTo] = useState<PlanId | null>(null);
   const upgradePollRef = useRef<number | null>(null);
+  const [debugLogs, setDebugLogs] = useState<string[]>([]);
+
+  // إضافة سجل جديد
+  const addLog = (message: string) => {
+    const timestamp = new Date().toLocaleTimeString();
+    setDebugLogs(prev => [`[${timestamp}] ${message}`, ...prev.slice(0, 9)]);
+  };
 
   const activeStore = useMemo(() => {
     return (
@@ -25,6 +32,11 @@ const BillingCenter: React.FC = () => {
       ''
     );
   }, []);
+
+  useEffect(() => {
+    addLog('🔄 BillingCenter loaded');
+    addLog('🏪 Active store: ' + (activeStore || 'None'));
+  }, [activeStore]);
 
   const iconForPlan: Record<PlanId, React.ComponentType<any>> = {
     free: Gift,
@@ -55,16 +67,27 @@ const BillingCenter: React.FC = () => {
 
   const startUpgrade = async (planId: PlanId) => {
     try {
-      if (!activeStore) return;
+      addLog(`🚀 Starting upgrade to ${planId}`);
+      if (!activeStore) {
+        addLog('❌ No active store found');
+        return;
+      }
       setUpgradingTo(planId);
+      addLog(`🏪 Active store: ${activeStore}`);
 
+      addLog(`📡 Calling change-plan function...`);
       const { supabase } = await import('@/integrations/supabase/client');
       const { data, error } = await supabase.functions.invoke('change-plan', {
         body: { shop: activeStore, planId },
       });
-      if (error) throw error;
+      if (error) {
+        addLog(`❌ Change plan error: ${error.message}`);
+        throw error;
+      }
 
+      addLog(`✅ Change plan response received`);
       if (data?.url) {
+        addLog(`🔗 Opening confirmation URL: ${data.url}`);
         window.open(data.url, '_blank');
 
         const onFocus = async () => {
@@ -77,10 +100,13 @@ const BillingCenter: React.FC = () => {
         const maxAttempts = 30;
         let reconcileTriggered = false;
 
+        addLog(`⏱️ Starting subscription monitoring...`);
         const id = window.setInterval(async () => {
           attempts++;
+          addLog(`🔄 Polling ${attempts}/${maxAttempts}`);
           await forceRefresh();
           if (isCurrentPlan(planId)) {
+            addLog(`🎉 PLAN ACTIVATED! Plan: ${planId}`);
             window.clearInterval(id);
             if (upgradePollRef.current) upgradePollRef.current = null;
             setUpgradingTo(null);
@@ -136,6 +162,20 @@ const BillingCenter: React.FC = () => {
 
   return (
     <SettingsLayout>
+      {/* Debug Logs Panel */}
+      <div className="fixed top-4 right-4 w-96 bg-black/90 text-green-400 p-4 rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto">
+        <div className="text-xs font-mono">
+          <div className="text-white mb-2 font-bold">🔍 Debug Logs:</div>
+          {debugLogs.length === 0 ? (
+            <div className="text-gray-400">Waiting for actions...</div>
+          ) : (
+            debugLogs.map((log, i) => (
+              <div key={i} className="mb-1 text-xs">{log}</div>
+            ))
+          )}
+        </div>
+      </div>
+
       <div className="container mx-auto p-6 space-y-8">
         {/* Hero Section */}
         <div className="text-center mb-8">
@@ -297,7 +337,12 @@ const BillingCenter: React.FC = () => {
                         }`}
                         disabled={disabled || isUpgrading}
                         variant="ghost"
-                        onClick={() => !isCurrent && startUpgrade(p.id)}
+                        onClick={() => {
+                          if (!isCurrent) {
+                            addLog(`🖱️ User clicked upgrade to ${p.name}`);
+                            startUpgrade(p.id);
+                          }
+                        }}
                       >
                         {isCurrent
                           ? (subscription?.status === 'pending'
