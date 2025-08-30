@@ -192,13 +192,14 @@ const PlansSettings = () => {
           let pollAttempts = 0;
           const maxPollAttempts = 30;
 
+
           const pollId = window.setInterval(async () => {
             pollAttempts++;
             console.log(`🔄 Polling attempt ${pollAttempts}/${maxPollAttempts} for plan ${planId}`);
 
             try {
               await forceRefresh();
-              
+
               // التحقق من نجاح الترقية
               if (isCurrentPlan(planId)) {
                 console.log('✅ Subscription updated successfully!');
@@ -209,6 +210,25 @@ const PlansSettings = () => {
                 toast.success(language === 'ar' ? 'تم تفعيل الخطة بنجاح' : 'Plan activated successfully');
                 return;
               }
+
+              // المصالحة معطلة - يجب أن تحدث فقط عبر webhook
+              // try {
+              //   const { subscriptionService } = await import('@/lib/subscription-service');
+              //   const sub = await subscriptionService.getSubscription(activeStore);
+              //   if (
+              //     sub &&
+              //     sub.requested_plan_type?.toLowerCase?.() === planId.toLowerCase() &&
+              //     sub.plan_type?.toLowerCase?.() !== planId.toLowerCase() &&
+              //     !reconcileTriggered
+              //   ) {
+              //     const { edgeGet } = await import('@/lib/supabase-edge');
+              //     console.log('🧩 Triggering reconcile-subscriptions from polling...');
+              //     await edgeGet('reconcile-subscriptions', { shop: activeStore });
+              //     reconcileTriggered = true;
+              //   }
+              // } catch (e) {
+              //   console.warn('Reconcile check failed during polling:', e);
+              // }
             } catch (error) {
               console.error('❌ Error during polling:', error);
             }
@@ -220,7 +240,7 @@ const PlansSettings = () => {
               setUpgradingTo(null);
             }
           }, 3000);
-          
+
           upgradePollRef.current = pollId;
         }
       }
