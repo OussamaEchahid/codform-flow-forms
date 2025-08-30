@@ -261,16 +261,19 @@ const Plans = () => {
                       : 'border border-gray-200 hover:border-gray-300'
                   } ${isCurrentPlanActive ? 'ring-2 ring-emerald-400' : ''}`}
                 >
-                  {/* Background Gradient */}
-                  <div className={`absolute inset-0 bg-gradient-to-br ${plan.gradient} opacity-50`} />
+                  {/* Background - إزالة الطبقة الشفافة المشوشة */}
 
-                  {/* Popular Badge */}
+                  {/* Popular Badge - تحسين التصميم */}
                   {plan.popular && (
-                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10">
-                      <Badge className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-4 py-1.5 shadow-lg">
-                        <Star className="h-3 w-3 mr-1 fill-current" />
-                        {language === 'ar' ? 'الأكثر شعبية' : 'Most Popular'}
-                      </Badge>
+                    <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-20">
+                      <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-4 py-2 rounded-full shadow-lg border-2 border-white">
+                        <div className="flex items-center gap-1">
+                          <Star className="h-3 w-3 fill-current" />
+                          <span className="text-sm font-semibold whitespace-nowrap">
+                            {language === 'ar' ? 'الأكثر شعبية' : 'Most Popular'}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   )}
 
@@ -328,7 +331,7 @@ const Plans = () => {
                     <CardContent className="space-y-6">
                       {/* Features List */}
                       <div className="space-y-3">
-                        {plan.features.slice(0, 8).map((feature, featureIndex) => (
+                        {plan.features.slice(0, 6).map((feature, featureIndex) => (
                           <div key={featureIndex} className="flex items-start gap-3">
                             <div className="flex-shrink-0 mt-0.5">
                               <div className={`h-5 w-5 rounded-full flex items-center justify-center ${
@@ -344,7 +347,7 @@ const Plans = () => {
                             </span>
                           </div>
                         ))}
-                        {plan.features.length > 8 && (
+                        {plan.features.length > 6 && (
                           <div className="flex items-start gap-3">
                             <div className="flex-shrink-0 mt-0.5">
                               <div className={`h-5 w-5 rounded-full flex items-center justify-center ${
@@ -355,8 +358,8 @@ const Plans = () => {
                                 }`} />
                               </div>
                             </div>
-                            <span className="text-sm text-gray-600 italic">
-                              {language === 'ar' ? `+ ${plan.features.length - 8} ميزة إضافية` : `+ ${plan.features.length - 8} more features`}
+                            <span className="text-sm text-gray-600 italic font-medium">
+                              {language === 'ar' ? `+ ${plan.features.length - 6} ميزة إضافية` : `+ ${plan.features.length - 6} more features`}
                             </span>
                           </div>
                         )}
