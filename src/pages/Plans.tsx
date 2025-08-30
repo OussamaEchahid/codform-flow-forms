@@ -8,7 +8,7 @@ import { useI18n } from '@/lib/i18n';
 import { useSubscription } from '@/hooks/useSubscription';
 import { PLANS, type PlanId } from '@/lib/billing/plans';
 import UnifiedStoreManager from '@/utils/unified-store-manager';
-import { Crown, Star, Zap, Check, Sparkles, Gift } from "lucide-react";
+import { Crown, Zap, Check, Gift, Sparkles } from "lucide-react";
 
 
 
@@ -263,19 +263,7 @@ const Plans = () => {
                 >
                   {/* Background - إزالة الطبقة الشفافة المشوشة */}
 
-                  {/* Popular Badge - تحسين التصميم */}
-                  {plan.popular && (
-                    <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-20">
-                      <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-4 py-2 rounded-full shadow-lg border-2 border-white">
-                        <div className="flex items-center gap-1">
-                          <Star className="h-3 w-3 fill-current" />
-                          <span className="text-sm font-semibold whitespace-nowrap">
-                            {language === 'ar' ? 'الأكثر شعبية' : 'Most Popular'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                  {/* إزالة شارة Most Popular */}
 
                   {/* Current Plan Badge */}
                   {isCurrentPlanActive && (
@@ -329,9 +317,9 @@ const Plans = () => {
                     </CardHeader>
 
                     <CardContent className="space-y-6">
-                      {/* Features List */}
+                      {/* Features List - عرض جميع الميزات */}
                       <div className="space-y-3">
-                        {plan.features.slice(0, 6).map((feature, featureIndex) => (
+                        {plan.features.map((feature, featureIndex) => (
                           <div key={featureIndex} className="flex items-start gap-3">
                             <div className="flex-shrink-0 mt-0.5">
                               <div className={`h-5 w-5 rounded-full flex items-center justify-center ${
@@ -347,22 +335,6 @@ const Plans = () => {
                             </span>
                           </div>
                         ))}
-                        {plan.features.length > 6 && (
-                          <div className="flex items-start gap-3">
-                            <div className="flex-shrink-0 mt-0.5">
-                              <div className={`h-5 w-5 rounded-full flex items-center justify-center ${
-                                plan.popular ? 'bg-purple-100' : 'bg-emerald-100'
-                              }`}>
-                                <Sparkles className={`h-3 w-3 ${
-                                  plan.popular ? 'text-purple-600' : 'text-emerald-600'
-                                }`} />
-                              </div>
-                            </div>
-                            <span className="text-sm text-gray-600 italic font-medium">
-                              {language === 'ar' ? `+ ${plan.features.length - 6} ميزة إضافية` : `+ ${plan.features.length - 6} more features`}
-                            </span>
-                          </div>
-                        )}
                       </div>
 
                       {/* Action Button */}
