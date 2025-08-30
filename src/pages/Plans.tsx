@@ -1,14 +1,14 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import AppSidebar from '@/components/layout/AppSidebar';
 import { useI18n } from '@/lib/i18n';
 import { useSubscription } from '@/hooks/useSubscription';
 import { PLANS, type PlanId } from '@/lib/billing/plans';
 import UnifiedStoreManager from '@/utils/unified-store-manager';
-import { Crown, Star, Zap, Check } from "lucide-react";
+import { PlanCard } from '@/components/pricing/PlanCard';
+import { PricingHeader } from '@/components/pricing/PricingHeader';
+import { CurrentSubscriptionBanner } from '@/components/pricing/CurrentSubscriptionBanner';
+import { PricingFooter } from '@/components/pricing/PricingFooter';
 
 
 
@@ -46,11 +46,6 @@ const Plans = () => {
     );
   }, []);
 
-  const iconForPlan: Record<PlanId, React.ComponentType<any>> = {
-    free: Star,
-    basic: Zap,
-    premium: Crown,
-  };
 
 
   const planSubtitle: Record<PlanId, string> = {
@@ -122,152 +117,42 @@ const Plans = () => {
     }
   };
 
-  const handleUpgrade = (planName: string) => {}
+  
 
   return (
     <div className="flex min-h-screen bg-background" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <AppSidebar />
 
-      <div className="flex-1 p-6">
-        <div className="max-w-6xl mx-auto">
-          {/* العنوان */}
-          <div className="text-center mb-6">
-            <h1 className="text-4xl font-bold mb-4">
-              {language === 'ar' ? 'خطط الاشتراك' : 'Subscription Plans'}
-            </h1>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              {language === 'ar'
-                ? 'ابدأ مجاناً ثم قم بالترقية عندما تحتاج إلى مزيد من الميزات والحدود'
-                : 'Start free, then upgrade when you need more features and limits'}
-            </p>
-          </div>
+      <div className="flex-1">
+        <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+          <div className="max-w-7xl mx-auto px-6 py-12">
+            <PricingHeader language={language} />
+            
+            <CurrentSubscriptionBanner 
+              subscription={subscription} 
+              language={language} 
+            />
 
-          {/* ملخص الاشتراك الحالي */}
-          {subscription && (
-            <div className="mb-8 rounded-md border bg-emerald-50 border-emerald-200 text-emerald-700 p-3 flex items-center justify-between">
-              <div className="text-sm">
-                <span>{language === 'ar' ? 'الخطة' : 'Plan'}: <b className="uppercase">{subscription.plan_type}</b></span>
-                <span className="mx-2">·</span>
-                <span>{language === 'ar' ? 'الحالة' : 'Status'}: <b>{subscription.status}</b></span>
-                {subscription.next_billing_date && (
-                  <>
-                    <span className="mx-2">·</span>
-                    <span>
-                      {language === 'ar' ? 'التجديد:' : 'Renews on:'} {new Date(subscription.next_billing_date).toLocaleDateString(language === 'ar' ? 'ar' : 'en')}
-                    </span>
-                  </>
-                )}
-              </div>
-              {subscription.status === 'pending' && (
-                <span className="px-2 py-1 text-xs rounded-full bg-amber-100 text-amber-700">{language === 'ar' ? 'قيد التفعيل' : 'Activating'}</span>
-              )}
+            <div className="grid lg:grid-cols-3 gap-8 mb-12">
+              {plans.map((plan) => (
+                <PlanCard
+                  key={plan.id}
+                  plan={plan}
+                  planSubtitle={planSubtitle[plan.id as PlanId]}
+                  isCurrentPlan={isCurrentPlan(plan.id as PlanId)}
+                  isUpgrading={upgradingTo === (plan.id as PlanId)}
+                  onUpgrade={() => startUpgrade(plan.id as PlanId)}
+                  language={language}
+                  subscription={subscription}
+                />
+              ))}
             </div>
-          )}
 
-          {/* بطاقات الخطط */}
-          <div className="grid md:grid-cols-3 gap-8">
-            {plans.map((plan) => (
-              <Card
-                key={plan.name}
-                className={`relative flex flex-col ${plan.popular ? 'border-primary shadow-md' : ''}`}
-              >
-                {plan.popular && (
-                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                    <Badge className="bg-primary text-primary-foreground px-4 py-1">
-                      <Star className="h-4 w-4 mr-1" />
-                      {language === 'ar' ? 'الأكثر شعبية' : 'Most Popular'}
-                    </Badge>
-                  </div>
-                )}
-
-                <CardHeader className="text-center pb-8">
-                  <CardTitle className="text-2xl flex items-center justify-center gap-2">
-                    {(() => { const Icon = iconForPlan[plan.id as PlanId]; return <Icon size={20} className="text-primary" />; })()}
-                    {plan.name}
-                  </CardTitle>
-                  <div className="mt-4">
-                    <span className="text-4xl font-bold">${plan.price}</span>
-                    <span className="text-muted-foreground">/{language === 'ar' ? 'شهر' : 'month'}</span>
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    {planSubtitle[plan.id as PlanId]}
-                  </div>
-                </CardHeader>
-
-                <CardContent className="space-y-6">
-                  {/* الحدود */}
-                  <div className="border rounded-lg p-4 bg-muted/30">
-                    <h4 className="font-semibold mb-2">
-                      {language === 'ar' ? 'الحدود الشهرية:' : 'Monthly Limits:'}
-                    </h4>
-                    <div className="space-y-1 text-sm">
-                      <div className="flex justify-between">
-                        <span>{language === 'ar' ? 'الطلبات:' : 'Orders:'}</span>
-                        <span className="font-medium">
-                          {plan.limits.orders ? plan.limits.orders.toLocaleString() : '∞'}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>{language === 'ar' ? 'السلال المهجورة:' : 'Abandoned Carts:'}</span>
-                        <span className="font-medium">
-                          {plan.limits.abandoned ? plan.limits.abandoned.toLocaleString() : '∞'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* الميزات */}
-
-                  <div className="space-y-3">
-                    {plan.features.map((feature, featureIndex) => (
-                      <div key={featureIndex} className="flex items-center gap-2">
-                        <Check className="h-4 w-4 text-green-600 flex-shrink-0" />
-                        <span className="text-sm">{feature}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* زر الاشتراك */}
-                  <Button
-                    className="w-full"
-                    disabled={upgradingTo === (plan.id as PlanId) || (isCurrentPlan(plan.id as PlanId))}
-                    variant={isCurrentPlan(plan.id as PlanId) ? 'secondary' : (plan.popular ? 'default' : 'outline')}
-                    onClick={() => startUpgrade(plan.id as PlanId)}
-                  >
-                    {isCurrentPlan(plan.id as PlanId)
-                      ? (subscription?.status === 'pending'
-                          ? (language === 'ar' ? 'قيد التفعيل...' : 'Activating...')
-                          : (language === 'ar' ? 'الخطة الحالية' : 'Current Plan'))
-                      : (upgradingTo === (plan.id as PlanId)
-                          ? (language === 'ar' ? 'جاري الترقية...' : 'Upgrading...')
-                          : (language === 'ar' ? 'اختر الخطة' : 'Choose plan'))}
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {/* معلومات إضافية */}
-          <div className="mt-12 text-center">
-            <div className="bg-muted/30 rounded-lg p-6">
-              <h3 className="text-lg font-semibold mb-2">
-                {language === 'ar' ? 'لديك أسئلة؟' : 'Have Questions?'}
-              </h3>
-              <p className="text-muted-foreground mb-4">
-                {language === 'ar'
-                  ? 'فريقنا هنا لمساعدتك في اختيار الخطة المناسبة'
-                  : 'Our team is here to help you choose the right plan'
-                }
-              </p>
-              <div className="flex justify-center gap-4">
-                <Button variant="outline" onClick={() => navigate('/contact')}>
-                  {language === 'ar' ? 'اتصل بنا' : 'Contact Us'}
-                </Button>
-                <Button variant="ghost" onClick={() => navigate('/dashboard')}>
-                  {language === 'ar' ? 'العودة للوحة التحكم' : 'Back to Dashboard'}
-                </Button>
-              </div>
-            </div>
+            <PricingFooter
+              language={language}
+              onContactClick={() => navigate('/contact')}
+              onDashboardClick={() => navigate('/dashboard')}
+            />
           </div>
         </div>
       </div>
