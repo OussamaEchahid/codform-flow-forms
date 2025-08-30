@@ -544,7 +544,7 @@ class CurrencyServiceClass {
             body: JSON.stringify({
               shop_id: this.currentShopId,
               display_settings: {
-                show_symbol: false, // فقط للمتاجر الجديدة
+                show_symbol: true, // إظهار الكود كافتراضي (تم تصحيح المشكلة)
                 symbol_position: 'before',
                 decimal_places: 2
               },

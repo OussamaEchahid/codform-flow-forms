@@ -381,7 +381,17 @@ export const useFormTemplates = () => {
 
       const { currency: shopCurrency } = await getShopCurrencyAndCountry();
       console.log('🏪 Shop currency for new form:', shopCurrency);
-      
+
+      // تهيئة إعدادات العملة للمتجر لضمان عرض صحيح
+      try {
+        const { CurrencyService } = await import('@/lib/services/CurrencyService');
+        CurrencyService.setShopContext(shopId, null);
+        await CurrencyService.initialize();
+        console.log('✅ Currency service initialized for template form');
+      } catch (error) {
+        console.log('⚠️ Could not initialize currency service in template:', error);
+      }
+
       const currentLanguage = document.documentElement.lang || 'ar';
       const completeFields = createCompleteDefaultFormFields(currentLanguage, shopCurrency || 'USD');
       
