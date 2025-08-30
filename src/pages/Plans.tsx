@@ -52,6 +52,7 @@ const Plans = () => {
     premium: Crown,
   };
 
+
   const planSubtitle: Record<PlanId, string> = {
     free: language === 'ar' ? 'مجاني للبدء' : 'Free forever',
     basic: language === 'ar' ? 'للأعمال النامية' : 'For growing businesses',
@@ -130,24 +131,45 @@ const Plans = () => {
       <div className="flex-1 p-6">
         <div className="max-w-6xl mx-auto">
           {/* العنوان */}
-          <div className="text-center mb-12">
+          <div className="text-center mb-6">
             <h1 className="text-4xl font-bold mb-4">
-              {language === 'ar' ? 'اختر الخطة المناسبة لك' : 'Choose Your Perfect Plan'}
+              {language === 'ar' ? 'خطط الاشتراك' : 'Subscription Plans'}
             </h1>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
               {language === 'ar'
-                ? 'ابدأ مجاناً وقم بالترقية عندما تحتاج لمزيد من الميزات والحدود'
-                : 'Start free and upgrade when you need more features and limits'
-              }
+                ? 'ابدأ مجاناً ثم قم بالترقية عندما تحتاج إلى مزيد من الميزات والحدود'
+                : 'Start free, then upgrade when you need more features and limits'}
             </p>
           </div>
 
+          {/* ملخص الاشتراك الحالي */}
+          {subscription && (
+            <div className="mb-8 rounded-md border bg-emerald-50 border-emerald-200 text-emerald-700 p-3 flex items-center justify-between">
+              <div className="text-sm">
+                <span>{language === 'ar' ? 'الخطة' : 'Plan'}: <b className="uppercase">{subscription.plan_type}</b></span>
+                <span className="mx-2">·</span>
+                <span>{language === 'ar' ? 'الحالة' : 'Status'}: <b>{subscription.status}</b></span>
+                {subscription.next_billing_date && (
+                  <>
+                    <span className="mx-2">·</span>
+                    <span>
+                      {language === 'ar' ? 'التجديد:' : 'Renews on:'} {new Date(subscription.next_billing_date).toLocaleDateString(language === 'ar' ? 'ar' : 'en')}
+                    </span>
+                  </>
+                )}
+              </div>
+              {subscription.status === 'pending' && (
+                <span className="px-2 py-1 text-xs rounded-full bg-amber-100 text-amber-700">{language === 'ar' ? 'قيد التفعيل' : 'Activating'}</span>
+              )}
+            </div>
+          )}
+
           {/* بطاقات الخطط */}
           <div className="grid md:grid-cols-3 gap-8">
-            {plans.map((plan, index) => (
+            {plans.map((plan) => (
               <Card
                 key={plan.name}
-                className={`relative ${plan.popular ? 'border-primary shadow-lg scale-105' : ''}`}
+                className={`relative flex flex-col ${plan.popular ? 'border-primary shadow-md' : ''}`}
               >
                 {plan.popular && (
                   <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
