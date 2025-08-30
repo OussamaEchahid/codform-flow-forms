@@ -1,88 +1,132 @@
-import React from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, Star } from "lucide-react";
 import AppSidebar from '@/components/layout/AppSidebar';
 import { useI18n } from '@/lib/i18n';
+import { useSubscription } from '@/hooks/useSubscription';
+import { PLANS, type PlanId } from '@/lib/billing/plans';
+import UnifiedStoreManager from '@/utils/unified-store-manager';
+import { Crown, Star, Zap, Check } from "lucide-react";
+
+
 
 const Plans = () => {
   const navigate = useNavigate();
   const { t, language } = useI18n();
 
-  const plans = [
-    {
-      name: 'Free',
-      price: 0,
-      currency: 'USD',
-      period: 'month',
-      popular: false,
-      features: [
-        '70 طلب شهرياً',
-        '30 سلة مهجورة شهرياً',
-        'النماذج الأساسية',
-        'دعم بريد إلكتروني',
-        'تقارير أساسية'
-      ],
-      limits: {
-        orders: 70,
-        abandoned: 30
-      }
-    },
-    {
-      name: 'Basic',
-      price: 9.99,
-      currency: 'USD', 
-      period: 'month',
-      popular: true,
-      features: [
-        '1000 طلب شهرياً',
-        '30 سلة مهجورة شهرياً',
-        'جميع أنواع النماذج',
-        'تكاملات متقدمة',
-        'دعم أولوية',
-        'تقارير مفصلة',
-        'تخصيص متقدم'
-      ],
-      limits: {
-        orders: 1000,
-        abandoned: 30
-      }
-    },
-    {
-      name: 'Premium',
-      price: 29.99,
-      currency: 'USD',
-      period: 'month',
-      popular: false,
-      features: [
-        'طلبات غير محدودة',
-        'سلال مهجورة غير محدودة',
-        'جميع الميزات',
-        'دعم 24/7',
-        'تحليلات متقدمة',
-        'API كامل',
-        'تخصيص كامل',
-        'نسخ احتياطية'
-      ],
-      limits: {
-        orders: null,
-        abandoned: null
-      }
+  const plans = PLANS.map(p => ({
+    name: p.name,
+    price: p.monthlyPrice,
+    currency: 'USD',
+    period: 'month',
+    popular: !!p.popular,
+    features: p.features,
+    id: p.id,
+    limits: {
+      orders: p.id === 'free' ? 70 : p.id === 'basic' ? 1000 : null,
+      abandoned: p.id === 'free' ? 30 : p.id === 'basic' ? 30 : null
     }
-  ];
+  }));
 
-  const handleUpgrade = (planName: string) => {
-    // يمكن إضافة منطق الترقية هنا لاحقاً
-    console.log('Upgrading to:', planName);
-    // navigate('/checkout?plan=' + planName);
+
+  const { subscription, loading, forceRefresh, isCurrentPlan } = useSubscription();
+  const [upgradingTo, setUpgradingTo] = useState<PlanId | null>(null);
+  const upgradePollRef = useRef<number | null>(null);
+
+  const activeStore = useMemo(() => {
+    return (
+      UnifiedStoreManager.getActiveStore() ||
+      localStorage.getItem('active_store') ||
+      localStorage.getItem('active_shop') ||
+      localStorage.getItem('active_shopify_store') ||
+      localStorage.getItem('shopify_store') ||
+      ''
+    );
+  }, []);
+
+  const iconForPlan: Record<PlanId, React.ComponentType<any>> = {
+    free: Star,
+    basic: Zap,
+    premium: Crown,
   };
+
+  const planSubtitle: Record<PlanId, string> = {
+    free: language === 'ar' ? 'مجاني للبدء' : 'Free forever',
+    basic: language === 'ar' ? 'للأعمال النامية' : 'For growing businesses',
+    premium: language === 'ar' ? 'للشركات الجادة' : 'For ambitious teams',
+  };
+
+  const startUpgrade = async (planId: PlanId) => {
+    try {
+      if (!activeStore) return;
+      setUpgradingTo(planId);
+
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { data, error } = await supabase.functions.invoke('change-plan', {
+        body: { shop: activeStore, planId },
+      });
+      if (error) throw error;
+
+      if (data?.url) {
+        window.open(data.url, '_blank');
+
+        const onFocus = async () => {
+          await forceRefresh();
+          window.removeEventListener('focus', onFocus);
+        };
+        window.addEventListener('focus', onFocus);
+
+        let attempts = 0;
+        const maxAttempts = 30;
+        let reconcileTriggered = false;
+        const id = window.setInterval(async () => {
+          attempts++;
+          await forceRefresh();
+          if (isCurrentPlan(planId)) {
+            window.clearInterval(id);
+            if (upgradePollRef.current) upgradePollRef.current = null;
+            setUpgradingTo(null);
+            return;
+          }
+
+          try {
+            const { subscriptionService } = await import('@/lib/subscription-service');
+            const sub = activeStore ? await subscriptionService.getSubscription(activeStore) : null;
+            if (
+              sub &&
+              sub.requested_plan_type?.toLowerCase?.() === planId.toLowerCase() &&
+              sub.plan_type?.toLowerCase?.() !== planId.toLowerCase() &&
+              !reconcileTriggered
+            ) {
+              const { edgeGet } = await import('@/lib/supabase-edge');
+              await edgeGet('reconcile-subscriptions', { shop: activeStore });
+              reconcileTriggered = true;
+            }
+          } catch {}
+
+          if (attempts >= maxAttempts) {
+            window.clearInterval(id);
+            if (upgradePollRef.current) upgradePollRef.current = null;
+            setUpgradingTo(null);
+          }
+        }, 3000);
+        upgradePollRef.current = id;
+      } else {
+        setUpgradingTo(null);
+      }
+    } catch (e) {
+      setUpgradingTo(null);
+    }
+  };
+
+  const handleUpgrade = (planName: string) => {}
 
   return (
     <div className="flex min-h-screen bg-background" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <AppSidebar />
-      
+
       <div className="flex-1 p-6">
         <div className="max-w-6xl mx-auto">
           {/* العنوان */}
@@ -91,7 +135,7 @@ const Plans = () => {
               {language === 'ar' ? 'اختر الخطة المناسبة لك' : 'Choose Your Perfect Plan'}
             </h1>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              {language === 'ar' 
+              {language === 'ar'
                 ? 'ابدأ مجاناً وقم بالترقية عندما تحتاج لمزيد من الميزات والحدود'
                 : 'Start free and upgrade when you need more features and limits'
               }
@@ -101,8 +145,8 @@ const Plans = () => {
           {/* بطاقات الخطط */}
           <div className="grid md:grid-cols-3 gap-8">
             {plans.map((plan, index) => (
-              <Card 
-                key={plan.name} 
+              <Card
+                key={plan.name}
                 className={`relative ${plan.popular ? 'border-primary shadow-lg scale-105' : ''}`}
               >
                 {plan.popular && (
@@ -113,18 +157,19 @@ const Plans = () => {
                     </Badge>
                   </div>
                 )}
-                
+
                 <CardHeader className="text-center pb-8">
-                  <CardTitle className="text-2xl">{plan.name}</CardTitle>
+                  <CardTitle className="text-2xl flex items-center justify-center gap-2">
+                    {(() => { const Icon = iconForPlan[plan.id as PlanId]; return <Icon size={20} className="text-primary" />; })()}
+                    {plan.name}
+                  </CardTitle>
                   <div className="mt-4">
                     <span className="text-4xl font-bold">${plan.price}</span>
                     <span className="text-muted-foreground">/{language === 'ar' ? 'شهر' : 'month'}</span>
                   </div>
-                  <CardDescription className="text-sm mt-2">
-                    {plan.name === 'Free' && (language === 'ar' ? 'مجاني للأبد' : 'Free forever')}
-                    {plan.name === 'Basic' && (language === 'ar' ? 'للأعمال النامية' : 'For growing businesses')}
-                    {plan.name === 'Premium' && (language === 'ar' ? 'للشركات الكبيرة' : 'For large enterprises')}
-                  </CardDescription>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {planSubtitle[plan.id as PlanId]}
+                  </div>
                 </CardHeader>
 
                 <CardContent className="space-y-6">
@@ -150,6 +195,7 @@ const Plans = () => {
                   </div>
 
                   {/* الميزات */}
+
                   <div className="space-y-3">
                     {plan.features.map((feature, featureIndex) => (
                       <div key={featureIndex} className="flex items-center gap-2">
@@ -160,15 +206,19 @@ const Plans = () => {
                   </div>
 
                   {/* زر الاشتراك */}
-                  <Button 
+                  <Button
                     className="w-full"
-                    variant={plan.popular ? "default" : "outline"}
-                    onClick={() => handleUpgrade(plan.name)}
+                    disabled={upgradingTo === (plan.id as PlanId) || (isCurrentPlan(plan.id as PlanId))}
+                    variant={isCurrentPlan(plan.id as PlanId) ? 'secondary' : (plan.popular ? 'default' : 'outline')}
+                    onClick={() => startUpgrade(plan.id as PlanId)}
                   >
-                    {plan.name === 'Free' 
-                      ? (language === 'ar' ? 'البدء مجاناً' : 'Get Started')
-                      : (language === 'ar' ? 'ترقية الآن' : 'Upgrade Now')
-                    }
+                    {isCurrentPlan(plan.id as PlanId)
+                      ? (subscription?.status === 'pending'
+                          ? (language === 'ar' ? 'قيد التفعيل...' : 'Activating...')
+                          : (language === 'ar' ? 'الخطة الحالية' : 'Current Plan'))
+                      : (upgradingTo === (plan.id as PlanId)
+                          ? (language === 'ar' ? 'جاري الترقية...' : 'Upgrading...')
+                          : (language === 'ar' ? 'اختر الخطة' : 'Choose plan'))}
                   </Button>
                 </CardContent>
               </Card>
@@ -182,7 +232,7 @@ const Plans = () => {
                 {language === 'ar' ? 'لديك أسئلة؟' : 'Have Questions?'}
               </h3>
               <p className="text-muted-foreground mb-4">
-                {language === 'ar' 
+                {language === 'ar'
                   ? 'فريقنا هنا لمساعدتك في اختيار الخطة المناسبة'
                   : 'Our team is here to help you choose the right plan'
                 }

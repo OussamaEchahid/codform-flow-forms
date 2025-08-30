@@ -7,6 +7,7 @@ import { useI18n } from '@/lib/i18n';
 import { useSubscription } from '@/hooks/useSubscription';
 import { PLANS, type PlanId } from '@/lib/billing/plans';
 import UnifiedStoreManager from '@/utils/unified-store-manager';
+import { Crown, Star, Zap } from 'lucide-react';
 
 const BillingCenter: React.FC = () => {
   const { language } = useI18n();
@@ -24,6 +25,31 @@ const BillingCenter: React.FC = () => {
       ''
     );
   }, []);
+
+  const iconForPlan: Record<PlanId, React.ComponentType<any>> = {
+    free: Star,
+    basic: Zap,
+    premium: Crown,
+  };
+
+  const planSubtitle: Record<PlanId, string> = {
+    free: language === 'ar' ? 'مثالي للبدء' : 'Perfect for getting started',
+    basic: language === 'ar' ? 'مناسب للمتاجر الصغيرة' : 'Great for small businesses',
+    premium: language === 'ar' ? 'الأفضل للفرق المتنامية' : 'Best for growing teams',
+  };
+
+  const formatPrice = (price: number) => {
+    if (price === 0) return '$0';
+    return `$${price}`;
+  };
+
+  const nextBillingText = () => {
+    const d = subscription?.next_billing_date ? new Date(subscription.next_billing_date) : null;
+    if (!d) return language === 'ar' ? 'لا يوجد موعد تجديد' : 'No renewal date';
+    return language === 'ar'
+      ? `التجديد: ${d.toLocaleDateString('ar')}`
+      : `Renews on: ${d.toLocaleDateString()}`;
+  };
 
   const startUpgrade = async (planId: PlanId) => {
     try {
@@ -107,25 +133,28 @@ const BillingCenter: React.FC = () => {
     <SettingsLayout>
       <div className="container mx-auto p-6 space-y-6">
         {subscription && (
-          <Card>
+          <Card className="border-0 shadow-md bg-gradient-to-r from-primary/5 via-purple-100/30 to-transparent">
             <CardHeader>
-              <CardTitle>
+              <CardTitle className="flex items-center gap-3 text-lg">
                 {language === 'ar' ? 'اشتراكك' : 'Your Subscription'}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-between">
-                <div className="text-sm">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div className="text-sm leading-6">
                   <div>
                     {language === 'ar' ? 'الخطة الحالية:' : 'Current plan:'}{' '}
                     <b className="uppercase">{subscription.plan_type}</b>
                   </div>
                   <div>
                     {language === 'ar' ? 'الحالة:' : 'Status:'}{' '}
-                    <b>{subscription.status}</b>
+                    <b>{subscription.status === 'pending' ? (language === 'ar' ? 'قيد التفعيل' : 'Pending') : (language === 'ar' ? 'نشط' : 'Active')}</b>
+                  </div>
+                  <div className="text-muted-foreground">
+                    {nextBillingText()}
                   </div>
                   {subscription.requested_plan_type && (
-                    <div>
+                    <div className="text-amber-600">
                       {language === 'ar' ? 'طلب الترقية إلى:' : 'Requested upgrade to:'}{' '}
                       <b className="uppercase">{subscription.requested_plan_type}</b>
                     </div>
@@ -145,31 +174,39 @@ const BillingCenter: React.FC = () => {
           {PLANS.map((p) => {
             const isCurrent = isCurrentPlan(p.id);
             const disabled = isCurrent || (!!subscription && p.id === 'free' && subscription.plan_type !== 'free');
+            const Icon = iconForPlan[p.id];
+            const isPendingTarget = subscription?.status === 'pending' && subscription?.requested_plan_type === p.id;
             return (
-              <Card key={p.id} className={`relative ${p.popular ? 'ring-2 ring-primary' : ''}`}>
+              <Card key={p.id} className={`relative overflow-hidden transition-all ${p.popular ? 'ring-2 ring-primary' : 'hover:shadow-md'} bg-white`}>
                 {p.popular && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <Badge className="bg-gradient-to-r from-primary to-purple-600 text-white">
+                    <Badge className="bg-gradient-to-r from-primary to-purple-600 text-white shadow-sm">
                       {language === 'ar' ? 'الأكثر شعبية' : 'Most Popular'}
                     </Badge>
                   </div>
                 )}
-                {(isCurrent || (subscription?.status === 'pending' && subscription?.requested_plan_type === p.id)) && (
+
+                {(isCurrent || isPendingTarget) && (
                   <div className="absolute top-3 right-3">
-                    <Badge className={(subscription?.status === 'pending' && subscription?.requested_plan_type === p.id) ? 'bg-amber-500 text-white' : ''} variant={(subscription?.status === 'pending' && subscription?.requested_plan_type === p.id) ? 'default' : 'secondary'}>
-                      {(subscription?.status === 'pending' && subscription?.requested_plan_type === p.id)
+                    <Badge className={isPendingTarget ? 'bg-amber-500 text-white' : ''} variant={isPendingTarget ? 'default' : 'secondary'}>
+                      {isPendingTarget
                         ? (language === 'ar' ? 'قيد التفعيل' : 'Activating')
                         : (language === 'ar' ? 'الخطة الحالية' : 'Current Plan')}
                     </Badge>
                   </div>
                 )}
+
                 <CardHeader>
                   <CardTitle className="text-center">
-                    {p.name}
-                    <div className="text-3xl mt-2">
-                      {p.monthlyPrice}
+                    <div className="flex items-center justify-center gap-2 text-primary">
+                      <Icon size={22} />
+                      <span>{p.name}</span>
+                    </div>
+                    <div className="text-3xl mt-2 font-semibold">
+                      {formatPrice(p.monthlyPrice)}
                       {p.id !== 'free' && <span className="text-sm text-muted-foreground">/ {language === 'ar' ? 'شهرياً' : 'month'}</span>}
                     </div>
+                    <div className="text-xs text-muted-foreground mt-1">{planSubtitle[p.id]}</div>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
