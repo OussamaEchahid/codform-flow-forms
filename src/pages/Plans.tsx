@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,17 @@ import { Crown, Zap, Check, Gift, Sparkles } from "lucide-react";
 const Plans = () => {
   const navigate = useNavigate();
   const { t, language } = useI18n();
+  const [debugLogs, setDebugLogs] = useState<string[]>([]);
+
+  // إضافة سجل جديد
+  const addLog = (message: string) => {
+    const timestamp = new Date().toLocaleTimeString();
+    setDebugLogs(prev => [`[${timestamp}] ${message}`, ...prev.slice(0, 9)]);
+  };
+
+  useEffect(() => {
+    addLog('🔄 Plans page loaded');
+  }, []);
 
   // Professional plan configuration based on the image
   const plans = [
@@ -120,16 +131,27 @@ const Plans = () => {
 
   const startUpgrade = async (planId: PlanId) => {
     try {
-      if (!activeStore) return;
+      addLog(`🚀 Starting upgrade to ${planId}`);
+      if (!activeStore) {
+        addLog('❌ No active store found');
+        return;
+      }
       setUpgradingTo(planId);
+      addLog(`🏪 Active store: ${activeStore}`);
 
       const { supabase } = await import('@/integrations/supabase/client');
+      addLog(`📡 Calling change-plan function...`);
       const { data, error } = await supabase.functions.invoke('change-plan', {
         body: { shop: activeStore, planId },
       });
-      if (error) throw error;
+      if (error) {
+        addLog(`❌ Change plan error: ${error.message}`);
+        throw error;
+      }
 
+      addLog(`✅ Change plan response received`);
       if (data?.url) {
+        addLog(`🔗 Opening confirmation URL: ${data.url}`);
         window.open(data.url, '_blank');
 
         const onFocus = async () => {
@@ -144,10 +166,12 @@ const Plans = () => {
         const startTime = Date.now();
         console.log('🔄 Starting polling for plan activation...', { targetPlan: planId, activeStore });
 
+        addLog(`⏱️ Starting subscription monitoring...`);
         const id = window.setInterval(async () => {
           attempts++;
           const elapsed = Math.round((Date.now() - startTime) / 1000);
 
+          addLog(`🔄 Polling ${attempts}/${maxAttempts} (${elapsed}s)`);
           console.log(`\n🔍 === POLLING ATTEMPT ${attempts}/${maxAttempts} (${elapsed}s elapsed) ===`);
 
           await forceRefresh();
@@ -155,6 +179,7 @@ const Plans = () => {
           // تحقق من الحالة الحالية
           const { subscriptionService } = await import('@/lib/subscription-service');
           const currentSub = await subscriptionService.getSubscription(activeStore);
+          addLog(`📊 Status: ${currentSub?.status}, Plan: ${currentSub?.plan_type}, Requested: ${currentSub?.requested_plan_type}`);
           console.log(`📊 Current subscription state:`, {
             id: currentSub?.id,
             planType: currentSub?.plan_type,
@@ -165,6 +190,7 @@ const Plans = () => {
           });
 
           if (isCurrentPlan(planId)) {
+            addLog(`🎉 PLAN ACTIVATED! Type: ${currentSub?.plan_type}, Status: ${currentSub?.status}`);
             console.log('🎉 PLAN ACTIVATED SUCCESSFULLY!', {
               planType: currentSub?.plan_type,
               elapsedTime: elapsed + 's'
@@ -216,6 +242,18 @@ const Plans = () => {
       <AppSidebar />
 
       <div className="flex-1 p-6">
+        {/* Debug Logs Panel */}
+        {debugLogs.length > 0 && (
+          <div className="fixed top-4 right-4 w-96 bg-black/90 text-green-400 p-4 rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto">
+            <div className="text-xs font-mono">
+              <div className="text-white mb-2 font-bold">🔍 Debug Logs:</div>
+              {debugLogs.map((log, i) => (
+                <div key={i} className="mb-1 text-xs">{log}</div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="max-w-7xl mx-auto">
           {/* Hero Section */}
           <div className="text-center mb-12">
@@ -381,7 +419,12 @@ const Plans = () => {
                           }`}
                           disabled={isUpgrading || isCurrentPlanActive}
                           variant="ghost"
-                          onClick={() => !isCurrentPlanActive && startUpgrade(plan.id as PlanId)}
+                          onClick={() => {
+                            if (!isCurrentPlanActive) {
+                              addLog(`🖱️ User clicked upgrade to ${plan.name}`);
+                              startUpgrade(plan.id as PlanId);
+                            }
+                          }}
                         >
                           {isCurrentPlanActive
                             ? (subscription?.status === 'pending'
