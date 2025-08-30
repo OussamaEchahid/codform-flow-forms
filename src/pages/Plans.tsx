@@ -10,8 +10,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, Crown, Star, Zap, Shield, Clock, Users, Headphones } from "lucide-react";
 
-
-
 const Plans = () => {
   const navigate = useNavigate();
   const { t, language } = useI18n();
@@ -30,7 +28,6 @@ const Plans = () => {
     }
   }));
 
-
   const { subscription, loading, forceRefresh, isCurrentPlan } = useSubscription();
   const [upgradingTo, setUpgradingTo] = useState<PlanId | null>(null);
   const upgradePollRef = useRef<number | null>(null);
@@ -46,12 +43,10 @@ const Plans = () => {
     );
   }, []);
 
-
-
   const planSubtitle: Record<PlanId, string> = {
-    free: language === 'ar' ? 'مجاني للبدء' : 'Free forever',
-    basic: language === 'ar' ? 'للأعمال النامية' : 'For growing businesses',
-    premium: language === 'ar' ? 'للشركات الجادة' : 'For ambitious teams',
+    free: language === 'ar' ? 'مثالي للبدء' : 'Perfect for getting started',
+    basic: language === 'ar' ? 'رائع للشركات الصغيرة' : 'Great for small businesses',
+    premium: language === 'ar' ? 'الأفضل للفرق النامية' : 'Best for growing teams',
   };
 
   const startUpgrade = async (planId: PlanId) => {
@@ -116,8 +111,6 @@ const Plans = () => {
       setUpgradingTo(null);
     }
   };
-
-  
 
   const iconForPlan: Record<PlanId, React.ComponentType<any>> = {
     free: Star,
