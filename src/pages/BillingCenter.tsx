@@ -75,6 +75,7 @@ const BillingCenter: React.FC = () => {
 
         let attempts = 0;
         const maxAttempts = 30;
+        let reconcileTriggered = false;
 
         const id = window.setInterval(async () => {
           attempts++;
@@ -86,24 +87,26 @@ const BillingCenter: React.FC = () => {
             return;
           }
 
-          // المصالحة معطلة - يجب أن تحدث فقط عبر webhook
-          // try {
-          //   const { subscriptionService } = await import('@/lib/subscription-service');
-          //   const sub = activeStore ? await subscriptionService.getSubscription(activeStore) : null;
-          //   if (
-          //     sub &&
-          //     sub.requested_plan_type?.toLowerCase?.() === planId.toLowerCase() &&
-          //     sub.plan_type?.toLowerCase?.() !== planId.toLowerCase() &&
-          //     !reconcileTriggered
-          //   ) {
-          //     const { edgeGet } = await import('@/lib/supabase-edge');
-          //     console.log('🧩 [BillingCenter] Triggering reconcile-subscriptions from polling...');
-          //     await edgeGet('reconcile-subscriptions', { shop: activeStore });
-          //     reconcileTriggered = true;
-          //   }
-          // } catch (e) {
-          //   console.warn('Reconcile check failed during polling (BillingCenter):', e);
-          // }
+          // المصالحة فقط بعد 3 محاولات (للسماح بإكمال الدفع)
+          if (attempts >= 3) {
+            try {
+              const { subscriptionService } = await import('@/lib/subscription-service');
+              const sub = activeStore ? await subscriptionService.getSubscription(activeStore) : null;
+              if (
+                sub &&
+                sub.requested_plan_type?.toLowerCase?.() === planId.toLowerCase() &&
+                sub.plan_type?.toLowerCase?.() !== planId.toLowerCase() &&
+                !reconcileTriggered
+              ) {
+                const { edgeGet } = await import('@/lib/supabase-edge');
+                console.log('🧩 [BillingCenter] Triggering reconcile-subscriptions from polling...');
+                await edgeGet('reconcile-subscriptions', { shop: activeStore });
+                reconcileTriggered = true;
+              }
+            } catch (e) {
+              console.warn('Reconcile check failed during polling (BillingCenter):', e);
+            }
+          }
 
           if (attempts >= maxAttempts) {
             window.clearInterval(id);

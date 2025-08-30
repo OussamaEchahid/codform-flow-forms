@@ -140,6 +140,7 @@ const Plans = () => {
 
         let attempts = 0;
         const maxAttempts = 30;
+        let reconcileTriggered = false;
         const id = window.setInterval(async () => {
           attempts++;
           await forceRefresh();
@@ -150,21 +151,26 @@ const Plans = () => {
             return;
           }
 
-          // المصالحة معطلة - يجب أن تحدث فقط عبر webhook
-          // try {
-          //   const { subscriptionService } = await import('@/lib/subscription-service');
-          //   const sub = activeStore ? await subscriptionService.getSubscription(activeStore) : null;
-          //   if (
-          //     sub &&
-          //     sub.requested_plan_type?.toLowerCase?.() === planId.toLowerCase() &&
-          //     sub.plan_type?.toLowerCase?.() !== planId.toLowerCase() &&
-          //     !reconcileTriggered
-          //   ) {
-          //     const { edgeGet } = await import('@/lib/supabase-edge');
-          //     await edgeGet('reconcile-subscriptions', { shop: activeStore });
-          //     reconcileTriggered = true;
-          //   }
-          // } catch {}
+          // المصالحة فقط بعد 10 ثوانٍ من بدء العملية (للسماح بإكمال الدفع)
+          if (attempts >= 3) {
+            try {
+              const { subscriptionService } = await import('@/lib/subscription-service');
+              const sub = activeStore ? await subscriptionService.getSubscription(activeStore) : null;
+              if (
+                sub &&
+                sub.requested_plan_type?.toLowerCase?.() === planId.toLowerCase() &&
+                sub.plan_type?.toLowerCase?.() !== planId.toLowerCase() &&
+                !reconcileTriggered
+              ) {
+                console.log('🧩 Triggering reconcile after payment window...');
+                const { edgeGet } = await import('@/lib/supabase-edge');
+                await edgeGet('reconcile-subscriptions', { shop: activeStore });
+                reconcileTriggered = true;
+              }
+            } catch (e) {
+              console.warn('Reconcile failed:', e);
+            }
+          }
 
           if (attempts >= maxAttempts) {
             window.clearInterval(id);
