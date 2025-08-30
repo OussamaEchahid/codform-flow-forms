@@ -7,7 +7,7 @@ import { useI18n } from '@/lib/i18n';
 import { useSubscription } from '@/hooks/useSubscription';
 import { PLANS, type PlanId } from '@/lib/billing/plans';
 import UnifiedStoreManager from '@/utils/unified-store-manager';
-import { Crown, Star, Zap } from 'lucide-react';
+import { Crown, Star, Zap, Check, Sparkles, Gift } from 'lucide-react';
 
 const BillingCenter: React.FC = () => {
   const { language } = useI18n();
@@ -27,16 +27,18 @@ const BillingCenter: React.FC = () => {
   }, []);
 
   const iconForPlan: Record<PlanId, React.ComponentType<any>> = {
-    free: Star,
+    free: Gift,
     basic: Zap,
     premium: Crown,
   };
 
   const planSubtitle: Record<PlanId, string> = {
-    free: language === 'ar' ? 'مثالي للبدء' : 'Perfect for getting started',
-    basic: language === 'ar' ? 'مناسب للمتاجر الصغيرة' : 'Great for small businesses',
-    premium: language === 'ar' ? 'الأفضل للفرق المتنامية' : 'Best for growing teams',
+    free: language === 'ar' ? 'مثالي للبداية' : 'Perfect for getting started',
+    basic: language === 'ar' ? 'رائع للشركات الصغيرة' : 'Great for small businesses',
+    premium: language === 'ar' ? 'الأفضل للفرق النامية' : 'Best for growing teams',
   };
+
+
 
   const formatPrice = (price: number) => {
     if (price === 0) return '$0';
@@ -131,111 +133,269 @@ const BillingCenter: React.FC = () => {
 
   return (
     <SettingsLayout>
-      <div className="container mx-auto p-6 space-y-6">
+      <div className="container mx-auto p-6 space-y-8">
+        {/* Hero Section */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-100 to-blue-100 px-4 py-2 rounded-full text-sm font-medium text-purple-700 mb-4">
+            <Sparkles className="h-4 w-4" />
+            {language === 'ar' ? 'خطط مرنة لجميع الأحجام' : 'Flexible plans for every size'}
+          </div>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent mb-4">
+            {language === 'ar' ? 'اختر الخطة المثالية' : 'Choose Your Perfect Plan'}
+          </h1>
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            {language === 'ar'
+              ? 'ابدأ مجاناً واستمتع بجميع الميزات الأساسية، ثم قم بالترقية عندما تحتاج إلى المزيد'
+              : 'Start free with all essential features, then upgrade when you need more power'}
+          </p>
+        </div>
+
+        {/* Current Subscription Banner */}
         {subscription && (
-          <Card className="border-0 shadow-md bg-gradient-to-r from-primary/5 via-purple-100/30 to-transparent">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-3 text-lg">
-                {language === 'ar' ? 'اشتراكك' : 'Your Subscription'}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div className="text-sm leading-6">
-                  <div>
-                    {language === 'ar' ? 'الخطة الحالية:' : 'Current plan:'}{' '}
-                    <b className="uppercase">{subscription.plan_type}</b>
+          <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 bg-emerald-100 rounded-full flex items-center justify-center">
+                  <Crown className="h-5 w-5 text-emerald-600" />
+                </div>
+                <div>
+                  <div className="font-semibold text-emerald-900">
+                    {language === 'ar' ? 'اشتراكك الحالي' : 'Your Current Subscription'}
                   </div>
-                  <div>
-                    {language === 'ar' ? 'الحالة:' : 'Status:'}{' '}
-                    <b>{subscription.status === 'pending' ? (language === 'ar' ? 'قيد التفعيل' : 'Pending') : (language === 'ar' ? 'نشط' : 'Active')}</b>
+                  <div className="text-sm text-emerald-700">
+                    <span className="font-medium uppercase">{subscription.plan_type}</span>
+                    <span className="mx-2">•</span>
+                    <span>{subscription.status === 'pending' ? (language === 'ar' ? 'قيد التفعيل' : 'Pending') : (language === 'ar' ? 'نشط' : 'Active')}</span>
+                    {subscription.requested_plan_type && (
+                      <>
+                        <span className="mx-2">•</span>
+                        <span className="text-amber-600">
+                          {language === 'ar' ? 'طلب الترقية إلى ' : 'Upgrading to '}{subscription.requested_plan_type}
+                        </span>
+                      </>
+                    )}
                   </div>
-                  <div className="text-muted-foreground">
+                  <div className="text-xs text-emerald-600 mt-1">
                     {nextBillingText()}
                   </div>
-                  {subscription.requested_plan_type && (
-                    <div className="text-amber-600">
-                      {language === 'ar' ? 'طلب الترقية إلى:' : 'Requested upgrade to:'}{' '}
-                      <b className="uppercase">{subscription.requested_plan_type}</b>
-                    </div>
-                  )}
                 </div>
-                <Badge variant="secondary">
-                  {subscription.status === 'pending'
-                    ? language === 'ar' ? 'قيد التفعيل' : 'Activating'
-                    : language === 'ar' ? 'نشط' : 'Active'}
-                </Badge>
               </div>
-            </CardContent>
-          </Card>
+              <Badge className={subscription.status === 'pending' ? 'bg-amber-100 text-amber-800 border-amber-200' : 'bg-emerald-100 text-emerald-800 border-emerald-200'}>
+                {subscription.status === 'pending'
+                  ? language === 'ar' ? 'قيد التفعيل' : 'Activating'
+                  : language === 'ar' ? 'نشط' : 'Active'}
+              </Badge>
+            </div>
+          </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Plans Grid */}
+        <div className="grid lg:grid-cols-3 gap-8 mb-16">
           {PLANS.map((p) => {
             const isCurrent = isCurrentPlan(p.id);
             const disabled = isCurrent || (!!subscription && p.id === 'free' && subscription.plan_type !== 'free');
             const Icon = iconForPlan[p.id];
             const isPendingTarget = subscription?.status === 'pending' && subscription?.requested_plan_type === p.id;
+            const isUpgrading = upgradingTo === p.id;
+
             return (
-              <Card key={p.id} className={`relative overflow-hidden transition-all ${p.popular ? 'ring-2 ring-primary' : 'hover:shadow-md'} bg-white`}>
+              <Card
+                key={p.id}
+                className={`relative overflow-hidden transition-all duration-300 hover:shadow-xl ${
+                  p.popular
+                    ? 'border-2 border-purple-300 shadow-lg transform hover:scale-105'
+                    : 'border border-gray-200 hover:border-gray-300'
+                } ${isCurrent ? 'ring-2 ring-emerald-400' : ''}`}
+              >
+                {/* Background Gradient */}
+                <div className={`absolute inset-0 bg-gradient-to-br ${
+                  p.id === 'free' ? 'from-gray-50 to-gray-100' :
+                  p.id === 'basic' ? 'from-purple-50 to-purple-100' :
+                  'from-emerald-50 to-emerald-100'
+                } opacity-50`} />
+
+                {/* Popular Badge */}
                 {p.popular && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <Badge className="bg-gradient-to-r from-primary to-purple-600 text-white shadow-sm">
+                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10">
+                    <Badge className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-4 py-1.5 shadow-lg">
+                      <Star className="h-3 w-3 mr-1 fill-current" />
                       {language === 'ar' ? 'الأكثر شعبية' : 'Most Popular'}
                     </Badge>
                   </div>
                 )}
 
+                {/* Current/Pending Plan Badge */}
                 {(isCurrent || isPendingTarget) && (
-                  <div className="absolute top-3 right-3">
-                    <Badge className={isPendingTarget ? 'bg-amber-500 text-white' : ''} variant={isPendingTarget ? 'default' : 'secondary'}>
+                  <div className="absolute top-4 right-4 z-10">
+                    <Badge className={isPendingTarget ? 'bg-amber-100 text-amber-800 border-amber-200' : 'bg-emerald-100 text-emerald-800 border-emerald-200'}>
                       {isPendingTarget
                         ? (language === 'ar' ? 'قيد التفعيل' : 'Activating')
-                        : (language === 'ar' ? 'الخطة الحالية' : 'Current Plan')}
+                        : (language === 'ar' ? 'خطتك الحالية' : 'Current Plan')}
                     </Badge>
                   </div>
                 )}
 
-                <CardHeader>
-                  <CardTitle className="text-center">
-                    <div className="flex items-center justify-center gap-2 text-primary">
-                      <Icon size={22} />
-                      <span>{p.name}</span>
+                  <CardHeader className="text-center pb-6">
+                    <div className="flex justify-center mb-4">
+                      <div className={`h-16 w-16 rounded-full flex items-center justify-center ${
+                        p.popular ? 'bg-purple-100' : 'bg-gray-100'
+                      }`}>
+                        <Icon size={28} className={p.popular ? 'text-purple-600' : 'text-gray-600'} />
+                      </div>
                     </div>
-                    <div className="text-3xl mt-2 font-semibold">
-                      {formatPrice(p.monthlyPrice)}
-                      {p.id !== 'free' && <span className="text-sm text-muted-foreground">/ {language === 'ar' ? 'شهرياً' : 'month'}</span>}
+
+                    <CardTitle className="text-2xl font-bold text-gray-900 mb-2">
+                      {p.name}
+                    </CardTitle>
+
+                    <div className="text-sm text-gray-600 mb-4">
+                      {planSubtitle[p.id]}
                     </div>
-                    <div className="text-xs text-muted-foreground mt-1">{planSubtitle[p.id]}</div>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ul className="text-sm space-y-2 mb-4">
-                    {p.features.map((f, i) => (
-                      <li key={i} className="flex gap-2 items-start">
-                        <span className="mt-1">✅</span>
-                        <span>{f}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <Button
-                    className="w-full"
-                    disabled={disabled || upgradingTo === p.id}
-                    variant={isCurrent ? 'secondary' : 'default'}
-                    onClick={() => startUpgrade(p.id)}
-                  >
-                    {isCurrent
-                      ? subscription?.status === 'pending'
-                        ? (language === 'ar' ? 'قيد التفعيل...' : 'Activating...')
-                        : (language === 'ar' ? 'الخطة الحالية' : 'Current Plan')
-                      : upgradingTo === p.id
-                        ? (language === 'ar' ? 'جاري الترقية...' : 'Upgrading...')
-                        : (language === 'ar' ? 'اختر الخطة' : 'Choose plan')}
-                  </Button>
-                </CardContent>
+
+                    <div className="mb-6">
+                      <div className="flex items-baseline justify-center gap-1">
+                        <span className={`text-4xl font-bold ${
+                          p.popular ? 'bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent' : 'text-gray-900'
+                        }`}>
+                          {formatPrice(p.monthlyPrice)}
+                        </span>
+                        {p.id !== 'free' && (
+                          <span className="text-gray-600 font-medium">
+                            /{language === 'ar' ? 'شهر' : 'month'}
+                          </span>
+                        )}
+                      </div>
+                      {p.id === 'free' && (
+                        <div className="text-xs text-emerald-600 font-medium mt-1">
+                          {language === 'ar' ? 'مجاني إلى الأبد' : 'Free forever'}
+                        </div>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {/* Features List */}
+                    <div className="space-y-3">
+                      {p.features.slice(0, 8).map((feature, featureIndex) => (
+                        <div key={featureIndex} className="flex items-start gap-3">
+                          <div className="flex-shrink-0 mt-0.5">
+                            <div className={`h-5 w-5 rounded-full flex items-center justify-center ${
+                              p.popular ? 'bg-purple-100' : 'bg-emerald-100'
+                            }`}>
+                              <Check className={`h-3 w-3 ${
+                                p.popular ? 'text-purple-600' : 'text-emerald-600'
+                              }`} />
+                            </div>
+                          </div>
+                          <span className="text-sm text-gray-700 leading-relaxed">
+                            {feature}
+                          </span>
+                        </div>
+                      ))}
+                      {p.features.length > 8 && (
+                        <div className="flex items-start gap-3">
+                          <div className="flex-shrink-0 mt-0.5">
+                            <div className={`h-5 w-5 rounded-full flex items-center justify-center ${
+                              p.popular ? 'bg-purple-100' : 'bg-emerald-100'
+                            }`}>
+                              <Sparkles className={`h-3 w-3 ${
+                                p.popular ? 'text-purple-600' : 'text-emerald-600'
+                              }`} />
+                            </div>
+                          </div>
+                          <span className="text-sm text-gray-600 italic">
+                            {language === 'ar' ? `+ ${p.features.length - 8} ميزة إضافية` : `+ ${p.features.length - 8} more features`}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Action Button */}
+                    <div className="pt-6">
+                      <Button
+                        className={`w-full h-12 font-semibold transition-all duration-300 transform hover:scale-105 ${
+                          p.popular
+                            ? 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg hover:shadow-xl'
+                            : isCurrent
+                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-200 cursor-default hover:scale-100'
+                              : p.id === 'free'
+                                ? 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-md hover:shadow-lg'
+                                : 'border-2 border-gray-300 hover:border-purple-400 bg-white text-gray-700 hover:bg-purple-50 hover:text-purple-700'
+                        }`}
+                        disabled={disabled || isUpgrading}
+                        variant="ghost"
+                        onClick={() => !isCurrent && startUpgrade(p.id)}
+                      >
+                        {isCurrent
+                          ? (subscription?.status === 'pending'
+                              ? (
+                                <div className="flex items-center gap-2">
+                                  <div className="animate-spin h-4 w-4 border-2 border-emerald-600 border-t-transparent rounded-full"></div>
+                                  {language === 'ar' ? 'قيد التفعيل...' : 'Activating...'}
+                                </div>
+                              )
+                              : (
+                                <div className="flex items-center gap-2">
+                                  <Crown className="h-4 w-4" />
+                                  {language === 'ar' ? 'خطتك الحالية' : 'Current Plan'}
+                                </div>
+                              ))
+                          : (isUpgrading
+                              ? (
+                                <div className="flex items-center gap-2">
+                                  <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                                  {language === 'ar' ? 'جاري الترقية...' : 'Upgrading...'}
+                                </div>
+                              )
+                              : (p.id === 'free'
+                                  ? (
+                                    <div className="flex items-center gap-2">
+                                      <Gift className="h-4 w-4" />
+                                      {language === 'ar' ? 'ابدأ مجاناً' : 'Get Started Free'}
+                                    </div>
+                                  )
+                                  : (
+                                    <div className="flex items-center gap-2">
+                                      <Zap className="h-4 w-4" />
+                                      {language === 'ar' ? 'ترقية إلى ' + p.name : 'Upgrade to ' + p.name}
+                                    </div>
+                                  )))}
+                      </Button>
+
+                      {/* Additional CTA for popular plan */}
+                      {p.popular && !isCurrent && (
+                        <div className="text-center mt-3">
+                          <span className="text-xs text-purple-600 font-medium">
+                            {language === 'ar' ? '⭐ الخيار الأكثر شعبية' : '⭐ Most popular choice'}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
               </Card>
             );
           })}
+        </div>
+
+        {/* Trust Indicators */}
+        <div className="text-center">
+          <div className="flex flex-wrap justify-center items-center gap-8 text-sm text-gray-500">
+            <div className="flex items-center gap-2">
+              <Check className="h-4 w-4 text-emerald-500" />
+              <span>{language === 'ar' ? 'إلغاء في أي وقت' : 'Cancel anytime'}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Check className="h-4 w-4 text-emerald-500" />
+              <span>{language === 'ar' ? 'دعم 24/7' : '24/7 support'}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Check className="h-4 w-4 text-emerald-500" />
+              <span>{language === 'ar' ? 'ضمان استرداد المال' : 'Money-back guarantee'}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Check className="h-4 w-4 text-emerald-500" />
+              <span>{language === 'ar' ? 'ترقية فورية' : 'Instant upgrades'}</span>
+            </div>
+          </div>
         </div>
       </div>
     </SettingsLayout>
