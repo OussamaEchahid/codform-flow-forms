@@ -23,9 +23,7 @@ const Plans = () => {
     setDebugLogs(prev => [`[${timestamp}] ${message}`, ...prev.slice(0, 9)]);
   };
 
-  useEffect(() => {
-    addLog('🔄 Plans page loaded');
-  }, []);
+
 
   // Professional plan configuration based on the image
   const plans = [
@@ -119,6 +117,11 @@ const Plans = () => {
       ''
     );
   }, []);
+
+  useEffect(() => {
+    addLog('🔄 Plans page loaded');
+    addLog('🏪 Active store: ' + (activeStore || 'None'));
+  }, [activeStore]);
 
   const iconForPlan: Record<PlanId, React.ComponentType<any>> = {
     free: Gift,
@@ -243,16 +246,18 @@ const Plans = () => {
 
       <div className="flex-1 p-6">
         {/* Debug Logs Panel */}
-        {debugLogs.length > 0 && (
-          <div className="fixed top-4 right-4 w-96 bg-black/90 text-green-400 p-4 rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto">
-            <div className="text-xs font-mono">
-              <div className="text-white mb-2 font-bold">🔍 Debug Logs:</div>
-              {debugLogs.map((log, i) => (
+        <div className="fixed top-4 right-4 w-96 bg-black/90 text-green-400 p-4 rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto">
+          <div className="text-xs font-mono">
+            <div className="text-white mb-2 font-bold">🔍 Debug Logs:</div>
+            {debugLogs.length === 0 ? (
+              <div className="text-gray-400">Waiting for actions...</div>
+            ) : (
+              debugLogs.map((log, i) => (
                 <div key={i} className="mb-1 text-xs">{log}</div>
-              ))}
-            </div>
+              ))
+            )}
           </div>
-        )}
+        </div>
 
         <div className="max-w-7xl mx-auto">
           {/* Hero Section */}
