@@ -141,10 +141,34 @@ const Plans = () => {
         let attempts = 0;
         const maxAttempts = 30;
         let reconcileTriggered = false;
+        const startTime = Date.now();
+        console.log('🔄 Starting polling for plan activation...', { targetPlan: planId, activeStore });
+
         const id = window.setInterval(async () => {
           attempts++;
+          const elapsed = Math.round((Date.now() - startTime) / 1000);
+
+          console.log(`\n🔍 === POLLING ATTEMPT ${attempts}/${maxAttempts} (${elapsed}s elapsed) ===`);
+
           await forceRefresh();
+
+          // تحقق من الحالة الحالية
+          const { subscriptionService } = await import('@/lib/subscription-service');
+          const currentSub = await subscriptionService.getSubscription(activeStore);
+          console.log(`📊 Current subscription state:`, {
+            id: currentSub?.id,
+            planType: currentSub?.plan_type,
+            requestedPlan: currentSub?.requested_plan_type,
+            status: currentSub?.status,
+            target: planId,
+            isCurrentPlan: isCurrentPlan(planId)
+          });
+
           if (isCurrentPlan(planId)) {
+            console.log('🎉 PLAN ACTIVATED SUCCESSFULLY!', {
+              planType: currentSub?.plan_type,
+              elapsedTime: elapsed + 's'
+            });
             window.clearInterval(id);
             if (upgradePollRef.current) upgradePollRef.current = null;
             setUpgradingTo(null);
