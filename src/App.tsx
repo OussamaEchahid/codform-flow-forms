@@ -119,6 +119,17 @@ const ProtectedRoute = ({ requireAuth = true }: { requireAuth?: boolean }) => {
 };
 
 
+// Fallback: if Cloudflare Worker didn't catch /auth/google/callback, redirect to our SPA route
+// while preserving query params and adding a loop guard.
+const RedirectAuthToOAuthWithQuery = () => {
+  const location = useLocation();
+  const search = location.search || '';
+  const hash = location.hash || '';
+  const withGuard = `${search}${search ? '&' : '?'}spa_fallback=1`;
+  return <Navigate to={`/oauth/google-callback${withGuard}${hash}`} replace />;
+};
+
+
 
 
 function AppRoutes() {
@@ -156,6 +167,7 @@ function AppRoutes() {
       <Route path="/subscription-callback" element={<SubscriptionCallback />} />
       <Route path="/subscription-success" element={<SubscriptionSuccess />} />
       <Route path="/oauth/google-callback" element={<OAuthGoogleCallback />} />
+      <Route path="/auth/google/callback" element={<RedirectAuthToOAuthWithQuery />} />
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/forms" element={<Forms />} />
       <Route path="/form-builder/:formId?" element={<FormBuilderPage />} />

@@ -43,7 +43,8 @@ export default function OAuthGoogleCallback() {
         // Prefer server-side flow via Cloudflare Worker in production to avoid CORS
         const origin = window.location.origin;
         const isProdHost = /codmagnet\.com$/i.test(origin);
-        if (isProdHost) {
+        const hasSpaFallback = /(^|[?#&])spa_fallback=1(?:$|[&#])/i.test(window.location.search + window.location.hash);
+        if (isProdHost && !hasSpaFallback) {
           setMessage('Redirecting to complete Google connection...');
           const search = window.location.search || '';
           const hashStr = window.location.hash || '';
