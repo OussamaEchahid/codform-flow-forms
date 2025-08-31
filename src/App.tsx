@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { I18nProvider } from "@/lib/i18n";
@@ -118,6 +118,15 @@ const ProtectedRoute = ({ requireAuth = true }: { requireAuth?: boolean }) => {
   return <Outlet />;
 };
 
+
+// Preserves query params when redirecting from /auth/google/callback to /oauth/google-callback
+const RedirectAuthToOAuthWithQuery = () => {
+  const location = useLocation();
+  const search = location.search || '';
+  const hash = location.hash || '';
+  return <Navigate to={`/oauth/google-callback${search}${hash}`} replace />;
+};
+
 function AppRoutes() {
   const [readyForNavigation, setReadyForNavigation] = useState(false);
 
@@ -153,7 +162,7 @@ function AppRoutes() {
       <Route path="/subscription-callback" element={<SubscriptionCallback />} />
       <Route path="/subscription-success" element={<SubscriptionSuccess />} />
       <Route path="/oauth/google-callback" element={<OAuthGoogleCallback />} />
-      <Route path="/auth/google/callback" element={<Navigate to="/oauth/google-callback" replace />} />
+      <Route path="/auth/google/callback" element={<RedirectAuthToOAuthWithQuery />} />
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/forms" element={<Forms />} />
       <Route path="/form-builder/:formId?" element={<FormBuilderPage />} />
