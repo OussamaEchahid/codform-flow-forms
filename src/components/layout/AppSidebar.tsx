@@ -10,6 +10,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
+import { ThemeToggle } from '@/components/theme/ThemeToggle';
 const AppSidebar = () => {
   const {
     t,
@@ -95,18 +96,21 @@ const AppSidebar = () => {
     path: '/settings/currency',
     icon: DollarSign
   }];
-  return <aside className="min-h-screen w-64 bg-[#1E2127] text-white">
+  return <aside className="min-h-screen w-64 bg-sidebar border-r border-sidebar-border text-sidebar-foreground">
       <div className="p-4">
         <div className="flex justify-between items-center mb-6">
           <div>
-            <span className="text-2xl font-bold text-[#9b87f5]">COD</span>
-            <span className="text-2xl font-bold text-white">Magnet</span>
+            <span className="text-2xl font-bold text-primary">COD</span>
+            <span className="text-2xl font-bold text-sidebar-foreground">Magnet</span>
           </div>
           <div className="flex items-center gap-2">
+            {/* Theme Toggle */}
+            <ThemeToggle />
+            
             {/* Language Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="text-white">
+                <Button variant="ghost" size="icon" className="text-white hover:bg-[#2A2E36]">
                   <Globe className="h-5 w-5" />
                 </Button>
               </DropdownMenuTrigger>
@@ -165,7 +169,7 @@ const AppSidebar = () => {
             <li>
               <NavLink to="/dashboard" className={({
               isActive
-            }) => cn('flex items-center gap-3 px-4 py-2 rounded-lg transition-colors', isActive ? 'bg-[#2A2E36] text-[#9b87f5]' : 'text-gray-400 hover:bg-[#2A2E36] hover:text-[#9b87f5]')}>
+            }) => cn('flex items-center gap-3 px-4 py-2 rounded-lg transition-colors', isActive ? 'bg-sidebar-accent text-sidebar-primary' : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-primary')}>
                 <LayoutDashboard size={20} />
                 <span>{t('dashboard')}</span>
               </NavLink>
@@ -175,7 +179,7 @@ const AppSidebar = () => {
             <li>
               <NavLink to="/forms" className={({
               isActive
-            }) => cn('flex items-center gap-3 px-4 py-2 rounded-lg transition-colors', isActive ? 'bg-[#2A2E36] text-[#9b87f5]' : 'text-gray-400 hover:bg-[#2A2E36] hover:text-[#9b87f5]')}>
+            }) => cn('flex items-center gap-3 px-4 py-2 rounded-lg transition-colors', isActive ? 'bg-sidebar-accent text-sidebar-primary' : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-primary')}>
                 <FileText size={20} />
                 <span>{t('forms')}</span>
               </NavLink>
@@ -185,7 +189,7 @@ const AppSidebar = () => {
             <li>
               <Collapsible open={isOrdersOpen} onOpenChange={setIsOrdersOpen} className="w-full">
                 <CollapsibleTrigger asChild>
-                  <div className={cn('flex items-center justify-between w-full cursor-pointer px-4 py-2 rounded-lg transition-colors', location.pathname === '/orders' || location.pathname.startsWith('/orders/') ? 'bg-[#2A2E36] text-[#9b87f5]' : 'text-gray-400 hover:bg-[#2A2E36] hover:text-[#9b87f5]')}>
+                  <div className={cn('flex items-center justify-between w-full cursor-pointer px-4 py-2 rounded-lg transition-colors', location.pathname === '/orders' || location.pathname.startsWith('/orders/') ? 'bg-sidebar-accent text-sidebar-primary' : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-primary')}>
                     <div className="flex items-center gap-3">
                       <ShoppingCart size={20} />
                       <span>{t('orders')}</span>
@@ -194,10 +198,10 @@ const AppSidebar = () => {
                   </div>
                 </CollapsibleTrigger>
                 <CollapsibleContent>
-                  <div className="pt-2 pl-6 ml-2 border-l border-[#2A2E36]">
+                  <div className="pt-2 pl-6 ml-2 border-l border-sidebar-border">
                     {ordersSubItems.map(subItem => <NavLink key={subItem.path} to={subItem.path} className={({
                     isActive
-                  }) => cn('flex items-center gap-3 px-4 py-2 rounded-lg transition-colors mb-1', isActive ? 'bg-[#2A2E36] text-[#9b87f5]' : 'text-gray-400 hover:bg-[#2A2E36] hover:text-[#9b87f5]')}>
+                  }) => cn('flex items-center gap-3 px-4 py-2 rounded-lg transition-colors mb-1', isActive ? 'bg-sidebar-accent text-sidebar-primary' : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-primary')}>
                         <subItem.icon size={16} />
                         <span className="text-sm">{subItem.title}</span>
                       </NavLink>)}
@@ -210,7 +214,7 @@ const AppSidebar = () => {
             <li>
               <NavLink to="/quantity-offers" className={({
               isActive
-            }) => cn('flex items-center gap-3 px-4 py-2 rounded-lg transition-colors', isActive ? 'bg-[#2A2E36] text-[#9b87f5]' : 'text-gray-400 hover:bg-[#2A2E36] hover:text-[#9b87f5]')}>
+            }) => cn('flex items-center gap-3 px-4 py-2 rounded-lg transition-colors', isActive ? 'bg-sidebar-accent text-sidebar-primary' : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-primary')}>
                 <Package size={20} />
                 <span>{language === 'ar' ? 'العروض الكمية' : 'Quantity Offers'}</span>
               </NavLink>
@@ -220,7 +224,7 @@ const AppSidebar = () => {
             <li>
               <NavLink to="/advertising-tracking" className={({
               isActive
-            }) => cn('flex items-center gap-3 px-4 py-2 rounded-lg transition-colors', isActive ? 'bg-[#2A2E36] text-[#9b87f5]' : 'text-gray-400 hover:bg-[#2A2E36] hover:text-[#9b87f5]')}>
+            }) => cn('flex items-center gap-3 px-4 py-2 rounded-lg transition-colors', isActive ? 'bg-sidebar-accent text-sidebar-primary' : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-primary')}>
                 <Target size={20} />
                 <span>{language === 'ar' ? 'التتبع الإعلاني' : 'Advertising Tracking'}</span>
               </NavLink>
@@ -230,7 +234,7 @@ const AppSidebar = () => {
             {mainNavItems.slice(2).map(item => <li key={item.path}>
                 <NavLink to={item.path} className={({
               isActive
-            }) => cn('flex items-center gap-3 px-4 py-2 rounded-lg transition-colors', isActive ? 'bg-[#2A2E36] text-[#9b87f5]' : 'text-gray-400 hover:bg-[#2A2E36] hover:text-[#9b87f5]')}>
+            }) => cn('flex items-center gap-3 px-4 py-2 rounded-lg transition-colors', isActive ? 'bg-sidebar-accent text-sidebar-primary' : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-primary')}>
                   <item.icon size={20} />
                   <span>{item.title}</span>
                 </NavLink>
@@ -240,7 +244,7 @@ const AppSidebar = () => {
             <li>
               <NavLink to="/plans" className={({
               isActive
-            }) => cn('flex items-center gap-3 px-4 py-2 rounded-lg transition-colors', isActive ? 'bg-[#2A2E36] text-[#9b87f5]' : 'text-gray-400 hover:bg-[#2A2E36] hover:text-[#9b87f5]')}>
+            }) => cn('flex items-center gap-3 px-4 py-2 rounded-lg transition-colors', isActive ? 'bg-sidebar-accent text-sidebar-primary' : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-primary')}>
                 <Crown size={20} />
                 <span>{language === 'ar' ? 'الخطط' : 'Plans'}</span>
               </NavLink>
@@ -250,7 +254,7 @@ const AppSidebar = () => {
             <li>
               <Collapsible open={isSettingsOpen} onOpenChange={setIsSettingsOpen} className="w-full">
                 <CollapsibleTrigger asChild>
-                  <div className={cn('flex items-center justify-between w-full cursor-pointer px-4 py-2 rounded-lg transition-colors', location.pathname === '/settings' || location.pathname.startsWith('/settings/') ? 'bg-[#2A2E36] text-[#9b87f5]' : 'text-gray-400 hover:bg-[#2A2E36] hover:text-[#9b87f5]')}>
+                  <div className={cn('flex items-center justify-between w-full cursor-pointer px-4 py-2 rounded-lg transition-colors', location.pathname === '/settings' || location.pathname.startsWith('/settings/') ? 'bg-sidebar-accent text-sidebar-primary' : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-primary')}>
                     <div className="flex items-center gap-3">
                       <Settings size={20} />
                       <span>{t('settings')}</span>
@@ -259,10 +263,10 @@ const AppSidebar = () => {
                   </div>
                 </CollapsibleTrigger>
                 <CollapsibleContent>
-                  <div className="pt-2 pl-6 ml-2 border-l border-[#2A2E36]">
+                  <div className="pt-2 pl-6 ml-2 border-l border-sidebar-border">
                     {settingsSubItems.map(subItem => <NavLink key={subItem.path} to={subItem.path} className={({
                     isActive
-                  }) => cn('flex items-center gap-3 px-4 py-2 rounded-lg transition-colors mb-1', isActive ? 'bg-[#2A2E36] text-[#9b87f5]' : 'text-gray-400 hover:bg-[#2A2E36] hover:text-[#9b87f5]')}>
+                  }) => cn('flex items-center gap-3 px-4 py-2 rounded-lg transition-colors mb-1', isActive ? 'bg-sidebar-accent text-sidebar-primary' : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-primary')}>
                         <subItem.icon size={16} />
                         <span className="text-sm">{subItem.title}</span>
                       </NavLink>)}
@@ -275,7 +279,7 @@ const AppSidebar = () => {
             <li>
               <NavLink to="/my-stores" className={({
               isActive
-            }) => cn('flex items-center gap-3 px-4 py-2 rounded-lg transition-colors', isActive ? 'bg-[#2A2E36] text-[#9b87f5]' : 'text-gray-400 hover:bg-[#2A2E36] hover:text-[#9b87f5]')}>
+            }) => cn('flex items-center gap-3 px-4 py-2 rounded-lg transition-colors', isActive ? 'bg-sidebar-accent text-sidebar-primary' : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-primary')}>
                 <ShoppingBag size={20} />
                 <span>{language === 'ar' ? 'متاجري' : 'My Stores'}</span>
               </NavLink>
