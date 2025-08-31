@@ -10,6 +10,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
+import { ThemeToggle } from '@/components/theme/ThemeToggle';
 const AppSidebar = () => {
   const {
     t,
@@ -95,7 +96,7 @@ const AppSidebar = () => {
     path: '/settings/currency',
     icon: DollarSign
   }];
-  return <aside className="min-h-screen w-64 bg-[#1E2127] text-white">
+  return <aside className="min-h-screen w-64 bg-[#1E2127] dark:bg-[#0F1419] text-white transition-colors duration-300">
       <div className="p-4">
         <div className="flex justify-between items-center mb-6">
           <div>
@@ -103,6 +104,9 @@ const AppSidebar = () => {
             <span className="text-2xl font-bold text-white">Magnet</span>
           </div>
           <div className="flex items-center gap-2">
+            {/* Theme Toggle */}
+            <ThemeToggle />
+            
             {/* Language Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
