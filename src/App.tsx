@@ -119,13 +119,7 @@ const ProtectedRoute = ({ requireAuth = true }: { requireAuth?: boolean }) => {
 };
 
 
-// Preserves query params when redirecting from /auth/google/callback to /oauth/google-callback
-const RedirectAuthToOAuthWithQuery = () => {
-  const location = useLocation();
-  const search = location.search || '';
-  const hash = location.hash || '';
-  return <Navigate to={`/oauth/google-callback${search}${hash}`} replace />;
-};
+
 
 function AppRoutes() {
   const [readyForNavigation, setReadyForNavigation] = useState(false);
@@ -162,7 +156,6 @@ function AppRoutes() {
       <Route path="/subscription-callback" element={<SubscriptionCallback />} />
       <Route path="/subscription-success" element={<SubscriptionSuccess />} />
       <Route path="/oauth/google-callback" element={<OAuthGoogleCallback />} />
-      <Route path="/auth/google/callback" element={<RedirectAuthToOAuthWithQuery />} />
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/forms" element={<Forms />} />
       <Route path="/form-builder/:formId?" element={<FormBuilderPage />} />
