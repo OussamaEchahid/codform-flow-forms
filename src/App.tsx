@@ -153,6 +153,7 @@ function AppRoutes() {
       <Route path="/subscription-callback" element={<SubscriptionCallback />} />
       <Route path="/subscription-success" element={<SubscriptionSuccess />} />
       <Route path="/oauth/google-callback" element={<OAuthGoogleCallback />} />
+      <Route path="/auth/google/callback" element={<Navigate to="/oauth/google-callback" replace />} />
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/forms" element={<Forms />} />
       <Route path="/form-builder/:formId?" element={<FormBuilderPage />} />
