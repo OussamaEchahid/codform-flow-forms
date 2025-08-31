@@ -207,24 +207,24 @@ const Dashboard = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background dark:bg-[#0F1419] transition-colors duration-300">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground dark:text-gray-300">{t('loadingDashboard')}</p>
+          <p className="text-muted-foreground">{t('loadingDashboard')}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen bg-[#F8F9FB] dark:bg-[#0F1419] transition-colors duration-300" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+    <div className="flex min-h-screen bg-[#F8F9FB]" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <AppSidebar />
       
       <div className="flex-1 p-6">
         <div className="max-w-7xl mx-auto">
           {/* العنوان الرئيسي */}
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent dark:from-primary dark:to-purple-400">
+            <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
               Welcome to CODMagnet
             </h1>
           </div>

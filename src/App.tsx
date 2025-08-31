@@ -5,7 +5,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { I18nProvider } from "@/lib/i18n";
 import { AuthProvider, useAuth } from "@/components/layout/AuthProvider";
 import AppWrapper from "@/components/layout/AppWrapper";
-import { ThemeProvider } from "@/components/theme/ThemeProvider";
 
 
 // Pages
@@ -309,20 +308,18 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <I18nProvider>
-        <ThemeProvider>
-          <TooltipProvider>
-            <Router>
-              <AuthProvider>
-                <AppWrapper>
-                  <ShopifyAutoConnector />
-                  <AppRoutes />
-                </AppWrapper>
-                <Toaster />
-                <TawkToWidget />
-              </AuthProvider>
-            </Router>
-          </TooltipProvider>
-        </ThemeProvider>
+        <TooltipProvider>
+          <Router>
+            <AuthProvider>
+              <AppWrapper>
+                <ShopifyAutoConnector />
+                <AppRoutes />
+              </AppWrapper>
+              <Toaster />
+              <TawkToWidget />
+            </AuthProvider>
+          </Router>
+        </TooltipProvider>
       </I18nProvider>
     </QueryClientProvider>
   );
