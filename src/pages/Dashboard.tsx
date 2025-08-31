@@ -217,7 +217,7 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="flex min-h-screen bg-background" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+    <div className="flex min-h-screen bg-[#F8F9FB]" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <AppSidebar />
       
       <div className="flex-1 p-6">
