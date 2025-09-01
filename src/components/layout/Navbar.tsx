@@ -45,11 +45,11 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="bg-white shadow" dir="ltr" style={{ direction: 'ltr' }}>
+    <nav className="bg-white shadow">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           <Link to="/" className="text-xl font-bold text-primary">CODMagnet</Link>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center space-x-4 rtl:space-x-reverse gap-4">
             <div className="flex items-center gap-2">
               <Button variant={language === 'en' ? 'default' : 'outline'} size="sm" onClick={() => setLanguage('en')}>EN</Button>
               <Button variant={language === 'ar' ? 'default' : 'outline'} size="sm" onClick={() => setLanguage('ar')}>AR</Button>
@@ -57,7 +57,7 @@ const Navbar = () => {
             <Button asChild>
               <Link to="/dashboard">{language === 'ar' ? 'لوحة التحكم' : 'Dashboard'}</Link>
             </Button>
-
+            
             {/* عرض معلومات المستخدم والمتجر - تحسين جديد */}
             {hasConnection && isValidStore ? (
               <DropdownMenu>
@@ -69,7 +69,7 @@ const Navbar = () => {
                           {isValidStore ? activeStore.charAt(0).toUpperCase() : 'U'}
                         </AvatarFallback>
                       </Avatar>
-                      <div className="text-left hidden sm:block">
+                      <div className="text-right hidden sm:block">
                         <p className="text-sm font-medium leading-none">
                           {isValidStore ? activeStore.replace('.myshopify.com', '') : 'متجر غير معروف'}
                         </p>
@@ -99,14 +99,14 @@ const Navbar = () => {
                       </div>
                     </div>
                   </div>
-
+                  
                   <DropdownMenuItem asChild>
                     <Link to="/my-stores" className="w-full">
                       <Store className="mr-2 h-4 w-4" />
                       متاجري
                     </Link>
                   </DropdownMenuItem>
-
+                  
                   <DropdownMenuItem onClick={handleDisconnect} className="text-red-600 focus:text-red-600">
                     <LogOut className="mr-2 h-4 w-4" />
                     قطع الاتصال
@@ -114,8 +114,18 @@ const Navbar = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Button asChild>
-                <Link to="/shopify">{language === 'ar' ? 'ربط متجر' : 'Connect Store'}</Link>
+              <Button 
+                onClick={() => {
+                  // إذا كان المستخدم مصادق عليه، اذهب إلى الداشبورد مباشرة
+                  if (isShopifyAuthenticated) {
+                    window.location.href = '/dashboard';
+                  } else {
+                    // إذا لم يكن مصادق عليه، اعرض صفحة الاتصال
+                    window.location.href = '/dashboard';
+                  }
+                }}
+              >
+                {language === 'ar' ? 'ربط متجر' : 'Connect Store'}
               </Button>
             )}
           </div>

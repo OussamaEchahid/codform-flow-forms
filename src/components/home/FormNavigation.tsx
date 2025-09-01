@@ -26,18 +26,18 @@ const FormNavigation: React.FC<FormNavigationProps> = ({
       {/* أزرار التنقل */}
       <button
         onClick={onPrevious}
-        className={`absolute ${language === 'ar' ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white rounded-full p-3 shadow-xl transition-all duration-300 hover:scale-110 z-20`}
+        className="absolute left-3 top-1/2 -translate-y-1/2 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white rounded-full p-3 shadow-xl transition-all duration-300 hover:scale-110 z-20"
         aria-label={language === 'ar' ? 'السابق' : 'Previous'}
       >
-        {language === 'ar' ? <ChevronRight className="w-5 h-5 no-flip" /> : <ChevronLeft className="w-5 h-5 no-flip" />}
+        {language === 'ar' ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
       </button>
 
       <button
         onClick={onNext}
-        className={`absolute ${language === 'ar' ? 'left-3' : 'right-3'} top-1/2 -translate-y-1/2 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white rounded-full p-3 shadow-xl transition-all duration-300 hover:scale-110 z-20`}
+        className="absolute right-3 top-1/2 -translate-y-1/2 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white rounded-full p-3 shadow-xl transition-all duration-300 hover:scale-110 z-20"
         aria-label={language === 'ar' ? 'التالي' : 'Next'}
       >
-        {language === 'ar' ? <ChevronLeft className="w-5 h-5 no-flip" /> : <ChevronRight className="w-5 h-5 no-flip" />}
+        {language === 'ar' ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
       </button>
 
       {/* مؤشرات الشرائح */}
@@ -58,14 +58,14 @@ const FormNavigation: React.FC<FormNavigationProps> = ({
 
       {/* شارة "مباشر" للتبديل التلقائي */}
       {isAutoPlaying && (
-        <div className={`absolute top-4 ${language === 'ar' ? 'right-4' : 'left-4'} bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs px-3 py-1 rounded-full flex items-center space-x-1 shadow-lg`}>
+        <div className="absolute top-4 right-4 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs px-3 py-1 rounded-full flex items-center space-x-1 shadow-lg">
           <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
           <span className="font-medium">{language === 'ar' ? 'مباشر' : 'LIVE'}</span>
         </div>
       )}
 
       {/* رقم الشريحة */}
-      <div className={`absolute top-4 ${language === 'ar' ? 'left-4' : 'right-4'} bg-black/20 backdrop-blur-sm text-white text-sm px-3 py-1 rounded-full`}>
+      <div className="absolute top-4 left-4 bg-black/20 backdrop-blur-sm text-white text-sm px-3 py-1 rounded-full">
         {currentSlide + 1} / {totalSlides}
       </div>
     </>

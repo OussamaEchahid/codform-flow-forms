@@ -81,7 +81,7 @@ const formTemplates = [
 ];
 
 const FormSlideshow: React.FC = () => {
-  const { isRTL } = useI18n();
+  const { language } = useI18n();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
 
@@ -120,10 +120,12 @@ const FormSlideshow: React.FC = () => {
   return (
     <div className="w-full">
       {/* التخطيط المحسن - يتغير حسب اللغة */}
-      <div className={`flex flex-col items-center gap-8 max-w-6xl mx-auto lg:flex-row`}>
+      <div className={`flex flex-col lg:flex-row items-center gap-8 max-w-6xl mx-auto ${
+        language === 'ar' ? 'lg:flex-row-reverse' : ''
+      }`}>
 
         {/* قسم الصورة */}
-        <div className={`relative w-full lg:w-1/2 max-w-md mx-auto ${isRTL ? 'lg:order-2' : 'lg:order-1'}`}>
+        <div className="relative w-full lg:w-1/2 max-w-md mx-auto">
           <div className="relative overflow-hidden">
             {/* النموذج الحالي */}
             <div className="relative">
@@ -143,9 +145,7 @@ const FormSlideshow: React.FC = () => {
         </div>
 
         {/* قسم المعلومات والوصف */}
-        <div className={`w-full lg:w-1/2 ${isRTL ? 'lg:order-1' : 'lg:order-2'}`}>
-          <FormInfo template={currentTemplate} />
-        </div>
+        <FormInfo template={currentTemplate} />
       </div>
     </div>
   );
