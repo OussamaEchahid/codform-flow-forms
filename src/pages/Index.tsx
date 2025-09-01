@@ -15,8 +15,10 @@ import { parseShopifyParams } from '@/utils/shopify-helpers';
 import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
 import { shopifyStores } from '@/lib/shopify/supabase-client';
 import { toast } from '@/hooks/use-toast';
+import { useI18n } from '@/lib/i18n';
 const Index = () => {
   const navigate = useNavigate();
+  const { language } = useI18n();
   const [isProcessingShopify, setIsProcessingShopify] = useState(false);
   useEffect(() => {
     console.log('🏠 Index page loaded - Homepage should display');
@@ -80,7 +82,7 @@ const Index = () => {
     });
     navigate('/dashboard');
   };
-  return <div dir="rtl" className="min-h-screen">
+  return <div dir={language === 'ar' ? 'rtl' : 'ltr'} className="min-h-screen">
       {/* Shopify Auto Connector - يعرض نافذة للمتاجر الجديدة فقط */}
       <ShopifyAutoConnector onConnected={handleShopifyConnected} />
 
