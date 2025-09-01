@@ -45,11 +45,11 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="bg-white shadow" dir="ltr">
+    <nav className="bg-white shadow" dir="rtl">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           <Link to="/" className="text-xl font-bold text-primary">CODMagnet</Link>
-          <div className="flex items-center space-x-4 gap-4">
+          <div className="flex items-center space-x-4 rtl:space-x-reverse gap-4">
             <div className="flex items-center gap-2">
               <Button variant={language === 'en' ? 'default' : 'outline'} size="sm" onClick={() => setLanguage('en')}>EN</Button>
               <Button variant={language === 'ar' ? 'default' : 'outline'} size="sm" onClick={() => setLanguage('ar')}>AR</Button>
