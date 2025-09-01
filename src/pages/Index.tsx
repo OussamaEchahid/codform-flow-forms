@@ -8,6 +8,7 @@ import Features from '@/components/home/Features';
 import Templates from '@/components/home/Templates';
 import Pricing from '@/components/home/Pricing';
 import CTA from '@/components/home/CTA';
+import { useI18n } from '@/lib/i18n';
 import { Link } from 'react-router-dom';
 import { fixShopifyConnectionState } from '@/utils/fix-shopify-state';
 import ShopifyAutoConnector from '@/components/shopify/ShopifyAutoConnector';
@@ -16,6 +17,7 @@ import { shopifyConnectionManager } from '@/lib/shopify/connection-manager';
 import { shopifyStores } from '@/lib/shopify/supabase-client';
 import { toast } from '@/hooks/use-toast';
 const Index = () => {
+  const { isRTL } = useI18n();
   const navigate = useNavigate();
   const [isProcessingShopify, setIsProcessingShopify] = useState(false);
   useEffect(() => {
@@ -80,7 +82,7 @@ const Index = () => {
     });
     navigate('/dashboard');
   };
-  return <div dir="rtl" className="min-h-screen">
+  return <div dir={isRTL ? 'rtl' : 'ltr'} className="min-h-screen">
       {/* Shopify Auto Connector - يعرض نافذة للمتاجر الجديدة فقط */}
       <ShopifyAutoConnector onConnected={handleShopifyConnected} />
 
