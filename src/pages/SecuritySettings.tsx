@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Plus, Trash2, Download, Upload, Globe, MapPin, AlertTriangle, Copy } from 'lucide-react';
+import { Shield, Plus, Trash2, Download, Upload, Globe, MapPin, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -724,124 +724,69 @@ const SecuritySettings = () => {
         </div>
       </div>
 
-      {/* تحذير تفعيل الحماية */}
-      <Card className="border-blue-200 bg-blue-50">
+      {/* دليل التفعيل الجديد عبر App Embed */}
+      <Card className="border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
         <CardContent className="p-6">
           <div className="flex items-start gap-4">
             <Shield className="h-8 w-8 text-blue-600 mt-1" />
             <div className="flex-1">
-              <h3 className="font-bold text-blue-900 text-xl mb-2">{t('howToActivateProtection')}</h3>
-              <div className="text-blue-800 text-sm space-y-2 mb-4">
-                <p><strong>{t('step1')}</strong></p>
-                <p><strong>{t('step2')}</strong></p>
-                <p><strong>{t('step3')}</strong></p>
-                <p><strong>{t('result')}</strong></p>
+              <h3 className="font-bold text-blue-900 text-xl mb-1">{t('activateProtectionNewTitle')}</h3>
+              <p className="text-blue-800 text-sm mb-4">{t('activateProtectionNewDesc')}</p>
+
+              <div className="grid gap-4 md:grid-cols-4">
+                {/* الخطوة 1 */}
+                <div className="rounded-lg border bg-white p-4 shadow-sm">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-white text-xs font-bold">1</span>
+                    <span className="font-medium">{t('openShopifyCustomize')}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{t('openShopifyCustomizeDesc')}</p>
+                </div>
+
+                {/* الخطوة 2 */}
+                <div className="rounded-lg border bg-white p-4 shadow-sm">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-white text-xs font-bold">2</span>
+                    <span className="font-medium">{t('openAppEmbedsTab')}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{t('openAppEmbedsTabDesc')}</p>
+                </div>
+
+                {/* الخطوة 3 */}
+                <div className="rounded-lg border bg-white p-4 shadow-sm">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-white text-xs font-bold">3</span>
+                    <span className="font-medium">{t('enableCmSecurityEmbed')}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{t('enableCmSecurityEmbedDesc')}</p>
+                </div>
+
+                {/* الخطوة 4 */}
+                <div className="rounded-lg border bg-white p-4 shadow-sm">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-white text-xs font-bold">4</span>
+                    <span className="font-medium">{t('saveThemeChanges')}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{t('manageHereAfterEnable')}</p>
+                </div>
               </div>
-              <div className="flex gap-3">
-                <Dialog open={showProtectionDialog} onOpenChange={setShowProtectionDialog}>
-                  <DialogTrigger asChild>
-                    <Button 
-                      variant="default" 
-                      size="default"
-                      className="bg-blue-600 hover:bg-blue-700 text-white"
-                    >
-                      <Shield className="h-4 w-4 mr-2" />
-                      {t('generateProtectionScript')}
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-4xl max-h-[80vh]">
-                    <DialogHeader>
-                      <DialogTitle className="flex items-center gap-2">
-                        <Shield className="h-5 w-5" />
-                        {t('protectionScript')}
-                      </DialogTitle>
-                      <DialogDescription>
-                        {t('securitySettingsDescription')}
-                      </DialogDescription>
-                    </DialogHeader>
-                    
-                    <div className="space-y-4">
-                      {!protectionScript ? (
-                        <div className="py-4">
-                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-3">
-                            <p className="text-sm text-blue-800">
-                              {t('copyScriptInstructions')}
-                            </p>
-                          </div>
-                          <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
-                            <li>{t('step1')}</li>
-                            <li>{t('step2')}</li>
-                            <li>{t('step3')}</li>
-                            <li>{t('result')}</li>
-                          </ol>
-                        </div>
-                      ) : (
-                        <div className="space-y-4">
-                          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                            <div className="flex items-center gap-2 text-green-800 mb-2">
-                              <Shield className="h-4 w-4" />
-                              <span className="font-medium">{t('scriptGeneratedSuccessfully')}</span>
-                            </div>
-                            <p className="text-sm text-green-700">
-                              {t('copyScriptInstructions')}
-                            </p>
-                          </div>
-                          
-                          <div className="flex gap-2 mb-4">
-                            <Button onClick={copyProtectionScript} variant="default">
-                              <Copy className="h-4 w-4 mr-2" />
-                              {t('copyScript')}
-                            </Button>
-                            <Button onClick={downloadProtectionScript} variant="outline">
-                              <Download className="h-4 w-4 mr-2" />
-                              {t('downloadScript')}
-                            </Button>
-                          </div>
-                          
-                          <div className="border rounded-lg">
-                            <div className="bg-muted px-3 py-2 border-b">
-                              <span className="text-sm font-medium">سكريپت الحماية - اللصق في theme.liquid</span>
-                            </div>
-                            <Textarea
-                              value={protectionScript}
-                              readOnly
-                              rows={15}
-                              className="font-mono text-xs border-0 rounded-t-none resize-none"
-                            />
-                          </div>
-                          
-                          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                            <h4 className="font-medium text-yellow-800 mb-2">{t('applicationSteps')}</h4>
-                            <ol className="list-decimal list-inside space-y-1 text-sm text-yellow-700">
-                              <li>{t('copyScriptAbove')}</li>
-                              <li>{t('goToThemeSettings')}</li>
-                              <li>{t('openThemeLiquid')}</li>
-                              <li>{t('pasteBeforeHead')}</li>
-                              <li>{t('saveChanges')}</li>
-                            </ol>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    
-                    <DialogFooter>
-                      <Button variant="outline" onClick={() => {
-                        setShowProtectionDialog(false);
-                        setProtectionScript('');
-                      }}>
-                        {t('close')}
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-                
-                <Button 
-                  variant="outline" 
+
+              <div className="flex flex-wrap gap-3 mt-4">
+                <Button
+                  variant="default"
+                  size="default"
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  onClick={() => window.open('https://codmagnet.com/docs/security-embed', '_blank')}
+                >
+                  {t('viewStepByStepGuide')}
+                </Button>
+                <Button
+                  variant="outline"
                   size="default"
                   onClick={() => window.open('https://www.youtube.com/watch?v=example', '_blank')}
                   className="border-blue-300 text-blue-800 hover:bg-blue-100"
                 >
-                  {t('videoTutorial')}
+                  {t('watchVideoTutorial')}
                 </Button>
               </div>
             </div>
