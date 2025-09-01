@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Plus, Trash2, Download, Upload, Globe, MapPin, AlertTriangle, Copy, Code, TestTube } from 'lucide-react';
+import { Shield, Plus, Trash2, Download, Upload, Globe, MapPin, AlertTriangle, Copy } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -762,20 +762,18 @@ const SecuritySettings = () => {
                     
                     <div className="space-y-4">
                       {!protectionScript ? (
-                        <div className="text-center py-8">
-                          <Code className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                          <p className="text-lg font-medium mb-2">{t('generateProtectionScriptTitle')}</p>
-                          <p className="text-sm text-muted-foreground mb-4">
-                            {t('customScriptDescription')}
-                          </p>
-                          <Button 
-                            onClick={generateProtectionScript}
-                            disabled={scriptLoading}
-                            size="lg"
-                          >
-                            {scriptLoading ? t('loading') : t('generateProtectionScript')}
-                            <Code className="ml-2 h-4 w-4" />
-                          </Button>
+                        <div className="py-4">
+                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-3">
+                            <p className="text-sm text-blue-800">
+                              {t('copyScriptInstructions')}
+                            </p>
+                          </div>
+                          <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
+                            <li>{t('step1')}</li>
+                            <li>{t('step2')}</li>
+                            <li>{t('step3')}</li>
+                            <li>{t('result')}</li>
+                          </ol>
                         </div>
                       ) : (
                         <div className="space-y-4">
