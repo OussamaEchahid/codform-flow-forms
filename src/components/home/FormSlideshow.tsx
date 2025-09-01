@@ -81,7 +81,7 @@ const formTemplates = [
 ];
 
 const FormSlideshow: React.FC = () => {
-  const { language, isRTL } = useI18n();
+  const { isRTL } = useI18n();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
 
