@@ -45,11 +45,11 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="bg-white shadow">
+    <nav className="bg-white shadow" dir="ltr">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           <Link to="/" className="text-xl font-bold text-primary">CODMagnet</Link>
-          <div className="flex items-center space-x-4 rtl:space-x-reverse gap-4">
+          <div className="flex items-center space-x-4 gap-4">
             <div className="flex items-center gap-2">
               <Button variant={language === 'en' ? 'default' : 'outline'} size="sm" onClick={() => setLanguage('en')}>EN</Button>
               <Button variant={language === 'ar' ? 'default' : 'outline'} size="sm" onClick={() => setLanguage('ar')}>AR</Button>
@@ -114,18 +114,8 @@ const Navbar = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Button 
-                onClick={() => {
-                  // إذا كان المستخدم مصادق عليه، اذهب إلى الداشبورد مباشرة
-                  if (isShopifyAuthenticated) {
-                    window.location.href = '/dashboard';
-                  } else {
-                    // إذا لم يكن مصادق عليه، اعرض صفحة الاتصال
-                    window.location.href = '/dashboard';
-                  }
-                }}
-              >
-                {language === 'ar' ? 'ربط متجر' : 'Connect Store'}
+              <Button asChild>
+                <Link to="/shopify">{language === 'ar' ? 'ربط متجر' : 'Connect Store'}</Link>
               </Button>
             )}
           </div>
