@@ -21,9 +21,9 @@ const EnhancedHero: React.FC = () => {
   return (
     <section className="bg-gradient-to-br from-codform-light-purple to-white py-14">
       <div className="container mx-auto px-4">
-        <div className={`max-w-6xl mx-auto flex flex-col items-center gap-10 ${language === 'ar' ? 'md:flex-row-reverse' : 'md:flex-row'}`}>
-          {/* Text column */}
-          <div className={`${language === 'ar' ? 'text-right md:w-1/2' : 'text-left md:w-1/2'}`}>
+        <div className={`max-w-6xl mx-auto flex flex-col items-center gap-10 ${language === 'ar' ? 'md:flex-row-reverse' : 'md:flex-row'} md:justify-between`}>
+          {/* Text first always (RTL will place it on the right automatically) */}
+          <div className={`w-full md:w-1/2 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
             <h1 className="text-4xl lg:text-5xl font-extrabold leading-tight">
               <span className="block bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 bg-clip-text text-transparent">{t.title1}</span>
               <span className="block bg-gradient-to-r from-emerald-500 to-green-600 bg-clip-text text-transparent mt-2">{t.title2}</span>
@@ -33,7 +33,6 @@ const EnhancedHero: React.FC = () => {
             </p>
 
             <div className={`mt-8 flex items-center gap-4 ${language === 'ar' ? 'justify-end' : 'justify-start'}`}>
-              {/* Single CTA button */}
               <Button className="px-6 py-5 rounded-2xl text-base shadow-xl" asChild>
                 <a href="/shopify" className="flex items-center gap-2">
                   <ShoppingBag className="w-5 h-5" />
@@ -42,7 +41,6 @@ const EnhancedHero: React.FC = () => {
               </Button>
             </div>
 
-            {/* Feature chips */}
             <div className={`mt-8 flex flex-wrap gap-2 text-sm text-gray-700 ${language === 'ar' ? 'justify-end' : 'justify-start'}`}>
               <span className="px-4 py-2 rounded-full bg-white border">Google Sheet sync</span>
               <span className="px-4 py-2 rounded-full bg-white border">Drag & Drop</span>
@@ -51,10 +49,11 @@ const EnhancedHero: React.FC = () => {
             </div>
           </div>
 
-          {/* Carousel column */}
-          <div className="w-full md:w-1/2">
+          {/* Carousel second always (RTL will place it on the left automatically) */}
+          <div className={`w-full md:w-1/2 flex ${language === 'ar' ? 'md:justify-start' : 'md:justify-end'}`}>
             <FormCarousel />
           </div>
+
         </div>
       </div>
     </section>
