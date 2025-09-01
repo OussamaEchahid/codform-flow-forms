@@ -98,13 +98,13 @@ const Index = () => {
       <div className="py-16 bg-white">
         <div className="container mx-auto px-4">
           <div className="max-w-5xl mx-auto bg-codform-light-purple rounded-lg p-8">
-            <div className="flex flex-col lg:flex-row-reverse items-center">
+            <div className={`flex flex-col items-center ${isRTL ? 'lg:flex-row-reverse' : 'lg:flex-row'}`}>
               <div className="lg:w-1/2 mb-6 lg:mb-0">
-                <h2 className="text-2xl font-bold mb-4 text-right">جرب منشئ النماذج الآن</h2>
-                <p className="text-gray-700 mb-6 text-right">
+                <h2 className={`text-2xl font-bold mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>جرب منشئ النماذج الآن</h2>
+                <p className={`text-gray-700 mb-6 ${isRTL ? 'text-right' : 'text-left'}`}>
                   صمم نموذج الدفع عند الاستلام الخاص بك باستخدام منشئ النماذج السهل والمرن
                 </p>
-                <div className="flex flex-col gap-3 items-end">
+                <div className={`flex flex-col gap-3 ${isRTL ? 'items-end' : 'items-start'}`}>
                   <Button asChild>
                     <Link to="/form-builder">ابدأ في تصميم النموذج</Link>
                   </Button>
@@ -113,7 +113,7 @@ const Index = () => {
                   
                 </div>
               </div>
-              <div className="lg:w-1/2 lg:pl-10">
+              <div className={`lg:w-1/2 ${isRTL ? 'lg:pr-10' : 'lg:pl-10'}`}>
                 <div className="bg-white rounded-lg shadow-lg p-4">
                   <img src="https://images.unsplash.com/photo-1499951360447-b19be8fe80f5?auto=format&fit=crop&w=800&q=80" alt="منشئ النماذج" className="rounded-lg" />
                 </div>

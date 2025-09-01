@@ -120,9 +120,7 @@ const FormSlideshow: React.FC = () => {
   return (
     <div className="w-full">
       {/* التخطيط المحسن - يتغير حسب اللغة */}
-      <div className={`flex flex-col lg:flex-row items-center gap-8 max-w-6xl mx-auto ${
-        language === 'ar' ? 'lg:flex-row-reverse' : ''
-      }`}>
+      <div className={`flex flex-col items-center gap-8 max-w-6xl mx-auto ${language === 'ar' ? 'lg:flex-row' : 'lg:flex-row-reverse'}`}>
 
         {/* قسم الصورة */}
         <div className="relative w-full lg:w-1/2 max-w-md mx-auto">
