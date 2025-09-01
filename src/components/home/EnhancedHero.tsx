@@ -21,9 +21,9 @@ const EnhancedHero: React.FC = () => {
   return (
     <section className="bg-gradient-to-br from-codform-light-purple to-white py-14">
       <div className="container mx-auto px-4">
-        <div className={`flex items-center gap-10 max-w-6xl mx-auto ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
-          {/* Left: text */}
-          <div className={`flex-1 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 items-center gap-10">
+          {/* Text column */}
+          <div className={`${language === 'ar' ? 'lg:order-2 text-right' : 'lg:order-1 text-left'}`}>
             <h1 className="text-4xl lg:text-5xl font-extrabold leading-tight">
               <span className="block bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 bg-clip-text text-transparent">{t.title1}</span>
               <span className="block bg-gradient-to-r from-emerald-500 to-green-600 bg-clip-text text-transparent mt-2">{t.title2}</span>
@@ -56,8 +56,8 @@ const EnhancedHero: React.FC = () => {
             </div>
           </div>
 
-          {/* Right: carousel */}
-          <div className="flex-1">
+          {/* Carousel column */}
+          <div className={`${language === 'ar' ? 'lg:order-1' : 'lg:order-2'}`}>
             <FormCarousel />
           </div>
         </div>
