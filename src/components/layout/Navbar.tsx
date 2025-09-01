@@ -45,7 +45,7 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="bg-white shadow" dir="ltr">
+    <nav className="bg-white shadow" dir="ltr" style={{ direction: 'ltr' }}>
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           <Link to="/" className="text-xl font-bold text-primary">CODMagnet</Link>
@@ -69,7 +69,7 @@ const Navbar = () => {
                           {isValidStore ? activeStore.charAt(0).toUpperCase() : 'U'}
                         </AvatarFallback>
                       </Avatar>
-                      <div className="text-right hidden sm:block">
+                      <div className="text-left hidden sm:block">
                         <p className="text-sm font-medium leading-none">
                           {isValidStore ? activeStore.replace('.myshopify.com', '') : 'متجر غير معروف'}
                         </p>
