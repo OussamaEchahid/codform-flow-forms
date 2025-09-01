@@ -21,9 +21,9 @@ const EnhancedHero: React.FC = () => {
   return (
     <section className="bg-gradient-to-br from-codform-light-purple to-white py-14">
       <div className="container mx-auto px-4">
-        <div className={`max-w-6xl mx-auto flex flex-col items-center gap-10 ${language === 'ar' ? 'md:flex-row-reverse' : 'md:flex-row'} md:justify-between`}>
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center gap-10 md:justify-between">
           {/* Text first always (RTL will place it on the right automatically) */}
-          <div className={`w-full md:w-1/2 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+          <div className={`w-full md:w-1/2 ${language === 'ar' ? 'order-2 text-right' : 'order-1 text-left'}`}>
             <h1 className="text-4xl lg:text-5xl font-extrabold leading-tight">
               <span className="block bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 bg-clip-text text-transparent">{t.title1}</span>
               <span className="block bg-gradient-to-r from-emerald-500 to-green-600 bg-clip-text text-transparent mt-2">{t.title2}</span>
@@ -50,7 +50,7 @@ const EnhancedHero: React.FC = () => {
           </div>
 
           {/* Carousel second always (RTL will place it on the left automatically) */}
-          <div className={`w-full md:w-1/2 flex ${language === 'ar' ? 'md:justify-start' : 'md:justify-end'}`}>
+          <div className={`w-full md:w-1/2 flex ${language === 'ar' ? 'order-1 md:justify-start' : 'order-2 md:justify-end'}`}>
             <FormCarousel />
           </div>
 
