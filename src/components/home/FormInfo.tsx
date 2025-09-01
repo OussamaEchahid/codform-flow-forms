@@ -1,4 +1,5 @@
 import React from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 
 interface FormTemplate {
@@ -48,25 +49,19 @@ const FormInfo: React.FC<FormInfoProps> = ({ template }) => {
       </div>
 
       {/* الأزرار المحسنة */}
-      <div className={`flex flex-col sm:flex-row gap-4 ${
-        language === 'ar' 
-          ? 'items-center sm:items-start' 
-          : 'items-center sm:items-start'
-      } ${
-        language === 'ar' 
-          ? 'justify-center sm:justify-start' 
-          : 'justify-center sm:justify-start'
+      <div className={`flex flex-col sm:flex-row gap-4 items-start ${
+        language === 'ar'
+          ? 'justify-center sm:justify-start'
+          : 'justify-start'
       }`}>
         <button className="group relative px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
           <span className="relative z-10 flex items-center gap-2">
             <span>{language === 'ar' ? 'ابدأ مجاناً' : 'Start Free'}</span>
-            <svg className={`w-5 h-5 transition-transform ${
-              language === 'ar'
-                ? 'scale-x-[-1] group-hover:-translate-x-1'
-                : 'group-hover:translate-x-1'
-            }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-            </svg>
+            {language === 'ar' ? (
+              <ChevronLeft className="w-5 h-5 no-flip transition-transform group-hover:-translate-x-1" />
+            ) : (
+              <ChevronRight className="w-5 h-5 no-flip transition-transform group-hover:translate-x-1" />
+            )}
           </span>
           <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-blue-400 rounded-2xl blur opacity-30 group-hover:opacity-50 transition-opacity"></div>
         </button>
