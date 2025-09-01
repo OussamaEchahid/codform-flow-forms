@@ -29,7 +29,7 @@ const FormNavigation: React.FC<FormNavigationProps> = ({
         className={`absolute ${language === 'ar' ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white rounded-full p-3 shadow-xl transition-all duration-300 hover:scale-110 z-20`}
         aria-label={language === 'ar' ? 'السابق' : 'Previous'}
       >
-        {language === 'ar' ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
+        {language === 'ar' ? <ChevronRight className="w-5 h-5 no-flip" /> : <ChevronLeft className="w-5 h-5 no-flip" />}
       </button>
 
       <button
@@ -37,7 +37,7 @@ const FormNavigation: React.FC<FormNavigationProps> = ({
         className={`absolute ${language === 'ar' ? 'left-3' : 'right-3'} top-1/2 -translate-y-1/2 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white rounded-full p-3 shadow-xl transition-all duration-300 hover:scale-110 z-20`}
         aria-label={language === 'ar' ? 'التالي' : 'Next'}
       >
-        {language === 'ar' ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+        {language === 'ar' ? <ChevronLeft className="w-5 h-5 no-flip" /> : <ChevronRight className="w-5 h-5 no-flip" />}
       </button>
 
       {/* مؤشرات الشرائح */}
