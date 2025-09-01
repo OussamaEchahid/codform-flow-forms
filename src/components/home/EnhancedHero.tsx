@@ -23,7 +23,7 @@ const EnhancedHero: React.FC = () => {
       <div className="container mx-auto px-4">
         <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 items-center gap-10">
           {/* Text column */}
-          <div className={`${language === 'ar' ? 'lg:order-2 text-right' : 'lg:order-1 text-left'}`}>
+          <div className={`${language === 'ar' ? 'lg:col-start-2 text-right' : 'lg:col-start-1 text-left'}`}>
             <h1 className="text-4xl lg:text-5xl font-extrabold leading-tight">
               <span className="block bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 bg-clip-text text-transparent">{t.title1}</span>
               <span className="block bg-gradient-to-r from-emerald-500 to-green-600 bg-clip-text text-transparent mt-2">{t.title2}</span>
@@ -40,11 +40,6 @@ const EnhancedHero: React.FC = () => {
                   <span>{t.install}</span>
                 </a>
               </Button>
-
-              {/* Domain badge */}
-              <span className="px-4 py-2 rounded-xl border bg-white/70 backdrop-blur text-gray-700 text-sm">
-                {t.domain}
-              </span>
             </div>
 
             {/* Feature chips */}
@@ -57,7 +52,7 @@ const EnhancedHero: React.FC = () => {
           </div>
 
           {/* Carousel column */}
-          <div className={`${language === 'ar' ? 'lg:order-1' : 'lg:order-2'}`}>
+          <div className={`${language === 'ar' ? 'lg:col-start-1' : 'lg:col-start-2'}`}>
             <FormCarousel />
           </div>
         </div>
