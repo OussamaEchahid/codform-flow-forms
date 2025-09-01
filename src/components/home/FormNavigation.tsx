@@ -58,14 +58,14 @@ const FormNavigation: React.FC<FormNavigationProps> = ({
 
       {/* شارة "مباشر" للتبديل التلقائي */}
       {isAutoPlaying && (
-        <div className="absolute top-4 right-4 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs px-3 py-1 rounded-full flex items-center space-x-1 shadow-lg">
+        <div className={`absolute top-4 ${language === 'ar' ? 'left-4' : 'right-4'} bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs px-3 py-1 rounded-full flex items-center space-x-1 shadow-lg`}>
           <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
           <span className="font-medium">{language === 'ar' ? 'مباشر' : 'LIVE'}</span>
         </div>
       )}
 
       {/* رقم الشريحة */}
-      <div className="absolute top-4 left-4 bg-black/20 backdrop-blur-sm text-white text-sm px-3 py-1 rounded-full">
+      <div className={`absolute top-4 ${language === 'ar' ? 'right-4' : 'left-4'} bg-black/20 backdrop-blur-sm text-white text-sm px-3 py-1 rounded-full`}>
         {currentSlide + 1} / {totalSlides}
       </div>
     </>
