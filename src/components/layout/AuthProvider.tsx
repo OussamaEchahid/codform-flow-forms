@@ -100,9 +100,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const validate = async () => {
       const store = UnifiedStoreManager.getActiveStore();
-      if (!store) {
+      // تحقّق مزدوج من صحة صيغة المتجر لتجنّب قيم مثل "en" أو "ar"
+      const isValidStore = !!store && /^[a-zA-Z0-9\-]+\.myshopify\.com$/.test(store);
+      if (!isValidStore) {
         setShopifyConnected(false);
-        // تنظيف شامل عند عدم وجود متجر
         UnifiedStoreManager.clearActiveStore();
         setActiveStore(null);
         setShops(null);

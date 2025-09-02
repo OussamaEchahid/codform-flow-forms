@@ -55,10 +55,16 @@ export class UnifiedStoreManager {
       const primaryStore = localStorage.getItem(this.STORE_KEY);
       if (primaryStore && primaryStore.trim()) {
         const cleanStore = primaryStore.trim();
-        this.updateCache(cleanStore);
-        this.cleanupLegacyKeys();
-        console.log('✅ Found active store:', cleanStore);
-        return cleanStore;
+        if (this.isValidStoreFormat(cleanStore)) {
+          this.updateCache(cleanStore);
+          this.cleanupLegacyKeys();
+          console.log('✅ Found active store:', cleanStore);
+          return cleanStore;
+        } else {
+          console.warn('⏭️ Ignoring invalid active store value:', cleanStore);
+          // Remove the bad value so we can migrate from other keys safely
+          localStorage.removeItem(this.STORE_KEY);
+        }
       }
 
       // فحص المفاتيح القديمة والترقية (مع تحقق صارم من الصيغة)
