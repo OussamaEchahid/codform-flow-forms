@@ -21,7 +21,7 @@ const shopify = shopifyApp({
   apiVersion: ApiVersion.January25,
   // قمنا بتحديث نطاقات الصلاحيات بناءً على قائمة المشكلات المحتملة
   scopes: process.env.SCOPES?.split(",") || ["read_products", "write_draft_orders", "write_pixels", "read_customer_events"],
-  appUrl: process.env.SHOPIFY_APP_URL || "https://codform-flow-forms.lovable.app",
+  appUrl: process.env.SHOPIFY_APP_URL || "codmagnet.com",
   authPathPrefix: "/auth",
   sessionStorage: new PrismaSessionStorage(prisma),
   distribution: AppDistribution.AppStore,
