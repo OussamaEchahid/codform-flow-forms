@@ -88,7 +88,7 @@ const translations = {
     phoneNumber: 'Phone Number',
     city: 'City',
     address: 'Address',
-    
+
     // Error messages
     error_title: 'Error',
     error_message: 'An error occurred while submitting the form. Please try again',
@@ -101,16 +101,16 @@ const translations = {
     form_field_address: 'Address',
     form_field_city: 'City',
     form_field_notes: 'Additional Notes',
-    
+
     // Form basics
     form_title: 'Cash on Delivery Request',
     form_description: 'Please fill out the form below to request cash on delivery',
     form_submit: 'Submit Order',
-    
+
     // Success messages
     success_title: 'Thank You',
     success_message: 'Your request has been submitted successfully. We will contact you soon.',
-    
+
     // Settings translations
     orderSettings: 'Order Settings',
     generalSettings: 'General Settings',
@@ -119,7 +119,7 @@ const translations = {
     orderSettingsDescription: 'Manage post-order creation settings',
     generalSettingsDescription: 'Manage general application settings',
     plansSettingsDescription: 'Manage subscription plans and upgrades',
-    
+
     // Order Settings
     postOrderAction: 'Post-Order Action',
     postOrderActionDescription: 'Choose what happens after successful order creation',
@@ -130,7 +130,7 @@ const translations = {
     popupTitle: 'Title',
     popupMessage: 'Message',
     popupSettingsDescription: 'Customize the popup that appears after order creation',
-    
+
     // General Settings
     shopifySettings: 'Shopify Settings',
     shopifySettingsDescription: 'Customize Shopify integration',
@@ -200,8 +200,8 @@ const translations = {
     // Additional Order Settings
     showPopup: 'Show Popup',
     stayOnPage: 'Stay on Page',
-    popupTitlePlaceholder: 'Order created successfully!',
-    popupMessagePlaceholder: 'Thank you for your order. We will contact you soon...',
+    popupTitlePlaceholder: 'Order Created Successfully!',
+    popupMessagePlaceholder: 'Thank you for your order! We\'ll contact you soon to confirm the details. Please keep your phone nearby.',
 
     // Form Management
     formManagement: 'Form Management',
@@ -306,6 +306,21 @@ const translations = {
     openThemeLiquid: 'Open theme.liquid file for editing',
     pasteBeforeHead: 'Paste the script before closing </head>',
     saveChanges: 'Save changes',
+
+    // New App Embed activation guide (EN)
+    activateProtectionNewTitle: 'Enable Protection via Shopify App Embed',
+    activateProtectionNewDesc: 'The new method is simple and safe. Enable the CodMagnet – Store Security app embed from your theme. No manual scripts are required.',
+    openShopifyCustomize: 'Open Customize',
+    openShopifyCustomizeDesc: 'In Shopify admin, go to Online Store → Themes → Customize.',
+    openAppEmbedsTab: 'App embeds',
+    openAppEmbedsTabDesc: 'From the left sidebar, open the App embeds tab.',
+    enableCmSecurityEmbed: 'Enable CM Security Embed',
+    enableCmSecurityEmbedDesc: 'Toggle on “CM Security Embed” and keep it enabled on your published theme.',
+    saveThemeChanges: 'Save theme changes',
+    manageHereAfterEnable: 'After enabling, manage blocked IPs and countries from this page.',
+    viewStepByStepGuide: 'Step-by-step guide',
+    watchVideoTutorial: 'Watch video tutorial',
+
     addCustomSymbol: 'Add Custom Symbol...',
     currentCustomSymbols: 'Current Custom Symbols:',
     noCustomSymbols: 'No custom symbols currently',
@@ -376,27 +391,27 @@ const translations = {
     ordersThisMonth: 'Orders This Month',
     storageUsed: 'Storage Used',
     renewalDate: 'Renewal Date',
-    
+
     // Common
     addRate: 'Add Rate',
     minAmount: 'Minimum Amount',
     maxAmount: 'Maximum Amount',
     shippingCost: 'Shipping Cost',
     saveSettings: 'Save Settings',
-    
+
     // Dashboard and Welcome
     welcomeToDashboard: 'Welcome to Dashboard',
     connectedToStore: 'Connected to store',
     setupShopifyStore: 'Set up your Shopify store to get started',
     manageStores2: 'Manage Stores',
     connectToShopify: 'Connect to Shopify',
-    
+
     // Form Builder
     welcomeToFormBuilder: 'Welcome to Form Builder',
     noFormsFound: 'No forms found. Start by creating your first form to collect customer data and increase sales.',
     createNewForm: 'Create New Form',
     defaultFormDescription: 'A default form will be created with basic fields that you can customize later',
-    
+
     // No Store Connected
     welcomeToCODmagnet: 'Welcome to CODmagnet',
     accountCreatedSuccessfully: 'Your account has been created successfully, but no Shopify store is connected yet',
@@ -410,19 +425,19 @@ const translations = {
     setupProfile: 'Setup Profile',
     alreadyHaveShopifyStore: 'Already have a Shopify store?',
     downloadFromAppStore: 'Download from App Store',
-    
+
     // Countdown Timer
     offerEndsIn: 'Offer ends in',
     hours: 'Hours',
     minutes: 'Minutes',
     seconds: 'Seconds',
-    
+
     // HTML Content
     addHtmlContentHere: 'Add HTML content here. You can add paragraphs, images, links and more.',
-    
+
     // Dashboard additional
     totalStores: 'Total Stores',
-    totalForms: 'Total Forms',  
+    totalForms: 'Total Forms',
     totalOrders: 'Total Orders',
     connectedStore: 'Connected Store',
     formsCreated: 'forms created',
@@ -434,7 +449,7 @@ const translations = {
     linkStore: 'Link Store',
     noActiveStore: 'No active store',
     pleaseConnectShopify: 'Please connect a Shopify store first',
-    
+
     // Quantity Offers
     quantityOffersTitle: 'Quantity Offers',
     selectFormFirst: 'Select Form First',
@@ -449,22 +464,6 @@ const translations = {
     noOffersCreated: 'No offers created yet',
     selectProductFromForm: 'Select a product from this form',
     productAlreadyHasOffer: 'Product already has a quantity offer for this form',
-    
-    // CTA Section
-    ctaTitle: 'Start Creating Cash on Delivery Forms Now',
-    ctaDescription: 'Join thousands of stores using CODMagnet to simplify the cash on delivery process for their customers',
-    ctaStartFree: 'Start Free',
-    
-    // Footer
-    footerDescription: 'A specialized form platform for Cash on Delivery designed specifically for Shopify store integration.',
-    quickLinks: 'Quick Links',
-    features: 'Features',
-    templates: 'Templates',
-    pricing: 'Pricing',
-    support: 'Support',
-    privacyPolicy: 'Privacy Policy',
-    termsAndConditions: 'Terms and Conditions',
-    allRightsReserved: 'All rights reserved.',
     editExistingOffer: 'You can edit the existing offer or choose another product',
     addAtLeastOneOffer: 'Must add at least one offer',
     offerSavedSuccessfully: 'Offer saved successfully',
@@ -474,7 +473,7 @@ const translations = {
     quantityOffersOffers: 'Offers',
     quantityOffersStyling: 'Styling',
     quantityOffersPosition: 'Position',
-    
+
     // My Stores
     myStores: 'My Stores',
     yourStores: 'Your Stores',
@@ -487,12 +486,12 @@ const translations = {
     activate: 'Activate',
     manage: 'Manage',
     disconnectAllStores: 'Disconnect All Stores',
-    
+
     // Landing Pages
     landingPagesTitle: 'Landing Pages',
     workInProgress: 'We are working to complete this as soon as possible',
     comingSoon: 'Coming Soon',
-    
+
     // Quantity Offers Form Labels
     step1SelectForm: 'Step 1: Select Form',
     selectFormDescription: 'Choose the form to add quantity offers to',
@@ -518,7 +517,7 @@ const translations = {
     offersConfigured: 'offers configured',
     positionPrefix: 'Position:',
     additionalOffers: 'additional offers',
-    
+
     // Dashboard loading and error states
     loadingDashboard: 'Loading dashboard...',
     loadingUsageStats: 'Loading usage statistics...',
@@ -612,12 +611,12 @@ const translations = {
     phoneNumber: 'رقم الهاتف',
     city: 'المدينة',
     address: 'العنوان',
-    
+
     // Error messages
     error_title: 'خطأ',
     error_message: 'حدث خطأ أثناء تقديم النموذج. يرجى المحاولة مرة أخرى',
     retry_button: 'إعادة المحاولة',
-    
+
     // Form fields
     form_field_name: 'الاسم الكامل',
     form_field_email: 'البريد الإلكتروني',
@@ -625,16 +624,16 @@ const translations = {
     form_field_address: 'العنوان',
     form_field_city: 'المدينة',
     form_field_notes: 'ملاحظات إضافية',
-    
+
     // Form basics
     form_title: 'طلب الدفع عند الاستلام',
     form_description: 'يرجى ملء النموذج التالي لطلب الدفع عند الاستلام',
     form_submit: 'إرسال الطلب',
-    
+
     // Success messages
     success_title: 'شكراً لك',
     success_message: 'تم إرسال طلبك بنجاح. سنتواصل معك قريبًا.',
-    
+
     // Settings translations
     orderSettings: 'إعدادات الطلب',
     generalSettings: 'الإعدادات العامة',
@@ -643,7 +642,7 @@ const translations = {
     orderSettingsDescription: 'إدارة إعدادات ما بعد إنشاء الطلب',
     generalSettingsDescription: 'إدارة الإعدادات العامة للتطبيق',
     plansSettingsDescription: 'إدارة خطط الاشتراك والترقية',
-    
+
     // Order Settings
     postOrderAction: 'الإجراء بعد إنشاء الطلب',
     postOrderActionDescription: 'اختر ما يحدث بعد إنشاء الطلب بنجاح',
@@ -654,7 +653,7 @@ const translations = {
     popupTitle: 'العنوان',
     popupMessage: 'الرسالة',
     popupSettingsDescription: 'تخصيص النافذة المنبثقة التي تظهر بعد إنشاء الطلب',
-    
+
     // General Settings
     shopifySettings: 'إعدادات Shopify',
     shopifySettingsDescription: 'تخصيص التكامل مع Shopify',
@@ -724,8 +723,8 @@ const translations = {
     // Additional Order Settings
     showPopup: 'إظهار نافذة منبثقة',
     stayOnPage: 'البقاء في الصفحة',
-    popupTitlePlaceholder: 'تم إنشاء طلبك بنجاح!',
-    popupMessagePlaceholder: 'شكراً لك على طلبك. سنتواصل معك قريباً...',
+    popupTitlePlaceholder: 'Order Created Successfully!',
+    popupMessagePlaceholder: 'Thank you for your order! We\'ll contact you soon to confirm the details. Please keep your phone nearby.',
 
     // Form Management
     formManagement: 'إدارة النماذج',
@@ -825,6 +824,21 @@ const translations = {
     step3: 'الخطوة 3: انسخ السكريپت والصقه في ثيم شوبيفاي',
     result: 'النتيجة: سيتم حظر الزوار فوراً عند دخولهم للمتجر',
     applicationSteps: 'خطوات التطبيق:',
+
+    // New App Embed activation guide (AR)
+    activateProtectionNewTitle: 'تفعيل الحماية عبر App Embed في شوبيفاي',
+    activateProtectionNewDesc: 'الطريقة الجديدة أسهل وأكثر أمانًا: فعّل تضمين التطبيق CodMagnet – Store Security من تخصيص الثيم، ولن تحتاج لأي سكريبتات يدوية.',
+    openShopifyCustomize: 'افتح واجهة التخصيص',
+    openShopifyCustomizeDesc: 'من لوحة تحكم شوبيفاي: Online Store → Themes → Customize.',
+    openAppEmbedsTab: 'علامة تبويب App embeds',
+    openAppEmbedsTabDesc: 'من الشريط الجانبي الأيسر افتح قسم App embeds.',
+    enableCmSecurityEmbed: 'فعّل CM Security Embed',
+    enableCmSecurityEmbedDesc: 'قم بتفعيل خيار "CM Security Embed" واتركه مفعّلًا على الثيم المنشور.',
+    saveThemeChanges: 'احفظ تغييرات الثيم',
+    manageHereAfterEnable: 'بعد التفعيل يمكنك إدارة الدول وعناوين IP المحظورة من هذه الصفحة.',
+    viewStepByStepGuide: 'دليل خطوة بخطوة',
+    watchVideoTutorial: 'مشاهدة شرح فيديو',
+
     copyScriptAbove: 'انسخ السكريپت أعلاه',
     goToThemeSettings: 'اذهب إلى إعدادات الثيم في شوبيفاي',
     openThemeLiquid: 'افتح ملف theme.liquid للتحرير',
@@ -899,43 +913,27 @@ const translations = {
     ordersThisMonth: 'الطلبات هذا الشهر',
     storageUsed: 'التخزين المستخدم',
     renewalDate: 'تاريخ التجديد',
-    
+
     // Common
     addRate: 'إضافة سعر',
     minAmount: 'الحد الأدنى',
     maxAmount: 'الحد الأقصى',
     shippingCost: 'تكلفة الشحن',
     saveSettings: 'حفظ الإعدادات',
-    
+
     // Dashboard and Welcome
     welcomeToDashboard: 'مرحباً بك في لوحة التحكم',
     connectedToStore: 'متصل بمتجر',
     setupShopifyStore: 'قم بإعداد متجر Shopify الخاص بك للبدء',
     manageStores2: 'إدارة المتاجر',
     connectToShopify: 'اتصل بـ Shopify',
-    
+
     // Form Builder
     welcomeToFormBuilder: 'أهلاً بك في منشئ النماذج',
     noFormsFound: 'لم يتم العثور على أي نماذج. ابدأ بإنشاء نموذجك الأول لجمع بيانات العملاء وزيادة المبيعات.',
     createNewForm: 'إنشاء نموذج جديد',
-    
-    // قسم الحث على العمل
-    ctaTitle: 'ابدأ في إنشاء نماذج الدفع عند الاستلام الآن',
-    ctaDescription: 'انضم إلى آلاف المتاجر التي تستخدم CODMagnet لتسهيل عملية الدفع عند الاستلام لعملائها',
-    ctaStartFree: 'ابدأ مجانًا',
-    
-    // الفوتر
-    footerDescription: 'منصة نماذج متخصصة للدفع عند الاستلام (Cash on Delivery) مصممة خصيصًا للتكامل مع متاجر Shopify.',
-    quickLinks: 'روابط سريعة',
-    features: 'المميزات',
-    templates: 'القوالب',
-    pricing: 'الأسعار',
-    support: 'الدعم',
-    privacyPolicy: 'سياسة الخصوصية',
-    termsAndConditions: 'الشروط والأحكام',
-    allRightsReserved: 'جميع الحقوق محفوظة.',
     defaultFormDescription: 'سيتم إنشاء نموذج افتراضي يحتوي على الحقول الأساسية التي يمكنك تخصيصها لاحقاً',
-    
+
     // No Store Connected
     welcomeToCODmagnet: 'مرحباً بك في CODmagnet',
     accountCreatedSuccessfully: 'تم إنشاء حسابك بنجاح، لكن لا يوجد متجر Shopify مرتبط بعد',
@@ -949,20 +947,20 @@ const translations = {
     setupProfile: 'إعداد الملف الشخصي',
     alreadyHaveShopifyStore: 'لديك متجر Shopify بالفعل؟',
     downloadFromAppStore: 'حمّل التطبيق من متجر التطبيقات',
-    
+
     // Countdown Timer
     offerEndsIn: 'الوقت المتبقي للعرض',
     hours: 'ساعة',
     minutes: 'دقيقة',
     seconds: 'ثانية',
-    
+
     // HTML Content
     addHtmlContentHere: 'أضف محتوى HTML هنا. يمكنك إضافة فقرات، صور، روابط وغيرها.',
-    
+
     // Dashboard additional
     totalStores: 'إجمالي المتاجر',
     totalForms: 'إجمالي النماذج',
-    totalOrders: 'إجمالي الطلبات', 
+    totalOrders: 'إجمالي الطلبات',
     connectedStore: 'المتجر المتصل',
     formsCreated: 'نماذج تم إنشاؤها',
     ordersReceived: 'طلبات تم استلامها',
@@ -973,7 +971,7 @@ const translations = {
     linkStore: 'ربط متجر',
     noActiveStore: 'لا يوجد متجر نشط',
     pleaseConnectShopify: 'يرجى ربط متجر Shopify أولاً',
-    
+
     // Quantity Offers
     quantityOffersTitle: 'العروض الكمية',
     selectFormFirst: 'اختر النموذج أولاً',
@@ -997,7 +995,7 @@ const translations = {
     quantityOffersOffers: 'العروض',
     quantityOffersStyling: 'التصميم',
     quantityOffersPosition: 'الموضع',
-    
+
     // My Stores
     myStores: 'متاجري',
     yourStores: 'متاجرك',
@@ -1010,12 +1008,12 @@ const translations = {
     activate: 'تفعيل',
     manage: 'إدارة',
     disconnectAllStores: 'قطع الاتصال من جميع المتاجر',
-    
+
     // Landing Pages
     landingPagesTitle: 'صفحات الهبوط',
     workInProgress: 'نحن نعمل على إنجاز هذا في أقرب وقت ممكن',
     comingSoon: 'قريباً',
-    
+
     // Quantity Offers Form Labels
     step1SelectForm: 'الخطوة 1: اختيار النموذج',
     selectFormDescription: 'اختر النموذج المراد إضافة عروض الكمية إليه',
@@ -1041,7 +1039,7 @@ const translations = {
      offersConfigured: 'عروض مكونة',
     positionPrefix: 'الموضع:',
     additionalOffers: 'عروض إضافية',
-    
+
     // Dashboard loading and error states
     loadingDashboard: 'جاري تحميل لوحة التحكم...',
     loadingUsageStats: 'جاري تحميل إحصائيات الاستخدام...',
@@ -1051,7 +1049,7 @@ const translations = {
     conversionRate: 'معدل التحويل',
     formConversionRate: 'نسبة تحويل النماذج',
     manageYourStores: 'إدارة متاجرك ونماذجك وطلباتك من مكان واحد',
-    
+
     // Usage statistics
     usageStatistics: 'إحصائيات الاستخدام',
     currentMonthUsage: 'استخدامك الحالي من الخطة لهذا الشهر',
@@ -1100,31 +1098,31 @@ export const I18nProvider = ({ children }: I18nProviderProps) => {
   // Translation function
   const t = (key: string): string => {
     if (!key) return '';
-    
+
     // Safely access translations with type checking
     const langTranslations = translations[language] || {};
-    
+
     // Try to find the exact key
     const directTranslation = (langTranslations as Record<string, string>)[key];
     if (directTranslation) return directTranslation;
-    
+
     // Handle nested keys (e.g., "codform.form.title")
     if (key.includes('.')) {
       const parts = key.split('.');
       let result: any = langTranslations;
-      
+
       for (const part of parts) {
         if (!result || typeof result !== 'object') {
           return key; // Key not found
         }
         result = result[part];
       }
-      
+
       if (typeof result === 'string') {
         return result;
       }
     }
-    
+
     // If no translation was found, return the key
     return key;
   };

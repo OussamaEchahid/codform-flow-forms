@@ -191,6 +191,8 @@ const PlansSettings = () => {
           // Polling للتحقق من تفعيل الخطة
           let pollAttempts = 0;
           const maxPollAttempts = 30;
+          let reconcileTriggered = false;
+
 
           const pollId = window.setInterval(async () => {
             pollAttempts++;
@@ -198,7 +200,7 @@ const PlansSettings = () => {
 
             try {
               await forceRefresh();
-              
+
               // التحقق من نجاح الترقية
               if (isCurrentPlan(planId)) {
                 console.log('✅ Subscription updated successfully!');
@@ -208,6 +210,27 @@ const PlansSettings = () => {
                 const { toast } = await import('@/hooks/use-toast');
                 toast.success(language === 'ar' ? 'تم تفعيل الخطة بنجاح' : 'Plan activated successfully');
                 return;
+              }
+
+              // المصالحة فقط بعد 3 محاولات (للسماح بإكمال الدفع)
+              if (pollAttempts >= 3) {
+                try {
+                  const { subscriptionService } = await import('@/lib/subscription-service');
+                  const sub = await subscriptionService.getSubscription(activeStore);
+                  if (
+                    sub &&
+                    sub.requested_plan_type?.toLowerCase?.() === planId.toLowerCase() &&
+                    sub.plan_type?.toLowerCase?.() !== planId.toLowerCase() &&
+                    !reconcileTriggered
+                  ) {
+                    const { edgeGet } = await import('@/lib/supabase-edge');
+                    console.log('🧩 Triggering reconcile-subscriptions from polling...');
+                    await edgeGet('reconcile-subscriptions', { shop: activeStore });
+                    reconcileTriggered = true;
+                  }
+                } catch (e) {
+                  console.warn('Reconcile check failed during polling:', e);
+                }
               }
             } catch (error) {
               console.error('❌ Error during polling:', error);
@@ -220,7 +243,7 @@ const PlansSettings = () => {
               setUpgradingTo(null);
             }
           }, 3000);
-          
+
           upgradePollRef.current = pollId;
         }
       }

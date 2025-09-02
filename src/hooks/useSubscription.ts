@@ -102,10 +102,52 @@ export const useSubscription = (shopDomain?: string): UseSubscriptionReturn => {
     return status;
   }, [subscription, isCurrentPlan]);
 
-  // تحميل البيانات عند mount
+  // تحميل الاشتراك عند mount فقط
   useEffect(() => {
-    loadSubscription();
+    (async () => {
+      await loadSubscription();
+    })();
   }, [loadSubscription]);
+
+  // مصالحة تلقائية فقط للحالات المناسبة (ليس عند إنشاء pending جديد)
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+
+    (async () => {
+      if (!subscription) return;
+
+      const hasRequestedUpgrade = !!(
+        subscription.requested_plan_type &&
+        subscription.plan_type?.toLowerCase?.() !== subscription.requested_plan_type?.toLowerCase?.()
+      );
+
+      // فقط إذا كان الاشتراك pending لأكثر من 30 ثانية أو active مع requested مختلف
+      if (subscription.status === 'active' && hasRequestedUpgrade) {
+        // انتظار 30 ثانية قبل المصالحة للسماح بإكمال الدفع
+        timeoutId = setTimeout(async () => {
+          try {
+            const { edgeGet } = await import('@/lib/supabase-edge');
+            const shop = shopDomain || subscription.shop_domain || (await subscriptionService.getCurrentSubscription())?.shop_domain;
+            if (shop) {
+              console.log('🧩 Reconciling subscription (delayed) for', shop, {
+                status: subscription.status,
+                plan: subscription.plan_type,
+                requested: subscription.requested_plan_type,
+              });
+              await edgeGet('reconcile-subscriptions', { shop });
+              await loadSubscription(true);
+            }
+          } catch (e) {
+            console.warn('Reconcile attempt skipped/failed:', e);
+          }
+        }, 30000); // 30 ثانية
+      }
+    })();
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [subscription?.status, subscription?.requested_plan_type, subscription?.plan_type, shopDomain, loadSubscription]);
 
   // الاستماع لتغييرات المتجر النشط
   useEffect(() => {

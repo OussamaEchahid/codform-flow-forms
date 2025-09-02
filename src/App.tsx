@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { I18nProvider } from "@/lib/i18n";
@@ -30,7 +30,7 @@ import OrderSettings from "@/pages/OrderSettings";
 import GeneralSettings from "@/pages/GeneralSettings";
 import SecuritySettings from "@/pages/SecuritySettings";
 
-import PlansSettings from "@/pages/PlansSettings";
+import BillingCenter from "@/pages/BillingCenter";
 import CurrencySettings from "@/pages/CurrencySettings";
 import QuantityOffers from "@/pages/QuantityOffers";
 import AdvertisingTracking from "@/pages/AdvertisingTracking";
@@ -118,6 +118,20 @@ const ProtectedRoute = ({ requireAuth = true }: { requireAuth?: boolean }) => {
   return <Outlet />;
 };
 
+
+// Fallback: if Cloudflare Worker didn't catch /auth/google/callback, redirect to our SPA route
+// while preserving query params and adding a loop guard.
+const RedirectAuthToOAuthWithQuery = () => {
+  const location = useLocation();
+  const search = location.search || '';
+  const hash = location.hash || '';
+  const withGuard = `${search}${search ? '&' : '?'}spa_fallback=1`;
+  return <Navigate to={`/oauth/google-callback${withGuard}${hash}`} replace />;
+};
+
+
+
+
 function AppRoutes() {
   const [readyForNavigation, setReadyForNavigation] = useState(false);
 
@@ -147,11 +161,13 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<Index />} />
+      <Route path="/shopify" element={<Shopify />} />
       <Route path="/shopify-connect" element={<Shopify />} />
       <Route path="/shopify-callback" element={<ShopifyCallback />} />
       <Route path="/subscription-callback" element={<SubscriptionCallback />} />
       <Route path="/subscription-success" element={<SubscriptionSuccess />} />
       <Route path="/oauth/google-callback" element={<OAuthGoogleCallback />} />
+      <Route path="/auth/google/callback" element={<RedirectAuthToOAuthWithQuery />} />
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/forms" element={<Forms />} />
       <Route path="/form-builder/:formId?" element={<FormBuilderPage />} />
@@ -167,8 +183,8 @@ function AppRoutes() {
       <Route path="/settings/security" element={<SecuritySettings />} />
 
 
-      <Route path="/settings/plans" element={<PlansSettings />} />
-      <Route path="/plans" element={<PlansSettings />} />
+      <Route path="/settings/plans" element={<BillingCenter />} />
+      <Route path="/plans" element={<BillingCenter />} />
       <Route path="/settings/currency" element={<CurrencySettings />} />
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/terms" element={<Terms />} />
