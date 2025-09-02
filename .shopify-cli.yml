@@ -1,9 +1,9 @@
 
 app:
   directory: ./
-  api_key: "753bee2864a0b12f2d87c79b56c86641"
+  api_key: "753bee28b4a0b12f2d87c79b56c86641"
   force_cli_home: true
 
 build:
   automatically_update_urls_on_dev: true
-  dev_store_url: "codmagnet.com"
+  dev_store_url: "astrem.myshopify.com"
