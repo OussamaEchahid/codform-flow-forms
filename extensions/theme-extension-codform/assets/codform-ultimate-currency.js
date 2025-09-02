@@ -10,62 +10,15 @@
 (function() {
   'use strict';
 
-  // ✅ CRITICAL FIX: إجبار تحديث GBP من 0.75 إلى 0.79
-  try {
-    const savedRates = localStorage.getItem('codform_custom_currency_rates');
-    if (savedRates) {
-      const rates = JSON.parse(savedRates);
-      let updated = false;
-
-      // فحص وتحديث جميع المعدلات التي تحتوي على 0.75
-      Object.keys(rates).forEach(code => {
-        if (rates[code] && typeof rates[code] === 'object' && rates[code].rate === 0.75 && code === 'GBP') {
-          console.log(`🔧 FORCE UPDATE: Updating ${code} from 0.75 to 0.79`);
-          rates[code].rate = 0.79;
-          rates[code].updatedAt = new Date().toISOString();
-          updated = true;
-        } else if (typeof rates[code] === 'number' && rates[code] === 0.75 && code === 'GBP') {
-          console.log(`🔧 FORCE UPDATE: Updating ${code} from 0.75 to 0.79`);
-          rates[code] = 0.79;
-          updated = true;
-        }
-      });
-
-      if (updated) {
-        localStorage.setItem('codform_custom_currency_rates', JSON.stringify(rates));
-        console.log('✅ GBP rate force updated to 0.79');
-      }
-    }
-  } catch (error) {
-    console.error('❌ Error force updating GBP rate:', error);
-  }
-
   // =================== الإعدادات الثابتة ===================
   
-  const UNIFIED_EXCHANGE_RATES = {
-    // العملات الرئيسية
-    'USD': 1.0000, 'EUR': 0.9200, 'GBP': 0.7900, 'JPY': 149.0000, 'CNY': 7.2400,
-    'INR': 83.0000, 'RUB': 92.5000, 'AUD': 1.5700, 'CAD': 1.4300, 'CHF': 0.8900,
-    'HKD': 7.8000, 'SGD': 1.3500, 'KRW': 1345.0000, 'NZD': 1.6900,
-
-    // عملات الشرق الأوسط
-    'SAR': 3.7500, 'AED': 3.6700, 'QAR': 3.6400, 'KWD': 0.3100, 'BHD': 0.3800,
-    'OMR': 0.3800, 'EGP': 30.8500, 'JOD': 0.7100, 'ILS': 3.6700, 'IRR': 42100.0000,
-    'IQD': 1310.0000, 'TRY': 34.1500, 'LBP': 89500.0000, 'SYP': 13000.0000, 'YER': 250.0000,
-
-    // عملات أفريقيا
-    'MAD': 10.0000, 'XOF': 655.9600, 'XAF': 655.9600, 'NGN': 1675.0000, 'ZAR': 18.4500,
-    'KES': 130.5000, 'GHS': 15.8500, 'ETB': 125.5000, 'TZS': 2515.0000, 'UGX': 3785.0000,
-    'ZMW': 27.8500, 'RWF': 1385.0000,
-
-    // عملات آسيا
-    'IDR': 15850.0000, 'PKR': 280.0000, 'BDT': 110.0000, 'LKR': 300.0000, 'NPR': 133.0000,
-    'BTN': 83.0000, 'MMK': 2100.0000, 'KHR': 4100.0000, 'LAK': 20000.0000, 'VND': 24000.0000,
-    'THB': 36.0000, 'MYR': 4.7000, 'PHP': 56.0000,
-
-    // عملات أمريكا اللاتينية
-    'MXN': 20.1500, 'BRL': 6.0500, 'ARS': 1005.5000, 'CLP': 975.2000, 'COP': 4285.5000,
-    'PEN': 3.7500, 'VES': 36500000.0000, 'UYU': 40.2500
+  const EXCHANGE_RATES = {
+    'USD': 1.0, 'EUR': 0.85, 'GBP': 0.79, 'SAR': 3.75, 'MAD': 10.0,
+    'AED': 3.67, 'EGP': 30.85, 'CAD': 1.35, 'AUD': 1.52, 'JPY': 110.0,
+    'INR': 83.0, 'IDR': 15850, 'PKR': 280, 'BDT': 110, 'LKR': 300, 'NPR': 133,
+    'BTN': 83, 'MMK': 2100, 'KHR': 4100, 'LAK': 20000, 'VND': 24000, 'THB': 36,
+    'MYR': 4.7, 'SGD': 1.35, 'HKD': 7.8, 'KRW': 1345, 'CNY': 7.24,
+    'XOF': 655.96, 'XAF': 655.96
   };
 
   const CURRENCY_SYMBOLS = {
@@ -224,11 +177,14 @@
       // تحويل العملة
       const convertedAmount = this.convertCurrency(amount, originalCurrency, this.settings.currentCurrency);
       
-      // ✅ CRITICAL FIX: فصل السعر الحقيقي عن طريقة العرض
-      // لا نقوم بتقريب السعر الحقيقي، فقط نغير طريقة العرض
-      const formattedAmount = this.settings.decimalPlaces === 0 ?
-        Math.round(convertedAmount).toString() :
-        convertedAmount.toFixed(this.settings.decimalPlaces);
+      // تطبيق المنازل العشرية
+      const roundedAmount = this.settings.decimalPlaces === 0 ? 
+        Math.round(convertedAmount) : 
+        parseFloat(convertedAmount.toFixed(this.settings.decimalPlaces));
+      
+      const formattedAmount = this.settings.decimalPlaces === 0 ? 
+        roundedAmount.toString() : 
+        roundedAmount.toFixed(this.settings.decimalPlaces);
 
       // إضافة الرمز إذا مطلوب
       if (!this.settings.showSymbol) {
@@ -247,7 +203,7 @@
     convertCurrency(amount, fromCurrency, toCurrency) {
       if (fromCurrency === toCurrency) return amount;
       
-      const rates = { ...UNIFIED_EXCHANGE_RATES, ...this.customRates };
+      const rates = { ...EXCHANGE_RATES, ...this.customRates };
       const fromRate = rates[fromCurrency] || 1;
       const toRate = rates[toCurrency] || 1;
       
@@ -562,7 +518,7 @@
         () => window.Shopify?.shop,
         () => window.codformConfig?.shop,
         () => localStorage.getItem('current_shopify_store'),
-        () => window.location.hostname.includes('.myshopify.com') ?
+        () => window.location.hostname.includes('.myshopify.com') ? 
              window.location.hostname : null
       ];
 
@@ -575,8 +531,7 @@
         } catch (e) {}
       }
 
-      // 🔧 FIX: استخدام المتجر الحقيقي بدلاً من default-shop
-      return 'astrem.myshopify.com';
+      return 'default-shop.myshopify.com';
     }
 
     _useDefaultSettings() {

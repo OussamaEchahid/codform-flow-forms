@@ -26,7 +26,11 @@
     margin-bottom: 15px;
     font-family: 'Cairo', sans-serif;
   ">
-    Thank you for your order!
+    {% if shop.locale contains 'ar' %}
+      شكراً لك على طلبك!
+    {% else %}
+      Thank you for your order!
+    {% endif %}
   </h1>
   
   <p style="
@@ -36,7 +40,11 @@
     line-height: 1.6;
     font-family: 'Cairo', sans-serif;
   ">
-    Your order has been received successfully! We'll contact you soon to confirm the details. Please keep your phone nearby.
+    {% if shop.locale contains 'ar' %}
+      تم استلام طلبك بنجاح. سنتواصل معك قريباً لتأكيد التفاصيل.
+    {% else %}
+      Your order has been received successfully. We will contact you soon to confirm the details.
+    {% endif %}
   </p>
   
   {% if request.query.order %}

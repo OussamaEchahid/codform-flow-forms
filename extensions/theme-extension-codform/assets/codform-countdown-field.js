@@ -232,51 +232,28 @@ window.renderCountdownField = function(field, formStyle, formLanguage = 'en') {
       </div>
     </div>
     <script>
-      // تسجيل العنصر للتهيئة التلقائية بدلاً من الاستدعاء المباشر
+      // Force immediate initialization
       setTimeout(function() {
-        if (typeof window.startCountdownObserver === 'function') {
-          // سيتم التعامل معه بواسطة Observer
-          console.log('🕐 COUNTDOWN: Element registered for auto-initialization: ${fieldId}');
+        if (typeof window.initializeCountdown === 'function') {
+          window.initializeCountdown('${fieldId}');
         }
       }, 50);
     </script>
   `;
 };
 
-// تخزين معرفات المؤقتات لمنع التداخل
-window.countdownTimers = window.countdownTimers || {};
-
-// دالة تنظيف المؤقت
-window.clearCountdownTimer = function(fieldId) {
-  if (window.countdownTimers[fieldId]) {
-    console.log('🕐 COUNTDOWN: Clearing timer for', fieldId);
-    clearInterval(window.countdownTimers[fieldId]);
-    delete window.countdownTimers[fieldId];
-  }
-  if (window.initializedCountdowns) {
-    window.initializedCountdowns.delete(fieldId);
-  }
-};
-
 // Initialize countdown timer for a specific field
 window.initializeCountdown = function(fieldId) {
   console.log('🕐 COUNTDOWN: Initializing countdown for field', fieldId);
-
-  // التحقق من وجود مؤقت سابق وإلغاؤه
-  if (window.countdownTimers[fieldId]) {
-    console.log('🕐 COUNTDOWN: Clearing existing timer for', fieldId);
-    clearInterval(window.countdownTimers[fieldId]);
-    delete window.countdownTimers[fieldId];
-  }
-
+  
   var config = window.countdownConfigs[fieldId];
   if (!config) {
     console.log('🕐 COUNTDOWN: No config found for field', fieldId);
     return;
   }
-
+  
   console.log('🕐 COUNTDOWN: Using config:', config);
-
+  
   var endTime;
   if (config.endDate) {
     endTime = new Date(config.endDate).getTime();
@@ -290,61 +267,56 @@ window.initializeCountdown = function(fieldId) {
     console.log('🕐 COUNTDOWN: No endDate found, using default');
     endTime = Date.now() + (2 * 24 * 60 * 60 * 1000);
   }
-
+  
   function updateCountdown() {
     var now = Date.now();
     var timeLeft = endTime - now;
-
+    
     if (timeLeft <= 0) {
       endTime = Date.now() + (2 * 24 * 60 * 60 * 1000);
       timeLeft = endTime - Date.now();
     }
-
+    
     var days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
     var hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     var minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
     var seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
-
+    
     function padZero(num) {
       return num < 10 ? '0' + num : num.toString();
     }
-
+    
     var daysEl = document.getElementById(fieldId + '-days');
     var hoursEl = document.getElementById(fieldId + '-hours');
     var minutesEl = document.getElementById(fieldId + '-minutes');
     var secondsEl = document.getElementById(fieldId + '-seconds');
-
+    
     if (daysEl) daysEl.textContent = padZero(days);
     if (hoursEl) hoursEl.textContent = padZero(hours);
     if (minutesEl) minutesEl.textContent = padZero(minutes);
     if (secondsEl) secondsEl.textContent = padZero(seconds);
-
+    
     console.log('🕐 COUNTDOWN: Updated values for', fieldId, ':', days, hours, minutes, seconds);
   }
-
+  
   updateCountdown();
-  // حفظ معرف المؤقت لإمكانية إلغاؤه لاحقاً
-  window.countdownTimers[fieldId] = setInterval(updateCountdown, 1000);
+  setInterval(updateCountdown, 1000);
   console.log('🕐 COUNTDOWN: Timer started for field', fieldId);
 };
-
-// تتبع العناصر المهيأة لمنع التكرار
-window.initializedCountdowns = window.initializedCountdowns || new Set();
 
 // Auto-initialize countdown timers when DOM changes
 window.startCountdownObserver = function() {
   console.log('🕐 COUNTDOWN: Starting observer for countdown timers');
-
+  
   // Initialize existing countdown elements
   function initializeExistingCountdowns() {
     var countdownElements = document.querySelectorAll('[data-countdown-id]');
     console.log('🕐 COUNTDOWN: Found', countdownElements.length, 'countdown elements');
-
+    
     countdownElements.forEach(function(element) {
       var countdownId = element.getAttribute('data-countdown-id');
-      if (countdownId && window.countdownConfigs[countdownId] && !window.initializedCountdowns.has(countdownId)) {
+      if (countdownId && window.countdownConfigs[countdownId]) {
         console.log('🕐 COUNTDOWN: Auto-initializing', countdownId);
-        window.initializedCountdowns.add(countdownId);
         window.initializeCountdown(countdownId);
       }
     });
@@ -362,9 +334,8 @@ window.startCountdownObserver = function() {
             if (node.hasAttribute && node.hasAttribute('data-countdown-id')) {
               var countdownId = node.getAttribute('data-countdown-id');
               setTimeout(function() {
-                if (window.countdownConfigs[countdownId] && !window.initializedCountdowns.has(countdownId)) {
+                if (window.countdownConfigs[countdownId]) {
                   console.log('🕐 COUNTDOWN: Auto-initializing new element', countdownId);
-                  window.initializedCountdowns.add(countdownId);
                   window.initializeCountdown(countdownId);
                 }
               }, 100);
@@ -374,44 +345,25 @@ window.startCountdownObserver = function() {
             childCountdowns.forEach(function(childElement) {
               var countdownId = childElement.getAttribute('data-countdown-id');
               setTimeout(function() {
-                if (window.countdownConfigs[countdownId] && !window.initializedCountdowns.has(countdownId)) {
+                if (window.countdownConfigs[countdownId]) {
                   console.log('🕐 COUNTDOWN: Auto-initializing child element', countdownId);
-                  window.initializedCountdowns.add(countdownId);
                   window.initializeCountdown(countdownId);
                 }
               }, 100);
             });
           }
         });
-
-        // مراقبة العناصر المحذوفة
-        mutation.removedNodes.forEach(function(node) {
-          if (node.nodeType === 1) { // Element node
-            if (node.hasAttribute && node.hasAttribute('data-countdown-id')) {
-              var countdownId = node.getAttribute('data-countdown-id');
-              console.log('🕐 COUNTDOWN: Element removed, clearing timer', countdownId);
-              window.clearCountdownTimer(countdownId);
-            }
-            // Check child elements too
-            var childCountdowns = node.querySelectorAll ? node.querySelectorAll('[data-countdown-id]') : [];
-            childCountdowns.forEach(function(childElement) {
-              var countdownId = childElement.getAttribute('data-countdown-id');
-              console.log('🕐 COUNTDOWN: Child element removed, clearing timer', countdownId);
-              window.clearCountdownTimer(countdownId);
-            });
-          }
-        });
       });
     });
-
+    
     observer.observe(document.body, {
       childList: true,
       subtree: true
     });
   }
   
-  // Fallback: periodic check (أقل تكراراً)
-  setInterval(initializeExistingCountdowns, 5000);
+  // Fallback: periodic check
+  setInterval(initializeExistingCountdowns, 2000);
 };
 
 // Start the observer when DOM is ready
