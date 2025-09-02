@@ -5,44 +5,62 @@
 
 (function() {
   'use strict';
+  try { console.warn('🟣 codform-smart-currency-system.js loaded'); } catch(_){}
 
-  // ✅ إعدادات ثابتة للتحويل - محدثة بعملات عالمية
-  const EXCHANGE_RATES = {
-    'USD': 1.0,
-    'EUR': 0.85,
-    'GBP': 0.79,
-    'SAR': 3.75,
-    'MAD': 10.0,
-    'AED': 3.67,
-    'EGP': 30.85,
-    'CAD': 1.35,
-    'AUD': 1.52,
-    'JPY': 110.0,
-    'CHF': 0.92,
-    'CNY': 6.45,
-    'INR': 74.5,
-    'BRL': 5.2,
-    'RUB': 75.0,
-    'TRY': 8.5,
-    'KRW': 1180.0,
-    'SGD': 1.35,
-    'HKD': 7.8,
-    'NOK': 8.6,
-    'SEK': 8.9,
-    'DKK': 6.3,
-    'PLN': 3.9,
-    'CZK': 21.5,
-    'HUF': 295.0,
-    'ILS': 3.2,
-    'ZAR': 14.8,
-    'MXN': 20.1,
-    'THB': 33.2,
-    'MYR': 4.15,
-    'IDR': 14250.0,
-    'PHP': 50.5,
-    'VND': 22800.0,
-    'XOF': 655.96,
-    'XAF': 655.96
+  // ✅ CRITICAL FIX: إجبار تحديث GBP من 0.75 إلى 0.79
+  try {
+    const savedRates = localStorage.getItem('codform_custom_currency_rates');
+    if (savedRates) {
+      const rates = JSON.parse(savedRates);
+      let updated = false;
+
+      Object.keys(rates).forEach(code => {
+        if (rates[code] && typeof rates[code] === 'object' && rates[code].rate === 0.75 && code === 'GBP') {
+          console.log(`🔧 FORCE UPDATE: Updating ${code} from 0.75 to 0.79`);
+          rates[code].rate = 0.79;
+          rates[code].updatedAt = new Date().toISOString();
+          updated = true;
+        } else if (typeof rates[code] === 'number' && rates[code] === 0.75 && code === 'GBP') {
+          console.log(`🔧 FORCE UPDATE: Updating ${code} from 0.75 to 0.79`);
+          rates[code] = 0.79;
+          updated = true;
+        }
+      });
+
+      if (updated) {
+        localStorage.setItem('codform_custom_currency_rates', JSON.stringify(rates));
+        console.log('✅ GBP rate force updated to 0.79');
+      }
+    }
+  } catch (error) {
+    console.error('❌ Error force updating GBP rate:', error);
+  }
+
+  // ✅ معدلات تحويل موحدة - مطابقة للنظام الموحد
+  const UNIFIED_EXCHANGE_RATES = {
+    // العملات الرئيسية
+    'USD': 1.0000, 'EUR': 0.9200, 'GBP': 0.7900, 'JPY': 149.0000, 'CNY': 7.2400,
+    'INR': 83.0000, 'RUB': 92.5000, 'AUD': 1.5700, 'CAD': 1.4300, 'CHF': 0.8900,
+    'HKD': 7.8000, 'SGD': 1.3500, 'KRW': 1345.0000, 'NZD': 1.6900,
+
+    // عملات الشرق الأوسط
+    'SAR': 3.7500, 'AED': 3.6700, 'QAR': 3.6400, 'KWD': 0.3100, 'BHD': 0.3800,
+    'OMR': 0.3800, 'EGP': 30.8500, 'JOD': 0.7100, 'ILS': 3.6700, 'IRR': 42100.0000,
+    'IQD': 1310.0000, 'TRY': 34.1500, 'LBP': 89500.0000, 'SYP': 13000.0000, 'YER': 250.0000,
+
+    // عملات أفريقيا
+    'MAD': 10.0000, 'XOF': 655.9600, 'XAF': 655.9600, 'NGN': 1675.0000, 'ZAR': 18.4500,
+    'KES': 130.5000, 'GHS': 15.8500, 'ETB': 125.5000, 'TZS': 2515.0000, 'UGX': 3785.0000,
+    'ZMW': 27.8500, 'RWF': 1385.0000,
+
+    // عملات آسيا
+    'IDR': 15850.0000, 'PKR': 280.0000, 'BDT': 110.0000, 'LKR': 300.0000, 'NPR': 133.0000,
+    'BTN': 83.0000, 'MMK': 2100.0000, 'KHR': 4100.0000, 'LAK': 20000.0000, 'VND': 24000.0000,
+    'THB': 36.0000, 'MYR': 4.7000, 'PHP': 56.0000,
+
+    // عملات أمريكا اللاتينية
+    'MXN': 20.1500, 'BRL': 6.0500, 'ARS': 1005.5000, 'CLP': 975.2000, 'COP': 4285.5000,
+    'PEN': 3.7500, 'VES': 36500000.0000, 'UYU': 40.2500
   };
 
   const CURRENCY_SYMBOLS = {
@@ -101,7 +119,13 @@
      */
     async initialize(formId, shopId) {
       console.log('🔄 Smart Currency System: Initializing...');
-      
+
+      // حماية من التهيئة المتعددة
+      if (this.isInitialized) {
+        console.log('✅ Smart Currency System: Already initialized, skipping...');
+        return true;
+      }
+
       this.formId = formId;
       this.shopId = shopId;
 
@@ -148,59 +172,123 @@
      * قراءة عملة النموذج من قاعدة البيانات
      */
     async getFormCurrency() {
-      if (!this.formId) {
-        console.log('⚠️ No form ID, using USD as default');
-        return 'USD';
-      }
-
-      try {
-        // استدعاء API للحصول على بيانات النموذج مع shop parameter
-        const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/forms-default?form_id=${this.formId}&shop=${encodeURIComponent(this.shopId || 'astrem.myshopify.com')}`);
-        
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success && data.form && data.form.currency) {
-            console.log(`📋 Form currency from DB: ${data.form.currency}`);
-            return data.form.currency;
-          }
-        }
-      } catch (error) {
-        console.log('⚠️ Could not fetch form currency, trying fallbacks');
-      }
-
-      // ✅ Fallbacks: استخدم عملة النموذج المتاحة عالمياً إن وجدت
+      // ✅ أولاً: تحقق من البيانات المحلية
       const detected = (window.CodformFormData && window.CodformFormData.currency) || null;
       if (detected) {
         console.log(`📋 Using detected form currency: ${detected}`);
         return detected;
       }
 
-      return 'USD';
+      // ✅ ثانياً: استخدم API للحصول على النموذج الافتراضي للمتجر
+      if (this.shopId) {
+        try {
+          const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/forms-default?shop=${encodeURIComponent(this.shopId)}`);
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.form && data.form.currency) {
+              console.log(`📋 Form currency from DB: ${data.form.currency}`);
+              return data.form.currency;
+            }
+          }
+        } catch (error) {
+          console.log('⚠️ Could not fetch form currency from API');
+        }
+      }
+
+      // ✅ ثالثاً: استخدم API للحصول على نموذج محدد إذا كان لدينا form ID
+      if (this.formId) {
+        try {
+          const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/api-forms`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: this.formId })
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.form && data.form.currency) {
+              console.log(`📋 Specific form currency from DB: ${data.form.currency}`);
+              return data.form.currency;
+            }
+          }
+        } catch (error) {
+          console.log('⚠️ Could not fetch specific form currency');
+        }
+      }
+
+      console.log('⚠️ No currency found, using GBP as default');
+      return 'GBP';
     }
 
     /**
      * قراءة إعدادات العرض من قاعدة البيانات
      */
     async getDisplaySettings() {
+      // Prefer settings from CurrencyService/CurrencyManager/localStorage before remote fetch
+      try {
+        if (window.CurrencyService && typeof window.CurrencyService.getDisplaySettings === 'function') {
+          const svc = window.CurrencyService.getDisplaySettings();
+          if (svc) {
+            // pick up customSymbols too if provided by CurrencyService
+            this.customSymbols = svc.customSymbols || svc.custom_symbols || this.customSymbols;
+            return {
+              showSymbol: svc.showSymbol !== false,
+              symbolPosition: svc.symbolPosition || 'before',
+              decimalPlaces: (typeof svc.decimalPlaces === 'number') ? svc.decimalPlaces : 2
+            };
+          }
+        }
+      } catch (_) {}
+
+      try {
+        if (window.CodformCurrencyManager && typeof window.CodformCurrencyManager.getDisplaySettings === 'function') {
+          const ds = window.CodformCurrencyManager.getDisplaySettings();
+          if (ds) {
+            this.customSymbols = ds.customSymbols || this.customSymbols;
+            return {
+              showSymbol: (ds.showSymbol !== false) && (ds.show_symbol !== false),
+              symbolPosition: ds.symbolPosition || ds.symbol_position || 'before',
+              decimalPlaces: (ds.decimalPlaces ?? ds.decimal_places ?? 2)
+            };
+          }
+        }
+      } catch (_) {}
+
+      try {
+        const saved = localStorage.getItem('codform_currency_settings');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && parsed.displaySettings) {
+            const ds = parsed.displaySettings;
+            this.customSymbols = parsed.customSymbols || this.customSymbols;
+            return {
+              showSymbol: ds.showSymbol !== false,
+              symbolPosition: ds.symbolPosition || 'before',
+              decimalPlaces: (ds.decimalPlaces ?? 2)
+            };
+          }
+        }
+      } catch (_) {}
+
+      // Remote fetch fallback
       if (!this.shopId) {
         return this.getDefaultDisplaySettings();
       }
 
       try {
         const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/currency-settings?shop=${encodeURIComponent(this.shopId)}`);
-        
+
         if (response.ok) {
           const data = await response.json();
           if (data.success && data.display_settings) {
             console.log('📋 Display settings from DB:', data.display_settings);
-            
-            // ✅ حفظ الرموز المخصصة
+
             if (data.custom_symbols) {
               this.customSymbols = data.custom_symbols;
               console.log('💰 Loaded custom symbols:', this.customSymbols);
             }
-            
-            // ✅ حفظ جميع معدلات التحويل (مخصصة + افتراضية)
+
             if (data.all_rates) {
               this.customRates = data.all_rates;
               console.log('💱 Loaded all rates:', this.customRates);
@@ -208,7 +296,7 @@
               this.customRates = { ...EXCHANGE_RATES, ...data.custom_rates };
               console.log('💱 Loaded custom rates merged with defaults:', this.customRates);
             }
-            
+
             return {
               showSymbol: data.display_settings.show_symbol ?? true,
               symbolPosition: data.display_settings.symbol_position || 'before',
@@ -225,7 +313,7 @@
 
     getDefaultDisplaySettings() {
       return {
-        showSymbol: true,
+        showSymbol: true, // إظهار الكود كافتراضي (تم توحيد الإعدادات)
         symbolPosition: 'before',
         decimalPlaces: 0
       };
@@ -266,21 +354,42 @@
         // عدم إظهار منازل عشرية على الإطلاق
         formattedAmount = Math.round(convertedAmount).toString();
       } else {
-        // تطبيق العدد المحدد من المنازل العشرية
-        const roundedAmount = Math.round(convertedAmount * Math.pow(10, this.displaySettings.decimalPlaces)) / Math.pow(10, this.displaySettings.decimalPlaces);
-        formattedAmount = roundedAmount.toFixed(this.displaySettings.decimalPlaces);
+        // ✅ CRITICAL FIX: فصل السعر الحقيقي عن طريقة العرض
+        // لا نقوم بتقريب السعر الحقيقي، فقط نغير طريقة العرض
+        formattedAmount = convertedAmount.toFixed(this.displaySettings.decimalPlaces);
       }
 
-      // ✅ إضافة رمز العملة إذا كان مطلوباً
+      const rtl = (typeof document !== 'undefined' && document.documentElement && document.documentElement.dir === 'rtl');
+
+      // Show Code mode (apply custom symbol/code if provided)
       if (!this.displaySettings.showSymbol) {
-        return formattedAmount;
+        const codeOrCustom = this.customSymbols[this.currentCurrency] || this.currentCurrency;
+        const hasRTLChars = /[\u0590-\u08FF]/.test(codeOrCustom);
+        if (rtl || hasRTLChars) {
+          const LRM = '\u200E';
+          const LRI = '\u2066';
+          const PDI = '\u2069';
+          if (this.displaySettings.symbolPosition === 'after') {
+            const inner = `${LRM}${formattedAmount}${LRM} ${codeOrCustom}`;
+            return `${LRI}${inner}${PDI}`;
+          } else {
+            const inner = `${codeOrCustom} ${LRM}${formattedAmount}`;
+            return `${LRI}${inner}${PDI}`;
+          }
+        }
+        // LTR with non-RTL symbol: simple formatting
+        return this.displaySettings.symbolPosition === 'before'
+          ? `${codeOrCustom} ${formattedAmount}`
+          : `${formattedAmount} ${codeOrCustom}`;
       }
 
+      // Show Symbol mode
       const symbol = this.customSymbols[this.currentCurrency] || CURRENCY_SYMBOLS[this.currentCurrency] || this.currentCurrency;
-      
-      return this.displaySettings.symbolPosition === 'before' ? 
-        `${symbol} ${formattedAmount}` : 
-        `${formattedAmount} ${symbol}`;
+      const actualSymbol = this.customSymbols[this.currentCurrency] || CURRENCY_SYMBOLS[this.currentCurrency] || this.currentCurrency;
+      const result = this.displaySettings.symbolPosition === 'before' ?
+        `${actualSymbol} ${formattedAmount}` :
+        `${formattedAmount} ${actualSymbol}`;
+      return rtl ? `\u2066${result}\u2069` : result;
     }
 
     /**
@@ -290,7 +399,7 @@
       if (fromCurrency === toCurrency) return amount;
       
       // ✅ استخدام المعدلات المخصصة أولاً، ثم الافتراضية
-      const allRates = { ...EXCHANGE_RATES, ...this.customRates };
+      const allRates = { ...UNIFIED_EXCHANGE_RATES, ...this.customRates };
       
       const fromRate = allRates[fromCurrency] || EXCHANGE_RATES[fromCurrency] || 1;
       const toRate = allRates[toCurrency] || EXCHANGE_RATES[toCurrency] || 1;
@@ -328,7 +437,7 @@
         const offers = container.querySelectorAll('.offer-price, [data-price], .quantity-offer-price, .price');
         offers.forEach(element => {
           const amount = parseFloat(element.getAttribute('data-price') || element.getAttribute('data-original-price') || element.textContent.match(/\d+(\.\d+)?/)?.[0]);
-          const originalCurrency = element.getAttribute('data-currency') || element.getAttribute('data-original-currency') || 'SAR';
+          const originalCurrency = element.getAttribute('data-currency') || element.getAttribute('data-original-currency') || this.currentCurrency || 'GBP';
           
           if (!isNaN(amount)) {
             const formatted = this.formatCurrency(amount, originalCurrency);
@@ -343,7 +452,7 @@
       // تحديث عروض الكمية المدمجة في النموذج
       document.querySelectorAll('.codform-quantity-offer-price, .codform-offer-price, .offer-price, .quantity-offer-price').forEach(element => {
         const amount = parseFloat(element.getAttribute('data-original-price') || element.getAttribute('data-price') || element.textContent.match(/\d+(\.\d+)?/)?.[0]);
-        const originalCurrency = element.getAttribute('data-original-currency') || element.getAttribute('data-currency') || 'SAR';
+        const originalCurrency = element.getAttribute('data-original-currency') || element.getAttribute('data-currency') || this.currentCurrency || 'GBP';
         
         if (!isNaN(amount)) {
           const formatted = this.formatCurrency(amount, originalCurrency);
@@ -357,7 +466,7 @@
       // تحديث جميع العناصر التي تحتوي على أسعار
       document.querySelectorAll('[data-currency-amount]').forEach(element => {
         const amount = parseFloat(element.getAttribute('data-currency-amount'));
-        const originalCurrency = element.getAttribute('data-currency') || 'SAR';
+        const originalCurrency = element.getAttribute('data-currency') || this.currentCurrency || 'GBP';
         
         if (!isNaN(amount)) {
           const formatted = this.formatCurrency(amount, originalCurrency);
@@ -398,7 +507,7 @@
     updateCartSummary() {
       document.querySelectorAll('.cart-summary-price, [data-cart-price]').forEach(element => {
         const amount = parseFloat(element.getAttribute('data-cart-price') || element.textContent.match(/\d+(\.\d+)?/)?.[0]);
-        const originalCurrency = element.getAttribute('data-currency') || 'SAR';
+        const originalCurrency = element.getAttribute('data-currency') || this.currentCurrency || 'GBP';
         
         if (!isNaN(amount)) {
           const formatted = this.formatCurrency(amount, originalCurrency);

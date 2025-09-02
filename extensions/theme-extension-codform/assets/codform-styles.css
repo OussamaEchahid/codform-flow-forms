@@ -15,6 +15,12 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
+/* Hide empty container when no form is attached */
+[data-form-preview-id="form-preview-stable"]:empty {
+  display: none;
+}
+
+
 /* Form field spacing consistency */
 .codform-field-wrapper {
   margin-bottom: 16px;
@@ -74,7 +80,7 @@
   margin-top: 12px !important;
 }
 
-/* Remove borders from popup button area only */
+/* Remove borders from popup button area only - but keep form styling in popup */
 .codform-popup-only-mode [data-form-preview-id="form-preview-stable"] {
   border: none !important;
   background: transparent !important;
@@ -82,6 +88,15 @@
   outline: none !important;
   padding: 0 !important;
   margin: 0 !important;
+}
+
+/* Keep form styling in popup modal */
+#codform-popup-modal [data-form-preview-id="form-preview-stable"] {
+  border: inherit !important;
+  background: inherit !important;
+  box-shadow: inherit !important;
+  padding: inherit !important;
+  margin: inherit !important;
 }
 
 /* Arabic Font Styles */

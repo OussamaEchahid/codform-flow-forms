@@ -202,18 +202,31 @@
   // تحديث ملخص السلة الخفي
   function updateHiddenCartSummary(summaryElement, basePrice, currency) {
     console.log('🔄 تحديث ملخص السلة الخفي:', { basePrice, currency });
-    
-    // استخدام نظام التحويل من Currency Manager
+
+    // استخدام نظام التحويل
     let convertedPrice = basePrice;
-    
-    // التحقق من وجود Currency Manager واستخدامه
-    if (window.CodformCurrencyManager && typeof window.CodformCurrencyManager.convertCurrency === 'function') {
-      // الحصول على العملة المستهدفة من Form Data
-      const targetCurrency = getTargetCurrency();
-      if (targetCurrency && targetCurrency !== currency) {
+    const targetCurrency = getTargetCurrency();
+
+    // تحويل العملة إذا كانت مختلفة
+    if (targetCurrency && targetCurrency !== currency) {
+      // استخدام Currency Manager إذا كان متاحاً
+      if (window.CodformCurrencyManager && typeof window.CodformCurrencyManager.convertCurrency === 'function') {
         convertedPrice = window.CodformCurrencyManager.convertCurrency(basePrice, currency, targetCurrency);
-        currency = targetCurrency;
+      } else if (window.convertCurrency) {
+        // استخدام دالة التحويل من codform-currency-rates.js
+        convertedPrice = window.convertCurrency(basePrice, currency, targetCurrency);
+      } else {
+        // تحويل احتياطي باستخدام معدلات ثابتة
+        convertedPrice = convertCurrencyFallback(basePrice, currency, targetCurrency);
       }
+      currency = targetCurrency;
+
+      console.log('💱 تم تحويل العملة:', {
+        originalPrice: basePrice,
+        convertedPrice,
+        fromCurrency: currency,
+        toCurrency: targetCurrency
+      });
     }
     
     // تطبيق نظام التنسيق
@@ -241,39 +254,57 @@
     console.log('✅ تم تحديث ملخص السلة الخفي بالسعر المحول:', formattedPrice);
   }
   
-  // الحصول على العملة المستهدفة
+  // الحصول على العملة المستهدفة - SINGLE SOURCE OF TRUTH
   function getTargetCurrency() {
-    // البحث في Form Data
+    // 🛡️ ONLY use Form API data
     if (window.CodformFormData?.currency) {
       return window.CodformFormData.currency;
     }
-    
-    // البحث في current form data
-    if (window.currentFormData?.savedFormCurrency) {
-      return window.currentFormData.savedFormCurrency;
-    }
-    
-    // البحث في form style
-    if (window.currentFormData?.form?.style?.currency) {
-      return window.currentFormData.form.style.currency;
-    }
-    
-    return 'SAR'; // الافتراضي
+
+    // 🚫 Do NOT use fallbacks that might contain wrong currency
+    console.warn('⚠️ Abandoned Tracking: No Form API currency found, skipping tracking');
+    return null; // Return null instead of wrong default
   }
   
+  // تحويل العملة الاحتياطي
+  function convertCurrencyFallback(amount, fromCurrency, toCurrency) {
+    // معدلات التحويل الأساسية (نفس المعدلات في codform-currency-rates.js)
+    const rates = {
+      'USD': 1.0,
+      'SAR': 3.75,
+      'AED': 3.67,
+      'EGP': 30.85,
+      'MAD': 10.0,
+      'EUR': 0.92,
+      'GBP': 0.79  // ✅ تصحيح المعدل من 0.75 إلى 0.79
+    };
+
+    if (fromCurrency === toCurrency) return amount;
+
+    const fromRate = rates[fromCurrency] || 1;
+    const toRate = rates[toCurrency] || 1;
+
+    // تحويل إلى USD أولاً، ثم إلى العملة المطلوبة
+    const usdAmount = amount / fromRate;
+    const convertedAmount = usdAmount * toRate;
+
+    console.log(`🔄 Fallback currency conversion: ${amount} ${fromCurrency} -> ${convertedAmount.toFixed(2)} ${toCurrency}`);
+    return convertedAmount;
+  }
+
   // تنسيق العملة الاحتياطي
   function formatCurrencyFallback(amount, currency) {
     const symbols = {
       'SAR': 'ر.س',
-      'MAD': 'د.م', 
+      'MAD': 'د.م',
       'AED': 'د.إ',
       'USD': '$',
       'EUR': '€'
     };
-    
+
     const symbol = symbols[currency] || currency;
     const formattedAmount = Math.round(amount * 10) / 10; // رقم واحد بعد العلامة العشرية
-    
+
     return `${formattedAmount.toFixed(1)} ${symbol}`;
   }
   
@@ -298,7 +329,8 @@
   // دالة استخراج السعر النهائي المحول من ملخص السلة
   function extractPriceAndCurrency() {
     let price = 1;
-    let currency = 'SAR';
+    // ✅ استخدام عملة النموذج بدلاً من العملة الافتراضية
+    let currency = window.CodformFormData?.currency || 'SAR';
     
     // التأكد من وجود ملخص السلة (مرئي أو خفي)
     let cartSummary = document.querySelector('.cart-summary-field');
@@ -348,12 +380,19 @@
           }
         }
         
-        // استخراج العملة من النص
-        if (totalText.includes('USD') || totalText.includes('$')) currency = 'USD';
-        else if (totalText.includes('SAR') || totalText.includes('ر.س')) currency = 'SAR';
-        else if (totalText.includes('EUR') || totalText.includes('€')) currency = 'EUR';
-        else if (totalText.includes('AED') || totalText.includes('د.إ')) currency = 'AED';
-        else if (totalText.includes('MAD') || totalText.includes('د.م')) currency = 'MAD';
+        // استخراج العملة من النص (مع الحفاظ على عملة النموذج كأولوية)
+        const formCurrency = window.CodformFormData?.currency;
+        if (formCurrency) {
+          currency = formCurrency; // استخدام عملة النموذج دائماً
+        } else {
+          // فحص النص فقط إذا لم تكن عملة النموذج متاحة
+          if (totalText.includes('USD') || totalText.includes('$')) currency = 'USD';
+          else if (totalText.includes('SAR') || totalText.includes('ر.س')) currency = 'SAR';
+          else if (totalText.includes('EUR') || totalText.includes('€')) currency = 'EUR';
+          else if (totalText.includes('GBP') || totalText.includes('£')) currency = 'GBP';
+          else if (totalText.includes('AED') || totalText.includes('د.إ')) currency = 'AED';
+          else if (totalText.includes('MAD') || totalText.includes('د.م')) currency = 'MAD';
+        }
         
         if (price > 1) {
           console.log('✅ تم استخراج السعر النهائي من ملخص السلة:', price, currency);
@@ -386,12 +425,19 @@
         }
       }
       
-      // البحث عن العملة
-      if (text.includes('USD') || text.includes('$')) currency = 'USD';
-      else if (text.includes('SAR') || text.includes('ر.س')) currency = 'SAR';
-      else if (text.includes('EUR') || text.includes('€')) currency = 'EUR';
-      else if (text.includes('AED') || text.includes('د.إ')) currency = 'AED';
-      else if (text.includes('MAD') || text.includes('د.م')) currency = 'MAD';
+      // البحث عن العملة (مع إعطاء الأولوية لعملة النموذج)
+      const formCurrency = window.CodformFormData?.currency;
+      if (formCurrency) {
+        currency = formCurrency; // استخدام عملة النموذج دائماً
+      } else {
+        // فحص النص فقط إذا لم تكن عملة النموذج متاحة
+        if (text.includes('USD') || text.includes('$')) currency = 'USD';
+        else if (text.includes('SAR') || text.includes('ر.س')) currency = 'SAR';
+        else if (text.includes('EUR') || text.includes('€')) currency = 'EUR';
+        else if (text.includes('GBP') || text.includes('£')) currency = 'GBP';
+        else if (text.includes('AED') || text.includes('د.إ')) currency = 'AED';
+        else if (text.includes('MAD') || text.includes('د.م')) currency = 'MAD';
+      }
     }
     
     console.log('💰 السعر النهائي المستخرج:', price, currency);
@@ -449,7 +495,33 @@
       });
     }
     
-    console.log('🔍 البيانات المستخرجة:', data);
+    // ✅ إضافة بيانات المنتج للإرسال مع النموذج
+    if (window.CodformProductData) {
+      data.productData = {
+        price: window.CodformProductData.price,
+        currency: window.CodformProductData.currency,
+        title: window.CodformProductData.title || 'Product'
+      };
+      console.log('📦 تم إضافة بيانات المنتج:', data.productData);
+    }
+
+    // إضافة بيانات عروض الكمية إذا كانت متاحة
+    if (window.CodformStateManager) {
+      const state = window.CodformStateManager.getState();
+      if (state && state.selectedOffer) {
+        data.selectedOffer = state.selectedOffer;
+        // ✅ CRITICAL FIX: إضافة الكمية بشكل صريح
+        data.quantity = state.selectedOffer.quantity || state.currentQuantity || 1;
+        console.log('🎯 تم إضافة بيانات العرض المختار:', data.selectedOffer);
+        console.log('🔢 تم إضافة الكمية:', data.quantity);
+      } else if (state && state.currentQuantity) {
+        // إذا لم يكن هناك عرض محدد، استخدم الكمية الحالية
+        data.quantity = state.currentQuantity;
+        console.log('🔢 تم إضافة الكمية الحالية:', data.quantity);
+      }
+    }
+
+    console.log('🔍 البيانات المستخرجة الكاملة:', data);
     return data;
   }
   
@@ -604,18 +676,104 @@
   window.enhanceFormDataWithPrice = function(formData) {
     console.log('🔧 تحسين بيانات النموذج بالسعر المحول');
     console.log('📥 البيانات الواردة:', formData);
-    
+
+    // ✅ CRITICAL DEBUG: فحص حالة CodformStateManager
+    console.log('🔍 CRITICAL DEBUG - CodformStateManager availability:', !!window.CodformStateManager);
+    if (window.CodformStateManager) {
+      const state = window.CodformStateManager.getState();
+      console.log('🔍 CRITICAL DEBUG - Full CodformStateManager state:', state);
+    }
+
     // الحصول على البيانات المحدثة مع السعر
     const enhancedData = window.getCodformDataWithPrice();
-    
+
+    // إضافة بيانات عروض الكمية إذا كانت متاحة
+    let selectedOfferData = null;
+    let offerQuantity = 1; // الكمية الافتراضية
+
+    if (window.CodformStateManager) {
+      const state = window.CodformStateManager.getState();
+      console.log('🔍 Current CodformStateManager state:', state);
+      if (state && state.selectedOffer) {
+        selectedOfferData = state.selectedOffer;
+        // ✅ CRITICAL FIX: استخدام الكمية من العرض المحدد
+        offerQuantity = selectedOfferData.quantity || state.currentQuantity || 1;
+        console.log('🎯 تم إضافة بيانات العرض المختار إلى البيانات المحسنة:', selectedOfferData);
+        console.log('🔢 الكمية من العرض المحدد:', offerQuantity);
+      } else if (state && state.currentQuantity) {
+        // إذا لم يكن هناك عرض محدد، استخدم الكمية الحالية
+        offerQuantity = state.currentQuantity;
+        console.log('🔢 الكمية من الحالة الحالية:', offerQuantity);
+      } else {
+        console.log('⚠️ No selectedOffer found in CodformStateManager state');
+      }
+    } else {
+      console.log('⚠️ CodformStateManager not available');
+    }
+
+    // ✅ CRITICAL DEBUG: فحص مصادر الكمية المختلفة
+    console.log('🔍 QUANTITY SOURCES DEBUG:');
+    console.log('  - offerQuantity:', offerQuantity);
+    console.log('  - formData.quantity:', formData.quantity);
+    console.log('  - selectedOfferData:', selectedOfferData);
+
+    // تحديد الكمية الصحيحة بالأولوية
+    let finalQuantity = 1; // القيمة الافتراضية
+
+    if (offerQuantity && offerQuantity > 1) {
+      finalQuantity = offerQuantity;
+      console.log('✅ Using offerQuantity:', finalQuantity);
+    } else if (formData.quantity && parseInt(formData.quantity) > 1) {
+      finalQuantity = parseInt(formData.quantity);
+      console.log('✅ Using formData.quantity:', finalQuantity);
+    } else if (selectedOfferData && selectedOfferData.quantity) {
+      finalQuantity = parseInt(selectedOfferData.quantity);
+      console.log('✅ Using selectedOfferData.quantity:', finalQuantity);
+    } else {
+      console.log('⚠️ Using default quantity 1');
+    }
+
+    console.log('🎯 FINAL QUANTITY DETERMINED:', finalQuantity);
+
     // دمج البيانات
     const finalData = {
       ...formData,
       extractedPrice: enhancedData.extractedPrice,
-      extractedCurrency: enhancedData.extractedCurrency
+      extractedCurrency: enhancedData.extractedCurrency,
+      // ✅ CRITICAL FIX: إضافة الكمية الصحيحة إلى البيانات المرسلة
+      quantity: finalQuantity
     };
-    
-    console.log('📤 البيانات المحسنة:', finalData);
+
+    // إضافة بيانات العرض المختار إذا كانت متاحة
+    if (selectedOfferData) {
+      finalData.selectedOffer = selectedOfferData;
+      // ✅ تأكيد إضافة الكمية من العرض
+      finalData.quantityOffer = {
+        quantity: finalQuantity, // استخدام الكمية المحددة نهائياً
+        finalPrice: selectedOfferData.finalPrice || enhancedData.extractedPrice,
+        text: selectedOfferData.text,
+        tag: selectedOfferData.tag
+      };
+      console.log('✅ Added selectedOffer to final data:', selectedOfferData);
+      console.log('✅ Added quantityOffer with quantity:', finalQuantity);
+    } else {
+      console.log('❌ No selectedOffer data to add');
+      // حتى لو لم يكن هناك عرض، أضف الكمية
+      console.log('📝 Adding quantity without offer:', offerQuantity);
+    }
+
+    console.log('📤 البيانات المحسنة النهائية:', finalData);
+
+    // ✅ CRITICAL DEBUG: تأكيد أن الدالة تعمل وترجع البيانات
+    console.log('🎯 ENHANCE FUNCTION COMPLETED - Returning enhanced data with quantity:', finalData.quantity);
+    console.log('🔍 FINAL DATA STRUCTURE:', {
+      quantity: finalData.quantity,
+      selectedOffer: finalData.selectedOffer,
+      quantityOffer: finalData.quantityOffer,
+      extractedPrice: finalData.extractedPrice,
+      extractedCurrency: finalData.extractedCurrency
+    });
+
     return finalData;
   };
   
