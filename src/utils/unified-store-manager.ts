@@ -8,7 +8,7 @@ export class UnifiedStoreManager {
   // المفاتيح المتضاربة - تحديث شامل لجميع المفاتيح المكتشفة
   private static readonly LEGACY_KEYS = [
     'current_shopify_store',
-    'shopify_store', 
+    'shopify_store',
     'shopify_active_store',
     'simple_active_store',
     'shopify_temp_store',
@@ -21,8 +21,7 @@ export class UnifiedStoreManager {
     'connectedStore',
     'activeShopifyStore',
     'shopify_connected_stores',
-    'cached_forms',
-    'language'
+    'cached_forms'
   ];
 
   // حالة الكاش للأداء
@@ -62,14 +61,19 @@ export class UnifiedStoreManager {
         return cleanStore;
       }
 
-      // فحص المفاتيح القديمة والترقية
+      // فحص المفاتيح القديمة والترقية (مع تحقق صارم من الصيغة)
       for (const key of this.LEGACY_KEYS) {
         const store = localStorage.getItem(key);
         if (store && store.trim()) {
           const cleanStore = store.trim();
-          console.log(`🔄 Migrating store from "${key}" to unified system:`, cleanStore);
-          this.setActiveStore(cleanStore);
-          return cleanStore;
+          if (this.isValidStoreFormat(cleanStore)) {
+            console.log(`🔄 Migrating store from "${key}" to unified system:`, cleanStore);
+            const ok = this.setActiveStore(cleanStore);
+            if (ok) return cleanStore;
+          } else {
+            // تجاهل أي قيم ليست نطاق Shopify (مثل "en" الخاصة باللغة)
+            console.warn(`⏭️ Skipping invalid legacy store value from "${key}":`, cleanStore);
+          }
         }
       }
 
