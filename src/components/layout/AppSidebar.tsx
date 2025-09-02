@@ -28,12 +28,8 @@ const AppSidebar = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(location.pathname.startsWith('/settings'));
   useEffect(() => {
     const getUser = async () => {
-      const {
-        data: {
-          user: currentUser
-        }
-      } = await supabase.auth.getUser();
-      setUser(currentUser);
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user ?? null);
     };
     getUser();
   }, []);

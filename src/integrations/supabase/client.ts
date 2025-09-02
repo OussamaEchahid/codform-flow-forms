@@ -25,11 +25,10 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, 
     persistSession: true,
     autoRefreshToken: true,
   },
-  // Ensure REST calls always include required headers even without a user session
+  // Only send the apikey by default. Let supabase-js set Authorization to the user access token when available.
   global: {
     headers: {
       apikey: SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
     },
   },
 });
