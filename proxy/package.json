@@ -1,0 +1,20 @@
+{
+  "name": "codmagnet-oauth-proxy",
+  "version": "1.0.0",
+  "description": "Google OAuth Callback Proxy for CODMagnet",
+  "main": "google-oauth-callback.js",
+  "scripts": {
+    "start": "node google-oauth-callback.js",
+    "dev": "nodemon google-oauth-callback.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "keywords": ["oauth", "google", "proxy", "codmagnet"],
+  "author": "CODMagnet Team",
+  "license": "MIT"
+}

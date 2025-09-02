@@ -34,12 +34,26 @@ export default function OAuthGoogleCallback() {
           return;
         }
 
-        // Backward compatibility: handle code on the client if present
+        // Handle missing code
         if (!code) {
           setMessage('Missing authorization code.');
           return;
         }
 
+        // Prefer server-side flow via Cloudflare Worker in production to avoid CORS
+        const origin = window.location.origin;
+        const isProdHost = /codmagnet\.com$/i.test(origin);
+        const hasSpaFallback = /(^|[?#&])spa_fallback=1(?:$|[&#])/i.test(window.location.search + window.location.hash);
+        if (isProdHost && !hasSpaFallback) {
+          setMessage('Redirecting to complete Google connection...');
+          const search = window.location.search || '';
+          const hashStr = window.location.hash || '';
+          // This will hit the Cloudflare Worker which forwards to Supabase and redirects back with success
+          window.location.replace(`${origin}/auth/google/callback${search}${hashStr}`);
+          return;
+        }
+
+        // Fallback for development environments: exchange code via Edge Function directly
         const redirect_uri = `${window.location.origin}/oauth/google-callback`;
         const shopId = localStorage.getItem('active_shopify_store') || localStorage.getItem('active_store') || '';
         const { data: userData } = await supabase.auth.getUser();

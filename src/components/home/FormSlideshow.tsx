@@ -95,6 +95,11 @@ const FormSlideshow: React.FC = () => {
 
     return () => clearInterval(interval);
   }, [isAutoPlaying]);
+  // ضمان استئناف التشغيل التلقائي بعد تغيير اللغة
+  useEffect(() => {
+    setIsAutoPlaying(true);
+  }, [language]);
+
 
   const goToSlide = (index: number) => {
     setCurrentSlide(index);

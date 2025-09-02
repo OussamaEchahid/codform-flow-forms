@@ -5,6 +5,10 @@
 
 window.CodformQuantityOffers = (function() {
   'use strict';
+  // ✅ استخدام النظام الاحترافي للسجلات
+  if (window.allowImportantLog) {
+    window.allowImportantLog('Quantity offers available');
+  }
 
   // ✅ Local currency settings cache when Unified System isn't present
   let __codformCurrencySettings = null;
@@ -67,58 +71,141 @@ window.CodformQuantityOffers = (function() {
     } catch (_) { /* ignore */ }
   }
 
-  // دالة تحويل العملة مع Ultimate Currency System
+  // ✅ دالة تحويل العملة الموحدة - إجبار استخدام CurrencyManager لضمان الاتساق
   function convertCurrency(amount, fromCurrency, toCurrency) {
     fromCurrency = (fromCurrency || 'USD').toString().toUpperCase().trim();
     toCurrency = (toCurrency || 'MAD').toString().toUpperCase().trim();
 
-    // استخدام Unified System أولاً إن توفر
-    if (window.CodformUnifiedSystem && typeof window.CodformUnifiedSystem.convertCurrency === 'function') {
-      return window.CodformUnifiedSystem.convertCurrency(amount, fromCurrency, toCurrency);
-    }
-    // استخدام Ultimate Currency System الجديد
-    if (window.CodformUltimateCurrency && typeof window.CodformUltimateCurrency.convertCurrency === 'function') {
-      return window.CodformUltimateCurrency.convertCurrency(amount, fromCurrency, toCurrency);
+    console.log(`🎯 Quantity Offers: Converting ${amount} from ${fromCurrency} to ${toCurrency}`);
+
+    // ✅ CRITICAL FIX: استخدام CurrencyManager فقط لضمان الاتساق مع Cart Summary
+    if (window.CodformCurrencyManager && typeof window.CodformCurrencyManager.convertCurrency === 'function') {
+      const result = window.CodformCurrencyManager.convertCurrency(amount, fromCurrency, toCurrency);
+      console.log(`🎯 Quantity Offers: CurrencyManager result: ${result}`);
+      return result;
     }
 
-    // استخدام Currency Manager إذا كان متاحاً
-    if (window.CodformCurrencyManager) {
-      if (typeof window.CodformCurrencyManager.convertCurrency === 'function') {
-        return window.CodformCurrencyManager.convertCurrency(amount, fromCurrency, toCurrency);
-      }
-      // Fallback: حساب يدوي بمعدلات مخصصة من المدير إذا توفرت
-      if (typeof window.CodformCurrencyManager.getRates === 'function') {
-        const defaultRates = { 'USD': 1.0, 'SAR': 3.75, 'AED': 3.67, 'MAD': 10.0, 'EUR': 0.85, 'GBP': 0.75, 'XOF': 655.96, 'XAF': 655.96 };
-        const custom = window.CodformCurrencyManager.getRates() || {};
-        const rates = { ...defaultRates, ...custom };
-        if (fromCurrency === toCurrency) return amount;
-        const fromRate = rates[fromCurrency] || 1;
-        const toRate = rates[toCurrency] || 1;
-        const usdAmount = amount / fromRate;
-        return usdAmount * toRate;
-      }
-    }
+    // ✅ Fallback: استخدام نفس المعدلات المستخدمة في Cart Summary لضمان الاتساق
+    console.log(`⚠️ Quantity Offers: CurrencyManager not available, using fallback rates`);
 
-    // استخدام CurrencyService إذا كان متاحاً
-    if (window.CurrencyService && typeof window.CurrencyService.convertCurrency === 'function') {
-      return window.CurrencyService.convertCurrency(amount, fromCurrency, toCurrency);
-    }
+    // ✅ نفس المعدلات المستخدمة في Cart Summary بالضبط
+    const exchangeRates = {
+      // العملات الأساسية
+      'USD': 1.0,
 
-    // الاحتياطي: استخدام الأسعار المحلية + أي معدلات مخصصة متاحة
-    const defaultRates = {
-      'USD': 1.0, 'SAR': 3.75, 'AED': 3.67, 'MAD': 10.0, 'EUR': 0.85, 'GBP': 0.75,
-      'INR': 83.0, 'IDR': 15850, 'PKR': 280, 'BDT': 110, 'LKR': 300, 'NPR': 133, 'BTN': 83, 'MMK': 2100, 'KHR': 4100, 'LAK': 20000, 'VND': 24000, 'THB': 36, 'MYR': 4.7, 'SGD': 1.35, 'HKD': 7.8, 'KRW': 1345, 'CNY': 7.24, 'JPY': 149,
-      'XOF': 655.96, 'XAF': 655.96
+      // عملات دول الخليج العربي
+      'SAR': 3.75,
+      'AED': 3.67,
+      'QAR': 3.64,
+      'KWD': 0.31,
+      'BHD': 0.38,
+      'OMR': 0.38,
+
+      // عملات شمال أفريقيا والمغرب العربي
+      'EGP': 30.85,
+      'MAD': 10.0, // ✅ نفس القيمة المستخدمة في Cart Summary
+      'TND': 3.15,
+      'DZD': 134.25,
+
+      // عملات بلاد الشام
+      'JOD': 0.71,
+      'LBP': 89500,
+      'SYP': 13000,
+      'ILS': 3.67,
+
+      // العملات الأوروبية والغربية
+      'EUR': 0.92,
+      'GBP': 0.79,
+      'CAD': 1.43,
+      'AUD': 1.57,
+
+      // Asia
+      'INR': 83.0,
+      'IDR': 15850,
+      'PKR': 280,
+      'BDT': 110,
+      'LKR': 300,
+      'NPR': 133,
+      'BTN': 83,
+      'MMK': 2100,
+      'KHR': 4100,
+      'LAK': 20000,
+      'VND': 24000,
+      'THB': 36,
+      'MYR': 4.7,
+      'SGD': 1.35,
+      'HKD': 7.8,
+      'KRW': 1345,
+      'CNY': 7.24,
+      'JPY': 149,
+
+      // عملات أمريكا اللاتينية
+      'MXN': 20.15,
+      'BRL': 6.05,
+      'ARS': 1005.5,
+      'CLP': 975.2,
+      'COP': 4285.5,
+      'PEN': 3.75,
+      'VES': 36500000,
+      'UYU': 40.25,
+
+      // عملات الشرق الأوسط الإضافية
+      'IQD': 1310,
+      'IRR': 42100,
+      'TRY': 34.15,
+      'YER': 250,
+
+      // عملات أفريقيا
+      'NGN': 1675,
+      'ZAR': 18.45,
+      'KES': 130.5,
+      'GHS': 15.85,
+      'ETB': 125.5,
+      'TZS': 2515,
+      'UGX': 3785,
+      'ZMW': 27.85,
+      'RWF': 1385,
+      'XOF': 655.96,
+      'XAF': 655.96
     };
-    const customRates = (__codformCurrencySettings && __codformCurrencySettings.customRates) || {};
-    const exchangeRates = { ...defaultRates, ...customRates };
 
-    if (fromCurrency === toCurrency) return amount;
+    // ✅ ENHANCED: Get custom rates from Currency Manager with priority (same as Cart Summary)
+    let finalExchangeRates = { ...exchangeRates }; // Copy default rates
 
-    const fromRate = exchangeRates[fromCurrency] || 1;
-    const toRate = exchangeRates[toCurrency] || 1;
+    if (window.CodformCurrencyManager && window.CodformCurrencyManager.getRates) {
+      const customRates = window.CodformCurrencyManager.getRates();
+      console.log('🎯 Quantity Offers: Custom rates from manager:', customRates);
+
+      if (customRates && Object.keys(customRates).length > 0) {
+        // Override with custom rates
+        finalExchangeRates = { ...finalExchangeRates, ...customRates };
+        console.log('🎯 Quantity Offers: Using merged rates (custom + default):', finalExchangeRates);
+      }
+    }
+
+    // ✅ استخدام نفس منطق التحويل المستخدم في Cart Summary
+    if (fromCurrency === toCurrency) {
+      console.log(`🎯 Quantity Offers: Same currency, returning original amount: ${amount}`);
+      return amount;
+    }
+
+    const fromRate = finalExchangeRates[fromCurrency];
+    const toRate = finalExchangeRates[toCurrency];
+
+    console.log(`🎯 Quantity Offers: Exchange rates - ${fromCurrency}: ${fromRate}, ${toCurrency}: ${toRate}`);
+
+    if (!fromRate || !toRate) {
+      console.warn(`🎯 Quantity Offers: Missing exchange rate for conversion, returning original amount`);
+      return amount;
+    }
+
+    // Convert through USD as base (same as Cart Summary)
     const usdAmount = amount / fromRate;
-    return usdAmount * toRate;
+    const convertedAmount = usdAmount * toRate;
+
+    console.log(`🎯 Quantity Offers: Conversion calculation - USD amount: ${usdAmount}, Final: ${convertedAmount}`);
+
+    return convertedAmount;
   }
 
   // دالة تنسيق العملة مع Ultimate Currency System
@@ -138,19 +225,23 @@ window.CodformQuantityOffers = (function() {
       if (typeof window.CodformCurrencyManager.formatCurrency === 'function') {
         return window.CodformCurrencyManager.formatCurrency(amount, currency, language);
       }
-      // Fallback: بناء التنسيق يدوياً من الإعدادات
-      if (typeof window.CodformCurrencyManager.getSettings === 'function') {
-        const s = window.CodformCurrencyManager.getSettings() || {};
-        const decimalPlaces = s.decimalPlaces ?? s.decimal_places ?? 2;
-        const showSymbol = s.showSymbol !== false && s.show_symbol !== false;
-        const symbolPosition = s.symbolPosition || s.symbol_position || 'before';
-        const customSymbols = s.customSymbols || {};
-        const defaultSymbols = { 'USD': '$', 'EUR': '€', 'GBP': '£', 'SAR': 'ر.س', 'AED': 'د.إ', 'MAD': 'د.م', 'INR': '₹', 'IDR': 'Rp', 'PKR': '₨', 'BDT': '৳', 'LKR': 'Rs', 'NPR': '₨', 'BTN': 'Nu.', 'MMK': 'K', 'KHR': '៛', 'LAK': '₭', 'VND': '₫', 'THB': '฿', 'MYR': 'RM', 'SGD': 'S$', 'HKD': 'HK$', 'KRW': '₩', 'CNY': '¥', 'JPY': '¥', 'XOF': 'CFA', 'XAF': 'FCFA' };
-        const displaySymbol = customSymbols[currency] || defaultSymbols[currency] || currency;
-        const amt = Number.isFinite(amount) ? amount.toFixed(decimalPlaces) : '0.00';
-        if (!showSymbol) return amt;
-        return symbolPosition === 'before' ? `${displaySymbol} ${amt}` : `${amt} ${displaySymbol}`;
-      }
+      // Fallback: بناء التنسيق يدوياً من إعدادات العرض باستخدام واجهة موحدة
+      const s = (typeof window.CodformCurrencyManager.getDisplaySettings === 'function')
+        ? window.CodformCurrencyManager.getDisplaySettings()
+        : (typeof window.CodformCurrencyManager.getSettings === 'function')
+          ? window.CodformCurrencyManager.getSettings()
+          : {};
+      const decimalPlaces = s.decimal_places ?? s.decimalPlaces ?? 2;
+      const showSymbol = (s.show_symbol !== false && s.showSymbol !== false);
+      const symbolPosition = s.symbol_position || s.symbolPosition || 'before';
+      const customSymbols = s.custom_symbols || s.customSymbols || {};
+      const defaultSymbols = { 'USD': '$', 'EUR': '€', 'GBP': '£', 'SAR': 'ر.س', 'AED': 'د.إ', 'MAD': 'د.م', 'INR': '₹', 'IDR': 'Rp', 'PKR': '₨', 'BDT': '৳', 'LKR': 'Rs', 'NPR': '₨', 'BTN': 'Nu.', 'MMK': 'K', 'KHR': '៛', 'LAK': '₭', 'VND': '₫', 'THB': '฿', 'MYR': 'RM', 'SGD': 'S$', 'HKD': 'HK$', 'KRW': '₩', 'CNY': '¥', 'JPY': '¥', 'XOF': 'CFA', 'XAF': 'FCFA' };
+      const displaySymbol = customSymbols[currency] || defaultSymbols[currency] || currency;
+      const amt = Number.isFinite(amount) ? amount.toFixed(decimalPlaces) : '0.00';
+      if (!showSymbol) return `${amt} ${currency}`;
+      const base1 = symbolPosition === 'before' ? `${displaySymbol} ${amt}` : `${amt} ${displaySymbol}`;
+      const rtl = (language === 'ar') || (typeof document !== 'undefined' && document.documentElement && document.documentElement.dir === 'rtl');
+      return rtl ? `\u2066${base1}\u2069` : base1;
     }
 
     // استخدام الإعدادات المحلية إذا كانت متاحة
@@ -163,7 +254,9 @@ window.CodformQuantityOffers = (function() {
       const symbol = s.customSymbols[currency] || defaultSymbols[currency] || currency;
       const amt = Number.isFinite(amount) ? amount.toFixed(decimalPlaces) : '0.00';
       if (!showSymbol) return amt;
-      return symbolPosition === 'before' ? `${symbol} ${amt}` : `${amt} ${symbol}`;
+      const base2 = symbolPosition === 'before' ? `${symbol} ${amt}` : `${amt} ${symbol}`;
+      const rtl2 = (language === 'ar') || (typeof document !== 'undefined' && document.documentElement && document.documentElement.dir === 'rtl');
+      return rtl2 ? `\u2066${base2}\u2069` : base2;
     }
 
     // استخدام CurrencyService إذا كان متاحاً للتنسيق المخصص
@@ -353,14 +446,15 @@ window.CodformQuantityOffers = (function() {
     }
 
     if (!container) {
-      console.error("❌ Container not found:", desiredPosition, beforeId);
+      // ✅ استخدام النظام الاحترافي للسجلات
+      if (window.allowImportantLog) {
+        window.allowImportantLog('No quantity offers found');
+      }
       const anyContainer = document.querySelector('[id*="quantity-offers"]');
       if (anyContainer) {
-        console.log("🔧 Using alternative container:", anyContainer.id);
         container = anyContainer;
       } else {
-        console.error("❌ No quantity offers container found at all");
-        return;
+        return; // إنهاء صامت بدون أخطاء
       }
     }
 
@@ -405,12 +499,49 @@ window.CodformQuantityOffers = (function() {
       usingData: actualProductData
     });
 
-    // ✅ Get the real form currency from the form data
-    let targetFormCurrency = formCurrency || window.CodformFormData?.currency || window.currentFormData?.savedFormCurrency;
+    // ✅ CRITICAL FIX: Use same currency resolution logic as Cart Summary
+    function getRealFormCurrency() {
+      // Primary: Check for currency from API response (same as Cart Summary)
+      if (window.CodformFormData?.currency) {
+        return window.CodformFormData.currency;
+      }
+
+      // Secondary: Check if currency was saved in form data
+      if (window.currentFormData?.savedFormCurrency) {
+        console.log('✅ Quantity Offers - Currency from saved form data (secondary):', window.currentFormData.savedFormCurrency);
+        return window.currentFormData.savedFormCurrency;
+      }
+
+      // TERTIARY: Check form style currency (backup location)
+      if (window.currentFormData?.form?.style?.currency) {
+        console.log('✅ Quantity Offers - Currency from form style (tertiary):', window.currentFormData.form.style.currency);
+        return window.currentFormData.form.style.currency;
+      }
+
+      // QUATERNARY: Use passed formCurrency parameter
+      if (formCurrency) {
+        console.log('✅ Quantity Offers - Currency from parameter (quaternary):', formCurrency);
+        return formCurrency;
+      }
+
+      return null; // No fallback to product currency - must match Cart Summary behavior
+    }
+
+    let targetFormCurrency = getRealFormCurrency();
+
+    // ✅ CRITICAL FIX: Apply Smart Currency override (same as Cart Summary)
+    const scCurrency = (window.CodformSmartCurrency && typeof window.CodformSmartCurrency.getCurrentCurrency === 'function')
+      ? window.CodformSmartCurrency.getCurrentCurrency()
+      : null;
+
+    if (scCurrency) {
+      targetFormCurrency = scCurrency;
+      console.log('💰✅ Quantity Offers - Smart Currency override applied:', scCurrency);
+    }
 
     console.log('💰✅ Quantity Offers - Form currency parameter:', formCurrency);
     console.log('💰✅ Quantity Offers - window.CodformFormData.currency:', window.CodformFormData?.currency);
-    console.log('💰✅ Quantity Offers - Final target currency:', targetFormCurrency);
+    console.log('💰✅ Quantity Offers - Final target currency (using Cart Summary logic):', targetFormCurrency);
 
     // ✅ Get real product price from API response (not default 1.00)
     let productPrice = null;
@@ -443,10 +574,14 @@ window.CodformQuantityOffers = (function() {
       return;
     }
 
-    // ✅ Default to form currency if no target currency found
+    // ✅ CRITICAL FIX: Handle missing currency same as Cart Summary
     if (!targetFormCurrency) {
-      targetFormCurrency = productCurrency || 'GBP';
-      console.log('💰✅ Using fallback currency:', targetFormCurrency);
+      console.error('🚨 Quantity Offers - CRITICAL ERROR: No currency available!');
+      console.error('🚨 Quantity Offers - Cannot proceed without real currency from form settings.');
+
+      // Show error message to user (same as Cart Summary)
+      container.innerHTML = '<div style="color: red; padding: 10px; border: 2px solid red; background: #ffebee; margin: 10px; border-radius: 4px; font-weight: bold;">❌ ERROR: No form currency configured</div>';
+      return;
     }
 
     // ✅ VERIFICATION: Ensure we have valid data before conversion
@@ -643,6 +778,7 @@ window.CodformQuantityOffers = (function() {
 
         // 🎯 الأحداث القياسية المستخدمة من ملخص الطلب وباقي المكونات
         try {
+          const currentCurrency = window.CodformSmartCurrency?.getCurrentCurrency?.() || targetFormCurrency;
           const selectedOffer = {
             quantity: parseInt(quantity),
             discount: discountValue,
@@ -650,8 +786,16 @@ window.CodformQuantityOffers = (function() {
             finalPrice: parseFloat(totalPrice),
             originalPrice: originalPrice,
             text: offer.text || (formDirection === 'rtl' ? `اشترِ ${offer.quantity || 1} قطعة` : `Buy ${offer.quantity || 1}`),
-            tag: offer.tag || null
+            tag: offer.tag || null,
+            currency: currentCurrency // 🎯 إضافة العملة الحالية
           };
+
+          console.log('🎯 Quantity Offers (main) - Dispatching offer-selected event:', {
+            selectedOffer,
+            currentCurrency,
+            targetFormCurrency,
+            smartCurrency: window.CodformSmartCurrency?.getCurrentCurrency?.()
+          });
           window.dispatchEvent(new CustomEvent('codform:offer-selected', { detail: { offer: selectedOffer } }));
           window.dispatchEvent(new CustomEvent('codform:quantity-changed', { detail: { quantity: parseInt(quantity) } }));
 

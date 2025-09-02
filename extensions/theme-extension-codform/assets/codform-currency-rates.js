@@ -3,50 +3,31 @@
  * جميع المعدلات محسوبة بالنسبة للدولار الأمريكي (USD)
  * متطابقة مع src/lib/constants/countries-currencies.ts
  */
-// استخدام CurrencyService إذا كان متاحاً، وإلا استخدام المعدلات الافتراضية
+// معدلات تحويل موحدة - مطابقة للنظام الموحد
 window.CodformCurrencyRates = {
-  'USD': 1.0,
-  'SAR': 3.75,
-  'AED': 3.67,
-  'EGP': 30.85,
-  'JOD': 0.71,
-  'KWD': 0.31,
-  'BHD': 0.38,
-  'QAR': 3.64,
-  'OMR': 0.38,
-  'LBP': 15000,
-  'SYP': 2512,
-  'IQD': 1310,
-  'YER': 250,
-  'MAD': 10.0,
-  'TND': 3.08,
-  'DZD': 134.5,
-  'EUR': 0.85,
-  'GBP': 0.75,
-  'CAD': 1.35,
-  'TRY': 27.8,
-  'IRR': 42000,
-  'AFN': 72,
-  'PKR': 280,
-  'INR': 83,
-  'BDT': 110,
-  'LKR': 300,
-  'MVR': 15.4,
-  'NPR': 133,
-  'BTN': 83,
-  'MMK': 2100,
-  'KHR': 4100,
-  'LAK': 20000,
-  'VND': 24000,
-  'THB': 36,
-  'MYR': 4.7,
-  'SGD': 1.35,
-  'IDR': 15800,
-  'PHP': 56,
-  'BND': 1.35,
-  'LYD': 4.48,
-  'XOF': 655.96,
-  'XAF': 655.96
+  // العملات الرئيسية
+  'USD': 1.0000, 'EUR': 0.9200, 'GBP': 0.7900, 'JPY': 149.0000, 'CNY': 7.2400,
+  'INR': 83.0000, 'RUB': 92.5000, 'AUD': 1.5700, 'CAD': 1.4300, 'CHF': 0.8900,
+  'HKD': 7.8000, 'SGD': 1.3500, 'KRW': 1345.0000, 'NZD': 1.6900,
+
+  // عملات الشرق الأوسط
+  'SAR': 3.7500, 'AED': 3.6700, 'QAR': 3.6400, 'KWD': 0.3100, 'BHD': 0.3800,
+  'OMR': 0.3800, 'EGP': 30.8500, 'JOD': 0.7100, 'ILS': 3.6700, 'IRR': 42100.0000,
+  'IQD': 1310.0000, 'TRY': 34.1500, 'LBP': 89500.0000, 'SYP': 13000.0000, 'YER': 250.0000,
+
+  // عملات أفريقيا
+  'MAD': 10.0000, 'XOF': 655.9600, 'XAF': 655.9600, 'NGN': 1675.0000, 'ZAR': 18.4500,
+  'KES': 130.5000, 'GHS': 15.8500, 'ETB': 125.5000, 'TZS': 2515.0000, 'UGX': 3785.0000,
+  'ZMW': 27.8500, 'RWF': 1385.0000,
+
+  // عملات آسيا
+  'IDR': 15850.0000, 'PKR': 280.0000, 'BDT': 110.0000, 'LKR': 300.0000, 'NPR': 133.0000,
+  'BTN': 83.0000, 'MMK': 2100.0000, 'KHR': 4100.0000, 'LAK': 20000.0000, 'VND': 24000.0000,
+  'THB': 36.0000, 'MYR': 4.7000, 'PHP': 56.0000,
+
+  // عملات أمريكا اللاتينية
+  'MXN': 20.1500, 'BRL': 6.0500, 'ARS': 1005.5000, 'CLP': 975.2000, 'COP': 4285.5000,
+  'PEN': 3.7500, 'VES': 36500000.0000, 'UYU': 40.2500
 };
 
 // دالة للحصول على معدل التحويل (مع إعطاء الأولوية لـ CurrencyService)
@@ -122,6 +103,33 @@ window.formatCurrencyWithService = function(amount, currency, language = 'ar') {
     }).format(amount);
   } catch (error) {
     console.warn('Currency formatting error:', error);
-    return `${currency} ${amount.toFixed(2)}`;
+
+    // احترام إعدادات العرض عند الفشل
+    let showSymbol = false;
+    let symbolPosition = 'after';
+    let decimalPlaces = 2;
+    let customSymbols = {};
+
+    try {
+      if (window.CurrencyService && typeof window.CurrencyService.getDisplaySettings === 'function') {
+        const s = window.CurrencyService.getDisplaySettings();
+        showSymbol = s.showSymbol !== false;
+        symbolPosition = s.symbolPosition || symbolPosition;
+        decimalPlaces = (s.decimalPlaces ?? decimalPlaces);
+        customSymbols = s.customSymbols || {};
+      } else if (window.CodformCurrencyManager && typeof window.CodformCurrencyManager.getDisplaySettings === 'function') {
+        const s = window.CodformCurrencyManager.getDisplaySettings();
+        showSymbol = s.showSymbol !== false && s.show_symbol !== false;
+        symbolPosition = s.symbolPosition || s.symbol_position || symbolPosition;
+        decimalPlaces = (s.decimalPlaces ?? s.decimal_places ?? decimalPlaces);
+        customSymbols = s.customSymbols || s.custom_symbols || {};
+      }
+    } catch (_) {}
+
+    const defaultSymbols = { 'USD': '$', 'EUR': '€', 'GBP': '£', 'SAR': 'ر.س', 'AED': 'د.إ', 'MAD': 'د.م' };
+    const displayText = showSymbol ? (customSymbols[currency] || defaultSymbols[currency] || currency) : currency;
+    const amt = Number.isFinite(amount) ? Number(amount).toFixed(decimalPlaces) : '0.00';
+
+    return symbolPosition === 'before' ? `${displayText} ${amt}` : `${amt} ${displayText}`;
   }
 };

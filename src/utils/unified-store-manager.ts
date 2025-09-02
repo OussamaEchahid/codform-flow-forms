@@ -95,7 +95,7 @@ export class UnifiedStoreManager {
       
       // التحقق من صحة تنسيق المتجر
       if (!this.isValidStoreFormat(cleanStore)) {
-        console.debug('❌ Invalid store format:', cleanStore);
+        console.error('❌ Invalid store format:', cleanStore);
         return false;
       }
 
@@ -159,13 +159,6 @@ export class UnifiedStoreManager {
    */
   static isValidStoreFormat(store: string): boolean {
     if (!store || !store.trim()) return false;
-    
-    // تجاهل إعدادات اللغة
-    if (store === 'en' || store === 'ar') {
-      console.log('🌐 Ignoring language setting as store:', store);
-      return false;
-    }
-    
     const shopifyPattern = /^[a-zA-Z0-9\-]+\.myshopify\.com$/;
     return shopifyPattern.test(store.trim());
   }

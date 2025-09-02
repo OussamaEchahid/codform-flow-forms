@@ -643,3 +643,146 @@
 }
 
 /* تم إزالة القواعد المتضاربة مع inline styles - للسماح بعمل Padding Y من form builder */
+
+/* 🎯 POPUP MODAL STYLES - إضافة أنماط النموذج المنبثق */
+#codform-popup-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  background: rgba(0, 0, 0, 0.6) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 100000 !important;
+  backdrop-filter: blur(5px) !important;
+}
+
+#codform-popup-overlay > div {
+  background: white !important;
+  border-radius: 12px !important;
+  max-width: 90vw !important;
+  max-height: 90vh !important;
+  overflow-y: auto !important;
+  position: relative !important;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* تأكد من أن النموذج داخل النافذة المنبثقة يظهر بشكل صحيح */
+#codform-popup-overlay .codform-container {
+  background: transparent !important;
+  /* allow builder styles for border/radius/shadow to apply in popup */
+  margin: 0 !important;
+  padding: 20px !important;
+}
+
+#codform-popup-overlay .codform-form {
+  background: transparent !important;
+  /* allow border from builder to appear in popup */
+  margin: 0 !important;
+}
+
+/* إصلاح أنماط الحقول في النافذة المنبثقة */
+#codform-popup-overlay .codform-field {
+  margin-bottom: 16px !important;
+  background: #ffffff !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 8px !important;
+  padding: 12px !important;
+}
+
+#codform-popup-overlay .codform-field input,
+#codform-popup-overlay .codform-field textarea,
+#codform-popup-overlay .codform-field select {
+  width: 100% !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 6px !important;
+  padding: 10px 12px !important;
+  font-size: 16px !important;
+  font-family: 'Cairo', sans-serif !important;
+}
+
+/* زر الإغلاق */
+#codform-popup-overlay .close-button {
+  position: absolute !important;
+  top: 15px !important;
+  right: 15px !important;
+  background: transparent !important;
+  border: none !important;
+  font-size: 24px !important;
+  cursor: pointer !important;
+  color: #666 !important;
+  z-index: 1000 !important;
+}
+
+#codform-popup-overlay .close-button:hover {
+  color: #333 !important;
+  background: rgba(0, 0, 0, 0.1) !important;
+  border-radius: 50% !important;
+}
+
+/* 🚫 إزالة جميع الخطوط السوداء من النموذج المنبثق */
+#codform-popup-overlay * {
+  box-sizing: border-box !important;
+}
+
+/* Keep inner fields clean, but allow border on container and form in popup */
+#codform-popup-overlay .codform-form-fields {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* إزالة أي خطوط من العناصر الفرعية */
+#codform-popup-overlay input,
+#codform-popup-overlay textarea,
+#codform-popup-overlay select,
+#codform-popup-overlay button {
+  border: 1px solid #e5e7eb !important;
+  outline: none !important;
+}
+
+/* إصلاح زر الإرسال */
+#codform-popup-overlay .codform-submit-btn,
+#codform-popup-overlay button[type="submit"] {
+  border: none !important;
+  outline: none !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* إزالة أي خطوط من الحاويات باستثناء الحاوية الرئيسية والنموذج للسماح بعرض الـ border */
+#codform-popup-overlay div:not(.codform-container):not(.codform-form) {
+  border: none !important;
+  outline: none !important;
+}
+
+/* Animation keyframes */
+@keyframes pulse-animation {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+@keyframes bounce-animation {
+  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-10px); }
+  60% { transform: translateY(-5px); }
+}
+
+@keyframes shake-animation {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+  20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+@keyframes wiggle-animation {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-3deg); }
+  75% { transform: rotate(3deg); }
+}
+
+@keyframes flash-animation {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
