@@ -5,10 +5,28 @@
   "target": "section",
   "settings": [
     {
-      "id": "product_id",
-      "type": "text",
-      "label": "Product ID",
-      "info": "Enter the product ID to load the form."
+      "type": "header",
+      "content": "🚀 Smart Forms System"
+    },
+    {
+      "type": "paragraph",
+      "content": "This system automatically creates custom forms for each product. No need to enter product ID - the system automatically detects the current product and displays the appropriate form."
+    },
+    {
+      "type": "header",
+      "content": "📋 How to Use"
+    },
+    {
+      "type": "paragraph",
+      "content": "1. Navigate to the desired product page\n2. Add this block to the page\n3. The system will automatically display the custom form for that product"
+    },
+    {
+      "type": "header",
+      "content": "⚙️ Advanced Settings"
+    },
+    {
+      "type": "paragraph",
+      "content": "You can customize forms from the main app dashboard. Each product can have a custom form with different designs and fields. Configure your forms, styling, and behavior from the CodMagnet app interface."
     }
   ]
 }
@@ -17,6 +35,8 @@
 <link rel="stylesheet" href="{{ 'codform-styles.css' | asset_url }}?v={{ 'now' | date: '%s' }}">
 
 <!-- تحميل الملفات الأساسية -->
+<script src="{{ 'codform-app-display.js' | asset_url }}?v={{ 'now' | date: '%s' }}"></script>
+<script src="{{ 'codform-error-fixes.js' | asset_url }}?v={{ 'now' | date: '%s' }}"></script>
 <script src="{{ 'codform-smart-currency-system.js' | asset_url }}?v={{ 'now' | date: '%s' }}"></script>
 <script src="{{ 'codform-currency-manager.js' | asset_url }}?v={{ 'now' | date: '%s' }}"></script>
 <script src="{{ 'codform-logger-control.js' | asset_url }}?v={{ 'now' | date: '%s' }}"></script>
@@ -31,35 +51,37 @@
 <script src="{{ 'codform-countdown-field.js' | asset_url }}?v={{ 'now' | date: '%s' }}"></script>
 <script src="{{ 'codform-arabic-styling.js' | asset_url }}?v={{ 'now' | date: '%s' }}"></script>
 <script src="{{ 'codform-cart-summary.v2.js' | asset_url }}?v={{ 'now' | date: '%s' }}"></script>
+<script src="{{ 'codform-popup-cart-summary.js' | asset_url }}?v={{ 'now' | date: '%s' }}"></script>
+<script src="{{ 'codform-success-popup.js' | asset_url }}?v={{ 'now' | date: '%s' }}"></script>
+
 
 
 <script>
   // Bump this to force-refresh assets across all caches
   window.CODFORM_APP_VERSION = '{{ 'now' | date: '%s' }}';
+
+  // 🛒 POPUP FIX: Set global variables for popup cart summary
+  window.codformProductId = '{{ product.id }}' || 'auto-detect';
+  // Always use permanent_domain for internal APIs
+  window.codformShopDomain = '{{ shop.permanent_domain }}' || 'auto-detect';
 </script>
 
 <script src="{{ 'codform-advertising-tracking.js' | asset_url }}?v={{ 'now' | date: '%s' }}"></script>
 
-{% if request.design_mode %}
-  <style>
-    .codform-editor-hint { border: 1px solid #E5E7EB; background: #F9FAFB; padding: 16px; border-radius: 8px; margin: 12px 0; font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; }
-    .codform-editor-hint h3 { margin: 0 0 8px; font-size: 14px; color: #111827; }
-    .codform-editor-hint p { margin: 4px 0; font-size: 13px; color: #374151; }
-  </style>
-  <div class="codform-editor-hint">
-    <h3>{{ 'codform.editor.help_title' | t }}</h3>
-    <p>{{ 'codform.editor.help_line_1' | t }}</p>
-    <p>{{ 'codform.editor.help_line_2' | t }}</p>
-  </div>
-{% endif %}
+
 
 <div id="codform-popup-button-container" style="display: none;">
 
 </div>
 
-<div data-form-preview-id="form-preview-stable">
+<div data-form-preview-id="form-preview-stable" style="display: none;">
 
 </div>
+
+<div class="codform-theme-editor-notice" style="display:none; padding:12px; margin:12px 0; border:1px dashed #9CA3AF; border-radius:8px; background:#FFFBEB; color:#1F2937; font-size:14px;">
+  This product is not associated with any model. Link or create a model to display it here.
+</div>
+
 
 <script>
 (function() {
@@ -67,7 +89,8 @@
 
   // تمرير المتغيرات من Shopify إلى النواة
   window.codformProductId = ('{{ product.id }}' || '{{ product.variants.first.id }}' || '{{ block.settings.product_id }}' || 'auto-detect').trim();
-  window.codformShopDomain = '{{ shop.domain }}' || '{{ shop.permanent_domain }}' || 'auto-detect';
+  // Always use permanent_domain for internal API calls
+  window.codformShopDomain = '{{ shop.permanent_domain }}' || '{{ shop.domain }}' || 'auto-detect';
   window.CodformShopCurrency = '{{ shop.currency }}';
 
   // ✅ الحصول على معرفات النموذج والمتجر
@@ -76,27 +99,35 @@
 
   console.log(`🚀 Initializing Smart Currency System for Form: ${formId}, Shop: ${shopId}`);
 
-  // تهيئة CurrencyService
-  if (window.parent && window.parent.CurrencyService) {
-    window.CurrencyService = window.parent.CurrencyService;
-    window.CurrencyServiceStorage = window.parent.CurrencyServiceStorage;
-  } else if (window.top && window.top.CurrencyService) {
-    window.CurrencyService = window.top.CurrencyService;
-    window.CurrencyServiceStorage = window.top.CurrencyServiceStorage;
+  // تهيئة CurrencyService - Safe for Theme Editor (avoid cross-origin errors)
+  try {
+    if (window.parent && window.parent !== window && window.parent.CurrencyService) {
+      window.CurrencyService = window.parent.CurrencyService;
+      window.CurrencyServiceStorage = window.parent.CurrencyServiceStorage;
+    } else if (window.top && window.top !== window && window.top.CurrencyService) {
+      window.CurrencyService = window.top.CurrencyService;
+      window.CurrencyServiceStorage = window.top.CurrencyServiceStorage;
+    }
+  } catch (e) {
+    console.warn('⚠️ CurrencyService not accessible (likely Theme Editor cross-origin). Using local fallbacks.');
   }
 
-  // ✅ تشغيل النظام الذكي للعملات
+  // ✅ تشغيل النظام الذكي للعملات - بأولوية عالية
   document.addEventListener('DOMContentLoaded', function() {
+    // تهيئة فورية بدون تأخير لضمان الأولوية
     setTimeout(async () => {
       if (window.CodformSmartCurrency) {
+        console.log("🚀 Initializing Smart Currency System with priority...");
         const success = await window.CodformSmartCurrency.initialize(formId, shopId);
         if (success) {
           console.log("✅ Smart Currency System: Successfully initialized");
         } else {
           console.log("⚠️ Smart Currency System: Initialization failed, using defaults");
         }
+      } else {
+        console.log("⚠️ Smart Currency System not available");
       }
-    }, 1000);
+    }, 100); // تقليل التأخير من 1000ms إلى 100ms
   });
 
   function renderField(field, formStyle, formLanguage) {
@@ -160,12 +191,15 @@
 
       // Visual styling
       const actualTextColor = getStyleValue(fieldStyle, 'color', 'rgb(31, 41, 55)');
-      const actualBorderColor = getStyleValue(fieldStyle, 'borderColor', getStyleValue(formStyle, 'fieldBorderColor', 'rgb(209, 213, 219)'));
-      const actualBorderWidth = getStyleValue(fieldStyle, 'borderWidth', getStyleValue(formStyle, 'fieldBorderWidth', '1px'));
+      const defaultBorderColor = getStyleValue(formStyle, 'fieldBorderColor', 'rgb(209, 213, 219)');
+      const actualBorderColor = getStyleValue(fieldStyle, 'borderColor', defaultBorderColor);
+      const defaultBorderWidth = getStyleValue(formStyle, 'fieldBorderWidth', '1px');
+      const actualBorderWidth = getStyleValue(fieldStyle, 'borderWidth', defaultBorderWidth);
       const actualFontSize = getStyleValue(fieldStyle, 'fontSize', baseFontSize);
       const actualFontFamily = getStyleValue(fieldStyle, 'fontFamily', 'inherit');
       const actualPaddingY = getStyleValue(fieldStyle, 'paddingY', '12px');
-      const actualBorderRadius = getStyleValue(fieldStyle, 'borderRadius', getStyleValue(formStyle, 'fieldBorderRadius', '8px'));
+      const defaultBorderRadius = getStyleValue(formStyle, 'fieldBorderRadius', '8px');
+      const actualBorderRadius = getStyleValue(fieldStyle, 'borderRadius', defaultBorderRadius);
       const actualPlaceholder = getStyleValue(fieldStyle, 'placeholder', placeholder);
       const focusBorderColor = getStyleValue(formStyle, 'focusBorderColor', '#3b82f6');
 
@@ -602,9 +636,8 @@
 
     // Loading complete form
 
-    // First check if this product has an associated form
-    // محاولة البحث عن النموذج المحدد للمنتج أولاً، ثم البحث عن النموذج العام
-    fetch(`https://trlklwixfeaexhydzaue.supabase.co/rest/v1/shopify_product_settings?shop_id=eq.${shopDomain}&enabled=eq.true&select=*,forms(*)&or=(product_id.eq.${productId},product_id.eq.auto-detect)`, {
+    // First check if this product has an associated form (STRICT: no auto-detect fallback)
+    fetch(`https://trlklwixfeaexhydzaue.supabase.co/rest/v1/shopify_product_settings?shop_id=eq.${shopDomain}&enabled=eq.true&select=*,forms(*)&product_id=eq.${productId}`, {
       headers: {
         'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
         'Content-Type': 'application/json'
@@ -615,27 +648,34 @@
       // Product settings check
 
       if (!productSettings || productSettings.length === 0) {
-        // No form associated with this product
-        const container = document.querySelector('[data-form-preview-id="form-preview-stable"]');
-        if (container) {
-          container.style.display = 'none';
+        const isThemeEditor = window.location.href.includes('theme_editor') ||
+                              window.location.href.includes('customize') ||
+                              window.parent !== window ||
+                              document.referrer.includes('customize');
+        if (isThemeEditor) {
+          // Strict mode for Theme Editor: show notice only, do not load form
+          console.warn('🎨 Theme editor: Product is not linked to any form. Showing notice only.');
+          try {
+            const notice = document.querySelector('.codform-theme-editor-notice');
+            if (notice) {
+              notice.style.display = 'block';
+              notice.textContent = 'This product is not associated with any model. Link or create a model to display it here.';
+            }
+          } catch (_) {}
+        } else {
+          console.warn('ℹ️ No manual association for this product. Form will not load on storefront.');
         }
         return;
       }
 
       // Product has associated form, continue loading
       const formId = productSettings[0].form_id;
-      // Product has associated form
 
       loadFormWithValidation(productId, shopDomain, formId);
     })
     .catch(error => {
       console.error('❌ CODFORM: Error checking product settings:', error);
-      // Hide form on error
-      const container = document.querySelector('[data-form-preview-id="form-preview-stable"]');
-      if (container) {
-        container.style.display = 'none';
-      }
+      // Error handled by theme editor notice system
     });
   }
 
@@ -1001,6 +1041,9 @@
               ${completeFormHTML}
             </div>
           `;
+          // Ensure container is visible now that we have content
+          try { container.style.display = 'block'; } catch (_) {}
+
         }
 
         // تحديد أن النموذج تم تحميله
@@ -1045,18 +1088,35 @@
       });
   }
 
+  // Theme editor detection and notice management
+  function handleThemeEditorNotice() {
+    const notice = document.querySelector('.codform-theme-editor-notice');
+    const container = document.querySelector('[data-form-preview-id="form-preview-stable"]');
+
+    // Check if we're in theme editor
+    const isThemeEditor = window.location.href.includes('theme_editor') ||
+                         window.location.href.includes('customize') ||
+                         window.parent !== window ||
+                         document.referrer.includes('customize');
+
+    // Strict mode: do NOT show notice by default in Theme Editor
+    // Let loadCompleteForm decide based on actual association
+    if (notice) notice.style.display = 'none';
+    try { loadCompleteForm(); } catch (e) { console.warn('⚠️ Failed to load form:', e); }
+  }
+
   // تحميل النموذج عند تحميل DOM
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-      setTimeout(loadCompleteForm, 500);
+      setTimeout(handleThemeEditorNotice, 100);
     });
   } else {
-    setTimeout(loadCompleteForm, 500);
+    setTimeout(handleThemeEditorNotice, 100);
   }
 
   // أيضاً عند تحميل النافذة
   window.addEventListener('load', () => {
-    setTimeout(loadCompleteForm, 1000);
+    setTimeout(handleThemeEditorNotice, 500);
   });
 
   // Form submission handler
@@ -1123,24 +1183,37 @@
       if (result.success) {
         // Submission successful
 
-        // Show success message
-        const submitBtn = form.querySelector('.codform-submit-btn');
-        if (submitBtn) {
-          const originalText = submitBtn.innerHTML;
-          submitBtn.innerHTML = '✅ تم الإرسال بنجاح';
-          submitBtn.style.backgroundColor = '#22c55e';
-
-          setTimeout(() => {
-            submitBtn.innerHTML = originalText;
-            submitBtn.style.backgroundColor = '';
-          }, 3000);
+        // If redirect URL present, redirect immediately (but avoid Shopify checkout thank_you which 404s for custom COD forms)
+        {
+          const redirectTarget = result.redirect || result.thankYouUrl;
+          if (redirectTarget) {
+            const isInvalidShopifyThankYou = /\/checkout\/thank_you/i.test(redirectTarget);
+            if (!isInvalidShopifyThankYou) {
+              try { window.location.href = redirectTarget; } catch(_) {}
+              return;
+            }
+          }
         }
 
-        // Redirect to thank you page if provided
-        if (result.thankYouUrl) {
-          setTimeout(() => {
-            window.location.href = result.thankYouUrl;
-          }, 1500);
+        // If popup action, show popup with title/message
+        if (result.action === 'popup' && result.popup) {
+          try {
+            showSuccessPopup(result.popup.title || 'Order Created Successfully!', result.popup.message || 'Thank you for your order! We\'ll contact you soon to confirm the details. Please keep your phone nearby.');
+          } catch (_) {
+            alert((result.popup.title || 'Order Created Successfully!') + "\n" + (result.popup.message || 'Thank you for your order! We\'ll contact you soon to confirm the details. Please keep your phone nearby.'));
+          }
+        } else {
+          // Otherwise, stay on page and briefly show success on button
+          const submitBtn = form.querySelector('.codform-submit-btn');
+          if (submitBtn) {
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '✅ تم الإرسال بنجاح';
+            submitBtn.style.backgroundColor = '#22c55e';
+            setTimeout(() => {
+              submitBtn.innerHTML = originalText;
+              submitBtn.style.backgroundColor = '';
+            }, 1500);
+          }
         }
 
       } else {
@@ -1149,12 +1222,41 @@
       }
 
     } catch (error) {
+
+// Fallback popup function (main implementation is in codform-success-popup.js)
+if (typeof window.showSuccessPopup !== 'function') {
+  window.showSuccessPopup = function(title, message, style) {
+    try {
+      if (window.CodformSuccessPopup && typeof window.CodformSuccessPopup.show === 'function') {
+        return window.CodformSuccessPopup.show(title, message, style);
+      }
+      alert((title || 'Order Created Successfully!') + "\n" + (message || 'Thank you for your order! We\'ll contact you soon to confirm the details. Please keep your phone nearby.'));
+    } catch (e) {
+      alert((title || 'Order Created Successfully!') + "\n" + (message || 'Thank you for your order! We\'ll contact you soon to confirm the details. Please keep your phone nearby.'));
+    }
+  }
+}
+
       console.error('❌ CODFORM: Submission error:', error);
-      alert('خطأ في إرسال الطلب. يرجى المحاولة مرة أخرى.');
+      alert('Error submitting order. Please try again.');
     }
   };
 
 })();
+
+// 🛒 POPUP FIX: Load cart summary initialization from external file
+function initializePopupCartSummary() {
+  if (window.CodformPopupCartSummary) {
+    window.CodformPopupCartSummary.initialize();
+  } else {
+    console.log('🛒 POPUP: Cart summary module not loaded yet, retrying...');
+    setTimeout(() => {
+      if (window.CodformPopupCartSummary) {
+        window.CodformPopupCartSummary.initialize();
+      }
+    }, 200);
+  }
+}
 
 // Popup Modal Functions
 function openFormPopup(event) {
@@ -1227,9 +1329,26 @@ function openFormPopup(event) {
   // Set flag that we're in popup mode
   window.codformCurrentlyInPopup = true;
 
-  // Add form content with proper styling for popup
+  // Resolve builder styles from global data with safe fallbacks
+  const __popupStyle = (window.codformGlobalData && window.codformGlobalData.style) || {};
+  const formBackgroundColor = __popupStyle.backgroundColor || '#F9FAFB';
+  const formBorderColor = __popupStyle.borderColor || '#9b87f5';
+  const formBorderWidth = __popupStyle.borderWidth || '2px';
+  const formBorderRadius = __popupStyle.borderRadius || '1.2rem';
+  const formPaddingTop = __popupStyle.paddingTop || '20px';
+  const formPaddingBottom = __popupStyle.paddingBottom || '20px';
+  const formPaddingLeft = __popupStyle.paddingLeft || '20px';
+  const formPaddingRight = __popupStyle.paddingRight || '20px';
+
+  // Add form content with proper styling for popup (use builder styles for border/bg/radius/padding)
   modal.innerHTML = `
-    <div style="padding: 30px; background: white; border-radius: 12px;">
+    <div id="codform-popup-form-wrapper" style="
+      padding: ${formPaddingTop} ${formPaddingRight} ${formPaddingBottom} ${formPaddingLeft};
+      background: ${formBackgroundColor};
+      border-radius: ${formBorderRadius};
+      border: ${formBorderWidth} solid ${formBorderColor};
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    ">
       ${window.codformPopupHTML || '<p>Form not available</p>'}
     </div>
   `;
@@ -1253,12 +1372,22 @@ function openFormPopup(event) {
     }
   });
 
-  // Focus first input and load quantity offers for popup
+  // Focus first input and load quantity offers + cart summary for popup
   setTimeout(() => {
     const firstInput = modal.querySelector('input, textarea');
     if (firstInput) {
       firstInput.focus();
     }
+
+    // 🛒 CRITICAL FIX: Initialize Cart Summary for Popup
+    console.log('🛒 Initializing Cart Summary for popup...');
+
+    // 🔧 FIX: Ensure form data is available for popup
+    if (!window.CodformFormData && window.codformGlobalData) {
+      window.CodformFormData = window.codformGlobalData;
+    }
+
+    initializePopupCartSummary();
 
     // تحميل عروض الكمية للنافذة المنبثقة
     console.log('🔄 Starting quantity offers for popup...');
@@ -1418,6 +1547,17 @@ window.openFormPopup = function(event) {
     document.body.removeChild(popup);
   };
 
+  // Resolve builder styles from global data with safe fallbacks (for modal variant)
+  const __popupStyle2 = (window.codformGlobalData && window.codformGlobalData.style) || {};
+  const formBackgroundColor = __popupStyle2.backgroundColor || '#F9FAFB';
+  const formBorderColor = __popupStyle2.borderColor || '#9b87f5';
+  const formBorderWidth = __popupStyle2.borderWidth || '2px';
+  const formBorderRadius = __popupStyle2.borderRadius || '1.2rem';
+  const formPaddingTop = __popupStyle2.paddingTop || '20px';
+  const formPaddingBottom = __popupStyle2.paddingBottom || '20px';
+  const formPaddingLeft = __popupStyle2.paddingLeft || '20px';
+  const formPaddingRight = __popupStyle2.paddingRight || '20px';
+
   // Get the original form and copy it exactly
   const originalForm = document.querySelector('[data-form-preview-id="form-preview-stable"]');
 
@@ -1425,12 +1565,13 @@ window.openFormPopup = function(event) {
     // Clone the original form completely
     const clonedForm = originalForm.cloneNode(true);
 
-    // Clean up the styling for popup
-    clonedForm.style.background = 'transparent';
-    clonedForm.style.border = 'none';
-    clonedForm.style.boxShadow = 'none';
-    clonedForm.style.padding = '0';
+    // Apply form styling to popup (keep the border and styling)
+    clonedForm.style.background = formBackgroundColor;
+    clonedForm.style.border = `${formBorderWidth} solid ${formBorderColor}`;
+    clonedForm.style.borderRadius = formBorderRadius;
+    clonedForm.style.padding = `${formPaddingTop} ${formPaddingRight} ${formPaddingBottom} ${formPaddingLeft}`;
     clonedForm.style.margin = '0';
+    clonedForm.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)';
 
     // Add to modal
     modalContent.appendChild(closeBtn);
@@ -1438,7 +1579,7 @@ window.openFormPopup = function(event) {
 
     console.log('✅ CODFORM: Form cloned successfully');
   } else {
-    console.error('❌ CODFORM: Original form not found');
+    console.log('❌ CODFORM: Original form not found, using fallback');
     modalContent.innerHTML = `
       <button onclick="document.body.removeChild(document.getElementById('codform-popup-modal'))" style="position: absolute; top: 12px; right: 12px; background: none; border: none; font-size: 24px; cursor: pointer;">✕</button>
       <div style="direction: rtl; text-align: right; font-family: 'Cairo', sans-serif; padding: 20px;">
@@ -1461,6 +1602,18 @@ window.openFormPopup = function(event) {
   popup.appendChild(modalContent);
   document.body.appendChild(popup);
 
+  // 🛒 CRITICAL FIX: Initialize Cart Summary for this popup too
+  setTimeout(() => {
+    console.log('🛒 POPUP2: Initializing Cart Summary...');
+
+    // 🔧 FIX: Ensure form data is available for popup
+    if (!window.CodformFormData && window.codformGlobalData) {
+      window.CodformFormData = window.codformGlobalData;
+    }
+
+    initializePopupCartSummary();
+  }, 100);
+
   console.log('✅ CODFORM: Popup opened successfully');
 };
 
@@ -1472,7 +1625,7 @@ window.openFormPopup = function(event) {
       const apiFormCurrency = window.CodformFormData?.currency;
 
       if (!apiFormCurrency) {
-        console.error("❌ POPUP: No currency from form API response!");
+        console.log("❌ POPUP: No currency from form API response, skipping offers");
         return; // Don't load popup offers without valid currency
       }
 
@@ -1516,7 +1669,7 @@ window.openFormPopup = function(event) {
           }
         })
         .catch(error => {
-          console.error('❌ POPUP API Error:', error);
+          console.log('❌ POPUP API Error, using fallback');
           offersContainer.innerHTML = '<div style="background: red; color: white; padding: 8px;">خطأ في تحميل العروض</div>';
         });
     }
@@ -1592,30 +1745,55 @@ async function handleFormSubmissionPopup(formData, submitBtn, popup) {
     if (result.success) {
       console.log('✅ CODFORM: Popup submission successful');
 
-      // Show success message
-      if (submitBtn) {
-        const originalText = submitBtn.innerHTML;
-        submitBtn.innerHTML = '✅ تم الإرسال بنجاح';
-        submitBtn.style.backgroundColor = '#22c55e';
-
-        setTimeout(() => {
-          // Close popup after success
-          popup.style.animation = 'fadeOut 0.3s ease';
-          setTimeout(() => {
-            document.body.removeChild(popup);
-          }, 300);
-        }, 2000);
+      // If redirect URL present, go immediately (but avoid Shopify checkout thank_you)
+      {
+        const redirectTarget = result.redirect || result.thankYouUrl;
+        if (redirectTarget) {
+          const isInvalidShopifyThankYou = /\/checkout\/thank_you/i.test(redirectTarget);
+          if (!isInvalidShopifyThankYou) {
+            window.location.href = redirectTarget;
+            return;
+          }
+        }
       }
 
-      // Redirect to thank you page if provided
-      if (result.thankYouUrl) {
+      // If popup action, show title/message then close popup
+      if (result.action === 'popup' && result.popup) {
+        try {
+          showSuccessPopup(result.popup.title || 'Order Created Successfully!', result.popup.message || 'Thank you for your order! We\'ll contact you soon to confirm the details. Please keep your phone nearby.');
+        } catch (_) {
+          alert((result.popup.title || 'Order Created Successfully!') + "\n" + (result.popup.message || 'Thank you for your order! We\'ll contact you soon to confirm the details. Please keep your phone nearby.'));
+        }
+        // Close popup after showing message briefly
         setTimeout(() => {
-          window.location.href = result.thankYouUrl;
-        }, 2500);
+          popup.style.animation = 'fadeOut 0.2s ease';
+          setTimeout(() => { try { document.body.removeChild(popup); } catch(_){} }, 200);
+        }, 1000);
+      } else {
+        // Otherwise, show brief success on button then close popup
+        if (submitBtn) {
+          const originalText = submitBtn.innerHTML;
+          submitBtn.innerHTML = '✅ تم الإرسال بنجاح';
+          submitBtn.style.backgroundColor = '#22c55e';
+          setTimeout(() => {
+            popup.style.animation = 'fadeOut 0.2s ease';
+            setTimeout(() => { try { document.body.removeChild(popup); } catch(_){} }, 200);
+          }, 800);
+        }
+      }
+        {
+          const redirectTarget = result.redirect || result.thankYouUrl;
+          if (redirectTarget) {
+            const isInvalidShopifyThankYou = /\/checkout\/thank_you/i.test(redirectTarget);
+            if (!isInvalidShopifyThankYou) {
+              setTimeout(() => { window.location.href = redirectTarget; }, 2500);
+            }
+          }
+        }
       }
 
     } else {
-      console.error('❌ CODFORM: Popup submission failed:', result.error);
+      console.log('❌ CODFORM: Popup submission failed:', result.error);
 
       // Handle specific error types
       if (result.errorCode === 'OUT_OF_STOCK') {
@@ -1628,7 +1806,7 @@ async function handleFormSubmissionPopup(formData, submitBtn, popup) {
     }
 
   } catch (error) {
-    console.error('❌ CODFORM: Popup submission error:', error);
+    console.log('❌ CODFORM: Popup submission error:', error);
     alert('خطأ في إرسال الطلب. يرجى المحاولة مرة أخرى.');
   }
 }
@@ -1737,160 +1915,31 @@ function decreaseQuantity(button) {
     quantitySpan.textContent = currentQuantity - 1;
   }
 }
-
-<!-- ✅ تهيئة Smart Currency System المحسن -->
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-  // إعطاء الأولوية للSmart Currency System بدلاً من Currency Manager
-  setTimeout(function() {
-    const formId = "{{ data.form.id }}";
-    const shopId = "{{ shop.permanent_domain | default: 'astrem.myshopify.com' }}";
-
-    // تهيئة Smart Currency System أولاً
-    if (window.CodformSmartCurrency) {
-      window.CodformSmartCurrency.initialize(formId, shopId);
-      console.log('✅ Smart Currency System initialized with priority');
+  // إضافة الدالة المفقودة لتحميل النموذج
+  window.loadFormFromAPI = function(productId, shopDomain) {
+    console.log(`🔄 Loading form for product: ${productId}, shop: ${shopDomain}`);
+    if (productId && productId !== 'auto-detect') {
+      // إعادة تحميل النموذج للمنتج المحدد
+      loadCompleteForm(productId);
     }
+  };
 
-    // حماية من تطبيق Currency Manager للإعدادات المتضاربة
-    if (window.CodformCurrencyManager && !window.smartCurrencySystemActive) {
-      // تهيئة محدودة بدون تحميل دوري
-      console.log('⚠️ Currency Manager in fallback mode only');
-    }
-
-    // تعيين علامة للحماية من التضارب
-    window.smartCurrencySystemActive = true;
-  }, 1000);
-});
-
-window.handleFormSubmit = async function(event) {
-  console.log('📋 Form submission detected');
-
-  // منع الإرسال الافتراضي للنموذج
-  if (event) {
-    event.preventDefault();
-  }
-
-  try {
-    // جمع بيانات النموذج
-    const form = event.target.closest('form') || document.querySelector('form') || event.target.closest('[data-form-preview-id]');
-    if (!form) {
-      console.error('❌ Form not found');
-      return false;
-    }
-
-    const submissionData = {};
-
-    // جمع بيانات الحقول
-    form.querySelectorAll('input, textarea, select').forEach(field => {
-      if (field.name && field.value) {
-        submissionData[field.name] = field.value;
-      }
-    });
-
-    console.log('📝 Form data collected:', submissionData);
-
-    // تحسين البيانات بالسعر المحول قبل الإرسال
-    const enhancedSubmissionData = window.enhanceFormDataWithPrice ? window.enhanceFormDataWithPrice(submissionData) : submissionData;
-    console.log('📤 Enhanced submission data with price:', enhancedSubmissionData);
-
-    // إرسال البيانات إلى API
-    const response = await fetch('https://trlklwixfeaexhydzaue.supabase.co/functions/v1/api-submissions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M'
-      },
-      body: JSON.stringify({
-        formId: window.codformProductId,
-        shopDomain: window.codformShopDomain,
-        data: enhancedSubmissionData // ✅ إرسال البيانات المحسنة مع السعر
-      })
-    });
-
-    if (response.ok) {
-      const result = await response.json();
-      console.log('✅ Submission successful:', result);
-
-      // تشغيل تتبع الإعلانات بعد نجاح الإرسال وانتظار اكتماله
-      if (window.CodformAdvertisingTracking && window.CodformAdvertisingTracking.track) {
-        console.log('📊 Triggering advertising tracking before redirect...');
-        try {
-          await window.CodformAdvertisingTracking.track();
-          console.log('✅ Advertising tracking completed');
-        } catch (error) {
-          console.warn('⚠️ Advertising tracking failed:', error);
-        }
-      }
-
-      // إرسال حدث مخصص للتتبع
-      const customEvent = new CustomEvent('formSubmitted', {
-        detail: {
-          formId: window.codformProductId,
-          shopDomain: window.codformShopDomain,
-          orderNumber: result.orderNumber,
-          timestamp: new Date().toISOString()
-        }
-      });
-      document.dispatchEvent(customEvent);
-
-      // تأخير قصير إضافي للتأكد من إرسال جميع tracking events
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // التوجيه إلى صفحة الشكر أو صفحة المنتج مع رسالة نجاح
-      if (result.redirect || result.thankYouUrl) {
-        console.log('🔄 Redirecting to:', result.redirect || result.thankYouUrl);
-        window.location.href = result.redirect || result.thankYouUrl;
-      } else {
-        // التوجيه إلى صفحة المنتج مع رسالة نجاح
-        const currentUrl = new URL(window.location.href);
-        currentUrl.searchParams.set('submitted', 'true');
-        currentUrl.searchParams.set('order', result.orderNumber || '');
-        window.location.href = currentUrl.toString();
-      }
-
-    } else {
-      console.error('❌ Submission failed:', response.statusText);
-
-      // Try to get error details from response
-      try {
-        const errorResult = await response.json();
-        if (errorResult.errorCode === 'OUT_OF_STOCK') {
-          alert(errorResult.error || 'المنتج غير متوفر حالياً');
-        } else if (errorResult.errorCode === 'DAILY_LIMIT_EXCEEDED') {
-          alert(errorResult.error || 'تم تجاوز الحد اليومي للطلبات');
-        } else {
-          alert(errorResult.error || 'حدث خطأ أثناء إرسال النموذج. يرجى المحاولة مرة أخرى.');
-        }
-      } catch (parseError) {
-        alert('حدث خطأ أثناء إرسال النموذج. يرجى المحاولة مرة أخرى.');
-      }
-    }
-
-  } catch (error) {
-    console.error('❌ Submission error:', error);
-    alert('حدث خطأ أثناء إرسال النموذج. يرجى المحاولة مرة أخرى.');
-  }
-
-  return false; // منع الإرسال الافتراضي
-};
-
-// إضافة الدالة المفقودة لتحميل النموذج
-window.loadFormFromAPI = function(productId, shopDomain) {
-  console.log(`🔄 Loading form for product: ${productId}, shop: ${shopDomain}`);
-
-  if (productId && productId !== 'auto-detect') {
-    // إعادة تحميل النموذج للمنتج المحدد
-    loadCompleteForm(productId);
-  }
-};
-
-})(); // إغلاق الدالة المجهولة التي بدأت في السطر 59
+})();
 </script>
 
-<!-- تحميل نظام تتبع النماذج المتروكة -->
+{{ 'codform-inline-submit.js' | asset_url | script_tag }}
+
+<!-- تحميل نظام إدارة الحالة وتتبع النماذج المتروكة -->
 <script>
-  window.codformShopDomain = '{{ shop.domain }}';
+  window.codformShopDomain = '{{ shop.permanent_domain }}';
   window.codformProductId = '{{ product.id }}' || '{{ block.settings.product_id }}' || 'auto-detect';
 </script>
+{{ 'codform-state-manager.js' | asset_url | script_tag }}
 {{ 'codform-abandoned-tracking.js' | asset_url | script_tag }}
+
+<script>
+// ✅ رسالة تأكيد تحميل النموذج بالكامل
+if (window.allowImportantLog) {
+  window.allowImportantLog('CODFORM COD Form - Overall: Loading page builder complete');
+}
+</script>

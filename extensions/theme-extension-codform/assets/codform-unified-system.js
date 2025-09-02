@@ -106,8 +106,7 @@
           {
             method: 'GET',
             headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M'
+              'Content-Type': 'application/json'
             }
           }
         );
@@ -230,36 +229,50 @@
    */
   formatCurrency(amount, originalCurrency, language = 'ar') {
     const preferredCurrency = this.getPreferredCurrency();
-    
+
     // ✅ تحويل إلى العملة المفضلة دائماً
     const convertedAmount = this.convertCurrency(amount, originalCurrency, preferredCurrency);
-    
+
+    const rtl = (language === 'ar') || (typeof document !== 'undefined' && document.documentElement && document.documentElement.dir === 'rtl');
+
+    // ✅ Use the centralized CurrencyManager if available to keep one source of truth
+    if (window.CodformCurrencyManager && typeof window.CodformCurrencyManager.formatCurrency === 'function') {
+      try {
+        return window.CodformCurrencyManager.formatCurrency(convertedAmount, preferredCurrency, language);
+      } catch (e) {
+        // fall back to local formatting below
+        console.warn('UnifiedSystem: CurrencyManager.formatCurrency failed, falling back', e);
+      }
+    }
+
     if (!this.isInitialized || !this.currentSettings) {
       // استخدام تنسيق أساسي إذا لم يتم التهيئة بعد
-      const symbol = preferredCurrency === 'SAR' ? 'ر.س' : 
-                     preferredCurrency === 'USD' ? '$' : 
+      const symbol = preferredCurrency === 'SAR' ? 'ر.س' :
+                     preferredCurrency === 'USD' ? '$' :
                      preferredCurrency === 'MAD' ? 'د.م' :
                      preferredCurrency === 'AED' ? 'د.إ' : preferredCurrency;
-      return `${Math.round(convertedAmount)} ${symbol}`;
+      const base = `${Math.round(convertedAmount)} ${symbol}`;
+      return rtl ? `\u2066${base}\u2069` : base;
     }
 
     const settings = this.currentSettings;
     const symbol = settings.customSymbols[preferredCurrency] || preferredCurrency;
-    
-    // تطبيق عدد المنازل العشرية
-    const roundedAmount = Math.round(convertedAmount * Math.pow(10, settings.decimalPlaces)) / Math.pow(10, settings.decimalPlaces);
-    const formattedAmount = settings.decimalPlaces === 0 ? 
-      Math.round(roundedAmount).toString() : 
-      roundedAmount.toFixed(settings.decimalPlaces);
+
+    // ✅ CRITICAL FIX: فصل السعر الحقيقي عن طريقة العرض
+    // لا نقوم بتقريب السعر الحقيقي، فقط نغير طريقة العرض
+    const formattedAmount = settings.decimalPlaces === 0 ?
+      Math.round(convertedAmount).toString() :
+      convertedAmount.toFixed(settings.decimalPlaces);
 
     // تطبيق موضع الرمز
+    let result;
     if (settings.showSymbol) {
-      return settings.symbolPosition === 'before' ? 
-        `${symbol} ${formattedAmount}` : 
-        `${formattedAmount} ${symbol}`;
+      result = settings.symbolPosition === 'before' ? `${symbol} ${formattedAmount}` : `${formattedAmount} ${symbol}`;
     } else {
-      return formattedAmount;
+      result = formattedAmount;
     }
+    // ✅ ضمان اتجاه LTR للمبالغ حتى في صفحات RTL لمنع انقلاب الترتيب
+    return rtl ? `\u2066${result}\u2069` : result;
   }
 
   /**

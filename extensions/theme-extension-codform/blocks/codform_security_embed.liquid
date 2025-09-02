@@ -1,0 +1,19 @@
+{% schema %}
+{
+  "name": "CM Security Embed",
+  "target": "head",
+  "settings": [
+    {
+      "type": "header",
+      "content": "🛡️ Store Security - App Embed"
+    },
+    {
+      "type": "paragraph",
+      "content": "Enable this App Embed to activate CodMagnet security protection across your theme. You can disable it anytime from App embeds."
+    }
+  ]
+}
+{% endschema %}
+
+{{ 'codform-security-embed.js' | asset_url | script_tag }}
+

@@ -365,15 +365,22 @@ window.CodformQuantityOffers = (function() {
         this.style.backgroundColor = '#ffffff';
 
         // 🎯 CRITICAL FIX: إرسال حدث لتحديث Cart Summary
+        const currentCurrency = window.CodformSmartCurrency?.getCurrentCurrency?.() || targetFormCurrency;
         const selectedOffer = {
           quantity: quantity,
           finalPrice: finalPrice,
           originalPrice: convertedBasePrice, // استخدام السعر الأساسي المحول
           text: offer.text || (formDirection === 'rtl' ? `اشترِ ${quantity} قطعة` : `Buy ${quantity} item${quantity > 1 ? 's' : ''}`),
-          tag: offer.tag
+          tag: offer.tag,
+          currency: currentCurrency // 🎯 إضافة العملة الحالية
         };
 
-        console.log('🎯 Quantity Offers - Dispatching offer-selected event:', selectedOffer);
+        console.log('🎯 Quantity Offers - Dispatching offer-selected event:', {
+          selectedOffer,
+          currentCurrency,
+          targetFormCurrency,
+          smartCurrency: window.CodformSmartCurrency?.getCurrentCurrency?.()
+        });
         
         // إرسال حدث لتحديث Cart Summary
         window.dispatchEvent(new CustomEvent('codform:offer-selected', {
@@ -382,12 +389,29 @@ window.CodformQuantityOffers = (function() {
 
         // تحديث State Manager إذا كان متوفراً
         if (window.CodformStateManager) {
-          window.CodformStateManager.setState({
-            currentQuantity: quantity,
-            finalPrice: finalPrice,
-            unitPrice: convertedBasePrice, // استخدام السعر الأساسي المحول
-            selectedOffer: selectedOffer
-          });
+          // ✅ CRITICAL FIX: استخدام setSelectedOffer بدلاً من setState
+          if (typeof window.CodformStateManager.setSelectedOffer === 'function') {
+            window.CodformStateManager.setSelectedOffer({
+              quantity: quantity,
+              finalPrice: finalPrice,
+              text: selectedOffer.text,
+              tag: selectedOffer.tag,
+              discount: selectedOffer.discount || 0,
+              discountType: selectedOffer.discountType || 'none'
+            });
+            console.log('✅ Updated State Manager with setSelectedOffer:', {
+              quantity: quantity,
+              finalPrice: finalPrice
+            });
+          } else {
+            // Fallback to updateState if setSelectedOffer is not available
+            window.CodformStateManager.updateState({
+              currentQuantity: quantity,
+              finalPrice: finalPrice,
+              selectedOffer: selectedOffer
+            });
+            console.log('✅ Updated State Manager with updateState (fallback)');
+          }
         }
       });
 
@@ -426,8 +450,9 @@ window.CodformQuantityOffers = (function() {
     try {
       console.log(`🔄 Loading offers for: ${productId} at ${shop}`);
       
-      const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/forms-product?shop=${encodeURIComponent(shop)}&product=${encodeURIComponent(productId)}`);
-      
+      const isThemeEditor = (typeof window !== 'undefined') && (window.location.href.includes('theme_editor') || window.location.href.includes('customize') || window.parent !== window || document.referrer.includes('customize'));
+      const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/forms-product?shop=${encodeURIComponent(shop)}&product=${encodeURIComponent(productId)}${isThemeEditor ? '&preview=1' : ''}`);
+
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }

@@ -13,6 +13,13 @@ handle = "codform_form"
 type = "product"
 target = "section"
 
+
+[[blocks]]
+name = "حماية المتجر (App Embed)"
+handle = "codform_security_embed"
+type = "app_embed"
+target = "head"
+
 [settings]
 # Global extension settings
 
