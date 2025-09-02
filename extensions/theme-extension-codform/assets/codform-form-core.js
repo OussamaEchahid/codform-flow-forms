@@ -16,9 +16,6 @@
       // سيتم تمرير المعرف من الملف الرئيسي
       return window.codformProductId || 'auto-detect';
     } catch (error) {
-      if (window.allowImportantLog) {
-        window.allowImportantLog('Form loaded successfully');
-      }
       return 'auto-detect';
     }
   };

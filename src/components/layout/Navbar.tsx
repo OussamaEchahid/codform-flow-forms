@@ -45,7 +45,7 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="bg-white shadow" dir="rtl">
+    <nav className="bg-white shadow">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           <Link to="/" className="text-xl font-bold text-primary">CODMagnet</Link>
@@ -114,8 +114,18 @@ const Navbar = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Button asChild>
-                <Link to="/shopify">{language === 'ar' ? 'ربط متجر' : 'Connect Store'}</Link>
+              <Button 
+                onClick={() => {
+                  // إذا كان المستخدم مصادق عليه، اذهب إلى الداشبورد مباشرة
+                  if (isShopifyAuthenticated) {
+                    window.location.href = '/dashboard';
+                  } else {
+                    // إذا لم يكن مصادق عليه، اعرض صفحة الاتصال
+                    window.location.href = '/dashboard';
+                  }
+                }}
+              >
+                {language === 'ar' ? 'ربط متجر' : 'Connect Store'}
               </Button>
             )}
           </div>

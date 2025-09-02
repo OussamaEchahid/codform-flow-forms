@@ -12,7 +12,6 @@ import { useI18n } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
 import { AuthHelper } from "@/utils/auth-helper";
 import { useAuth } from "@/components/layout/AuthProvider";
-import { validateAndCleanShop } from "@/utils/shop-validation";
 
 const GeneralSettings = () => {
   const { t } = useI18n();
@@ -36,7 +35,7 @@ const GeneralSettings = () => {
       console.log('🔍 Loading settings for user:', userId);
 
       if (!userId) {
-        console.warn('⚠️ No authenticated user; skipping settings load.');
+        console.debug('⚠️ No authenticated user found, using default settings');
         return;
       }
 
@@ -80,13 +79,9 @@ const GeneralSettings = () => {
         return;
       }
 
-      // 🔧 FIX: استخدام المتجر الحقيقي بدلاً من القيمة الثابتة
-      const currentShop = validateAndCleanShop(undefined); // استخدام دالة التحقق للحصول على متجر صحيح
-      console.log('🏪 Using validated shop for settings:', currentShop);
-
       const settings = {
         user_id: userId,
-        shop_id: currentShop, // ✅ استخدام المتجر الحقيقي
+        shop_id: 'default.myshopify.com', // Required field
         payment_status: paymentStatus,
         payment_status_enabled: paymentStatusEnabled,
         daily_order_limit: dailyOrderLimit,

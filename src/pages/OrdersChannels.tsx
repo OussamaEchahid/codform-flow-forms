@@ -97,24 +97,6 @@ const OrdersChannels = () => {
     if (actualHasAccess) {
       fetchConfigs();
     }
-  }, [actualHasAccess]);
-
-  // Handle Google connection success from URL parameter
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('google_connected') === '1') {
-      toast({
-        title: language === 'ar' ? 'تم الربط بنجاح' : 'Connected Successfully',
-        description: language === 'ar' ? 'تم ربط حساب Google بنجاح' : 'Google account connected successfully',
-      });
-
-      // Clean URL
-      const newUrl = window.location.pathname;
-      window.history.replaceState({}, '', newUrl);
-
-      // Refresh Google connection status
-      refreshSpreadsheets();
-    }
 
     // 1) Handle success param if this page was opened as the OAuth redirect target
     const params = new URLSearchParams(window.location.search);

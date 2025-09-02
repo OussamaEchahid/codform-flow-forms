@@ -305,17 +305,7 @@ const FormBuilderEditor: React.FC<FormBuilderEditorProps> = ({ shopId, formId: i
       
       const defaultSettings = getDefaultCountryCurrencySettings(actualShopCurrency);
       console.log('🏪 NEW FORM - Using settings for currency', actualShopCurrency, ':', defaultSettings);
-
-      // تهيئة إعدادات العملة للمتجر لضمان عرض صحيح في المعاينة
-      try {
-        const { CurrencyService } = await import('@/lib/services/CurrencyService');
-        CurrencyService.setShopContext(activeShopId, null);
-        await CurrencyService.initialize();
-        console.log('✅ Currency service initialized for new form editor');
-      } catch (error) {
-        console.log('⚠️ Could not initialize currency service in editor:', error);
-      }
-
+      
       // Set form settings based on shop currency and country
       setFormCountry(actualCountry);
       setFormCurrency(actualShopCurrency);

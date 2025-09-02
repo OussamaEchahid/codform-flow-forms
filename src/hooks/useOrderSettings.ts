@@ -87,8 +87,8 @@ export const useOrderSettings = () => {
           post_order_action: 'redirect',
           redirect_enabled: true,
           thank_you_page_url: '',
-          popup_title: 'Order Created Successfully!',
-          popup_message: 'Thank you for your order! We\'ll contact you soon to confirm the details. Please keep your phone nearby.'
+          popup_title: 'تم إنشاء طلبك بنجاح!',
+          popup_message: 'شكراً لك على طلبك. سنتواصل معك قريباً...'
         };
         setSettings(defaultSettings);
       }
@@ -100,8 +100,8 @@ export const useOrderSettings = () => {
         post_order_action: 'redirect',
         redirect_enabled: true,
         thank_you_page_url: '',
-        popup_title: 'Order Created Successfully!',
-        popup_message: 'Thank you for your order! We\'ll contact you soon to confirm the details. Please keep your phone nearby.'
+        popup_title: 'تم إنشاء طلبك بنجاح!',
+        popup_message: 'شكراً لك على طلبك. سنتواصل معك قريباً...'
       };
       setSettings(defaultSettings);
     } finally {
@@ -141,8 +141,8 @@ export const useOrderSettings = () => {
           post_order_action: settingsToSave.post_order_action,
           redirect_enabled: settingsToSave.redirect_enabled,
           thank_you_page_url: settingsToSave.thank_you_page_url || '',
-          popup_title: settingsToSave.popup_title || 'Order Created Successfully!',
-          popup_message: settingsToSave.popup_message || 'Thank you for your order! We\'ll contact you soon to confirm the details. Please keep your phone nearby.'
+          popup_title: settingsToSave.popup_title || 'تم إنشاء طلبك بنجاح!',
+          popup_message: settingsToSave.popup_message || 'شكراً لك على طلبك. سنتواصل معك قريباً...'
         };
 
         // Primary attempt: POST with upsert using on_conflict=shop_id

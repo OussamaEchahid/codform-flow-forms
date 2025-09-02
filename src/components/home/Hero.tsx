@@ -1,9 +1,12 @@
 import React from 'react';
-import EnhancedHero from './EnhancedHero';
-
-// Wrapper to keep existing import path working
+import FormSlideshow from './FormSlideshow';
 const Hero = () => {
-  return <EnhancedHero />;
+  return (
+    <section className="bg-gradient-to-br from-codform-light-purple to-white py-12">
+      <div className="container mx-auto px-4">
+        <FormSlideshow />
+      </div>
+    </section>
+  );
 };
-
 export default Hero;

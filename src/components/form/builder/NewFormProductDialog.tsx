@@ -276,17 +276,7 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
       };
 
       const shopCurrency = await getShopCurrency();
-
-      // تهيئة إعدادات العملة للمتجر الجديد لضمان عرض صحيح
-      try {
-        const { CurrencyService } = await import('@/lib/services/CurrencyService');
-        CurrencyService.setShopContext(shopId, null);
-        await CurrencyService.initialize();
-        console.log('✅ Currency service initialized for new form');
-      } catch (error) {
-        console.log('⚠️ Could not initialize currency service:', error);
-      }
-
+      
       // Prepare default style
       const defaultStyle = {
         primaryColor: '#9b87f5',
