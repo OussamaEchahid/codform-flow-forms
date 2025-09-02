@@ -26,7 +26,7 @@ const FormNavigation: React.FC<FormNavigationProps> = ({
       {/* أزرار التنقل */}
       <button
         onClick={onPrevious}
-        className="absolute left-3 top-1/2 -translate-y-1/2 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white rounded-full p-3 shadow-xl transition-all duration-300 hover:scale-110 z-20"
+        className={`absolute top-1/2 -translate-y-1/2 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white rounded-full p-3 shadow-xl transition-all duration-300 hover:scale-110 z-20 ${language === 'ar' ? 'right-3' : 'left-3'}`}
         aria-label={language === 'ar' ? 'السابق' : 'Previous'}
       >
         {language === 'ar' ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
@@ -34,7 +34,7 @@ const FormNavigation: React.FC<FormNavigationProps> = ({
 
       <button
         onClick={onNext}
-        className="absolute right-3 top-1/2 -translate-y-1/2 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white rounded-full p-3 shadow-xl transition-all duration-300 hover:scale-110 z-20"
+        className={`absolute top-1/2 -translate-y-1/2 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white rounded-full p-3 shadow-xl transition-all duration-300 hover:scale-110 z-20 ${language === 'ar' ? 'left-3' : 'right-3'}`}
         aria-label={language === 'ar' ? 'التالي' : 'Next'}
       >
         {language === 'ar' ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}

@@ -15,6 +15,7 @@ const AppWrapper = ({ children }: AppWrapperProps) => {
   // الصفحات التي لا تحتاج اتصال Shopify (الصفحات العامة)
   const publicRoutes = [
     '/',
+    '/shopify',
     '/shopify-connect',
     '/shopify-callback',
     '/shopify-redirect',

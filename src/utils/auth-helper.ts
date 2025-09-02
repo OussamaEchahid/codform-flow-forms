@@ -2,7 +2,8 @@
 import { supabase } from '@/integrations/supabase/client';
 
 export class AuthHelper {
-  // تم إزالة المستخدم الافتراضي لأسباب أمنية
+  // المستخدم الافتراضي للنظام (fallback فقط)
+  private static readonly DEFAULT_USER_ID = 'a7a96524-0208-441b-845b-5e30640d003d';
   private static readonly CACHE_KEY = 'last_authenticated_user_id';
   private static isStrictEnabled() {
     try {
@@ -22,22 +23,25 @@ export class AuthHelper {
 
   /**
    * نسخة متوافقة متزامنة - تحاول استخدام آخر معرف مستخدم معروف من localStorage
-   * ترجع null إذا لم يكن هناك مستخدم مصادق عليه.
+   * ثم fallback إلى DEFAULT_USER_ID إذا لم يتوفر.
    */
-  static getCurrentUserId(): string | null {
+  static getCurrentUserId(): string {
     try {
       const cached = localStorage.getItem(this.CACHE_KEY);
       if (cached && cached !== 'null' && cached.length > 10) return cached;
-      return null;
+      // في الوضع الصارم (الافتراضي خارج التطوير)، لا نُرجع fallback ID
+      if (this.isStrictEnabled()) return '' as unknown as string;
+      // للسماح بالتشغيل المحلي فقط أثناء التطوير يمكن استخدام fallback
+      return this.DEFAULT_USER_ID;
     } catch {
-      return null;
+      return this.isStrictEnabled() ? '' as unknown as string : this.DEFAULT_USER_ID;
     }
   }
 
   /**
    * النسخة الموثوقة (مفضلة): تجلب session من Supabase بشكل صحيح وتحدّث الكاش.
    */
-  static async getCurrentUserIdAsync(): Promise<string | null> {
+  static async getCurrentUserIdAsync(): Promise<string> {
     try {
       const { data } = await supabase.auth.getUser();
       const userId = data?.user?.id;
@@ -45,9 +49,15 @@ export class AuthHelper {
         try { localStorage.setItem(this.CACHE_KEY, userId); } catch (_) {}
         return userId;
       }
-      return null;
+      const cached = localStorage.getItem(this.CACHE_KEY);
+      if (cached && cached !== 'null' && cached.length > 10) return cached;
+      // في الوضع الصارم لا نستخدم fallback إطلاقاً
+      if (this.isStrictEnabled()) return '' as unknown as string;
+      return this.DEFAULT_USER_ID;
     } catch {
-      return null;
+      const cached = localStorage.getItem(this.CACHE_KEY);
+      if (cached && cached !== 'null' && cached.length > 10) return cached;
+      return this.isStrictEnabled() ? '' as unknown as string : this.DEFAULT_USER_ID;
     }
   }
 
@@ -68,6 +78,10 @@ export class AuthHelper {
    * الحصول على معايير الاستعلام
    */
   static getQueryFilters() {
+    if (this.isStrictEnabled()) {
+      const uid = localStorage.getItem(this.CACHE_KEY);
+      return { user_id: (uid && uid !== 'null' && uid.length > 10) ? uid : null } as any;
+    }
     const userId = this.getCurrentUserId();
     return { user_id: userId };
   }
@@ -77,11 +91,15 @@ export class AuthHelper {
    */
   static getDiagnosticInfo() {
     const cached = (() => { try { return localStorage.getItem(this.CACHE_KEY); } catch(_) { return null; } })();
-    const current = (cached && cached !== 'null' && cached.length > 10) ? cached : null;
+    const strict = this.isStrictEnabled();
+    const current = (cached && cached !== 'null' && cached.length > 10)
+      ? cached
+      : (strict ? null : this.DEFAULT_USER_ID);
     return {
       currentUserId: current,
+      defaultUserId: strict ? null : this.DEFAULT_USER_ID,
       userEmail: ((): string | null => { try { return localStorage.getItem('shopify_user_email'); } catch(_) { return null; } })(),
-      isUsingDefault: false
+      isUsingDefault: !strict && current === this.DEFAULT_USER_ID
     };
   }
 }

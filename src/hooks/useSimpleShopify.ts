@@ -86,13 +86,8 @@ export const useSimpleShopify = () => {
 
   // تحميل المنتجات
   const loadProducts = useCallback(async (): Promise<ShopifyProduct[]> => {
-    // التحقق المفصل من الحالة
-    console.log('🔍 loadProducts called - activeStore:', activeStore);
-    console.log('🔍 UnifiedStoreManager.getActiveStore():', UnifiedStoreManager.getActiveStore());
-    console.log('🔍 localStorage active store:', localStorage.getItem('active_shopify_store'));
-    
     if (!activeStore) {
-      console.debug('No active store configured for loading products');
+      console.warn('No active store for loading products');
       return [];
     }
 
