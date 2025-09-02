@@ -16,8 +16,8 @@ console.log("Initializing Shopify app with environment:", {
 });
 
 const shopify = shopifyApp({
-  apiKey: process.env.SHOPIFY_API_KEY || "7e4608874bbcc38afa1953948da28407",
-  apiSecretKey: process.env.SHOPIFY_API_SECRET || "18221d830a86da52082e0d06c0d32ba3",
+  apiKey: process.env.SHOPIFY_API_KEY || "753bee28b4a0b12f2d87c79b56c86641",
+  apiSecretKey: process.env.SHOPIFY_API_SECRET || "981e7ad45a4951c809f766322d88c800",
   apiVersion: ApiVersion.January25,
   // قمنا بتحديث نطاقات الصلاحيات بناءً على قائمة المشكلات المحتملة
   scopes: process.env.SCOPES?.split(",") || ["read_products", "write_draft_orders", "write_pixels", "read_customer_events"],
