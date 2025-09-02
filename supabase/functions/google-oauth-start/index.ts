@@ -59,8 +59,8 @@ serve(async (req) => {
     const statePayload = { s: shopId || '', u: userId || '', r: redirectUri || '' };
     const state = encodeURIComponent(btoa(JSON.stringify(statePayload)));
 
-    // Use server-side Supabase function callback to avoid host rewrites stripping query params
-    const redirectForGoogle = `${supabaseUrl}/functions/v1/google-oauth-callback`;
+    // Use Cloudflare Worker proxy to avoid Google verification warnings
+    const redirectForGoogle = `https://codmagnet.com/auth/google/callback`;
 
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectForGoogle)}&scope=${scope}&access_type=offline&prompt=consent&state=${state}`;
 

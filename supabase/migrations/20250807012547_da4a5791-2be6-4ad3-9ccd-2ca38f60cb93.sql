@@ -6,8 +6,8 @@ CREATE TABLE IF NOT EXISTS public.order_settings (
   post_order_action TEXT NOT NULL DEFAULT 'redirect',
   redirect_enabled BOOLEAN NOT NULL DEFAULT true,
   thank_you_page_url TEXT,
-  popup_title TEXT DEFAULT 'تم إنشاء طلبك بنجاح!',
-  popup_message TEXT DEFAULT 'شكراً لك على طلبك. سنتواصل معك قريباً...',
+  popup_title TEXT DEFAULT 'Order Created Successfully!',
+  popup_message TEXT DEFAULT 'Thank you for your order! We''ll contact you soon to confirm the details. Please keep your phone nearby.',
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   UNIQUE(shop_id)

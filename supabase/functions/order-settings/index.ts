@@ -82,8 +82,8 @@ serve(async (req: Request) => {
         post_order_action: 'redirect',
         redirect_enabled: true,
         thank_you_page_url: '',
-        popup_title: 'تم إنشاء طلبك بنجاح!',
-        popup_message: 'شكراً لك على طلبك. سنتواصل معك قريباً...'
+        popup_title: 'Order Created Successfully!',
+        popup_message: 'Thank you for your order! We\'ll contact you soon to confirm the details. Please keep your phone nearby.'
       };
 
       console.log('📋 Returning settings:', settings);

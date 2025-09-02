@@ -61,15 +61,16 @@ serve(async (req) => {
 
         result = await supabaseClient
           .from('blocked_ips')
-          .insert({
+          .upsert({
             shop_id: shop_id,
             user_id: ipStoreData.user_id,
             ip_address: ip_address,
             reason: reason || 'غير محدد',
             redirect_url: redirect_url || '/blocked',
-            is_active: true
-          })
-        
+            is_active: true,
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'shop_id,ip_address' })
+
         break
 
       case 'remove_ip':
@@ -112,16 +113,17 @@ serve(async (req) => {
 
         result = await supabaseClient
           .from('blocked_countries')
-          .insert({
+          .upsert({
             shop_id: country_shop_id,
             user_id: storeData.user_id,
             country_code: country_code.toUpperCase(),
             country_name: country_name,
             reason: country_reason || 'غير محدد',
             redirect_url: country_redirect || '/blocked',
-            is_active: true
-          })
-        
+            is_active: true,
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'shop_id,country_code' })
+
         break
 
       case 'remove_country':

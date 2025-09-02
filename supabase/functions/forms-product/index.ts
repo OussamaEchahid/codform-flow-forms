@@ -1,8 +1,11 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.51.0'
 
+import { buildCorsHeaders } from "../_shared/cors.ts";
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 }
 
 // Shopify GraphQL helper
@@ -28,13 +31,24 @@ function toGid(type: 'Product' | 'ProductVariant', id: string | number) {
 
 Deno.serve(async (req) => {
   try {
+    // Handle CORS preflight
     if (req.method === 'OPTIONS') {
-      return new Response(null, { headers: corsHeaders })
+      return new Response(null, {
+        headers: {
+          ...corsHeaders,
+          'Access-Control-Max-Age': '86400'
+        }
+      })
     }
 
     const url = new URL(req.url)
     let shop = url.searchParams.get('shop') || undefined
     const productId = url.searchParams.get('product') || url.searchParams.get('productId') || undefined
+    const previewParam = (url.searchParams.get('preview') || '').toLowerCase()
+    const referer = req.headers.get('referer') || ''
+    const isThemeEditor = /theme_editor|customize/.test(referer)
+    const isPreview = previewParam === '1' || previewParam === 'true' || isThemeEditor
+
 
     if (!shop) {
       return new Response(JSON.stringify({ success: false, message: 'Shop required' }), {
@@ -51,14 +65,22 @@ Deno.serve(async (req) => {
     )
 
     // Load form/product settings using secure function
-    const { data: formAssociation, error: associationError } = await supabase
-      .rpc('get_product_form_association', {
-        p_shop_id: shop,
-        p_product_id: productId || 'auto-detect'
-      });
+    let formAssociation: any[] | null = null;
+    let associationError: any = null;
 
-    let settings = null;
-    let settingsError = null;
+    if (productId && productId !== 'auto-detect') {
+      const assocRes = await supabase.rpc('get_product_form_association', {
+        p_shop_id: shop,
+        p_product_id: productId
+      });
+      formAssociation = assocRes.data as any[] | null;
+      associationError = assocRes.error;
+    }
+
+    // Strict mode: no preview fallback. If no association, we will return 404 later.
+
+    let settings: any = null;
+    let settingsError: any = null;
 
     if (!associationError && formAssociation && formAssociation.length > 0) {
       // Get the full form data using the form_id

@@ -60,8 +60,8 @@ serve(async (req) => {
     const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET') ?? '';
 
     // Our redirect_uri for token exchange must equal the one used in the auth request
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-    const redirectUri = `${supabaseUrl}/functions/v1/google-oauth-callback`;
+    // Now using Cloudflare Worker proxy
+    const redirectUri = `https://codmagnet.com/auth/google/callback`;
 
     // Exchange code for tokens
     const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
@@ -116,18 +116,29 @@ serve(async (req) => {
       );
     }
 
-    // Redirect back to the frontend callback with a hash flag (no query dependence)
-    let redirectBase = appRedirect && appRedirect.includes('/oauth/google-callback') ? appRedirect : '';
-    if (!redirectBase) {
-      const origin = req.headers.get('origin') || '';
-      if (origin) redirectBase = `${origin.replace(/\/$/, '')}/oauth/google-callback`;
-    }
-    if (!redirectBase) redirectBase = 'https://codmagnet.com/oauth/google-callback';
+    // Redirect back to the channels page after successful Google connection
+    let redirectBase = appRedirect || '';
 
-    // Add both query and hash flags for maximum compatibility
-    const withQuery = redirectBase.includes('?') ? `${redirectBase}&success=1` : `${redirectBase}?success=1`;
-    const location = withQuery.includes('#') ? withQuery : `${withQuery}#success=1`;
-    return new Response(null, { status: 302, headers: { ...corsHeaders, Location: location } });
+    // If no specific redirect provided, go to channels page
+    if (!redirectBase || redirectBase.includes('/oauth/google-callback')) {
+      redirectBase = 'https://codmagnet.com/orders/channels';
+    }
+
+    // Add success flags
+    const withQuery = redirectBase.includes('?')
+      ? `${redirectBase}&google_connected=1&success=1`
+      : `${redirectBase}?google_connected=1&success=1`;
+
+    // If the request came as GET (Cloudflare Worker/Google), use 302 redirect
+    if (req.method === 'GET') {
+      return new Response(null, { status: 302, headers: { ...corsHeaders, Location: withQuery } });
+    }
+
+    // Otherwise, respond with JSON for XHR (avoids CORS issues for redirects)
+    return new Response(JSON.stringify({ success: true, redirect: withQuery }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
   } catch (e) {
     return new Response(JSON.stringify({ error: e?.message || 'failed' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 });
   }

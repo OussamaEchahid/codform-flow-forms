@@ -3,6 +3,9 @@ export const allowedOrigins = [
   'https://codmagnet.com',
   'https://www.codmagnet.com',
   'https://admin.shopify.com',
+  'https://astrem.myshopify.com',
+  'http://localhost:3000',
+  'http://localhost:5173',
 ];
 
 function isAllowedOrigin(origin?: string) {

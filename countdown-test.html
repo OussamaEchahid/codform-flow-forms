@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار العداد الزمني - CODMagnet</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .test-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .test-header h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .test-section {
+            margin: 30px 0;
+            padding: 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+        
+        .test-section h3 {
+            color: #8B5CF6;
+            margin-top: 0;
+        }
+        
+        .test-buttons {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+        
+        .test-btn {
+            background: #8B5CF6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        
+        .test-btn:hover {
+            background: #6D28D9;
+            transform: translateY(-1px);
+        }
+        
+        .test-btn.danger {
+            background: #EF4444;
+        }
+        
+        .test-btn.danger:hover {
+            background: #DC2626;
+        }
+        
+        .test-btn.success {
+            background: #10B981;
+        }
+        
+        .test-btn.success:hover {
+            background: #059669;
+        }
+        
+        .log-container {
+            background: #1a1a1a;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin: 15px 0;
+        }
+        
+        .countdown-container {
+            margin: 20px 0;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-left: 8px;
+        }
+        
+        .status-indicator.active {
+            background: #10B981;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-indicator.inactive {
+            background: #EF4444;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-header">
+            <h1>🕐 اختبار العداد الزمني - CODMagnet</h1>
+            <p>اختبار شامل لحل مشكلة التداخل في العداد الزمني</p>
+        </div>
+
+        <div class="test-section">
+            <h3>📊 حالة النظام <span class="status-indicator" id="systemStatus"></span></h3>
+            <div class="test-buttons">
+                <button class="test-btn" onclick="checkSystemStatus()">فحص حالة النظام</button>
+                <button class="test-btn" onclick="showActiveTimers()">عرض المؤقتات النشطة</button>
+                <button class="test-btn danger" onclick="clearAllTimers()">مسح جميع المؤقتات</button>
+            </div>
+            <div class="log-container" id="systemLog"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🎯 اختبار إنشاء العدادات</h3>
+            <div class="test-buttons">
+                <button class="test-btn success" onclick="createCountdown('test1')">إنشاء عداد 1</button>
+                <button class="test-btn success" onclick="createCountdown('test2')">إنشاء عداد 2</button>
+                <button class="test-btn success" onclick="createCountdown('test3')">إنشاء عداد 3</button>
+                <button class="test-btn" onclick="createMultipleCountdowns()">إنشاء عدة عدادات</button>
+            </div>
+            <div id="countdownsContainer"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🔄 اختبار التداخل</h3>
+            <div class="test-buttons">
+                <button class="test-btn" onclick="testDuplicateInitialization()">اختبار التهيئة المكررة</button>
+                <button class="test-btn" onclick="testRapidCreation()">اختبار الإنشاء السريع</button>
+                <button class="test-btn danger" onclick="simulateOldBehavior()">محاكاة السلوك القديم</button>
+            </div>
+            <div class="log-container" id="interferenceLog"></div>
+        </div>
+    </div>
+
+    <!-- تحميل نظام العداد -->
+    <script src="extensions/theme-extension-codform/assets/codform-countdown-field.js"></script>
+    
+    <script>
+        // متغيرات الاختبار
+        let testCountdownCounter = 0;
+        let testLogs = [];
+
+        // دوال المساعدة
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}`;
+            testLogs.push(logEntry);
+            
+            const systemLog = document.getElementById('systemLog');
+            const interferenceLog = document.getElementById('interferenceLog');
+            
+            if (systemLog) {
+                systemLog.innerHTML = testLogs.slice(-10).join('\n');
+                systemLog.scrollTop = systemLog.scrollHeight;
+            }
+            
+            console.log(logEntry);
+        }
+
+        // فحص حالة النظام
+        function checkSystemStatus() {
+            log('🔍 فحص حالة النظام...');
+            
+            const timersCount = Object.keys(window.countdownTimers || {}).length;
+            const initializedCount = window.initializedCountdowns ? window.initializedCountdowns.size : 0;
+            const configsCount = Object.keys(window.countdownConfigs || {}).length;
+            
+            log(`📊 المؤقتات النشطة: ${timersCount}`);
+            log(`✅ العدادات المهيأة: ${initializedCount}`);
+            log(`⚙️ الإعدادات المحفوظة: ${configsCount}`);
+            
+            const statusIndicator = document.getElementById('systemStatus');
+            if (timersCount === initializedCount && timersCount === configsCount) {
+                statusIndicator.className = 'status-indicator active';
+                log('✅ النظام يعمل بشكل صحيح');
+            } else {
+                statusIndicator.className = 'status-indicator inactive';
+                log('⚠️ هناك عدم تطابق في حالة النظام');
+            }
+        }
+
+        // عرض المؤقتات النشطة
+        function showActiveTimers() {
+            log('📋 عرض المؤقتات النشطة...');
+            
+            if (window.countdownTimers) {
+                Object.keys(window.countdownTimers).forEach(timerId => {
+                    log(`⏰ مؤقت نشط: ${timerId}`);
+                });
+            }
+            
+            if (window.initializedCountdowns) {
+                window.initializedCountdowns.forEach(countdownId => {
+                    log(`🎯 عداد مهيأ: ${countdownId}`);
+                });
+            }
+        }
+
+        // مسح جميع المؤقتات
+        function clearAllTimers() {
+            log('🧹 مسح جميع المؤقتات...');
+            
+            if (window.countdownTimers) {
+                Object.keys(window.countdownTimers).forEach(timerId => {
+                    if (window.clearCountdownTimer) {
+                        window.clearCountdownTimer(timerId);
+                        log(`🗑️ تم مسح المؤقت: ${timerId}`);
+                    }
+                });
+            }
+            
+            document.getElementById('countdownsContainer').innerHTML = '';
+            log('✅ تم مسح جميع المؤقتات');
+        }
+
+        // إنشاء عداد اختبار
+        function createCountdown(testId) {
+            testCountdownCounter++;
+            const fieldId = testId || `test-countdown-${testCountdownCounter}`;
+            
+            log(`🎯 إنشاء عداد: ${fieldId}`);
+            
+            // إنشاء إعدادات العداد
+            window.countdownConfigs = window.countdownConfigs || {};
+            window.countdownConfigs[fieldId] = {
+                endDate: new Date(Date.now() + 60000).toISOString() // دقيقة واحدة
+            };
+            
+            // إنشاء HTML للعداد
+            const countdownHTML = window.renderCountdownField ? 
+                window.renderCountdownField({
+                    id: fieldId,
+                    label: `عداد اختبار ${fieldId}`,
+                    style: {}
+                }, {}, 'ar') : 
+                `<div data-countdown-id="${fieldId}">عداد ${fieldId}</div>`;
+            
+            const container = document.getElementById('countdownsContainer');
+            const countdownDiv = document.createElement('div');
+            countdownDiv.innerHTML = countdownHTML;
+            container.appendChild(countdownDiv);
+            
+            log(`✅ تم إنشاء العداد: ${fieldId}`);
+        }
+
+        // إنشاء عدة عدادات
+        function createMultipleCountdowns() {
+            log('🚀 إنشاء عدة عدادات...');
+            for (let i = 1; i <= 3; i++) {
+                setTimeout(() => createCountdown(`multi-${i}`), i * 200);
+            }
+        }
+
+        // اختبار التهيئة المكررة
+        function testDuplicateInitialization() {
+            log('🔄 اختبار التهيئة المكررة...');
+            
+            const testId = 'duplicate-test';
+            createCountdown(testId);
+            
+            // محاولة تهيئة نفس العداد عدة مرات
+            setTimeout(() => {
+                log('🔄 محاولة تهيئة مكررة 1...');
+                if (window.initializeCountdown) {
+                    window.initializeCountdown(testId);
+                }
+            }, 1000);
+            
+            setTimeout(() => {
+                log('🔄 محاولة تهيئة مكررة 2...');
+                if (window.initializeCountdown) {
+                    window.initializeCountdown(testId);
+                }
+            }, 2000);
+            
+            setTimeout(() => {
+                log('🔄 محاولة تهيئة مكررة 3...');
+                if (window.initializeCountdown) {
+                    window.initializeCountdown(testId);
+                }
+                
+                // فحص النتيجة
+                setTimeout(() => {
+                    const timersCount = Object.keys(window.countdownTimers || {}).length;
+                    if (timersCount === 1) {
+                        log('✅ اختبار التهيئة المكررة نجح - مؤقت واحد فقط');
+                    } else {
+                        log(`❌ اختبار التهيئة المكررة فشل - ${timersCount} مؤقتات`);
+                    }
+                }, 500);
+            }, 3000);
+        }
+
+        // اختبار الإنشاء السريع
+        function testRapidCreation() {
+            log('⚡ اختبار الإنشاء السريع...');
+            
+            for (let i = 1; i <= 5; i++) {
+                setTimeout(() => {
+                    createCountdown(`rapid-${i}`);
+                }, i * 50); // إنشاء سريع جداً
+            }
+            
+            setTimeout(() => {
+                checkSystemStatus();
+            }, 2000);
+        }
+
+        // محاكاة السلوك القديم (للمقارنة)
+        function simulateOldBehavior() {
+            log('⚠️ محاكاة السلوك القديم...');
+            
+            const testId = 'old-behavior-test';
+            createCountdown(testId);
+            
+            // محاكاة السلوك القديم بدون حماية من التداخل
+            setTimeout(() => {
+                log('⚠️ إنشاء مؤقت إضافي (محاكاة المشكلة القديمة)...');
+                if (window.countdownConfigs && window.countdownConfigs[testId]) {
+                    // إنشاء مؤقت إضافي بدون مسح القديم
+                    const fakeTimer = setInterval(() => {
+                        log('⚠️ مؤقت مكرر يعمل!');
+                    }, 1000);
+                    
+                    setTimeout(() => {
+                        clearInterval(fakeTimer);
+                        log('🛑 تم إيقاف المؤقت المكرر');
+                    }, 5000);
+                }
+            }, 1000);
+        }
+
+        // تهيئة الاختبار
+        document.addEventListener('DOMContentLoaded', function() {
+            log('🚀 بدء اختبار العداد الزمني');
+            checkSystemStatus();
+        });
+    </script>
+</body>
+</html>

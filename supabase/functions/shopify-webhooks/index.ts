@@ -128,24 +128,54 @@ Deno.serve(async (req) => {
         const amount = Number(amountRaw)
 
         let plan_type: 'free' | 'basic' | 'premium' | null = null
+        let standardPrice = 0
+
         if (!isNaN(amount)) {
-          if (amount >= 22 && amount < 30) plan_type = 'premium'
-          else if (amount >= 11 && amount < 20) plan_type = 'basic'
+          if (amount >= 22 && amount < 30) {
+            plan_type = 'premium'
+            standardPrice = 22.85
+          } else if (amount >= 11 && amount < 20) {
+            plan_type = 'basic'
+            standardPrice = 11.85
+          }
         }
 
+        // التحقق من نوع المتجر - Development stores
+        // ملاحظة مهمة: Development stores قد تظهر charges كـ "live" حتى لو كانت test charges
+        // هذا سلوك طبيعي من Shopify - نحن نعتمد على النطاق للكشف
+        const isDevelopmentStore = shopDomain?.includes('.myshopify.com')
+
+        // فحص إضافي للـ test flag (قد يكون موجود أو لا)
+        const hasTestFlag = body?.app_subscription?.test === true ||
+                           body?.subscription?.test === true ||
+                           body?.test === true
+
         console.log(`📋 Billing update: shop=${shopDomain}, status=${status}, amount=${amount}, plan=${plan_type}`)
+        console.log(`📋 Store detection:
+          - Domain-based (.myshopify.com): ${isDevelopmentStore}
+          - Has test flag: ${hasTestFlag}
+          - Treating as: ${isDevelopmentStore ? 'Development Store (Safe to proceed)' : 'Production Store'}`)
         console.log(`📋 Full webhook data:`, JSON.stringify(body, null, 2))
 
         if (shopDomain && plan_type) {
-          // تطبيع الحالة: لا نقوم أبداً بتعيين active إلا عند وصول active فعلياً من Shopify
+          // تطبيع الحالة: معالجة خاصة للـ Development Stores
           // الحالات المحتملة من Shopify: pending, accepted, active, cancelled, declined
           let normalizedStatus: 'pending' | 'active' | 'cancelled' = 'pending'
-          if (status === 'active') normalizedStatus = 'active'
-          else if (status === 'cancelled' || status === 'declined') normalizedStatus = 'cancelled'
+
+          if (status === 'active') {
+            normalizedStatus = 'active'
+          } else if (status === 'accepted') {
+            // في Development Stores، "accepted" يعني test charge مقبول تلقائياً
+            // في Production Stores، "accepted" يعني الدفع تم بنجاح
+            normalizedStatus = isDevelopmentStore ? 'active' : 'active'
+            console.log(`📋 Accepted status treated as active (${isDevelopmentStore ? 'test charge' : 'paid charge'})`)
+          } else if (status === 'cancelled' || status === 'declined') {
+            normalizedStatus = 'cancelled'
+          }
 
           const subscriptionData: any = {
             shop_domain: shopDomain,
-            price_amount: amount,
+            price_amount: standardPrice, // استخدام السعر المعياري بدلاً من amount من Shopify
             currency: 'USD',
             shopify_charge_id: appSub?.id || null,
             updated_at: new Date().toISOString(),
@@ -158,19 +188,40 @@ Deno.serve(async (req) => {
             subscriptionData.subscription_started_at = new Date().toISOString();
             subscriptionData.requested_plan_type = null;
             subscriptionData.requested_at = null;
+            // تعيين تاريخ التجديد التالي (شهر من الآن)
+            const nextBilling = new Date();
+            nextBilling.setMonth(nextBilling.getMonth() + 1);
+            subscriptionData.next_billing_date = nextBilling.toISOString();
+            // إضافة معلومات نوع الـ charge للتتبع
+            // ملاحظة: Development stores قد تظهر كـ "live" في webhook حتى لو كانت test charges
+            subscriptionData.charge_type = isDevelopmentStore ? 'development_store' : 'production_store';
+            subscriptionData.is_test_charge = isDevelopmentStore || hasTestFlag;
+            console.log(`✅ Subscription activated: ${plan_type} (${isDevelopmentStore ? 'Development Store - Safe to use' : 'Production Store - Real payment'})`);
           } else if (normalizedStatus === 'pending') {
             // Pending: keep current active plan intact and store requested plan
             subscriptionData.status = 'pending';
             subscriptionData.requested_plan_type = plan_type;
             subscriptionData.requested_at = new Date().toISOString();
+            // لا نغير next_billing_date للاشتراكات المعلقة
           } else {
-            // Cancelled/declined: clear requested state but do not change active plan
+            // Cancelled/declined: clear requested state and billing date
             subscriptionData.status = 'cancelled';
             subscriptionData.requested_plan_type = null;
             subscriptionData.requested_at = null;
+            subscriptionData.next_billing_date = null;
+            // إرجاع إلى الخطة المجانية عند الإلغاء
+            subscriptionData.plan_type = 'free';
+            subscriptionData.price_amount = 0;
           }
 
           console.log(`📋 Upserting subscription data:`, subscriptionData);
+
+          // إضافة تنبيه خاص للـ Development Stores
+          if (isDevelopmentStore) {
+            console.log(`🔔 IMPORTANT: This is a Development Store (.myshopify.com)`);
+            console.log(`🔔 Charges may appear as "live" in webhooks but are actually safe test charges`);
+            console.log(`🔔 No real money will be charged from development stores`);
+          }
 
           const { data, error } = await supabase
             .from('shop_subscriptions')

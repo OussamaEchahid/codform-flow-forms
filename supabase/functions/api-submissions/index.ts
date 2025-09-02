@@ -1182,15 +1182,15 @@ serve(async (req: Request) => {
         // Switch to popup as a safe fallback
         finalAction = 'popup';
         popup = {
-          title: (orderSettings as any)?.popup_title || 'تم إنشاء طلبك بنجاح!',
-          message: (orderSettings as any)?.popup_message || 'شكراً لك على طلبك. سنتواصل معك قريباً...'
+          title: (orderSettings as any)?.popup_title || 'Order Created Successfully!',
+          message: (orderSettings as any)?.popup_message || 'Thank you for your order! We\'ll contact you soon to confirm the details. Please keep your phone nearby.'
         };
         console.log('🧯 No thank you URL configured. Falling back to popup.');
       }
     } else if (postOrderAction === 'popup') {
       popup = {
-        title: (orderSettings as any)?.popup_title || 'تم إنشاء طلبك بنجاح!',
-        message: (orderSettings as any)?.popup_message || 'شكراً لك على طلبك. سنتواصل معك قريباً...'
+        title: (orderSettings as any)?.popup_title || 'Order Created Successfully!',
+        message: (orderSettings as any)?.popup_message || 'Thank you for your order! We\'ll contact you soon to confirm the details. Please keep your phone nearby.'
       };
       console.log('🪟 Popup will be shown after order');
     } else {

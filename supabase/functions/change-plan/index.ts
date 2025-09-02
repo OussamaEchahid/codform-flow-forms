@@ -71,6 +71,13 @@ serve(async (req) => {
     }
 
     // Detect if this is a partner development store so we can set test=true
+    // Multiple detection methods for better reliability
+    let isDevStore = false;
+
+    // Method 1: Check if shop domain ends with .myshopify.com (development stores)
+    const isDomainBasedDevStore = shop.includes('.myshopify.com');
+
+    // Method 2: Query shop plan for partnerDevelopment flag
     const shopQuery = `#graphql
       query { shop { plan { partnerDevelopment } } }
     `;
@@ -79,16 +86,25 @@ serve(async (req) => {
       headers: { 'Content-Type': 'application/json', 'X-Shopify-Access-Token': token },
       body: JSON.stringify({ query: shopQuery })
     });
-    let isDevStore = false;
+
+    let isPlanBasedDevStore = false;
     if (planResp.ok) {
       const planJson = await planResp.json();
-      isDevStore = !!planJson?.data?.shop?.plan?.partnerDevelopment;
+      isPlanBasedDevStore = !!planJson?.data?.shop?.plan?.partnerDevelopment;
     } else {
-      console.warn(`⚠️ Failed to detect shop plan (HTTP ${planResp.status}). Proceeding with defaults.`);
+      console.warn(`⚠️ Failed to detect shop plan (HTTP ${planResp.status}). Using domain-based detection.`);
     }
 
+    // Consider it a dev store if either method indicates it
+    isDevStore = isDomainBasedDevStore || isPlanBasedDevStore;
+
+    console.log(`🔍 Development store detection:
+      - Domain-based (.myshopify.com): ${isDomainBasedDevStore}
+      - Plan-based (partnerDevelopment): ${isPlanBasedDevStore}
+      - Final result: ${isDevStore}`);
+
     // Allow forcing test mode via environment variable for easier dev testing
-    const forceTest = (typeof Deno !== 'undefined' && Deno.env.get('SHOPIFY_BILLING_FORCE_TEST') === 'true');
+    const forceTest = (globalThis.Deno && globalThis.Deno.env.get('SHOPIFY_BILLING_FORCE_TEST') === 'true');
 
     const returnUrl = `${supabaseUrl}/functions/v1/subscription-success?shop=${encodeURIComponent(shop)}&plan=${encodeURIComponent(planId)}`;
 
@@ -120,6 +136,11 @@ serve(async (req) => {
     };
 
     console.log(`📞 Creating subscription for shop: ${shop}, plan: ${planId}`);
+    console.log(`🧪 Test mode settings:
+      - Force test: ${forceTest}
+      - Is dev store: ${isDevStore}
+      - Final test value: ${forceTest || isDevStore}`);
+    console.log(`📋 Subscription variables:`, JSON.stringify(variables, null, 2));
 
     const resp = await fetch(`https://${shop}/admin/api/${GRAPHQL_API_VERSION}/graphql.json`, {
       method: 'POST',

@@ -40,8 +40,8 @@ CREATE OR REPLACE FUNCTION public.save_order_settings(
   p_post_order_action text DEFAULT 'redirect',
   p_redirect_enabled boolean DEFAULT true,
   p_thank_you_page_url text DEFAULT '',
-  p_popup_title text DEFAULT 'تم إنشاء طلبك بنجاح!',
-  p_popup_message text DEFAULT 'شكراً لك على طلبك. سنتواصل معك قريباً...'
+  p_popup_title text DEFAULT 'Order Created Successfully!',
+  p_popup_message text DEFAULT 'Thank you for your order! We''ll contact you soon to confirm the details. Please keep your phone nearby.'
 )
 RETURNS uuid
 LANGUAGE plpgsql

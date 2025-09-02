@@ -32,14 +32,7 @@ serve(async (req) => {
         success: true,
         script: protectionScript,
         shop_domain: shop_domain,
-        instructions: `
-تعليمات التطبيق:
-1. انسخ السكريپت أدناه
-2. اذهب إلى إعدادات الثيم في شوبيفاي
-3. افتح ملف theme.liquid
-4. الصق السكريپت قبل إغلاق </head>
-5. احفظ التغييرات
-        `
+        instructions: `\nتعليمات التطبيق (App Embed):\n1. اذهب إلى Online Store → Customize\n2. من الجزء الأيسر افتح App embeds\n3. فعّل "CodMagnet - Store Security (App Embed)"\n4. احفظ التغييرات\n\nملاحظة: لا حاجة للصق أي سكربت يدويًا في theme.liquid.\n        `
       }), {
         headers: { 'Content-Type': 'application/json', ...corsHeaders }
       })
