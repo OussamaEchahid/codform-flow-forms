@@ -98,7 +98,7 @@ const ProtectedRoute = ({ requireAuth = true }: { requireAuth?: boolean }) => {
     hasAccess,
     requireAuth,
     bypassAuth,
-    env: process.env.NODE_ENV
+    env: import.meta.env.MODE
   });
 
   // **إلغاء كل منطق منع الوصول - الـ dashboard مفتوح لأي شخص**

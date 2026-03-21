@@ -188,7 +188,7 @@ export function ensureUUID(id: string | undefined): string | undefined {
   }
   
   // Only log warnings in development environment
-  if (process.env.NODE_ENV === 'development') {
+  if (import.meta.env.DEV) {
     console.warn(`Invalid UUID format detected: ${id}`);
   }
   

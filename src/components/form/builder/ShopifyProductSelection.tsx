@@ -49,7 +49,7 @@ const ShopifyProductSelection: React.FC<ShopifyProductSelectionProps> = ({
     let isMounted = true;
     let retryCount = 0;
     const maxRetries = 3;
-    let timeoutId: NodeJS.Timeout;
+    let timeoutId: ReturnType<typeof setTimeout>;
     
     const fetchProducts = async (forceRefresh = false) => {
       try {

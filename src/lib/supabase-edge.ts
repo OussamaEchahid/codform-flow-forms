@@ -1,4 +1,7 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 /**
  * Minimal helper to call Edge Functions via GET with anon auth header
@@ -22,4 +25,3 @@ export async function edgeGet<T = any>(name: string, params?: Record<string, str
     return { status: res.status, data: null, error: text };
   }
 }
-

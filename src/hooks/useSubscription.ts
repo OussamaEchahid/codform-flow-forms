@@ -111,7 +111,7 @@ export const useSubscription = (shopDomain?: string): UseSubscriptionReturn => {
 
   // مصالحة تلقائية فقط للحالات المناسبة (ليس عند إنشاء pending جديد)
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
+    let timeoutId: ReturnType<typeof setTimeout>;
 
     (async () => {
       if (!subscription) return;
