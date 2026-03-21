@@ -733,31 +733,37 @@ export type Database = {
       }
       security_logs: {
         Row: {
-          action: string
+          blocked_at: string
           blocked_type: string
           blocked_value: string
-          created_at: string
-          details: string | null
           id: string
+          referer: string | null
           shop_id: string
+          user_agent: string | null
+          visitor_country: string | null
+          visitor_ip: string | null
         }
         Insert: {
-          action: string
+          blocked_at?: string
           blocked_type: string
           blocked_value: string
-          created_at?: string
-          details?: string | null
           id?: string
+          referer?: string | null
           shop_id: string
+          user_agent?: string | null
+          visitor_country?: string | null
+          visitor_ip?: string | null
         }
         Update: {
-          action?: string
+          blocked_at?: string
           blocked_type?: string
           blocked_value?: string
-          created_at?: string
-          details?: string | null
           id?: string
+          referer?: string | null
           shop_id?: string
+          user_agent?: string | null
+          visitor_country?: string | null
+          visitor_ip?: string | null
         }
         Relationships: []
       }
