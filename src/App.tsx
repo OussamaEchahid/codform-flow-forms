@@ -84,7 +84,7 @@ const ProtectedRoute = ({ requireAuth = true }: { requireAuth?: boolean }) => {
   const isAuthenticated = !!user;
 
   // المتطلب الوحيد هو وجود اتصال Shopify - لا حاجة لـ user authentication
-  const hasAccess = hasShopifyAccess || isAuthenticated || (process.env.NODE_ENV === 'development') || bypassAuth;
+  const hasAccess = hasShopifyAccess || isAuthenticated || (import.meta.env.DEV) || bypassAuth;
 
   console.log("Protected route check:", {
     simpleActiveStore,
