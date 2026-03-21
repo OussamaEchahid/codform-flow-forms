@@ -7,13 +7,11 @@ export class AuthHelper {
   private static readonly CACHE_KEY = 'last_authenticated_user_id';
   private static isStrictEnabled() {
     try {
-      // Prefer explicit env flag if provided
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const v: any = (typeof import.meta !== 'undefined' ? (import.meta as any).env : undefined);
-      const raw = v?.VITE_STRICT_AUTH_HELPER ?? (typeof process !== 'undefined' ? process.env?.VITE_STRICT_AUTH_HELPER : undefined);
+      const raw = v?.VITE_STRICT_AUTH_HELPER;
       if (typeof raw !== 'undefined') return String(raw).toLowerCase() === 'true';
-      // Default behavior: STRICT in non-development builds
-      const mode = v?.MODE ?? (typeof process !== 'undefined' ? process.env?.NODE_ENV : 'production');
+      const mode = v?.MODE ?? 'production';
       return String(mode).toLowerCase() !== 'development';
     } catch {
       // Fail closed (strict) on any error

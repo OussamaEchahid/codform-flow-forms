@@ -112,7 +112,7 @@ const Orders = () => {
         </div>
         
         {/* Debug Info */}
-        {process.env.NODE_ENV !== 'production' && (
+        {import.meta.env.DEV && (
           <div className="mt-4 p-2 bg-gray-100 text-xs rounded">
             <div>User ID: {user?.id || 'Not logged in'}</div>
             <div>Shop: {actualShop || 'No shop connected'}</div>
