@@ -535,7 +535,7 @@ class CurrencyServiceClass {
       // حذف من قاعدة البيانات باستخدام edge function
       if (this.currentShopId) {
         try {
-          const response = await fetch('https://trlklwixfeaexhydzaue.supabase.co/functions/v1/save-currency-settings', {
+          const response = await fetch('https://nnwnuurkcmuvprirsfho.supabase.co/functions/v1/save-currency-settings', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

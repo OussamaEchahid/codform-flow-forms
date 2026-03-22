@@ -17,7 +17,7 @@ const ShopifyProductsAPI = () => {
         }
         
         // Call the Supabase edge function
-        const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-products`, {
+        const response = await fetch(`https://nnwnuurkcmuvprirsfho.supabase.co/functions/v1/shopify-products`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

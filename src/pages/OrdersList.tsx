@@ -92,7 +92,7 @@ const OrdersList = () => {
 
         // Use orders-management function with GET method and shop_id filter
         const response = await fetch(
-          `https://trlklwixfeaexhydzaue.supabase.co/functions/v1/orders-management?action=list-orders&shop_id=${encodeURIComponent(actualShop)}&refresh=${forceRefresh}`,
+          `https://nnwnuurkcmuvprirsfho.supabase.co/functions/v1/orders-management?action=list-orders&shop_id=${encodeURIComponent(actualShop)}&refresh=${forceRefresh}`,
           {
             method: 'GET',
             headers: {

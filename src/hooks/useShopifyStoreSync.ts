@@ -85,7 +85,7 @@ export const useShopifyStoreSync = () => {
       if (userEmail) {
         console.log('📧 جلب المتاجر بناء على البريد الإلكتروني:', userEmail);
         try {
-          const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/rest/v1/shopify_stores?email=eq.${encodeURIComponent(userEmail)}&is_active=eq.true&select=shop,is_active,updated_at,access_token,email`, {
+          const response = await fetch(`https://nnwnuurkcmuvprirsfho.supabase.co/rest/v1/shopify_stores?email=eq.${encodeURIComponent(userEmail)}&is_active=eq.true&select=shop,is_active,updated_at,access_token,email`, {
             headers: {
               'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M',
               'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M'

@@ -109,7 +109,7 @@ const FormWithQuantityOffers: React.FC<FormWithQuantityOffersProps> = ({
           console.log('📡 Fetching REAL product data from forms-product API...');
           
           // ✅ Use the forms-product API that returns REAL Shopify data
-          const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/forms-product?shop=${formData.shop_id}&product=${productId}`, {
+          const response = await fetch(`https://nnwnuurkcmuvprirsfho.supabase.co/functions/v1/forms-product?shop=${formData.shop_id}&product=${productId}`, {
             headers: {
               'Content-Type': 'application/json',
               'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M`

@@ -22,7 +22,7 @@ const ShopifyThemeIntegration: React.FC<ShopifyThemeIntegrationProps> = ({
       // نظام الأمان المتقدم لـ CodForm
       (function() {
         const SHOP_ID = '${shopId}';
-        const SECURITY_CHECK_URL = 'https://trlklwixfeaexhydzaue.supabase.co/functions/v1/store-security-check';
+        const SECURITY_CHECK_URL = 'https://nnwnuurkcmuvprirsfho.supabase.co/functions/v1/store-security-check';
         
         // فحص الأمان عند تحميل الصفحة
         async function checkSecurity() {

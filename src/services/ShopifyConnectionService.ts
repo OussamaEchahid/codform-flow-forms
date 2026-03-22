@@ -225,7 +225,7 @@ class ShopifyConnectionService {
     console.log('Updating store currency information for:', shop);
     
     try {
-      const response = await fetch('https://trlklwixfeaexhydzaue.supabase.co/functions/v1/update-shop-currency', {
+      const response = await fetch('https://nnwnuurkcmuvprirsfho.supabase.co/functions/v1/update-shop-currency', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

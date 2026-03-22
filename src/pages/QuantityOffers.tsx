@@ -150,7 +150,7 @@ const QuantityOffers = () => {
       if (!effectiveStore) return;
 
       // Get store currency from products API - the currency is usually included with product data
-      const response = await fetch(`https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-products`, {
+      const response = await fetch(`https://nnwnuurkcmuvprirsfho.supabase.co/functions/v1/shopify-products`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
