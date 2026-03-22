@@ -22,7 +22,7 @@ api_version = "2025-04"
 
   [[webhooks.subscriptions]]
   compliance_topics = [ "customers/data_request", "customers/redact", "shop/redact" ]
-  uri = "https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-webhooks"
+  uri = "https://nnwnuurkcmuvprirsfho.supabase.co/functions/v1/shopify-webhooks"
 
 
 [access_scopes]
@@ -31,7 +31,7 @@ scopes = "read_products,write_draft_orders,write_pixels,read_customer_events"
 
 [auth]
 redirect_urls = [
-  "https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-auth-callback"
+  "https://nnwnuurkcmuvprirsfho.supabase.co/functions/v1/shopify-auth-callback"
 ]
 
 
