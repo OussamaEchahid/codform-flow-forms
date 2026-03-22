@@ -113,7 +113,7 @@ const FormPreviewPanel: React.FC<FormPreviewPanelProps> = ({
       console.log('📝 Form data:', formData);
       
       // Call the submission API with correct form ID
-      const response = await fetch('https://trlklwixfeaexhydzaue.supabase.co/functions/v1/api-submissions', {
+      const response = await fetch('https://nnwnuurkcmuvprirsfho.supabase.co/functions/v1/api-submissions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

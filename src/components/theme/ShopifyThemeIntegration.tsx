@@ -22,7 +22,7 @@ const ShopifyThemeIntegration: React.FC<ShopifyThemeIntegrationProps> = ({
       // نظام الأمان المتقدم لـ CodForm
       (function() {
         const SHOP_ID = '${shopId}';
-        const SECURITY_CHECK_URL = 'https://trlklwixfeaexhydzaue.supabase.co/functions/v1/store-security-check';
+        const SECURITY_CHECK_URL = 'https://nnwnuurkcmuvprirsfho.supabase.co/functions/v1/store-security-check';
         
         // فحص الأمان عند تحميل الصفحة
         async function checkSecurity() {
@@ -33,7 +33,7 @@ const ShopifyThemeIntegration: React.FC<ShopifyThemeIntegrationProps> = ({
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybGtsd2l4ZmVhZXhoeWR6YXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MTE0MTgsImV4cCI6MjA2ODI4NzQxOH0.6p52MXnM2UE0UfiD5ZDDkHWWuR0xcSmqJ85P4xuBd4M'
+                'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ud251dXJrY211dnByaXJzZmhvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwOTMwMjcsImV4cCI6MjA4OTY2OTAyN30.u91K1NfUkhYiIPOVGNb3CepK0F8WfjPhGcG1T63KDOc'
               },
               body: JSON.stringify({
                 shop_id: SHOP_ID,

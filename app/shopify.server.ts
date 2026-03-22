@@ -31,15 +31,15 @@ const shopify = shopifyApp({
   webhooks: {
     CUSTOMERS_DATA_REQUEST: {
       deliveryMethod: "http",
-      callbackUrl: "https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-webhooks"
+      callbackUrl: "https://nnwnuurkcmuvprirsfho.supabase.co/functions/v1/shopify-webhooks"
     },
     CUSTOMERS_REDACT: {
       deliveryMethod: "http", 
-      callbackUrl: "https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-webhooks"
+      callbackUrl: "https://nnwnuurkcmuvprirsfho.supabase.co/functions/v1/shopify-webhooks"
     },
     SHOP_REDACT: {
       deliveryMethod: "http",
-      callbackUrl: "https://trlklwixfeaexhydzaue.supabase.co/functions/v1/shopify-webhooks"
+      callbackUrl: "https://nnwnuurkcmuvprirsfho.supabase.co/functions/v1/shopify-webhooks"
     }
   },
   hooks: {
