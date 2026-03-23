@@ -12,6 +12,9 @@ const AppWrapper = ({ children }: AppWrapperProps) => {
   const { user, shop, isShopifyAuthenticated } = useAuth();
   const location = useLocation();
   
+  // وضع المسؤول - يسمح بالدخول بدون اتصال Shopify
+  const isAdminMode = localStorage.getItem('admin_bypass') === 'true';
+  
   // الصفحات التي لا تحتاج اتصال Shopify (الصفحات العامة)
   const publicRoutes = [
     '/',
@@ -34,14 +37,15 @@ const AppWrapper = ({ children }: AppWrapperProps) => {
     return <>{children}</>;
   }
   
-  // تتطلب جميع الصفحات المحمية اتصال Shopify فعّال
+  // السماح بالدخول إذا كان وضع المسؤول مفعل أو متصل بـ Shopify
   console.log('🔒 AppWrapper - Protected route check:', {
     route: location.pathname,
     user: !!user,
     isShopifyAuthenticated,
+    isAdminMode,
   });
 
-  if (!isShopifyAuthenticated) {
+  if (!isShopifyAuthenticated && !isAdminMode) {
     return <NoShopifyConnection />;
   }
 
