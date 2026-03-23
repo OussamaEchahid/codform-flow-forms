@@ -29,6 +29,7 @@ import DefaultFormMessage from '@/components/dashboard/DefaultFormMessage';
 import { CountrySelector } from '@/components/ui/country-selector';
 import { formManagementService } from '@/services/FormManagementService';
 import { ProductViewDropdown } from '@/components/ui/product-view-dropdown';
+import { isAdminBypassEnabled } from '@/utils/admin-mode';
 
 interface FormBuilderDashboardProps {
   initialForms?: any[];
@@ -206,6 +207,10 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
   const handleCreateForm = () => {
     console.log('🎯 زر إنشاء النموذج تم النقر عليه');
     console.log('📌 الحالة الحالية لـ isNewFormDialogOpen:', isNewFormDialogOpen);
+    if (isAdminBypassEnabled()) {
+      navigate('/form-builder/new');
+      return;
+    }
     // فتح النافذة المنبثقة لاختيار تفاصيل النموذج
     setIsNewFormDialogOpen(true);
     console.log('✅ تم تعيين isNewFormDialogOpen إلى true');

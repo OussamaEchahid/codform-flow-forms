@@ -16,6 +16,7 @@ import { Loader2, Globe } from 'lucide-react';
 import { FormField } from '@/lib/form-utils';
 import { getFieldDefaults } from '@/lib/defaults/field-defaults';
 import { getDefaultCountryCurrencySettings } from '@/lib/constants/countries-currencies';
+import { getAdminBypassShopId } from '@/utils/admin-mode';
 
 interface NewFormProductDialogProps {
   open: boolean;
@@ -241,7 +242,7 @@ const NewFormProductDialog: React.FC<NewFormProductDialogProps> = ({ open, onClo
           const v = k ? localStorage.getItem(k) : null;
           if (v && v.includes('.myshopify.com')) return v.trim();
         }
-        return null;
+        return getAdminBypassShopId();
       };
       const shopId = shop || getActiveShopId();
       if (!shopId) {

@@ -11,6 +11,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, ShoppingBag } from 'lucide-react';
 import { toast } from 'sonner';
+import { getAdminBypassShopId, isAdminBypassEnabled } from '@/utils/admin-mode';
 
 const FormBuilderPage = () => {
   const { formId } = useParams();
@@ -18,10 +19,11 @@ const FormBuilderPage = () => {
   const { shop: currentStore, isShopifyAuthenticated, loading } = useAuth();
   const { t, language } = useI18n();
   const { fetchForms } = useFormTemplates();
+  const isAdminMode = isAdminBypassEnabled();
   
   // التحقق من وجود متجر نشط
   const storeFromStorage = localStorage.getItem('current_shopify_store');
-  const activeStore = currentStore || storeFromStorage;
+  const activeStore = currentStore || storeFromStorage || getAdminBypassShopId();
   
   const [activeTab, setActiveTab] = useState<'dashboard' | 'editor'>(formId ? 'editor' : 'dashboard');
   const [associatedProducts, setAssociatedProducts] = useState<Array<{id: string, title: string}>>([]);
@@ -36,7 +38,7 @@ const FormBuilderPage = () => {
   });
 
   // التحقق من الوصول بناءً على وجود متجر نشط أو المصادقة
-  const hasAccess = !!activeStore || isShopifyAuthenticated;
+  const hasAccess = isAdminMode || !!activeStore || isShopifyAuthenticated;
 
   // التبديل بين العلامات عند تغيير formId
   useEffect(() => {

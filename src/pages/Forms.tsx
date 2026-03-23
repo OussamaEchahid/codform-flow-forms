@@ -15,17 +15,25 @@ import {
   CheckCircle,
   Store as StoreIcon
 } from 'lucide-react';
+import { getAdminBypassShopId, isAdminBypassEnabled } from '@/utils/admin-mode';
 
 const Forms = () => {
   const navigate = useNavigate();
   const { language } = useI18n();
   const { shop: currentStore, isShopifyAuthenticated, loading } = useAuth();
+  const isAdminMode = isAdminBypassEnabled();
 
   console.log('📄 Forms page - Current store:', currentStore, 'Authenticated:', isShopifyAuthenticated);
 
   // Use direct localStorage check as fallback
   const storeFromStorage = localStorage.getItem('current_shopify_store');
-  const activeStore = currentStore || storeFromStorage;
+  const activeStore = currentStore || storeFromStorage || getAdminBypassShopId();
+  const isValidStore = isAdminMode || (
+    !!activeStore &&
+    activeStore !== 'en' &&
+    activeStore !== 'ar' &&
+    activeStore.includes('.myshopify.com')
+  );
 
   if (loading) {
     return (
@@ -59,12 +67,6 @@ const Forms = () => {
           {/* حالة المتجر */}
           <div className="mb-6">
             {(() => {
-              // التأكد من أن المتجر المتصل صحيح وليس "en" أو "ar"
-              const isValidStore = activeStore && 
-                                 activeStore !== 'en' && 
-                                 activeStore !== 'ar' && 
-                                 activeStore.includes('.myshopify.com');
-              
               if (!isValidStore) {
                 return (
                   <Alert className="border-amber-200 bg-amber-50">
@@ -90,12 +92,6 @@ const Forms = () => {
 
           {/* المحتوى الرئيسي */}
           {(() => {
-            // التأكد من أن المتجر المتصل صحيح وليس "en" أو "ar"
-            const isValidStore = activeStore && 
-                               activeStore !== 'en' && 
-                               activeStore !== 'ar' && 
-                               activeStore.includes('.myshopify.com');
-            
             return isValidStore ? (
             <FormBuilderDashboard 
               key={`dashboard-${activeStore}`} 
@@ -174,12 +170,6 @@ const Forms = () => {
 
           {/* رسالة ترحيب للمستخدمين الجدد */}
           {(() => {
-            // التأكد من أن المتجر المتصل صحيح وليس "en" أو "ar"
-            const isValidStore = activeStore && 
-                               activeStore !== 'en' && 
-                               activeStore !== 'ar' && 
-                               activeStore.includes('.myshopify.com');
-            
             return !isValidStore && (
             <Card className="mt-8 border-2 border-dashed border-muted-foreground/25">
               <CardHeader className="text-center">

@@ -3,6 +3,7 @@ import { FormData } from '@/lib/hooks/useFormTemplates';
 import { FormStep } from '@/lib/form-utils';
 import { FormStyle } from '@/hooks/useFormStore';
 import { toast } from 'sonner';
+import { getAdminBypassShopId } from '@/utils/admin-mode';
 
 // دالة مساعدة للحصول على معرف المستخدم الصالح
 const getUserIdentifier = (): string | null => {
@@ -88,10 +89,10 @@ export class FormManagementService {
       }
       
       console.log('⚠️ لم يتم العثور على متجر نشط في localStorage');
-      return null;
+      return getAdminBypassShopId();
     } catch (error) {
       console.error('❌ خطأ في الحصول على المتجر النشط:', error);
-      return null;
+      return getAdminBypassShopId();
     }
   }
 

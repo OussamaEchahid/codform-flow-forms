@@ -67,10 +67,11 @@ const formElementTypes = [
 // Import the unified store manager
 import UnifiedStoreManager from '@/utils/unified-store-manager';
 import { getDefaultCountryCurrencySettings } from '@/lib/constants/countries-currencies';
+import { getAdminBypassShopId } from '@/utils/admin-mode';
 
 // Add function to get active shop ID
 const getActiveShopId = (): string | null => {
-  return UnifiedStoreManager.getActiveStore();
+  return UnifiedStoreManager.getActiveStore() || getAdminBypassShopId();
 };
 
 interface FormBuilderEditorProps {
