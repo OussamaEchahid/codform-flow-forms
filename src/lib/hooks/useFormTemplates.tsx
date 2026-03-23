@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
 import { formManagementService } from '@/services/FormManagementService';
 import { getDefaultCountryCurrencySettings } from '@/lib/constants/countries-currencies';
+import { getAdminBypassShopId } from '@/utils/admin-mode';
 
 // Export FormData interface
 export interface FormData {
@@ -61,10 +62,10 @@ export const useFormTemplates = () => {
       }
       
       console.log('⚠️ No active shop found in useFormTemplates');
-      return '';
+      return getAdminBypassShopId() || '';
     } catch (error) {
       console.error('❌ Error getting active store in useFormTemplates:', error);
-      return shop || '';
+      return shop || getAdminBypassShopId() || '';
     }
   };
 
