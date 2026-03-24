@@ -4,6 +4,7 @@ import AppSidebar from '@/components/layout/AppSidebar';
 import { useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
 import { supabase } from '@/integrations/supabase/client';
+import { isAdminBypassEnabled } from '@/utils/admin-mode';
 import OrderDetailsDialog from '@/components/orders/OrderDetailsDialog';
 import {
   Table,
