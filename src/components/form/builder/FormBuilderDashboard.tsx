@@ -62,6 +62,46 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [selectedFormForProducts, setSelectedFormForProducts] = useState<{ id: string; title: string } | null>(null);
   
+  // Dummy forms for admin mode
+  const adminDummyForms = isAdminBypassEnabled() ? [
+    {
+      id: 'demo-form-1',
+      title: 'نموذج طلب المنتج',
+      description: 'نموذج COD لطلب المنتجات',
+      data: [],
+      isPublished: true,
+      is_published: true,
+      shop_id: 'admin-bypass',
+      created_at: new Date().toISOString(),
+      country: 'SA',
+      currency: 'SAR',
+    },
+    {
+      id: 'demo-form-2',
+      title: 'نموذج الشحن السريع',
+      description: 'نموذج للشحن السريع مع تأكيد الهاتف',
+      data: [],
+      isPublished: false,
+      is_published: false,
+      shop_id: 'admin-bypass',
+      created_at: new Date(Date.now() - 86400000).toISOString(),
+      country: 'AE',
+      currency: 'AED',
+    },
+    {
+      id: 'demo-form-3',
+      title: 'نموذج عروض رمضان',
+      description: 'نموذج خاص بعروض رمضان',
+      data: [],
+      isPublished: true,
+      is_published: true,
+      shop_id: 'admin-bypass',
+      created_at: new Date(Date.now() - 172800000).toISOString(),
+      country: 'KW',
+      currency: 'KWD',
+    },
+  ] : [];
+
   // Fetch forms data only once on initial load or when forceRefresh changes
   const initializeData = useCallback(async () => {
     if (isInitialized && !forceRefresh) return;
@@ -72,6 +112,11 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
       setIsInitialized(true);
     } catch (error) {
       console.error('Error initializing forms data:', error);
+      // In admin mode, use dummy forms on error
+      if (isAdminBypassEnabled() && adminDummyForms.length > 0) {
+        setFormList(adminDummyForms);
+        setIsInitialized(true);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -83,8 +128,13 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
   
   // Update formList when initialForms or forms change
   useEffect(() => {
-    // Always use forms from hook for real-time updates
-    setFormList(forms.length > 0 ? forms : initialForms);
+    if (forms.length > 0) {
+      setFormList(forms);
+    } else if (initialForms.length > 0) {
+      setFormList(initialForms);
+    } else if (isAdminBypassEnabled() && adminDummyForms.length > 0) {
+      setFormList(adminDummyForms);
+    }
   }, [forms, initialForms]);
 
   // Fetch product counts for each form - with useCallback to prevent unnecessary rerenders

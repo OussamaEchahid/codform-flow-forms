@@ -4,6 +4,7 @@ import AppSidebar from '@/components/layout/AppSidebar';
 import { useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
 import { supabase } from '@/integrations/supabase/client';
+import { isAdminBypassEnabled } from '@/utils/admin-mode';
 import OrderDetailsDialog from '@/components/orders/OrderDetailsDialog';
 import {
   Table,
@@ -45,7 +46,85 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
-// بيانات فارغة للطلبات (سيتم استبدالها ببيانات حقيقية من قاعدة البيانات)
+// بيانات وهمية للطلبات في وضع المسؤول
+const adminDummyOrders = [
+  {
+    id: 'demo-order-1',
+    order_number: 'ORD-1001',
+    customer_name: 'أحمد محمد',
+    customer_phone: '+966501234567',
+    customer_email: 'ahmed@example.com',
+    customer_city: 'الرياض',
+    customer_country: 'SA',
+    status: 'pending',
+    total_amount: 299.99,
+    currency: 'SAR',
+    items: [{ title: 'منتج تجريبي 1', quantity: 2, price: 149.99 }],
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'demo-order-2',
+    order_number: 'ORD-1002',
+    customer_name: 'سارة العلي',
+    customer_phone: '+966559876543',
+    customer_email: 'sara@example.com',
+    customer_city: 'جدة',
+    customer_country: 'SA',
+    status: 'processing',
+    total_amount: 450.00,
+    currency: 'SAR',
+    items: [{ title: 'منتج تجريبي 2', quantity: 1, price: 450.00 }],
+    created_at: new Date(Date.now() - 86400000).toISOString(),
+    updated_at: new Date(Date.now() - 86400000).toISOString(),
+  },
+  {
+    id: 'demo-order-3',
+    order_number: 'ORD-1003',
+    customer_name: 'خالد العمري',
+    customer_phone: '+966541112233',
+    customer_email: 'khaled@example.com',
+    customer_city: 'الدمام',
+    customer_country: 'SA',
+    status: 'delivered',
+    total_amount: 175.50,
+    currency: 'SAR',
+    items: [{ title: 'منتج تجريبي 3', quantity: 3, price: 58.50 }],
+    created_at: new Date(Date.now() - 172800000).toISOString(),
+    updated_at: new Date(Date.now() - 86400000).toISOString(),
+  },
+  {
+    id: 'demo-order-4',
+    order_number: 'ORD-1004',
+    customer_name: 'فاطمة الزهراء',
+    customer_phone: '+971501234567',
+    customer_email: 'fatima@example.com',
+    customer_city: 'دبي',
+    customer_country: 'AE',
+    status: 'cancelled',
+    total_amount: 89.00,
+    currency: 'AED',
+    items: [{ title: 'منتج تجريبي 4', quantity: 1, price: 89.00 }],
+    created_at: new Date(Date.now() - 259200000).toISOString(),
+    updated_at: new Date(Date.now() - 172800000).toISOString(),
+  },
+  {
+    id: 'demo-order-5',
+    order_number: 'ORD-1005',
+    customer_name: 'عمر حسن',
+    customer_phone: '+966507778899',
+    customer_email: 'omar@example.com',
+    customer_city: 'مكة',
+    customer_country: 'SA',
+    status: 'pending',
+    total_amount: 625.00,
+    currency: 'SAR',
+    items: [{ title: 'منتج تجريبي 5', quantity: 5, price: 125.00 }],
+    created_at: new Date(Date.now() - 43200000).toISOString(),
+    updated_at: new Date(Date.now() - 43200000).toISOString(),
+  },
+];
+
 const sampleOrders = [];
 
 const OrdersList = () => {
@@ -62,13 +141,15 @@ const OrdersList = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('all');
   
-  // Allow access if either authenticated with user or connected with Shopify
-  const hasAccess = !!user || shopifyConnected;
+  const isAdminMode = isAdminBypassEnabled();
+  
+  // Allow access if either authenticated with user or connected with Shopify or admin mode
+  const hasAccess = !!user || shopifyConnected || isAdminMode;
   
   // Check localStorage as fallback
   const localStorageConnected = localStorage.getItem('shopify_connected') === 'true';
   const actualHasAccess = hasAccess || localStorageConnected;
-  const actualShop = shop || localStorage.getItem('shopify_store');
+  const actualShop = shop || localStorage.getItem('shopify_store') || (isAdminMode ? 'admin-bypass' : null);
 
   // Fetch orders from database with auto-refresh
   useEffect(() => {
@@ -76,8 +157,17 @@ const OrdersList = () => {
     
     const fetchOrders = async (forceRefresh = false) => {
       try {
+        // In admin mode, use dummy orders directly
+        if (isAdminMode) {
+          if (isMounted) {
+            setOrders([]);
+            setLoading(false);
+          }
+          return;
+        }
+
         // Only fetch orders if we have a shop
-        if (!actualShop) {
+        if (!actualShop || actualShop === 'admin-bypass') {
           console.log('No shop available, skipping orders fetch');
           if (isMounted) {
             setOrders([]);
@@ -214,8 +304,8 @@ const OrdersList = () => {
     }
   };
 
-  // Use real orders or sample data as fallback
-  const ordersData = orders.length > 0 ? orders : sampleOrders;
+  // Use real orders, admin dummy orders, or sample data as fallback
+  const ordersData = orders.length > 0 ? orders : (isAdminMode ? adminDummyOrders : sampleOrders);
 
   // Filter orders based on search term, status, and date
   const filteredOrders = ordersData.filter(order => {
