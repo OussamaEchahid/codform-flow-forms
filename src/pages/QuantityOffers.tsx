@@ -316,9 +316,11 @@ const QuantityOffers = () => {
   }));
 
   // Get products associated with the selected form only
-  const products = selectedForm && associatedProductIds.length > 0 ? allProducts.filter(product =>
-    associatedProductIds.includes(product.id)
-  ) : [];
+  const products = isAdmin 
+    ? allProducts 
+    : (selectedForm && associatedProductIds.length > 0 ? allProducts.filter(product =>
+        associatedProductIds.includes(product.id)
+      ) : []);
 
   // Load products associated with a specific form from shopify_product_settings table
   const loadFormProducts = async (formId: string) => {
