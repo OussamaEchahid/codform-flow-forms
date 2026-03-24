@@ -139,13 +139,21 @@ const QuantityOffers = () => {
   const [storeCurrency, setStoreCurrency] = useState<string>('MAD');
 
   useEffect(() => {
+    if (isAdmin) {
+      // In admin mode, load dummy forms and skip network calls
+      setForms([
+        { id: 'demo-form-1', title: 'نموذج طلب المنتج', data: [], style: {}, currency: 'MAD' },
+        { id: 'demo-form-2', title: 'Product Order Form', data: [], style: {}, currency: 'USD' },
+      ]);
+      return;
+    }
     loadForms();
     loadExistingOffers();
     loadStoreCurrency();
     if ((isConnected || effectiveStore) && effectiveStore) {
       loadProducts();
     }
-  }, [isConnected, activeStore]);
+  }, [isConnected, activeStore, isAdmin]);
 
   const loadStoreCurrency = async () => {
     try {
