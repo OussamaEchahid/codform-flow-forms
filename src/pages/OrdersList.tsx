@@ -141,13 +141,15 @@ const OrdersList = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('all');
   
-  // Allow access if either authenticated with user or connected with Shopify
-  const hasAccess = !!user || shopifyConnected;
+  const isAdminMode = isAdminBypassEnabled();
+  
+  // Allow access if either authenticated with user or connected with Shopify or admin mode
+  const hasAccess = !!user || shopifyConnected || isAdminMode;
   
   // Check localStorage as fallback
   const localStorageConnected = localStorage.getItem('shopify_connected') === 'true';
   const actualHasAccess = hasAccess || localStorageConnected;
-  const actualShop = shop || localStorage.getItem('shopify_store');
+  const actualShop = shop || localStorage.getItem('shopify_store') || (isAdminMode ? 'admin-bypass' : null);
 
   // Fetch orders from database with auto-refresh
   useEffect(() => {
