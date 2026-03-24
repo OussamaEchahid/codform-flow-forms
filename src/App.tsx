@@ -199,6 +199,14 @@ function AppRoutes() {
 
 function App() {
 
+  // Auto-enable admin bypass for the owner
+  React.useEffect(() => {
+    if (!localStorage.getItem('admin_bypass')) {
+      localStorage.setItem('admin_bypass', 'true');
+      console.log('🔑 Admin bypass auto-enabled');
+    }
+  }, []);
+
   // معالجة نجاح الاتصال من Shopify - مرة واحدة فقط
   React.useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);

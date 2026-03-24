@@ -128,8 +128,13 @@ const FormBuilderDashboard: React.FC<FormBuilderDashboardProps> = ({
   
   // Update formList when initialForms or forms change
   useEffect(() => {
-    // Always use forms from hook for real-time updates
-    setFormList(forms.length > 0 ? forms : initialForms);
+    if (forms.length > 0) {
+      setFormList(forms);
+    } else if (initialForms.length > 0) {
+      setFormList(initialForms);
+    } else if (isAdminBypassEnabled() && adminDummyForms.length > 0) {
+      setFormList(adminDummyForms);
+    }
   }, [forms, initialForms]);
 
   // Fetch product counts for each form - with useCallback to prevent unnecessary rerenders

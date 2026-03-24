@@ -295,8 +295,8 @@ const OrdersList = () => {
     }
   };
 
-  // Use real orders or sample data as fallback
-  const ordersData = orders.length > 0 ? orders : sampleOrders;
+  // Use real orders, admin dummy orders, or sample data as fallback
+  const ordersData = orders.length > 0 ? orders : (isAdminMode ? adminDummyOrders : sampleOrders);
 
   // Filter orders based on search term, status, and date
   const filteredOrders = ordersData.filter(order => {
