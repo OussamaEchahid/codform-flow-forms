@@ -157,8 +157,17 @@ const OrdersList = () => {
     
     const fetchOrders = async (forceRefresh = false) => {
       try {
+        // In admin mode, use dummy orders directly
+        if (isAdminMode) {
+          if (isMounted) {
+            setOrders([]);
+            setLoading(false);
+          }
+          return;
+        }
+
         // Only fetch orders if we have a shop
-        if (!actualShop) {
+        if (!actualShop || actualShop === 'admin-bypass') {
           console.log('No shop available, skipping orders fetch');
           if (isMounted) {
             setOrders([]);
