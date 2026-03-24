@@ -528,6 +528,12 @@ const QuantityOffers = () => {
       return;
     }
 
+    if (isAdmin) {
+      toast.success('تم حفظ العرض بنجاح (وضع المعاينة)');
+      setCurrentStep('product');
+      return;
+    }
+
     setLoading(true);
     try {
       if (!effectiveStore) {
