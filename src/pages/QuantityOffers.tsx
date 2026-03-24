@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import QuantityOffersPreview from '@/components/quantity-offers/QuantityOffersPreview';
 import { CurrencyService } from '@/lib/services/CurrencyService';
 import UnifiedStoreManager from '@/utils/unified-store-manager';
+import { isAdminBypassEnabled, ADMIN_BYPASS_SHOP_ID } from '@/utils/admin-mode';
 
 
 
@@ -83,7 +84,8 @@ const QuantityOffers = () => {
   const legacyStore = (typeof window !== 'undefined') ? (legacyCandidates.map(k => localStorage.getItem(k)).find(v => v && v !== 'null') || null) : null;
   const queryShop = (typeof window !== 'undefined') ? (new URLSearchParams(window.location.search).get('shop') || null) : null;
   const hostShop = (typeof window !== 'undefined' && window.location.hostname.includes('myshopify.com')) ? window.location.hostname : null;
-  const effectiveStore = currentStore || activeStore || unifiedStore || queryShop || hostShop || legacyStore;
+  const isAdmin = isAdminBypassEnabled();
+  const effectiveStore = currentStore || activeStore || unifiedStore || queryShop || hostShop || legacyStore || (isAdmin ? ADMIN_BYPASS_SHOP_ID : null);
 
   console.log('🔍 QuantityOffers - Store state:', {
     currentStore,
@@ -137,13 +139,21 @@ const QuantityOffers = () => {
   const [storeCurrency, setStoreCurrency] = useState<string>('MAD');
 
   useEffect(() => {
+    if (isAdmin) {
+      // In admin mode, load dummy forms and skip network calls
+      setForms([
+        { id: 'demo-form-1', title: 'نموذج طلب المنتج', data: [], style: {}, currency: 'MAD' },
+        { id: 'demo-form-2', title: 'Product Order Form', data: [], style: {}, currency: 'USD' },
+      ]);
+      return;
+    }
     loadForms();
     loadExistingOffers();
     loadStoreCurrency();
     if ((isConnected || effectiveStore) && effectiveStore) {
       loadProducts();
     }
-  }, [isConnected, activeStore]);
+  }, [isConnected, activeStore, isAdmin]);
 
   const loadStoreCurrency = async () => {
     try {
@@ -290,19 +300,27 @@ const QuantityOffers = () => {
   };
 
   // Convert Shopify products to our format
-  const allProducts = shopifyProducts.map(product => ({
+  const dummyProducts: Product[] = isAdmin ? [
+    { id: 'demo-product-1', title: 'منتج تجريبي 1', handle: 'demo-1', price: '199.00', currency: 'MAD', images: [{ url: '/placeholder.svg' }] },
+    { id: 'demo-product-2', title: 'منتج تجريبي 2', handle: 'demo-2', price: '349.00', currency: 'MAD', images: [{ url: '/placeholder.svg' }] },
+    { id: 'demo-product-3', title: 'Demo Product 3', handle: 'demo-3', price: '99.00', currency: 'USD', images: [{ url: '/placeholder.svg' }] },
+  ] : [];
+
+  const allProducts = isAdmin ? dummyProducts : shopifyProducts.map(product => ({
     id: product.id,
     title: product.title,
     handle: product.handle,
     price: product.price || '0',
-    currency: product.currency || storeCurrency, // إضافة العملة من المنتج
+    currency: product.currency || storeCurrency,
     images: product.images?.map(img => ({ url: img })) || [{ url: '/placeholder.svg' }]
   }));
 
   // Get products associated with the selected form only
-  const products = selectedForm && associatedProductIds.length > 0 ? allProducts.filter(product =>
-    associatedProductIds.includes(product.id)
-  ) : [];
+  const products = isAdmin 
+    ? allProducts 
+    : (selectedForm && associatedProductIds.length > 0 ? allProducts.filter(product =>
+        associatedProductIds.includes(product.id)
+      ) : []);
 
   // Load products associated with a specific form from shopify_product_settings table
   const loadFormProducts = async (formId: string) => {
@@ -374,10 +392,12 @@ const QuantityOffers = () => {
     setSelectedForm(form);
     setQuantityOffer(prev => ({ ...prev, form_id: form.id }));
 
-    // Load products associated with this form from shopify_product_settings
-    await loadFormProducts(form.id);
-    // Load existing quantity offers for this form
-    await loadAssociatedProducts(form.id);
+    if (!isAdmin) {
+      // Load products associated with this form from shopify_product_settings
+      await loadFormProducts(form.id);
+      // Load existing quantity offers for this form
+      await loadAssociatedProducts(form.id);
+    }
     setCurrentStep('product');
   };
 
@@ -505,6 +525,12 @@ const QuantityOffers = () => {
 
     if (quantityOffer.offers.length === 0) {
       toast.error(t('addAtLeastOneOffer'));
+      return;
+    }
+
+    if (isAdmin) {
+      toast.success('تم حفظ العرض بنجاح (وضع المعاينة)');
+      setCurrentStep('product');
       return;
     }
 
