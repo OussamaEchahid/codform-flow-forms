@@ -392,10 +392,12 @@ const QuantityOffers = () => {
     setSelectedForm(form);
     setQuantityOffer(prev => ({ ...prev, form_id: form.id }));
 
-    // Load products associated with this form from shopify_product_settings
-    await loadFormProducts(form.id);
-    // Load existing quantity offers for this form
-    await loadAssociatedProducts(form.id);
+    if (!isAdmin) {
+      // Load products associated with this form from shopify_product_settings
+      await loadFormProducts(form.id);
+      // Load existing quantity offers for this form
+      await loadAssociatedProducts(form.id);
+    }
     setCurrentStep('product');
   };
 
