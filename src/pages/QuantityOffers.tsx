@@ -300,12 +300,18 @@ const QuantityOffers = () => {
   };
 
   // Convert Shopify products to our format
-  const allProducts = shopifyProducts.map(product => ({
+  const dummyProducts: Product[] = isAdmin ? [
+    { id: 'demo-product-1', title: 'منتج تجريبي 1', handle: 'demo-1', price: '199.00', currency: 'MAD', images: [{ url: '/placeholder.svg' }] },
+    { id: 'demo-product-2', title: 'منتج تجريبي 2', handle: 'demo-2', price: '349.00', currency: 'MAD', images: [{ url: '/placeholder.svg' }] },
+    { id: 'demo-product-3', title: 'Demo Product 3', handle: 'demo-3', price: '99.00', currency: 'USD', images: [{ url: '/placeholder.svg' }] },
+  ] : [];
+
+  const allProducts = isAdmin ? dummyProducts : shopifyProducts.map(product => ({
     id: product.id,
     title: product.title,
     handle: product.handle,
     price: product.price || '0',
-    currency: product.currency || storeCurrency, // إضافة العملة من المنتج
+    currency: product.currency || storeCurrency,
     images: product.images?.map(img => ({ url: img })) || [{ url: '/placeholder.svg' }]
   }));
 
