@@ -89,8 +89,8 @@ const SecuritySettings = () => {
     try {
       // جلب البيانات عبر Edge Functions لتجاوز RLS بدون جلسة عميل
       const [ { data: ipsFnData, error: ipsFnErr }, { data: countriesFnData, error: countriesFnErr } ] = await Promise.all([
-        supabase.functions.invoke('get-blocked-items', { body: { type: 'ips', shop_id: shop } }),
-        supabase.functions.invoke('get-blocked-items', { body: { type: 'countries', shop_id: shop } }),
+        supabase.functions.invoke('get-blocked-items', { body: { type: 'ips', shop_id: effectiveShop } }),
+        supabase.functions.invoke('get-blocked-items', { body: { type: 'countries', shop_id: effectiveShop } }),
       ]);
 
       if (ipsFnErr || !(ipsFnData as any)?.success) {
@@ -156,7 +156,7 @@ const SecuritySettings = () => {
 
       console.log('🔍 Adding IP:', trimmedIP, 'for shop:", effectiveShop);
 
-      console.log('🔍 Current shop value for IP:', shop);
+      console.log('🔍 Current shop value for IP:', effectiveShop);
 
 
 
@@ -246,7 +246,7 @@ const SecuritySettings = () => {
     if (!countryInfo) return;
 
     try {
-      console.log('🔍 Current shop value:', shop);
+      console.log('🔍 Current shop value:', effectiveShop);
 
       // استدعاء Edge Function لإضافة دولة بدون الحاجة لجلسة عميل
       const { data: respAddCountry, error: fnAddCountryError } = await supabase.functions.invoke('manage-blocked-items', {
@@ -332,7 +332,7 @@ const SecuritySettings = () => {
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
-    link.setAttribute('download', `blocked-ips-${shop}-${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `blocked-ips-${effectiveShop}-${new Date().toISOString().split('T')[0]}.csv`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
@@ -383,7 +383,7 @@ const SecuritySettings = () => {
     setScriptLoading(true);
     try {
       // إنتاج السكريپت محلياً بدلاً من استخدام Edge Function
-      const script = generateShopifyProtectionScript(shop);
+      const script = generateShopifyProtectionScript(effectiveShop);
       setProtectionScript(script);
 
       toast({
@@ -694,7 +694,7 @@ const SecuritySettings = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `codform-protection-${shop}.html`;
+    a.download = `codform-protection-${effectiveShop}.html`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
