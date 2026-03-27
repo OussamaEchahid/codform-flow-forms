@@ -28,16 +28,10 @@ interface SecurityStats {
 const SecuritySettings = () => {
   const { shop } = useAuth();
   const { t } = useI18n();
-
-  // تشخيص قيمة shop
-  console.log('🏪 SecuritySettings - shop value:', shop);
-  console.log('🏪 SecuritySettings - shop type:', typeof shop);
-  console.log('🏪 SecuritySettings - shop length:', shop?.length);
-
-  // تشخيص localStorage
-  console.log('💾 localStorage active_shopify_store:', localStorage.getItem('active_shopify_store'));
-  console.log('💾 localStorage current_shopify_store:', localStorage.getItem('current_shopify_store'));
-  console.log('💾 localStorage shopify_store:', localStorage.getItem('shopify_store'));
+  
+  // Admin bypass support
+  const isAdminMode = localStorage.getItem('admin_bypass') === 'true';
+  const effectiveShop = shop || (isAdminMode ? 'admin-bypass' : null);
   const [blockedIPs, setBlockedIPs] = useState<BlockedIP[]>([]);
   const [blockedCountries, setBlockedCountries] = useState<BlockedCountry[]>([]);
   const [securityStats, setSecurityStats] = useState<SecurityStats>({
