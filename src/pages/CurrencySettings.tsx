@@ -187,7 +187,7 @@ const CurrencySettings = () => {
         
 
 
-        {!currentStore && !localStorage.getItem('current_shopify_store') && (
+        {!currentStore && !localStorage.getItem('current_shopify_store') && !isAdminMode && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
             <p className="text-yellow-800">⚠️ {t('invalidInput')}</p>
           </div>
