@@ -69,13 +69,14 @@ const AdvertisingTracking = () => {
 
   // Check for active Shopify store (same as Forms page)
   const storeFromStorage = localStorage.getItem('current_shopify_store');
-  const activeStore = shop || storeFromStorage;
+  const isAdmin = localStorage.getItem('admin_bypass') === 'true';
+  const activeStore = shop || storeFromStorage || (isAdmin ? 'admin-bypass' : null);
   
   // التأكد من أن المتجر المتصل صحيح وليس "en" أو "ar"
-  const isValidStore = activeStore && 
+  const isValidStore = isAdmin || (activeStore && 
                        activeStore !== 'en' && 
                        activeStore !== 'ar' && 
-                       activeStore.includes('.myshopify.com');
+                       activeStore.includes('.myshopify.com'));
 
   // Load existing pixels
   useEffect(() => {
