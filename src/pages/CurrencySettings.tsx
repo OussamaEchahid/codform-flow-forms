@@ -19,7 +19,9 @@ const CurrencySettings = () => {
   const { t, language } = useI18n();
   const { shop: currentStore, shops: userStores, isShopifyAuthenticated } = useAuth();
   
-  // {t('displaySettingsComment')}
+  // Admin bypass support
+  const isAdminMode = localStorage.getItem('admin_bypass') === 'true';
+  
   const [displaySettings, setDisplaySettings] = useState<CurrencyDisplaySettings>({
     showSymbol: true,
     symbolPosition: 'before',
@@ -27,21 +29,14 @@ const CurrencySettings = () => {
     customSymbols: {}
   });
   
-  // المعدلات المخصصة
   const [customRates, setCustomRates] = useState<Map<string, any>>(new Map());
   const [editingRate, setEditingRate] = useState<string | null>(null);
   const [newRate, setNewRate] = useState({ currency: '', rate: '' });
   const [loading, setLoading] = useState(false);
 
-  // {t('loadSettingsOnStartup')}
   useEffect(() => {
-    console.log('🔄 CurrencySettings useEffect triggered:', { currentStore, userStoresLength: userStores?.length || 0, isShopifyAuthenticated });
-
-    // {t('useDirectValueFromLocalStorage')}
     const storeFromStorage = localStorage.getItem('current_shopify_store');
-    const activeStore = currentStore || storeFromStorage;
-    
-    console.log('⏰ Active store check:', { currentStore, storeFromStorage, activeStore });
+    const activeStore = currentStore || storeFromStorage || (isAdminMode ? 'admin-bypass' : null);
     
     if (activeStore) {
       loadSettings(activeStore);
