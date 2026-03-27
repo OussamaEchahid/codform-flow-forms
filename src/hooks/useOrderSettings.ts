@@ -112,7 +112,7 @@ export const useOrderSettings = () => {
 
   const saveSettings = async (newSettings: Partial<OrderSettings>) => {
     const storeFromStorage = localStorage.getItem('current_shopify_store');
-    const currentShop = activeStore || storeFromStorage;
+    const currentShop = activeStore || storeFromStorage || (isAdminMode ? 'admin-bypass' : null);
 
     if (!currentShop) {
       toast({

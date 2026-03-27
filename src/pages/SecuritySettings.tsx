@@ -62,13 +62,24 @@ const SecuritySettings = () => {
 
   // تحميل البيانات عند بدء الصفحة
   useEffect(() => {
-    if (shop) {
-      loadSecurityData();
+    if (effectiveShop) {
+      if (isAdminMode && !shop) {
+        // Load dummy data for admin mode
+        setBlockedIPs([
+          { id: 'demo-1', ip_address: '192.168.1.100', reason: 'Suspicious activity', redirect_url: '', shop_id: 'admin-bypass', is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+          { id: 'demo-2', ip_address: '10.0.0.50', reason: 'Bot traffic', redirect_url: '', shop_id: 'admin-bypass', is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+        ] as any);
+        setBlockedCountries([]);
+        setSecurityStats({ blocked_ips_count: 2, blocked_countries_count: 0, total_blocks_today: 0 });
+        setLoading(false);
+      } else {
+        loadSecurityData();
+      }
     }
-  }, [shop]);
+  }, [effectiveShop]);
 
   const loadSecurityData = async () => {
-    if (!shop) {
+    if (!effectiveShop) {
       console.log('❌ No shop ID available');
       return;
     }

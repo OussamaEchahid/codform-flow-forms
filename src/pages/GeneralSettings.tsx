@@ -82,7 +82,7 @@ const GeneralSettings = () => {
       }
 
       // 🔧 FIX: استخدام المتجر الحقيقي بدلاً من القيمة الثابتة
-      const currentShop = validateAndCleanShop(undefined); // استخدام دالة التحقق للحصول على متجر صحيح
+      const currentShop = isAdminMode ? 'admin-bypass' : validateAndCleanShop(undefined);
       console.log('🏪 Using validated shop for settings:', currentShop);
 
       const settings = {

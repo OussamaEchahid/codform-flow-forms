@@ -205,7 +205,7 @@ const CurrencySettings = () => {
             </Button>
             <Button 
               onClick={saveDisplaySettings} 
-              disabled={loading || (!currentStore && !localStorage.getItem('current_shopify_store'))} 
+              disabled={loading || (!currentStore && !localStorage.getItem('current_shopify_store') && !isAdminMode)} 
               className="flex items-center gap-2"
             >
               <Save className="h-4 w-4" />
