@@ -18,6 +18,7 @@ export interface OrderSettings {
 
 export const useOrderSettings = () => {
   const { activeStore } = useShopifyStores();
+  const isAdminMode = typeof window !== 'undefined' && localStorage.getItem('admin_bypass') === 'true';
   const [settings, setSettings] = useState<OrderSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -27,7 +28,7 @@ export const useOrderSettings = () => {
 
   const loadSettings = async () => {
     const storeFromStorage = localStorage.getItem('current_shopify_store');
-    const currentShop = activeStore || storeFromStorage;
+    const currentShop = activeStore || storeFromStorage || (isAdminMode ? 'admin-bypass' : null);
 
     if (!currentShop) {
       setLoading(false);
