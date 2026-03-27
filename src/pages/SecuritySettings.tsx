@@ -84,7 +84,7 @@ const SecuritySettings = () => {
       return;
     }
 
-    console.log('🔍 Loading security data for shop:", effectiveShop);
+    console.log('🔍 Loading security data for shop:', effectiveShop);
     setLoading(true);
     try {
       // جلب البيانات عبر Edge Functions لتجاوز RLS بدون جلسة عميل
@@ -154,7 +154,7 @@ const SecuritySettings = () => {
         return;
       }
 
-      console.log('🔍 Adding IP:', trimmedIP, 'for shop:", effectiveShop);
+      console.log('🔍 Adding IP:', trimmedIP, 'for shop:', effectiveShop);
 
       console.log('🔍 Current shop value for IP:', effectiveShop);
 
