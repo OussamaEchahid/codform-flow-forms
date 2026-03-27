@@ -84,7 +84,7 @@ const SecuritySettings = () => {
       return;
     }
 
-    console.log('🔍 Loading security data for shop:', shop);
+    console.log('🔍 Loading security data for shop:", effectiveShop);
     setLoading(true);
     try {
       // جلب البيانات عبر Edge Functions لتجاوز RLS بدون جلسة عميل
@@ -131,7 +131,7 @@ const SecuritySettings = () => {
   };
 
   const handleAddIP = async () => {
-    if (!shop || !newIP.trim()) {
+    if (!effectiveShop || !newIP.trim()) {
       toast({
         title: t('error'),
         description: t('invalidInput'),
@@ -154,7 +154,7 @@ const SecuritySettings = () => {
         return;
       }
 
-      console.log('🔍 Adding IP:', trimmedIP, 'for shop:', shop);
+      console.log('🔍 Adding IP:', trimmedIP, 'for shop:", effectiveShop);
 
       console.log('🔍 Current shop value for IP:', shop);
 
@@ -164,7 +164,7 @@ const SecuritySettings = () => {
       const { data: respAddIp, error: fnAddIpError } = await supabase.functions.invoke('manage-blocked-items', {
         body: {
           action: 'add_ip',
-          shop_id: shop,
+          shop_id: effectiveShop,
           ip_address: trimmedIP,
           reason: newIPReason.trim() || t('unspecified'),
           redirect_url: newIPRedirect.trim() || '/blocked'
@@ -232,8 +232,8 @@ const SecuritySettings = () => {
   };
 
   const handleAddCountry = async () => {
-    if (!shop || !selectedCountry) {
-      console.error('❌ Missing shop or selectedCountry:', { shop, selectedCountry });
+    if (!effectiveShop || !selectedCountry) {
+      console.error('❌ Missing shop or selectedCountry:', { effectiveShop, selectedCountry });
       toast({
         title: t('error'),
         description: t('invalidInput'),
@@ -252,7 +252,7 @@ const SecuritySettings = () => {
       const { data: respAddCountry, error: fnAddCountryError } = await supabase.functions.invoke('manage-blocked-items', {
         body: {
           action: 'add_country',
-          shop_id: shop,
+          shop_id: effectiveShop,
           country_code: selectedCountry.toUpperCase(),
           country_name: countryInfo.name,
           reason: newCountryReason.trim() || t('unspecified'),
@@ -371,7 +371,7 @@ const SecuritySettings = () => {
 
   // إنتاج سكريپت الحماية
   const generateProtectionScript = async () => {
-    if (!shop) {
+    if (!effectiveShop) {
       toast({
         title: t('error'),
         description: t('invalidInput'),
@@ -701,7 +701,7 @@ const SecuritySettings = () => {
     URL.revokeObjectURL(url);
   };
 
-  if (!shop) {
+  if (!effectiveShop) {
     return (
       <SettingsLayout>
         <div className="container mx-auto p-6">
