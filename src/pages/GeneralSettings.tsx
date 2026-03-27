@@ -16,6 +16,7 @@ import { validateAndCleanShop } from "@/utils/shop-validation";
 
 const GeneralSettings = () => {
   const { t } = useI18n();
+  const isAdminMode = localStorage.getItem('admin_bypass') === 'true';
   const [paymentStatus, setPaymentStatus] = useState("pending");
   const [paymentStatusEnabled, setPaymentStatusEnabled] = useState(true);
   const [dailyOrderLimit, setDailyOrderLimit] = useState(5);
@@ -81,7 +82,7 @@ const GeneralSettings = () => {
       }
 
       // 🔧 FIX: استخدام المتجر الحقيقي بدلاً من القيمة الثابتة
-      const currentShop = validateAndCleanShop(undefined); // استخدام دالة التحقق للحصول على متجر صحيح
+      const currentShop = isAdminMode ? 'admin-bypass' : validateAndCleanShop(undefined);
       console.log('🏪 Using validated shop for settings:', currentShop);
 
       const settings = {

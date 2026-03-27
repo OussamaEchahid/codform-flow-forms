@@ -28,16 +28,10 @@ interface SecurityStats {
 const SecuritySettings = () => {
   const { shop } = useAuth();
   const { t } = useI18n();
-
-  // تشخيص قيمة shop
-  console.log('🏪 SecuritySettings - shop value:', shop);
-  console.log('🏪 SecuritySettings - shop type:', typeof shop);
-  console.log('🏪 SecuritySettings - shop length:', shop?.length);
-
-  // تشخيص localStorage
-  console.log('💾 localStorage active_shopify_store:', localStorage.getItem('active_shopify_store'));
-  console.log('💾 localStorage current_shopify_store:', localStorage.getItem('current_shopify_store'));
-  console.log('💾 localStorage shopify_store:', localStorage.getItem('shopify_store'));
+  
+  // Admin bypass support
+  const isAdminMode = localStorage.getItem('admin_bypass') === 'true';
+  const effectiveShop = shop || (isAdminMode ? 'admin-bypass' : null);
   const [blockedIPs, setBlockedIPs] = useState<BlockedIP[]>([]);
   const [blockedCountries, setBlockedCountries] = useState<BlockedCountry[]>([]);
   const [securityStats, setSecurityStats] = useState<SecurityStats>({
@@ -68,24 +62,35 @@ const SecuritySettings = () => {
 
   // تحميل البيانات عند بدء الصفحة
   useEffect(() => {
-    if (shop) {
-      loadSecurityData();
+    if (effectiveShop) {
+      if (isAdminMode && !shop) {
+        // Load dummy data for admin mode
+        setBlockedIPs([
+          { id: 'demo-1', ip_address: '192.168.1.100', reason: 'Suspicious activity', redirect_url: '', shop_id: 'admin-bypass', is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+          { id: 'demo-2', ip_address: '10.0.0.50', reason: 'Bot traffic', redirect_url: '', shop_id: 'admin-bypass', is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+        ] as any);
+        setBlockedCountries([]);
+        setSecurityStats({ blocked_ips_count: 2, blocked_countries_count: 0, total_blocks_today: 0 });
+        setLoading(false);
+      } else {
+        loadSecurityData();
+      }
     }
-  }, [shop]);
+  }, [effectiveShop]);
 
   const loadSecurityData = async () => {
-    if (!shop) {
+    if (!effectiveShop) {
       console.log('❌ No shop ID available');
       return;
     }
 
-    console.log('🔍 Loading security data for shop:', shop);
+    console.log('🔍 Loading security data for shop:", effectiveShop);
     setLoading(true);
     try {
       // جلب البيانات عبر Edge Functions لتجاوز RLS بدون جلسة عميل
       const [ { data: ipsFnData, error: ipsFnErr }, { data: countriesFnData, error: countriesFnErr } ] = await Promise.all([
-        supabase.functions.invoke('get-blocked-items', { body: { type: 'ips', shop_id: shop } }),
-        supabase.functions.invoke('get-blocked-items', { body: { type: 'countries', shop_id: shop } }),
+        supabase.functions.invoke('get-blocked-items', { body: { type: 'ips', shop_id: effectiveShop } }),
+        supabase.functions.invoke('get-blocked-items', { body: { type: 'countries', shop_id: effectiveShop } }),
       ]);
 
       if (ipsFnErr || !(ipsFnData as any)?.success) {
@@ -126,7 +131,7 @@ const SecuritySettings = () => {
   };
 
   const handleAddIP = async () => {
-    if (!shop || !newIP.trim()) {
+    if (!effectiveShop || !newIP.trim()) {
       toast({
         title: t('error'),
         description: t('invalidInput'),
@@ -149,9 +154,9 @@ const SecuritySettings = () => {
         return;
       }
 
-      console.log('🔍 Adding IP:', trimmedIP, 'for shop:', shop);
+      console.log('🔍 Adding IP:', trimmedIP, 'for shop:", effectiveShop);
 
-      console.log('🔍 Current shop value for IP:', shop);
+      console.log('🔍 Current shop value for IP:', effectiveShop);
 
 
 
@@ -159,7 +164,7 @@ const SecuritySettings = () => {
       const { data: respAddIp, error: fnAddIpError } = await supabase.functions.invoke('manage-blocked-items', {
         body: {
           action: 'add_ip',
-          shop_id: shop,
+          shop_id: effectiveShop,
           ip_address: trimmedIP,
           reason: newIPReason.trim() || t('unspecified'),
           redirect_url: newIPRedirect.trim() || '/blocked'
@@ -227,8 +232,8 @@ const SecuritySettings = () => {
   };
 
   const handleAddCountry = async () => {
-    if (!shop || !selectedCountry) {
-      console.error('❌ Missing shop or selectedCountry:', { shop, selectedCountry });
+    if (!effectiveShop || !selectedCountry) {
+      console.error('❌ Missing shop or selectedCountry:', { effectiveShop, selectedCountry });
       toast({
         title: t('error'),
         description: t('invalidInput'),
@@ -241,13 +246,13 @@ const SecuritySettings = () => {
     if (!countryInfo) return;
 
     try {
-      console.log('🔍 Current shop value:', shop);
+      console.log('🔍 Current shop value:', effectiveShop);
 
       // استدعاء Edge Function لإضافة دولة بدون الحاجة لجلسة عميل
       const { data: respAddCountry, error: fnAddCountryError } = await supabase.functions.invoke('manage-blocked-items', {
         body: {
           action: 'add_country',
-          shop_id: shop,
+          shop_id: effectiveShop,
           country_code: selectedCountry.toUpperCase(),
           country_name: countryInfo.name,
           reason: newCountryReason.trim() || t('unspecified'),
@@ -327,7 +332,7 @@ const SecuritySettings = () => {
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
-    link.setAttribute('download', `blocked-ips-${shop}-${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `blocked-ips-${effectiveShop}-${new Date().toISOString().split('T')[0]}.csv`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
@@ -366,7 +371,7 @@ const SecuritySettings = () => {
 
   // إنتاج سكريپت الحماية
   const generateProtectionScript = async () => {
-    if (!shop) {
+    if (!effectiveShop) {
       toast({
         title: t('error'),
         description: t('invalidInput'),
@@ -378,7 +383,7 @@ const SecuritySettings = () => {
     setScriptLoading(true);
     try {
       // إنتاج السكريپت محلياً بدلاً من استخدام Edge Function
-      const script = generateShopifyProtectionScript(shop);
+      const script = generateShopifyProtectionScript(effectiveShop);
       setProtectionScript(script);
 
       toast({
@@ -689,14 +694,14 @@ const SecuritySettings = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `codform-protection-${shop}.html`;
+    a.download = `codform-protection-${effectiveShop}.html`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
 
-  if (!shop) {
+  if (!effectiveShop) {
     return (
       <SettingsLayout>
         <div className="container mx-auto p-6">

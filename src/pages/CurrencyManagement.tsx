@@ -19,7 +19,9 @@ const CurrencyManagement = () => {
   const { t, language } = useI18n();
   const { currentStore, userStores } = useSimpleShopifyAuth();
   
-  // إعدادات العرض
+  // Admin bypass support
+  const isAdminMode = localStorage.getItem('admin_bypass') === 'true';
+  
   const [displaySettings, setDisplaySettings] = useState<CurrencyDisplaySettings>({
     showSymbol: true,
     symbolPosition: 'before',
@@ -27,18 +29,13 @@ const CurrencyManagement = () => {
     customSymbols: {}
   });
   
-  // المعدلات المخصصة
   const [customRates, setCustomRates] = useState<Map<string, any>>(new Map());
   const [editingRate, setEditingRate] = useState<string | null>(null);
   const [newRate, setNewRate] = useState({ currency: '', rate: '' });
   const [loading, setLoading] = useState(false);
 
-  // تحميل الإعدادات عند بدء التشغيل أو تغيير المتجر
   useEffect(() => {
-    console.log('🔄 CurrencyManagement useEffect triggered:', { currentStore, userStoresLength: userStores.length });
-    
-    const actualCurrentStore = localStorage.getItem('current_shopify_store');
-    console.log('⏰ Immediate check - actual store:', actualCurrentStore);
+    const actualCurrentStore = localStorage.getItem('current_shopify_store') || (isAdminMode ? 'admin-bypass' : null);
     
     if (actualCurrentStore) {
       // تعيين السياق الجديد وإعادة التحميل فوراً
