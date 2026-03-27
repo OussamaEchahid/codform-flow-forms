@@ -16,6 +16,7 @@ import { validateAndCleanShop } from "@/utils/shop-validation";
 
 const GeneralSettings = () => {
   const { t } = useI18n();
+  const isAdminMode = localStorage.getItem('admin_bypass') === 'true';
   const [paymentStatus, setPaymentStatus] = useState("pending");
   const [paymentStatusEnabled, setPaymentStatusEnabled] = useState(true);
   const [dailyOrderLimit, setDailyOrderLimit] = useState(5);
