@@ -860,13 +860,13 @@ const QuantityOffers = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {!isConnected ? (
+              {!isConnected && !isAdmin ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <Package className="mx-auto h-12 w-12 mb-4 opacity-50" />
                    <p>{t('shopifyNotConnected')}</p>
                    <p className="text-sm">{t('connectShopifyFirst')}</p>
                 </div>
-              ) : shopifyLoading ? (
+              ) : shopifyLoading && !isAdmin ? (
                 <div className="text-center py-8">
                   <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                   <p className="mt-2 text-muted-foreground">{t('loadingProducts')}</p>
