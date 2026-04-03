@@ -39,6 +39,44 @@ interface QuantityOffersPreviewProps {
   currency?: string;
 }
 
+const createFallbackFormFields = (form?: any) => {
+  const isRtl =
+    form?.language === 'ar' ||
+    form?.direction === 'rtl' ||
+    form?.style?.formDirection === 'rtl' ||
+    /[\u0600-\u06FF]/.test(form?.title || '');
+
+  return [
+    {
+      id: 'fallback-name',
+      type: 'text',
+      label: isRtl ? 'الاسم الكامل' : 'Full name',
+      placeholder: isRtl ? 'أدخل اسمك الكامل' : 'Enter your full name',
+      required: true,
+    },
+    {
+      id: 'fallback-phone',
+      type: 'phone',
+      label: isRtl ? 'رقم الهاتف' : 'Phone number',
+      placeholder: isRtl ? 'أدخل رقم الهاتف' : 'Enter your phone number',
+      required: true,
+    },
+    {
+      id: 'fallback-address',
+      type: 'textarea',
+      label: isRtl ? 'العنوان' : 'Address',
+      placeholder: isRtl ? 'أدخل عنوانك الكامل' : 'Enter your full address',
+      required: false,
+    },
+    {
+      id: 'fallback-submit',
+      type: 'submit',
+      text: isRtl ? 'تأكيد الطلب' : 'Confirm order',
+      label: isRtl ? 'تأكيد الطلب' : 'Confirm order',
+    },
+  ];
+};
+
 const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
   form,
   offers,
@@ -120,7 +158,10 @@ const QuantityOffersPreview: React.FC<QuantityOffersPreviewProps> = ({
 
   const formStyle = form.style || {};
   const formData = Array.isArray(form.data) ? form.data : [];
-  const formFields = formData.length > 0 && formData[0]?.fields ? formData[0].fields : [];
+  const extractedFields = formData.flatMap((step: any) =>
+    Array.isArray(step?.fields) ? step.fields : []
+  );
+  const formFields = extractedFields.length > 0 ? extractedFields : createFallbackFormFields(form);
 
   // Quantity offers component
   const QuantityOffersBlock = () => {
