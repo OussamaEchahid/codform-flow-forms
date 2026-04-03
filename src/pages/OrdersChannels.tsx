@@ -13,6 +13,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { ADMIN_BYPASS_SHOP_ID, isAdminBypassEnabled } from '@/utils/admin-mode';
 
 
 const OrdersChannels = () => {
@@ -66,13 +67,19 @@ const OrdersChannels = () => {
     enabled: true
   });
 
-  // Allow access if either authenticated with user or connected with Shopify
-  const hasAccess = !!user || shopifyConnected;
+  const isAdminMode = isAdminBypassEnabled();
+
+  // Allow access if either authenticated with user, connected with Shopify, or admin bypass is enabled
+  const hasAccess = !!user || shopifyConnected || isAdminMode;
 
   // Check localStorage as fallback
   const localStorageConnected = localStorage.getItem('shopify_connected') === 'true';
   const actualHasAccess = hasAccess || localStorageConnected;
-  const actualShop = shop || localStorage.getItem('shopify_store');
+  const actualShop =
+    shop ||
+    localStorage.getItem('active_shopify_store') ||
+    localStorage.getItem('shopify_store') ||
+    (isAdminMode ? ADMIN_BYPASS_SHOP_ID : null);
 
   // Fetch Google Sheets configurations
   useEffect(() => {
